@@ -1,0 +1,8 @@
+#!/bin/sh
+
+set -e
+
+im=$(docker build -q .)
+id=$(docker create --name firefly-build -it $im)
+docker cp $id:/build/firefly.bin firefly.bin
+docker rm $id >/dev/null
