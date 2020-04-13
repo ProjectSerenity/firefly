@@ -20,17 +20,18 @@ uint strlen(const char* str) {
 
 static const uint VGA_WIDTH = 80;
 static const uint VGA_HEIGHT = 25;
+static uint16* const VGA_MEMORY = (uint16*) 0xB8000;
 
-uint terminal_row;
-uint terminal_column;
-uint8 terminal_color;
-uint16* terminal_buffer;
+static uint terminal_row;
+static uint terminal_column;
+static uint8 terminal_color;
+static uint16* terminal_buffer;
 
 void terminal_Init(void) {
 	terminal_row = 0;
 	terminal_column = 0;
 	terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-	terminal_buffer = (uint16*) 0xB8000;
+	terminal_buffer = VGA_MEMORY;
 	for (uint y = 0; y < VGA_HEIGHT; y++) {
 		for (uint x = 0; x < VGA_WIDTH; x++) {
 			const uint index = y * VGA_WIDTH + x;
@@ -85,17 +86,9 @@ void terminal_WriteString(string s) {
 	terminal_Write(s.ptr, s.len);
 }
 
-void terminal_WriteCString(const char* c) {
-	terminal_WriteString(newString(c));
-}
-
 void terminal_WriteError(string s) {
 	uint8 old = terminal_color;
 	terminal_SetColor(vga_entry_color(VGA_COLOR_RED, VGA_COLOR_BLACK));
 	terminal_Write(s.ptr, s.len);
 	terminal_SetColor(old);
-}
-
-void terminal_WriteCError(const char* c) {
-	terminal_WriteError(newString(c));
 }
