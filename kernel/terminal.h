@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.h"
+#include "std.h"
 
 // Hardware text mode color constants.
 enum vga_color {
