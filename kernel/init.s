@@ -21,9 +21,9 @@ stack_top:
 
 // Start the kernel.
 .section .text
-.global start
-.type start, @function
-start:
+.global kinit
+.type kinit, @function
+kinit:
 	// The bootloader has loaded us in 32-bit
 	// protected mode. Interrupts and paging
 	// are disabled.
@@ -38,4 +38,4 @@ start:
 	jmp 1b               // Re-halt if interrupted.
 
 // Set the size of start.
-.size start, . - start
+.size kinit, . - kinit
