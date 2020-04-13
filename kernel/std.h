@@ -20,4 +20,4 @@ typedef struct string {
 	const char* ptr;
 } string;
 
-string newString(const char* data);
+string S(const char* data);

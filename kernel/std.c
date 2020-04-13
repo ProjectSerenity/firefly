@@ -8,7 +8,7 @@ void copy(char* dst, char* src, uint n) {
 	}
 }
 
-string newString(const char* data) {
+string S(const char* data) {
 	string s;
 	s.ptr = data;
 	s.len = 0;
