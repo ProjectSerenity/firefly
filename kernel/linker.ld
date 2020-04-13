@@ -1,5 +1,5 @@
 /* The entry point. */
-ENTRY(start)
+ENTRY(kinit)
 
 /* Declare where each section of the object files will */
 /* be put in the final kernel image. */
