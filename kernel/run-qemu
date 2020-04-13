@@ -1,3 +1,5 @@
 #!/bin/sh
 
-qemu-system-i386 -kernel firefly.bin
+qemu-system-x86_64 \
+	-no-reboot \
+	-kernel firefly.bin
