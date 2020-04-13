@@ -2,5 +2,5 @@
 
 void kmain(void) {
 	terminal_Init();
-	terminal_WriteString(newString("Hello, kernel World!\n"));
+	terminal_WriteString(S("Hello, kernel World!\n"));
 }
