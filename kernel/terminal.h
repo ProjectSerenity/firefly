@@ -28,6 +28,4 @@ void terminal_Write(const char* data, uint size);
 void terminal_WriteChar(char c);
 void terminal_WriteCharAt(char c, uint8 color, uint x, uint y);
 void terminal_WriteString(string s);
-void terminal_WriteCString(const char* c);
 void terminal_WriteError(string s);
-void terminal_WriteCError(const char* c);
