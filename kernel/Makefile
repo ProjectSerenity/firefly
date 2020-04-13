@@ -1,26 +1,17 @@
-
 # Declare assembler, compiler, and linker flags.
 CC = clang
 
-# Expect no OS, 64-bit, build an ELF binary.
-_TARGET = --target=x86_64-none-elf
-# Expect no OS, 32-bit, build an ELF binary.
-_TARGET = --target=i386-none-elf
-# Just compile, don't link.
-_NOLINK = -c
-# Don't expect an existing host.
-_NOHOST = -ffreestanding
-# Don't include libc.
-_NOSTD  = -nostdlib
-# Target C99.
-_CSTD   = -std=c99
-# Enable all warnings.
-_WARN   = -Wall -Wextra -Wpedantic
-# Make all warnings errors.
-_ERROR  = -Werror
+_TARGET    = --target=i386-none-elf
+_NOLINK    = -c
+_NOHOST    = -ffreestanding
+_NOSTD     = -nostdlib
+_NOPIE     = -fno-PIE
+_CSTD      = -std=c99
+_WARN      = -Wall -Wextra -Wpedantic
+_ERROR     = -Werror
 
 ASFLAGS = ${_TARGET} ${_NOLINK}
-CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOHOST} ${_CSTD} ${_WARN} ${_ERROR}
+CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOPIE} ${_NOHOST} ${_CSTD} ${_WARN} ${_ERROR}
 LDFLAGS = ${_TARGET} ${_NOHOST} ${_NOSTD}
 
 OBJECTS = init.o kernel.o terminal.o types.o
@@ -29,7 +20,7 @@ OBJECTS = init.o kernel.o terminal.o types.o
 all: firefly.bin
 
 firefly.bin: ${OBJECTS}
-	${CC} ${LDFLAGS} -o firefly.bin -T linker.ld ${OBJECTS}
+	${CC} ${LDFLAGS} -T linker.ld -o firefly.bin ${OBJECTS}
 	grub-file --is-x86-multiboot firefly.bin
 
 # Bootstrap.
