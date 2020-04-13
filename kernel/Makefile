@@ -14,7 +14,7 @@ ASFLAGS = ${_TARGET} ${_NOLINK}
 CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOPIE} ${_NOHOST} ${_CSTD} ${_WARN} ${_ERROR}
 LDFLAGS = ${_TARGET} ${_NOHOST} ${_NOSTD}
 
-OBJECTS = init.o kernel.o terminal.o types.o
+OBJECTS = init.o kernel.o terminal.o std.o
 
 # Main target.
 all: firefly.bin
