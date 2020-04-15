@@ -1,4 +1,6 @@
 #pragma once
+#ifndef STD_H
+#define STD_H
 
 typedef unsigned char uint8;
 typedef unsigned short uint16;
@@ -21,3 +23,5 @@ typedef struct string {
 } string;
 
 string S(const char* data);
+
+#endif // STD_H
