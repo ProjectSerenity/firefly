@@ -117,9 +117,6 @@ int printBits(uint64 v, int base, bool upper, int minWidth, char padChar);
 int printk(char format[], ...) {
 	va_list parameters;
 	va_start(parameters, format);
-	#if 0
-	#define debug_printk 1
-	#endif
 
 	int written = 0;
 
@@ -138,22 +135,14 @@ int printk(char format[], ...) {
 		// Non-verb content.
 
 		if (!inVerb && c != '%') {
-			#ifdef debug_printk
-			printf("non-verb char %02x ('%c')\n", c, c);
-			#else
 			written += terminal_WriteChar(c);
-			#endif
 			continue;
 		}
 
 		// Escaped percents.
 
 		if (!inVerb && format[i+1] == '%') {
-			#ifdef debug_printk
-			printf("non-verb %%%% %02x ('%c')\n", '%', '%');
-			#else
 			written += terminal_WriteChar('%');
-			#endif
 			i++;
 			continue;
 		}
@@ -161,9 +150,6 @@ int printk(char format[], ...) {
 		// Verb-initiating percents.
 
 		if (!inVerb) {
-			#ifdef debug_printk
-			printf("start-verb %%\n");
-			#endif
 			inVerb = true;
 			continue;
 		}
@@ -172,9 +158,6 @@ int printk(char format[], ...) {
 
 		switch (c) {
 		case 'u':
-			#ifdef debug_printk
-			printf("got unsigned modifier\n");
-			#endif
 			if (isUnsigned || isSigned || isMemory) {
 				written += terminal_WriteError(str("%u!(BAD_MODIFIER)"));
 				continue;
@@ -183,9 +166,6 @@ int printk(char format[], ...) {
 			isUnsigned = true;
 			continue;
 		case '+':
-			#ifdef debug_printk
-			printf("got signed modifier\n");
-			#endif
 			if (isUnsigned || isSigned || isMemory) {
 				written += terminal_WriteError(str("%+!(BAD_MODIFIER)"));
 				continue;
@@ -194,9 +174,6 @@ int printk(char format[], ...) {
 			isSigned = true;
 			continue;
 		case 'm':
-			#ifdef debug_printk
-			printf("got memory modifier\n");
-			#endif
 			if (isUnsigned || isSigned || isMemory) {
 				written += terminal_WriteError(str("%m!(BAD_MODIFIER)"));
 				continue;
@@ -205,9 +182,6 @@ int printk(char format[], ...) {
 			isMemory = true;
 			continue;
 		case ' ':
-			#ifdef debug_printk
-			printf("got space modifier\n");
-			#endif
 			if (addSpace) {
 				written += terminal_WriteError(str("% !(BAD_MODIFIER)"));
 				continue;
@@ -216,9 +190,6 @@ int printk(char format[], ...) {
 			addSpace = true;
 			continue;
 		case 'w':
-			#ifdef debug_printk
-			printf("got width modifier\n");
-			#endif
 			if (isUnsigned || isSigned || isZero) {
 				written += terminal_WriteError(str("%u!(BAD_MODIFIER)"));
 				continue;
@@ -228,10 +199,6 @@ int printk(char format[], ...) {
 			continue;
 		case '0':
 			if (!isZero && !isWidth && size == 0 && minWidth == 0) {
-				#ifdef debug_printk
-				printf("got zero modifier\n");
-				#endif
-
 				isZero = true;
 				continue;
 			}
@@ -247,14 +214,8 @@ int printk(char format[], ...) {
 		case '9':
 			if (isUnsigned || isSigned || isMemory) {
 				size = 10*size + (c-'0');
-				#ifdef debug_printk
-				printf("got size modifier %c (%d)\n", c, size);
-				#endif
 			} else if (isWidth || isZero) {
 				minWidth = 10*minWidth + (c-'0');
-				#ifdef debug_printk
-				printf("got prefix modifier %c (%d)\n", c, minWidth);
-				#endif
 			} else {
 				written += terminal_WriteError(str("%u!(BAD_MODIFIER)"));
 				goto exit_verb;
@@ -288,19 +249,10 @@ int printk(char format[], ...) {
 			bool isNeg = false;
 			switch (size) {
 			case 8:
-				#ifdef debug_printk
-				printf("8-bit number\n");
-				#endif
 				v = (uint64)va_arg(parameters, int); // uint8 is promoted to int.
 				if (isUnsigned) {
-					#ifdef debug_printk
-					printf("got value %u\n", (uint8)v);
-					#endif
 					v = (uint64)(uint8)v;
 				} else {
-					#ifdef debug_printk
-					printf("got value %d\n", (int8)v);
-					#endif
 					v = (uint64)(int8)v;
 					if ((int8)v < 0) {
 						isNeg = true;
@@ -309,19 +261,10 @@ int printk(char format[], ...) {
 				}
 				break;
 			case 16:
-				#ifdef debug_printk
-				printf("16-bit number\n");
-				#endif
 				v = (uint64)va_arg(parameters, int); // uint16 is promoted to int.
 				if (isUnsigned) {
-					#ifdef debug_printk
-					printf("got value %u\n", (uint16)v);
-					#endif
 					v = (uint64)(uint16)v;
 				} else {
-					#ifdef debug_printk
-					printf("got value %d\n", (int16)v);
-					#endif
 					v = (uint64)(int16)v;
 					if ((int16)v < 0) {
 						isNeg = true;
@@ -330,19 +273,10 @@ int printk(char format[], ...) {
 				}
 				break;
 			case 32:
-				#ifdef debug_printk
-				printf("32-bit number\n");
-				#endif
 				v = (uint64)va_arg(parameters, uint32);
 				if (isUnsigned) {
-					#ifdef debug_printk
-					printf("got value %u\n", (uint32)v);
-					#endif
 					v = (uint64)(uint32)v;
 				} else {
-					#ifdef debug_printk
-					printf("got value %d\n", (int32)v);
-					#endif
 					v = (uint64)(int32)v;
 					if ((int32)v < 0) {
 						isNeg = true;
@@ -351,18 +285,8 @@ int printk(char format[], ...) {
 				}
 				break;
 			case 64:
-				#ifdef debug_printk
-				printf("64-bit number\n");
-				#endif
 				v = (uint64)va_arg(parameters, uint64);
-				if (isUnsigned) {
-					#ifdef debug_printk
-					printf("got value %lu\n", (uint64)v);
-					#endif
-				} else {
-					#ifdef debug_printk
-					printf("got value %ld\n", (int64)v);
-					#endif
+				if (!isUnsigned) {
 					if ((int64)v < 0) {
 						isNeg = true;
 						v = (uint64)(-(int64)v);
@@ -373,9 +297,6 @@ int printk(char format[], ...) {
 				written += terminal_WriteError(str("%!n(MISSING_SIZE)"));
 				goto exit_verb;
 			default:
-				#ifdef debug_printk
-				printf("unexpected size: %d\n", size);
-				#endif
 				written += terminal_WriteError(str("%!n(BAD_SIZE)"));
 				goto exit_verb;
 			}
@@ -413,14 +334,7 @@ int printk(char format[], ...) {
 				padChar = '0';
 			}
 
-			#ifdef debug_printk
-			printf("v=%lu, base=%d, minWidth=%d, padChar=%c: ", v, base, minWidth, padChar);
-			#endif
 			written += printBits(v, base, c == 'X', minWidth, padChar);
-
-			#ifdef debug_printk
-			printf("\n");
-			#endif
 			goto exit_verb;
 		}
 
@@ -444,11 +358,7 @@ int printk(char format[], ...) {
 			}
 
 			char v = (char)va_arg(parameters, int); // char is promoted to int.
-			#ifdef debug_printk
-			printf("char %02x ('%c')\n", v, v);
-			#else
 			written += terminal_WriteChar(v);
-			#endif
 			goto exit_verb;
 		}
 
@@ -494,11 +404,7 @@ int printk(char format[], ...) {
 				minWidth--;
 			}
 
-			#ifdef debug_printk
-			printf("string: \"%.*s\"\n", s.len, s.ptr);
-			#else
 			written += terminal_WriteString(s);
-			#endif
 			goto exit_verb;
 		}
 
@@ -606,9 +512,6 @@ int printk(char format[], ...) {
 
 		// Unrecognised verb.
 
-		#ifdef debug_printk
-		printf("got unrecognised modifier %02x (%c)\n", c, c);
-		#endif
 		written += terminal_WriteError(str("%!(BAD_MODIFIER)"));
 		continue;
 
