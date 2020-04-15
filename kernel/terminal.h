@@ -26,10 +26,10 @@ enum vga_color {
 
 void terminal_Init(void);
 void terminal_SetColor(uint8 color);
-void terminal_Write(const char* data, uint size);
-void terminal_WriteChar(char c);
-void terminal_WriteCharAt(char c, uint8 color, uint x, uint y);
-void terminal_WriteString(string s);
-void terminal_WriteError(string s);
+uint terminal_Write(const char* data, uint size);
+uint terminal_WriteChar(char c);
+uint terminal_WriteCharAt(char c, uint8 color, uint x, uint y);
+uint terminal_WriteString(string s);
+uint terminal_WriteError(string s);
 
 #endif // TERMINAL_H
