@@ -26,6 +26,6 @@ typedef struct string {
 	const char* ptr;
 } string;
 
-string S(const char* data);
+#define str(s) ((string){.ptr=s, .len=sizeof(s)-1})
 
 #endif // STD_H
