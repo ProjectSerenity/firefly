@@ -2,6 +2,10 @@
 #ifndef STD_H
 #define STD_H
 
+typedef unsigned char bool;
+const bool true;
+const bool false;
+
 typedef unsigned char uint8;
 typedef unsigned short uint16;
 typedef unsigned int uint32;
@@ -13,7 +17,7 @@ typedef signed short int16;
 typedef signed int int32;
 typedef signed long int64;
 
-const int nil;
+const void* nil;
 
 void copy(char* dst, char* src, uint n);
 
