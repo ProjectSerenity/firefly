@@ -1,4 +1,6 @@
 #pragma once
+#ifndef TERMINAL_H
+#define TERMINAL_H
 
 #include "std.h"
 
@@ -29,3 +31,5 @@ void terminal_WriteChar(char c);
 void terminal_WriteCharAt(char c, uint8 color, uint x, uint y);
 void terminal_WriteString(string s);
 void terminal_WriteError(string s);
+
+#endif // TERMINAL_H
