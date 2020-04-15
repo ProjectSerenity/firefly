@@ -1,6 +1,9 @@
 #include "std.h"
 
-const int nil = 0;
+const bool true = 1;
+const bool false = 0;
+
+const void* nil = 0;
 
 void copy(char* dst, char* src, uint n) {
 	for (uint i = 0; i < n; i++) {
