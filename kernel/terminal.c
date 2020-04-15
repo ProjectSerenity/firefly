@@ -44,26 +44,27 @@ void terminal_SetColor(uint8 color) {
 	terminal_color = color;
 }
 
-void terminal_WriteCharAt(char c, uint8 color, uint x, uint y) {
+uint terminal_WriteCharAt(char c, uint8 color, uint x, uint y) {
 	const uint index = y * VGA_WIDTH + x;
 	terminal_buffer[index] = vga_entry(c, color);
+	return 1;
 }
 
-void terminal_WriteChar(char c) {
+uint terminal_WriteChar(char c) {
 	switch (c) {
 	case '\n':
 		terminal_row++;
 		terminal_column = 0;
-		return;
+		return 1;
 	}
 
 	terminal_WriteCharAt(c, terminal_color, terminal_column, terminal_row);
 	if (++terminal_column < VGA_WIDTH) {
-		return;
+		return 1;
 	}
 
 	if (++terminal_row < VGA_HEIGHT) {
-		return;
+		return 1;
 	}
 
 	// We've reached the end of the terminal,
@@ -74,21 +75,27 @@ void terminal_WriteChar(char c) {
 
 	// Go back to the penultimate line.
 	terminal_row--;
+
+	return 1;
 }
 
-void terminal_Write(const char* data, uint size) {
+uint terminal_Write(const char* data, uint size) {
 	for (uint i = 0; i < size; i++) {
 		terminal_WriteChar(data[i]);
 	}
+
+	return size;
 }
 
-void terminal_WriteString(string s) {
+uint terminal_WriteString(string s) {
 	terminal_Write(s.ptr, s.len);
+	return s.len;
 }
 
-void terminal_WriteError(string s) {
+uint terminal_WriteError(string s) {
 	uint8 old = terminal_color;
 	terminal_SetColor(vga_entry_color(VGA_COLOR_RED, VGA_COLOR_BLACK));
 	terminal_Write(s.ptr, s.len);
 	terminal_SetColor(old);
+	return s.len;
 }
