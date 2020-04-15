@@ -2,5 +2,5 @@
 
 void kmain(void) {
 	terminal_Init();
-	terminal_WriteString(S("Hello, kernel World!\n"));
+	printk("Hello, %m12s! (%%+8d=%+8d, %%u8d=%u8d)\n", "kernel world", 255, 255);
 }

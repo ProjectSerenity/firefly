@@ -28,4 +28,6 @@ typedef struct string {
 
 #define str(s) ((string){.ptr=s, .len=sizeof(s)-1})
 
+int printk(char format[], ...);
+
 #endif // STD_H
