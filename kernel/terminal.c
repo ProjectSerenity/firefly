@@ -34,8 +34,9 @@ void terminal_Init(void) {
 	terminal_column = 0;
 	terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
 	terminal_buffer = VGA_MEMORY;
-	for (uint y = 0; y < VGA_HEIGHT; y++) {
-		for (uint x = 0; x < VGA_WIDTH; x++) {
+	uint x, y;
+	for (y = 0; y < VGA_HEIGHT; y++) {
+		for (x = 0; x < VGA_WIDTH; x++) {
 			const uint index = y * VGA_WIDTH + x;
 			terminal_buffer[index] = vga_entry(' ', terminal_color);
 		}
@@ -82,7 +83,8 @@ uint terminal_WriteChar(char c) {
 }
 
 uint terminal_Write(const char* data, uint size) {
-	for (uint i = 0; i < size; i++) {
+	uint i;
+	for (i = 0; i < size; i++) {
 		terminal_WriteChar(data[i]);
 	}
 
