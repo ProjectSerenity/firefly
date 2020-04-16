@@ -17,6 +17,7 @@ LDFLAGS = ${_TARGET} ${_NOHOST} ${_NOSTD}
 OBJECTS = init.o kernel.o terminal.o std.o
 
 # Main target.
+.PHONY: all
 all: firefly.bin
 
 firefly.bin: ${OBJECTS}
@@ -38,5 +39,6 @@ kernel.o: terminal.h
 terminal.o: terminal.h
 
 # Cleanup.
+.PHONY: clean
 clean:
 	rm firefly.bin *.o
