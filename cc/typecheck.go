@@ -919,7 +919,7 @@ func (lx *lexer) typecheckExpr(x *Expr) {
 		case isInt(l) && isPtr(r):
 			x.XType = ptrBase(r)
 		default:
-			lx.Errorf("invalid index %v (types %v, %v)", x, l, r, isPtr(l), isInt(r), r.Kind, r.Base, r.Base.Kind)
+			lx.Errorf("invalid index %v (types %v, %v, %v, %v, %v, %v, %v)", x, l, r, isPtr(l), isInt(r), r.Kind, r.Base, r.Base.Kind)
 		}
 
 	case Indir:
