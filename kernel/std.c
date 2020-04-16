@@ -130,7 +130,8 @@ int printk(char format[], ...) {
 	bool addSpace = false;
 	int size = 0;
 	int minWidth = 0;
-	for (int i = 0; format[i] != 0; i++) {
+	int i;
+	for (i = 0; format[i] != 0; i++) {
 		char c = format[i];
 
 		// Non-verb content.
@@ -430,7 +431,8 @@ int printk(char format[], ...) {
 			}
 
 			char* buffer = (char*) va_arg(parameters, char*);
-			for (int i = 0; i < size; i++) {
+			int i;
+			for (i = 0; i < size; i++) {
 				written += printBits(buffer[i], 16, c == 'X', 0, '0');
 				if (addSpace && i+1 < size) {
 					written += terminal_WriteChar(' ');
@@ -453,7 +455,8 @@ int printk(char format[], ...) {
 			string right = {.ptr=rightChars, .len=18};
 
 			char* buffer = (char*) va_arg(parameters, char*);
-			for (int i = 0; i < size; i++) {
+			int i;
+			for (i = 0; i < size; i++) {
 				if (used == 0) {
 					// At the beginning of a line we print the current
 					// offset in hex.
