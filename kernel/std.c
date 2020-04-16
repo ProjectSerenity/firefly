@@ -1,3 +1,5 @@
+// +build ignore
+
 #include "std.h"
 #include "terminal.h"
 #include <stdarg.h>
