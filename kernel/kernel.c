@@ -1,5 +1,6 @@
 // +build ignore
 
+#include "std.h"
 #include "terminal.h"
 
 void kmain(void) {
