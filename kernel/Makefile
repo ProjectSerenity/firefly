@@ -20,7 +20,8 @@ OBJECTS = init.o kernel.o terminal.o std.o
 .PHONY: all
 all: firefly.bin
 
-firefly.bin: ${OBJECTS}
+firefly.bin: kcheck ${OBJECTS}
+	kcheck header *.h
 	${CC} ${LDFLAGS} -T linker.ld -o firefly.bin ${OBJECTS}
 	grub-file --is-x86-multiboot firefly.bin
 
@@ -32,6 +33,7 @@ init.o: init.s
 .SUFFIXES: .c .o
 
 .c.o:
+	kcheck object $<
 	${CC} ${CCFLAGS} -o $@ $<
 
 # Kernel objects.
