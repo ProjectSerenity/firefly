@@ -30,7 +30,17 @@ typedef struct string {
 	const char* ptr;
 } string;
 
+// This macro is what is actually used to convert
+// string literals to the string type.
+//
 #define str(s) ((string){.ptr=s, .len=sizeof(s)-1})
+
+// The cc parser ignores macros, so we use this
+// function declaration to allow cc to type-check
+// the macro. The function is not implemented, as
+// the macro is used instead.
+//
+string str(char s[]);
 
 int printk(char format[], ...);
 
