@@ -321,7 +321,7 @@ func stripTypedef(t *Type) *Type {
 
 func isInt(t *Type) bool {
 	t = stripTypedef(t)
-	return Int8 <= t.Kind && t.Kind <= Ulonglong || t.Kind == Enum
+	return Int8 <= t.Kind && t.Kind <= Uint64 || t.Kind == Enum
 }
 
 func isPtr(t *Type) bool {
@@ -508,7 +508,7 @@ func promote2(l, r *Type) *Type {
 	// signed is higher kind than unsigned (l.Kind > r.Kind).
 	// if signed bigger than unsigned, signed wins.
 	// only possible way this isn't true
-	case (l.Kind-Int8)/2 > (r.Kind-Int8)/2 && (l.Kind != Int64 || r.Kind != Uint32):
+	case (l.Kind-Int8)/2 > (r.Kind-Int8)/2 && (l.Kind != Int32 || r.Kind != Uint):
 		return l
 	// otherwise, use unsigned type corresponding to the signed type.
 	default:
