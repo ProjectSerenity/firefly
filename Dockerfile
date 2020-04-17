@@ -5,7 +5,8 @@ RUN apt-get update && \
 
 RUN curl https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz | tar -xzf - -C /usr/local
 
-ENV PATH="${PATH}:/usr/local/go/bin"
+ENV GOBIN="/tmp/gobin"
+ENV PATH="${PATH}:/usr/local/go/bin:${GOBIN}"
 
 WORKDIR /build
 
