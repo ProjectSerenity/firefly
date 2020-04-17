@@ -32,12 +32,12 @@ const (
 	Uint8
 	Int16
 	Uint16
+	Int
+	Uint
 	Int32
 	Uint32
 	Int64
 	Uint64
-	Longlong
-	Ulonglong
 	Float32
 	Float64
 	Enum
@@ -55,12 +55,12 @@ var typeKindString = []string{
 	Uint8:       "uint8",
 	Int16:       "int16",
 	Uint16:      "uint16",
+	Int:         "int",
+	Uint:        "uint",
 	Int32:       "int32",
 	Uint32:      "uint32",
 	Int64:       "int64",
 	Uint64:      "uint64",
-	Longlong:    "longlong",
-	Ulonglong:   "ulonglong",
 	Float32:     "float32",
 	Float64:     "float64",
 	Ptr:         "pointer",
@@ -146,12 +146,12 @@ var (
 	UcharType     = newType(Uint8)
 	ShortType     = newType(Int16)
 	UshortType    = newType(Uint16)
-	IntType       = newType(Int32)
-	UintType      = newType(Uint32)
-	LongType      = newType(Int64)
-	UlongType     = newType(Uint64)
-	LonglongType  = newType(Longlong)
-	UlonglongType = newType(Ulonglong)
+	IntType       = newType(Int)
+	UintType      = newType(Uint)
+	LongType      = newType(Int32)
+	UlongType     = newType(Uint32)
+	LonglongType  = newType(Int64)
+	UlonglongType = newType(Uint64)
 	FloatType     = newType(Float32)
 	DoubleType    = newType(Float64)
 	VoidType      = newType(Void)
