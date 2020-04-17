@@ -230,7 +230,7 @@ func processObject(issues chan<- Issue, name string) {
 					return
 				}
 			case verb.String:
-				if argType.Kind != cc.Ptr {
+				if argType.Kind != cc.Ptr && argType.Kind != cc.Array {
 					Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) is non-string type %s", i+1, verb.Text, argType.Kind)
 					return
 				}
@@ -240,7 +240,7 @@ func processObject(issues chan<- Issue, name string) {
 					return
 				}
 			case verb.Buffer, verb.Hexdump:
-				if argType.Kind != cc.Ptr {
+				if argType.Kind != cc.Ptr && argType.Kind != cc.Array {
 					Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) is non-string type %s", i+1, verb.Text, argType.Kind)
 					return
 				}
@@ -250,7 +250,7 @@ func processObject(issues chan<- Issue, name string) {
 					return
 				}
 			case verb.Pointer:
-				if argType.Kind != cc.Ptr {
+				if argType.Kind != cc.Ptr && argType.Kind != cc.Array {
 					Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) is non-pointer type %s", i+1, verb.Text, argType.Kind)
 					return
 				}
