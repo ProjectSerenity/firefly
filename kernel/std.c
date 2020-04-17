@@ -31,6 +31,7 @@ int printBits(uint64 v, int base, bool upper, int minWidth, char padChar);
 // 	%c         Character
 // 	%s         String
 // 	%h         Hexdump buffer
+// 	%p         Pointer address
 // 	%%         Percent literal
 //
 // Verb modifiers (which appear between the
@@ -114,6 +115,16 @@ int printBits(uint64 v, int base, bool upper, int minWidth, char padChar);
 // 		"00000000  43 20 69 73 20 61 6e 20  6f 70 65 6e 20 73 6f 75  |C is an open sou|\n"
 // 		"00000010  72 63 65 20 70 72 6f 67  72 61 6d 6d 69 6e 67 20  |rce programming |\n"
 // 		"00000020  6c 61 6e 67 75 61 67 65  2e                       |language.|\n"
+//
+// Pointers
+//
+// Pointers are printed in hexadecimal format with
+// an '0x' prefix with %p. This verb takes no
+// modifiers.
+//
+// Common examples:
+//
+// 	printk("%p", printk);   // 0x1234567890abcdef
 //
 int printk(char format[], ...) {
 	va_list parameters;
@@ -357,6 +368,12 @@ int printk(char format[], ...) {
 			} else if (addSpace) {
 				written += terminal_WriteError(str("%!c(SPACE)"));
 				goto exit_verb;
+			} else if (isWidth) {
+				written += terminal_WriteError(str("%!c(WIDTH)"));
+				goto exit_verb;
+			} else if (isZero) {
+				written += terminal_WriteError(str("%!c(ZERO)"));
+				goto exit_verb;
 			}
 
 			char v = (char)va_arg(parameters, int); // char is promoted to int.
@@ -510,6 +527,36 @@ int printk(char format[], ...) {
 				rightChars[17] = '\n';
 				written += terminal_WriteString(right);
 			}
+
+			goto exit_verb;
+		}
+
+		// Pointer
+
+		if (c == 'p') {
+			if (isUnsigned) {
+				written += terminal_WriteError(str("%!p(UNSIGNED)"));
+				goto exit_verb;
+			} else if (isSigned) {
+				written += terminal_WriteError(str("%!p(SIGNED)"));
+				goto exit_verb;
+			} else if (isMemory) {
+				written += terminal_WriteError(str("%!p(MEMORY)"));
+				goto exit_verb;
+			} else if (addSpace) {
+				written += terminal_WriteError(str("%!p(SPACE)"));
+				goto exit_verb;
+			} else if (isWidth) {
+				written += terminal_WriteError(str("%!p(WIDTH)"));
+				goto exit_verb;
+			} else if (isZero) {
+				written += terminal_WriteError(str("%!p(ZERO)"));
+				goto exit_verb;
+			}
+
+			uintptr v = (uintptr)va_arg(parameters, void*);
+			written += terminal_WriteString(str("0x"));
+			written += printBits(v, 16, false, 16, '0');
 
 			goto exit_verb;
 		}
