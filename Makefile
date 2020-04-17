@@ -1,7 +1,4 @@
-.PHONY: kcheck
-kcheck:
+.PHONY: all
+all:
 	$(MAKE) -C kcheck
-
-.PHONY: kernel
-kernel:
 	$(MAKE) -C kernel
