@@ -445,6 +445,12 @@ int printk(char format[], ...) {
 			} else if (isSigned) {
 				written += terminal_WriteError(str("%!x(SIGNED)"));
 				goto exit_verb;
+			} else if (isWidth) {
+				written += terminal_WriteError(str("%!x(WIDTH)"));
+				goto exit_verb;
+			} else if (isZero) {
+				written += terminal_WriteError(str("%!x(ZERO)"));
+				goto exit_verb;
 			}
 
 			char* buffer = (char*) va_arg(parameters, char*);
@@ -462,6 +468,23 @@ int printk(char format[], ...) {
 		// Hexdump
 
 		if (c == 'h') {
+			if (isUnsigned) {
+				written += terminal_WriteError(str("%!h(UNSIGNED)"));
+				goto exit_verb;
+			} else if (isSigned) {
+				written += terminal_WriteError(str("%!h(SIGNED)"));
+				goto exit_verb;
+			} else if (addSpace) {
+				written += terminal_WriteError(str("%!h(SPACE)"));
+				goto exit_verb;
+			} else if (isWidth) {
+				written += terminal_WriteError(str("%!h(WIDTH)"));
+				goto exit_verb;
+			} else if (isZero) {
+				written += terminal_WriteError(str("%!h(ZERO)"));
+				goto exit_verb;
+			}
+
 			// Output lines look like:
 			// 00000010  2e 2f 30 31 32 33 34 35  36 37 38 39 3a 3b 3c 3d  |./0123456789:;<=|
 			// ^ offset                          ^ extra space              ^ ASCII of line.
