@@ -24,13 +24,6 @@ type Expr struct {
 	XType *Type // expression type, derived
 }
 
-func (x *Expr) String() string {
-	var p Printer
-	p.hideComments = true
-	p.printExpr(x, precLow)
-	return p.String()
-}
-
 type ExprOp int
 
 const (

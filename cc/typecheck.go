@@ -744,7 +744,7 @@ func (lx *lexer) typecheckExpr(x *Expr) {
 	case Arrow:
 		t := x.Left.XType
 		if t == nil {
-			lx.Errorf("arrow missing type %s", x.Left)
+			lx.Errorf("arrow missing type %#v", x.Left)
 			break
 		}
 		if !isPtr(t) {
