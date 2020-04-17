@@ -7,28 +7,42 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+
+	"github.com/ProjectSerenity/firefly/cc"
 )
 
 func init() {
 	log.SetFlags(0)
 }
 
+type Issue struct {
+	Span  cc.Span
+	Error error
+}
+
+func (i Issue) String() string {
+	return fmt.Sprintf("%s: %s", i.Span, i.Error)
+}
+
 var failed bool
 
-func errorf(format string, v ...interface{}) {
-	log.Printf(format, v...)
-	failed = true
+func Errorf(c chan<- Issue, span cc.Span, format string, v ...interface{}) {
+	err := fmt.Errorf(format, v...)
+	issue := Issue{Span: span, Error: err}
+	c <- issue
 }
+
+type Command func(issues chan<- Issue, args []string)
 
 type command struct {
 	flags *flag.FlagSet
 	desc  string
-	cmd   func(args []string)
+	cmd   Command
 }
 
 var commands []command
 
-func registerCommand(flags *flag.FlagSet, description string, cmd func(args []string)) {
+func registerCommand(flags *flag.FlagSet, description string, cmd Command) {
 	name := flags.Name()
 	for _, cmd := range commands {
 		if cmd.flags.Name() == name {
@@ -57,14 +71,38 @@ func main() {
 		usage()
 	}
 
+	issues := make(chan Issue)
 	for _, cmd := range commands {
 		if os.Args[1] != cmd.flags.Name() {
 			continue
 		}
 
+		done := make(chan struct{})
+		firstTen := make([]Issue, 0, 10)
+		go func() {
+			for issue := range issues {
+				if len(firstTen) < 10 {
+					firstTen = append(firstTen, issue)
+				}
+			}
+
+			close(done)
+		}()
+
 		cmd.flags.Parse(os.Args[2:])
-		cmd.cmd(cmd.flags.Args())
-		if failed {
+		cmd.cmd(issues, cmd.flags.Args())
+		close(issues)
+
+		<-done
+		for _, issue := range firstTen {
+			log.Print(issue)
+		}
+
+		if len(firstTen) == 10 {
+			log.Printf("Giving up after 10 issues.")
+		}
+
+		if len(firstTen) > 0 {
 			os.Exit(1)
 		}
 

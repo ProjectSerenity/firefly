@@ -1,7 +1,5 @@
 // Process C files, enforcing several properties:
 //
-// 	- C files must start with "// +build ignore" to
-// 	  prevent Go getting confused.
 // 	- C files' use of printk is checked for the
 // 	  correct number of args, with correct verb use.
 //
@@ -21,14 +19,14 @@ var (
 	objectDesc  = "FILE"
 )
 
-func objectCommand(args []string) {
+func objectCommand(issues chan<- Issue, args []string) {
 	if len(args) == 0 {
 		log.Printf("No object specified\n\n")
 		usage()
 	}
 
 	for _, arg := range args {
-		processObject(arg)
+		processObject(issues, arg)
 	}
 }
 
@@ -40,7 +38,7 @@ const (
 	buildIgnore = "// +build ignore"
 )
 
-func processObject(name string) {
+func processObject(issues chan<- Issue, name string) {
 	f, err := os.Open(name)
 	if err != nil {
 		log.Fatalf("failed to open %q: %v", name, err)
@@ -53,7 +51,5 @@ func processObject(name string) {
 		log.Fatalf("failed to parse %s: %v", name, err)
 	}
 
-	if len(prog.Comments.Before) < 1 || prog.Comments.Before[0].Text != buildIgnore {
-		errorf("%s: missing %q", name, buildIgnore)
-	}
+	_ = prog
 }

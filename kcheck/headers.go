@@ -17,6 +17,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/ProjectSerenity/firefly/cc"
 )
 
 var (
@@ -24,14 +26,14 @@ var (
 	headersDesc  = "[FILE...]"
 )
 
-func headersCommand(args []string) {
+func headersCommand(issues chan<- Issue, args []string) {
 	if len(args) == 0 {
 		log.Printf("No headers specified\n\n")
 		usage()
 	}
 
 	for _, arg := range args {
-		processHeader(arg)
+		processHeader(issues, arg)
 	}
 }
 
@@ -57,7 +59,7 @@ func mapHeaderName(r rune) rune {
 	return r
 }
 
-func processHeader(name string) {
+func processHeader(issues chan<- Issue, name string) {
 	base := filepath.Base(name)
 	f, err := os.Open(name)
 	if err != nil {
@@ -73,24 +75,38 @@ func processHeader(name string) {
 
 	s := bufio.NewScanner(f)
 	var finalLine string
+	var finalLineNum int
 	for line := 1; s.Scan(); line++ {
 		text := s.Text()
 		runes := []rune(text)
 
+		span := func() cc.Span {
+			return cc.Span{
+				Start: cc.Pos{
+					File: name,
+					Line: line,
+				},
+				End: cc.Pos{
+					File: name,
+					Line: line,
+				},
+			}
+		}
+
 		if line == 1 && text != pragmaOnce {
-			errorf("%s: missing %q", name, pragmaOnce)
+			Errorf(issues, span(), "missing %q", pragmaOnce)
 		}
 
 		if line == 2 && text != ifndef {
-			errorf("%s: missing %q", name, ifndef)
+			Errorf(issues, span(), "missing %q", ifndef)
 		}
 
 		if line == 3 && text != define {
-			errorf("%s: missing %q", name, define)
+			Errorf(issues, span(), "missing %q", define)
 		}
 
 		if strings.Contains(text, include) {
-			errorf("%s:%d: nested %s", name, line, include)
+			Errorf(issues, span(), "nested %s", include)
 		}
 
 		// Check indentation.
@@ -100,7 +116,7 @@ func processHeader(name string) {
 			}
 
 			if r != '\t' {
-				errorf("%s:%d: non-tab indentation (%s)", name, line, strconv.QuoteRune(r))
+				Errorf(issues, span(), "non-tab indentation (%s)", strconv.QuoteRune(r))
 				break
 			}
 		}
@@ -112,11 +128,12 @@ func processHeader(name string) {
 				break
 			}
 
-			errorf("%s:%d: trailing whitespace", name, line)
+			Errorf(issues, span(), "trailing whitespace")
 			break
 		}
 
 		finalLine = text
+		finalLineNum = line
 	}
 
 	if err := s.Err(); err != nil {
@@ -124,6 +141,17 @@ func processHeader(name string) {
 	}
 
 	if finalLine != endif {
-		errorf("%s: missing %q", name, endif)
+		span := cc.Span{
+			Start: cc.Pos{
+				File: name,
+				Line: finalLineNum,
+			},
+			End: cc.Pos{
+				File: name,
+				Line: finalLineNum,
+			},
+		}
+
+		Errorf(issues, span, "missing %q", endif)
 	}
 }
