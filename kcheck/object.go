@@ -2,16 +2,20 @@
 //
 // 	- C files' use of printk is checked for the
 // 	  correct number of args, with correct verb use.
+// 	- All files must be indented with tabs and have
+// 	  no trailling whitespace.
 //
 
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
+	"unicode"
 
 	"github.com/ProjectSerenity/firefly/cc"
 )
@@ -47,6 +51,57 @@ func processObject(issues chan<- Issue, name string) {
 	}
 
 	defer f.Close()
+
+	s := bufio.NewScanner(f)
+	for line := 1; s.Scan(); line++ {
+		text := s.Text()
+		runes := []rune(text)
+
+		span := func() cc.Span {
+			return cc.Span{
+				Start: cc.Pos{
+					File: name,
+					Line: line,
+				},
+				End: cc.Pos{
+					File: name,
+					Line: line,
+				},
+			}
+		}
+
+		// Check indentation.
+		for _, r := range runes {
+			if !unicode.IsSpace(r) {
+				break
+			}
+
+			if r != '\t' {
+				Errorf(issues, span(), "non-tab indentation (%s)", strconv.QuoteRune(r))
+				break
+			}
+		}
+
+		// Check for trailing spaces.
+		for i := len(runes); i > 0; i-- {
+			r := runes[i-1]
+			if !unicode.IsSpace(r) {
+				break
+			}
+
+			Errorf(issues, span(), "trailing whitespace")
+			break
+		}
+	}
+
+	if err := s.Err(); err != nil {
+		log.Fatalf("failed to parse %s: %v", name, err)
+	}
+
+	_, err = f.Seek(0, 0)
+	if err != nil {
+		log.Fatalf("failed to reset %s: %v", name, err)
+	}
 
 	prog, err := cc.Read(name, f)
 	if err != nil {

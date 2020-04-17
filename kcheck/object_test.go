@@ -107,6 +107,26 @@ func TestCommands(t *testing.T) {
 			},
 		},
 		{
+			Name: "bad_indentation.c",
+			Func: processObject,
+			Want: []Issue{
+				{
+					Span:  span("bad_indentation.c", 2, 0, 0),
+					Error: fmt.Errorf("non-tab indentation (' ')"),
+				},
+			},
+		},
+		{
+			Name: "trailing_whitespace.c",
+			Func: processObject,
+			Want: []Issue{
+				{
+					Span:  span("trailing_whitespace.c", 2, 0, 0),
+					Error: fmt.Errorf("trailing whitespace"),
+				},
+			},
+		},
+		{
 			Name: "bad_str_variable.c",
 			Func: processObject,
 			Want: []Issue{

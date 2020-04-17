@@ -2,12 +2,14 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/ProjectSerenity/firefly/cc"
 )
@@ -63,6 +65,33 @@ func usage() {
 	}
 
 	os.Exit(2)
+}
+
+func codeAt(span cc.Span) string {
+	f, err := os.Open(span.Start.File)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	defer f.Close()
+
+	length := span.End.Byte - span.Start.Byte
+
+	scanner := bufio.NewScanner(f)
+	for line := 1; scanner.Scan(); line++ {
+		if line < span.Start.Line {
+			continue
+		}
+
+		text := strings.TrimSpace(scanner.Text())
+		if length > len(text) {
+			length = len(text)
+		}
+
+		return text[:length]
+	}
+
+	panic("code not found")
 }
 
 func main() {
