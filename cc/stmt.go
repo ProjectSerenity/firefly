@@ -4,6 +4,10 @@
 
 package cc
 
+import (
+	"fmt"
+)
+
 type Stmt struct {
 	SyntaxInfo
 	Op     StmtOp
@@ -38,6 +42,34 @@ const (
 	Switch
 	While
 )
+
+var stmtOpString = []string{
+	StmtDecl: "StmtDecl",
+	StmtExpr: "StmtExpr",
+	Empty:    "Empty",
+	Block:    "Block",
+	ARGBEGIN: "ARGBEGIN",
+	Break:    "Break",
+	Continue: "Continue",
+	Do:       "Do",
+	For:      "For",
+	If:       "If",
+	Goto:     "Goto",
+	Return:   "Return",
+	Switch:   "Switch",
+	While:    "While",
+}
+
+func (op StmtOp) String() string {
+	if 0 < int(op) && int(op) <= len(stmtOpString) {
+		return stmtOpString[op]
+	}
+	return fmt.Sprintf("StmtOp(%d)", op)
+}
+
+func (op StmtOp) GoString() string {
+	return op.String()
+}
 
 type Label struct {
 	SyntaxInfo

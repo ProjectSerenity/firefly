@@ -151,10 +151,14 @@ var exprOpString = []string{
 }
 
 func (op ExprOp) String() string {
-	if 0 <= int(op) && int(op) <= len(exprOpString) {
+	if 0 < int(op) && int(op) <= len(exprOpString) {
 		return exprOpString[op]
 	}
 	return fmt.Sprintf("ExprOp(%d)", op)
+}
+
+func (op ExprOp) GoString() string {
+	return op.String()
 }
 
 // Prefix is an initializer prefix.
