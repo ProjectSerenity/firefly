@@ -3,5 +3,6 @@
 
 void kmain(void) {
 	terminal_Init();
-	printk("Hello, %m12s! (%%+8d=%+8d, %%u8d=%u8d)\n", "kernel world", 255, 255);
+	int x = 1;
+	printk("Hello, %m12s! Stack address: %p\n", "kernel world", &x);
 }
