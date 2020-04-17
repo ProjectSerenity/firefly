@@ -21,7 +21,7 @@ type Issue struct {
 }
 
 func (i Issue) String() string {
-	return fmt.Sprintf("%s: %s", i.Span, i.Error)
+	return fmt.Sprintf("%s (%d-%d): %s", i.Span, i.Span.Start.Byte, i.Span.End.Byte, i.Error)
 }
 
 var failed bool
