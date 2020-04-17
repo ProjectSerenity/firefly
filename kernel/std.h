@@ -40,7 +40,9 @@ typedef struct string {
 // the macro. The function is not implemented, as
 // the macro is used instead.
 //
+#if 0
 string str(char s[]);
+#endif
 
 int printk(char format[], ...);
 
