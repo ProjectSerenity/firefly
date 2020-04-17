@@ -79,6 +79,10 @@ func (k TypeKind) String() string {
 	return fmt.Sprintf("TypeKind(%d)", k)
 }
 
+func (k TypeKind) GoString() string {
+	return k.String()
+}
+
 type TypeQual int
 
 const (
