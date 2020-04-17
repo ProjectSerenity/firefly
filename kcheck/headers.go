@@ -3,6 +3,8 @@
 // 	- Header files cannot include other header files.
 // 	- Header files must start with "#pragma once" and
 // 	  be surrounded with include guards.
+// 	- All files must be indented with tabs and have
+// 	  no trailling whitespace.
 //
 
 package main
