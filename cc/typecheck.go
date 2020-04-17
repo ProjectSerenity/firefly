@@ -211,7 +211,7 @@ func (lx *lexer) typecheckInit(typ *Type, x *Init) {
 		if x.Expr.XType == nil {
 			return
 		}
-		if typ.Kind == Array && typ.Base.Is(Char) && x.Expr.Op == String {
+		if typ.Kind == Array && typ.Base.Is(Int8) && x.Expr.Op == String {
 			// ok to initialize char array with string
 			if typ.Width == nil {
 				typ.Width = x.Expr.XType.Width
@@ -321,7 +321,7 @@ func stripTypedef(t *Type) *Type {
 
 func isInt(t *Type) bool {
 	t = stripTypedef(t)
-	return Char <= t.Kind && t.Kind <= Ulonglong || t.Kind == Enum
+	return Int8 <= t.Kind && t.Kind <= Ulonglong || t.Kind == Enum
 }
 
 func isPtr(t *Type) bool {
@@ -350,12 +350,12 @@ func toPtr(t *Type) *Type {
 
 func isArith(t *Type) bool {
 	t = stripTypedef(t)
-	return Char <= t.Kind && t.Kind <= Enum
+	return Int8 <= t.Kind && t.Kind <= Enum
 }
 
 func isScalar(t *Type) bool {
 	t = stripTypedef(t)
-	return Char <= t.Kind && t.Kind <= Ptr
+	return Int8 <= t.Kind && t.Kind <= Ptr
 }
 
 func (t *Type) Is(k TypeKind) bool {
@@ -462,7 +462,7 @@ func (lx *lexer) toBool(x *Expr) *Type {
 		return nil
 	}
 	t := stripTypedef(x.XType)
-	if Char <= t.Kind && t.Kind <= Ptr || t.Kind == Enum {
+	if Int8 <= t.Kind && t.Kind <= Ptr || t.Kind == Enum {
 		return BoolType
 	}
 	lx.Errorf("cannot use %v (type %v) in boolean context", x, x.XType)
@@ -476,27 +476,27 @@ func promote2(l, r *Type) *Type {
 
 	// if mixed signedness, make l signed and r unsigned.
 	// specifically, if l is unsigned, swap with r.
-	if (l.Kind-Char)&1 == 1 {
+	if (l.Kind-Int8)&1 == 1 {
 		l, r = r, l
 	}
 
 	switch {
-	case l.Kind == Void || r.Kind == Void || l.Kind > Double || r.Kind > Double:
+	case l.Kind == Void || r.Kind == Void || l.Kind > Float64 || r.Kind > Float64:
 		return nil
 	case l.Kind == r.Kind:
 		return l
 	// double wins.
-	case l.Kind == Double:
+	case l.Kind == Float64:
 		return l
-	case r.Kind == Double:
+	case r.Kind == Float64:
 		return r
 	// float wins.
-	case l.Kind == Float:
+	case l.Kind == Float32:
 		return l
-	case r.Kind == Float:
+	case r.Kind == Float32:
 		return r
 	// if both signed or both unsigned, higher kind wins.
-	case (l.Kind-Char)&1 == (r.Kind-Char)&1:
+	case (l.Kind-Int8)&1 == (r.Kind-Int8)&1:
 		if l.Kind < r.Kind {
 			return r
 		}
@@ -508,7 +508,7 @@ func promote2(l, r *Type) *Type {
 	// signed is higher kind than unsigned (l.Kind > r.Kind).
 	// if signed bigger than unsigned, signed wins.
 	// only possible way this isn't true
-	case (l.Kind-Char)/2 > (r.Kind-Char)/2 && (l.Kind != Long || r.Kind != Uint):
+	case (l.Kind-Int8)/2 > (r.Kind-Int8)/2 && (l.Kind != Int64 || r.Kind != Uint32):
 		return l
 	// otherwise, use unsigned type corresponding to the signed type.
 	default:
@@ -519,7 +519,7 @@ func promote2(l, r *Type) *Type {
 
 func promote1(l *Type) *Type {
 	l = stripTypedef(l)
-	if Char <= l.Kind && l.Kind <= Ushort || l.Kind == Enum {
+	if Int8 <= l.Kind && l.Kind <= Uint16 || l.Kind == Enum {
 		l = IntType
 	}
 	return l

@@ -28,18 +28,18 @@ type TypeKind int
 const (
 	_ TypeKind = iota
 	Void
-	Char
-	Uchar
-	Short
-	Ushort
-	Int
-	Uint
-	Long
-	Ulong
+	Int8
+	Uint8
+	Int16
+	Uint16
+	Int32
+	Uint32
+	Int64
+	Uint64
 	Longlong
 	Ulonglong
-	Float
-	Double
+	Float32
+	Float64
 	Enum
 	Ptr
 	Struct
@@ -51,18 +51,18 @@ const (
 
 var typeKindString = []string{
 	Void:        "void",
-	Char:        "char",
-	Uchar:       "uchar",
-	Short:       "short",
-	Ushort:      "ushort",
-	Int:         "int",
-	Uint:        "uint",
-	Long:        "long",
-	Ulong:       "ulong",
+	Int8:        "int8",
+	Uint8:       "uint8",
+	Int16:       "int16",
+	Uint16:      "uint16",
+	Int32:       "int32",
+	Uint32:      "uint32",
+	Int64:       "int64",
+	Uint64:      "uint64",
 	Longlong:    "longlong",
 	Ulonglong:   "ulonglong",
-	Float:       "float",
-	Double:      "double",
+	Float32:     "float32",
+	Float64:     "float64",
 	Ptr:         "pointer",
 	Struct:      "struct",
 	Union:       "union",
@@ -142,18 +142,18 @@ func (c Storage) String() string {
 }
 
 var (
-	CharType      = newType(Char)
-	UcharType     = newType(Uchar)
-	ShortType     = newType(Short)
-	UshortType    = newType(Ushort)
-	IntType       = newType(Int)
-	UintType      = newType(Uint)
-	LongType      = newType(Long)
-	UlongType     = newType(Ulong)
+	CharType      = newType(Int8)
+	UcharType     = newType(Uint8)
+	ShortType     = newType(Int16)
+	UshortType    = newType(Uint16)
+	IntType       = newType(Int32)
+	UintType      = newType(Uint32)
+	LongType      = newType(Int64)
+	UlongType     = newType(Uint64)
 	LonglongType  = newType(Longlong)
 	UlonglongType = newType(Ulonglong)
-	FloatType     = newType(Float)
-	DoubleType    = newType(Double)
+	FloatType     = newType(Float32)
+	DoubleType    = newType(Float64)
 	VoidType      = newType(Void)
 	BoolType      = &Type{Kind: TypedefType, Name: "bool", Base: IntType}
 )
