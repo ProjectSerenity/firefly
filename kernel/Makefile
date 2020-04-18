@@ -1,33 +1,31 @@
 # Declare assembler, compiler, and linker flags.
 CC = clang
 
-_TARGET    = --target=i386-none-elf
+_TARGET    = --target=x86_64-none-elf
 _NOLINK    = -c
 _NOHOST    = -ffreestanding
-_NOSTD     = -nostdlib
 _NOPIE     = -fno-PIE
+_NORED     = -mno-red-zone
+_NOSTACK   = -fno-stack-protector -fomit-frame-pointer
 _CSTD      = -std=c99
 _WARN      = -Wall -Wextra -Wpedantic
 _ERROR     = -Werror
 
-ASFLAGS = ${_TARGET} ${_NOLINK}
-CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOPIE} ${_NOHOST} ${_CSTD} ${_WARN} ${_ERROR}
-LDFLAGS = ${_TARGET} ${_NOHOST} ${_NOSTD}
+CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOPIE} ${_NORED} ${_NOSTACK} ${_NOHOST} ${_CSTD} ${_WARN} ${_ERROR}
 
 OBJECTS = init.o kernel.o terminal.o std.o
 
 # Main target.
 .PHONY: all
 all: firefly.bin
+	cat ../Pure64/bin/pure64.sys firefly.bin > kernel.sys
+	dd if=/dev/zero of=firefly.img count=128 bs=1048576
+	dd if=../Pure64/bin/mbr.sys of=firefly.img conv=notrunc
+	dd if=kernel.sys of=firefly.img bs=512 seek=16 conv=notrunc
 
 firefly.bin: ${OBJECTS}
 	kcheck headers *.h
-	${CC} ${LDFLAGS} -T linker.ld -o firefly.bin ${OBJECTS}
-	grub-file --is-x86-multiboot firefly.bin
-
-# Bootstrap.
-init.o: init.s
-	${CC} ${ASFLAGS} -o init.o init.s
+	ld -T linker.ld -o firefly.bin ${OBJECTS}
 
 # Generic rule for C files.
 .SUFFIXES: .c .o
@@ -37,8 +35,9 @@ init.o: init.s
 	${CC} ${CCFLAGS} -o $@ $<
 
 # Kernel objects.
+init.o:
 kernel.o: terminal.h
-terminal.o: terminal.h
+terminal.o: terminal.h font.h
 
 # Cleanup.
 .PHONY: clean

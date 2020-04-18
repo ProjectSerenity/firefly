@@ -1,5 +1,4 @@
 #!/bin/sh
 
 qemu-system-x86_64 \
-	-no-reboot \
-	-kernel firefly.bin
+	-drive format=raw,file=firefly.img
