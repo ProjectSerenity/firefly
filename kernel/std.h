@@ -21,6 +21,8 @@ typedef unsigned long uintptr;
 typedef float float32;
 typedef double float64;
 
+bool validNumericalTypes();
+
 const void* nil;
 
 void copy(char* dst, char* src, uint n);

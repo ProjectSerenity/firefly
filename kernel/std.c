@@ -5,6 +5,63 @@
 const bool true = 1;
 const bool false = 0;
 
+// validNumericalTypes confirms that the numerical
+// types have the size we expect. If any types do
+// not have the expected size, error messages will
+// be printed and false returned. If all numerical
+// types are as expected, validNumericalTypes will
+// return true and otherwise do nothing.
+//
+bool validNumericalTypes() {
+	bool ok = true;
+	if (8*sizeof(int8) != 8) {
+		ok = false;
+		printk("int8 has unexpected size %+64d bits\n", 8*sizeof(int8));
+	}
+	if (8*sizeof(int16) != 16) {
+		ok = false;
+		printk("int16 has unexpected size %+64d bits\n", 8*sizeof(int16));
+	}
+	if (8*sizeof(int32) != 32) {
+		ok = false;
+		printk("int32 has unexpected size %+64d bits\n", 8*sizeof(int32));
+	}
+	if (8*sizeof(int64) != 64) {
+		ok = false;
+		printk("int64 has unexpected size %+64d bits\n", 8*sizeof(int64));
+	}
+	if (8*sizeof(uint8) != 8) {
+		ok = false;
+		printk("uint8 has unexpected size %+64d bits\n", 8*sizeof(uint8));
+	}
+	if (8*sizeof(uint16) != 16) {
+		ok = false;
+		printk("uint16 has unexpected size %+64d bits\n", 8*sizeof(uint16));
+	}
+	if (8*sizeof(uint32) != 32) {
+		ok = false;
+		printk("uint32 has unexpected size %+64d bits\n", 8*sizeof(uint32));
+	}
+	if (8*sizeof(uint64) != 64) {
+		ok = false;
+		printk("uint64 has unexpected size %+64d bits\n", 8*sizeof(uint64));
+	}
+	if (8*sizeof(uintptr) != 64) {
+		ok = false;
+		printk("uintptr has unexpected size %+64d bits\n", 8*sizeof(uintptr));
+	}
+	if (8*sizeof(float32) != 32) {
+		ok = false;
+		printk("float32 has unexpected size %+64d bits\n", 8*sizeof(float32));
+	}
+	if (8*sizeof(float64) != 64) {
+		ok = false;
+		printk("float64 has unexpected size %+64d bits\n", 8*sizeof(float64));
+	}
+
+	return ok;
+}
+
 const void* nil = 0;
 
 void copy(char* dst, char* src, uint n) {
