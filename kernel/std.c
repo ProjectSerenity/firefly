@@ -64,14 +64,14 @@ bool validNumericalTypes() {
 
 const void* nil = 0;
 
-void copy(char* dst, char* src, uint n) {
-	uint i;
+void copy(char* dst, char* src, uint64 n) {
+	uint64 i;
 	for (i = 0; i < n; i++) {
 		dst[i] = src[i];
 	}
 }
 
-int printBits(uint64 v, int base, bool upper, int minWidth, char padChar);
+int64 printBits(uint64 v, int8 base, bool upper, int32 minWidth, char padChar);
 
 // printk is somewhere between C's and Go's
 // printf functions. The format verbs are
@@ -183,11 +183,11 @@ int printBits(uint64 v, int base, bool upper, int minWidth, char padChar);
 //
 // 	printk("%p", printk);   // 0x1234567890abcdef
 //
-int printk(char format[], ...) {
+int64 printk(char format[], ...) {
 	va_list parameters;
 	va_start(parameters, format);
 
-	int written = 0;
+	int64 written = 0;
 
 	bool inVerb = false;
 	bool isUnsigned = false;
@@ -196,9 +196,9 @@ int printk(char format[], ...) {
 	bool isWidth = false;
 	bool isZero = false;
 	bool addSpace = false;
-	int size = 0;
-	int minWidth = 0;
-	int i;
+	int8 size = 0;
+	int32 minWidth = 0;
+	int64 i;
 	for (i = 0; format[i] != 0; i++) {
 		char c = format[i];
 
@@ -511,7 +511,7 @@ int printk(char format[], ...) {
 			}
 
 			char* buffer = (char*) va_arg(parameters, char*);
-			int i;
+			int64 i;
 			for (i = 0; i < size; i++) {
 				written += printBits(buffer[i], 16, c == 'X', 0, '0');
 				if (addSpace && i+1 < size) {
@@ -546,13 +546,13 @@ int printk(char format[], ...) {
 			// 00000010  2e 2f 30 31 32 33 34 35  36 37 38 39 3a 3b 3c 3d  |./0123456789:;<=|
 			// ^ offset                          ^ extra space              ^ ASCII of line.
 
-			int used = 0;        // Bytes in the current line.
+			int8 used = 0;       // Bytes in the current line.
 			uint64 n = 0;        // Bytes written in total.
 			char rightChars[18]; // ASCII chars to the right.
 			string right = {.ptr=rightChars, .len=18};
 
 			char* buffer = (char*) va_arg(parameters, char*);
-			int i;
+			int32 i;
 			for (i = 0; i < size; i++) {
 				if (used == 0) {
 					// At the beginning of a line we print the current
@@ -684,14 +684,14 @@ const char* digits_upper = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 //
 // printBits returns the number of bytes printed.
 //
-int printBits(uint64 v, int base, bool upper, int minWidth, char padChar) {
+int64 printBits(uint64 v, int8 base, bool upper, int32 minWidth, char padChar) {
 	char buffer[64+1]; // +1 for sign of 64bit value in base 2.
-	int i = 65;
+	int8 i = 65;
 
-	int written = 0;
+	int8 written = 0;
 	if (base == 10) {
 		while (v >= 100) {
-			int is = v % 100 * 2;
+			int64 is = v % 100 * 2;
 			v /= 100;
 			i -= 2;
 			buffer[i+0] = smallsString[is+0];
@@ -700,7 +700,7 @@ int printBits(uint64 v, int base, bool upper, int minWidth, char padChar) {
 		}
 
 		// v < 100
-		int is = v * 2;
+		int64 is = v * 2;
 		i--;
 		buffer[i] = smallsString[is+1];
 		written++;
@@ -736,7 +736,7 @@ int printBits(uint64 v, int base, bool upper, int minWidth, char padChar) {
 	// Rather than worry about getting the instruction for bits.TrailingZeros,
 	// we just hard-code the supported values.
 	//
-	uint shift;
+	uint16 shift;
 	string err;
 	switch (base) {
 	case 2:
@@ -760,7 +760,7 @@ int printBits(uint64 v, int base, bool upper, int minWidth, char padChar) {
 	}
 
 	uint64 b = base;
-	uint m = (uint)base - 1; // == 1<<shift - 1
+	uint64 m = (uint64)base - 1; // == 1<<shift - 1
 	while (v >= b) {
 		i--;
 		buffer[i] = digits[v&m];
