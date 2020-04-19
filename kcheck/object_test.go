@@ -241,7 +241,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_string_int.c", 4),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is non-string type %s", 1, "%m1s", "int"),
+					Error: fmt.Errorf("printk arg for verb %d (%q) is non-string type %s", 1, "%m1s", "int32"),
 				},
 			},
 		},
@@ -251,7 +251,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_string_pointer.c", 5),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is non-string type *%s", 1, "%m1s", "int"),
+					Error: fmt.Errorf("printk arg for verb %d (%q) is non-string type *%s", 1, "%m1s", "int32"),
 				},
 			},
 		},
@@ -261,7 +261,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_buffer_int.c", 4),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is non-string type %s", 1, "%m1x", "int"),
+					Error: fmt.Errorf("printk arg for verb %d (%q) is non-string type %s", 1, "%m1x", "int32"),
 				},
 			},
 		},
@@ -271,7 +271,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_buffer_pointer.c", 5),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is non-buffer type *%s", 1, "%m1x", "int"),
+					Error: fmt.Errorf("printk arg for verb %d (%q) is non-buffer type *%s", 1, "%m1x", "int32"),
 				},
 			},
 		},
@@ -281,7 +281,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_pointer_int.c", 4),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is non-pointer type %s", 1, "%p", "int"),
+					Error: fmt.Errorf("printk arg for verb %d (%q) is non-pointer type %s", 1, "%p", "int32"),
 				},
 			},
 		},
