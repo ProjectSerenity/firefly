@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -789,6 +790,54 @@ func TestParsePrintkFormat(t *testing.T) {
 		if pfe.Start != test.Start || pfe.Length != test.Length || pfe.Err != test.Err {
 			t.Errorf("printk(%q):\nGot:  %d-%d %q\nWant: %d-%d %q", test.Format, pfe.Start, pfe.Length, pfe.Err, test.Start, test.Length, test.Err)
 			continue
+		}
+	}
+}
+
+func TestNumericalTypes(t *testing.T) {
+	// Check that cc agrees on the size of
+	// our sized types.
+	name := filepath.Join("testdata", "std.h")
+	f, err := os.Open(name)
+	if err != nil {
+		t.Fatalf("failed to open %s: %v", name, err)
+	}
+
+	defer f.Close()
+
+	prog, err := cc.Read(name, f)
+	if err != nil {
+		t.Fatalf("failed to parse %s: %v", name, err)
+	}
+
+	types := []string{
+		"int8",
+		"int16",
+		"int32",
+		"int64",
+		"uint8",
+		"uint16",
+		"uint32",
+		"uint64",
+		"float32",
+		"float64",
+	}
+
+	for _, decl := range prog.Decls {
+		match := false
+		for _, want := range types {
+			if decl.Name == want {
+				match = true
+				break
+			}
+		}
+
+		if !match {
+			continue
+		}
+
+		if decl.Name != decl.Type.Kind.String() {
+			t.Errorf("cc sees %s as %s", decl.Name, decl.Type.Kind)
 		}
 	}
 }

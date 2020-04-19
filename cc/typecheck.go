@@ -1029,41 +1029,33 @@ func (lx *lexer) typecheckExpr(x *Expr) {
 		has := strings.Contains
 		suf = strings.ToUpper(suf)
 		switch {
-		case has(suf, "U") && has(suf, "LL"):
-			x.XType = UlonglongType
 		case has(suf, "U") && has(suf, "L"):
 			if uint64(uint32(i)) == i {
-				x.XType = UlongType
+				x.XType = UintType
 			} else {
-				x.XType = UlonglongType
+				x.XType = UlongType
 			}
 		case has(suf, "U"):
 			if uint64(uint32(i)) == i {
 				x.XType = UintType
 			} else {
-				x.XType = UlonglongType
-			}
-		case has(suf, "LL"):
-			if int64(i) >= 0 {
-				x.XType = LonglongType
-			} else {
-				lx.Errorf("integer constant %v overflows signed long long", x.Text)
+				x.XType = UlongType
 			}
 		case has(suf, "L"):
 			if int32(i) >= 0 && uint64(int32(i)) == i {
-				x.XType = LongType
+				x.XType = IntType
 			} else if int64(i) >= 0 {
-				x.XType = LonglongType
+				x.XType = LongType
 			} else {
-				lx.Errorf("integer constant %v overflows signed long long", x.Text)
+				lx.Errorf("integer constant %v overflows signed long", x.Text)
 			}
 		default:
 			if int32(i) >= 0 && uint64(int32(i)) == i {
 				x.XType = IntType
 			} else if int64(i) >= 0 {
-				x.XType = LonglongType
+				x.XType = LongType
 			} else {
-				lx.Errorf("integer constant %v overflows signed long long", x.Text)
+				lx.Errorf("integer constant %v overflows signed long", x.Text)
 			}
 		}
 
