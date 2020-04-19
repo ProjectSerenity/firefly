@@ -12,17 +12,15 @@ import (
 )
 
 func TestCommands(t *testing.T) {
-	span := func(name string, line, from, to int) cc.Span {
+	span := func(name string, line int) cc.Span {
 		return cc.Span{
 			Start: cc.Pos{
 				File: filepath.Join("testdata", name),
 				Line: line,
-				Byte: from,
 			},
 			End: cc.Pos{
 				File: filepath.Join("testdata", name),
 				Line: line,
-				Byte: to,
 			},
 		}
 	}
@@ -42,7 +40,7 @@ func TestCommands(t *testing.T) {
 			Func: processHeader,
 			Want: []Issue{
 				{
-					Span:  span("no_pragma_once.h", 1, 0, 0),
+					Span:  span("no_pragma_once.h", 1),
 					Error: fmt.Errorf("missing %q", "#pragma once"),
 				},
 			},
@@ -52,7 +50,7 @@ func TestCommands(t *testing.T) {
 			Func: processHeader,
 			Want: []Issue{
 				{
-					Span:  span("no_ifndef.h", 2, 0, 0),
+					Span:  span("no_ifndef.h", 2),
 					Error: fmt.Errorf("missing %q", "#ifndef NO_IFNDEF_H"),
 				},
 			},
@@ -62,7 +60,7 @@ func TestCommands(t *testing.T) {
 			Func: processHeader,
 			Want: []Issue{
 				{
-					Span:  span("no_define.h", 3, 0, 0),
+					Span:  span("no_define.h", 3),
 					Error: fmt.Errorf("missing %q", "#define NO_DEFINE_H"),
 				},
 			},
@@ -72,7 +70,7 @@ func TestCommands(t *testing.T) {
 			Func: processHeader,
 			Want: []Issue{
 				{
-					Span:  span("no_endif.h", 5, 0, 0),
+					Span:  span("no_endif.h", 5),
 					Error: fmt.Errorf("missing %q", "#endif // NO_ENDIF_H"),
 				},
 			},
@@ -82,7 +80,7 @@ func TestCommands(t *testing.T) {
 			Func: processHeader,
 			Want: []Issue{
 				{
-					Span:  span("nested_include.h", 5, 0, 0),
+					Span:  span("nested_include.h", 5),
 					Error: fmt.Errorf("nested #include"),
 				},
 			},
@@ -92,7 +90,7 @@ func TestCommands(t *testing.T) {
 			Func: processHeader,
 			Want: []Issue{
 				{
-					Span:  span("bad_indentation.h", 5, 0, 0),
+					Span:  span("bad_indentation.h", 5),
 					Error: fmt.Errorf("non-tab indentation (' ')"),
 				},
 			},
@@ -102,7 +100,7 @@ func TestCommands(t *testing.T) {
 			Func: processHeader,
 			Want: []Issue{
 				{
-					Span:  span("trailing_whitespace.h", 5, 0, 0),
+					Span:  span("trailing_whitespace.h", 5),
 					Error: fmt.Errorf("trailing whitespace"),
 				},
 			},
@@ -112,7 +110,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_indentation.c", 2, 0, 0),
+					Span:  span("bad_indentation.c", 2),
 					Error: fmt.Errorf("non-tab indentation (' ')"),
 				},
 			},
@@ -122,7 +120,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("trailing_whitespace.c", 2, 0, 0),
+					Span:  span("trailing_whitespace.c", 2),
 					Error: fmt.Errorf("trailing whitespace"),
 				},
 			},
@@ -132,7 +130,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_str_variable.c", 5, 1035, 1036),
+					Span:  span("bad_str_variable.c", 5),
 					Error: fmt.Errorf("str argument is not a string literal"),
 				},
 			},
@@ -142,7 +140,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_variable_format_string.c", 5, 1031, 1037),
+					Span:  span("bad_printk_variable_format_string.c", 5),
 					Error: fmt.Errorf("printk format string is not a string literal"),
 				},
 			},
@@ -152,7 +150,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_verb_missing_arg.c", 4, 1004, 1018),
+					Span:  span("bad_printk_verb_missing_arg.c", 4),
 					Error: fmt.Errorf("printk missing arg for verb %d (%q)", 1, "%m3s"),
 				},
 			},
@@ -162,7 +160,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_verb_mismatch_int_string.c", 5, 1022, 1039),
+					Span:  span("bad_printk_verb_mismatch_int_string.c", 5),
 					Error: fmt.Errorf("printk arg for verb %d (%q) has non-integer type %s", 1, "%u8d", "pointer"),
 				},
 			},
@@ -172,7 +170,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_verb_mismatch_int_uint.c", 5, 1017, 1034),
+					Span:  span("bad_printk_verb_mismatch_int_uint.c", 5),
 					Error: fmt.Errorf("printk arg for verb %d (%q) is not unsigned", 1, "%u8d"),
 				},
 			},
@@ -182,7 +180,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_verb_mismatch_uint_int.c", 5, 1018, 1035),
+					Span:  span("bad_printk_verb_mismatch_uint_int.c", 5),
 					Error: fmt.Errorf("printk arg for verb %d (%q) is unsigned", 1, "%+8d"),
 				},
 			},
@@ -192,7 +190,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_verb_mismatch_uint8_uint64_literal.c", 4, 1004, 1045),
+					Span:  span("bad_printk_verb_mismatch_uint8_uint64_literal.c", 4),
 					Error: fmt.Errorf("printk arg for verb %d (%q) is too large (%d bits)", 1, "%u8d", 64),
 				},
 			},
@@ -202,7 +200,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_verb_mismatch_uint8_uint64_var.c", 5, 1019, 1036),
+					Span:  span("bad_printk_verb_mismatch_uint8_uint64_var.c", 5),
 					Error: fmt.Errorf("printk arg for verb %d (%q) is too large (%d bits)", 1, "%u8d", 64),
 				},
 			},
@@ -212,7 +210,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_verb_mismatch_char_string.c", 5, 1022, 1037),
+					Span:  span("bad_printk_verb_mismatch_char_string.c", 5),
 					Error: fmt.Errorf("printk arg for verb %d (%q) has non-character type %s", 1, "%c", "pointer"),
 				},
 			},
@@ -222,7 +220,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_verb_mismatch_char_uint.c", 5, 1018, 1033),
+					Span:  span("bad_printk_verb_mismatch_char_uint.c", 5),
 					Error: fmt.Errorf("printk arg for verb %d (%q) is unsigned", 1, "%c"),
 				},
 			},
@@ -232,7 +230,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_verb_mismatch_char_int64_literal.c", 4, 1004, 1041),
+					Span:  span("bad_printk_verb_mismatch_char_int64_literal.c", 4),
 					Error: fmt.Errorf("printk arg for verb %d (%q) is too large (%d bits)", 1, "%c", 64),
 				},
 			},
@@ -242,7 +240,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_verb_mismatch_string_int.c", 4, 1004, 1021),
+					Span:  span("bad_printk_verb_mismatch_string_int.c", 4),
 					Error: fmt.Errorf("printk arg for verb %d (%q) is non-string type %s", 1, "%m1s", "int"),
 				},
 			},
@@ -252,7 +250,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_verb_mismatch_string_pointer.c", 5, 1016, 1034),
+					Span:  span("bad_printk_verb_mismatch_string_pointer.c", 5),
 					Error: fmt.Errorf("printk arg for verb %d (%q) is non-string type *%s", 1, "%m1s", "int"),
 				},
 			},
@@ -262,7 +260,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_verb_mismatch_buffer_int.c", 4, 1004, 1021),
+					Span:  span("bad_printk_verb_mismatch_buffer_int.c", 4),
 					Error: fmt.Errorf("printk arg for verb %d (%q) is non-string type %s", 1, "%m1x", "int"),
 				},
 			},
@@ -272,7 +270,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_verb_mismatch_buffer_pointer.c", 5, 1016, 1034),
+					Span:  span("bad_printk_verb_mismatch_buffer_pointer.c", 5),
 					Error: fmt.Errorf("printk arg for verb %d (%q) is non-buffer type *%s", 1, "%m1x", "int"),
 				},
 			},
@@ -282,7 +280,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_verb_mismatch_pointer_int.c", 4, 1004, 1019),
+					Span:  span("bad_printk_verb_mismatch_pointer_int.c", 4),
 					Error: fmt.Errorf("printk arg for verb %d (%q) is non-pointer type %s", 1, "%p", "int"),
 				},
 			},
@@ -292,7 +290,7 @@ func TestCommands(t *testing.T) {
 			Func: processObject,
 			Want: []Issue{
 				{
-					Span:  span("bad_printk_extra_values.c", 4, 1004, 1017),
+					Span:  span("bad_printk_extra_values.c", 4),
 					Error: fmt.Errorf("printk has %d extra arguments not used by verbs", 1),
 				},
 			},
@@ -330,6 +328,11 @@ func TestCommands(t *testing.T) {
 				}
 
 				return
+			}
+
+			for i := range got {
+				got[i].Span.Start.Byte = 0
+				got[i].Span.End.Byte = 0
 			}
 
 			if !reflect.DeepEqual(got, test.Want) {
