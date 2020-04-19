@@ -8,6 +8,7 @@ package cc
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -497,6 +498,27 @@ type Pos struct {
 type Span struct {
 	Start Pos
 	End   Pos
+}
+
+func (l Span) Text() (string, error) {
+	f, err := os.Open(l.Start.File)
+	if err != nil {
+		return "", err
+	}
+
+	defer f.Close()
+
+	buf := make([]byte, l.End.Byte-l.Start.Byte)
+	n, err := f.ReadAt(buf, int64(l.Start.Byte))
+	if err != nil {
+		return "", err
+	}
+
+	if n < len(buf) {
+		return "", io.ErrUnexpectedEOF
+	}
+
+	return string(buf), nil
 }
 
 func (l Span) String() string {
