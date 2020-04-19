@@ -16,7 +16,6 @@ typedef signed short int16;
 typedef signed int int32;
 typedef signed long int64;
 
-typedef unsigned int uint;
 typedef unsigned long uintptr;
 typedef float float32;
 typedef double float64;
@@ -25,10 +24,10 @@ bool validNumericalTypes();
 
 const void* nil;
 
-void copy(char* dst, char* src, uint n);
+void copy(char* dst, char* src, uint64 n);
 
 typedef struct string {
-	int len;
+	int64 len;
 	const char* ptr;
 } string;
 
@@ -46,6 +45,6 @@ typedef struct string {
 string str(char s[]);
 #endif
 
-int printk(char format[], ...);
+int64 printk(char format[], ...);
 
 #endif // STD_H
