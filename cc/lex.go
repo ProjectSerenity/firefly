@@ -58,7 +58,6 @@ type Comments struct {
 type lexer struct {
 	// input
 	start int
-	byte  int
 	lexInput
 	pushed      []lexInput
 	forcePos    Pos
@@ -103,6 +102,7 @@ type lexInput struct {
 	lastsym    string
 	file       string
 	lineno     int
+	byte       int
 	declSave   *Header
 }
 
