@@ -142,20 +142,18 @@ func (c Storage) String() string {
 }
 
 var (
-	CharType      = newType(Int8)
-	UcharType     = newType(Uint8)
-	ShortType     = newType(Int16)
-	UshortType    = newType(Uint16)
-	IntType       = newType(Int)
-	UintType      = newType(Uint)
-	LongType      = newType(Int32)
-	UlongType     = newType(Uint32)
-	LonglongType  = newType(Int64)
-	UlonglongType = newType(Uint64)
-	FloatType     = newType(Float32)
-	DoubleType    = newType(Float64)
-	VoidType      = newType(Void)
-	BoolType      = &Type{Kind: TypedefType, Name: "bool", Base: IntType}
+	CharType   = newType(Int8)
+	UcharType  = newType(Uint8)
+	ShortType  = newType(Int16)
+	UshortType = newType(Uint16)
+	IntType    = newType(Int32)
+	UintType   = newType(Uint32)
+	LongType   = newType(Int64)
+	UlongType  = newType(Uint64)
+	FloatType  = newType(Float32)
+	DoubleType = newType(Float64)
+	VoidType   = newType(Void)
+	BoolType   = &Type{Kind: TypedefType, Name: "bool", Base: IntType}
 )
 
 type typeOp int
@@ -174,33 +172,27 @@ const (
 )
 
 var builtinTypes = map[typeOp]*Type{
-	tChar:                        CharType,
-	tChar | tSigned:              CharType,
-	tChar | tUnsigned:            UcharType,
-	tShort:                       ShortType,
-	tShort | tSigned:             ShortType,
-	tShort | tUnsigned:           UshortType,
-	tShort | tInt:                ShortType,
-	tShort | tSigned | tInt:      ShortType,
-	tShort | tUnsigned | tInt:    UshortType,
-	tInt:                         IntType,
-	tInt | tSigned:               IntType,
-	tInt | tUnsigned:             UintType,
-	tLong:                        LongType,
-	tLong | tSigned:              LongType,
-	tLong | tUnsigned:            UlongType,
-	tLong | tInt:                 LongType,
-	tLong | tSigned | tInt:       LongType,
-	tLong | tUnsigned | tInt:     UlongType,
-	tLonglong:                    LonglongType,
-	tLonglong | tSigned:          LonglongType,
-	tLonglong | tUnsigned:        UlonglongType,
-	tLonglong | tInt:             LonglongType,
-	tLonglong | tSigned | tInt:   LonglongType,
-	tLonglong | tUnsigned | tInt: UlonglongType,
-	tFloat:                       FloatType,
-	tDouble:                      DoubleType,
-	tVoid:                        VoidType,
+	tChar:                     CharType,
+	tChar | tSigned:           CharType,
+	tChar | tUnsigned:         UcharType,
+	tShort:                    ShortType,
+	tShort | tSigned:          ShortType,
+	tShort | tUnsigned:        UshortType,
+	tShort | tInt:             ShortType,
+	tShort | tSigned | tInt:   ShortType,
+	tShort | tUnsigned | tInt: UshortType,
+	tInt:                      IntType,
+	tInt | tSigned:            IntType,
+	tInt | tUnsigned:          UintType,
+	tLong:                     LongType,
+	tLong | tSigned:           LongType,
+	tLong | tUnsigned:         UlongType,
+	tLong | tInt:              LongType,
+	tLong | tSigned | tInt:    LongType,
+	tLong | tUnsigned | tInt:  UlongType,
+	tFloat:                    FloatType,
+	tDouble:                   DoubleType,
+	tVoid:                     VoidType,
 }
 
 func splitTypeWords(ws []string) (c Storage, q TypeQual, ty *Type) {
