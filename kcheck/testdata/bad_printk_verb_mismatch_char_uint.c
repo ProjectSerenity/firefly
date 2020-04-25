@@ -2,5 +2,5 @@
 
 void badPrintk(void) {
 	uint8 x = 1;
-	printk("%c", x);
+	std_Printk("%c", x);
 }

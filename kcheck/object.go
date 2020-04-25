@@ -146,18 +146,18 @@ func processObject(issues chan<- Issue, name string) {
 			return
 		}
 
-		if callExpr.Left == nil || callExpr.Left.Op != cc.Name || callExpr.Left.Text != "printk" {
+		if callExpr.Left == nil || callExpr.Left.Op != cc.Name || callExpr.Left.Text != "std_Printk" {
 			return
 		}
 
 		if len(callExpr.List) == 0 {
-			Errorf(issues, callExpr.Span, "printk has no arguments")
+			Errorf(issues, callExpr.Span, "std_Printk has no arguments")
 			return
 		}
 
 		formatExpr := callExpr.List[0]
 		if formatExpr.Op != cc.String {
-			Errorf(issues, formatExpr.Span, "printk format string is not a string literal")
+			Errorf(issues, formatExpr.Span, "std_Printk format string is not a string literal")
 			return
 		}
 
@@ -165,7 +165,7 @@ func processObject(issues chan<- Issue, name string) {
 		for _, literal := range formatExpr.Texts {
 			unquoted, err := strconv.Unquote(literal)
 			if err != nil {
-				Errorf(issues, formatExpr.Span, "printk format string could not be unquoted")
+				Errorf(issues, formatExpr.Span, "std_Printk format string could not be unquoted")
 				return
 			}
 
@@ -174,14 +174,14 @@ func processObject(issues chan<- Issue, name string) {
 
 		verbs, err := parsePrintkFormat(format)
 		if err != nil {
-			Errorf(issues, formatExpr.Span, "printk format string invalid: %v", err)
+			Errorf(issues, formatExpr.Span, "std_Printk format string invalid: %v", err)
 			return
 		}
 
 		args := callExpr.List[1:]
 		for i, verb := range verbs {
 			if i >= len(args) {
-				Errorf(issues, callExpr.Span, "printk missing arg for verb %d (%q)", i+1, verb.Text)
+				Errorf(issues, callExpr.Span, "std_Printk missing arg for verb %d (%q)", i+1, verb.Text)
 				return
 			}
 
@@ -192,7 +192,7 @@ func processObject(issues chan<- Issue, name string) {
 			}
 
 			if argType == nil {
-				Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) has unknown type", i+1, verb.Text)
+				Errorf(issues, callExpr.Span, "std_Printk arg for verb %d (%q) has unknown type", i+1, verb.Text)
 				return
 			}
 
@@ -200,65 +200,65 @@ func processObject(issues chan<- Issue, name string) {
 			case verb.Integer:
 				signed, argWidth, ok := numberType(argType.Kind)
 				if !ok {
-					Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) has non-integer type %s", i+1, verb.Text, argType.Kind)
+					Errorf(issues, callExpr.Span, "std_Printk arg for verb %d (%q) has non-integer type %s", i+1, verb.Text, argType.Kind)
 					return
 				}
 
 				if verb.Unsigned && signed {
-					Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) is not unsigned", i+1, verb.Text)
+					Errorf(issues, callExpr.Span, "std_Printk arg for verb %d (%q) is not unsigned", i+1, verb.Text)
 				} else if verb.Signed && !signed {
-					Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) is unsigned", i+1, verb.Text)
+					Errorf(issues, callExpr.Span, "std_Printk arg for verb %d (%q) is unsigned", i+1, verb.Text)
 				}
 
 				if argWidth > verb.ArgWidth && argWidth > 32 {
-					Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) is too large (%d bits)", i+1, verb.Text, argWidth)
+					Errorf(issues, callExpr.Span, "std_Printk arg for verb %d (%q) is too large (%d bits)", i+1, verb.Text, argWidth)
 					return
 				}
 			case verb.Character:
 				signed, argWidth, ok := numberType(argType.Kind)
 				if !ok {
-					Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) has non-character type %s", i+1, verb.Text, argType.Kind)
+					Errorf(issues, callExpr.Span, "std_Printk arg for verb %d (%q) has non-character type %s", i+1, verb.Text, argType.Kind)
 					return
 				}
 
 				if !signed {
-					Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) is unsigned", i+1, verb.Text)
+					Errorf(issues, callExpr.Span, "std_Printk arg for verb %d (%q) is unsigned", i+1, verb.Text)
 				}
 
 				if argWidth > 32 {
-					Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) is too large (%d bits)", i+1, verb.Text, argWidth)
+					Errorf(issues, callExpr.Span, "std_Printk arg for verb %d (%q) is too large (%d bits)", i+1, verb.Text, argWidth)
 					return
 				}
 			case verb.String:
 				if argType.Kind != cc.Ptr && argType.Kind != cc.Array {
-					Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) is non-string type %s", i+1, verb.Text, argType.Kind)
+					Errorf(issues, callExpr.Span, "std_Printk arg for verb %d (%q) is non-string type %s", i+1, verb.Text, argType.Kind)
 					return
 				}
 
 				if argType.Base == nil || (argType.Base.Kind != cc.Uint8 && argType.Base.Kind != cc.Int8) {
-					Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) is non-string type *%s", i+1, verb.Text, argType.Base.Kind)
+					Errorf(issues, callExpr.Span, "std_Printk arg for verb %d (%q) is non-string type *%s", i+1, verb.Text, argType.Base.Kind)
 					return
 				}
 			case verb.Buffer, verb.Hexdump:
 				if argType.Kind != cc.Ptr && argType.Kind != cc.Array {
-					Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) is non-string type %s", i+1, verb.Text, argType.Kind)
+					Errorf(issues, callExpr.Span, "std_Printk arg for verb %d (%q) is non-string type %s", i+1, verb.Text, argType.Kind)
 					return
 				}
 
 				if argType.Base == nil || (argType.Base.Kind != cc.Uint8 && argType.Base.Kind != cc.Int8) {
-					Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) is non-buffer type *%s", i+1, verb.Text, argType.Base.Kind)
+					Errorf(issues, callExpr.Span, "std_Printk arg for verb %d (%q) is non-buffer type *%s", i+1, verb.Text, argType.Base.Kind)
 					return
 				}
 			case verb.Pointer:
 				if argType.Kind != cc.Ptr && argType.Kind != cc.Array {
-					Errorf(issues, callExpr.Span, "printk arg for verb %d (%q) is non-pointer type %s", i+1, verb.Text, argType.Kind)
+					Errorf(issues, callExpr.Span, "std_Printk arg for verb %d (%q) is non-pointer type %s", i+1, verb.Text, argType.Kind)
 					return
 				}
 			}
 		}
 
 		if len(args) > len(verbs) {
-			Errorf(issues, callExpr.Span, "printk has %d extra arguments not used by verbs", len(args)-len(verbs))
+			Errorf(issues, callExpr.Span, "std_Printk has %d extra arguments not used by verbs", len(args)-len(verbs))
 			return
 		}
 	})
