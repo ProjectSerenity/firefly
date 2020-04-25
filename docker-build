@@ -3,6 +3,4 @@
 set -e
 
 im=$(docker build -q .)
-id=$(docker create --name firefly-build -it $im)
-docker cp $id:/build/kernel/firefly.img firefly.img
-docker rm $id >/dev/null
+docker run --name firefly-build --rm -it -v $PWD:/build $im
