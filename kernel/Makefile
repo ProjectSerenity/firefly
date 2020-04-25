@@ -13,7 +13,7 @@ _ERROR     = -Werror
 
 CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOPIE} ${_NORED} ${_NOSTACK} ${_NOHOST} ${_CSTD} ${_WARN} ${_ERROR}
 
-OBJECTS = init.o kernel.o terminal.o std.o
+OBJECTS = init.o kernel.o std.o terminal.o
 
 # Main target.
 .PHONY: all
@@ -36,8 +36,9 @@ firefly.bin: ${OBJECTS}
 
 # Kernel objects.
 init.o:
-kernel.o: terminal.h
-terminal.o: terminal.h font.h
+kernel.o: std.h terminal.h
+std.o: std.h
+terminal.o: font.h std.h terminal.h
 
 # Cleanup.
 .PHONY: clean
