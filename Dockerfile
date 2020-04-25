@@ -10,6 +10,4 @@ ENV PATH="${PATH}:/usr/local/go/bin:${GOBIN}"
 
 WORKDIR /build
 
-COPY . .
-
-RUN ["/usr/bin/make"]
+CMD ["/usr/bin/make"]

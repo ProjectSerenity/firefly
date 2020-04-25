@@ -1,4 +1,4 @@
 #!/bin/sh
 
 qemu-system-x86_64 \
-	-drive format=raw,file=firefly.img
+	-drive format=raw,file=kernel/firefly.img
