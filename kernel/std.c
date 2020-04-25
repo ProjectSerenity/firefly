@@ -5,58 +5,58 @@
 const bool true = 1;
 const bool false = 0;
 
-// validNumericalTypes confirms that the numerical
+// std_ValidNumericalTypes confirms that the numerical
 // types have the size we expect. If any types do
 // not have the expected size, error messages will
 // be printed and false returned. If all numerical
-// types are as expected, validNumericalTypes will
+// types are as expected, std_ValidNumericalTypes will
 // return true and otherwise do nothing.
 //
-bool validNumericalTypes() {
+bool std_ValidNumericalTypes() {
 	bool ok = true;
 	if (8*sizeof(int8) != 8) {
 		ok = false;
-		printk("int8 has unexpected size %+64d bits\n", 8*sizeof(int8));
+		std_Printk("int8 has unexpected size %+64d bits\n", 8*sizeof(int8));
 	}
 	if (8*sizeof(int16) != 16) {
 		ok = false;
-		printk("int16 has unexpected size %+64d bits\n", 8*sizeof(int16));
+		std_Printk("int16 has unexpected size %+64d bits\n", 8*sizeof(int16));
 	}
 	if (8*sizeof(int32) != 32) {
 		ok = false;
-		printk("int32 has unexpected size %+64d bits\n", 8*sizeof(int32));
+		std_Printk("int32 has unexpected size %+64d bits\n", 8*sizeof(int32));
 	}
 	if (8*sizeof(int64) != 64) {
 		ok = false;
-		printk("int64 has unexpected size %+64d bits\n", 8*sizeof(int64));
+		std_Printk("int64 has unexpected size %+64d bits\n", 8*sizeof(int64));
 	}
 	if (8*sizeof(uint8) != 8) {
 		ok = false;
-		printk("uint8 has unexpected size %+64d bits\n", 8*sizeof(uint8));
+		std_Printk("uint8 has unexpected size %+64d bits\n", 8*sizeof(uint8));
 	}
 	if (8*sizeof(uint16) != 16) {
 		ok = false;
-		printk("uint16 has unexpected size %+64d bits\n", 8*sizeof(uint16));
+		std_Printk("uint16 has unexpected size %+64d bits\n", 8*sizeof(uint16));
 	}
 	if (8*sizeof(uint32) != 32) {
 		ok = false;
-		printk("uint32 has unexpected size %+64d bits\n", 8*sizeof(uint32));
+		std_Printk("uint32 has unexpected size %+64d bits\n", 8*sizeof(uint32));
 	}
 	if (8*sizeof(uint64) != 64) {
 		ok = false;
-		printk("uint64 has unexpected size %+64d bits\n", 8*sizeof(uint64));
+		std_Printk("uint64 has unexpected size %+64d bits\n", 8*sizeof(uint64));
 	}
 	if (8*sizeof(uintptr) != 64) {
 		ok = false;
-		printk("uintptr has unexpected size %+64d bits\n", 8*sizeof(uintptr));
+		std_Printk("uintptr has unexpected size %+64d bits\n", 8*sizeof(uintptr));
 	}
 	if (8*sizeof(float32) != 32) {
 		ok = false;
-		printk("float32 has unexpected size %+64d bits\n", 8*sizeof(float32));
+		std_Printk("float32 has unexpected size %+64d bits\n", 8*sizeof(float32));
 	}
 	if (8*sizeof(float64) != 64) {
 		ok = false;
-		printk("float64 has unexpected size %+64d bits\n", 8*sizeof(float64));
+		std_Printk("float64 has unexpected size %+64d bits\n", 8*sizeof(float64));
 	}
 
 	return ok;
@@ -64,7 +64,7 @@ bool validNumericalTypes() {
 
 const void* nil = 0;
 
-void copy(char* dst, char* src, uint64 n) {
+void std_Copy(char* dst, char* src, uint64 n) {
 	uint64 i;
 	for (i = 0; i < n; i++) {
 		dst[i] = src[i];
@@ -73,7 +73,7 @@ void copy(char* dst, char* src, uint64 n) {
 
 int64 printBits(uint64 v, int8 base, bool upper, int32 minWidth, char padChar);
 
-// printk is somewhere between C's and Go's
+// std_Printk is somewhere between C's and Go's
 // printf functions. The format verbs are
 // close to Go's, but use more verbose size
 // indicators.
@@ -119,12 +119,12 @@ int64 printBits(uint64 v, int8 base, bool upper, int32 minWidth, char padChar);
 //
 // Common examples:
 //
-// 	printk("%u8d", 255);    // "255"
-// 	printk("%+16o", -0777); // "-777"
-// 	printk("%08u8b", 7);    // "00000111"
-// 	printk("%w3u8d", 37);   // " 37"
-// 	printk("%u8x", 255);    // "ff"
-// 	printk("%u8X", 255);    // "FF"
+// 	std_Printk("%u8d", 255);    // "255"
+// 	std_Printk("%+16o", -0777); // "-777"
+// 	std_Printk("%08u8b", 7);    // "00000111"
+// 	std_Printk("%w3u8d", 37);   // " 37"
+// 	std_Printk("%u8x", 255);    // "ff"
+// 	std_Printk("%u8X", 255);    // "FF"
 //
 // Characters
 //
@@ -133,8 +133,8 @@ int64 printBits(uint64 v, int8 base, bool upper, int32 minWidth, char padChar);
 //
 // Common examples:
 //
-// 	printk("%c", 'a');   // "a"
-// 	printk("%c", 97);    // "a"
+// 	std_Printk("%c", 'a');   // "a"
+// 	std_Printk("%c", 97);    // "a"
 //
 // Strings
 //
@@ -149,8 +149,8 @@ int64 printBits(uint64 v, int8 base, bool upper, int32 minWidth, char padChar);
 //
 // Common examples:
 //
-// 	printk("%m5s", "Hello, World");    // "Hello"
-// 	printk("%w7m5s", "Hello, World");  // "  Hello"
+// 	std_Printk("%m5s", "Hello, World");    // "Hello"
+// 	std_Printk("%w7m5s", "Hello, World");  // "  Hello"
 //
 // Buffers
 //
@@ -166,9 +166,9 @@ int64 printBits(uint64 v, int8 base, bool upper, int32 minWidth, char padChar);
 //
 // Common examples:
 //
-// 	printk("%m4x", "asdk");    // "6173646b"
-// 	printk("%m4 X", "asdk");   // "61 73 64 6B"
-// 	printk("%m41h", "C is an open source programming language.");
+// 	std_Printk("%m4x", "asdk");    // "6173646b"
+// 	std_Printk("%m4 X", "asdk");   // "61 73 64 6B"
+// 	std_Printk("%m41h", "C is an open source programming language.");
 // 		"00000000  43 20 69 73 20 61 6e 20  6f 70 65 6e 20 73 6f 75  |C is an open sou|\n"
 // 		"00000010  72 63 65 20 70 72 6f 67  72 61 6d 6d 69 6e 67 20  |rce programming |\n"
 // 		"00000020  6c 61 6e 67 75 61 67 65  2e                       |language.|\n"
@@ -181,9 +181,9 @@ int64 printBits(uint64 v, int8 base, bool upper, int32 minWidth, char padChar);
 //
 // Common examples:
 //
-// 	printk("%p", printk);   // 0x1234567890abcdef
+// 	std_Printk("%p", std_Printk);   // 0x1234567890abcdef
 //
-int64 printk(char format[], ...) {
+int64 std_Printk(char format[], ...) {
 	va_list parameters;
 	va_start(parameters, format);
 
@@ -679,7 +679,7 @@ const char* smallsString= "00010203040506070809"
 const char* digits_lower = "0123456789abcdefghijklmnopqrstuvwxyz";
 const char* digits_upper = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-// printBits is for internal use within printk
+// printBits is for internal use within std_Printk
 // only. The base must be 2, 8, 10, or 16.
 //
 // printBits returns the number of bytes printed.

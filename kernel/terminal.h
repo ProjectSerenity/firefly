@@ -2,10 +2,10 @@
 #ifndef TERMINAL_H
 #define TERMINAL_H
 
-uint64 terminal_width;
-uint64 terminal_height;
+uint64 terminal_Width;
+uint64 terminal_Height;
 
-uint32 rgb(uint8 red, uint8 green, uint8 blue);
+uint32 terminal_RGB(uint8 red, uint8 green, uint8 blue);
 
 void terminal_Init(void);
 void terminal_PixelAt(uint64 x, uint64 y, uint32 color);

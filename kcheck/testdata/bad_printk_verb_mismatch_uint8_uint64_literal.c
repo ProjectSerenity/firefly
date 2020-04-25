@@ -1,5 +1,5 @@
 #include "std.h"
 
 void badPrintk(void) {
-	printk("%u8d", (uint64)0xfffffffffffffff);
+	std_Printk("%u8d", (uint64)0xfffffffffffffff);
 }

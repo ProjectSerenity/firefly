@@ -1,5 +1,5 @@
 #include "std.h"
 
 void badPrintk(void) {
-	printk("%m1x", 1);
+	std_Printk("%m1x", 1);
 }

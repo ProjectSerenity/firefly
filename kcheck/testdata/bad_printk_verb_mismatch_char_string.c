@@ -2,5 +2,5 @@
 
 void badPrintk(void) {
 	char* x = "foo";
-	printk("%c", x);
+	std_Printk("%c", x);
 }

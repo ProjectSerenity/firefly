@@ -45,6 +45,6 @@ typedef struct string {
 string str(char s[]);
 #endif
 
-int64 printk(char format[], ...);
+int64 std_Printk(char format[], ...);
 
 #endif // STD_H

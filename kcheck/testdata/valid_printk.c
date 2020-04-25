@@ -2,5 +2,5 @@
 
 void validPrintk(void) {
 	char* foo = "foo";
-	printk("happy text %+64d (%m3s)\n", 1, foo);
+	std_Printk("happy text %+64d (%m3s)\n", 1, foo);
 }

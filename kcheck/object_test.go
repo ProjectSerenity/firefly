@@ -141,7 +141,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_variable_format_string.c", 5),
-					Error: fmt.Errorf("printk format string is not a string literal"),
+					Error: fmt.Errorf("std_Printk format string is not a string literal"),
 				},
 			},
 		},
@@ -151,7 +151,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_missing_arg.c", 4),
-					Error: fmt.Errorf("printk missing arg for verb %d (%q)", 1, "%m3s"),
+					Error: fmt.Errorf("std_Printk missing arg for verb %d (%q)", 1, "%m3s"),
 				},
 			},
 		},
@@ -161,7 +161,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_int_string.c", 5),
-					Error: fmt.Errorf("printk arg for verb %d (%q) has non-integer type %s", 1, "%u8d", "pointer"),
+					Error: fmt.Errorf("std_Printk arg for verb %d (%q) has non-integer type %s", 1, "%u8d", "pointer"),
 				},
 			},
 		},
@@ -171,7 +171,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_int_uint.c", 5),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is not unsigned", 1, "%u8d"),
+					Error: fmt.Errorf("std_Printk arg for verb %d (%q) is not unsigned", 1, "%u8d"),
 				},
 			},
 		},
@@ -181,7 +181,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_uint_int.c", 5),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is unsigned", 1, "%+8d"),
+					Error: fmt.Errorf("std_Printk arg for verb %d (%q) is unsigned", 1, "%+8d"),
 				},
 			},
 		},
@@ -191,7 +191,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_uint8_uint64_literal.c", 4),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is too large (%d bits)", 1, "%u8d", 64),
+					Error: fmt.Errorf("std_Printk arg for verb %d (%q) is too large (%d bits)", 1, "%u8d", 64),
 				},
 			},
 		},
@@ -201,7 +201,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_uint8_uint64_var.c", 5),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is too large (%d bits)", 1, "%u8d", 64),
+					Error: fmt.Errorf("std_Printk arg for verb %d (%q) is too large (%d bits)", 1, "%u8d", 64),
 				},
 			},
 		},
@@ -211,7 +211,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_char_string.c", 5),
-					Error: fmt.Errorf("printk arg for verb %d (%q) has non-character type %s", 1, "%c", "pointer"),
+					Error: fmt.Errorf("std_Printk arg for verb %d (%q) has non-character type %s", 1, "%c", "pointer"),
 				},
 			},
 		},
@@ -221,7 +221,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_char_uint.c", 5),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is unsigned", 1, "%c"),
+					Error: fmt.Errorf("std_Printk arg for verb %d (%q) is unsigned", 1, "%c"),
 				},
 			},
 		},
@@ -231,7 +231,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_char_int64_literal.c", 4),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is too large (%d bits)", 1, "%c", 64),
+					Error: fmt.Errorf("std_Printk arg for verb %d (%q) is too large (%d bits)", 1, "%c", 64),
 				},
 			},
 		},
@@ -241,7 +241,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_string_int.c", 4),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is non-string type %s", 1, "%m1s", "int32"),
+					Error: fmt.Errorf("std_Printk arg for verb %d (%q) is non-string type %s", 1, "%m1s", "int32"),
 				},
 			},
 		},
@@ -251,7 +251,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_string_pointer.c", 5),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is non-string type *%s", 1, "%m1s", "int32"),
+					Error: fmt.Errorf("std_Printk arg for verb %d (%q) is non-string type *%s", 1, "%m1s", "int32"),
 				},
 			},
 		},
@@ -261,7 +261,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_buffer_int.c", 4),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is non-string type %s", 1, "%m1x", "int32"),
+					Error: fmt.Errorf("std_Printk arg for verb %d (%q) is non-string type %s", 1, "%m1x", "int32"),
 				},
 			},
 		},
@@ -271,7 +271,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_buffer_pointer.c", 5),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is non-buffer type *%s", 1, "%m1x", "int32"),
+					Error: fmt.Errorf("std_Printk arg for verb %d (%q) is non-buffer type *%s", 1, "%m1x", "int32"),
 				},
 			},
 		},
@@ -281,7 +281,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_verb_mismatch_pointer_int.c", 4),
-					Error: fmt.Errorf("printk arg for verb %d (%q) is non-pointer type %s", 1, "%p", "int32"),
+					Error: fmt.Errorf("std_Printk arg for verb %d (%q) is non-pointer type %s", 1, "%p", "int32"),
 				},
 			},
 		},
@@ -291,7 +291,7 @@ func TestCommands(t *testing.T) {
 			Want: []Issue{
 				{
 					Span:  span("bad_printk_extra_values.c", 4),
-					Error: fmt.Errorf("printk has %d extra arguments not used by verbs", 1),
+					Error: fmt.Errorf("std_Printk has %d extra arguments not used by verbs", 1),
 				},
 			},
 		},

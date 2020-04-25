@@ -20,11 +20,11 @@ typedef unsigned long uintptr;
 typedef float float32;
 typedef double float64;
 
-bool validNumericalTypes();
+bool std_ValidNumericalTypes();
 
 const void* nil;
 
-void copy(char* dst, char* src, uint64 n);
+void std_Copy(char* dst, char* src, uint64 n);
 
 typedef struct string {
 	int64 len;
@@ -45,6 +45,6 @@ typedef struct string {
 string str(char s[]);
 #endif
 
-int64 printk(char format[], ...);
+int64 std_Printk(char format[], ...);
 
 #endif // STD_H
