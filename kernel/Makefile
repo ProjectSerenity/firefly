@@ -13,7 +13,7 @@ _ERROR     = -Werror
 
 CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOPIE} ${_NORED} ${_NOSTACK} ${_NOHOST} ${_CSTD} ${_WARN} ${_ERROR}
 
-OBJECTS = init.o kernel.o mmio.o ports.o std.o terminal.o
+OBJECTS = init.o kernel.o cpu.o mmio.o ports.o std.o terminal.o
 
 # Main target.
 .PHONY: all
@@ -35,6 +35,7 @@ firefly.bin: ${OBJECTS}
 	${CC} ${CCFLAGS} -o $@ $<
 
 # Kernel objects.
+cpu.o: std.h cpu.h
 init.o:
 kernel.o: std.h terminal.h
 mmio.o: std.h mmio.h

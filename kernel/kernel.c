@@ -1,4 +1,5 @@
 #include "std.h"
+#include "cpu.h"
 #include "terminal.h"
 
 void kmain(void) {
@@ -11,5 +12,10 @@ void kmain(void) {
 	}
 
 	std_Printk("Numerical types as expected\n");
+
 	std_Printk("Resolution: %u64d x %u64d\n", terminal_Width, terminal_Height);
+
+	cpu_Info info = cpu_GetInfo();
+	std_Printk("CPU cores: %u16d, frequency: %u64dGHz\n", info.Cores, info.Frequency/(uint64)1000000000);
+	std_Printk("RAM: %u64dMB\n", info.Memory/(((uint64)1)<<20));
 }
