@@ -77,14 +77,16 @@ uint64 terminal_WriteChar(char c) {
 	}
 
 	terminal_WriteCharAt(c, terminal_color, terminal_column, terminal_row);
-	if (++terminal_column < terminal_Width) {
+	if (8*(++terminal_column) < terminal_Width) {
 		return 1;
 	}
 
-	if (++terminal_row < terminal_Height) {
+	terminal_column = 0;
+	if (8*(++terminal_row) < terminal_Height) {
 		return 1;
 	}
 
+	terminal_row = 0;
 	// TODO: handle when we reach the bottom row.
 
 	return 1;
