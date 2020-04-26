@@ -513,7 +513,7 @@ int64 std_Printk(char format[], ...) {
 			char* buffer = (char*) va_arg(parameters, char*);
 			int64 i;
 			for (i = 0; i < size; i++) {
-				written += printBits(buffer[i], 16, c == 'X', 0, '0');
+				written += printBits(0xff & buffer[i], 16, c == 'X', 0, '0');
 				if (addSpace && i+1 < size) {
 					written += terminal_WriteChar(' ');
 				}
@@ -561,7 +561,7 @@ int64 std_Printk(char format[], ...) {
 					written += terminal_WriteString(str("  "));
 				}
 
-				written += printBits(buffer[i], 16, false, 0, '0');
+				written += printBits(0xff & buffer[i], 16, false, 0, '0');
 				written += terminal_WriteChar(' ');
 				if (used == 7) {
 					// There's an additional space after the 8th byte.
@@ -573,7 +573,7 @@ int64 std_Printk(char format[], ...) {
 				}
 
 				n++;
-				rightChars[used] = buffer[i];
+				rightChars[used] = 0xff & buffer[i];
 				if (buffer[i] < 32 || 126 < buffer[i]) {
 					rightChars[used] = '.';
 				}
