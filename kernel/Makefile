@@ -35,13 +35,13 @@ firefly.bin: ${OBJECTS}
 	${CC} ${CCFLAGS} -o $@ $<
 
 # Kernel objects.
-cpu.o: std.h cpu.h
-init.o:
-kernel.o: std.h terminal.h
-mmio.o: std.h mmio.h
-ports.o: std.h ports.h
-std.o: std.h
-terminal.o: font.h std.h terminal.h
+cpu.o: cpu.c std.h cpu.h
+init.o: init.c
+kernel.o: kernel.c std.h cpu.h mem.h terminal.h
+mmio.o: mmio.c std.h mmio.h
+ports.o: ports.c std.h ports.h
+std.o: std.c std.h
+terminal.o: terminal.c font.h std.h terminal.h
 
 # Cleanup.
 .PHONY: clean
