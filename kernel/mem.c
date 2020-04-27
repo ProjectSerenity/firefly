@@ -4,8 +4,8 @@
 // Paging.
 //
 // Details here copied from Intel® 64 and IA-32 Architectures Software Developer’s Manual,
-// Combined Volumes: 1, 2A, 2B, 2C, 2D, 3A, 3B, 3C, 3D and 4, section 4.5 (4-Level Paging).
-// In particular, figure 4-9 and tables 4-14 to 4-17.
+// Volume 3A, section 4.5 (4-Level Paging), in particular, figure 4-9 and tables 4-14 to 4-17.
+// In the combined volume this starts on page 2907.
 //
 // Paging maps a virtual address (referred to in the Intel manuals as a 'linear address')
 // to a physical address, through a series of page tables. Different parts of the virtual
@@ -135,8 +135,20 @@
 //   located at the physical address specified in bits 51:12 of the PDE.
 //   A page table comprises 512 64-bit entries.
 
+// The text above describes the behaviour of the CPU, according to the
+// Intel manual. In addition to this, Firefly uses bits 62-53 of each
+// PML4E and PDPTE to store the number of entries in the table referenced
+// that are currently present. For example, PML4[0] will contain the
+// address of a PDPT. Bits 62-53 of PML4[0] will show how many of the 512
+// entries in the PDPT are currently present. This enables the efficent
+// optimisation of marking the entire PDPT absent in the PML4E if no PDPT
+// entries are present.
+//
+// These values are initialised in mem_Init and maintained as new pages are
+// added.
+
 // Paging starting point.
-const uintptr* PML4 = (uintptr*)(uintptr)0x2000;
+uintptr* PML4 = (uintptr*)(uintptr)0x2000;
 
 // Page entries per table.
 const uintptr PAGE_ENTRIES_PER_TABLE = 512;
@@ -169,7 +181,42 @@ const uintptr MASK_BITS_47_TO_21 = 0x0000FFFFFFE00000;
 const uintptr MASK_BITS_20_TO_0  = 0x00000000001FFFFF;
 
 void mem_Init() {
-	// Nothing to do yet.
+	// Initialise the page table entries count.
+	uintptr i, j, k;
+	uint64 PDPTEs, PDTEs;
+	for (i = 0; i < PAGE_ENTRIES_PER_TABLE; i++) {
+		uintptr pml4e = PML4[i];
+		if ((pml4e & PAGE_FLAG_PRESENT) == 0) {
+			// Not present.
+			continue;
+		}
+
+		PDPTEs = 0;
+		uintptr* pdpt = (uintptr*)(MASK_BITS_51_TO_12 & pml4e);
+		for (j = 0; j < PAGE_ENTRIES_PER_TABLE; j++) {
+			uintptr pdpte = pdpt[j];
+			if (pdpte & PAGE_FLAG_PRESENT) {
+				PDPTEs++;
+			}
+
+			PDTEs = 0;
+			uintptr* pdt = (uintptr*)(MASK_BITS_51_TO_12 & pdpte);
+			for (k = 0; k < PAGE_ENTRIES_PER_TABLE; k++) {
+				uintptr pde = pdt[k];
+				if (pde & PAGE_FLAG_PRESENT) {
+					PDTEs++;
+				}
+			}
+
+			if (PDTEs > 0) {
+				pdpt[j] = (PDTEs << 53) | pdpte;
+			}
+		}
+
+		if (PDPTEs > 0) {
+			PML4[i] = (PDPTEs << 53) | pml4e;
+		}
+	}
 }
 
 void mem_DebugPaging(uint64 maxPagesPrinted) {
