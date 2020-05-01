@@ -2,5 +2,5 @@
 
 set -e
 
-im=$(docker build -q .)
-docker run --name firefly-build --rm -it -v $PWD:/build $im
+docker build -q -t firefly-builder .
+docker run --name firefly-build --rm -it -v $PWD:/build firefly-builder
