@@ -183,7 +183,7 @@ static int64 printBits(uint64 v, uint8 base, bool upper, int32 minWidth, char pa
 //
 // 	std_Printk("%p", std_Printk);   // 0x1234567890abcdef
 //
-int64 std_Printk(char format[], ...) {
+int64 std_Printk(const char format[], ...) {
 	va_list parameters;
 	va_start(parameters, format);
 
