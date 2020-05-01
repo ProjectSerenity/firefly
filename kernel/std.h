@@ -3,8 +3,8 @@
 #define STD_H
 
 typedef unsigned char bool;
-const bool true;
-const bool false;
+extern const bool true;
+extern const bool false;
 
 typedef unsigned char uint8;
 typedef unsigned short uint16;
@@ -20,9 +20,9 @@ typedef unsigned long uintptr;
 typedef float float32;
 typedef double float64;
 
-bool std_ValidNumericalTypes();
+bool std_ValidNumericalTypes(void);
 
-const void* nil;
+extern const void* nil;
 
 void std_Copy(char* dst, char* src, uint64 n);
 

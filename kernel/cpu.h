@@ -8,6 +8,6 @@ typedef struct {
 	uint64 Memory;
 } cpu_Info;
 
-cpu_Info cpu_GetInfo();
+cpu_Info cpu_GetInfo(void);
 
 #endif // CPU_H
