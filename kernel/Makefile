@@ -47,4 +47,4 @@ terminal.o: terminal.c font.h std.h terminal.h
 # Cleanup.
 .PHONY: clean
 clean:
-	rm firefly.bin *.o
+	rm firefly.img firefly.bin *.o
