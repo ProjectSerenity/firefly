@@ -17,7 +17,9 @@ OBJECTS = init.o kernel.o cpu.o mem.o mmio.o ports.o std.o terminal.o
 
 # Main target.
 .PHONY: all
-all: firefly.bin
+all: firefly.img
+
+firefly.img: firefly.bin
 	cat ../Pure64/bin/pure64.sys firefly.bin > kernel.sys
 	dd if=/dev/zero of=firefly.img count=128 bs=1048576
 	dd if=../Pure64/bin/mbr.sys of=firefly.img conv=notrunc
