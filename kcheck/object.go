@@ -235,7 +235,7 @@ func processObject(issues chan<- Issue, name string) {
 					return
 				}
 
-				if argType.Base == nil || (argType.Base.Kind != cc.Uint8 && argType.Base.Kind != cc.Int8) {
+				if argType.Base == nil || (!argType.Base.Is(cc.Uint8) && !argType.Base.Is(cc.Int8)) {
 					Errorf(issues, callExpr.Span, "std_Printk arg for verb %d (%q) is non-string type *%s", i+1, verb.Text, argType.Base.Kind)
 					return
 				}
@@ -245,7 +245,7 @@ func processObject(issues chan<- Issue, name string) {
 					return
 				}
 
-				if argType.Base == nil || (argType.Base.Kind != cc.Uint8 && argType.Base.Kind != cc.Int8) {
+				if argType.Base == nil || (!argType.Base.Is(cc.Uint8) && !argType.Base.Is(cc.Int8)) {
 					Errorf(issues, callExpr.Span, "std_Printk arg for verb %d (%q) is non-buffer type *%s", i+1, verb.Text, argType.Base.Kind)
 					return
 				}
