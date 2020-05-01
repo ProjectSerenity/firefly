@@ -451,6 +451,19 @@ Restart:
 		for isalpha(in[i]) {
 			i++
 		}
+		if in[:i] == "__asm__" {
+			// We ignore inline assembly. Skip
+			// to the end of the line.
+			for in[i] != '\n' {
+				if in[i] == '\\' && in[i+1] == '\n' && i+2 < len(in) {
+					i++
+				}
+				i++
+			}
+
+			lx.skip(i)
+			goto Restart
+		}
 		lx.sym(i)
 		switch lx.tok {
 		case "Adr":
