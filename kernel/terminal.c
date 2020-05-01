@@ -105,14 +105,14 @@ uint64 terminal_Write(const char* data, uint64 size) {
 }
 
 uint64 terminal_WriteString(string s) {
-	terminal_Write(s.ptr, s.len);
-	return s.len;
+	terminal_Write(s.ptr, (uint64)s.len);
+	return (uint64)s.len;
 }
 
 uint64 terminal_WriteError(string s) {
 	uint32 old = terminal_color;
 	terminal_SetColor(terminal_RGB(255, 0, 0));
-	terminal_Write(s.ptr, s.len);
+	terminal_Write(s.ptr, (uint64)s.len);
 	terminal_SetColor(old);
-	return s.len;
+	return (uint64)s.len;
 }
