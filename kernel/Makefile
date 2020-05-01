@@ -8,7 +8,7 @@ _NOPIE     = -fno-PIE
 _NORED     = -mno-red-zone
 _NOSTACK   = -fno-stack-protector -fomit-frame-pointer
 _CSTD      = -std=c99
-_WARN      = -Wall -Wextra -Wpedantic
+_WARN      = -Weverything -Wno-unused-const-variable
 _ERROR     = -Werror
 
 CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOPIE} ${_NORED} ${_NOSTACK} ${_NOHOST} ${_CSTD} ${_WARN} ${_ERROR}
