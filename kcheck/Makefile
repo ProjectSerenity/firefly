@@ -1,4 +1,6 @@
 .PHONY: all
-all:
+all: kcheck
+
+kcheck: $(wildcard *.go) go.mod go.sum
 	go test
-	go install
+	go build
