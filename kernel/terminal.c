@@ -2,6 +2,9 @@
 #include "terminal.h"
 #include "font.h"
 
+uint64 terminal_Width;
+uint64 terminal_Height;
+
 static uint8 terminal_pixelWidth;
 static uint16 terminal_pitch;
 static uint8* terminal_addr;
