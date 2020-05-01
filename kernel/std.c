@@ -508,10 +508,10 @@ int64 std_Printk(const char format[], ...) {
 			}
 
 			char* buffer = (char*) va_arg(parameters, char*);
-			int64 i;
-			for (i = 0; i < size; i++) {
-				written += printBits(0xff & buffer[i], 16, c == 'X', 0, '0');
-				if (addSpace && i+1 < size) {
+			int64 j;
+			for (j = 0; j < size; j++) {
+				written += printBits(0xff & buffer[j], 16, c == 'X', 0, '0');
+				if (addSpace && j+1 < size) {
 					written += terminal_WriteChar(' ');
 				}
 			}
@@ -549,8 +549,8 @@ int64 std_Printk(const char format[], ...) {
 			string right = {.ptr=rightChars, .len=18};
 
 			char* buffer = (char*) va_arg(parameters, char*);
-			int32 i;
-			for (i = 0; i < size; i++) {
+			int32 k;
+			for (k = 0; k < size; k++) {
 				if (used == 0) {
 					// At the beginning of a line we print the current
 					// offset in hex.
@@ -558,7 +558,7 @@ int64 std_Printk(const char format[], ...) {
 					written += terminal_WriteString(str("  "));
 				}
 
-				written += printBits(0xff & buffer[i], 16, false, 0, '0');
+				written += printBits(0xff & buffer[k], 16, false, 0, '0');
 				written += terminal_WriteChar(' ');
 				if (used == 7) {
 					// There's an additional space after the 8th byte.
@@ -570,8 +570,8 @@ int64 std_Printk(const char format[], ...) {
 				}
 
 				n++;
-				rightChars[used] = 0xff & buffer[i];
-				if (buffer[i] < 32 || 126 < buffer[i]) {
+				rightChars[used] = 0xff & buffer[k];
+				if (buffer[k] < 32 || 126 < buffer[k]) {
 					rightChars[used] = '.';
 				}
 
