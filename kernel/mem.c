@@ -148,37 +148,37 @@
 // added.
 
 // Paging starting point.
-uintptr* PML4 = (uintptr*)(uintptr)0x2000;
+static uintptr* const PML4 = (uintptr*)(uintptr)0x2000;
 
 // Page entries per table.
-const uintptr PAGE_ENTRIES_PER_TABLE = 512;
+static const uintptr PAGE_ENTRIES_PER_TABLE = 512;
 
 // Paging flags.
-const uintptr PAGE_FLAG_PRESENT         = 1 << 0;
-const uintptr PAGE_FLAG_ABSENT          = 0 << 0;
-const uintptr PAGE_FLAG_READ_WRITE      = 1 << 1;
-const uintptr PAGE_FLAG_READ_ONLY       = 0 << 1;
-const uintptr PAGE_FLAG_USERSPACE       = 1 << 2;
-const uintptr PAGE_FLAG_KERNEL_ONLY     = 0 << 2;
-const uintptr PAGE_FLAG_WRITE_THROUGH   = 1 << 3;
-const uintptr PAGE_FLAG_WRITE_BACK      = 0 << 3;
-const uintptr PAGE_FLAG_CACHE_DISABLED  = 1 << 4;
-const uintptr PAGE_FLAG_CACHE_ENABLED   = 0 << 4;
-const uintptr PAGE_FLAG_ACCESSED        = 1 << 5;
-const uintptr PAGE_FLAG_UNACCESSED      = 0 << 5;
-const uintptr PAGE_FLAG_MODIFIED        = 1 << 6;
-const uintptr PAGE_FLAG_UNMODIFIED      = 0 << 6;
-const uintptr PAGE_FLAG_LARGE_PAGE_SIZE = 1 << 7;
-const uintptr PAGE_FLAG_SMALL_PAGE_SIZE = 0 << 7;
-const uintptr PAGE_FLAG_GLOBAL          = 1 << 8;
-const uintptr PAGE_FLAG_LOCAL           = 0 << 8;
-const uintptr PAGE_FLAG_NOT_EXECUTABLE  = (uintptr)1 << 63;
-const uintptr PAGE_FLAG_EXECUTABLE      = (uintptr)0 << 63;
+static const uintptr PAGE_FLAG_PRESENT         = 1 << 0;
+static const uintptr PAGE_FLAG_ABSENT          = 0 << 0;
+static const uintptr PAGE_FLAG_READ_WRITE      = 1 << 1;
+static const uintptr PAGE_FLAG_READ_ONLY       = 0 << 1;
+static const uintptr PAGE_FLAG_USERSPACE       = 1 << 2;
+static const uintptr PAGE_FLAG_KERNEL_ONLY     = 0 << 2;
+static const uintptr PAGE_FLAG_WRITE_THROUGH   = 1 << 3;
+static const uintptr PAGE_FLAG_WRITE_BACK      = 0 << 3;
+static const uintptr PAGE_FLAG_CACHE_DISABLED  = 1 << 4;
+static const uintptr PAGE_FLAG_CACHE_ENABLED   = 0 << 4;
+static const uintptr PAGE_FLAG_ACCESSED        = 1 << 5;
+static const uintptr PAGE_FLAG_UNACCESSED      = 0 << 5;
+static const uintptr PAGE_FLAG_MODIFIED        = 1 << 6;
+static const uintptr PAGE_FLAG_UNMODIFIED      = 0 << 6;
+static const uintptr PAGE_FLAG_LARGE_PAGE_SIZE = 1 << 7;
+static const uintptr PAGE_FLAG_SMALL_PAGE_SIZE = 0 << 7;
+static const uintptr PAGE_FLAG_GLOBAL          = 1 << 8;
+static const uintptr PAGE_FLAG_LOCAL           = 0 << 8;
+static const uintptr PAGE_FLAG_NOT_EXECUTABLE  = (uintptr)1 << 63;
+static const uintptr PAGE_FLAG_EXECUTABLE      = (uintptr)0 << 63;
 
 // Common offsets.
-const uintptr MASK_BITS_51_TO_12 = 0x000FFFFFFFFFF000;
-const uintptr MASK_BITS_47_TO_21 = 0x0000FFFFFFE00000;
-const uintptr MASK_BITS_20_TO_0  = 0x00000000001FFFFF;
+static const uintptr MASK_BITS_51_TO_12 = 0x000FFFFFFFFFF000;
+static const uintptr MASK_BITS_47_TO_21 = 0x0000FFFFFFE00000;
+static const uintptr MASK_BITS_20_TO_0  = 0x00000000001FFFFF;
 
 void mem_Init() {
 	// Initialise the page table entries count.
