@@ -24,14 +24,14 @@ all: firefly.bin
 	dd if=kernel.sys of=firefly.img bs=512 seek=16 conv=notrunc
 
 firefly.bin: ${OBJECTS}
-	kcheck headers *.h
+	../kcheck/kcheck headers *.h
 	ld -T linker.ld -o firefly.bin ${OBJECTS}
 
 # Generic rule for C files.
 .SUFFIXES: .c .o
 
 .c.o:
-	# kcheck object $<
+	# ../kcheck/kcheck object $<
 	${CC} ${CCFLAGS} -o $@ $<
 
 # Kernel objects.
