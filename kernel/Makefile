@@ -7,11 +7,12 @@ _NOHOST    = -ffreestanding
 _NOPIE     = -fno-PIE
 _NORED     = -mno-red-zone
 _NOSTACK   = -fno-stack-protector -fomit-frame-pointer
+_NOCOLOR   = -fno-color-diagnostics
 _CSTD      = -std=c99
 _WARN      = -Weverything -Wno-unused-const-variable
 _ERROR     = -Werror
 
-CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOPIE} ${_NORED} ${_NOSTACK} ${_NOHOST} ${_CSTD} ${_WARN} ${_ERROR}
+CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOPIE} ${_NORED} ${_NOSTACK} ${_NOHOST} ${_CSTD} ${_NOCOLOR} ${_WARN} ${_ERROR}
 
 OBJECTS = init.o kernel.o cpu.o mem.o mmio.o ports.o std.o terminal.o
 
