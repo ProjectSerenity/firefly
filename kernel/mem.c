@@ -281,7 +281,7 @@ void mem_DebugPaging(uint64 maxPagesPrinted) {
 
 					pages++;
 					if (pages < maxPagesPrinted) {
-						std_Printk("Page map virtual addresses %p-%p to physical addresses %p-%p\n", prevVirtualStart, prevVirtualEnd, prevPageStart, prevPageEnd);
+						std_Printk("Page map virtual addresses %p-%p to physical addresses %p-%p\n", (void*)prevVirtualStart, (void*)prevVirtualEnd, (void*)prevPageStart, (void*)prevPageEnd);
 					} else if (pages == maxPagesPrinted) {
 						std_Printk("Stopping after %u64d pages printed.\n", maxPagesPrinted);
 					}
@@ -297,7 +297,7 @@ void mem_DebugPaging(uint64 maxPagesPrinted) {
 
 	if (prevPageStart > 0) {
 		pages++;
-		std_Printk("Page map virtual addresses %p-%p to physical addresses %p-%p\n", prevVirtualStart, prevVirtualEnd, prevPageStart, prevPageEnd);
+		std_Printk("Page map virtual addresses %p-%p to physical addresses %p-%p\n", (void*)prevVirtualStart, (void*)prevVirtualEnd, (void*)prevPageStart, (void*)prevPageEnd);
 	}
 
 	std_Printk("%u64d contiguous page mappings.\n", pages);
