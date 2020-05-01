@@ -40,6 +40,7 @@ init.o: init.c
 kernel.o: kernel.c std.h cpu.h mem.h terminal.h
 mem.o: mem.c std.h mem.h
 mmio.o: mmio.c std.h mmio.h
+pci.o: pci.c std.h pci.h ports.h
 ports.o: ports.c std.h ports.h
 std.o: std.c std.h
 terminal.o: terminal.c font.h std.h terminal.h
