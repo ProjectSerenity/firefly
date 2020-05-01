@@ -570,7 +570,7 @@ int64 std_Printk(const char format[], ...) {
 				}
 
 				n++;
-				rightChars[used] = 0xff & buffer[k];
+				rightChars[used] = buffer[k];
 				if (buffer[k] < 32 || 126 < buffer[k]) {
 					rightChars[used] = '.';
 				}
@@ -662,7 +662,7 @@ int64 std_Printk(const char format[], ...) {
 	return written;
 }
 
-const char* smallsString= "00010203040506070809"
+static const char* smallsString= "00010203040506070809"
 	"10111213141516171819"
 	"20212223242526272829"
 	"30313233343536373839"
@@ -673,8 +673,8 @@ const char* smallsString= "00010203040506070809"
 	"80818283848586878889"
 	"90919293949596979899";
 
-const char* digits_lower = "0123456789abcdefghijklmnopqrstuvwxyz";
-const char* digits_upper = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+static const char* digits_lower = "0123456789abcdefghijklmnopqrstuvwxyz";
+static const char* digits_upper = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 // printBits is for internal use within std_Printk
 // only. The base must be 2, 8, 10, or 16.
@@ -697,7 +697,7 @@ int64 printBits(uint64 v, uint8 base, bool upper, int32 minWidth, char padChar) 
 		}
 
 		// v < 100
-		int64 is = v * 2;
+		uint64 is = v * 2;
 		i--;
 		buffer[i] = smallsString[is+1];
 		written++;
