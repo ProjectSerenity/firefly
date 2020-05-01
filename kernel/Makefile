@@ -31,7 +31,7 @@ firefly.bin: ${OBJECTS}
 .SUFFIXES: .c .o
 
 .c.o:
-	# ../kcheck/kcheck object $<
+	../kcheck/kcheck object $<
 	${CC} ${CCFLAGS} -o $@ $<
 
 # Kernel objects.
