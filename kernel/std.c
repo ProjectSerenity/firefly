@@ -71,7 +71,7 @@ void std_Copy(char* dst, char* src, uint64 n) {
 	}
 }
 
-int64 printBits(uint64 v, int8 base, bool upper, int32 minWidth, char padChar);
+static int64 printBits(uint64 v, uint8 base, bool upper, int32 minWidth, char padChar);
 
 // std_Printk is somewhere between C's and Go's
 // printf functions. The format verbs are
@@ -382,16 +382,13 @@ int64 std_Printk(char format[], ...) {
 				goto exit_verb;
 			}
 
-			int base;
+			uint8 base = 10;
 			switch (c) {
 			case 'b':
 				base = 2;
 				break;
 			case 'o':
 				base = 8;
-				break;
-			case 'd':
-				base = 10;
 				break;
 			case 'x':
 			case 'X':
@@ -684,7 +681,7 @@ const char* digits_upper = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 //
 // printBits returns the number of bytes printed.
 //
-int64 printBits(uint64 v, int8 base, bool upper, int32 minWidth, char padChar) {
+int64 printBits(uint64 v, uint8 base, bool upper, int32 minWidth, char padChar) {
 	char buffer[64+1]; // +1 for sign of 64bit value in base 2.
 	int8 i = 65;
 
