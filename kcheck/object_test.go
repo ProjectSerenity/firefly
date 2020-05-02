@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ProjectSerenity/firefly/cc"
+	"github.com/ProjectSerenity/firefly/kcheck/cc"
 )
 
 func TestCommands(t *testing.T) {

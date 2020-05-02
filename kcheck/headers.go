@@ -20,7 +20,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/ProjectSerenity/firefly/cc"
+	"github.com/ProjectSerenity/firefly/kcheck/cc"
 )
 
 var (

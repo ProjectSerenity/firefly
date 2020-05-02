@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/ProjectSerenity/firefly/cc"
+	"github.com/ProjectSerenity/firefly/kcheck/cc"
 )
 
 func init() {
