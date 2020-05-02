@@ -16,6 +16,8 @@ CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOPIE} ${_NORED} ${_NOSTACK} ${_NOHOST} ${_CS
 
 OBJECTS = init.o kernel.o cpu.o mem.o mmio.o ports.o std.o terminal.o
 
+KCHECK = ../kcheck/kcheck
+
 # Main target.
 .PHONY: all
 all: firefly.img
@@ -26,27 +28,27 @@ firefly.img: firefly.bin
 	dd if=../Pure64/bin/mbr.sys of=firefly.img conv=notrunc
 	dd if=kernel.sys of=firefly.img bs=512 seek=16 conv=notrunc
 
-firefly.bin: ${OBJECTS}
-	../kcheck/kcheck headers *.h
+firefly.bin: ${KCHECK} ${OBJECTS}
+	${KCHECK} headers *.h
 	ld -T linker.ld -o firefly.bin ${OBJECTS}
 
 # Generic rule for C files.
 .SUFFIXES: .c .o
 
 .c.o:
-	../kcheck/kcheck object $<
+	${KCHECK} object $<
 	${CC} ${CCFLAGS} -o $@ $<
 
 # Kernel objects.
-cpu.o: cpu.c std.h cpu.h
-init.o: init.c
-kernel.o: kernel.c std.h cpu.h mem.h terminal.h
-mem.o: mem.c std.h mem.h
-mmio.o: mmio.c std.h mmio.h
-pci.o: pci.c std.h pci.h ports.h
-ports.o: ports.c std.h ports.h
-std.o: std.c std.h
-terminal.o: terminal.c font.h std.h terminal.h
+cpu.o: ${KCHECK} cpu.c std.h cpu.h
+init.o: ${KCHECK} init.c
+kernel.o: ${KCHECK} kernel.c std.h cpu.h mem.h terminal.h
+mem.o: ${KCHECK} mem.c std.h mem.h
+mmio.o: ${KCHECK} mmio.c std.h mmio.h
+pci.o: ${KCHECK} pci.c std.h pci.h ports.h
+ports.o: ${KCHECK} ports.c std.h ports.h
+std.o: ${KCHECK} std.c std.h
+terminal.o: ${KCHECK} terminal.c font.h std.h terminal.h
 
 # Cleanup.
 .PHONY: clean
