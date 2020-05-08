@@ -25,7 +25,7 @@ LOADER = ../Pure64/bin/pure64.sys
 .PHONY: all
 all: firefly.img
 
-firefly.img: firefly.bin ${LOADER} ${MBR} ${IMGBUILD}
+firefly.img: firefly.bin linker.ld ${LOADER} ${MBR} ${IMGBUILD}
 	${IMGBUILD} -mbr ${MBR} -loader ${LOADER} -kernel firefly.bin -o firefly.img
 
 firefly.bin: ${KCHECK} ${OBJECTS}
