@@ -451,7 +451,7 @@ Restart:
 		for isalpha(in[i]) {
 			i++
 		}
-		if in[:i] == "__asm__" {
+		if in[:i] == "__asm__" || in[:i] == "__attribute__" {
 			// We ignore inline assembly. Skip
 			// to the end of the line.
 			for in[i] != '\n' {
