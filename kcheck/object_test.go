@@ -800,7 +800,7 @@ func TestParsePrintkFormat(t *testing.T) {
 func TestNumericalTypes(t *testing.T) {
 	// Check that cc agrees on the size of
 	// our sized types.
-	name := filepath.Join("testdata", "std.h")
+	name := filepath.Join("..", "kernel", "std.h")
 	f, err := os.Open(name)
 	if err != nil {
 		t.Fatalf("failed to open %s: %v", name, err)
