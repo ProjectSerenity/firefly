@@ -14,8 +14,6 @@ void kmain() {
 		return;
 	}
 
-	std_Printk("Numerical types as expected\n");
-
 	std_Printk("Resolution: %u64d x %u64d\n", terminal_Width, terminal_Height);
 
 	cpu_Info info = cpu_GetInfo();
@@ -23,5 +21,8 @@ void kmain() {
 	std_Printk("RAM: %u64dMB\n", info.Memory/(((uint64)1)<<20));
 
 	mem_Init();
-	mem_DebugPaging(10);
+
+	for (;;) {
+		__asm__ ("hlt");
+	}
 }
