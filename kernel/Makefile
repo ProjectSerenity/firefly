@@ -17,15 +17,18 @@ CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOPIE} ${_NORED} ${_NOSTACK} ${_NOHOST} ${_CS
 OBJECTS = init.o kernel.o cpu.o mem.o mmio.o ports.o std.o terminal.o
 
 KCHECK = ../kcheck/kcheck
+IMGBUILD = ../imgbuild/imgbuild
+MBR = ../Pure64/bin/mbr.sys
+LOADER = ../Pure64/bin/pure64.sys
 
 # Main target.
 .PHONY: all
 all: firefly.img
 
-firefly.img: firefly.bin
-	cat ../Pure64/bin/pure64.sys firefly.bin > kernel.sys
+firefly.img: firefly.bin ${LOADER} ${MBR}
+	cat ${LOADER} firefly.bin > kernel.sys
 	dd if=/dev/zero of=firefly.img count=128 bs=1048576
-	dd if=../Pure64/bin/mbr.sys of=firefly.img conv=notrunc
+	dd if=${MBR} of=firefly.img conv=notrunc
 	dd if=kernel.sys of=firefly.img bs=512 seek=16 conv=notrunc
 
 firefly.bin: ${KCHECK} ${OBJECTS}
