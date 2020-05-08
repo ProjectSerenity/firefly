@@ -25,11 +25,8 @@ LOADER = ../Pure64/bin/pure64.sys
 .PHONY: all
 all: firefly.img
 
-firefly.img: firefly.bin ${LOADER} ${MBR}
-	cat ${LOADER} firefly.bin > kernel.sys
-	dd if=/dev/zero of=firefly.img count=128 bs=1048576
-	dd if=${MBR} of=firefly.img conv=notrunc
-	dd if=kernel.sys of=firefly.img bs=512 seek=16 conv=notrunc
+firefly.img: firefly.bin ${LOADER} ${MBR} ${IMGBUILD}
+	${IMGBUILD} -mbr ${MBR} -loader ${LOADER} -kernel firefly.bin -o firefly.img
 
 firefly.bin: ${KCHECK} ${OBJECTS}
 	${KCHECK} headers *.h
