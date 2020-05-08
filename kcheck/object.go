@@ -281,11 +281,11 @@ func numberType(kind cc.TypeKind) (signed bool, size int, ok bool) {
 		fallthrough
 	case cc.Uint16:
 		size = 16
-	case cc.Int32, cc.Int:
+	case cc.Int32:
 		signed = true
 		fallthrough
-	case cc.Uint32, cc.Uint:
-		size = 64 // TODO sort out number types
+	case cc.Uint32:
+		size = 32
 	case cc.Int64:
 		signed = true
 		fallthrough
