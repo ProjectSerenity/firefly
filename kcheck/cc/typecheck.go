@@ -321,7 +321,7 @@ func stripTypedef(t *Type) *Type {
 
 func isInt(t *Type) bool {
 	t = stripTypedef(t)
-	return Int8 <= t.Kind && t.Kind <= Uint64 || t.Kind == Enum
+	return Int8 <= t.Kind && t.Kind <= Uintptr || t.Kind == Enum
 }
 
 func isPtr(t *Type) bool {
