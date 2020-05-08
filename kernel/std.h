@@ -16,7 +16,7 @@ typedef signed short int16;
 typedef signed int int32;
 typedef signed long int64;
 
-typedef unsigned long uintptr;
+typedef unsigned long long uintptr;
 typedef float float32;
 typedef double float64;
 

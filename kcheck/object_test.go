@@ -822,6 +822,7 @@ func TestNumericalTypes(t *testing.T) {
 		"uint16",
 		"uint32",
 		"uint64",
+		"uintptr",
 		"float32",
 		"float64",
 	}
