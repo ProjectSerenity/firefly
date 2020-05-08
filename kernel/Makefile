@@ -43,6 +43,7 @@ firefly.bin: ${KCHECK} ${OBJECTS}
 cpu.o: ${KCHECK} cpu.c std.h cpu.h
 init.o: ${KCHECK} init.c
 kernel.o: ${KCHECK} kernel.c std.h cpu.h mem.h terminal.h
+int.o: ${KCHECK} int.c std.h int.h ports.h
 mem.o: ${KCHECK} mem.c std.h mem.h
 mmio.o: ${KCHECK} mmio.c std.h mmio.h
 pci.o: ${KCHECK} pci.c std.h pci.h ports.h
