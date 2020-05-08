@@ -1,4 +1,4 @@
-#include "std.h"
+#include "../../kernel/std.h"
 
 void badStr(void) {
 	char* x = "asdf";
