@@ -9,7 +9,7 @@ _NORED     = -mno-red-zone
 _NOSTACK   = -fno-stack-protector -fomit-frame-pointer
 _NOCOLOR   = -fno-color-diagnostics
 _CSTD      = -std=c99
-_WARN      = -Weverything -Wno-unused-const-variable
+_WARN      = -Weverything -Wno-unused-const-variable -Wno-unused-function
 _ERROR     = -Werror
 
 CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOPIE} ${_NORED} ${_NOSTACK} ${_NOHOST} ${_CSTD} ${_NOCOLOR} ${_WARN} ${_ERROR}
