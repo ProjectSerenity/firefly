@@ -21,8 +21,4 @@ void kmain() {
 	std_Printk("RAM: %u64dMB\n", info.Memory/(((uint64)1)<<20));
 
 	mem_Init();
-
-	for (;;) {
-		__asm__ ("hlt");
-	}
 }
