@@ -558,7 +558,7 @@ int64 std_Printk(const char format[], ...) {
 					written += terminal_WriteString(str("  "));
 				}
 
-				written += printBits(0xff & buffer[k], 16, false, 0, '0');
+				written += printBits(0xff & buffer[k], 16, false, 2, '0');
 				written += terminal_WriteChar(' ');
 				if (used == 7) {
 					// There's an additional space after the 8th byte.
