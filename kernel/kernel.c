@@ -2,12 +2,12 @@
 #include "cpu.h"
 #include "int.h"
 #include "mem.h"
-#include "terminal.h"
+#include "term.h"
 
 void kmain(void);
 
 void kmain() {
-	terminal_Init();
+	term_Init();
 	int x = 1;
 	std_Printk("Hello, %m12s! Stack address: %p\n", "kernel world", &x);
 
@@ -15,7 +15,7 @@ void kmain() {
 		return;
 	}
 
-	std_Printk("Resolution: %u64d x %u64d\n", terminal_Width, terminal_Height);
+	std_Printk("Resolution: %u64d x %u64d\n", term_Width, term_Height);
 
 	cpu_Info info = cpu_GetInfo();
 	std_Printk("CPU cores: %u64d, frequency: %u64dGHz\n", info.Cores, info.Frequency/(uint64)1000000000);

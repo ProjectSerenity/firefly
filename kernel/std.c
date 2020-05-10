@@ -1,5 +1,5 @@
 #include "std.h"
-#include "terminal.h"
+#include "term.h"
 #include <stdarg.h>
 
 const bool true = 1;
@@ -205,14 +205,14 @@ int64 std_Printk(const char format[], ...) {
 		// Non-verb content.
 
 		if (!inVerb && c != '%') {
-			written += terminal_WriteChar(c);
+			written += term_WriteChar(c);
 			continue;
 		}
 
 		// Escaped percents.
 
 		if (!inVerb && format[i+1] == '%') {
-			written += terminal_WriteChar('%');
+			written += term_WriteChar('%');
 			i++;
 			continue;
 		}
@@ -229,7 +229,7 @@ int64 std_Printk(const char format[], ...) {
 		switch (c) {
 		case 'u':
 			if (isUnsigned || isSigned || isMemory) {
-				written += terminal_WriteError(str("%u!(BAD_MODIFIER)"));
+				written += term_WriteError(str("%u!(BAD_MODIFIER)"));
 				continue;
 			}
 
@@ -237,7 +237,7 @@ int64 std_Printk(const char format[], ...) {
 			continue;
 		case '+':
 			if (isUnsigned || isSigned || isMemory) {
-				written += terminal_WriteError(str("%+!(BAD_MODIFIER)"));
+				written += term_WriteError(str("%+!(BAD_MODIFIER)"));
 				continue;
 			}
 
@@ -245,7 +245,7 @@ int64 std_Printk(const char format[], ...) {
 			continue;
 		case 'm':
 			if (isUnsigned || isSigned || isMemory) {
-				written += terminal_WriteError(str("%m!(BAD_MODIFIER)"));
+				written += term_WriteError(str("%m!(BAD_MODIFIER)"));
 				continue;
 			}
 
@@ -253,7 +253,7 @@ int64 std_Printk(const char format[], ...) {
 			continue;
 		case ' ':
 			if (addSpace) {
-				written += terminal_WriteError(str("% !(BAD_MODIFIER)"));
+				written += term_WriteError(str("% !(BAD_MODIFIER)"));
 				continue;
 			}
 
@@ -261,7 +261,7 @@ int64 std_Printk(const char format[], ...) {
 			continue;
 		case 'w':
 			if (isUnsigned || isSigned || isZero) {
-				written += terminal_WriteError(str("%u!(BAD_MODIFIER)"));
+				written += term_WriteError(str("%u!(BAD_MODIFIER)"));
 				continue;
 			}
 
@@ -287,7 +287,7 @@ int64 std_Printk(const char format[], ...) {
 			} else if (isWidth || isZero) {
 				minWidth = 10*minWidth + (c-'0');
 			} else {
-				written += terminal_WriteError(str("%u!(BAD_MODIFIER)"));
+				written += term_WriteError(str("%u!(BAD_MODIFIER)"));
 				goto exit_verb;
 			}
 
@@ -308,10 +308,10 @@ int64 std_Printk(const char format[], ...) {
 		// nor can the width and zero-prefix modifiers.
 		if (c == 'b' || c == 'o' || c == 'd' || (c == 'x' && !isMemory) || (c == 'X' && !isMemory)) {
 			if (isMemory) {
-				written += terminal_WriteError(str("%!n(MEMORY)"));
+				written += term_WriteError(str("%!n(MEMORY)"));
 				goto exit_verb;
 			} else if (addSpace) {
-				written += terminal_WriteError(str("%!n(SPACE)"));
+				written += term_WriteError(str("%!n(SPACE)"));
 				goto exit_verb;
 			}
 
@@ -364,21 +364,21 @@ int64 std_Printk(const char format[], ...) {
 				}
 				break;
 			case 0:
-				written += terminal_WriteError(str("%!n(MISSING_SIZE)"));
+				written += term_WriteError(str("%!n(MISSING_SIZE)"));
 				goto exit_verb;
 			default:
-				written += terminal_WriteError(str("%!n(BAD_SIZE)"));
+				written += term_WriteError(str("%!n(BAD_SIZE)"));
 				goto exit_verb;
 			}
 
 			if (isNeg) {
-				written += terminal_WriteChar('-');
+				written += term_WriteChar('-');
 			} else if (isSigned) {
-				written += terminal_WriteChar('+');
+				written += term_WriteChar('+');
 			}
 
 			if (v == 0) {
-				written += terminal_WriteChar('0');
+				written += term_WriteChar('0');
 				goto exit_verb;
 			}
 
@@ -411,27 +411,27 @@ int64 std_Printk(const char format[], ...) {
 		// takes no modifiers.
 		if (c == 'c') {
 			if (isUnsigned) {
-				written += terminal_WriteError(str("%!c(UNSIGNED)"));
+				written += term_WriteError(str("%!c(UNSIGNED)"));
 				goto exit_verb;
 			} else if (isSigned) {
-				written += terminal_WriteError(str("%!c(SIGNED)"));
+				written += term_WriteError(str("%!c(SIGNED)"));
 				goto exit_verb;
 			} else if (isMemory) {
-				written += terminal_WriteError(str("%!c(MEMORY)"));
+				written += term_WriteError(str("%!c(MEMORY)"));
 				goto exit_verb;
 			} else if (addSpace) {
-				written += terminal_WriteError(str("%!c(SPACE)"));
+				written += term_WriteError(str("%!c(SPACE)"));
 				goto exit_verb;
 			} else if (isWidth) {
-				written += terminal_WriteError(str("%!c(WIDTH)"));
+				written += term_WriteError(str("%!c(WIDTH)"));
 				goto exit_verb;
 			} else if (isZero) {
-				written += terminal_WriteError(str("%!c(ZERO)"));
+				written += term_WriteError(str("%!c(ZERO)"));
 				goto exit_verb;
 			}
 
 			char v = (char)va_arg(parameters, int); // char is promoted to int.
-			written += terminal_WriteChar(v);
+			written += term_WriteChar(v);
 			goto exit_verb;
 		}
 
@@ -447,16 +447,16 @@ int64 std_Printk(const char format[], ...) {
 		// No other modifiers can be used with %s.
 		if (c == 's') {
 			if (isUnsigned) {
-				written += terminal_WriteError(str("%!s(UNSIGNED)"));
+				written += term_WriteError(str("%!s(UNSIGNED)"));
 				goto exit_verb;
 			} else if (isSigned) {
-				written += terminal_WriteError(str("%!s(SIGNED)"));
+				written += term_WriteError(str("%!s(SIGNED)"));
 				goto exit_verb;
 			} else if (addSpace) {
-				written += terminal_WriteError(str("%!s(SPACE)"));
+				written += term_WriteError(str("%!s(SPACE)"));
 				goto exit_verb;
 			} else if (isZero) {
-				written += terminal_WriteError(str("%!s(ZERO)"));
+				written += term_WriteError(str("%!s(ZERO)"));
 				goto exit_verb;
 			}
 
@@ -468,16 +468,16 @@ int64 std_Printk(const char format[], ...) {
 			} else {
 				// TODO
 				//s = (string) va_arg(parameters, string);
-				written += terminal_WriteError(str("%!s(STRING)"));
+				written += term_WriteError(str("%!s(STRING)"));
 				goto exit_verb;
 			}
 
 			while (minWidth > s.len) {
-				written += terminal_WriteChar(' ');
+				written += term_WriteChar(' ');
 				minWidth--;
 			}
 
-			written += terminal_WriteString(s);
+			written += term_WriteString(s);
 			goto exit_verb;
 		}
 
@@ -494,16 +494,16 @@ int64 std_Printk(const char format[], ...) {
 		// between each byte.
 		if (c == 'x' || c == 'X') {
 			if (isUnsigned) {
-				written += terminal_WriteError(str("%!x(UNSIGNED)"));
+				written += term_WriteError(str("%!x(UNSIGNED)"));
 				goto exit_verb;
 			} else if (isSigned) {
-				written += terminal_WriteError(str("%!x(SIGNED)"));
+				written += term_WriteError(str("%!x(SIGNED)"));
 				goto exit_verb;
 			} else if (isWidth) {
-				written += terminal_WriteError(str("%!x(WIDTH)"));
+				written += term_WriteError(str("%!x(WIDTH)"));
 				goto exit_verb;
 			} else if (isZero) {
-				written += terminal_WriteError(str("%!x(ZERO)"));
+				written += term_WriteError(str("%!x(ZERO)"));
 				goto exit_verb;
 			}
 
@@ -512,7 +512,7 @@ int64 std_Printk(const char format[], ...) {
 			for (j = 0; j < size; j++) {
 				written += printBits(0xff & buffer[j], 16, c == 'X', 0, '0');
 				if (addSpace && j+1 < size) {
-					written += terminal_WriteChar(' ');
+					written += term_WriteChar(' ');
 				}
 			}
 
@@ -523,19 +523,19 @@ int64 std_Printk(const char format[], ...) {
 
 		if (c == 'h') {
 			if (isUnsigned) {
-				written += terminal_WriteError(str("%!h(UNSIGNED)"));
+				written += term_WriteError(str("%!h(UNSIGNED)"));
 				goto exit_verb;
 			} else if (isSigned) {
-				written += terminal_WriteError(str("%!h(SIGNED)"));
+				written += term_WriteError(str("%!h(SIGNED)"));
 				goto exit_verb;
 			} else if (addSpace) {
-				written += terminal_WriteError(str("%!h(SPACE)"));
+				written += term_WriteError(str("%!h(SPACE)"));
 				goto exit_verb;
 			} else if (isWidth) {
-				written += terminal_WriteError(str("%!h(WIDTH)"));
+				written += term_WriteError(str("%!h(WIDTH)"));
 				goto exit_verb;
 			} else if (isZero) {
-				written += terminal_WriteError(str("%!h(ZERO)"));
+				written += term_WriteError(str("%!h(ZERO)"));
 				goto exit_verb;
 			}
 
@@ -555,18 +555,18 @@ int64 std_Printk(const char format[], ...) {
 					// At the beginning of a line we print the current
 					// offset in hex.
 					written += printBits(n, 16, false, 8, '0');
-					written += terminal_WriteString(str("  "));
+					written += term_WriteString(str("  "));
 				}
 
 				written += printBits(0xff & buffer[k], 16, false, 2, '0');
-				written += terminal_WriteChar(' ');
+				written += term_WriteChar(' ');
 				if (used == 7) {
 					// There's an additional space after the 8th byte.
-					written += terminal_WriteChar(' ');
+					written += term_WriteChar(' ');
 				} else if (used == 15) {
 					// At the end of the line there's an extra space and
 					// the bar for the right column.
-					written += terminal_WriteString(str(" |"));
+					written += term_WriteString(str(" |"));
 				}
 
 				n++;
@@ -580,7 +580,7 @@ int64 std_Printk(const char format[], ...) {
 				if (used == 16) {
 					rightChars[16] = '|';
 					rightChars[17] = '\n';
-					written += terminal_WriteString(right);
+					written += term_WriteString(right);
 					used = 0;
 				}
 			}
@@ -595,14 +595,14 @@ int64 std_Printk(const char format[], ...) {
 						spaces.len = 5;
 					}
 
-					written += terminal_WriteString(spaces);
+					written += term_WriteString(spaces);
 					rightChars[used] = ' ';
 					used++;
 				}
 
 				rightChars[16] = '|';
 				rightChars[17] = '\n';
-				written += terminal_WriteString(right);
+				written += term_WriteString(right);
 			}
 
 			goto exit_verb;
@@ -612,27 +612,27 @@ int64 std_Printk(const char format[], ...) {
 
 		if (c == 'p') {
 			if (isUnsigned) {
-				written += terminal_WriteError(str("%!p(UNSIGNED)"));
+				written += term_WriteError(str("%!p(UNSIGNED)"));
 				goto exit_verb;
 			} else if (isSigned) {
-				written += terminal_WriteError(str("%!p(SIGNED)"));
+				written += term_WriteError(str("%!p(SIGNED)"));
 				goto exit_verb;
 			} else if (isMemory) {
-				written += terminal_WriteError(str("%!p(MEMORY)"));
+				written += term_WriteError(str("%!p(MEMORY)"));
 				goto exit_verb;
 			} else if (addSpace) {
-				written += terminal_WriteError(str("%!p(SPACE)"));
+				written += term_WriteError(str("%!p(SPACE)"));
 				goto exit_verb;
 			} else if (isWidth) {
-				written += terminal_WriteError(str("%!p(WIDTH)"));
+				written += term_WriteError(str("%!p(WIDTH)"));
 				goto exit_verb;
 			} else if (isZero) {
-				written += terminal_WriteError(str("%!p(ZERO)"));
+				written += term_WriteError(str("%!p(ZERO)"));
 				goto exit_verb;
 			}
 
 			uintptr v = (uintptr)va_arg(parameters, void*);
-			written += terminal_WriteString(str("0x"));
+			written += term_WriteString(str("0x"));
 			written += printBits(v, 16, false, 16, '0');
 
 			goto exit_verb;
@@ -640,7 +640,7 @@ int64 std_Printk(const char format[], ...) {
 
 		// Unrecognised verb.
 
-		written += terminal_WriteError(str("%!(BAD_MODIFIER)"));
+		written += term_WriteError(str("%!(BAD_MODIFIER)"));
 		continue;
 
 	exit_verb:
@@ -655,7 +655,7 @@ int64 std_Printk(const char format[], ...) {
 	}
 
 	if (inVerb) {
-		written += terminal_WriteError(str("%!(MISSING)"));
+		written += term_WriteError(str("%!(MISSING)"));
 	}
 
 	va_end(parameters);
@@ -713,7 +713,7 @@ int64 printBits(uint64 v, uint8 base, bool upper, int32 minWidth, char padChar) 
 			written++;
 		}
 
-		terminal_WriteString((string){.len=written, .ptr=buffer+i});
+		term_WriteString((string){.len=written, .ptr=buffer+i});
 
 		return written;
 	}
@@ -747,7 +747,7 @@ int64 printBits(uint64 v, uint8 base, bool upper, int32 minWidth, char padChar) 
 		break;
 	default:
 		err = str("%!(BAD_BASE)");
-		terminal_WriteError(err);
+		term_WriteError(err);
 		return err.len;
 	}
 
@@ -776,7 +776,7 @@ int64 printBits(uint64 v, uint8 base, bool upper, int32 minWidth, char padChar) 
 		written++;
 	}
 
-	terminal_WriteString((string){.len=written, .ptr=buffer+i});
+	term_WriteString((string){.len=written, .ptr=buffer+i});
 
 	return written;
 }
