@@ -14,7 +14,7 @@ _ERROR     = -Werror
 
 CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOPIE} ${_NORED} ${_NOSTACK} ${_NOHOST} ${_CSTD} ${_NOCOLOR} ${_WARN} ${_ERROR}
 
-OBJECTS = init.o kernel.o cpu.o mem.o mmio.o ports.o std.o terminal.o
+OBJECTS = init.o kernel.o cpu.o int.o mem.o mmio.o ports.o std.o terminal.o
 
 # Main target.
 .PHONY: all
