@@ -1,0 +1,5 @@
+#!/bin/sh
+
+set -e
+
+docker run --name firefly-build --rm -it -v $PWD:/build firefly-builder make clean
