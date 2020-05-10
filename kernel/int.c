@@ -44,6 +44,9 @@ static void debugGate(uint8 gate);
 void int_Init() {
 	__asm__ ("cli");
 	uint16 i;
+	// List of interrupts is in table 6-1 in section 6.14.1
+	// of Intel 64 and IA-32 Architectures Software Developer's
+	// Manual, Volume 3A.
 	for (i = 0; i < 256; i++) {
 		switch (i) {
 		case 0:
@@ -122,7 +125,7 @@ void int_Init() {
 			createInterruptGate((uint8)i, 0, handleSpuriousInterrupt);
 			continue;
 		default:
-			//createInterruptGate((uint8)i, 0, handleUnsupportedInterrupt);
+			createInterruptGate((uint8)i, 0, handleUnsupportedInterrupt);
 			continue;
 		}
 	}
