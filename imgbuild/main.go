@@ -4,6 +4,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/binary"
 	"flag"
 	"io"
 	"io/ioutil"
@@ -15,29 +16,24 @@ func init() {
 	log.SetFlags(0)
 }
 
-func WriteAt(buf []byte, at, maxSize int64, name string) (end int64) {
-	f, err := os.Open(name)
+func Open(name string) (f *os.File, size int64) {
+	var err error
+	f, err = os.Open(name)
 	if err != nil {
 		log.Fatalf("failed to open %s: %v", name, err)
 	}
-
-	defer f.Close()
 
 	info, err := f.Stat()
 	if err != nil {
 		log.Fatalf("failed to stat %s: %v", name, err)
 	}
 
-	size := info.Size()
-	length := int64(len(buf))
-	if size > maxSize {
-		log.Fatalf("%s is too large: %d bytes exceeds %d limit", name, size, maxSize)
-	}
+	size = info.Size()
 
-	if at > length || size > length || at+size > length {
-		log.Fatalf("buffer too small for %s: %d bytes at index %d to buffer of size %d", name, size, at, length)
-	}
+	return f, size
+}
 
+func WriteFile(buf []byte, at, size int64, name string, f *os.File) {
 	w := bytes.NewBuffer(buf[at:at])
 	n, err := io.Copy(w, f)
 	if err != nil {
@@ -47,10 +43,17 @@ func WriteAt(buf []byte, at, maxSize int64, name string) (end int64) {
 	if n != size {
 		log.Fatalf("failed to copy %s: wrote %d, want %d", name, n, size)
 	}
+}
 
-	end = at + n
+func WriteAt(buf []byte, at, wantSize int64, name string) {
+	f, size := Open(name)
+	defer f.Close()
 
-	return end
+	if size != wantSize {
+		log.Fatalf("%s: got %d bytes, want %d", name, size, wantSize)
+	}
+
+	WriteFile(buf, at, size, name, f)
 }
 
 func main() {
@@ -77,10 +80,26 @@ func main() {
 		log.Fatalf("-o not specified")
 	}
 
-	data := make([]byte, 128*1<<20)
-	WriteAt(data, 0, 512, mbr)
-	end := WriteAt(data, 16*512, 4*1024, loader)
-	WriteAt(data, end, 28*1024, kernel)
+	const (
+		SizeImg         = 128 * 1 << 20 // 128 MiB
+		StartMBR        = 0
+		SizeMBR         = 512
+		StartLoader     = 16 * 512
+		SizeLoader      = 4 * 1024
+		StartKernelSize = StartLoader + SizeLoader - 4
+		SizeKernelSize  = 4
+		StartKernel     = StartKernelSize + SizeKernelSize
+	)
+
+	data := make([]byte, SizeImg)
+	WriteAt(data, StartMBR, SizeMBR, mbr)
+	WriteAt(data, StartLoader, SizeLoader, loader)
+
+	f, size := Open(kernel)
+	defer f.Close()
+
+	binary.LittleEndian.PutUint32(data[StartKernelSize:], uint32(size)/512+1) // Number of 512-byte blocks.
+	WriteFile(data, StartKernel, size, kernel, f)
 
 	err := ioutil.WriteFile(out, data, 0666)
 	if err != nil {
