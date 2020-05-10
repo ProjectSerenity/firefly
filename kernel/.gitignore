@@ -1,3 +1,7 @@
 firefly.bin
 kernel.sys
 *.o
+kcheck
+imgbuild
+pure64.sys
+mbr.sys
