@@ -2,14 +2,25 @@
 #include "cpu.h"
 
 bool cpu_IsIntel;
+char cpu_Label[12];
 
 void cpu_Init() {
 	cpu_ID info;
 	cpu_IsIntel = true;
 	cpu_GetID(&info, 0, 0);
-	if (!std_Equal((uint8*)&info.ebx, (uint8*)"Genu", 4) ||
-		!std_Equal((uint8*)&info.edx, (uint8*)"ineI", 4) ||
-		!std_Equal((uint8*)&info.ecx, (uint8*)"ntel", 4)) {
+	cpu_Label[0x0] = (char)((0x000000ff & info.ebx));
+	cpu_Label[0x1] = (char)((0x0000ff00 & info.ebx)>>8);
+	cpu_Label[0x2] = (char)((0x00ff0000 & info.ebx)>>16);
+	cpu_Label[0x3] = (char)((0xff000000 & info.ebx)>>24);
+	cpu_Label[0x4] = (char)((0x000000ff & info.edx));
+	cpu_Label[0x5] = (char)((0x0000ff00 & info.edx)>>8);
+	cpu_Label[0x6] = (char)((0x00ff0000 & info.edx)>>16);
+	cpu_Label[0x7] = (char)((0xff000000 & info.edx)>>24);
+	cpu_Label[0x8] = (char)((0x000000ff & info.ecx));
+	cpu_Label[0x9] = (char)((0x0000ff00 & info.ecx)>>8);
+	cpu_Label[0xa] = (char)((0x00ff0000 & info.ecx)>>16);
+	cpu_Label[0xb] = (char)((0xff000000 & info.ecx)>>24);
+	if (!std_Equal((uint8*)cpu_Label, (uint8*)"GenuineIntel", 12)) {
 		cpu_IsIntel = false;
 	}
 }
