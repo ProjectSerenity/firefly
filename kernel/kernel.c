@@ -1,5 +1,6 @@
 #include "std.h"
 #include "cpu.h"
+#include "int.h"
 #include "mem.h"
 #include "terminal.h"
 
@@ -21,4 +22,5 @@ void kmain() {
 	std_Printk("RAM: %u64dMB\n", info.Memory/(((uint64)1)<<20));
 
 	mem_Init();
+	int_Init();
 }
