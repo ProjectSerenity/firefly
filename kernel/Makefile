@@ -16,42 +16,52 @@ CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOPIE} ${_NORED} ${_NOSTACK} ${_NOHOST} ${_CS
 
 OBJECTS = init.o kernel.o cpu.o mem.o mmio.o ports.o std.o terminal.o
 
-KCHECK = ../kcheck/kcheck
-IMGBUILD = ../imgbuild/imgbuild
-MBR = ../Pure64/bin/mbr.sys
-LOADER = ../Pure64/bin/pure64.sys
-
 # Main target.
 .PHONY: all
 all: firefly.img
 
-firefly.img: firefly.bin linker.ld ${LOADER} ${MBR} ${IMGBUILD}
-	${IMGBUILD} -mbr ${MBR} -loader ${LOADER} -kernel firefly.bin -o firefly.img
+firefly.img: firefly.bin linker.ld pure64.sys mbr.sys imgbuild
+	./imgbuild -mbr mbr.sys -loader pure64.sys -kernel firefly.bin -o firefly.img
 
-firefly.bin: ${KCHECK} ${OBJECTS}
-	${KCHECK} headers *.h
+firefly.bin: kcheck ${OBJECTS}
+	./kcheck headers *.h
 	ld -T linker.ld -o firefly.bin ${OBJECTS}
 
-# Generic rule for C files.
+# Generic rule for C and assembly files.
 .SUFFIXES: .c .o
 
 .c.o:
-	${KCHECK} object $<
+	./kcheck object $<
 	${CC} ${CCFLAGS} -o $@ $<
 
 # Kernel objects.
-cpu.o: ${KCHECK} cpu.c std.h cpu.h
-init.o: ${KCHECK} init.c
-kernel.o: ${KCHECK} kernel.c std.h cpu.h mem.h terminal.h
-int.o: ${KCHECK} int.c std.h int.h ports.h
-mem.o: ${KCHECK} mem.c std.h mem.h
-mmio.o: ${KCHECK} mmio.c std.h mmio.h
-pci.o: ${KCHECK} pci.c std.h pci.h ports.h
-ports.o: ${KCHECK} ports.c std.h ports.h
-std.o: ${KCHECK} std.c std.h
-terminal.o: ${KCHECK} terminal.c font.h std.h terminal.h
+cpu.o: kcheck cpu.c std.h cpu.h
+init.o: kcheck init.c
+kernel.o: kcheck kernel.c std.h cpu.h mem.h terminal.h
+int.o: kcheck int.c std.h int.h ports.h
+mem.o: kcheck mem.c std.h mem.h
+mmio.o: kcheck mmio.c std.h mmio.h
+pci.o: kcheck pci.c std.h pci.h ports.h
+ports.o: kcheck ports.c std.h ports.h
+std.o: kcheck std.c std.h
+terminal.o: kcheck terminal.c font.h std.h terminal.h
+
+# Dependencies.
+kcheck: $(wildcard ../kcheck/*.go) ../kcheck/go.mod ../kcheck/go.sum $(wildcard ../kcheck/cc/*.go)
+	cd ../kcheck && go test
+	cd ../kcheck && go build -o ../kernel/kcheck
+
+imgbuild: $(wildcard ../imgbuild/*.go) ../imgbuild/go.mod ../imgbuild/go.sum
+	cd ../imgbuild && go test
+	cd ../imgbuild && go build -o ../kernel/imgbuild
+
+pure64.sys: ../Pure64/src/pure64.asm
+	cd ../Pure64/src && nasm pure64.asm -o ../../kernel/pure64.sys
+
+mbr.sys: ../Pure64/src/bootsectors/mbr.asm
+	cd ../Pure64/src/bootsectors && nasm mbr.asm -o ../../../kernel/mbr.sys
 
 # Cleanup.
 .PHONY: clean
 clean:
-	rm firefly.img firefly.bin *.o
+	rm firefly.img firefly.bin *.o imgbuild kcheck pure64.sys mbr.sys
