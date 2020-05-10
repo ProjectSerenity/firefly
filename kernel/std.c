@@ -64,7 +64,7 @@ bool std_ValidNumericalTypes() {
 
 const void* nil = 0;
 
-void std_Copy(char* dst, char* src, uint64 n) {
+void std_Copy(uint8* dst, uint8* src, uint64 n) {
 	uint64 i;
 	for (i = 0; i < n; i++) {
 		dst[i] = src[i];

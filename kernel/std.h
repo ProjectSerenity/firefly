@@ -24,7 +24,7 @@ bool std_ValidNumericalTypes(void);
 
 extern const void* nil;
 
-void std_Copy(char* dst, char* src, uint64 n);
+void std_Copy(uint8* dst, uint8* src, uint64 n);
 
 typedef struct string {
 	int64 len;
