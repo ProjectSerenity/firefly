@@ -80,8 +80,10 @@ func main() {
 		log.Fatalf("-o not specified")
 	}
 
+	f, size := Open(kernel)
+	defer f.Close()
+
 	const (
-		SizeImg         = 128 * 1 << 20 // 128 MiB
 		StartMBR        = 0
 		SizeMBR         = 512
 		StartLoader     = 16 * 512
@@ -91,12 +93,12 @@ func main() {
 		StartKernel     = StartKernelSize + SizeKernelSize
 	)
 
-	data := make([]byte, SizeImg)
+	totalSize := StartKernel + uint64(size) // Number of bytes in the image.
+	totalSize = (totalSize + 511) &^ 0x1ff  // Round up to next 512-byte sector.
+
+	data := make([]byte, totalSize)
 	WriteAt(data, StartMBR, SizeMBR, mbr)
 	WriteAt(data, StartLoader, SizeLoader, loader)
-
-	f, size := Open(kernel)
-	defer f.Close()
 
 	binary.LittleEndian.PutUint32(data[StartKernelSize:], uint32(size)/512+1) // Number of 512-byte blocks.
 	WriteFile(data, StartKernel, size, kernel, f)
