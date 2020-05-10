@@ -4,4 +4,5 @@ qemu-system-x86_64 \
 	-drive format=raw,file=kernel/firefly.img \
 	-device e1000,mac=01:23:45:67:89:ab \
 	-m 128M \
-	-cpu IvyBridge
+	-cpu Haswell \
+	2>&1 | grep -v "warning: TCG doesn't support requested feature"
