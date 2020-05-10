@@ -5,9 +5,9 @@ Firefly is a research OS inspired by [Plan 9 from Bell Labs](https://9p.io/plan9
 This repository consists of:
 
 - the Firefly kernel in [`kernel`](/kernel)
-- the Firefly kernel static analyser in ['kcheck'](/kcheck)
-- the Firefly image builder in ['imgbuild'](/imgbuild)
-- the Pure64 bootloader (modified for Firefly) in ['Pure64'](/Pure64)
+- the Firefly kernel static analyser in [`kcheck`](/kcheck)
+- the Firefly image builder in [`imgbuild`](/imgbuild)
+- the Pure64 bootloader (modified for Firefly) in [`Pure64`](/Pure64)
 
 Firefly is intended for executing cloud-native containerised server software. As a result, there are no plans to add a graphical user interface, device drivers, or a concept of users. Instead, the priority is to support userland applications on a virtual machine, with strong separation between processes. Firefly will provide a highly stable ABI, with syscalls providing the sole interface between userland processes and the kernel.
 
@@ -16,17 +16,17 @@ Drawing inspiration from Plan 9, _everything is a filesystem_. Overlay filesyste
 # Building Firefly
 
 While Firefly can be built locally, builds using a Docker container provide consistency.
-The full set of dependencies for building Firefly are defined in the ['Dockerfile'](/Dockerfile).
+The full set of dependencies for building Firefly are defined in the [`Dockerfile`](/Dockerfile).
 Helper scripts are provided for common tasks:
 
-- building the Docker container used to build Firefly with ['./build-docker-builder'](/build-docker-builder)
-- building Firefly using the Docker container with ['./docker-build'](/docker-build)
-- running Firefly using QEMU with ['./run-qemu'](/run-qemu)
-- cleaning the build environment with ['./clean'](/clean)
+- building the Docker container used to build Firefly with [`./build-docker-builder`](/build-docker-builder)
+- building Firefly using the Docker container with [`./docker-build`](/docker-build)
+- running Firefly using QEMU with [`./run-qemu`](/run-qemu)
+- cleaning the build environment with [`./clean`](/clean)
 
 # Running Firefly
 
-As stated above, Firefly can be run with QEMU using the ['./run-qemu'](/run-qemu) helper script.
+As stated above, Firefly can be run with QEMU using the [`./run-qemu`](/run-qemu) helper script.
 Firefly has the following dependencies:
 
 - An Intel x86_64 processor, of Ivy Bridge generation or later
