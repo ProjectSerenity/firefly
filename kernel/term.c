@@ -75,6 +75,9 @@ uint64 term_WriteChar(char c) {
 	switch (c) {
 	case '\n':
 		goto wrap_bottom;
+	case '\r':
+		term_column = 0;
+		return 1;
 	}
 
 	term_WriteCharAt(c, term_color, term_column, term_row);
