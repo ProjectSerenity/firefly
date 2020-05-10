@@ -71,6 +71,17 @@ void std_Copy(uint8* dst, uint8* src, uint64 n) {
 	}
 }
 
+bool std_Equal(uint8* a, uint8* b, uint64 n) {
+	uint64 i;
+	for (i = 0; i < n; i++) {
+		if (a[i] != b[i]) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 static int64 printBits(uint64 v, uint8 base, bool upper, int32 minWidth, char padChar);
 
 // std_Printk is somewhere between C's and Go's

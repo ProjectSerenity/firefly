@@ -25,6 +25,7 @@ bool std_ValidNumericalTypes(void);
 extern const void* nil;
 
 void std_Copy(uint8* dst, uint8* src, uint64 n);
+bool std_Equal(uint8* a, uint8* b, uint64 n);
 
 typedef struct string {
 	int64 len;
