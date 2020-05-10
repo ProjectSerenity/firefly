@@ -1,6 +1,6 @@
 #include "std.h"
 #include "int.h"
-#include "ports.h"
+#include "port.h"
 
 typedef struct {
 	uintptr ip;
@@ -131,8 +131,8 @@ void int_Init() {
 	}
 
 	// Enable keyboard IRQs only.
-	ports_WriteUint8(0x21, 0xfd);
-	ports_WriteUint8(0xa1, 0xff);
+	port_Out8(0x21, 0xfd);
+	port_Out8(0xa1, 0xff);
 	__asm__ ("sti");
 }
 
@@ -146,7 +146,7 @@ void handleUnsupportedInterrupt(interruptFrame* frame) {
 	std_Printk("  ss:    %u64x\n", frame->ss);
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -158,7 +158,7 @@ void handleDivideException(interruptFrame* frame) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -170,7 +170,7 @@ void handleDebugException(interruptFrame* frame) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -182,7 +182,7 @@ void handleNMIInterrupt(interruptFrame* frame) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -194,7 +194,7 @@ void handleBreakpointInterrupt(interruptFrame* frame) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -206,7 +206,7 @@ void handleOverflowInterrupt(interruptFrame* frame) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -218,7 +218,7 @@ void handleBoundRangeInterrupt(interruptFrame* frame) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -230,7 +230,7 @@ void handleInvalidOpcodeInterrupt(interruptFrame* frame) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -242,7 +242,7 @@ void handleDeviceNotAvailableInterrupt(interruptFrame* frame) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -254,7 +254,7 @@ void handleDoubleFaultException(interruptFrame* frame, uint64 error) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -266,7 +266,7 @@ void handleCoprocessorSegmentOverrunInterrupt(interruptFrame* frame) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -278,7 +278,7 @@ void handleInvalidTSSException(interruptFrame* frame, uint64 error) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -290,7 +290,7 @@ void handleSegmentNotPresentException(interruptFrame* frame, uint64 error) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -302,7 +302,7 @@ void handleStackSegmentFaultException(interruptFrame* frame, uint64 error) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -314,7 +314,7 @@ void handleGeneralProtectionException(interruptFrame* frame, uint64 error) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -326,7 +326,7 @@ void handlePageFaultException(interruptFrame* frame, uint64 error) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -338,7 +338,7 @@ void handleMathFaultInterrupt(interruptFrame* frame) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -351,7 +351,7 @@ void handleAlignmentCheckException(interruptFrame* frame, uint64 error) {
 	(void)error;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -363,7 +363,7 @@ void handleMachineCheckInterrupt(interruptFrame* frame) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -375,7 +375,7 @@ void handleSIMDFloatingPointExceptionInterrupt(interruptFrame* frame) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -387,7 +387,7 @@ void handleVirtualizationExceptionInterrupt(interruptFrame* frame) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -400,7 +400,7 @@ void handleControlProtectionException(interruptFrame* frame, uint64 error) {
 	(void)error;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -408,15 +408,15 @@ void handleControlProtectionException(interruptFrame* frame, uint64 error) {
 // INT 33 (IRQ 1)
 __attribute__ ((interrupt))
 void handleKeyboardInterrupt(interruptFrame* frame) {
-	uint8 scanCode = ports_ReadUint8(0x60);
+	uint8 scanCode = port_In8(0x60);
 	std_Printk("keyboard interrupt: %u8x\n", scanCode);
 	(void)frame;
 
 	// Fetch the code.
-	(void)ports_ReadUint8(0x60);
+	(void)port_In8(0x60);
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -428,7 +428,7 @@ void handleCascadeInterrupt(interruptFrame* frame) {
 	(void)frame;
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }
@@ -440,12 +440,12 @@ void handleClockInterrupt(interruptFrame* frame) {
 	(void)frame;
 
 	// Read the value.
-	ports_WriteUint8(0x70, 0x0c);
-	(void)ports_ReadUint8(0x71);
+	port_Out8(0x70, 0x0c);
+	(void)port_In8(0x71);
 
 	// Acknowledge the IRQ.
-	ports_WriteUint8(0xa0, 0x20);
-	ports_WriteUint8(0x20, 0x20);
+	port_Out8(0xa0, 0x20);
+	port_Out8(0x20, 0x20);
 
 	__asm__ ("cli");
 }

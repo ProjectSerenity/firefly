@@ -1,6 +1,6 @@
 #include "std.h"
 #include "pci.h"
-#include "ports.h"
+#include "port.h"
 
 void pci_getVendorDevice(uint8 bus, uint8 slot, uint16* vendor, uint16* device);
 void pci_getMACAddress(uint8* mac);
@@ -42,19 +42,19 @@ void pci_setAddress(uint8 bus, uint8 slot, uint8 func, uint8 offset) {
 	// See https://wiki.osdev.org/PCI.
 	address = (lbus << 16) | (lslot << 11) | (lfunc << 8) | (offset & 0xfc) | ((uint32)0x80000000);
 
-	ports_WriteUint32(CONFIG_ADDRESS, address);
+	port_Out32(CONFIG_ADDRESS, address);
 }
 
 uint8 pci_getUint8(uint8 offset) {
-	return ports_ReadUint8(CONFIG_DATA + (offset & 3));
+	return port_In8(CONFIG_DATA + (offset & 3));
 }
 
 uint16 pci_getUint16(uint8 offset) {
-	return ports_ReadUint16(CONFIG_DATA + (offset & 2));
+	return port_In16(CONFIG_DATA + (offset & 2));
 }
 
 uint32 pci_getUint32(uint8 offset) {
-	return ports_ReadUint32(CONFIG_DATA + (offset & 0));
+	return port_In32(CONFIG_DATA + (offset & 0));
 }
 
 void pci_getVendorDevice(uint8 bus, uint8 slot, uint16* vendor, uint16* device) {
@@ -112,10 +112,10 @@ void pci_checkSlot(uint8 bus, uint8 slot) {
 }
 
 bool pci_hasEEPROM() {
-	ports_WriteUint32(REG_EEPROM, 1);
+	port_Out32(REG_EEPROM, 1);
 	volatile int i;
 	for (i = 0; i < 999; ++i) {
-		uint32 v = ports_ReadUint32(REG_EEPROM);
+		uint32 v = port_In32(REG_EEPROM);
 		if (v & 0x10) {
 			return true;
 		}
@@ -128,9 +128,9 @@ uint32 pci_readEEPROM(uint8 address) {
 	uint16 data = 0;
 	uint32 v = 0;
 
-	ports_WriteUint32(REG_EEPROM, (((uint32)address) << 8) | 1);
+	port_Out32(REG_EEPROM, (((uint32)address) << 8) | 1);
 	while ((v & (1<<4)) == 0) {
-		v = ports_ReadUint32(REG_EEPROM);
+		v = port_In32(REG_EEPROM);
 	}
 
 	data = (v >> 16) & 0xffff;
