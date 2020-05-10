@@ -74,9 +74,7 @@ uint64 terminal_WriteCharAt(char c, uint32 color, uint64 x, uint64 y) {
 uint64 terminal_WriteChar(char c) {
 	switch (c) {
 	case '\n':
-		terminal_row++;
-		terminal_column = 0;
-		return 1;
+		goto wrap_bottom;
 	}
 
 	terminal_WriteCharAt(c, terminal_color, terminal_column, terminal_row);
@@ -84,6 +82,7 @@ uint64 terminal_WriteChar(char c) {
 		return 1;
 	}
 
+wrap_bottom:
 	terminal_column = 0;
 	if (8*(++terminal_row) < terminal_Height) {
 		return 1;
