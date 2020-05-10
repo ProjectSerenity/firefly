@@ -21,7 +21,7 @@ void kmain() {
 
 	cpu_Init();
 	cpu_Info info = cpu_GetInfo();
-	std_Printk("CPU cores: %u64d, frequency: %u64dGHz\n", info.Cores, info.Frequency/(uint64)1000000000);
+	std_Printk("CPU %m12s cores: %u64d, frequency: %u64dGHz\n", cpu_Label, info.Cores, info.Frequency/(uint64)1000000000);
 	std_Printk("RAM: %u64dMB\n", info.Memory/(((uint64)1)<<20));
 
 	mem_Init();

@@ -3,6 +3,7 @@
 #define CPU_H
 
 extern bool cpu_IsIntel;
+extern char cpu_Label[12];
 
 typedef struct {
 	uint64 Cores;
