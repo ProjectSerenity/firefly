@@ -14,7 +14,7 @@ _ERROR     = -Werror
 
 CCFLAGS = ${_TARGET} ${_NOLINK} ${_NOPIE} ${_NORED} ${_NOSTACK} ${_NOHOST} ${_CSTD} ${_NOCOLOR} ${_WARN} ${_ERROR}
 
-OBJECTS = init.o kernel.o cpu.o int.o mem.o mmio.o port.o std.o term.o
+OBJECTS = init.o kernel.o cpu.o int.o mem.o mmio.o port.o std.o term.o time.o
 
 # Main target.
 .PHONY: all
@@ -37,7 +37,7 @@ firefly.bin: kcheck ${OBJECTS}
 # Kernel objects.
 cpu.o: kcheck cpu.c std.h cpu.h
 init.o: kcheck init.c
-kernel.o: kcheck kernel.c std.h cpu.h mem.h term.h
+kernel.o: kcheck kernel.c std.h cpu.h int.h mem.h term.h time.h
 int.o: kcheck int.c std.h int.h port.h
 mem.o: kcheck mem.c std.h mem.h
 mmio.o: kcheck mmio.c std.h mmio.h
@@ -45,6 +45,7 @@ pci.o: kcheck pci.c std.h pci.h port.h
 port.o: kcheck port.c std.h port.h
 std.o: kcheck std.c std.h term.h
 term.o: kcheck term.c font.h std.h term.h
+time.o: kcheck time.c std.h time.h
 
 # Dependencies.
 kcheck: $(wildcard ../kcheck/*.go) ../kcheck/go.mod ../kcheck/go.sum $(wildcard ../kcheck/cc/*.go)
