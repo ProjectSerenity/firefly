@@ -388,6 +388,7 @@ void handleClockInterrupt(interruptFrame* frame) {
 	(void)port_In8(0x71);
 
 	time_Ticker++;
+	// Ticks at 1024 hZ
 	if (time_Ticker%1024 == 0) {
 		std_Printk("\ruptime: %u64ds", time_Ticker/1024);
 	}
@@ -455,7 +456,6 @@ void handleCoprocessorInterrupt(interruptFrame* frame) {
 // INT 46 (IRQ 14)
 __attribute__ ((interrupt))
 void handlePrimaryATAInterrupt(interruptFrame* frame) {
-	std_Printk("primary ATA interrupt\n");
 	(void)frame;
 
 	// Acknowledge the IRQ.
@@ -466,7 +466,6 @@ void handlePrimaryATAInterrupt(interruptFrame* frame) {
 // INT 47 (IRQ 15)
 __attribute__ ((interrupt))
 void handleSecondaryATAInterrupt(interruptFrame* frame) {
-	std_Printk("secondary ATA interrupt\n");
 	(void)frame;
 
 	// Acknowledge the IRQ.
