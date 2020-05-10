@@ -3,6 +3,7 @@
 #include "int.h"
 #include "mem.h"
 #include "term.h"
+#include "time.h"
 
 void kmain(void);
 
@@ -22,5 +23,6 @@ void kmain() {
 	std_Printk("RAM: %u64dMB\n", info.Memory/(((uint64)1)<<20));
 
 	mem_Init();
+	time_Init();
 	int_Init();
 }
