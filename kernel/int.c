@@ -3,138 +3,144 @@
 #include "ports.h"
 
 typedef struct {
-	uint64 ip;
+	uintptr ip;
 	uint64 cs;
 	uint64 flags;
-	uint64 sp;
+	uintptr sp;
 	uint64 ss;
 } interruptFrame;
 
-static void handleUnsupportedInterrupt(interruptFrame* frame, uint64 error);
-static void handleDivideException(interruptFrame* frame, uint64 error);
-static void handleDebugException(interruptFrame* frame, uint64 error);
-static void handleNMIInterrupt(interruptFrame* frame, uint64 error);
-static void handleBreakpointInterrupt(interruptFrame* frame, uint64 error);
-static void handleOverflowInterrupt(interruptFrame* frame, uint64 error);
-static void handleBoundRangeInterrupt(interruptFrame* frame, uint64 error);
-static void handleInvalidOpcodeInterrupt(interruptFrame* frame, uint64 error);
-static void handleDeviceNotAvailableInterrupt(interruptFrame* frame, uint64 error);
-static void handleDoubleFaultInterrupt(interruptFrame* frame, uint64 error);
-static void handleCoprocessorSegmentOverrunInterrupt(interruptFrame* frame, uint64 error);
-static void handleInvalidTSSInterrupt(interruptFrame* frame, uint64 error);
-static void handleSegmentNotPresentInterrupt(interruptFrame* frame, uint64 error);
-static void handleStackSegmentFaultInterrupt(interruptFrame* frame, uint64 error);
-static void handleGeneralProtectionInterrupt(interruptFrame* frame, uint64 error);
-static void handlePageFaultInterrupt(interruptFrame* frame, uint64 error);
-static void handleMathFaultInterrupt(interruptFrame* frame, uint64 error);
-static void handleAlignmentCheckInterrupt(interruptFrame* frame, uint64 error);
-static void handleMachineCheckInterrupt(interruptFrame* frame, uint64 error);
-static void handleSIMDFloatingPointExceptionInterrupt(interruptFrame* frame, uint64 error);
-static void handleVirtualizationExceptionInterrupt(interruptFrame* frame, uint64 error);
-static void handleControlProtectionExceptionInterrupt(interruptFrame* frame, uint64 error);
-static void handleKeyboardInterrupt(interruptFrame* frame, uint64 error);
-static void handleCascadeInterrupt(interruptFrame* frame, uint64 error);
-static void handleClockInterrupt(interruptFrame* frame, uint64 error);
-static void handleSpuriousInterrupt(interruptFrame* frame, uint64 error);
+static void handleUnsupportedInterrupt(interruptFrame* frame);
+static void handleDivideException(interruptFrame* frame);
+static void handleDebugException(interruptFrame* frame);
+static void handleNMIInterrupt(interruptFrame* frame);
+static void handleBreakpointInterrupt(interruptFrame* frame);
+static void handleOverflowInterrupt(interruptFrame* frame);
+static void handleBoundRangeInterrupt(interruptFrame* frame);
+static void handleInvalidOpcodeInterrupt(interruptFrame* frame);
+static void handleDeviceNotAvailableInterrupt(interruptFrame* frame);
+static void handleDoubleFaultException(interruptFrame* frame, uint64 error);
+static void handleCoprocessorSegmentOverrunInterrupt(interruptFrame* frame);
+static void handleInvalidTSSException(interruptFrame* frame, uint64 error);
+static void handleSegmentNotPresentException(interruptFrame* frame, uint64 error);
+static void handleStackSegmentFaultException(interruptFrame* frame, uint64 error);
+static void handleGeneralProtectionException(interruptFrame* frame, uint64 error);
+static void handlePageFaultException(interruptFrame* frame, uint64 error);
+static void handleMathFaultInterrupt(interruptFrame* frame);
+static void handleAlignmentCheckException(interruptFrame* frame, uint64 error);
+static void handleMachineCheckInterrupt(interruptFrame* frame);
+static void handleSIMDFloatingPointExceptionInterrupt(interruptFrame* frame);
+static void handleVirtualizationExceptionInterrupt(interruptFrame* frame);
+static void handleControlProtectionException(interruptFrame* frame, uint64 error);
+static void handleKeyboardInterrupt(interruptFrame* frame);
+static void handleCascadeInterrupt(interruptFrame* frame);
+static void handleClockInterrupt(interruptFrame* frame);
+static void handleSpuriousInterrupt(interruptFrame* frame);
 
-static void createGate(uint8 gate, uint8 privilege, void (*handler)(interruptFrame*, uint64));
+static void createInterruptGate(uint8 gate, uint8 privilege, void (*handler)(interruptFrame*));
+static void createExceptionGate(uint8 gate, uint8 privilege, void (*handler)(interruptFrame*, uint64));
 static void debugGate(uint8 gate);
 
 void int_Init() {
+	__asm__ ("cli");
 	uint16 i;
 	for (i = 0; i < 256; i++) {
 		switch (i) {
 		case 0:
-			createGate((uint8)i, 0, handleDivideException);
+			createInterruptGate((uint8)i, 0, handleDivideException);
 			continue;
 		case 1:
-			createGate((uint8)i, 0, handleDebugException);
+			createInterruptGate((uint8)i, 0, handleDebugException);
 			continue;
 		case 2:
-			createGate((uint8)i, 0, handleNMIInterrupt);
+			createInterruptGate((uint8)i, 0, handleNMIInterrupt);
 			continue;
 		case 3:
-			createGate((uint8)i, 0, handleBreakpointInterrupt);
+			createInterruptGate((uint8)i, 0, handleBreakpointInterrupt);
 			continue;
 		case 4:
-			createGate((uint8)i, 0, handleOverflowInterrupt);
+			createInterruptGate((uint8)i, 0, handleOverflowInterrupt);
 			continue;
 		case 5:
-			createGate((uint8)i, 0, handleBoundRangeInterrupt);
+			createInterruptGate((uint8)i, 0, handleBoundRangeInterrupt);
 			continue;
 		case 6:
-			createGate((uint8)i, 0, handleInvalidOpcodeInterrupt);
+			createInterruptGate((uint8)i, 0, handleInvalidOpcodeInterrupt);
 			continue;
 		case 7:
-			createGate((uint8)i, 0, handleDeviceNotAvailableInterrupt);
+			createInterruptGate((uint8)i, 0, handleDeviceNotAvailableInterrupt);
 			continue;
 		case 8:
-			createGate((uint8)i, 0, handleDoubleFaultInterrupt);
+			createExceptionGate((uint8)i, 0, handleDoubleFaultException);
 			continue;
 		case 9:
-			createGate((uint8)i, 0, handleCoprocessorSegmentOverrunInterrupt);
+			createInterruptGate((uint8)i, 0, handleCoprocessorSegmentOverrunInterrupt);
 			continue;
 		case 10:
-			createGate((uint8)i, 0, handleInvalidTSSInterrupt);
+			createExceptionGate((uint8)i, 0, handleInvalidTSSException);
 			continue;
 		case 11:
-			createGate((uint8)i, 0, handleSegmentNotPresentInterrupt);
+			createExceptionGate((uint8)i, 0, handleSegmentNotPresentException);
 			continue;
 		case 12:
-			createGate((uint8)i, 0, handleStackSegmentFaultInterrupt);
+			createExceptionGate((uint8)i, 0, handleStackSegmentFaultException);
 			continue;
 		case 13:
-			createGate((uint8)i, 0, handleGeneralProtectionInterrupt);
+			createExceptionGate((uint8)i, 0, handleGeneralProtectionException);
 			continue;
 		case 14:
-			createGate((uint8)i, 0, handlePageFaultInterrupt);
+			createExceptionGate((uint8)i, 0, handlePageFaultException);
 			continue;
 		case 16:
-			createGate((uint8)i, 0, handleMathFaultInterrupt);
+			createInterruptGate((uint8)i, 0, handleMathFaultInterrupt);
 			continue;
 		case 17:
-			createGate((uint8)i, 0, handleAlignmentCheckInterrupt);
+			createExceptionGate((uint8)i, 0, handleAlignmentCheckException);
 			continue;
 		case 18:
-			createGate((uint8)i, 0, handleMachineCheckInterrupt);
+			createInterruptGate((uint8)i, 0, handleMachineCheckInterrupt);
 			continue;
 		case 19:
-			createGate((uint8)i, 0, handleSIMDFloatingPointExceptionInterrupt);
+			createInterruptGate((uint8)i, 0, handleSIMDFloatingPointExceptionInterrupt);
 			continue;
 		case 20:
-			createGate((uint8)i, 0, handleVirtualizationExceptionInterrupt);
+			createInterruptGate((uint8)i, 0, handleVirtualizationExceptionInterrupt);
 			continue;
 		case 21:
-			createGate((uint8)i, 0, handleControlProtectionExceptionInterrupt);
+			createExceptionGate((uint8)i, 0, handleControlProtectionException);
 			continue;
 		case 33:
-			createGate((uint8)i, 0, handleKeyboardInterrupt);
+			createInterruptGate((uint8)i, 0, handleKeyboardInterrupt);
 			continue;
 		case 34:
-			createGate((uint8)i, 0, handleCascadeInterrupt);
+			createInterruptGate((uint8)i, 0, handleCascadeInterrupt);
 			continue;
 		case 40:
-			createGate((uint8)i, 0, handleClockInterrupt);
+			createInterruptGate((uint8)i, 0, handleClockInterrupt);
 			continue;
 		case 0xff:
-			createGate((uint8)i, 0, handleSpuriousInterrupt);
+			createInterruptGate((uint8)i, 0, handleSpuriousInterrupt);
 			continue;
 		default:
-			createGate((uint8)i, 0, handleUnsupportedInterrupt);
+			//createInterruptGate((uint8)i, 0, handleUnsupportedInterrupt);
 			continue;
 		}
 	}
+
+	// Enable keyboard IRQs only.
+	ports_WriteUint8(0x21, 0xfd);
+	ports_WriteUint8(0xa1, 0xff);
+	__asm__ ("sti");
 }
 
 __attribute__ ((interrupt))
-void handleUnsupportedInterrupt(interruptFrame* frame, uint64 error) {
+void handleUnsupportedInterrupt(interruptFrame* frame) {
 	std_Printk("unsupported interrupt:\n");
 	std_Printk("  ip:    %u64x\n", frame->ip);
 	std_Printk("  cs:    %u64x\n", frame->cs);
 	std_Printk("  flags: %u64x\n", frame->flags);
 	std_Printk("  sp:    %u64x\n", frame->sp);
 	std_Printk("  ss:    %u64x\n", frame->ss);
-	std_Printk("  error: %u64x\n", error);
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -144,10 +150,9 @@ void handleUnsupportedInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 0
 __attribute__ ((interrupt))
-void handleDivideException(interruptFrame* frame, uint64 error) {
+void handleDivideException(interruptFrame* frame) {
 	std_Printk("divide by zero exception\n");
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -157,10 +162,9 @@ void handleDivideException(interruptFrame* frame, uint64 error) {
 
 // INT 1
 __attribute__ ((interrupt))
-void handleDebugException(interruptFrame* frame, uint64 error) {
+void handleDebugException(interruptFrame* frame) {
 	std_Printk("debug exception\n");
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -170,10 +174,9 @@ void handleDebugException(interruptFrame* frame, uint64 error) {
 
 // INT 2
 __attribute__ ((interrupt))
-void handleNMIInterrupt(interruptFrame* frame, uint64 error) {
+void handleNMIInterrupt(interruptFrame* frame) {
 	std_Printk("NMI interrupt\n");
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -183,10 +186,9 @@ void handleNMIInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 3
 __attribute__ ((interrupt))
-void handleBreakpointInterrupt(interruptFrame* frame, uint64 error) {
+void handleBreakpointInterrupt(interruptFrame* frame) {
 	std_Printk("breakpoint interrupt\n");
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -196,10 +198,9 @@ void handleBreakpointInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 4
 __attribute__ ((interrupt))
-void handleOverflowInterrupt(interruptFrame* frame, uint64 error) {
+void handleOverflowInterrupt(interruptFrame* frame) {
 	std_Printk("overflow interrupt\n");
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -209,10 +210,9 @@ void handleOverflowInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 5
 __attribute__ ((interrupt))
-void handleBoundRangeInterrupt(interruptFrame* frame, uint64 error) {
+void handleBoundRangeInterrupt(interruptFrame* frame) {
 	std_Printk("bound range interrupt\n");
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -222,10 +222,9 @@ void handleBoundRangeInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 6
 __attribute__ ((interrupt))
-void handleInvalidOpcodeInterrupt(interruptFrame* frame, uint64 error) {
+void handleInvalidOpcodeInterrupt(interruptFrame* frame) {
 	std_Printk("invalid opcode interrupt\n");
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -235,10 +234,9 @@ void handleInvalidOpcodeInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 7
 __attribute__ ((interrupt))
-void handleDeviceNotAvailableInterrupt(interruptFrame* frame, uint64 error) {
+void handleDeviceNotAvailableInterrupt(interruptFrame* frame) {
 	std_Printk("device not available interrupt\n");
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -248,10 +246,9 @@ void handleDeviceNotAvailableInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 8
 __attribute__ ((interrupt))
-void handleDoubleFaultInterrupt(interruptFrame* frame, uint64 error) {
-	std_Printk("double fault interrupt\n");
+void handleDoubleFaultException(interruptFrame* frame, uint64 error) {
+	std_Printk("double fault exception (error %u64x)\n", error);
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -261,10 +258,9 @@ void handleDoubleFaultInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 9
 __attribute__ ((interrupt))
-void handleCoprocessorSegmentOverrunInterrupt(interruptFrame* frame, uint64 error) {
+void handleCoprocessorSegmentOverrunInterrupt(interruptFrame* frame) {
 	std_Printk("coprocessor segment overrun interrupt\n");
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -274,10 +270,9 @@ void handleCoprocessorSegmentOverrunInterrupt(interruptFrame* frame, uint64 erro
 
 // INT 10
 __attribute__ ((interrupt))
-void handleInvalidTSSInterrupt(interruptFrame* frame, uint64 error) {
-	std_Printk("invalid TSS interrupt (error %u64x)\n", error);
+void handleInvalidTSSException(interruptFrame* frame, uint64 error) {
+	std_Printk("invalid TSS exception (error %u64x)\n", error);
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -287,10 +282,9 @@ void handleInvalidTSSInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 11
 __attribute__ ((interrupt))
-void handleSegmentNotPresentInterrupt(interruptFrame* frame, uint64 error) {
-	std_Printk("segment not present interrupt (error %u64x)\n", error);
+void handleSegmentNotPresentException(interruptFrame* frame, uint64 error) {
+	std_Printk("segment not present exception (error %u64x)\n", error);
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -300,10 +294,9 @@ void handleSegmentNotPresentInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 12
 __attribute__ ((interrupt))
-void handleStackSegmentFaultInterrupt(interruptFrame* frame, uint64 error) {
-	std_Printk("stack segment fault interrupt (error %u64x)\n", error);
+void handleStackSegmentFaultException(interruptFrame* frame, uint64 error) {
+	std_Printk("stack segment fault exception (error %u64x)\n", error);
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -313,10 +306,9 @@ void handleStackSegmentFaultInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 13
 __attribute__ ((interrupt))
-void handleGeneralProtectionInterrupt(interruptFrame* frame, uint64 error) {
-	std_Printk("general protection interrupt (error %u64x)\n", error);
+void handleGeneralProtectionException(interruptFrame* frame, uint64 error) {
+	std_Printk("general protection exception (error %u64x)\n", error);
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -326,10 +318,9 @@ void handleGeneralProtectionInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 14
 __attribute__ ((interrupt))
-void handlePageFaultInterrupt(interruptFrame* frame, uint64 error) {
-	std_Printk("page fault interrupt (error %u64x)\n", error);
+void handlePageFaultException(interruptFrame* frame, uint64 error) {
+	std_Printk("page fault exception (error %u64x)\n", error);
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -339,10 +330,9 @@ void handlePageFaultInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 16
 __attribute__ ((interrupt))
-void handleMathFaultInterrupt(interruptFrame* frame, uint64 error) {
+void handleMathFaultInterrupt(interruptFrame* frame) {
 	std_Printk("math fault interrupt\n");
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -352,7 +342,7 @@ void handleMathFaultInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 17
 __attribute__ ((interrupt))
-void handleAlignmentCheckInterrupt(interruptFrame* frame, uint64 error) {
+void handleAlignmentCheckException(interruptFrame* frame, uint64 error) {
 	std_Printk("alignment check interrupt\n");
 	(void)frame;
 	(void)error;
@@ -365,10 +355,9 @@ void handleAlignmentCheckInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 18
 __attribute__ ((interrupt))
-void handleMachineCheckInterrupt(interruptFrame* frame, uint64 error) {
+void handleMachineCheckInterrupt(interruptFrame* frame) {
 	std_Printk("machine check interrupt\n");
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -378,10 +367,9 @@ void handleMachineCheckInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 19
 __attribute__ ((interrupt))
-void handleSIMDFloatingPointExceptionInterrupt(interruptFrame* frame, uint64 error) {
+void handleSIMDFloatingPointExceptionInterrupt(interruptFrame* frame) {
 	std_Printk("SIMD floating point exception interrupt\n");
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -391,10 +379,9 @@ void handleSIMDFloatingPointExceptionInterrupt(interruptFrame* frame, uint64 err
 
 // INT 20
 __attribute__ ((interrupt))
-void handleVirtualizationExceptionInterrupt(interruptFrame* frame, uint64 error) {
+void handleVirtualizationExceptionInterrupt(interruptFrame* frame) {
 	std_Printk("virtualization exception interrupt\n");
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -404,7 +391,7 @@ void handleVirtualizationExceptionInterrupt(interruptFrame* frame, uint64 error)
 
 // INT 21
 __attribute__ ((interrupt))
-void handleControlProtectionExceptionInterrupt(interruptFrame* frame, uint64 error) {
+void handleControlProtectionException(interruptFrame* frame, uint64 error) {
 	std_Printk("control protection exception interrupt (error %u64x)\n", error);
 	(void)frame;
 	(void)error;
@@ -415,12 +402,12 @@ void handleControlProtectionExceptionInterrupt(interruptFrame* frame, uint64 err
 	__asm__ ("cli");
 }
 
-// INT 33
+// INT 33 (IRQ 1)
 __attribute__ ((interrupt))
-void handleKeyboardInterrupt(interruptFrame* frame, uint64 error) {
-	std_Printk("keyboard interrupt\n");
+void handleKeyboardInterrupt(interruptFrame* frame) {
+	uint8 scanCode = ports_ReadUint8(0x60);
+	std_Printk("keyboard interrupt: %u8x\n", scanCode);
 	(void)frame;
-	(void)error;
 
 	// Fetch the code.
 	(void)ports_ReadUint8(0x60);
@@ -431,12 +418,11 @@ void handleKeyboardInterrupt(interruptFrame* frame, uint64 error) {
 	__asm__ ("cli");
 }
 
-// INT 34
+// INT 34 (IRQ 2)
 __attribute__ ((interrupt))
-void handleCascadeInterrupt(interruptFrame* frame, uint64 error) {
+void handleCascadeInterrupt(interruptFrame* frame) {
 	std_Printk("cascade interrupt\n");
 	(void)frame;
-	(void)error;
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0x20, 0x20);
@@ -444,12 +430,15 @@ void handleCascadeInterrupt(interruptFrame* frame, uint64 error) {
 	__asm__ ("cli");
 }
 
-// INT 40
+// INT 40 (IRQ 8)
 __attribute__ ((interrupt))
-void handleClockInterrupt(interruptFrame* frame, uint64 error) {
-	std_Printk("clock interrupt\n");
+void handleClockInterrupt(interruptFrame* frame) {
+	std_Printk("clock interrupt at %p\n", frame->ip);
 	(void)frame;
-	(void)error;
+
+	// Read the value.
+	ports_WriteUint8(0x70, 0x0c);
+	(void)ports_ReadUint8(0x71);
 
 	// Acknowledge the IRQ.
 	ports_WriteUint8(0xa0, 0x20);
@@ -460,10 +449,9 @@ void handleClockInterrupt(interruptFrame* frame, uint64 error) {
 
 // INT 0xff
 __attribute__ ((interrupt))
-void handleSpuriousInterrupt(interruptFrame* frame, uint64 error) {
+void handleSpuriousInterrupt(interruptFrame* frame) {
 	std_Printk("spurious interrupt\n");
 	(void)frame;
-	(void)error;
 
 	__asm__ ("cli");
 }
@@ -495,7 +483,7 @@ static const uint8 IDT_TYPE_TRAP_GATE      = 15; // bits 1111
 static const uintptr MASK_BITS_31_TO_16 = 0xFFFF0000;
 static const uintptr MASK_BITS_15_TO_0  = 0x0000FFFF;
 
-// createGate stores an entry into the IDT, as described in
+// createInterruptGate stores an entry into the IDT, as described in
 // section 6.14.1 of Intel 64 and IA-32 Architectures Software
 // Developer’s Manual, Volume 3A:
 //
@@ -517,7 +505,26 @@ static const uintptr MASK_BITS_15_TO_0  = 0x0000FFFF;
 // 	Selector:  Segment Selector for destination code segment
 // 	IST:       Interrupt Stack Table
 //
-void createGate(uint8 gate, uint8 privilege, void (*handler)(interruptFrame*, uint64)) {
+void createInterruptGate(uint8 gate, uint8 privilege, void (*handler)(interruptFrame*)) {
+	uintptr offset = (uintptr)handler;
+
+	// Multiply the gate number by 16 to make it an
+	// index into the IDT, which starts at 0x00.
+	idtDescriptor* idte = (idtDescriptor*)(uintptr)((uint64)gate << 4);
+
+	idte->zero = 0;
+	idte->offset3 = (uint32)(offset >> 32);
+	idte->offset2 = (uint16)((MASK_BITS_31_TO_16 & offset)>>16);
+	idte->offset1 = (uint16)(MASK_BITS_15_TO_0 & offset);
+	idte->selector = IDT_SELECTOR;
+	idte->ist = 0;
+	idte->type_attr = IDT_FLAG_PRESENT | (uint8)((3&privilege)<<5) | IDT_TYPE_INTERRUPT_GATE;
+}
+
+// createExceptionGate is the same as createInterruptGate, except
+// it also receives an error value.
+//
+void createExceptionGate(uint8 gate, uint8 privilege, void (*handler)(interruptFrame*, uint64)) {
 	uintptr offset = (uintptr)handler;
 
 	// Multiply the gate number by 16 to make it an
