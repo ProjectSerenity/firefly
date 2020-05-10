@@ -503,11 +503,28 @@ nextIOAPIC:
 	mov eax, [VBEModeInfoBlock.BytesPerScanLine]	; Pitch (bytes per scan line)
 	stosd
 
-; Move the trailing binary to its final location
-	mov esi, 0x8000+PURE64SIZE	; Memory offset to end of pure64.sys
-	mov edi, 0x100000		; Destination address at the 1MiB mark
-	mov ecx, ((32768 - PURE64SIZE) / 8)
-	rep movsq			; Copy 8 bytes at a time
+; Move the kernel binary to its final location
+	cli
+	mov rax, 24              ; Read from 16x512 + 4x1024 bytes = block 24.
+	mov ebx, [0x8ffc]        ; Read from 4 before the end of Pure64 (4096 bytes at 0x8000) for the length data.
+	mov rdi, 0x100000        ; Destination address at the 1MiB mark.
+
+.copy_more:
+	xor ecx, ecx
+	mov cl, bl               ; Store the number of blocks to copy.
+	cmp ecx, ebx             ; If 256+ blocks to copy, set cl to 255.
+	je .do_copy
+	mov cl, 255
+
+.do_copy:
+	call ata_lba_read        ; Copy the blocks.
+	sub ebx, ecx             ; Subtract the number of blocks copied.
+	add eax, ecx             ; Advance logical block address.
+	shl ecx, 9               ; Turn blocks copied to bytes copied (x512).
+	add edi, ecx             ; Advance destination address.
+	test ebx, ebx            ; Check whether bytes left to copy.
+	jnz .copy_more
+	sti
 
 ; Output message via serial port
 	cld				; Clear the direction flag.. we want to increment through the string
@@ -545,6 +562,85 @@ serial_done:
 	xor r14, r14
 	xor r15, r15
 	jmp 0x00100000
+
+;=============================================================================
+; ATA read sectors (LBA mode)
+;
+; @param EAX Logical Block Address of sector
+; @param CL  Number of sectors to read
+; @param RDI The address of buffer to put data obtained from disk
+;
+; @return None
+;=============================================================================
+ata_lba_read:
+	pushfq
+	and rax, 0x0FFFFFFF
+	push rax
+	push rbx
+	push rbp
+	push rcx
+	push rdx
+	push rdi
+
+	mov rbx, rax         ; Save LBA in RBX
+	mov rbp, rcx         ; Save the number of sectors to read
+
+	mov edx, 0x1f6       ; Port to send drive and bit 24 - 27 of LBA
+	shr eax, 24          ; Get bit 24 - 27 in al
+	or al, 11100000b     ; Set bit 6 in al for LBA mode
+	out dx, al
+
+	mov edx, 0x1f2       ; Port to send number of sectors
+	mov al, cl           ; Get number of sectors from CL
+	out dx, al
+
+	mov edx, 0x1f3       ; Port to send bit 0 - 7 of LBA
+	mov eax, ebx         ; Get LBA from EBX
+	out dx, al
+
+	mov edx, 0x1f4       ; Port to send bit 8 - 15 of LBA
+	mov eax, ebx         ; Get LBA from EBX
+	shr eax, 8           ; Get bit 8 - 15 in AL
+	out dx, al
+
+
+	mov edx, 0x1f5       ; Port to send bit 16 - 23 of LBA
+	mov eax, ebx         ; Get LBA from EBX
+	shr eax, 16          ; Get bit 16 - 23 in AL
+	out dx, al
+
+	mov edx, 0x1f7       ; Command port
+	mov al, 0x20         ; Read with retry.
+	out dx, al
+
+.still_going:
+	in al, dx            ; Check status port.
+	test al, 8           ; the sector buffer requires servicing.
+	jz .still_going      ; until the sector buffer is ready.
+
+	mov rcx, 256         ; Read 256 16-bit words = 1 sector
+	mov edx, 0x1f0       ; Data port, in and out
+	rep insw             ; in to [RDI]
+
+	mov edx, 0x1f7       ; Check status again.
+	in al, dx            ; Wait for drive to update status flags.
+	in al, dx
+	in al, dx
+	in al, dx
+
+	inc ebx              ; Increment LBA.
+	dec ebp              ; Decrement sectors to read.
+	test ebp, ebp        ; Check whether to keep going.
+	jne .still_going
+
+	pop rdi
+	pop rdx
+	pop rcx
+	pop rbp
+	pop rbx
+	pop rax
+	popfq
+	ret
 
 
 %include "init/acpi.asm"
