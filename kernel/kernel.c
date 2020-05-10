@@ -2,6 +2,7 @@
 #include "cpu.h"
 #include "int.h"
 #include "mem.h"
+#include "rand.h"
 #include "term.h"
 #include "time.h"
 
@@ -9,7 +10,7 @@ void kmain(void);
 
 void kmain() {
 	term_Init();
-	int x = 1;
+	uint64 x = 1;
 	std_Printk("Hello, %m12s! Stack address: %p\n", "kernel world", &x);
 
 	if (!std_ValidNumericalTypes()) {
@@ -25,5 +26,6 @@ void kmain() {
 
 	mem_Init();
 	time_Init();
+	rand_Init();
 	int_Init();
 }
