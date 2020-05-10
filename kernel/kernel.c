@@ -18,6 +18,7 @@ void kmain() {
 
 	std_Printk("Resolution: %u64d x %u64d\n", term_Width, term_Height);
 
+	cpu_Init();
 	cpu_Info info = cpu_GetInfo();
 	std_Printk("CPU cores: %u64d, frequency: %u64dGHz\n", info.Cores, info.Frequency/(uint64)1000000000);
 	std_Printk("RAM: %u64dMB\n", info.Memory/(((uint64)1)<<20));
