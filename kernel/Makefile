@@ -23,36 +23,30 @@ all: firefly.img
 firefly.img: firefly.bin linker.ld pure64.sys mbr.sys imgbuild
 	./imgbuild -mbr mbr.sys -loader pure64.sys -kernel firefly.bin -o firefly.img
 
-firefly.bin: kcheck ${OBJECTS}
-	./kcheck headers *.h
+firefly.bin: ${OBJECTS}
 	ld -T linker.ld -o firefly.bin ${OBJECTS}
 
 # Generic rule for C and assembly files.
 .SUFFIXES: .c .o
 
 .c.o:
-	./kcheck object $<
 	${CC} ${CCFLAGS} -o $@ $<
 
 # Kernel objects.
-cpu.o: kcheck cpu.c std.h cpu.h
-init.o: kcheck init.c
-kernel.o: kcheck kernel.c std.h cpu.h int.h mem.h rand.h term.h time.h
-int.o: kcheck int.c std.h int.h port.h
-mem.o: kcheck mem.c std.h mem.h
-mmio.o: kcheck mmio.c std.h mmio.h
-pci.o: kcheck pci.c std.h pci.h port.h
-port.o: kcheck port.c std.h port.h
-rand.o: kcheck rand.c std.h rand.h
-std.o: kcheck std.c std.h term.h
-term.o: kcheck term.c font.h std.h term.h
-time.o: kcheck time.c std.h time.h
+cpu.o: cpu.c std.h cpu.h
+init.o: init.c
+kernel.o: kernel.c std.h cpu.h int.h mem.h rand.h term.h time.h
+int.o: int.c std.h int.h port.h
+mem.o: mem.c std.h mem.h
+mmio.o: mmio.c std.h mmio.h
+pci.o: pci.c std.h pci.h port.h
+port.o: port.c std.h port.h
+rand.o: rand.c std.h rand.h
+std.o: std.c std.h term.h
+term.o: term.c font.h std.h term.h
+time.o: time.c std.h time.h
 
 # Dependencies.
-kcheck: $(wildcard ../kcheck/*.go) ../kcheck/go.mod ../kcheck/go.sum $(wildcard ../kcheck/cc/*.go)
-	cd ../kcheck && go test
-	cd ../kcheck && go build -o ../kernel/kcheck
-
 imgbuild: $(wildcard ../imgbuild/*.go) ../imgbuild/go.mod ../imgbuild/go.sum
 	cd ../imgbuild && go test
 	cd ../imgbuild && go build -o ../kernel/imgbuild
@@ -66,4 +60,4 @@ mbr.sys: ../Pure64/src/bootsectors/mbr.asm
 # Cleanup.
 .PHONY: clean
 clean:
-	rm firefly.img firefly.bin *.o imgbuild kcheck pure64.sys mbr.sys
+	rm firefly.img firefly.bin *.o imgbuild pure64.sys mbr.sys

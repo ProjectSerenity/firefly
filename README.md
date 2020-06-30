@@ -5,7 +5,6 @@ Firefly is a research OS inspired by [Plan 9 from Bell Labs](https://9p.io/plan9
 This repository consists of:
 
 - the Firefly kernel in [`kernel`](/kernel)
-- the Firefly kernel static analyser in [`kcheck`](/kcheck)
 - the Firefly image builder in [`imgbuild`](/imgbuild)
 - the Pure64 bootloader (modified for Firefly) in [`Pure64`](/Pure64)
 
