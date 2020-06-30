@@ -5,9 +5,19 @@ RUN apt-get update && \
 
 RUN curl https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz | tar -xzf - -C /usr/local
 
+# Get Rust
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+
 ENV GOBIN="/tmp/gobin"
-ENV PATH="${PATH}:/usr/local/go/bin:${GOBIN}"
+ENV PATH="${PATH}:/usr/local/go/bin:${GOBIN}:/root/.cargo/bin"
+
+# Get cargo-xbuild, switch to nightly channel.
+RUN rustup override add nightly
+RUN rustup component add rust-src
+RUN rustup component add llvm-tools-preview
+RUN cargo install cargo-xbuild
+RUN cargo install bootimage
 
 WORKDIR /build/kernel
 
-CMD ["/usr/bin/make"]
+CMD ["cargo", "bootimage", "--release"]
