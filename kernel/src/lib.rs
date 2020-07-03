@@ -19,6 +19,15 @@ pub fn init() {
     interrupts::init();
 }
 
+// halt_loop halts the CPU using a loop of the hlt
+// instruction.
+//
+pub fn halt_loop() -> ! {
+    loop {
+        x86_64::instructions::hlt();
+    }
+}
+
 // Testable represents a test function.
 //
 pub trait Testable {
@@ -56,7 +65,7 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
     serial_println!("[failed]\n");
     serial_println!("Error: {}\n", info);
     exit_qemu(QemuExitCode::Failed);
-    loop {}
+    halt_loop();
 }
 
 // QemuExitCode represents the two valid
@@ -89,7 +98,7 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
 pub extern "C" fn _start() -> ! {
     init();
     test_main();
-    loop {}
+    halt_loop();
 }
 
 #[cfg(test)]
