@@ -47,13 +47,6 @@ fn kmain() {
     println!("Hello, {}!", "kernel");
 }
 
-// Tests.
-
-#[test_case]
-fn trivial_assertion() {
-    assert_eq!(1, 1);
-}
-
 // Testing framework.
 
 // This function is called on panic
