@@ -36,3 +36,7 @@ run-command = [
 	"-m", "128M",
 	"-cpu", "Haswell"
 ]
+
+[[test]]
+name = "should_panic"
+harness = false
