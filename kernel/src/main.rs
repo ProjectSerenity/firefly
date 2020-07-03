@@ -8,24 +8,13 @@
 use core::panic::PanicInfo;
 use kernel::println;
 
-#[cfg(target_arch = "x86_64")]
-fn halt() {
-    x86_64::instructions::interrupts::disable();
-    x86_64::instructions::hlt();
-}
-
-// other platforms
-#[cfg(not(target_arch = "x86_64"))]
-fn halt() {}
-
 // This function is called on panic.
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-    loop {
-        halt();
-    }
+
+    kernel::halt_loop();
 }
 
 #[no_mangle]
@@ -38,9 +27,7 @@ pub extern "C" fn _start() -> ! {
     #[cfg(not(test))]
     kmain();
 
-    loop {
-        halt();
-    }
+    kernel::halt_loop();
 }
 
 #[cfg(not(test))]
