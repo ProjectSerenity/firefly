@@ -3,17 +3,30 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
 
+// print! is the standard printing macro, implemented
+// using the _print function, which acquires WRITER
+// using a spin lock and writes the message to the
+// VGA display.
+//
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ($crate::vga_buffer::_print(format_args!($($arg)*)));
 }
 
+// println! is the standard printing macro, implemented
+// using the _print function, which acquires WRITER
+// using a spin lock and writes the message to the
+// VGA display.
+//
 #[macro_export]
 macro_rules! println {
     () => ($crate::print!("\n"));
     ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
 }
 
+// _print writes text to the VGA display by acquiring
+// WRITER using a spin lock.
+//
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
@@ -27,6 +40,9 @@ impl fmt::Write for Writer {
     }
 }
 
+// Lazily initialise WRITER as a Writer, protected
+// by a spin lock.
+//
 lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         column_position: 0,
@@ -35,6 +51,8 @@ lazy_static! {
     });
 }
 
+// Color represents a VGA display color.
+//
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -57,16 +75,25 @@ pub enum Color {
     White = 15,
 }
 
+// ColorCode contains both a text color and
+// a background color, as used in VGA displays.
+//
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
 struct ColorCode(u8);
 
 impl ColorCode {
+    // new combines a text color and a background color
+    // into a ColorCode.
+    //
     fn new(foreground: Color, background: Color) -> ColorCode {
         ColorCode((background as u8) << 4 | (foreground as u8))
     }
 }
 
+// ScreenChar represents a single character
+// as printed to a VGA display.
+//
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 struct ScreenChar {
@@ -74,14 +101,28 @@ struct ScreenChar {
     color_code: ColorCode,
 }
 
-const BUFFER_HEIGHT: usize = 25;
-const BUFFER_WIDTH: usize = 80;
+const BUFFER_HEIGHT: usize = 25; // BUFFER_HEIGHT is the number of lines in the VGA display.
+const BUFFER_WIDTH: usize = 80; // BUFFER_WIDTH is the number of characters in each line of the VGA display.
 
+// Buffer represents the memory address to which
+// VGA data can be written to draw text to the
+// display.
+//
+// The buffer is marked volatile to indicate that
+// writes to the buffer have external effects and
+// thus should not be optimised away, even though
+// the memory is not read after the writes.
+//
 #[repr(transparent)]
 struct Buffer {
     chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
+// Writer maintains state on a VGA display by
+// tracking the buffer, the current position
+// within the buffer, and the color code in
+// use.
+//
 pub struct Writer {
     column_position: usize,
     color_code: ColorCode,
@@ -89,6 +130,9 @@ pub struct Writer {
 }
 
 impl Writer {
+    // write_byte writes a single byte to the
+    // VGA display.
+    //
     pub fn write_byte(&mut self, byte: u8) {
         match byte {
             b'\n' => self.new_line(),
@@ -110,17 +154,27 @@ impl Writer {
         }
     }
 
+    // new_line moves any previous text in the
+    // buffer to the lines above, making space
+    // for a new line of text.
+    //
     fn new_line(&mut self) {
+        // Shift the current text up by one row.
         for row in 1..BUFFER_HEIGHT {
             for col in 0..BUFFER_WIDTH {
                 let character = self.buffer.chars[row][col].read();
                 self.buffer.chars[row - 1][col].write(character);
             }
         }
+
+        // Clear the bottom row and reset the column.
         self.clear_row(BUFFER_HEIGHT - 1);
         self.column_position = 0;
     }
 
+    // clear_row clears out the given row
+    // by writing a row of spaces.
+    //
     fn clear_row(&mut self, row: usize) {
         let blank = ScreenChar {
             ascii_character: b' ',
@@ -131,6 +185,10 @@ impl Writer {
         }
     }
 
+    // write_string writes s to the buffer,
+    // replacing non-printable characters
+    // with 0xfe.
+    //
     pub fn write_string(&mut self, s: &str) {
         for byte in s.bytes() {
             match byte {
