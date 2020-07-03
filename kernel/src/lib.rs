@@ -17,6 +17,8 @@ pub mod vga_buffer;
 pub fn init() {
     gdt::init();
     interrupts::init();
+    unsafe { interrupts::PICS.lock().initialize() };
+    x86_64::instructions::interrupts::enable();
 }
 
 // halt_loop halts the CPU using a loop of the hlt
