@@ -7,6 +7,7 @@
 
 use core::panic::PanicInfo;
 
+pub mod gdt;
 pub mod interrupts;
 pub mod serial;
 pub mod vga_buffer;
@@ -14,6 +15,7 @@ pub mod vga_buffer;
 // init sets up critical core functions of the kernel.
 //
 pub fn init() {
+    gdt::init();
     interrupts::init();
 }
 
