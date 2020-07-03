@@ -93,11 +93,16 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     }
 }
 
-// _start is the entry point for `cargo xtest`.
+#[cfg(test)]
+use bootloader::{entry_point, BootInfo};
+
+#[cfg(test)]
+entry_point!(test_kernel_main);
+
+// test_kernel_main is the entry point for `cargo xtest`.
 //
 #[cfg(test)]
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
+fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
     init();
     test_main();
     halt_loop();
