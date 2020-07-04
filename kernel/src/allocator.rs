@@ -6,6 +6,10 @@ use x86_64::VirtAddr;
 #[global_allocator]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
+mod bump;
+mod fixed_size_block;
+mod linked_list;
+
 pub const HEAP_START: usize = 0x_4444_4444_0000;
 pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
 
@@ -34,4 +38,29 @@ pub fn init_heap(
     }
 
     Ok(())
+}
+
+// A wrapper around spin::Mutex to permit trait implementations.
+pub struct Locked<A> {
+    inner: spin::Mutex<A>,
+}
+
+impl<A> Locked<A> {
+    pub const fn new(inner: A) -> Self {
+        Locked {
+            inner: spin::Mutex::new(inner),
+        }
+    }
+
+    pub fn lock(&self) -> spin::MutexGuard<A> {
+        self.inner.lock()
+    }
+}
+
+// align_up aligns the given address upwards to alignment align.
+//
+// Requires that align is a power of two.
+//
+fn align_up(addr: usize, align: usize) -> usize {
+    (addr + align - 1) & !(align - 1)
 }
