@@ -1,8 +1,0 @@
-#!/bin/sh
-
-qemu-system-x86_64 \
-	-drive format=raw,file=kernel/target/x86_64-firefly/release/bootimage-kernel.bin \
-	-device e1000,mac=01:23:45:67:89:ab \
-	-m 128M \
-	-cpu Haswell \
-	2>&1 | grep -v "warning: TCG doesn't support requested feature"
