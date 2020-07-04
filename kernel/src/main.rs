@@ -28,13 +28,13 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     test_main();
 
     #[cfg(not(test))]
-    kmain();
+    kmain(boot_info);
 
     kernel::halt_loop();
 }
 
 #[cfg(not(test))]
-fn kmain() {
+fn kmain(_boot_info: &'static BootInfo) {
     println!("Kernel ready!");
 }
 
