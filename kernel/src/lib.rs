@@ -17,6 +17,7 @@ pub mod gdt;
 pub mod interrupts;
 pub mod memory;
 pub mod serial;
+pub mod time;
 pub mod vga_buffer;
 
 // init sets up critical core functions of the kernel.
@@ -25,6 +26,7 @@ pub fn init() {
     gdt::init();
     interrupts::init();
     unsafe { interrupts::PICS.lock().initialize() };
+    time::init();
     x86_64::instructions::interrupts::enable();
 }
 
