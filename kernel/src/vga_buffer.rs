@@ -3,30 +3,30 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
 
-// print! is the standard printing macro, implemented
-// using the _print function, which acquires WRITER
-// using a spin lock and writes the message to the
-// VGA display.
-//
+/// print! is the standard printing macro, implemented
+/// using the _print function, which acquires WRITER
+/// using a spin lock and writes the message to the
+/// VGA display.
+///
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ($crate::vga_buffer::_print(format_args!($($arg)*)));
 }
 
-// println! is the standard printing macro, implemented
-// using the _print function, which acquires WRITER
-// using a spin lock and writes the message to the
-// VGA display.
-//
+/// println! is the standard printing macro, implemented
+/// using the _print function, which acquires WRITER
+/// using a spin lock and writes the message to the
+/// VGA display.
+///
 #[macro_export]
 macro_rules! println {
     () => ($crate::print!("\n"));
     ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
 }
 
-// _print writes text to the VGA display by acquiring
-// WRITER using a spin lock.
-//
+/// _print writes text to the VGA display by acquiring
+/// WRITER using a spin lock.
+///
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
@@ -55,8 +55,8 @@ lazy_static! {
     });
 }
 
-// Color represents a VGA display color.
-//
+/// Color represents a VGA display color.
+///
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -79,25 +79,25 @@ pub enum Color {
     White = 15,
 }
 
-// ColorCode contains both a text color and
-// a background color, as used in VGA displays.
-//
+/// ColorCode contains both a text color and
+/// a background color, as used in VGA displays.
+///
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
 struct ColorCode(u8);
 
 impl ColorCode {
-    // new combines a text color and a background color
-    // into a ColorCode.
-    //
+    /// new combines a text color and a background color
+    /// into a ColorCode.
+    ///
     fn new(foreground: Color, background: Color) -> ColorCode {
         ColorCode((background as u8) << 4 | (foreground as u8))
     }
 }
 
-// ScreenChar represents a single character
-// as printed to a VGA display.
-//
+/// ScreenChar represents a single character
+/// as printed to a VGA display.
+///
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 struct ScreenChar {
@@ -108,25 +108,25 @@ struct ScreenChar {
 const BUFFER_HEIGHT: usize = 25; // BUFFER_HEIGHT is the number of lines in the VGA display.
 const BUFFER_WIDTH: usize = 80; // BUFFER_WIDTH is the number of characters in each line of the VGA display.
 
-// Buffer represents the memory address to which
-// VGA data can be written to draw text to the
-// display.
-//
-// The buffer is marked volatile to indicate that
-// writes to the buffer have external effects and
-// thus should not be optimised away, even though
-// the memory is not read after the writes.
-//
+/// Buffer represents the memory address to which
+/// VGA data can be written to draw text to the
+/// display.
+///
+/// The buffer is marked volatile to indicate that
+/// writes to the buffer have external effects and
+/// thus should not be optimised away, even though
+/// the memory is not read after the writes.
+///
 #[repr(transparent)]
 struct Buffer {
     chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
-// Writer maintains state on a VGA display by
-// tracking the buffer, the current position
-// within the buffer, and the color code in
-// use.
-//
+/// Writer maintains state on a VGA display by
+/// tracking the buffer, the current position
+/// within the buffer, and the color code in
+/// use.
+///
 pub struct Writer {
     column_position: usize,
     color_code: ColorCode,
@@ -134,9 +134,9 @@ pub struct Writer {
 }
 
 impl Writer {
-    // write_byte writes a single byte to the
-    // VGA display.
-    //
+    /// write_byte writes a single byte to the
+    /// VGA display.
+    ///
     pub fn write_byte(&mut self, byte: u8) {
         match byte {
             b'\n' => self.new_line(),
@@ -152,17 +152,17 @@ impl Writer {
                 let color_code = self.color_code;
                 self.buffer.chars[row][col].write(ScreenChar {
                     ascii_character: byte,
-                    color_code: color_code,
+                    color_code,
                 });
                 self.column_position += 1;
             }
         }
     }
 
-    // new_line moves any previous text in the
-    // buffer to the lines above, making space
-    // for a new line of text.
-    //
+    /// new_line moves any previous text in the
+    /// buffer to the lines above, making space
+    /// for a new line of text.
+    ///
     fn new_line(&mut self) {
         // Shift the current text up by one row.
         for row in 1..BUFFER_HEIGHT {
@@ -177,9 +177,9 @@ impl Writer {
         self.column_position = 0;
     }
 
-    // clear_row clears out the given row
-    // by writing a row of spaces.
-    //
+    /// clear_row clears out the given row
+    /// by writing a row of spaces.
+    ///
     fn clear_row(&mut self, row: usize) {
         let blank = ScreenChar {
             ascii_character: b' ',
@@ -190,10 +190,10 @@ impl Writer {
         }
     }
 
-    // write_string writes s to the buffer,
-    // replacing non-printable characters
-    // with 0xfe.
-    //
+    /// write_string writes s to the buffer,
+    /// replacing non-printable characters
+    /// with 0xfe.
+    ///
     pub fn write_string(&mut self, s: &str) {
         for byte in s.bytes() {
             match byte {

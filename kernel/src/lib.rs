@@ -20,8 +20,8 @@ pub mod serial;
 pub mod time;
 pub mod vga_buffer;
 
-// init sets up critical core functions of the kernel.
-//
+/// init sets up critical core functions of the kernel.
+///
 pub fn init() {
     gdt::init();
     interrupts::init();
@@ -35,16 +35,16 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     panic!("allocation error: {:?}", layout)
 }
 
-// halt_loop halts the CPU using a loop of the hlt
-// instruction.
-//
+/// halt_loop halts the CPU using a loop of the hlt
+/// instruction.
+///
 pub fn halt_loop() -> ! {
     loop {
         x86_64::instructions::hlt();
     }
 }
 
-// A wrapper around spin::Mutex to permit trait implementations.
+/// A wrapper around spin::Mutex to permit trait implementations.
 pub struct Locked<A> {
     inner: spin::Mutex<A>,
 }
@@ -61,14 +61,14 @@ impl<A> Locked<A> {
     }
 }
 
-// Testable represents a test function.
-//
+/// Testable represents a test function.
+///
 pub trait Testable {
-    fn run(&self) -> ();
+    fn run(&self);
 }
 
-// Wrap tests with debug statements.
-//
+/// Wrap tests with debug statements.
+///
 impl<T> Testable for T
 where
     T: Fn(),
@@ -80,9 +80,9 @@ where
     }
 }
 
-// Entry point for the set of unit
-// tests.
-//
+/// Entry point for the set of unit
+/// tests.
+///
 pub fn test_runner(tests: &[&dyn Testable]) {
     serial_println!("Running {} tests", tests.len());
     for test in tests {
@@ -92,8 +92,8 @@ pub fn test_runner(tests: &[&dyn Testable]) {
     exit_qemu(QemuExitCode::Success);
 }
 
-// Panic handler for tests.
-//
+/// Panic handler for tests.
+///
 pub fn test_panic_handler(info: &PanicInfo) -> ! {
     serial_println!("[failed]\n");
     serial_println!("Error: {}\n", info);
@@ -101,9 +101,9 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
     halt_loop();
 }
 
-// QemuExitCode represents the two valid
-// values for exiting QEMU.
-//
+/// QemuExitCode represents the two valid
+/// values for exiting QEMU.
+///
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum QemuExitCode {
@@ -111,10 +111,10 @@ pub enum QemuExitCode {
     Failed = 0x11,
 }
 
-// exit_qemu uses the 0xf4 I/O port to
-// instruct QEMU to exit with the given
-// exit code.
-//
+/// exit_qemu uses the 0xf4 I/O port to
+/// instruct QEMU to exit with the given
+/// exit code.
+///
 pub fn exit_qemu(exit_code: QemuExitCode) {
     use x86_64::instructions::port::Port;
 
@@ -130,8 +130,8 @@ use bootloader::{entry_point, BootInfo};
 #[cfg(test)]
 entry_point!(test_kernel_main);
 
-// test_kernel_main is the entry point for `cargo xtest`.
-//
+/// test_kernel_main is the entry point for `cargo xtest`.
+///
 #[cfg(test)]
 fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
     init();

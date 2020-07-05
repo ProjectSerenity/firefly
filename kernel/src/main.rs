@@ -11,7 +11,7 @@ use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use kernel::println;
 
-// This function is called on panic.
+/// This function is called on panic.
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
@@ -42,8 +42,8 @@ fn kmain(_boot_info: &'static BootInfo) {
 
 // Testing framework.
 
-// This function is called on panic
-// when running tests.
+/// This function is called on panic
+/// when running tests.
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {

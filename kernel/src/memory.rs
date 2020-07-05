@@ -2,29 +2,33 @@ use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
 use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB};
 use x86_64::{PhysAddr, VirtAddr};
 
-// init initialises a new OffsetPageTable.
-//
-// This function is unsafe because the caller must guarantee that the
-// complete physical memory is mapped to virtual memory at the passed
-// physical_memory_offset. Also, this function must be only called once
-// to avoid aliasing &mut references (which is undefined behavior).
-//
+/// init initialises a new OffsetPageTable.
+///
+/// # Safety
+///
+/// This function is unsafe because the caller must guarantee that the
+/// complete physical memory is mapped to virtual memory at the passed
+/// physical_memory_offset. Also, this function must be only called once
+/// to avoid aliasing &mut references (which is undefined behavior).
+///
 pub unsafe fn init(physical_memory_offset: VirtAddr) -> OffsetPageTable<'static> {
     let level_4_table = active_level_4_table(physical_memory_offset);
     OffsetPageTable::new(level_4_table, physical_memory_offset)
 }
 
-// active_level_4_table returns a mutable reference
-// to the active level 4 table.
-//
-// This function is unsafe because the caller must
-// guarantee that all physical memory is mapped to
-// virtual memory at the passed physical_memory_offset.
-//
-// active_level_4_table must only be called once to
-// avoid aliasing &mut references (which is undefined
-// behavior).
-//
+/// active_level_4_table returns a mutable reference
+/// to the active level 4 table.
+///
+/// # Safety
+///
+/// This function is unsafe because the caller must
+/// guarantee that all physical memory is mapped to
+/// virtual memory at the passed physical_memory_offset.
+///
+/// active_level_4_table must only be called once to
+/// avoid aliasing &mut references (which is undefined
+/// behavior).
+///
 unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut PageTable {
     use x86_64::registers::control::Cr3;
 
@@ -37,22 +41,24 @@ unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut
     &mut *page_table_ptr // unsafe
 }
 
-// BootInfoFrameAllocator is a FrameAllocator that returns
-// usable frames from the bootloader's memory map.
-//
+/// BootInfoFrameAllocator is a FrameAllocator that returns
+/// usable frames from the bootloader's memory map.
+///
 pub struct BootInfoFrameAllocator {
     memory_map: &'static MemoryMap,
     next: usize,
 }
 
 impl BootInfoFrameAllocator {
-    // init creates a FrameAllocator from the passed memory map.
-    //
-    // This function is unsafe because the caller must guarantee
-    // that the passed memory map is valid. The main requirement
-    // is that all frames that are marked as USABLE in it are
-    // really unused.
-    //
+    /// init creates a FrameAllocator from the passed memory map.
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because the caller must guarantee
+    /// that the passed memory map is valid. The main requirement
+    /// is that all frames that are marked as USABLE in it are
+    /// really unused.
+    ///
     pub unsafe fn init(memory_map: &'static MemoryMap) -> Self {
         BootInfoFrameAllocator {
             memory_map,
@@ -60,9 +66,9 @@ impl BootInfoFrameAllocator {
         }
     }
 
-    // usable_frames returns an iterator over the usable frames
-    // specified in the memory map.
-    //
+    /// usable_frames returns an iterator over the usable frames
+    /// specified in the memory map.
+    ///
     fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {
         // Get usable regions from memory map.
         let regions = self.memory_map.iter();
