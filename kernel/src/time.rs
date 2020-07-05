@@ -43,19 +43,19 @@ pub struct Ticker {
 }
 
 impl Ticker {
-    // new creates a new ticker, with a zero
-    // counter.
-    //
+    /// new creates a new ticker, with a zero
+    /// counter.
+    ///
     pub const fn new() -> Self {
         Ticker { counter: 0 }
     }
 }
 
 impl Locked<Ticker> {
-    // tick increments the counter, printing the
-    // system uptime if a whole number of seconds
-    // have passed since boot..
-    //
+    /// tick increments the counter, printing the
+    /// system uptime if a whole number of seconds
+    /// have passed since boot..
+    ///
     pub fn tick(&self) {
         let mut ticker = self.lock();
         ticker.counter += 1;

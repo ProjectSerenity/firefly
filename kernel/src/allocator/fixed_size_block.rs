@@ -5,17 +5,17 @@ use core::{
     ptr::{self, NonNull},
 };
 
-// BLOCK_SIZES contains the block sizes used.
-//
-// The sizes must each be power of 2 because they are also used as
-// the block alignment (alignments must be always powers of 2).
-//
+/// BLOCK_SIZES contains the block sizes used.
+///
+/// The sizes must each be power of 2 because they are also used as
+/// the block alignment (alignments must be always powers of 2).
+///
 const BLOCK_SIZES: &[usize] = &[8, 16, 32, 64, 128, 256, 512, 1024, 2048];
 
-// list_index chooses an appropriate block size for the given layout.
-//
-// Returns an index into the `BLOCK_SIZES` array.
-//
+/// list_index chooses an appropriate block size for the given layout.
+///
+/// Returns an index into the `BLOCK_SIZES` array.
+///
 fn list_index(layout: &Layout) -> Option<usize> {
     let required_block_size = layout.size().max(layout.align());
     BLOCK_SIZES.iter().position(|&s| s >= required_block_size)
@@ -31,8 +31,8 @@ pub struct FixedSizeBlockAllocator {
 }
 
 impl FixedSizeBlockAllocator {
-    // new creates an empty FixedSizeBlockAllocator.
-    //
+    /// new creates an empty FixedSizeBlockAllocator.
+    ///
     pub const fn new() -> Self {
         FixedSizeBlockAllocator {
             list_heads: [None; BLOCK_SIZES.len()],
@@ -40,18 +40,18 @@ impl FixedSizeBlockAllocator {
         }
     }
 
-    // init initialises the allocator with the given heap bounds.
-    //
-    // This function is unsafe because the caller must guarantee that the given
-    // heap bounds are valid and that the heap is unused. This method must be
-    // called only once.
-    //
+    /// init initialises the allocator with the given heap bounds.
+    ///
+    /// This function is unsafe because the caller must guarantee that the given
+    /// heap bounds are valid and that the heap is unused. This method must be
+    /// called only once.
+    ///
     pub unsafe fn init(&mut self, heap_start: usize, heap_size: usize) {
         self.fallback_allocator.init(heap_start, heap_size);
     }
 
-    // fallback_alloc allocates using the fallback allocator.
-    //
+    /// fallback_alloc allocates using the fallback allocator.
+    ///
     fn fallback_alloc(&mut self, layout: Layout) -> *mut u8 {
         match self.fallback_allocator.allocate_first_fit(layout) {
             Ok(ptr) => ptr.as_ptr(),

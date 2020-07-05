@@ -41,10 +41,10 @@ pub fn init_heap(
     Ok(())
 }
 
-// align_up aligns the given address upwards to alignment align.
-//
-// Requires that align is a power of two.
-//
+/// align_up aligns the given address upwards to alignment align.
+///
+/// Requires that align is a power of two.
+///
 fn align_up(addr: usize, align: usize) -> usize {
     (addr + align - 1) & !(align - 1)
 }
