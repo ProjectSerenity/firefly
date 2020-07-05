@@ -1,7 +1,6 @@
 use crate::{gdt, halt_loop, print, println, time};
 use lazy_static::lazy_static;
 use pic8259_simple::ChainedPics;
-use spin;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
 
 pub fn init() {

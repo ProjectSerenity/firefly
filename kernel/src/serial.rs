@@ -10,9 +10,9 @@ lazy_static! {
     };
 }
 
-// _print writes text to the serial port by
-// acquiring SERIAL1 using a spin lock.
-//
+/// _print writes text to the serial port by
+/// acquiring SERIAL1 using a spin lock.
+///
 #[doc(hidden)]
 pub fn _print(args: ::core::fmt::Arguments) {
     use core::fmt::Write;
@@ -26,9 +26,9 @@ pub fn _print(args: ::core::fmt::Arguments) {
     });
 }
 
-// serial_print! prints to the host through
-// the serial interface.
-//
+/// serial_print! prints to the host through
+/// the serial interface.
+///
 #[macro_export]
 macro_rules! serial_print {
     ($($arg:tt)*) => {
@@ -36,9 +36,9 @@ macro_rules! serial_print {
     };
 }
 
-// serial_println! prints to the host through
-// the serial interface, appending a newline.
-//
+/// serial_println! prints to the host through
+/// the serial interface, appending a newline.
+///
 #[macro_export]
 macro_rules! serial_println {
     () => ($crate::serial_print!("\n"));
