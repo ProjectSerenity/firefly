@@ -1,5 +1,11 @@
 # Firefly
 
+## Archived branch no longer under development
+
+This branch represents the point at which the kernel was rewritten in Rust. It may be of interest for historical purposes, but is no longer under development.
+
+## Original docs
+
 Firefly is a research OS inspired by [Plan 9 from Bell Labs](https://9p.io/plan9/). Firefly's planned name was Serenity, but [SerenityOS](https://github.com/SerenityOS/serenity) got there first. This project is in no way associated with SerenityOS.
 
 This repository consists of:
