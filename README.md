@@ -5,8 +5,6 @@ Firefly is a research OS inspired by [Plan 9 from Bell Labs](https://9p.io/plan9
 This repository consists of:
 
 - the Firefly kernel in [`kernel`](/kernel)
-- the Firefly image builder in [`imgbuild`](/imgbuild)
-- the Pure64 bootloader (modified for Firefly) in [`Pure64`](/Pure64)
 
 Firefly is intended for executing cloud-native containerised server software. As a result, there are no plans to add a graphical user interface, device drivers, or a concept of users. Instead, the priority is to support userland applications on a virtual machine, with strong separation between processes. Firefly will provide a highly stable ABI, with syscalls providing the sole interface between userland processes and the kernel.
 
@@ -14,23 +12,27 @@ Drawing inspiration from Plan 9, _everything is a filesystem_. Overlay filesyste
 
 # Building Firefly
 
-While Firefly can be built locally, builds using a Docker container provide consistency.
-The full set of dependencies for building Firefly are defined in the [`Dockerfile`](/Dockerfile).
-Helper scripts are provided for common tasks:
+Building the kernel has the following Rust requirements:
 
-- building the Docker container used to build Firefly with [`./build-docker-builder`](/build-docker-builder)
-- building Firefly using the Docker container with [`./docker-build`](/docker-build)
-- running Firefly using QEMU with [`./run-qemu`](/run-qemu)
-- cleaning the build environment with [`./clean`](/clean)
+- `rustup override add nightly`
+- `rustup component add rust-src`
+- `rustup component add llvm-tools-preview`
+- `cargo install cargo-xbuild`
+- `cargo install bootimage`
+
+Building the kernel can then be performed using `cargo xbuild --release`, or running [`./kernel/build`](/kernel/build).
 
 # Running Firefly
 
-As stated above, Firefly can be run with QEMU using the [`./run-qemu`](/run-qemu) helper script.
+Firefly can be run with QEMU using the [`./kernel/run`](/kernel/run) helper script.
 Firefly has the following dependencies:
 
 - An Intel x86_64 processor, of Ivy Bridge generation or later
-- A VESA-compatible display, supporting 1024x768 resolution with 24-bit colour
 - At least 128 MiB of RAM
+
+# Documentation
+
+Further documentation is in [`./docs`](/docs).
 
 ## FAQ
 
@@ -38,6 +40,6 @@ Firefly has the following dependencies:
 
 Firefly is primarily an experiment in producing equivalent capabilities for executing cloud-native applications as modern Linux, with a dramatically smaller attack surface and clearer security outcomes. I reckon creating a new OS from scratch will require less work than stripping the irrelevant functionality from Linux.
 
-### Why write the kernel in C?
+### Why write the kernel in Rust?
 
-C was designed for writing kernels (amongst other things) and has a lot of existing code and examples. While other languages will provide benefits over C (such as memory safety or better tooling), they will be lacking in existing code and samples. By defining the interface between userland and the kernel in the syscall ABI, it will be possible to rewrite the kernel in another language at a later point. I reckon building new tooling around C will require less work than writing the kernel in another language.
+While Firefly was originally written in C, due to the author's lack of Rust experience, a modern OS deserves a modern programming language. The kernel has now been rewritten in Rust, and the plan is to use Rust for the integrated userland components as well. Rust provides more modern functionality like package management, code modules, integrated unit tests, putting it far ahead of C in usability. Furthermore, Rust has strong safety features without compromising runtime performance. This is perfectly suited to an OS kernel.
