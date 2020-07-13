@@ -22,6 +22,7 @@ fn panic(info: &PanicInfo) -> ! {
 
 entry_point!(kernel_main);
 
+#[allow(unused_variables)]
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     println!("Kernel booting...");
     kernel::init();
