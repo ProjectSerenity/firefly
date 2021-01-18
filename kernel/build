@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -e
+
+docker run --rm -it -v $PWD:/kernel/src/github.com/ProjectSerenity/firefly/kernel -v /tmp:/tmp firefly/kbuild
