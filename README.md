@@ -6,25 +6,19 @@ This repository consists of:
 
 - the Firefly kernel in [`kernel`](/kernel)
 
+- the Firefly kernel builder in [`kbuild`](/kbuild)
+
 Firefly is intended for executing cloud-native containerised server software. As a result, there are no plans to add a graphical user interface, device drivers, or a concept of users. Instead, the priority is to support userland applications on a virtual machine, with strong separation between processes. Firefly will provide a highly stable ABI, with syscalls providing the sole interface between userland processes and the kernel.
 
 Drawing inspiration from Plan 9, _everything is a filesystem_. Overlay filesystems are a fundamental component of Firefly, with network resources, system information, and disk filesystems mounted onto a virtual filesystem. Process namespaces are used to produce independent resource trees for processes, filesystems, and network resources.
 
 # Building Firefly
 
-Building the kernel has the following Rust requirements:
-
-- `rustup override add nightly`
-- `rustup component add rust-src`
-- `rustup component add llvm-tools-preview`
-- `cargo install cargo-xbuild`
-- `cargo install bootimage`
-
-Building the kernel can then be performed using `cargo xbuild --release`, or running [`./kernel/build`](/kernel/build).
+Firefly is built using [`kbuild`](/kbuild). Either use the dependencies described in kbuild, or use Docker. Building the kernel can then be performed using [`./kernel/build`](/kernel/build) from the `kernel` directory.
 
 # Running Firefly
 
-Firefly can be run with QEMU using the [`./kernel/run`](/kernel/run) helper script.
+Firefly can be run with QEMU using the [`./kernel/run`](/kernel/run) helper script from the `kernel` directory.
 Firefly has the following dependencies:
 
 - An Intel x86_64 processor, of Ivy Bridge generation or later
@@ -40,6 +34,6 @@ Further documentation is in [`./docs`](/docs).
 
 Firefly is primarily an experiment in producing equivalent capabilities for executing cloud-native applications as modern Linux, with a dramatically smaller attack surface and clearer security outcomes. I reckon creating a new OS from scratch will require less work than stripping the irrelevant functionality from Linux.
 
-### Why write the kernel in Rust?
+### Why write the kernel in Go?
 
-While Firefly was originally written in C, due to the author's lack of Rust experience, a modern OS deserves a modern programming language. The kernel has now been rewritten in Rust, and the plan is to use Rust for the integrated userland components as well. Rust provides more modern functionality like package management, code modules, integrated unit tests, putting it far ahead of C in usability. Furthermore, Rust has strong safety features without compromising runtime performance. This is perfectly suited to an OS kernel.
+While Go is designed for userspace programs, a little patching of the runtime makes it suitable for kernel code. The advantage to using Go is that it is type-safe and memory-safe, and shares a lot of code with the userland programs it runs.
