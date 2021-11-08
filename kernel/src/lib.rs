@@ -3,8 +3,7 @@
 #![feature(custom_test_frameworks)]
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
-#![feature(const_fn)]
-#![feature(const_in_array_repeat_expressions)]
+#![feature(const_mut_refs)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
@@ -64,7 +63,7 @@ impl<A> Locked<A> {
 /// Testable represents a test function.
 ///
 pub trait Testable {
-    fn run(&self);
+    fn run(&self) -> ();
 }
 
 /// Wrap tests with debug statements.

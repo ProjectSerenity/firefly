@@ -34,8 +34,9 @@ impl FixedSizeBlockAllocator {
     /// new creates an empty FixedSizeBlockAllocator.
     ///
     pub const fn new() -> Self {
+        const EMPTY: Option<&'static mut ListNode> = None;
         FixedSizeBlockAllocator {
-            list_heads: [None; BLOCK_SIZES.len()],
+            list_heads: [EMPTY; BLOCK_SIZES.len()],
             fallback_allocator: linked_list_allocator::Heap::empty(),
         }
     }
