@@ -3,7 +3,7 @@
 #![feature(abi_x86_interrupt)]
 
 use core::panic::PanicInfo;
-use kernel::{exit_qemu, serial_print, serial_println, QemuExitCode};
+use kernel::{exit_qemu, print, println, QemuExitCode};
 use lazy_static::lazy_static;
 use x86_64::structures::idt::InterruptDescriptorTable;
 use x86_64::structures::idt::InterruptStackFrame;
@@ -12,7 +12,7 @@ extern "x86-interrupt" fn test_double_fault_handler(
     _stack_frame: &mut InterruptStackFrame,
     _error_code: u64,
 ) -> ! {
-    serial_println!("[ok]");
+    println!("[ok]");
     exit_qemu(QemuExitCode::Success);
     loop {}
 }
@@ -36,7 +36,7 @@ pub fn init_test_idt() {
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    serial_print!("stack_overflow::stack_overflow...\t");
+    print!("stack_overflow::stack_overflow...\t");
 
     kernel::gdt::init();
     init_test_idt();
