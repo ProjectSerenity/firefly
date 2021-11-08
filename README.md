@@ -17,18 +17,9 @@ Building the kernel has the following Rust requirements:
 - `rustup override add nightly`
 - `rustup component add rust-src`
 - `rustup component add llvm-tools-preview`
-- `cargo install cargo-xbuild`
 - `cargo install bootimage`
 
-Building the kernel can then be performed using `cargo xbuild --release`, or running [`./kernel/build`](/kernel/build).
-
-# Running Firefly
-
-Firefly can be run with QEMU using the [`./kernel/run`](/kernel/run) helper script.
-Firefly has the following dependencies:
-
-- An Intel x86_64 processor, of Ivy Bridge generation or later
-- At least 128 MiB of RAM
+Building the kernel can then be performed using `cargo build` and run using `cargo run`.
 
 # Documentation
 

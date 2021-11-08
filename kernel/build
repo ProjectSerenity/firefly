@@ -1,5 +1,0 @@
-#!/bin/sh
-
-set -e
-
-cargo bootimage --target x86_64-firefly.json --release
