@@ -26,6 +26,27 @@ pub fn _print(args: ::core::fmt::Arguments) {
     });
 }
 
+/// print! is the standard printing macro, implemented
+/// using the _print function, which acquires SERIAL1
+/// using a spin lock and writes the message to the
+/// serial port.
+///
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ($crate::serial::_print(format_args!($($arg)*)));
+}
+
+/// println! is the standard printing macro, implemented
+/// using the _print function, which acquires WRITER
+/// using a spin lock and writes the message to the
+/// VGA display.
+///
+#[macro_export]
+macro_rules! println {
+    () => ($crate::print!("\n"));
+    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
+}
+
 /// serial_print! prints to the host through
 /// the serial interface.
 ///

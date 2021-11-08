@@ -17,7 +17,6 @@ pub mod interrupts;
 pub mod memory;
 pub mod serial;
 pub mod time;
-pub mod vga_buffer;
 
 /// init sets up critical core functions of the kernel.
 ///
