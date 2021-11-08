@@ -27,7 +27,6 @@ dependencies = [
  "bootloader",
  "lazy_static",
  "linked_list_allocator",
- "pc-keyboard",
  "pic8259",
  "spin",
  "uart_16550",
@@ -61,12 +60,6 @@ checksum = "712a4d093c9976e24e7dbca41db895dabcbac38eb5f4045393d17a95bdfb1109"
 dependencies = [
  "scopeguard",
 ]
-
-[[package]]
-name = "pc-keyboard"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c48392db76c4e9a69e0b3be356c5f97ebb7b14413c5e4fd0af4755dbf86e2fce"
 
 [[package]]
 name = "pic8259"
