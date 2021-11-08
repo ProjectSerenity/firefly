@@ -10,6 +10,7 @@ extern crate alloc;
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use kernel::println;
+use kernel::time::BOOT_TIME;
 
 /// This function is called on panic.
 #[cfg(not(test))]
@@ -39,6 +40,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(not(test))]
 fn kmain(_boot_info: &'static BootInfo) {
     println!("Kernel ready!");
+    println!("Kernel booted at {}.", *BOOT_TIME.lock());
 }
 
 // Testing framework.
