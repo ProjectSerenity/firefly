@@ -1,5 +1,6 @@
 use crate::{print, Locked};
 use lazy_static::lazy_static;
+use x86_64::instructions::port::Port;
 
 pub fn init() {
     set_ticker_frequency(TICKS_PER_SECOND);
@@ -18,8 +19,6 @@ const MIN_FREQUENCY: usize = 18; // See https://wiki.osdev.org/Programmable_Inte
 const MAX_FREQUENCY: usize = 1193181;
 
 pub fn set_ticker_frequency(mut freq: usize) {
-    use x86_64::instructions::port::Port;
-
     if freq < MIN_FREQUENCY {
         freq = MIN_FREQUENCY;
     }
