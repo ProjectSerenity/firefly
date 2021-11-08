@@ -1,5 +1,5 @@
-use core::fmt;
 use crate::{print, Locked};
+use core::fmt;
 use lazy_static::lazy_static;
 use x86_64::instructions::port::Port;
 
@@ -142,7 +142,11 @@ impl Time {
 
 impl fmt::Display for Time {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:02}:{:02}:{:02} {:02}/{:02}/{:04}", self.hour, self.minute, self.second, self.day, self.month, self.year)
+        write!(
+            f,
+            "{:02}:{:02}:{:02} {:02}/{:02}/{:04}",
+            self.hour, self.minute, self.second, self.day, self.month, self.year
+        )
     }
 }
 
@@ -180,19 +184,20 @@ fn read_cmos() -> Time {
         read_cmos_values(&mut values);
 
         // If all the values match, we're done.
-        if prev_values[CMOS_SECOND] == values[CMOS_SECOND] &&
-            prev_values[CMOS_MINUTE] == values[CMOS_MINUTE] &&
-            prev_values[CMOS_HOUR] == values[CMOS_HOUR] &&
-            prev_values[CMOS_DAY] == values[CMOS_DAY] &&
-            prev_values[CMOS_MONTH] == values[CMOS_MONTH] &&
-            prev_values[CMOS_YEAR] == values[CMOS_YEAR] &&
-            prev_values[CMOS_REGISTER_B] == values[CMOS_REGISTER_B] {
+        if prev_values[CMOS_SECOND] == values[CMOS_SECOND]
+            && prev_values[CMOS_MINUTE] == values[CMOS_MINUTE]
+            && prev_values[CMOS_HOUR] == values[CMOS_HOUR]
+            && prev_values[CMOS_DAY] == values[CMOS_DAY]
+            && prev_values[CMOS_MONTH] == values[CMOS_MONTH]
+            && prev_values[CMOS_YEAR] == values[CMOS_YEAR]
+            && prev_values[CMOS_REGISTER_B] == values[CMOS_REGISTER_B]
+        {
             break;
         }
     }
 
     // Convert values to binary if necessary.
-    if values[CMOS_REGISTER_B]&4 == 0 {
+    if values[CMOS_REGISTER_B] & 4 == 0 {
         values[CMOS_SECOND] = from_bcd(values[CMOS_SECOND]);
         values[CMOS_MINUTE] = from_bcd(values[CMOS_MINUTE]);
         values[CMOS_HOUR] = from_bcd(values[CMOS_HOUR]);
@@ -202,14 +207,14 @@ fn read_cmos() -> Time {
     }
 
     // Convert 12 hour clock to 24 hour clock if necessary.
-    if values[CMOS_REGISTER_B]&2 == 0 && values[CMOS_HOUR]&0x80 != 0 {
+    if values[CMOS_REGISTER_B] & 2 == 0 && values[CMOS_HOUR] & 0x80 != 0 {
         values[CMOS_HOUR] = ((values[CMOS_HOUR] & 0x7f) + 12) % 24;
     }
 
     // TODO: sort out the year more properly.
     let year = 2000 + values[CMOS_YEAR] as u16;
 
-    Time{
+    Time {
         year: year,
         month: values[CMOS_MONTH],
         day: values[CMOS_DAY],
