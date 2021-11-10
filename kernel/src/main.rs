@@ -10,7 +10,8 @@ extern crate alloc;
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use kernel::time::BOOT_TIME;
-use kernel::{println, CPU_ID};
+use kernel::{allocator, memory, println, CPU_ID};
+use x86_64::VirtAddr;
 
 /// This function is called on panic.
 #[cfg(not(test))]
@@ -38,7 +39,14 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 }
 
 #[cfg(not(test))]
-fn kmain(_boot_info: &'static BootInfo) {
+fn kmain(boot_info: &'static BootInfo) {
+    // Set up the heap allocator.
+    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
+    let mut mapper = unsafe { memory::init(phys_mem_offset) };
+    let mut frame_allocator =
+        unsafe { memory::BootInfoFrameAllocator::init(&boot_info.memory_map) };
+    allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
+
     println!("Kernel ready!");
     println!("Kernel booted at {}.", *BOOT_TIME.lock());
     if let Some(branding) = CPU_ID.get_processor_brand_string() {
