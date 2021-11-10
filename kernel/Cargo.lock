@@ -28,6 +28,7 @@ dependencies = [
  "lazy_static",
  "linked_list_allocator",
  "pic8259",
+ "raw-cpuid",
  "spin",
  "uart_16550",
  "volatile 0.2.6",
@@ -68,6 +69,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08cc920d83ee33c0f9b73aa441e75468bf2d10c959a3eb6260cf720b05ac91a1"
 dependencies = [
  "x86_64",
+]
+
+[[package]]
+name = "raw-cpuid"
+version = "10.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "929f54e29691d4e6a9cc558479de70db7aa3d98cd6fe7ab86d7507aa2886b9d2"
+dependencies = [
+ "bitflags",
 ]
 
 [[package]]

@@ -10,6 +10,8 @@
 extern crate alloc;
 
 use core::panic::PanicInfo;
+use lazy_static::lazy_static;
+use raw_cpuid::CpuId;
 use x86_64::instructions::port::Port;
 
 pub mod allocator;
@@ -18,6 +20,10 @@ pub mod interrupts;
 pub mod memory;
 pub mod serial;
 pub mod time;
+
+lazy_static! {
+    pub static ref CPU_ID: CpuId = CpuId::new();
+}
 
 /// init sets up critical core functions of the kernel.
 ///
