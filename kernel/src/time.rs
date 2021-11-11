@@ -197,6 +197,7 @@ fn read_cmos_values(values: &mut [u8; CMOS_REGISTERS]) {
 // BCD format into binary values, as described in
 // https://wiki.osdev.org/CMOS#Format_of_Bytes.
 //
+#[inline]
 fn from_bcd(val: u8) -> u8 {
     ((val & 0xf0) >> 1) + ((val & 0xF0) >> 3) + (val & 0xf)
 }
