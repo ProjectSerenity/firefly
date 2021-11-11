@@ -23,10 +23,10 @@ pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
 #[global_allocator]
 static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
 
-// init_heap initialises the static global allocator, using
+// init initialises the static global allocator, using
 // the given page mapper and physical memory frame allocator.
 //
-pub fn init_heap(
+pub fn init(
     mapper: &mut impl Mapper<Size4KiB>,
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
 ) -> Result<(), MapToError<Size4KiB>> {

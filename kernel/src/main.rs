@@ -55,7 +55,7 @@ fn kmain(boot_info: &'static BootInfo) {
     let mut mapper = unsafe { memory::init(phys_mem_offset) };
     let mut frame_allocator =
         unsafe { memory::BootInfoFrameAllocator::init(&boot_info.memory_map) };
-    allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
+    allocator::init(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 
     println!("Kernel ready!");
     println!("Kernel booted at {}.", *BOOT_TIME.lock());
