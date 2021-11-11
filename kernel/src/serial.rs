@@ -1,9 +1,17 @@
+// This module handles interactions with serial ports.
+// In particular, this is used for early kernel logs,
+// which are written to the serial port.
+
 use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use uart_16550::SerialPort;
 use x86_64::instructions::interrupts;
 
+// SERIAL1 is used to read or write data to
+// the first serial port, sometimes referred
+// to as COM1.
+//
 lazy_static! {
     pub static ref SERIAL1: Mutex<SerialPort> = {
         let mut serial_port = unsafe { SerialPort::new(0x3F8) };
@@ -38,7 +46,7 @@ macro_rules! print {
 /// println! is the standard printing macro, implemented
 /// using the _print function, which acquires WRITER
 /// using a spin lock and writes the message to the
-/// VGA display.
+/// serial port.
 ///
 #[macro_export]
 macro_rules! println {

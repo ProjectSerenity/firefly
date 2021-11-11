@@ -1,9 +1,29 @@
+// This module handles hardware interrupts and the PIC.
+// ::init sets up the interrupt descriptor table and
+// initialises the PIC, remapping it to available interrupt
+// lines.
+//
+// Currently, there are 4 interrupt handlers configured:
+//
+// 1. Breakpoints: the breakpoint handler prints a message
+//    and then continues execution.
+// 2. Page faults: the page fault handler currently prints
+//    and error message and enters a halt loop.
+// 3. Double faults: the double fault handler switches to
+//    a safe stack using the GDT and panics with an error
+//    message.
+// 4. Timer: the timer handler increments the counter in
+//    the time module and acknowledges the interrupt.
+
 use crate::{gdt, halt_loop, println, time};
 use lazy_static::lazy_static;
 use pic8259::ChainedPics;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
 
+// init loads the interrupt descriptor table and maps
+// the PIC to available interrupt lines.
+//
 pub fn init() {
     IDT.load();
     unsafe { PICS.lock().initialize() };

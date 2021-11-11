@@ -1,11 +1,17 @@
+// This module provides the functionality to allocate heap
+// memory. This is primarily used by Rust's runtime to
+// allocate heap memory for the kernel.
+//
+// The module includes three different allocator implementations,
+// a bump allocator, a linked list allocator, and a fixed size
+// block allocator. Currently the fixed size block allocator
+// is used.
+
 use crate::Locked;
 use fixed_size_block::FixedSizeBlockAllocator;
 use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
-
-#[global_allocator]
-static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
 
 mod bump;
 mod fixed_size_block;
@@ -14,6 +20,12 @@ mod linked_list;
 pub const HEAP_START: usize = 0x_4444_4444_0000;
 pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
 
+#[global_allocator]
+static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
+
+// init_heap initialises the static global allocator, using
+// the given page mapper and physical memory frame allocator.
+//
 pub fn init_heap(
     mapper: &mut impl Mapper<Size4KiB>,
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,

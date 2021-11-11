@@ -1,18 +1,46 @@
+// This module focuses on time-related functionality. In
+// particular, it currently implements getting the current
+// wall clock time from the CMOS/RTC, along with getting
+// ticks from the PIT.
+//
+// Currently, the ticker is used to print the uptime to
+// the serial port every second (once the kernel has
+// booted) and the clock is used to record and later print
+// the wall clock time when the kernel booted.
+//
+// The ticker functionality is captured in the Ticker type,
+// with a static TICKER instance used with interrupts to
+// track the passage of time.
+//
+// The cloc functionality is captured in the Time type,
+// which can be produced by reading the current time from
+// the CMOS/RTC. A static BOOT_TIME instance is initialsed
+// with the time when ::init is called, which we treat as
+// the time when the kernel booted.
+
 use crate::{print, Locked};
 use core::fmt;
 use lazy_static::lazy_static;
 use x86_64::instructions::port::Port;
 
-// Lazily initialise the boot time, protected
-// by a spin lock.
-//
-lazy_static! {
-    pub static ref BOOT_TIME: Locked<Time> = Locked::new(Time::new());
-}
-
+/// init sets up the time functionality, setting the
+/// ticker frequency we expect from the PIT and recording
+/// the current time from the CMOS/RTC as the kernel's
+/// boot time.
+///
 pub fn init() {
     set_ticker_frequency(TICKS_PER_SECOND);
     BOOT_TIME.update_from(read_cmos());
+}
+
+// Ticker functionality.
+
+/// Ticker contains a counter, which is used
+/// to track the passage of time by a regular
+/// sequence of ticks.
+///
+pub struct Ticker {
+    counter: usize,
 }
 
 // Lazily initialise TICKER as a Ticker, protected
@@ -20,6 +48,29 @@ pub fn init() {
 //
 lazy_static! {
     pub static ref TICKER: Locked<Ticker> = Locked::new(Ticker::new());
+}
+
+impl Ticker {
+    /// new creates a new ticker, with a zero
+    /// counter.
+    ///
+    pub const fn new() -> Self {
+        Ticker { counter: 0 }
+    }
+}
+
+impl Locked<Ticker> {
+    /// tick increments the counter, printing the
+    /// system uptime if a whole number of seconds
+    /// have passed since boot.
+    ///
+    pub fn tick(&self) {
+        let mut ticker = self.lock();
+        ticker.counter += 1;
+        if ticker.counter % TICKS_PER_SECOND == 0 {
+            print!("\rUptime: {} seconds.", ticker.counter / TICKS_PER_SECOND);
+        }
+    }
 }
 
 const TICKS_PER_SECOND: usize = 512;
@@ -46,30 +97,64 @@ pub fn set_ticker_frequency(mut freq: usize) {
     }
 }
 
-pub struct Ticker {
-    counter: usize,
+// Wall clock functionality.
+
+/// Time stores a low-precision wall clock
+/// time.
+///
+pub struct Time {
+    year: u16,
+    month: u8,
+    day: u8,
+    hour: u8,
+    minute: u8,
+    second: u8,
 }
 
-impl Ticker {
-    /// new creates a new ticker, with a zero
-    /// counter.
+// Lazily initialise the boot time, protected
+// by a spin lock.
+//
+lazy_static! {
+    pub static ref BOOT_TIME: Locked<Time> = Locked::new(Time::new());
+}
+
+impl Time {
+    /// new creates the zero time.
     ///
     pub const fn new() -> Self {
-        Ticker { counter: 0 }
+        Time {
+            year: 0,
+            month: 0,
+            day: 0,
+            hour: 0,
+            minute: 0,
+            second: 0,
+        }
     }
 }
 
-impl Locked<Ticker> {
-    /// tick increments the counter, printing the
-    /// system uptime if a whole number of seconds
-    /// have passed since boot.
+impl fmt::Display for Time {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{:02}:{:02}:{:02} {:02}/{:02}/{:04}",
+            self.hour, self.minute, self.second, self.day, self.month, self.year
+        )
+    }
+}
+
+impl Locked<Time> {
+    /// update_from sets the time from the
+    /// given value.
     ///
-    pub fn tick(&self) {
-        let mut ticker = self.lock();
-        ticker.counter += 1;
-        if ticker.counter % TICKS_PER_SECOND == 0 {
-            print!("\rUptime: {} seconds.", ticker.counter / TICKS_PER_SECOND);
-        }
+    pub fn update_from(&self, value: Time) {
+        let mut time = self.lock();
+        time.year = value.year;
+        time.month = value.month;
+        time.day = value.day;
+        time.hour = value.hour;
+        time.minute = value.minute;
+        time.second = value.second;
     }
 }
 
@@ -114,55 +199,6 @@ fn read_cmos_values(values: &mut [u8; CMOS_REGISTERS]) {
 //
 fn from_bcd(val: u8) -> u8 {
     ((val & 0xf0) >> 1) + ((val & 0xF0) >> 3) + (val & 0xf)
-}
-
-pub struct Time {
-    year: u16,
-    month: u8,
-    day: u8,
-    hour: u8,
-    minute: u8,
-    second: u8,
-}
-
-impl Time {
-    /// new creates the zero time.
-    ///
-    pub const fn new() -> Self {
-        Time {
-            year: 0,
-            month: 0,
-            day: 0,
-            hour: 0,
-            minute: 0,
-            second: 0,
-        }
-    }
-}
-
-impl fmt::Display for Time {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{:02}:{:02}:{:02} {:02}/{:02}/{:04}",
-            self.hour, self.minute, self.second, self.day, self.month, self.year
-        )
-    }
-}
-
-impl Locked<Time> {
-    /// update_from sets the time from the
-    /// given value.
-    ///
-    pub fn update_from(&self, value: Time) {
-        let mut time = self.lock();
-        time.year = value.year;
-        time.month = value.month;
-        time.day = value.day;
-        time.hour = value.hour;
-        time.minute = value.minute;
-        time.second = value.second;
-    }
 }
 
 // read_cmos returns the current time.

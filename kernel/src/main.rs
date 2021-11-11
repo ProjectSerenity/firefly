@@ -1,3 +1,8 @@
+// This is the entry point for the kernel, which
+// runs the kernel's standard initialisation,
+// then either runs tests or starts kmain,
+// where the kernel does its real work.
+
 #![no_std]
 #![no_main]
 #![feature(abi_x86_interrupt)]
@@ -24,6 +29,11 @@ fn panic(info: &PanicInfo) -> ! {
 
 entry_point!(kernel_main);
 
+// kernel_main is the entry point for the kernel,
+// so it starts the kernel's initialisation and
+// then either starts the tests by calling test_main,
+// or starts the kernel's real work by calling kmain.
+//
 #[allow(unused_variables)]
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     println!("Kernel booting...");

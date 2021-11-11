@@ -1,3 +1,21 @@
+// This module covers the normal initialisation
+// that must always happen when the kernel starts.
+//
+// There is also various helper functionality, such
+// as the test runner and code to exit successfully
+// or with an error from QEMU to aid the testing
+// process.
+//
+// This also includes the Locked type, which wraps
+// a spin lock to allow us to define traits and
+// methods on locked types.
+//
+// ::init is called when the kernel starts, so it
+// should only perform actions that the kernel must
+// always take. In particular, it does not set up
+// the heap allocator, as there are situations (tests)
+// where we want to change that behaviour.
+
 #![no_std]
 #![cfg_attr(test, no_main)]
 #![feature(custom_test_frameworks)]
