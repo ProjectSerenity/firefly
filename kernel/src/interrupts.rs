@@ -6,6 +6,7 @@ use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, Pag
 
 pub fn init() {
     IDT.load();
+    unsafe { PICS.lock().initialize() };
 }
 
 lazy_static! {

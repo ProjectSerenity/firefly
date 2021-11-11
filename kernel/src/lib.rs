@@ -30,7 +30,6 @@ lazy_static! {
 pub fn init() {
     gdt::init();
     interrupts::init();
-    unsafe { interrupts::PICS.lock().initialize() };
     time::init();
     x86_64::instructions::interrupts::enable();
 }
