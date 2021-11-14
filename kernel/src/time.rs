@@ -47,7 +47,13 @@ pub struct Ticker {
 // by a spin lock.
 //
 lazy_static! {
-    pub static ref TICKER: Locked<Ticker> = Locked::new(Ticker::new());
+    static ref TICKER: Locked<Ticker> = Locked::new(Ticker::new());
+}
+
+/// tick increments the internal chronometer.
+///
+pub fn tick() {
+    TICKER.tick();
 }
 
 impl Ticker {
