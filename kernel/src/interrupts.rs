@@ -1,3 +1,5 @@
+//! interrupts handles hardware interrupts and the PIC.
+
 // This module handles hardware interrupts and the PIC.
 // ::init sets up the interrupt descriptor table and
 // initialises the PIC, remapping it to available interrupt
@@ -21,9 +23,9 @@ use pic8259::ChainedPics;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
 
-// init loads the interrupt descriptor table and maps
-// the PIC to available interrupt lines.
-//
+/// init loads the interrupt descriptor table and maps
+/// the PIC to available interrupt lines.
+///
 pub fn init() {
     IDT.load();
     unsafe { PICS.lock().initialize() };
@@ -80,14 +82,17 @@ extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFr
 
 // PIC code.
 
+#[doc(hidden)]
 pub const PIC_1_OFFSET: u8 = 32;
+#[doc(hidden)]
 pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
 
-pub static PICS: spin::Mutex<ChainedPics> =
+static PICS: spin::Mutex<ChainedPics> =
     spin::Mutex::new(unsafe { ChainedPics::new(PIC_1_OFFSET, PIC_2_OFFSET) });
 
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
+#[doc(hidden)]
 pub enum InterruptIndex {
     Timer = PIC_1_OFFSET,
     Keyboard,

@@ -1,3 +1,6 @@
+//! memory handles paging and a basic physical memory
+//! frame allocator.
+
 // This module governs management of physical memory.
 // Specifically, ::init and ::active_level_4_table
 // produce a page table for the level 4 page table

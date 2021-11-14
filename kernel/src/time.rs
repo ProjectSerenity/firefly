@@ -1,3 +1,6 @@
+//! time handles the hardware timer for regular ticks and
+//! the clock in the CMOS/RTC.
+
 // This module focuses on time-related functionality. In
 // particular, it currently implements getting the current
 // wall clock time from the CMOS/RTC, along with getting
@@ -84,6 +87,9 @@ const TICKS_PER_SECOND: usize = 512;
 const MIN_FREQUENCY: usize = 18; // See https://wiki.osdev.org/Programmable_Interval_Timer
 const MAX_FREQUENCY: usize = 1193181;
 
+/// set_ticker_frequency initialises the hardware
+/// timer, setting its frequency to `freq` Hz.
+///
 pub fn set_ticker_frequency(mut freq: usize) {
     if freq < MIN_FREQUENCY {
         freq = MIN_FREQUENCY;

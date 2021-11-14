@@ -1,3 +1,5 @@
+//! gdt handles the global descriptor table.
+
 // This module governs the global descriptor table,
 // which is currently only used to store the kernel's
 // code segment and the task state segment, which is
@@ -11,9 +13,9 @@ use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector
 use x86_64::structures::tss::TaskStateSegment;
 use x86_64::VirtAddr;
 
-// init installs the global descriptor table,
-// allong with the code and task state segments.
-//
+/// init installs the global descriptor table,
+/// allong with the code and task state segments.
+///
 pub fn init() {
     GDT.0.load();
     unsafe {
@@ -45,6 +47,7 @@ struct Selectors {
 // Set up the task state segment with a safe
 // backup stack for the double fault handler.
 
+#[doc(hidden)]
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 
 lazy_static! {

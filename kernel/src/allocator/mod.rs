@@ -1,3 +1,6 @@
+//! allocator provides the functionality to allocate heap
+//! memory.
+
 // This module provides the functionality to allocate heap
 // memory. This is primarily used by Rust's runtime to
 // allocate heap memory for the kernel.
@@ -17,15 +20,18 @@ mod bump;
 mod fixed_size_block;
 mod linked_list;
 
+/// HEAP_START is the virtual address where the kernel's heap begins.
 pub const HEAP_START: usize = 0x_4444_4444_0000;
+
+/// HEAP_SIZE is the size in bytes of the kernel's heap.
 pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
 
 #[global_allocator]
 static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
 
-// init initialises the static global allocator, using
-// the given page mapper and physical memory frame allocator.
-//
+/// init initialises the static global allocator, using
+/// the given page mapper and physical memory frame allocator.
+///
 pub fn init(
     mapper: &mut impl Mapper<Size4KiB>,
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,

@@ -1,3 +1,6 @@
+//! serial implements the `print` and `println` macros,
+//! writing their output to the first serial port, COM1.
+
 // This module handles interactions with serial ports.
 // In particular, this is used for early kernel logs,
 // which are written to the serial port.

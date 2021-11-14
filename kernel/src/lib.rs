@@ -1,3 +1,5 @@
+//! kernel implements the Firefly kernel.
+
 // This module covers the normal initialisation
 // that must always happen when the kernel starts.
 //
@@ -40,6 +42,7 @@ pub mod serial;
 pub mod time;
 
 lazy_static! {
+    #[doc(hidden)]
     pub static ref CPU_ID: CpuId = CpuId::new();
 }
 
@@ -66,7 +69,10 @@ pub fn halt_loop() -> ! {
     }
 }
 
-/// A wrapper around spin::Mutex to permit trait implementations.
+/// Locked is a wrapper around spin::Mutex so we can
+/// implement traits on a locked type.
+///
+#[doc(hidden)]
 pub struct Locked<A> {
     inner: spin::Mutex<A>,
 }
@@ -85,6 +91,7 @@ impl<A> Locked<A> {
 
 /// Testable represents a test function.
 ///
+#[doc(hidden)]
 pub trait Testable {
     fn run(&self) -> ();
 }
@@ -105,6 +112,7 @@ where
 /// Entry point for the set of unit
 /// tests.
 ///
+#[doc(hidden)]
 pub fn test_runner(tests: &[&dyn Testable]) {
     println!("Running {} tests", tests.len());
     for test in tests {
@@ -116,6 +124,7 @@ pub fn test_runner(tests: &[&dyn Testable]) {
 
 /// Panic handler for tests.
 ///
+#[doc(hidden)]
 pub fn test_panic_handler(info: &PanicInfo) -> ! {
     println!("[failed]\n");
     println!("Error: {}\n", info);
@@ -128,6 +137,7 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
 ///
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
+#[doc(hidden)]
 pub enum QemuExitCode {
     Success = 0x10,
     Failed = 0x11,
@@ -137,6 +147,7 @@ pub enum QemuExitCode {
 /// instruct QEMU to exit with the given
 /// exit code.
 ///
+#[doc(hidden)]
 pub fn exit_qemu(exit_code: QemuExitCode) {
     unsafe {
         let mut port = Port::new(0xf4);
