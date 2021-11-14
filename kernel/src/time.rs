@@ -102,6 +102,7 @@ pub fn set_ticker_frequency(mut freq: usize) {
 /// Time stores a low-precision wall clock
 /// time.
 ///
+#[derive(Clone, Copy)]
 pub struct Time {
     year: u16,
     month: u8,
@@ -115,7 +116,14 @@ pub struct Time {
 // by a spin lock.
 //
 lazy_static! {
-    pub static ref BOOT_TIME: Locked<Time> = Locked::new(Time::new());
+    static ref BOOT_TIME: Locked<Time> = Locked::new(Time::new());
+}
+
+/// boot_time returns the clock time when the
+/// kernel booted.
+///
+pub fn boot_time() -> Time {
+    *BOOT_TIME.lock()
 }
 
 impl Time {
