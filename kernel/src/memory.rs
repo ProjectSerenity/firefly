@@ -33,14 +33,15 @@
 // 	   3                   2                   1
 // 	 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
 // 	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// 	~   |       PDT       |                 Offset                  |
+// 	~   |       PDT       |      Table      |         Offset        |
 // 	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //
 // Ignored:     Not used during address translation.
 // PML4:        Used as an index into the Page Map Level 4 table (9 bits, 0-511).
 // PDPT:        Used as an index into the Page Directory Pointer table (9 bits, 0-511).
 // PDT:         Used as an index into the Page Directory table (9 bits, 0-511).
-// Offset:      Used as an index into the page (21 bits, 2MiB).
+// PT:          Used as an index into the Page table (9 bits, 0-511).
+// Offset:      Used as an index into the page (12 bits, 4kB).
 //
 // A PML4 table comprises 512 64-bit entries (PML4Es)
 //
@@ -116,22 +117,21 @@
 // 	       6                   5                   4
 // 	 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2
 // 	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// 	|X|          -          |              Page Address             ~
+// 	|X|          -          |               PT Address              ~
 // 	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //
 // 	   3                   2                   1
 // 	 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
 // 	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// 	~     Page Address    |        -        |  -  |G|S|D|A|C|W|U|R|P|
+// 	~               PT Address              |   -   |S|-|A|C|W|U|R|P|
 // 	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //
 // X (Execute disable): Whether the memory is executable (0) or not (1).
 // - (Ignored)
-// Page Address:        The address of the page.
+// PT Address:          The address of the page table.
 // - (Ignored)
-// G (Global):          Whether the translation is global (1) or not (0).
 // S (Page size):       Whether the address is for a PT entry (0) or a physical address (1).
-// D (Dirty):           Whether the memory has been written (1) or not (0).
+// - (Ignored)
 // A (Accessed):        Whether the memory has been accessed (1) or not (0).
 // C (Cache disable):   Whether the memory has caching enabled (0) or disabled (1).
 // W (Write-through):   Whether the memory has write-through caching (1) or write-back (0).
@@ -147,6 +147,37 @@
 // - If the PDE’s PS flag is 0, a 4-KByte naturally aligned page table is
 //   located at the physical address specified in bits 51:12 of the PDE.
 //   A page table comprises 512 64-bit entries.
+//
+// PT entry referencing a 4kB page:
+//
+// 	       6                   5                   4
+// 	 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2
+// 	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// 	|X|          -          |              Page Address             ~
+// 	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//
+// 	   3                   2                   1
+// 	 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+// 	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// 	~              Page Address             |  -  |G|S|-|A|C|W|U|R|P|
+// 	+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//
+// X (Execute disable): Whether the memory is executable (0) or not (1).
+// - (Ignored)
+// PT Address:          The address of the page table.
+// - (Ignored)
+// G (Global):          Whether to flush the TLB cache when changing mappings.
+// S (Page size):       Whether the address is for a PT entry (0) or a physical address (1).
+// D (Dirty):           Whether the memory has been written (1) or not (0).
+// A (Accessed):        Whether the memory has been accessed (1) or not (0).
+// C (Cache disable):   Whether the memory has caching enabled (0) or disabled (1).
+// W (Write-through):   Whether the memory has write-through caching (1) or write-back (0).
+// U (User):            Whether the memory is accessible to userspace.
+// R (Read-only):       Whether the memory is read/write (1) or read-only (0).
+// P (Present):         Whether this entry is active (1) or absent (0).
+//
+// Because a PTE is identified using bits 47:21 of the linear address, it
+// controls access to a 4-kByte region of the linear-address space.
 
 use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
 use x86_64::registers::control::Cr3;
