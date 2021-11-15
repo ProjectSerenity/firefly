@@ -44,6 +44,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     #[cfg(not(test))]
     kmain(boot_info);
 
+    kernel::shutdown_qemu();
     kernel::halt_loop();
 }
 

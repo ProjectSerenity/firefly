@@ -155,6 +155,16 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     }
 }
 
+/// shutdown_qemu uses the 0x604 I/O port
+/// to instruct QEMU to shut down successfully.
+///
+#[doc(hidden)]
+pub fn shutdown_qemu() {
+    unsafe {
+        x86_64::instructions::port::Port::new(0x604).write(0x2000u16);
+    }
+}
+
 #[cfg(test)]
 use bootloader::{entry_point, BootInfo};
 
