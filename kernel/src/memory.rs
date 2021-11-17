@@ -239,31 +239,31 @@ unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut
     &mut *page_table_ptr // unsafe
 }
 
-// PageSize gives the size of a mapped page.
+// PageBytesSize gives the size in bytes of a mapped page.
 //
 #[derive(Clone, Copy, PartialEq)]
-enum PageSize {
+enum PageBytesSize {
     Size1GiB,
     Size2MiB,
     Size4KiB,
 }
 
-impl PageSize {
+impl PageBytesSize {
     fn size(&self) -> u64 {
         match self {
-            PageSize::Size1GiB => 0x40000000u64,
-            PageSize::Size2MiB => 0x200000u64,
-            PageSize::Size4KiB => 0x1000u64,
+            PageBytesSize::Size1GiB => 0x40000000u64,
+            PageBytesSize::Size2MiB => 0x200000u64,
+            PageBytesSize::Size4KiB => 0x1000u64,
         }
     }
 }
 
-impl fmt::Display for PageSize {
+impl fmt::Display for PageBytesSize {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            PageSize::Size1GiB => write!(f, "{}", "1GiB"),
-            PageSize::Size2MiB => write!(f, "{}", "2MiB"),
-            PageSize::Size4KiB => write!(f, "{}", "4kiB"),
+            PageBytesSize::Size1GiB => write!(f, "{}", "1GiB"),
+            PageBytesSize::Size2MiB => write!(f, "{}", "2MiB"),
+            PageBytesSize::Size4KiB => write!(f, "{}", "4kiB"),
         }
     }
 }
@@ -277,7 +277,7 @@ struct Mapping {
     phys_start: PhysAddr,
     phys_end: PhysAddr,
     page_count: usize,
-    page_size: PageSize,
+    page_size: PageBytesSize,
     flags: PageTableFlags,
 }
 
@@ -285,7 +285,7 @@ impl Mapping {
     pub fn new(
         virt_start: VirtAddr,
         phys_start: PhysAddr,
-        page_size: PageSize,
+        page_size: PageBytesSize,
         flags: PageTableFlags,
     ) -> Self {
         let flags_mask = PageTableFlags::WRITABLE
@@ -397,7 +397,7 @@ pub unsafe fn debug_level_4_table(pml4: &PageTable, phys_offset: VirtAddr) {
                 let next = Mapping::new(
                     indices_to_addr(i, j, 0, 0),
                     pdpe.addr(),
-                    PageSize::Size1GiB,
+                    PageBytesSize::Size1GiB,
                     pdpe.flags(),
                 );
                 Mapping::combine(&mut prev, next);
@@ -415,7 +415,7 @@ pub unsafe fn debug_level_4_table(pml4: &PageTable, phys_offset: VirtAddr) {
                     let next = Mapping::new(
                         indices_to_addr(i, j, k, 0),
                         pde.addr(),
-                        PageSize::Size2MiB,
+                        PageBytesSize::Size2MiB,
                         pde.flags(),
                     );
                     Mapping::combine(&mut prev, next);
@@ -436,7 +436,7 @@ pub unsafe fn debug_level_4_table(pml4: &PageTable, phys_offset: VirtAddr) {
                     let next = Mapping::new(
                         indices_to_addr(i, j, k, l),
                         page.addr(),
-                        PageSize::Size4KiB,
+                        PageBytesSize::Size4KiB,
                         page.flags(),
                     );
                     Mapping::combine(&mut prev, next);
