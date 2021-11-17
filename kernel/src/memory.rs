@@ -231,7 +231,11 @@ pub fn kernel_heap_addr(addr: VirtAddr) -> bool {
 pub const KERNEL_STACK_START: usize = 0x_7777_7777_0000 + KERNEL_STACK_SIZE;
 
 /// KERNEL_STACK_SIZE is the size in bytes of the kernel's stack.
-pub const KERNEL_STACK_SIZE: usize = 512 * Size4KiB::SIZE as usize;
+///
+/// Note that this includes an extra page, as the stack counts downward,
+/// not upward.
+///
+pub const KERNEL_STACK_SIZE: usize = 513 * Size4KiB::SIZE as usize;
 
 /// kernel_stack_addr returns whether addr is an address in the kernel's stack.
 ///
