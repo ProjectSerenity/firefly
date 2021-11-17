@@ -188,6 +188,18 @@ use x86_64::structures::paging::{
 };
 use x86_64::{PhysAddr, VirtAddr};
 
+// Important addresses.
+//
+// Make sure the constants below keep in sync with
+// the [package.metadata.bootloader] section of
+// Cargo.toml.
+
+/// KERNEL_HEAP_START is the virtual address where the kernel's heap begins.
+pub const KERNEL_HEAP_START: usize = 0x_4444_4444_0000;
+
+/// KERNEL_HEAP_SIZE is the size in bytes of the kernel's heap.
+pub const KERNEL_HEAP_SIZE: usize = 100 * 1024; // 100 KiB
+
 // PML4 functionality.
 
 /// init initialises a new OffsetPageTable.

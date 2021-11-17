@@ -10,7 +10,7 @@
 // block allocator. Currently the fixed size block allocator
 // is used.
 
-use crate::Locked;
+use crate::{memory, Locked};
 use fixed_size_block::FixedSizeBlockAllocator;
 use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
@@ -19,12 +19,6 @@ use x86_64::VirtAddr;
 mod bump;
 mod fixed_size_block;
 mod linked_list;
-
-/// HEAP_START is the virtual address where the kernel's heap begins.
-pub const HEAP_START: usize = 0x_4444_4444_0000;
-
-/// HEAP_SIZE is the size in bytes of the kernel's heap.
-pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
 
 #[global_allocator]
 static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
@@ -37,8 +31,8 @@ pub fn init(
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
 ) -> Result<(), MapToError<Size4KiB>> {
     let page_range = {
-        let heap_start = VirtAddr::new(HEAP_START as u64);
-        let heap_end = heap_start + HEAP_SIZE - 1u64;
+        let heap_start = VirtAddr::new(memory::KERNEL_HEAP_START as u64);
+        let heap_end = heap_start + memory::KERNEL_HEAP_SIZE - 1u64;
         let heap_start_page = Page::containing_address(heap_start);
         let heap_end_page = Page::containing_address(heap_end);
         Page::range_inclusive(heap_start_page, heap_end_page)
@@ -53,7 +47,9 @@ pub fn init(
     }
 
     unsafe {
-        ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE);
+        ALLOCATOR
+            .lock()
+            .init(memory::KERNEL_HEAP_START, memory::KERNEL_HEAP_SIZE);
     }
 
     Ok(())
