@@ -15,7 +15,6 @@ extern crate alloc;
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use kernel::{allocator, memory, println, time, CPU_ID};
-use x86_64::VirtAddr;
 
 /// This function is called on panic.
 #[cfg(not(test))]
@@ -51,8 +50,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(not(test))]
 fn kmain(boot_info: &'static BootInfo) {
     // Set up the heap allocator.
-    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
-    let mut mapper = unsafe { memory::init(phys_mem_offset) };
+    let mut mapper = unsafe { memory::init() };
     let mut frame_allocator =
         unsafe { memory::BootInfoFrameAllocator::init(&boot_info.memory_map) };
     allocator::init(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
@@ -67,7 +65,7 @@ fn kmain(boot_info: &'static BootInfo) {
         println!("Kernel running on unknown CPU.");
     }
 
-    unsafe { memory::debug_level_4_table(mapper.level_4_table(), phys_mem_offset) };
+    unsafe { memory::debug_level_4_table(mapper.level_4_table()) };
 }
 
 // Testing framework.

@@ -194,6 +194,13 @@ use x86_64::{PhysAddr, VirtAddr};
 // the [package.metadata.bootloader] section of
 // Cargo.toml.
 
+/// PHYSICAL_MEMORY_OFFSET is the virtual address at which the mapping of
+/// all physical memory begins. That is, for any valid physical address,
+/// that address can be reached at the same virtual address, plus
+/// PHYSICAL_MEMORY_OFFSET.
+///
+pub const PHYSICAL_MEMORY_OFFSET: usize = 0xffff_8000_0000_0000;
+
 /// KERNEL_HEAP_START is the virtual address where the kernel's heap begins.
 pub const KERNEL_HEAP_START: usize = 0x_4444_4444_0000;
 
@@ -233,7 +240,8 @@ pub fn kernel_stack_addr(addr: VirtAddr) -> bool {
 /// physical_memory_offset. Also, this function must be only called once
 /// to avoid aliasing &mut references (which is undefined behavior).
 ///
-pub unsafe fn init(physical_memory_offset: VirtAddr) -> OffsetPageTable<'static> {
+pub unsafe fn init() -> OffsetPageTable<'static> {
+    let physical_memory_offset = VirtAddr::new(PHYSICAL_MEMORY_OFFSET as u64);
     let level_4_table = active_level_4_table(physical_memory_offset);
     OffsetPageTable::new(level_4_table, physical_memory_offset)
 }
@@ -397,7 +405,8 @@ fn indices_to_addr(l4: usize, l3: usize, l2: usize, l1: usize) -> VirtAddr {
 /// guarantee that all physical memory is mapped in
 /// the given page table.
 ///
-pub unsafe fn debug_level_4_table(pml4: &PageTable, phys_offset: VirtAddr) {
+pub unsafe fn debug_level_4_table(pml4: &PageTable) {
+    let phys_offset = VirtAddr::new(PHYSICAL_MEMORY_OFFSET as u64);
     let mut prev: Option<Mapping> = None;
     for (i, pml4e) in pml4.iter().enumerate() {
         if pml4e.is_unused() {

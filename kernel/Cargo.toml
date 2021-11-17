@@ -32,6 +32,7 @@ run-command = [
 [package.metadata.bootloader]
 kernel-stack-address = "0x777777770000"
 kernel-stack-size = 512
+physical-memory-offset = "0xffff800000000000"
 
 [[test]]
 name = "should_panic"
