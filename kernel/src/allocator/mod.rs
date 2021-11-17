@@ -42,7 +42,7 @@ pub fn init(
         let frame = frame_allocator
             .allocate_frame()
             .ok_or(MapToError::FrameAllocationFailed)?;
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
         unsafe { mapper.map_to(page, frame, flags, frame_allocator)?.flush() };
     }
 
