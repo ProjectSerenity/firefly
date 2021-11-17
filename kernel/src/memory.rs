@@ -184,8 +184,11 @@ use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
 use bootloader::BootInfo;
 use core::fmt;
 use x86_64::registers::control::Cr3;
+use x86_64::structures::paging::mapper::TranslateResult;
+use x86_64::structures::paging::page::PageRangeInclusive;
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable, PageSize, PageTable, PageTableFlags, PhysFrame, Size4KiB,
+    FrameAllocator, Mapper, OffsetPageTable, Page, PageSize, PageTable, PageTableFlags, PhysFrame,
+    Size4KiB, Translate,
 };
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -254,8 +257,10 @@ pub unsafe fn init(
 ) -> (OffsetPageTable<'static>, BootInfoFrameAllocator) {
     let physical_memory_offset = VirtAddr::new(PHYSICAL_MEMORY_OFFSET as u64);
     let level_4_table = active_level_4_table(physical_memory_offset);
-    let page_table = OffsetPageTable::new(level_4_table, physical_memory_offset);
+    let mut page_table = OffsetPageTable::new(level_4_table, physical_memory_offset);
     let frame_allocator = BootInfoFrameAllocator::init(&boot_info.memory_map);
+
+    remap_kernel_stack_nx(&mut page_table);
 
     (page_table, frame_allocator)
 }
@@ -281,6 +286,29 @@ unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut
     let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
 
     &mut *page_table_ptr // unsafe
+}
+
+// remap_kernel_stack_nx remaps all existing mappings for
+// the kernel's stack as non-executable.
+//
+unsafe fn remap_kernel_stack_nx(mapper: &mut OffsetPageTable) {
+    let page_range: PageRangeInclusive<Size4KiB> = {
+        let top_addr = VirtAddr::new(KERNEL_STACK_START as u64);
+        let bottom_addr = VirtAddr::new((KERNEL_STACK_START - KERNEL_STACK_SIZE) as u64);
+        let top = Page::containing_address(top_addr);
+        let bottom = Page::containing_address(bottom_addr);
+        Page::range_inclusive(bottom, top)
+    };
+
+    for page in page_range {
+        let res = mapper.translate(page.start_address());
+        if let TranslateResult::Mapped { flags, .. } = res {
+            mapper
+                .update_flags(page, flags | PageTableFlags::NO_EXECUTE)
+                .expect("failed to remap stack page as NO_EXECUTE")
+                .flush();
+        }
+    }
 }
 
 // PageBytesSize gives the size in bytes of a mapped page.
