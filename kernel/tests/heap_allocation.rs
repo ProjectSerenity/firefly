@@ -10,17 +10,13 @@ use alloc::{boxed::Box, vec::Vec};
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use kernel::allocator;
-use kernel::allocator::HEAP_SIZE;
-use kernel::memory::{self, BootInfoFrameAllocator};
-use x86_64::VirtAddr;
+use kernel::memory::{self, KERNEL_HEAP_SIZE};
 
 entry_point!(main);
 
 fn main(boot_info: &'static BootInfo) -> ! {
     kernel::init();
-    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
-    let mut mapper = unsafe { memory::init(phys_mem_offset) };
-    let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_map) };
+    let (mut mapper, mut frame_allocator) = unsafe { memory::init(boot_info) };
     allocator::init(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 
     test_main();
@@ -47,7 +43,7 @@ fn large_vec() {
 
 #[test_case]
 fn many_boxes() {
-    for i in 0..HEAP_SIZE {
+    for i in 0..KERNEL_HEAP_SIZE {
         let x = Box::new(i);
         assert_eq!(*x, i);
     }

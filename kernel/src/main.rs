@@ -50,9 +50,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(not(test))]
 fn kmain(boot_info: &'static BootInfo) {
     // Set up the heap allocator.
-    let mut mapper = unsafe { memory::init() };
-    let mut frame_allocator =
-        unsafe { memory::BootInfoFrameAllocator::init(&boot_info.memory_map) };
+    let (mut mapper, mut frame_allocator) = unsafe { memory::init(boot_info) };
     allocator::init(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 
     println!("Kernel ready!");

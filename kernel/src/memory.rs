@@ -181,6 +181,7 @@
 
 use crate::println;
 use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
+use bootloader::BootInfo;
 use core::fmt;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
@@ -240,10 +241,15 @@ pub fn kernel_stack_addr(addr: VirtAddr) -> bool {
 /// physical_memory_offset. Also, this function must be only called once
 /// to avoid aliasing &mut references (which is undefined behavior).
 ///
-pub unsafe fn init() -> OffsetPageTable<'static> {
+pub unsafe fn init(
+    boot_info: &'static BootInfo,
+) -> (OffsetPageTable<'static>, BootInfoFrameAllocator) {
     let physical_memory_offset = VirtAddr::new(PHYSICAL_MEMORY_OFFSET as u64);
     let level_4_table = active_level_4_table(physical_memory_offset);
-    OffsetPageTable::new(level_4_table, physical_memory_offset)
+    let page_table = OffsetPageTable::new(level_4_table, physical_memory_offset);
+    let frame_allocator = BootInfoFrameAllocator::init(&boot_info.memory_map);
+
+    (page_table, frame_allocator)
 }
 
 /// active_level_4_table returns a mutable reference
