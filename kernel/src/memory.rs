@@ -202,6 +202,14 @@ use x86_64::{PhysAddr, VirtAddr};
 ///
 pub const PHYSICAL_MEMORY_OFFSET: usize = 0xffff_8000_0000_0000;
 
+/// phys_to_virt_addr returns a virtual address that is mapped to the
+/// given physical address. This uses the mapping of all physical memory
+/// at the virtual address PHYSICAL_MEMORY_OFFSET.
+///
+pub fn phys_to_virt_addr(phys: PhysAddr) -> VirtAddr {
+    VirtAddr::new(phys.as_u64() + PHYSICAL_MEMORY_OFFSET as u64)
+}
+
 /// KERNEL_HEAP_START is the virtual address where the kernel's heap begins.
 pub const KERNEL_HEAP_START: usize = 0x_4444_4444_0000;
 
