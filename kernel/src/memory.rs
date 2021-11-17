@@ -318,7 +318,8 @@ impl Mapping {
         page_size: PageBytesSize,
         flags: PageTableFlags,
     ) -> Self {
-        let flags_mask = PageTableFlags::WRITABLE
+        let flags_mask = PageTableFlags::PRESENT
+            | PageTableFlags::WRITABLE
             | PageTableFlags::USER_ACCESSIBLE
             | PageTableFlags::GLOBAL
             | PageTableFlags::NO_EXECUTE;
@@ -368,16 +369,59 @@ impl Mapping {
 
 impl fmt::Display for Mapping {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Notes suffix.
+        let suffix = if kernel_heap_addr(self.virt_start) && kernel_heap_addr(self.virt_end) {
+            " (kernel heap)"
+        } else if kernel_stack_addr(self.virt_start) && kernel_stack_addr(self.virt_end) {
+            " (kernel stack)"
+        } else if self.phys_start.as_u64() == 0u64 {
+            " (all physical memory)"
+        } else {
+            ""
+        };
+
+        // Simplified flags (global, user, read, write, execute).
+        let global = if self.flags.contains(PageTableFlags::GLOBAL) {
+            'g'
+        } else {
+            '-'
+        };
+        let user = if self.flags.contains(PageTableFlags::USER_ACCESSIBLE) {
+            'u'
+        } else {
+            '-'
+        };
+        let read = if self.flags.contains(PageTableFlags::PRESENT) {
+            'r'
+        } else {
+            '-'
+        };
+        let write = if self.flags.contains(PageTableFlags::PRESENT) {
+            'w'
+        } else {
+            '-'
+        };
+        let execute = if !self.flags.contains(PageTableFlags::NO_EXECUTE) {
+            'x'
+        } else {
+            '-'
+        };
+
         write!(
             f,
-            "{:p}-{:p} -> {:p}-{:p} {}x {} page {:?}",
+            "{:p}-{:p} -> {:p}-{:p} {}x {} page {}{}{}{}{}{}",
             self.virt_start,
             self.virt_end - 1u64,
             self.phys_start,
             self.phys_end - 1u64,
             self.page_count,
             self.page_size,
-            self.flags
+            global,
+            user,
+            read,
+            write,
+            execute,
+            suffix
         )
     }
 }
