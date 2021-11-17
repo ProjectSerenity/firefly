@@ -184,7 +184,7 @@ use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
 use core::fmt;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable, PageTable, PageTableFlags, PhysFrame, Size4KiB,
+    FrameAllocator, OffsetPageTable, PageSize, PageTable, PageTableFlags, PhysFrame, Size4KiB,
 };
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -199,6 +199,28 @@ pub const KERNEL_HEAP_START: usize = 0x_4444_4444_0000;
 
 /// KERNEL_HEAP_SIZE is the size in bytes of the kernel's heap.
 pub const KERNEL_HEAP_SIZE: usize = 100 * 1024; // 100 KiB
+
+/// kernel_heap_addr returns whether addr is an address in the kernel's heap.
+///
+#[inline]
+pub fn kernel_heap_addr(addr: VirtAddr) -> bool {
+    let addr = addr.as_u64() as usize;
+    KERNEL_HEAP_START <= addr && addr <= KERNEL_HEAP_START + KERNEL_HEAP_SIZE
+}
+
+/// KERNEL_STACK_START is the virtual address where the kernel's stack begins.
+pub const KERNEL_STACK_START: usize = 0x_7777_7777_0000 + KERNEL_STACK_SIZE;
+
+/// KERNEL_STACK_SIZE is the size in bytes of the kernel's stack.
+pub const KERNEL_STACK_SIZE: usize = 512 * Size4KiB::SIZE as usize;
+
+/// kernel_stack_addr returns whether addr is an address in the kernel's stack.
+///
+#[inline]
+pub fn kernel_stack_addr(addr: VirtAddr) -> bool {
+    let addr = addr.as_u64() as usize;
+    KERNEL_STACK_START - KERNEL_STACK_SIZE <= addr && addr <= KERNEL_STACK_START
+}
 
 // PML4 functionality.
 
