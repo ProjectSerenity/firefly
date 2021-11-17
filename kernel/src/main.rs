@@ -66,6 +66,8 @@ fn kmain(boot_info: &'static BootInfo) {
     } else {
         println!("Kernel running on unknown CPU.");
     }
+
+    unsafe { memory::debug_level_4_table(mapper.level_4_table(), phys_mem_offset) };
 }
 
 // Testing framework.

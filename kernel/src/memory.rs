@@ -179,9 +179,13 @@
 // Because a PTE is identified using bits 47:21 of the linear address, it
 // controls access to a 4-kByte region of the linear-address space.
 
+use crate::println;
 use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
+use core::fmt;
 use x86_64::registers::control::Cr3;
-use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB};
+use x86_64::structures::paging::{
+    FrameAllocator, OffsetPageTable, PageTable, PageTableFlags, PhysFrame, Size4KiB,
+};
 use x86_64::{PhysAddr, VirtAddr};
 
 // PML4 functionality.
@@ -221,6 +225,217 @@ unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut
     let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
 
     &mut *page_table_ptr // unsafe
+}
+
+// PageSize gives the size of a mapped page.
+//
+#[derive(Clone, Copy, PartialEq)]
+enum PageSize {
+    Size1GiB,
+    Size2MiB,
+    Size4KiB,
+}
+
+impl PageSize {
+    fn size(&self) -> u64 {
+        match self {
+            PageSize::Size1GiB => 0x40000000u64,
+            PageSize::Size2MiB => 0x200000u64,
+            PageSize::Size4KiB => 0x1000u64,
+        }
+    }
+}
+
+impl fmt::Display for PageSize {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PageSize::Size1GiB => write!(f, "{}", "1GiB"),
+            PageSize::Size2MiB => write!(f, "{}", "2MiB"),
+            PageSize::Size4KiB => write!(f, "{}", "4kiB"),
+        }
+    }
+}
+
+// Mapping is a helper type for grouping together
+// contiguous page mappings.
+//
+struct Mapping {
+    virt_start: VirtAddr,
+    virt_end: VirtAddr,
+    phys_start: PhysAddr,
+    phys_end: PhysAddr,
+    page_count: usize,
+    page_size: PageSize,
+    flags: PageTableFlags,
+}
+
+impl Mapping {
+    pub fn new(
+        virt_start: VirtAddr,
+        phys_start: PhysAddr,
+        page_size: PageSize,
+        flags: PageTableFlags,
+    ) -> Self {
+        let flags_mask = PageTableFlags::WRITABLE
+            | PageTableFlags::USER_ACCESSIBLE
+            | PageTableFlags::GLOBAL
+            | PageTableFlags::NO_EXECUTE;
+
+        Mapping {
+            virt_start,
+            virt_end: virt_start + page_size.size(),
+            phys_start,
+            phys_end: phys_start + page_size.size(),
+            page_count: 1,
+            page_size,
+            flags: flags & flags_mask,
+        }
+    }
+
+    // combine will either include the next
+    // page mapping in the current mapping,
+    // or will print the current mapping
+    // and replace it with the next page.
+    //
+    pub fn combine(got: &mut Option<Mapping>, next: Mapping) {
+        // Check we have a current mapping.
+        match got {
+            None => *got = Some(next),
+            Some(current) => {
+                // Check whether next extends the current
+                // mapping.
+                if current.virt_end == next.virt_start
+                    && current.phys_end == next.phys_start
+                    && current.page_size == next.page_size
+                    && current.flags == next.flags
+                {
+                    current.virt_end = next.virt_end;
+                    current.phys_end = next.phys_end;
+                    current.page_count += next.page_count;
+                    return;
+                }
+
+                // Print the current mapping and
+                // replace it with the next one.
+                println!("{}", current);
+                *got = Some(next)
+            }
+        }
+    }
+}
+
+impl fmt::Display for Mapping {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{:p}-{:p} -> {:p}-{:p} {}x {} page {:?}",
+            self.virt_start,
+            self.virt_end - 1u64,
+            self.phys_start,
+            self.phys_end - 1u64,
+            self.page_count,
+            self.page_size,
+            self.flags
+        )
+    }
+}
+
+// indices_to_addr converts a sequence of page table
+// indices into a virtual address. This is useful
+// when iterating through a series of page tables,
+// as the indices can be used to derive the virtual
+// address that would lead to the same physical address.
+//
+fn indices_to_addr(l4: usize, l3: usize, l2: usize, l1: usize) -> VirtAddr {
+    let l4 = (511 & l4) << 39;
+    let l3 = (511 & l3) << 30;
+    let l2 = (511 & l2) << 21;
+    let l1 = (511 & l1) << 12;
+    VirtAddr::new(l4 as u64 | l3 as u64 | l2 as u64 | l1 as u64)
+}
+
+/// debug_level_4_table iterates through a level 4 page
+/// table, printing its mappings using print!.
+///
+/// # Safety
+///
+/// This function is unsafe because the caller must
+/// guarantee that all physical memory is mapped in
+/// the given page table.
+///
+pub unsafe fn debug_level_4_table(pml4: &PageTable, phys_offset: VirtAddr) {
+    let mut prev: Option<Mapping> = None;
+    for (i, pml4e) in pml4.iter().enumerate() {
+        if pml4e.is_unused() {
+            continue;
+        }
+
+        if pml4e.flags().contains(PageTableFlags::HUGE_PAGE) {
+            panic!("invalid huge PML4 page");
+        }
+
+        let pdpt_addr = phys_offset + pml4e.addr().as_u64();
+        let pdpt: &PageTable = &*pdpt_addr.as_mut_ptr(); // unsafe
+        for (j, pdpe) in pdpt.iter().enumerate() {
+            if pdpe.is_unused() {
+                continue;
+            }
+
+            if pdpe.flags().contains(PageTableFlags::HUGE_PAGE) {
+                let next = Mapping::new(
+                    indices_to_addr(i, j, 0, 0),
+                    pdpe.addr(),
+                    PageSize::Size1GiB,
+                    pdpe.flags(),
+                );
+                Mapping::combine(&mut prev, next);
+                continue;
+            }
+
+            let pdt_addr = phys_offset + pdpe.addr().as_u64();
+            let pdt: &PageTable = &*pdt_addr.as_mut_ptr(); // unsafe
+            for (k, pde) in pdt.iter().enumerate() {
+                if pde.is_unused() {
+                    continue;
+                }
+
+                if pde.flags().contains(PageTableFlags::HUGE_PAGE) {
+                    let next = Mapping::new(
+                        indices_to_addr(i, j, k, 0),
+                        pde.addr(),
+                        PageSize::Size2MiB,
+                        pde.flags(),
+                    );
+                    Mapping::combine(&mut prev, next);
+                    continue;
+                }
+
+                let pt_addr = phys_offset + pde.addr().as_u64();
+                let pt: &PageTable = &*pt_addr.as_mut_ptr(); // unsafe
+                for (l, page) in pt.iter().enumerate() {
+                    if page.is_unused() {
+                        continue;
+                    }
+
+                    if page.flags().contains(PageTableFlags::HUGE_PAGE) {
+                        panic!("invalid huge PML1 page");
+                    }
+
+                    let next = Mapping::new(
+                        indices_to_addr(i, j, k, l),
+                        page.addr(),
+                        PageSize::Size4KiB,
+                        page.flags(),
+                    );
+                    Mapping::combine(&mut prev, next);
+                }
+            }
+        }
+    }
+
+    if let Some(last) = prev {
+        println!("{}", last);
+    }
 }
 
 // Physical memory frame allocation functionality.
