@@ -179,8 +179,9 @@
 // Because a PTE is identified using bits 47:21 of the linear address, it
 // controls access to a 4-kByte region of the linear-address space.
 
-use crate::{allocator, println};
-use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
+use crate::{allocator, println, Locked};
+use alloc::vec::Vec;
+use bootloader::bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 use bootloader::BootInfo;
 use core::fmt;
 use x86_64::registers::control::Cr3;
@@ -245,6 +246,54 @@ pub fn kernel_stack_addr(addr: VirtAddr) -> bool {
     KERNEL_STACK_START - KERNEL_STACK_SIZE <= addr && addr <= KERNEL_STACK_START
 }
 
+/// PHYSICAL_MEMORY_MAP contains a map of physical memory, provided by
+/// the boot info.
+///
+static PHYSICAL_MEMORY_MAP: Locked<Vec<MemoryRegion>> = Locked::new(Vec::new());
+
+/// in_memory_map returns whether the given region includes the given
+/// region type.
+///
+fn in_memory_map(start: PhysAddr, end: PhysAddr, region_type: MemoryRegionType) -> bool {
+    let map = PHYSICAL_MEMORY_MAP.lock();
+    for region in map.iter() {
+        if region.region_type != region_type {
+            continue;
+        }
+
+        let region_start = PhysAddr::new(region.range.start_addr());
+        let region_end = PhysAddr::new(region.range.end_addr());
+        if start <= region_start && (region_end - 1u64) <= end
+            || region_start <= start && (end - 1u64) <= region_end
+        {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// boot_info_region returns whether the given region includes boot
+/// info data, according to the memory map.
+///
+pub fn boot_info_region(start: PhysAddr, end: PhysAddr) -> bool {
+    in_memory_map(start, end, MemoryRegionType::BootInfo)
+}
+
+/// page_table_region returns whether the given region includes page
+/// tables, according to the memory map.
+///
+pub fn page_table_region(start: PhysAddr, end: PhysAddr) -> bool {
+    in_memory_map(start, end, MemoryRegionType::PageTable)
+}
+
+/// kernel_segment_region returns whether the given region is a kernel
+/// segment.
+///
+pub fn kernel_segment_region(start: PhysAddr, end: PhysAddr) -> bool {
+    in_memory_map(start, end, MemoryRegionType::Kernel)
+}
+
 // PML4 functionality.
 
 /// init initialises a new OffsetPageTable.
@@ -267,6 +316,13 @@ pub unsafe fn init(
     remap_kernel_stack_nx(&mut page_table);
 
     allocator::init(&mut page_table, &mut frame_allocator).expect("heap initialization failed");
+
+    // Note: We can only initialise the memory map once we
+    // have initialised the heap, as extend allocates.
+    //
+    PHYSICAL_MEMORY_MAP
+        .lock()
+        .extend(boot_info.memory_map.iter());
 
     (page_table, frame_allocator)
 }
@@ -422,8 +478,14 @@ impl fmt::Display for Mapping {
             " (kernel heap)"
         } else if kernel_stack_addr(self.virt_start) && kernel_stack_addr(self.virt_end) {
             " (kernel stack)"
-        } else if self.phys_start.as_u64() == 0u64 {
+        } else if self.virt_start.as_u64() == PHYSICAL_MEMORY_OFFSET as u64 {
             " (all physical memory)"
+        } else if kernel_segment_region(self.phys_start, self.phys_end) {
+            " (kernel segment)"
+        } else if page_table_region(self.phys_start, self.phys_end) {
+            " (page tables)"
+        } else if boot_info_region(self.phys_start, self.phys_end) {
+            " (boot info)"
         } else {
             ""
         };
