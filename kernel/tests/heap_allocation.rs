@@ -9,15 +9,13 @@ extern crate alloc;
 use alloc::{boxed::Box, vec::Vec};
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use kernel::allocator;
 use kernel::memory::{self, KERNEL_HEAP_SIZE};
 
 entry_point!(main);
 
 fn main(boot_info: &'static BootInfo) -> ! {
     kernel::init();
-    let (mut mapper, mut frame_allocator) = unsafe { memory::init(boot_info) };
-    allocator::init(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
+    let (_, _) = unsafe { memory::init(boot_info) };
 
     test_main();
     loop {}

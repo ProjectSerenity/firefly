@@ -14,7 +14,7 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use kernel::{allocator, memory, println, time, CPU_ID};
+use kernel::{memory, println, time, CPU_ID};
 
 /// This function is called on panic.
 #[cfg(not(test))]
@@ -50,8 +50,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(not(test))]
 fn kmain(boot_info: &'static BootInfo) {
     // Set up the heap allocator.
-    let (mut mapper, mut frame_allocator) = unsafe { memory::init(boot_info) };
-    allocator::init(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
+    let (mut mapper, _) = unsafe { memory::init(boot_info) };
 
     println!("Kernel ready!");
     println!("Kernel booted at {}.", time::boot_time());

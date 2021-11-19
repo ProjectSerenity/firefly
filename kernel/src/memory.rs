@@ -179,7 +179,7 @@
 // Because a PTE is identified using bits 47:21 of the linear address, it
 // controls access to a 4-kByte region of the linear-address space.
 
-use crate::println;
+use crate::{allocator, println};
 use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
 use bootloader::BootInfo;
 use core::fmt;
@@ -262,9 +262,11 @@ pub unsafe fn init(
     let physical_memory_offset = VirtAddr::new(PHYSICAL_MEMORY_OFFSET as u64);
     let level_4_table = active_level_4_table(physical_memory_offset);
     let mut page_table = OffsetPageTable::new(level_4_table, physical_memory_offset);
-    let frame_allocator = BootInfoFrameAllocator::init(&boot_info.memory_map);
+    let mut frame_allocator = BootInfoFrameAllocator::init(&boot_info.memory_map);
 
     remap_kernel_stack_nx(&mut page_table);
+
+    allocator::init(&mut page_table, &mut frame_allocator).expect("heap initialization failed");
 
     (page_table, frame_allocator)
 }
