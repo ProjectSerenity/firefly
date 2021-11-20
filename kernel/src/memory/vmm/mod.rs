@@ -1,5 +1,4 @@
-//! allocator provides the functionality to allocate heap
-//! memory.
+//! vmm manages virtual memory and underpins Rust's heap.
 
 // This module provides the functionality to allocate heap
 // memory. This is primarily used by Rust's runtime to

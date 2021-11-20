@@ -1,7 +1,7 @@
 // This module is a linked list allocator, which can be
 // used to allocate heap memory.
 
-use crate::allocator::align_up;
+use crate::memory::vmm::align_up;
 use crate::Locked;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::{mem, ptr};

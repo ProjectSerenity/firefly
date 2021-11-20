@@ -179,7 +179,7 @@
 // Because a PTE is identified using bits 47:21 of the linear address, it
 // controls access to a 4-kByte region of the linear-address space.
 
-use crate::{allocator, println, Locked};
+use crate::{println, Locked};
 use alloc::vec::Vec;
 use bootloader::bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 use bootloader::BootInfo;
@@ -192,6 +192,8 @@ use x86_64::structures::paging::{
     Size4KiB, Translate,
 };
 use x86_64::{PhysAddr, VirtAddr};
+
+mod vmm;
 
 // Important addresses.
 //
@@ -315,7 +317,7 @@ pub unsafe fn init(
 
     remap_kernel_stack_nx(&mut page_table);
 
-    allocator::init(&mut page_table, &mut frame_allocator).expect("heap initialization failed");
+    vmm::init(&mut page_table, &mut frame_allocator).expect("heap initialization failed");
 
     // Note: We can only initialise the memory map once we
     // have initialised the heap, as extend allocates.
