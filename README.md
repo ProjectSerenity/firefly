@@ -2,13 +2,13 @@
 
 Firefly is a research OS inspired by [Plan 9 from Bell Labs](https://9p.io/plan9/). Firefly's planned name was Serenity, but [SerenityOS](https://github.com/SerenityOS/serenity) got there first. This project is in no way associated with SerenityOS.
 
+Note that Firefly is an early prototype and is not yet ready for use.
+
 This repository consists of:
 
 - the Firefly kernel in [`kernel`](/kernel)
 
 Firefly is intended for executing cloud-native containerised server software. As a result, there are no plans to add a graphical user interface, device drivers, or a concept of users. Instead, the priority is to support userland applications on a virtual machine, with strong separation between processes. Firefly will provide a highly stable ABI, with syscalls providing the sole interface between userland processes and the kernel.
-
-Drawing inspiration from Plan 9, _everything is a filesystem_. Overlay filesystems are a fundamental component of Firefly, with network resources, system information, and disk filesystems mounted onto a virtual filesystem. Process namespaces are used to produce independent resource trees for processes, filesystems, and network resources.
 
 # Building Firefly
 
@@ -20,10 +20,6 @@ Building the kernel has the following Rust requirements:
 - `cargo install bootimage`
 
 Building the kernel can then be performed using `cargo build` and run using `cargo run`.
-
-# Documentation
-
-Further documentation is in [`./docs`](/docs).
 
 ## FAQ
 
