@@ -82,7 +82,7 @@ impl Locked<Ticker> {
     }
 }
 
-const TICKS_PER_SECOND: usize = 512;
+const TICKS_PER_SECOND: usize = 100;
 
 const MIN_FREQUENCY: usize = 18; // See https://wiki.osdev.org/Programmable_Interval_Timer
 const MAX_FREQUENCY: usize = 1193181;
