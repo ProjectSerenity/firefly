@@ -50,7 +50,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(not(test))]
 fn kmain(boot_info: &'static BootInfo) {
     // Set up the heap allocator.
-    let (mut mapper, _) = unsafe { memory::init(boot_info) };
+    let mut mapper = unsafe { memory::init(boot_info) };
 
     println!("Kernel ready!");
     println!("Kernel booted at {}.", time::boot_time());

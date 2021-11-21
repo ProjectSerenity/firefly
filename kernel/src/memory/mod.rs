@@ -210,9 +210,7 @@ pub use crate::memory::constants::{
 /// physical_memory_offset. Also, this function must be only called once
 /// to avoid aliasing &mut references (which is undefined behavior).
 ///
-pub unsafe fn init(
-    boot_info: &'static BootInfo,
-) -> (OffsetPageTable<'static>, pmm::BootInfoFrameAllocator) {
+pub unsafe fn init(boot_info: &'static BootInfo) -> OffsetPageTable<'static> {
     let physical_memory_offset = VirtAddr::new(PHYSICAL_MEMORY_OFFSET as u64);
     let level_4_table = active_level_4_table(physical_memory_offset);
     let mut page_table = OffsetPageTable::new(level_4_table, physical_memory_offset);
@@ -227,7 +225,7 @@ pub unsafe fn init(
     //
     init_memory_map(&boot_info.memory_map);
 
-    (page_table, frame_allocator)
+    page_table
 }
 
 /// active_level_4_table returns a mutable reference
