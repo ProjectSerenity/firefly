@@ -42,6 +42,15 @@ pub fn since(earlier: Instant) -> Duration {
     now().duration_since(earlier)
 }
 
+/// after returns an Instant in the future that will
+/// occur after the given Duration.
+///
+pub fn after(wait: Duration) -> Instant {
+    let now = ticks();
+    let delta = wait.as_nanos() / (ticker::NANOSECONDS_PER_TICK as u128);
+    Instant::new(now + delta as u64)
+}
+
 /// Instant represents a single point in the kernel's
 /// monotonically nondecreasing clock. In Instant is
 /// made useful by comparing with another Instant to
