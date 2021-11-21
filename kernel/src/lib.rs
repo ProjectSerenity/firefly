@@ -29,6 +29,8 @@
 
 extern crate alloc;
 
+use alloc::vec;
+use alloc::vec::Vec;
 use core::panic::PanicInfo;
 use lazy_static::lazy_static;
 use raw_cpuid::CpuId;
@@ -69,6 +71,8 @@ pub fn halt_loop() -> ! {
     }
 }
 
+// Data structures.
+
 /// Locked is a wrapper around spin::Mutex so we can
 /// implement traits on a locked type.
 ///
@@ -88,6 +92,123 @@ impl<A> Locked<A> {
         self.inner.lock()
     }
 }
+
+/// Bitmap is a simple bitmap implementation.
+///
+#[derive(Debug, PartialEq)]
+pub struct Bitmap {
+    num: usize,
+    bits: Vec<u64>,
+}
+
+impl Bitmap {
+    /// new_set returns a new bitmap with all
+    /// bits set to true.
+    ///
+    pub fn new_set(num: usize) -> Self {
+        Bitmap {
+            num,
+            bits: vec![!0u64; (num + 63) / 64],
+        }
+    }
+
+    /// new_unset returns a new bitmap with all
+    /// bits set to false.
+    ///
+    pub fn new_unset(num: usize) -> Self {
+        Bitmap {
+            num,
+            bits: vec![0u64; (num + 63) / 64],
+        }
+    }
+
+    // get returns whether bit n is set.
+    //
+    // get will panic if n exceeds the bitmap's
+    // size in bits.
+    //
+    pub fn get(&self, n: usize) -> bool {
+        if n >= self.num {
+            panic!("cannot call get({}) on Bitmap of size {}", n, self.num);
+        }
+
+        let i = n / 64;
+        let j = n % 64;
+        let mask = 1u64 << (j as u64);
+
+        self.bits[i] & mask == mask
+    }
+
+    // set sets bit n to true.
+    //
+    // set will panic if n exceeds the bitmap's
+    // size in bits.
+    //
+    pub fn set(&mut self, n: usize) {
+        if n >= self.num {
+            panic!("cannot call set({}) on Bitmap of size {}", n, self.num);
+        }
+
+        let i = n / 64;
+        let j = n % 64;
+        let mask = 1u64 << (j as u64);
+
+        self.bits[i] |= mask;
+    }
+
+    // unset sets bit n to false.
+    //
+    // unset will panic if n exceeds the bitmap's
+    // size in bits.
+    //
+    pub fn unset(&mut self, n: usize) {
+        if n >= self.num {
+            panic!("cannot call unset({}) on Bitmap of size {}", n, self.num);
+        }
+
+        let i = n / 64;
+        let j = n % 64;
+        let mask = 1u64 << (j as u64);
+
+        self.bits[i] &= !mask;
+    }
+
+    // next_set returns the smallest n, such that
+    // bit n is set (true), or None if all bits
+    // are false.
+    //
+    pub fn next_set(&self) -> Option<usize> {
+        for (i, values) in self.bits.iter().enumerate() {
+            for j in 0..64 {
+                let mask = 1u64 << (j as u64);
+                if values & mask == mask {
+                    return Some(i * 64 + j);
+                }
+            }
+        }
+
+        None
+    }
+
+    // next_unset returns the smallest n, such that
+    // bit n is unset (false), or None if all bits
+    // are true.
+    //
+    pub fn next_unset(&self) -> Option<usize> {
+        for (i, values) in self.bits.iter().enumerate() {
+            for j in 0..64 {
+                let mask = 1u64 << (j as u64);
+                if values & mask == 0 {
+                    return Some(i * 64 + j);
+                }
+            }
+        }
+
+        None
+    }
+}
+
+// Test helpers.
 
 /// Testable represents a test function.
 ///
