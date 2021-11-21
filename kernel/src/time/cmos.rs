@@ -1,6 +1,12 @@
 //! cmos includes the functionality to read the CMOS/RTC, returning a
 //! low-precision wall clock time.
 
+// The cloc functionality is captured in the Time type,
+// which can be produced by reading the current time from
+// the CMOS/RTC. A static BOOT_TIME instance is initialsed
+// with the time when ::init is called, which we treat as
+// the time when the kernel booted.
+
 use core::fmt;
 use spin::Mutex;
 use x86_64::instructions::port::Port;

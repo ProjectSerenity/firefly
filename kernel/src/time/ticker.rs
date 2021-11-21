@@ -1,5 +1,9 @@
 //! ticker handles the kernel's internal monotonic ticker.
 
+// The ticker functionality is captured in the Ticker type,
+// with a static TICKER instance used with interrupts to
+// track the passage of time.
+
 use crate::print;
 use spin::Mutex;
 use x86_64::instructions::port::Port;
@@ -50,7 +54,9 @@ impl Ticker {
     }
 }
 
-const TICKS_PER_SECOND: u64 = 100;
+pub const TICKS_PER_SECOND: u64 = 100;
+const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
+pub const NANOSECONDS_PER_TICK: u64 = NANOSECONDS_PER_SECOND / TICKS_PER_SECOND;
 
 const MIN_FREQUENCY: u64 = 18; // See https://wiki.osdev.org/Programmable_Interval_Timer
 const MAX_FREQUENCY: u64 = 1193181;
