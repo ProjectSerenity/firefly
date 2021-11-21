@@ -7,10 +7,14 @@
 extern crate alloc;
 
 use alloc::{boxed::Box, vec::Vec};
+use bootloader::bootinfo::{FrameRange, MemoryRegion, MemoryRegionType};
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
+use kernel::memory::pmm::BitmapFrameAllocator;
 use kernel::memory::{self, KERNEL_HEAP_SIZE};
 use kernel::Bitmap;
+use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame};
+use x86_64::PhysAddr;
 
 entry_point!(main);
 
@@ -111,6 +115,89 @@ fn bitmap() {
         bitmap.set(i);
         assert_eq!(bitmap.get(i), true);
     }
+}
+
+#[test_case]
+fn bitmap_frame_allocator() {
+    let regions = [
+        MemoryRegion {
+            range: FrameRange {
+                start_frame_number: 0u64,
+                end_frame_number: 1u64,
+            },
+            region_type: MemoryRegionType::FrameZero,
+        },
+        MemoryRegion {
+            range: FrameRange {
+                start_frame_number: 1u64,
+                end_frame_number: 4u64,
+            },
+            region_type: MemoryRegionType::Reserved,
+        },
+        MemoryRegion {
+            range: FrameRange {
+                start_frame_number: 4u64,
+                end_frame_number: 8u64,
+            },
+            region_type: MemoryRegionType::Usable,
+        },
+        MemoryRegion {
+            range: FrameRange {
+                start_frame_number: 8u64,
+                end_frame_number: 12u64,
+            },
+            region_type: MemoryRegionType::Reserved,
+        },
+        MemoryRegion {
+            range: FrameRange {
+                start_frame_number: 12u64,
+                end_frame_number: 14u64,
+            },
+            region_type: MemoryRegionType::Usable,
+        },
+    ];
+
+    let mut alloc = unsafe { BitmapFrameAllocator::new(regions.iter()) };
+    assert_eq!(alloc.num_frames, 6u64);
+    assert_eq!(alloc.free_frames, 6u64);
+
+    // Helper function to speed up making frames.
+    fn frame_for(addr: u64) -> PhysFrame {
+        let start_addr = PhysAddr::new(addr);
+        let frame = PhysFrame::from_start_address(start_addr).unwrap();
+        frame
+    }
+
+    // Do some allocations.
+    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x4000)));
+    assert_eq!(alloc.num_frames, 6u64);
+    assert_eq!(alloc.free_frames, 5u64);
+    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x5000)));
+    assert_eq!(alloc.num_frames, 6u64);
+    assert_eq!(alloc.free_frames, 4u64);
+
+    // Do a free.
+    unsafe { alloc.deallocate_frame(frame_for(0x4000)) };
+    assert_eq!(alloc.num_frames, 6u64);
+    assert_eq!(alloc.free_frames, 5u64);
+
+    // Next allocation should return the address we just freed.
+    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x4000)));
+    assert_eq!(alloc.num_frames, 6u64);
+    assert_eq!(alloc.free_frames, 4u64);
+
+    // Check that all remaining allocations are as we expect.
+    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x6000)));
+    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x7000)));
+    assert_eq!(alloc.allocate_frame(), Some(frame_for(0xc000)));
+    assert_eq!(alloc.allocate_frame(), Some(frame_for(0xd000)));
+    assert_eq!(alloc.num_frames, 6u64);
+    assert_eq!(alloc.free_frames, 0u64);
+
+    // Check that we get nothing once we run out of frames.
+    assert_eq!(alloc.allocate_frame(), None);
+    assert_eq!(alloc.num_frames, 6u64);
+    assert_eq!(alloc.free_frames, 0u64);
 }
 
 #[panic_handler]

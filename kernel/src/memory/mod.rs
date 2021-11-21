@@ -190,8 +190,8 @@ use x86_64::VirtAddr;
 
 mod constants;
 pub mod debug;
-mod pmm;
-mod vmm;
+pub mod pmm;
+pub mod vmm;
 
 pub use crate::memory::constants::{
     boot_info_region, init_memory_map, kernel_heap_addr, kernel_segment_region, kernel_stack_addr,
