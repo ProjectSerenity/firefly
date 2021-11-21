@@ -214,7 +214,7 @@ pub unsafe fn init(boot_info: &'static BootInfo) -> OffsetPageTable<'static> {
     let physical_memory_offset = VirtAddr::new(PHYSICAL_MEMORY_OFFSET as u64);
     let level_4_table = active_level_4_table(physical_memory_offset);
     let mut page_table = OffsetPageTable::new(level_4_table, physical_memory_offset);
-    let mut frame_allocator = pmm::BootInfoFrameAllocator::new(&boot_info.memory_map);
+    let mut frame_allocator = pmm::bootstrap(&boot_info.memory_map);
 
     remap_kernel_stack_nx(&mut page_table);
 
