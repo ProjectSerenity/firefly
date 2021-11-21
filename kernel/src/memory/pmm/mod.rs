@@ -15,7 +15,7 @@ pub struct BootInfoFrameAllocator {
 }
 
 impl BootInfoFrameAllocator {
-    /// init creates a FrameAllocator from the passed memory map.
+    /// new creates a FrameAllocator from the passed memory map.
     ///
     /// # Safety
     ///
@@ -24,7 +24,7 @@ impl BootInfoFrameAllocator {
     /// is that all frames that are marked as USABLE in it are
     /// really unused.
     ///
-    pub unsafe fn init(memory_map: &'static MemoryMap) -> Self {
+    pub unsafe fn new(memory_map: &'static MemoryMap) -> Self {
         BootInfoFrameAllocator {
             memory_map,
             next: 0,
