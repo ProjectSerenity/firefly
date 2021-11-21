@@ -220,6 +220,9 @@ pub unsafe fn init(boot_info: &'static BootInfo) -> OffsetPageTable<'static> {
 
     vmm::init(&mut page_table, &mut frame_allocator).expect("heap initialization failed");
 
+    // Switch over to a more sophisticated physical memory manager.
+    pmm::init(frame_allocator);
+
     // Note: We can only initialise the memory map once we
     // have initialised the heap, as extend allocates.
     //

@@ -2,10 +2,11 @@
 
 // Physical memory frame allocation functionality.
 
-use crate::Bitmap;
+use crate::{println, Bitmap, Locked};
 use alloc::vec::Vec;
 use bootloader::bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 use core::slice::Iter;
+use lazy_static::lazy_static;
 use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame, Size4KiB};
 use x86_64::PhysAddr;
 
@@ -13,6 +14,33 @@ use x86_64::PhysAddr;
 /// physical memory.
 ///
 const FRAME_SIZE: usize = 4096;
+
+lazy_static! {
+    /// ALLOCATOR is the physical memory allocator. ALLOCATOR can be
+    /// initialised by calling pmm::init, once the kernel's heap has
+    /// been set up. To bootstrap the heap, use a BootInfoFrameAllocator,
+    /// then pass that to pmm::init so ALLOCATOR can take over.
+    ///
+    static ref ALLOCATOR: Locked<BitmapFrameAllocator> = Locked::new(BitmapFrameAllocator::empty());
+}
+
+/// init sets up the physical memory manager, taking over
+/// from the bootstrap BootInfoFrameAllocator.
+///
+pub unsafe fn init(bootstrap: BootInfoFrameAllocator) {
+    let mut alloc = BitmapFrameAllocator::new(bootstrap.underlying_map());
+    alloc.repossess(bootstrap);
+
+    *ALLOCATOR.lock() = alloc;
+}
+
+/// debug prints debug information about the physical memory
+/// manager.
+///
+pub fn debug() {
+    let mm = ALLOCATOR.lock();
+    mm.debug();
+}
 
 /// BootInfoFrameAllocator is a FrameAllocator that returns
 /// usable frames from the bootloader's memory map.
@@ -55,6 +83,14 @@ impl BootInfoFrameAllocator {
 
         // Create PhysFrame types from the start addresses.
         frame_addresses.map(|addr| PhysFrame::containing_address(PhysAddr::new(addr)))
+    }
+
+    /// underlying_map returns the underlying memory map. This is
+    /// pub(super) so it can be called by BitmapFrameAllocator when
+    /// it takes over from BootInfoFrameallocator.
+    ///
+    pub(super) fn underlying_map(&self) -> Iter<MemoryRegion> {
+        self.memory_map.iter()
     }
 
     /// used_frames returns an iterator of frames that have already
@@ -251,6 +287,14 @@ pub struct BitmapFrameAllocator {
 }
 
 impl BitmapFrameAllocator {
+    fn empty() -> Self {
+        BitmapFrameAllocator {
+            num_frames: 0,
+            free_frames: 0,
+            pools: Vec::new(),
+        }
+    }
+
     /// new creates a FrameAllocator from the passed memory map.
     ///
     /// # Safety
@@ -314,6 +358,19 @@ impl BitmapFrameAllocator {
     pub unsafe fn repossess(&mut self, alloc: BootInfoFrameAllocator) {
         for frame in alloc.used_frames() {
             self.mark_frame_allocated(frame);
+        }
+    }
+
+    fn debug(&self) {
+        println!(
+            "physical memory manager: {}/{} frames available.",
+            self.free_frames, self.num_frames
+        );
+        for pool in self.pools.iter() {
+            println!(
+                "{:p}-{:p} {}x 4kiB frame ({} free)",
+                pool.start_address, pool.last_address, pool.num_frames, pool.free_frames
+            );
         }
     }
 }

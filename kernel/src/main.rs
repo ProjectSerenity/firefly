@@ -63,6 +63,7 @@ fn kmain(boot_info: &'static BootInfo) {
     }
 
     unsafe { memory::debug::level_4_table(mapper.level_4_table()) };
+    memory::pmm::debug();
 }
 
 // Testing framework.
