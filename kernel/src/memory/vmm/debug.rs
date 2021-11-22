@@ -4,7 +4,9 @@
 // the level_4_table function can be used to iterate through the paging data,
 // printing contiguous mappings and their known use.
 
-use crate::memory::{kernel_heap_addr, kernel_stack_addr, BOOT_INFO_START, PHYSICAL_MEMORY_OFFSET};
+use crate::memory::{
+    kernel_stack_addr, BOOT_INFO_START, KERNEL_HEAP_START, PHYSICAL_MEMORY_OFFSET,
+};
 use crate::println;
 use core::fmt;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -123,11 +125,11 @@ impl fmt::Display for Mapping {
         STATIC_VAL.fetch_add(1, Ordering::Relaxed);
 
         // Notes suffix.
-        let suffix = if kernel_heap_addr(self.virt_start) && kernel_heap_addr(self.virt_end) {
+        let suffix = if self.virt_start == KERNEL_HEAP_START {
             " (kernel heap)"
         } else if kernel_stack_addr(self.virt_start) && kernel_stack_addr(self.virt_end) {
             " (kernel stack)"
-        } else if self.virt_start.as_u64() == PHYSICAL_MEMORY_OFFSET as u64 {
+        } else if self.virt_start == PHYSICAL_MEMORY_OFFSET {
             " (all physical memory)"
         } else if self.virt_start <= const_addr1 && const_addr1 <= self.virt_end {
             " (kernel constants)"
@@ -137,7 +139,7 @@ impl fmt::Display for Mapping {
             " (kernel statics)"
         } else if self.virt_start <= code_addr && code_addr <= self.virt_end {
             " (kernel code)"
-        } else if self.virt_start.as_u64() == BOOT_INFO_START as u64 {
+        } else if self.virt_start == BOOT_INFO_START {
             " (boot info)"
         } else {
             ""
@@ -213,7 +215,7 @@ fn indices_to_addr(l4: usize, l3: usize, l2: usize, l1: usize) -> VirtAddr {
 /// the given page table.
 ///
 pub unsafe fn level_4_table(pml4: &PageTable) {
-    let phys_offset = VirtAddr::new(PHYSICAL_MEMORY_OFFSET as u64);
+    let phys_offset = PHYSICAL_MEMORY_OFFSET;
     let mut prev: Option<Mapping> = None;
 
     for (i, pml4e) in pml4.iter().enumerate() {

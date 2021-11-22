@@ -186,15 +186,14 @@ use x86_64::structures::paging::page::PageRangeInclusive;
 use x86_64::structures::paging::{
     Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, Size4KiB, Translate,
 };
-use x86_64::VirtAddr;
 
 mod constants;
 pub mod pmm;
 pub mod vmm;
 
 pub use crate::memory::constants::{
-    kernel_heap_addr, kernel_stack_addr, phys_to_virt_addr, BOOT_INFO_START, KERNEL_HEAP_SIZE,
-    KERNEL_HEAP_START, KERNEL_STACK_SIZE, KERNEL_STACK_START, PHYSICAL_MEMORY_OFFSET,
+    kernel_stack_addr, phys_to_virt_addr, BOOT_INFO_START, KERNEL_HEAP_SIZE, KERNEL_HEAP_START,
+    KERNEL_STACK_SIZE, KERNEL_STACK_START, PHYSICAL_MEMORY_OFFSET,
 };
 
 // PML4 functionality.
@@ -205,13 +204,14 @@ pub use crate::memory::constants::{
 ///
 /// This function is unsafe because the caller must guarantee that the
 /// complete physical memory is mapped to virtual memory at the passed
-/// physical_memory_offset. Also, this function must be only called once
+/// PHYSICAL_MEMORY_OFFSET. Also, this function must be only called once
 /// to avoid aliasing &mut references (which is undefined behavior).
 ///
 pub unsafe fn init(boot_info: &'static BootInfo) -> OffsetPageTable<'static> {
-    let physical_memory_offset = VirtAddr::new(PHYSICAL_MEMORY_OFFSET as u64);
+    constants::check();
+
     let level_4_table = active_level_4_table();
-    let mut page_table = OffsetPageTable::new(level_4_table, physical_memory_offset);
+    let mut page_table = OffsetPageTable::new(level_4_table, PHYSICAL_MEMORY_OFFSET);
     let mut frame_allocator = pmm::bootstrap(&boot_info.memory_map);
 
     remap_kernel_stack_nx(&mut page_table);
@@ -252,8 +252,8 @@ unsafe fn active_level_4_table() -> &'static mut PageTable {
 //
 unsafe fn remap_kernel_stack_nx(mapper: &mut OffsetPageTable) {
     let page_range: PageRangeInclusive<Size4KiB> = {
-        let top_addr = VirtAddr::new(KERNEL_STACK_START as u64);
-        let bottom_addr = VirtAddr::new((KERNEL_STACK_START - KERNEL_STACK_SIZE) as u64);
+        let top_addr = KERNEL_STACK_START;
+        let bottom_addr = KERNEL_STACK_START - KERNEL_STACK_SIZE;
         let top = Page::containing_address(top_addr);
         let bottom = Page::containing_address(bottom_addr);
         Page::range_inclusive(bottom, top)
