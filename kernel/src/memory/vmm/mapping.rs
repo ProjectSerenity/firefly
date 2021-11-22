@@ -110,7 +110,49 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
         mappings.push(last);
     }
 
-    mappings
+    // Analyse the mappings to determine their purpose,
+    // which is hard to do correctly as we go along.
+
+    // Make some constants/statics, of which we can then
+    // take the address to determine where the relevant
+    // sections of the kernel are mapped.
+    const CONST_NUM: u64 = 1;
+    const CONST_STR: &str = "Hello, kernel!";
+    static STATIC_VAL: AtomicU64 = AtomicU64::new(CONST_NUM + CONST_STR.len() as u64);
+
+    // Get example pointers.
+    let const_addr1 = VirtAddr::from_ptr(&CONST_NUM);
+    let const_addr2 = VirtAddr::from_ptr(&CONST_STR);
+    let static_addr = VirtAddr::from_ptr(&STATIC_VAL);
+    let code_addr = instructions::read_rip();
+    STATIC_VAL.fetch_add(1, Ordering::Relaxed);
+
+    let mut out = Vec::with_capacity(mappings.len());
+    for map in mappings {
+        let purpose = if map.virt_start == KERNEL_HEAP_START {
+            PagePurpose::KernelHeap
+        } else if kernel_stack_addr(map.virt_start) && kernel_stack_addr(map.virt_end) {
+            PagePurpose::KernelStack
+        } else if map.virt_start == PHYSICAL_MEMORY_OFFSET {
+            PagePurpose::AllPhysicalMemory
+        } else if map.virt_start <= const_addr1 && const_addr1 <= map.virt_end {
+            PagePurpose::KernelConstants
+        } else if map.virt_start <= const_addr2 && const_addr2 <= map.virt_end {
+            PagePurpose::KernelStrings
+        } else if map.virt_start <= static_addr && static_addr <= map.virt_end {
+            PagePurpose::KernelStatics
+        } else if map.virt_start <= code_addr && code_addr <= map.virt_end {
+            PagePurpose::KernelCode
+        } else if map.virt_start == BOOT_INFO_START {
+            PagePurpose::BootInfo
+        } else {
+            PagePurpose::Unknown
+        };
+
+        out.push(Mapping::with_purpose(map, purpose));
+    }
+
+    out
 }
 
 /// PageBytesSize gives the size in bytes of a mapped page.
@@ -142,6 +184,38 @@ impl fmt::Display for PageBytesSize {
     }
 }
 
+/// PagePurpose describes the known use of a contiguous
+/// set of mapped pages.
+///
+#[derive(Clone, Copy, PartialEq)]
+pub enum PagePurpose {
+    Unknown,
+    BootInfo,
+    KernelCode,
+    KernelConstants,
+    KernelStrings,
+    KernelStatics,
+    KernelStack,
+    KernelHeap,
+    AllPhysicalMemory,
+}
+
+impl fmt::Display for PagePurpose {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PagePurpose::Unknown => write!(f, ""),
+            PagePurpose::BootInfo => write!(f, " (boot info)"),
+            PagePurpose::KernelCode => write!(f, " (kernel code)"),
+            PagePurpose::KernelConstants => write!(f, " (kernel constants)"),
+            PagePurpose::KernelStrings => write!(f, " (kernel strings)"),
+            PagePurpose::KernelStatics => write!(f, " (kernel statics)"),
+            PagePurpose::KernelStack => write!(f, " (kernel stack)"),
+            PagePurpose::KernelHeap => write!(f, " (kernel heap)"),
+            PagePurpose::AllPhysicalMemory => write!(f, " (all physical memory)"),
+        }
+    }
+}
+
 /// Mapping is a helper type for grouping together
 /// contiguous page mappings.
 ///
@@ -153,6 +227,7 @@ pub struct Mapping {
     pub page_count: usize,
     pub page_size: PageBytesSize,
     pub flags: PageTableFlags,
+    pub purpose: PagePurpose,
 }
 
 impl Mapping {
@@ -176,7 +251,12 @@ impl Mapping {
             page_count: 1,
             page_size,
             flags: flags & flags_mask,
+            purpose: PagePurpose::Unknown,
         }
+    }
+
+    fn with_purpose(mapping: Mapping, purpose: PagePurpose) -> Self {
+        Mapping { purpose, ..mapping }
     }
 
     // combine will either include the next
@@ -219,37 +299,6 @@ impl Mapping {
 
 impl fmt::Display for Mapping {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        const CONST_NUM: u64 = 1;
-        const CONST_STR: &str = "Hello, kernel!";
-        static STATIC_VAL: AtomicU64 = AtomicU64::new(CONST_NUM + CONST_STR.len() as u64);
-        // Get example pointers.
-        let const_addr1 = VirtAddr::from_ptr(&CONST_NUM);
-        let const_addr2 = VirtAddr::from_ptr(&CONST_STR);
-        let static_addr = VirtAddr::from_ptr(&STATIC_VAL);
-        let code_addr = instructions::read_rip();
-        STATIC_VAL.fetch_add(1, Ordering::Relaxed);
-
-        // Notes suffix.
-        let suffix = if self.virt_start == KERNEL_HEAP_START {
-            " (kernel heap)"
-        } else if kernel_stack_addr(self.virt_start) && kernel_stack_addr(self.virt_end) {
-            " (kernel stack)"
-        } else if self.virt_start == PHYSICAL_MEMORY_OFFSET {
-            " (all physical memory)"
-        } else if self.virt_start <= const_addr1 && const_addr1 <= self.virt_end {
-            " (kernel constants)"
-        } else if self.virt_start <= const_addr2 && const_addr2 <= self.virt_end {
-            " (kernel strings)"
-        } else if self.virt_start <= static_addr && static_addr <= self.virt_end {
-            " (kernel statics)"
-        } else if self.virt_start <= code_addr && code_addr <= self.virt_end {
-            " (kernel code)"
-        } else if self.virt_start == BOOT_INFO_START {
-            " (boot info)"
-        } else {
-            ""
-        };
-
         // Simplified flags (global, user, read, write, execute).
         let global = if self.flags.contains(PageTableFlags::GLOBAL) {
             'g'
@@ -291,7 +340,7 @@ impl fmt::Display for Mapping {
             read,
             write,
             execute,
-            suffix
+            self.purpose
         )
     }
 }
