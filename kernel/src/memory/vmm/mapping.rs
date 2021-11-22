@@ -315,7 +315,7 @@ impl fmt::Display for Mapping {
         } else {
             '-'
         };
-        let write = if self.flags.contains(PageTableFlags::PRESENT) {
+        let write = if self.flags.contains(PageTableFlags::WRITABLE) {
             'w'
         } else {
             '-'
