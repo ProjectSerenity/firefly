@@ -9,6 +9,7 @@ use alloc::vec::Vec;
 use core::fmt;
 use core::sync::atomic::{AtomicU64, Ordering};
 use x86_64::instructions;
+use x86_64::structures::paging::page::{Page, PageRangeInclusive};
 use x86_64::structures::paging::{PageTable, PageTableFlags};
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -294,6 +295,15 @@ impl Mapping {
                 }
             }
         }
+    }
+
+    /// page_range returns an iterator over the
+    /// virtual pages covered by this mapping.
+    ///
+    pub fn page_range(&self) -> PageRangeInclusive {
+        let start = Page::containing_address(self.virt_start);
+        let end = Page::containing_address(self.virt_end - 1u64);
+        Page::range_inclusive(start, end)
     }
 }
 
