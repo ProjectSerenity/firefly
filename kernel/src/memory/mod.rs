@@ -189,7 +189,6 @@ use x86_64::structures::paging::{
 use x86_64::VirtAddr;
 
 mod constants;
-pub mod debug;
 pub mod pmm;
 pub mod vmm;
 

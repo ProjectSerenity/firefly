@@ -62,7 +62,7 @@ fn kmain(boot_info: &'static BootInfo) {
         println!("Kernel running on unknown CPU.");
     }
 
-    unsafe { memory::debug::level_4_table(mapper.level_4_table()) };
+    unsafe { memory::vmm::debug(mapper.level_4_table()) };
     memory::pmm::debug();
 }
 

@@ -12,10 +12,13 @@
 use crate::{memory, Locked};
 use fixed_size_block::FixedSizeBlockAllocator;
 use x86_64::structures::paging::mapper::MapToError;
-use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
+use x86_64::structures::paging::{
+    FrameAllocator, Mapper, Page, PageTable, PageTableFlags, Size4KiB,
+};
 use x86_64::VirtAddr;
 
 mod bump;
+mod debug;
 mod fixed_size_block;
 mod linked_list;
 
@@ -60,4 +63,17 @@ pub fn init(
 ///
 fn align_up(addr: usize, align: usize) -> usize {
     (addr + align - 1) & !(align - 1)
+}
+
+/// debug iterates through a level 4 page
+/// table, printing its mappings using print!.
+///
+/// # Safety
+///
+/// This function is unsafe because the caller must
+/// guarantee that all physical memory is mapped in
+/// the given page table.
+///
+pub unsafe fn debug(pml4: &PageTable) {
+    debug::level_4_table(pml4);
 }
