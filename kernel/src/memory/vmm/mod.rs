@@ -10,7 +10,7 @@
 // is used.
 
 use crate::memory::{KERNEL_HEAP_SIZE, KERNEL_HEAP_START};
-use crate::{memory, Locked};
+use crate::{memory, println, Locked};
 use fixed_size_block::FixedSizeBlockAllocator;
 use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::{
@@ -18,7 +18,6 @@ use x86_64::structures::paging::{
 };
 
 mod bump;
-mod debug;
 mod fixed_size_block;
 mod linked_list;
 mod mapping;
@@ -75,5 +74,8 @@ fn align_up(addr: usize, align: usize) -> usize {
 /// the given page table.
 ///
 pub unsafe fn debug(pml4: &PageTable) {
-    debug::level_4_table(pml4);
+    let mappings = mapping::level_4_table(pml4);
+    for mapping in mappings.iter() {
+        println!("{}", mapping);
+    }
 }
