@@ -9,11 +9,11 @@
 // block allocator. Currently the fixed size block allocator
 // is used.
 
-use crate::memory::{KERNEL_HEAP_SIZE, KERNEL_HEAP_START, KERNEL_STACK_SIZE, KERNEL_STACK_START};
+use crate::memory::vmm::mapping::PagePurpose;
+use crate::memory::{KERNEL_HEAP_SIZE, KERNEL_HEAP_START};
 use crate::{memory, println, Locked};
 use fixed_size_block::FixedSizeBlockAllocator;
 use x86_64::structures::paging::mapper::{MapToError, TranslateResult};
-use x86_64::structures::paging::page::PageRangeInclusive;
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, Size4KiB, Translate,
 };
@@ -55,30 +55,40 @@ pub fn init(
     }
 
     // Remap the kernel, now that the heap is set up.
-    unsafe { remap_kernel_stack_nx(mapper) };
+    unsafe { remap_kernel(mapper) };
 
     Ok(())
 }
 
-// remap_kernel_stack_nx remaps all existing mappings for
-// the kernel's stack as non-executable.
+// remap_kernel remaps all existing mappings for
+// the kernel's stack as non-executable, plus unmaps
+// any unknown mappings left over by the bootloader.
 //
-unsafe fn remap_kernel_stack_nx(mapper: &mut OffsetPageTable) {
-    let page_range: PageRangeInclusive<Size4KiB> = {
-        let top_addr = KERNEL_STACK_START;
-        let bottom_addr = KERNEL_STACK_START - KERNEL_STACK_SIZE;
-        let top = Page::containing_address(top_addr);
-        let bottom = Page::containing_address(bottom_addr);
-        Page::range_inclusive(bottom, top)
-    };
-
-    for page in page_range {
-        let res = mapper.translate(page.start_address());
-        if let TranslateResult::Mapped { flags, .. } = res {
-            mapper
-                .update_flags(page, flags | PageTableFlags::NO_EXECUTE)
-                .expect("failed to remap stack page as NO_EXECUTE")
-                .flush();
+unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
+    let mappings = mapping::level_4_table(mapper.level_4_table());
+    for mapping in mappings.iter() {
+        match mapping.purpose {
+            PagePurpose::Unknown => {
+                for page in mapping.page_range() {
+                    mapper
+                        .unmap(page)
+                        .expect("failed to unmap unknown page")
+                        .1 // This returns a tuple of the frame and the flusher.
+                        .flush();
+                }
+            }
+            PagePurpose::KernelStack => {
+                for page in mapping.page_range() {
+                    let res = mapper.translate(page.start_address());
+                    if let TranslateResult::Mapped { flags, .. } = res {
+                        mapper
+                            .update_flags(page, flags | PageTableFlags::NO_EXECUTE)
+                            .expect("failed to remap stack page as NO_EXECUTE")
+                            .flush();
+                    }
+                }
+            }
+            _ => {}
         }
     }
 }
