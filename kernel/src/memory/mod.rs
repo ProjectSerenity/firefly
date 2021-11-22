@@ -193,9 +193,8 @@ pub mod pmm;
 pub mod vmm;
 
 pub use crate::memory::constants::{
-    init_memory_map, kernel_heap_addr, kernel_segment_region, kernel_stack_addr, page_table_region,
-    phys_to_virt_addr, BOOT_INFO_START, KERNEL_HEAP_SIZE, KERNEL_HEAP_START, KERNEL_STACK_SIZE,
-    KERNEL_STACK_START, PHYSICAL_MEMORY_OFFSET,
+    kernel_heap_addr, kernel_stack_addr, phys_to_virt_addr, BOOT_INFO_START, KERNEL_HEAP_SIZE,
+    KERNEL_HEAP_START, KERNEL_STACK_SIZE, KERNEL_STACK_START, PHYSICAL_MEMORY_OFFSET,
 };
 
 // PML4 functionality.
@@ -221,11 +220,6 @@ pub unsafe fn init(boot_info: &'static BootInfo) -> OffsetPageTable<'static> {
 
     // Switch over to a more sophisticated physical memory manager.
     pmm::init(frame_allocator);
-
-    // Note: We can only initialise the memory map once we
-    // have initialised the heap, as extend allocates.
-    //
-    init_memory_map(&boot_info.memory_map);
 
     page_table
 }

@@ -4,12 +4,11 @@
 // the level_4_table function can be used to iterate through the paging data,
 // printing contiguous mappings and their known use.
 
-use crate::memory::{
-    kernel_heap_addr, kernel_segment_region, kernel_stack_addr, page_table_region, BOOT_INFO_START,
-    PHYSICAL_MEMORY_OFFSET,
-};
+use crate::memory::{kernel_heap_addr, kernel_stack_addr, BOOT_INFO_START, PHYSICAL_MEMORY_OFFSET};
 use crate::println;
 use core::fmt;
+use core::sync::atomic::{AtomicU64, Ordering};
+use x86_64::instructions;
 use x86_64::structures::paging::{PageTable, PageTableFlags};
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -113,6 +112,16 @@ impl Mapping {
 
 impl fmt::Display for Mapping {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        const CONST_NUM: u64 = 1;
+        const CONST_STR: &str = "Hello, kernel!";
+        static STATIC_VAL: AtomicU64 = AtomicU64::new(CONST_NUM + CONST_STR.len() as u64);
+        // Get example pointers.
+        let const_addr1 = VirtAddr::from_ptr(&CONST_NUM);
+        let const_addr2 = VirtAddr::from_ptr(&CONST_STR);
+        let static_addr = VirtAddr::from_ptr(&STATIC_VAL);
+        let code_addr = instructions::read_rip();
+        STATIC_VAL.fetch_add(1, Ordering::Relaxed);
+
         // Notes suffix.
         let suffix = if kernel_heap_addr(self.virt_start) && kernel_heap_addr(self.virt_end) {
             " (kernel heap)"
@@ -120,10 +129,14 @@ impl fmt::Display for Mapping {
             " (kernel stack)"
         } else if self.virt_start.as_u64() == PHYSICAL_MEMORY_OFFSET as u64 {
             " (all physical memory)"
-        } else if kernel_segment_region(self.phys_start, self.phys_end) {
-            " (kernel segment)"
-        } else if page_table_region(self.phys_start, self.phys_end) {
-            " (page tables)"
+        } else if self.virt_start <= const_addr1 && const_addr1 <= self.virt_end {
+            " (kernel constants)"
+        } else if self.virt_start <= const_addr2 && const_addr2 <= self.virt_end {
+            " (kernel strings)"
+        } else if self.virt_start <= static_addr && static_addr <= self.virt_end {
+            " (kernel statics)"
+        } else if self.virt_start <= code_addr && code_addr <= self.virt_end {
+            " (kernel code)"
         } else if self.virt_start.as_u64() == BOOT_INFO_START as u64 {
             " (boot info)"
         } else {
@@ -202,6 +215,7 @@ fn indices_to_addr(l4: usize, l3: usize, l2: usize, l1: usize) -> VirtAddr {
 pub unsafe fn level_4_table(pml4: &PageTable) {
     let phys_offset = VirtAddr::new(PHYSICAL_MEMORY_OFFSET as u64);
     let mut prev: Option<Mapping> = None;
+
     for (i, pml4e) in pml4.iter().enumerate() {
         if pml4e.is_unused() {
             continue;

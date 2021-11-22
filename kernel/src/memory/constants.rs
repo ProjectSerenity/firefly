@@ -1,8 +1,5 @@
 //! constants contains useful constants for the kernel's memory layout.
 
-use crate::Locked;
-use alloc::vec::Vec;
-use bootloader::bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 use x86_64::structures::paging::{PageSize, Size4KiB};
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -63,51 +60,4 @@ pub const KERNEL_STACK_SIZE: usize = 513 * Size4KiB::SIZE as usize;
 pub fn kernel_stack_addr(addr: VirtAddr) -> bool {
     let addr = addr.as_u64() as usize;
     KERNEL_STACK_START - KERNEL_STACK_SIZE <= addr && addr <= KERNEL_STACK_START
-}
-
-/// PHYSICAL_MEMORY_MAP contains a map of physical memory, provided by
-/// the boot info.
-///
-static PHYSICAL_MEMORY_MAP: Locked<Vec<MemoryRegion>> = Locked::new(Vec::new());
-
-/// init_memory_map stores the given memory map for later queries.
-///
-pub fn init_memory_map(map: &MemoryMap) {
-    PHYSICAL_MEMORY_MAP.lock().extend(map.iter());
-}
-
-/// in_memory_map returns whether the given region includes the given
-/// region type.
-///
-fn in_memory_map(start: PhysAddr, end: PhysAddr, region_type: MemoryRegionType) -> bool {
-    let map = PHYSICAL_MEMORY_MAP.lock();
-    for region in map.iter() {
-        if region.region_type != region_type {
-            continue;
-        }
-
-        let region_start = PhysAddr::new(region.range.start_addr());
-        let region_end = PhysAddr::new(region.range.end_addr());
-        if start <= region_start && (region_end - 1u64) <= end
-            || region_start <= start && (end - 1u64) <= region_end
-        {
-            return true;
-        }
-    }
-
-    false
-}
-
-/// page_table_region returns whether the given region includes page
-/// tables, according to the memory map.
-///
-pub fn page_table_region(start: PhysAddr, end: PhysAddr) -> bool {
-    in_memory_map(start, end, MemoryRegionType::PageTable)
-}
-
-/// kernel_segment_region returns whether the given region is a kernel
-/// segment.
-///
-pub fn kernel_segment_region(start: PhysAddr, end: PhysAddr) -> bool {
-    in_memory_map(start, end, MemoryRegionType::Kernel)
 }
