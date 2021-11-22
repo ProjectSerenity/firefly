@@ -21,6 +21,7 @@ mod bump;
 mod debug;
 mod fixed_size_block;
 mod linked_list;
+mod mapping;
 
 #[global_allocator]
 static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
