@@ -181,11 +181,7 @@
 
 use bootloader::BootInfo;
 use x86_64::registers::control::Cr3;
-use x86_64::structures::paging::mapper::TranslateResult;
-use x86_64::structures::paging::page::PageRangeInclusive;
-use x86_64::structures::paging::{
-    Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, Size4KiB, Translate,
-};
+use x86_64::structures::paging::{OffsetPageTable, PageTable};
 
 mod constants;
 pub mod pmm;
@@ -213,8 +209,6 @@ pub unsafe fn init(boot_info: &'static BootInfo) -> OffsetPageTable<'static> {
     let level_4_table = active_level_4_table();
     let mut page_table = OffsetPageTable::new(level_4_table, PHYSICAL_MEMORY_OFFSET);
     let mut frame_allocator = pmm::bootstrap(&boot_info.memory_map);
-
-    remap_kernel_stack_nx(&mut page_table);
 
     vmm::init(&mut page_table, &mut frame_allocator).expect("heap initialization failed");
 
@@ -245,27 +239,4 @@ unsafe fn active_level_4_table() -> &'static mut PageTable {
     let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
 
     &mut *page_table_ptr // unsafe
-}
-
-// remap_kernel_stack_nx remaps all existing mappings for
-// the kernel's stack as non-executable.
-//
-unsafe fn remap_kernel_stack_nx(mapper: &mut OffsetPageTable) {
-    let page_range: PageRangeInclusive<Size4KiB> = {
-        let top_addr = KERNEL_STACK_START;
-        let bottom_addr = KERNEL_STACK_START - KERNEL_STACK_SIZE;
-        let top = Page::containing_address(top_addr);
-        let bottom = Page::containing_address(bottom_addr);
-        Page::range_inclusive(bottom, top)
-    };
-
-    for page in page_range {
-        let res = mapper.translate(page.start_address());
-        if let TranslateResult::Mapped { flags, .. } = res {
-            mapper
-                .update_flags(page, flags | PageTableFlags::NO_EXECUTE)
-                .expect("failed to remap stack page as NO_EXECUTE")
-                .flush();
-        }
-    }
 }
