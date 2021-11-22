@@ -30,6 +30,7 @@ run-command = [
 ]
 
 [package.metadata.bootloader]
+boot-info-address = "0x444444433000"
 kernel-stack-address = "0x777777770000"
 kernel-stack-size = 512
 physical-memory-offset = "0xffff800000000000"

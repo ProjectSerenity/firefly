@@ -5,8 +5,8 @@
 // printing contiguous mappings and their known use.
 
 use crate::memory::{
-    boot_info_region, kernel_heap_addr, kernel_segment_region, kernel_stack_addr,
-    page_table_region, PHYSICAL_MEMORY_OFFSET,
+    kernel_heap_addr, kernel_segment_region, kernel_stack_addr, page_table_region, BOOT_INFO_START,
+    PHYSICAL_MEMORY_OFFSET,
 };
 use crate::println;
 use core::fmt;
@@ -124,7 +124,7 @@ impl fmt::Display for Mapping {
             " (kernel segment)"
         } else if page_table_region(self.phys_start, self.phys_end) {
             " (page tables)"
-        } else if boot_info_region(self.phys_start, self.phys_end) {
+        } else if self.virt_start.as_u64() == BOOT_INFO_START as u64 {
             " (boot info)"
         } else {
             ""

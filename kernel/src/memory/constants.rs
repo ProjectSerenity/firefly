@@ -27,6 +27,12 @@ pub fn phys_to_virt_addr(phys: PhysAddr) -> VirtAddr {
     VirtAddr::new(phys.as_u64() + PHYSICAL_MEMORY_OFFSET as u64)
 }
 
+/// BOOT_INFO_START is the virtual address at which the boot information
+/// is stored. This can be used to receive information from the bootloader
+/// about the early configuration of the machine.
+///
+pub const BOOT_INFO_START: usize = 0x4444_4443_3000;
+
 /// KERNEL_HEAP_START is the virtual address where the kernel's heap begins.
 pub const KERNEL_HEAP_START: usize = 0x_4444_4444_0000;
 
@@ -90,13 +96,6 @@ fn in_memory_map(start: PhysAddr, end: PhysAddr, region_type: MemoryRegionType) 
     }
 
     false
-}
-
-/// boot_info_region returns whether the given region includes boot
-/// info data, according to the memory map.
-///
-pub fn boot_info_region(start: PhysAddr, end: PhysAddr) -> bool {
-    in_memory_map(start, end, MemoryRegionType::BootInfo)
 }
 
 /// page_table_region returns whether the given region includes page

@@ -193,8 +193,8 @@ pub mod pmm;
 pub mod vmm;
 
 pub use crate::memory::constants::{
-    boot_info_region, init_memory_map, kernel_heap_addr, kernel_segment_region, kernel_stack_addr,
-    page_table_region, phys_to_virt_addr, KERNEL_HEAP_SIZE, KERNEL_HEAP_START, KERNEL_STACK_SIZE,
+    init_memory_map, kernel_heap_addr, kernel_segment_region, kernel_stack_addr, page_table_region,
+    phys_to_virt_addr, BOOT_INFO_START, KERNEL_HEAP_SIZE, KERNEL_HEAP_START, KERNEL_STACK_SIZE,
     KERNEL_STACK_START, PHYSICAL_MEMORY_OFFSET,
 };
 
