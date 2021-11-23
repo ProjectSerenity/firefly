@@ -245,9 +245,9 @@ impl Mapping {
 
         Mapping {
             virt_start,
-            virt_end: virt_start + page_size.size(),
+            virt_end: virt_start + page_size.size() - 1u64,
             phys_start,
-            phys_end: phys_start + page_size.size(),
+            phys_end: phys_start + page_size.size() - 1u64,
             page_count: 1,
             page_size,
             flags: flags & flags_mask,
@@ -275,8 +275,8 @@ impl Mapping {
             Some(mut current) => {
                 // Check whether next extends the current
                 // mapping.
-                if current.virt_end == next.virt_start
-                    && current.phys_end == next.phys_start
+                if current.virt_end + 1u64 == next.virt_start
+                    && current.phys_end + 1u64 == next.phys_start
                     && current.page_size == next.page_size
                     && current.flags == next.flags
                 {
@@ -301,7 +301,7 @@ impl Mapping {
     ///
     pub fn page_range(&self) -> PageRangeInclusive {
         let start = Page::containing_address(self.virt_start);
-        let end = Page::containing_address(self.virt_end - 1u64);
+        let end = Page::containing_address(self.virt_end);
         Page::range_inclusive(start, end)
     }
 }
@@ -339,9 +339,9 @@ impl fmt::Display for Mapping {
             f,
             "{:p}-{:p} -> {:p}-{:p} {}x {} page {}{}{}{}{}{}",
             self.virt_start,
-            self.virt_end - 1u64,
+            self.virt_end,
             self.phys_start,
-            self.phys_end - 1u64,
+            self.phys_end,
             self.page_count,
             self.page_size,
             global,
