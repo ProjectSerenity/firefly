@@ -9,6 +9,9 @@
 	"executables": true,
 	"linker-flavor": "ld.lld",
 	"linker": "rust-lld",
+	"pre-link-args": {
+		"ld.lld": ["--image-base", "0xffff800000000000"]
+	},
 	"panic-strategy": "abort",
 	"disable-redzone": true,
 	"features": "-mmx,-sse,+soft-float"

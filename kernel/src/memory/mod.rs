@@ -188,8 +188,8 @@ pub mod pmm;
 pub mod vmm;
 
 pub use crate::memory::constants::{
-    kernel_stack_addr, phys_to_virt_addr, BOOT_INFO_START, KERNEL_HEAP_SIZE, KERNEL_HEAP_START,
-    KERNEL_STACK_SIZE, KERNEL_STACK_START, PHYSICAL_MEMORY_OFFSET,
+    kernel_heap_addr, kernel_stack_addr, phys_to_virt_addr, BOOT_INFO_START, KERNEL_HEAP_SIZE,
+    KERNEL_HEAP_START, KERNEL_STACK_SIZE, KERNEL_STACK_START, PHYSICAL_MEMORY_OFFSET,
 };
 
 // PML4 functionality.

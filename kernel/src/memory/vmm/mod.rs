@@ -49,9 +49,10 @@ pub fn init(
     }
 
     unsafe {
-        ALLOCATOR
-            .lock()
-            .init(KERNEL_HEAP_START.as_u64() as usize, KERNEL_HEAP_SIZE);
+        ALLOCATOR.lock().init(
+            KERNEL_HEAP_START.as_u64() as usize,
+            KERNEL_HEAP_SIZE as usize,
+        );
     }
 
     // Remap the kernel, now that the heap is set up.

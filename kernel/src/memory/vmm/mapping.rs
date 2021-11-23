@@ -2,8 +2,7 @@
 //! on the contents of a level 4 page table.
 
 use crate::memory::{
-    kernel_stack_addr, phys_to_virt_addr, BOOT_INFO_START, KERNEL_HEAP_START,
-    PHYSICAL_MEMORY_OFFSET,
+    kernel_heap_addr, kernel_stack_addr, phys_to_virt_addr, BOOT_INFO_START, PHYSICAL_MEMORY_OFFSET,
 };
 use alloc::vec::Vec;
 use core::fmt;
@@ -130,7 +129,7 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
 
     let mut out = Vec::with_capacity(mappings.len());
     for map in mappings {
-        let purpose = if map.virt_start == KERNEL_HEAP_START {
+        let purpose = if kernel_heap_addr(map.virt_start) && kernel_heap_addr(map.virt_end) {
             PagePurpose::KernelHeap
         } else if kernel_stack_addr(map.virt_start) && kernel_stack_addr(map.virt_end) {
             PagePurpose::KernelStack
