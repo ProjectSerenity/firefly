@@ -14,8 +14,8 @@ use x86_64::{PhysAddr, VirtAddr};
 /// that address can be reached at the same virtual address, plus
 /// PHYSICAL_MEMORY_OFFSET.
 ///
-pub const PHYSICAL_MEMORY_OFFSET: VirtAddr =
-    unsafe { VirtAddr::new_unsafe(0xffff_8000_6000_0000 as u64) };
+pub const PHYSICAL_MEMORY_OFFSET: VirtAddr = const_virt_addr(0xffff_8000_6000_0000 as u64);
+
 /// phys_to_virt_addr returns a virtual address that is mapped to the
 /// given physical address. This uses the mapping of all physical memory
 /// at the virtual address PHYSICAL_MEMORY_OFFSET.
@@ -28,11 +28,10 @@ pub fn phys_to_virt_addr(phys: PhysAddr) -> VirtAddr {
 /// is stored. This can be used to receive information from the bootloader
 /// about the early configuration of the machine.
 ///
-pub const BOOT_INFO_START: VirtAddr = unsafe { VirtAddr::new_unsafe(0xffff_8000_4000_0000 as u64) };
+pub const BOOT_INFO_START: VirtAddr = const_virt_addr(0xffff_8000_4000_0000 as u64);
 
 /// KERNEL_HEAP_START is the virtual address where the kernel's heap begins.
-pub const KERNEL_HEAP_START: VirtAddr =
-    unsafe { VirtAddr::new_unsafe(0xffff_8000_4444_0000 as u64) };
+pub const KERNEL_HEAP_START: VirtAddr = const_virt_addr(0xffff_8000_4444_0000 as u64);
 
 /// KERNEL_HEAP_SIZE is the size in bytes of the kernel's heap.
 pub const KERNEL_HEAP_SIZE: u64 = 128 * Size4KiB::SIZE; // 512 kiB
@@ -46,7 +45,7 @@ pub fn kernel_heap_addr(addr: VirtAddr) -> bool {
 
 /// KERNEL_STACK_START is the virtual address where the kernel's stack begins.
 pub const KERNEL_STACK_START: VirtAddr =
-    unsafe { VirtAddr::new_unsafe(0xffff_8000_5555_1000 as u64 + KERNEL_STACK_SIZE) };
+    const_virt_addr(0xffff_8000_5555_1000 as u64 + KERNEL_STACK_SIZE);
 
 /// KERNEL_STACK_SIZE is the size in bytes of the kernel's stack.
 ///
@@ -65,31 +64,30 @@ pub fn kernel_stack_addr(addr: VirtAddr) -> bool {
 /// KERNEL_BINARY_START is the virtual address at which the kernel binary
 /// is loaded.
 ///
-pub const KERNEL_BINARY_START: VirtAddr =
-    unsafe { VirtAddr::new_unsafe(0xffff_8000_0000_0000 as u64) };
+pub const KERNEL_BINARY_START: VirtAddr = const_virt_addr(0xffff_8000_0000_0000 as u64);
 
 /// KERNEL_BINARY_SIZE is the maximum size of the kernel binary.
 ///
 pub const KERNEL_BINARY_SIZE: u64 = 262143 * Size4KiB::SIZE; // 1 GiB - 1 page (for boot info)
 
-// Simple macro to simplify checking address constants.
-//
-macro_rules! check_const_addr {
-    ($addr:expr) => {
-        VirtAddr::try_new($addr.as_u64()).expect("bad constant");
-        if $addr < KERNEL_BINARY_START {
-            panic!("$addr is in the lower half of the virtual address space");
-        }
-    };
-}
-
-/// check ensures that the unsafe constant assignments in the constants
-/// above are indeed valid.
+/// const_virt_addr is a const fn that returns the given virtual
+/// address.
 ///
-pub fn check() {
-    check_const_addr!(KERNEL_BINARY_START);
-    check_const_addr!(BOOT_INFO_START);
-    check_const_addr!(KERNEL_HEAP_START);
-    check_const_addr!(KERNEL_STACK_START);
-    check_const_addr!(PHYSICAL_MEMORY_OFFSET);
+const fn const_virt_addr(addr: u64) -> VirtAddr {
+    // Check that the address is a 48-bit canonical address,
+    // either as a a low half address (starting with 0x00007,
+    // or a high half address (starting with 0xffff8).
+    if addr & 0xffff_8000_0000_0000 == 0 {
+        // Canonical low half address.
+        unsafe { VirtAddr::new_unsafe(addr) }
+    } else if addr & 0xffff_8000_0000_0000 == 0xffff_8000_0000_0000 {
+        // Canonical high half address.
+        unsafe { VirtAddr::new_unsafe(addr) }
+    } else if addr & 0x0000_8000_0000_0000 == 0x0000_8000_0000_0000 {
+        // Noncanonical address we can sign-extend.
+        VirtAddr::new_truncate(addr)
+    } else {
+        // Invalid address.
+        panic!("invalid virtual address")
+    }
 }

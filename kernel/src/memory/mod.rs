@@ -204,8 +204,6 @@ pub use crate::memory::constants::{
 /// to avoid aliasing &mut references (which is undefined behavior).
 ///
 pub unsafe fn init(boot_info: &'static BootInfo) -> OffsetPageTable<'static> {
-    constants::check();
-
     let level_4_table = active_level_4_table();
     let mut page_table = OffsetPageTable::new(level_4_table, PHYSICAL_MEMORY_OFFSET);
     let mut frame_allocator = pmm::bootstrap(&boot_info.memory_map);
