@@ -10,8 +10,8 @@
 // is used.
 
 use crate::memory::vmm::mapping::PagePurpose;
-use crate::memory::{KERNEL_HEAP_SIZE, KERNEL_HEAP_START};
-use crate::{memory, println, Locked};
+use crate::memory::KERNEL_HEAP;
+use crate::{println, Locked};
 use fixed_size_block::FixedSizeBlockAllocator;
 use x86_64::structures::paging::mapper::{MapToError, TranslateResult};
 use x86_64::structures::paging::{
@@ -34,8 +34,8 @@ pub fn init(
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
 ) -> Result<(), MapToError<Size4KiB>> {
     let page_range = {
-        let heap_end = KERNEL_HEAP_START + memory::KERNEL_HEAP_SIZE - 1u64;
-        let heap_start_page = Page::containing_address(KERNEL_HEAP_START);
+        let heap_end = KERNEL_HEAP.end();
+        let heap_start_page = Page::containing_address(KERNEL_HEAP.start());
         let heap_end_page = Page::containing_address(heap_end);
         Page::range_inclusive(heap_start_page, heap_end_page)
     };
@@ -50,8 +50,8 @@ pub fn init(
 
     unsafe {
         ALLOCATOR.lock().init(
-            KERNEL_HEAP_START.as_u64() as usize,
-            KERNEL_HEAP_SIZE as usize,
+            KERNEL_HEAP.start().as_u64() as usize,
+            KERNEL_HEAP.size() as usize,
         );
     }
 

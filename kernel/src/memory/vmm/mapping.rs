@@ -2,7 +2,8 @@
 //! on the contents of a level 4 page table.
 
 use crate::memory::{
-    kernel_heap_addr, kernel_stack_addr, phys_to_virt_addr, BOOT_INFO_START, PHYSICAL_MEMORY_OFFSET,
+    phys_to_virt_addr, VirtAddrRange, BOOT_INFO, KERNEL_BINARY, KERNEL_HEAP, KERNEL_STACK,
+    PHYSICAL_MEMORY,
 };
 use alloc::vec::Vec;
 use core::fmt;
@@ -129,21 +130,22 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
 
     let mut out = Vec::with_capacity(mappings.len());
     for map in mappings {
-        let purpose = if kernel_heap_addr(map.virt_start) && kernel_heap_addr(map.virt_end) {
+        let range = VirtAddrRange::new(map.virt_start, map.virt_end);
+        let purpose = if KERNEL_HEAP.contains(&range) {
             PagePurpose::KernelHeap
-        } else if kernel_stack_addr(map.virt_start) && kernel_stack_addr(map.virt_end) {
+        } else if KERNEL_STACK.contains(&range) {
             PagePurpose::KernelStack
-        } else if map.virt_start == PHYSICAL_MEMORY_OFFSET {
+        } else if PHYSICAL_MEMORY.contains(&range) {
             PagePurpose::AllPhysicalMemory
-        } else if map.virt_start <= const_addr1 && const_addr1 <= map.virt_end {
+        } else if KERNEL_BINARY.contains(&range) && range.contains_addr(const_addr1) {
             PagePurpose::KernelConstants
-        } else if map.virt_start <= const_addr2 && const_addr2 <= map.virt_end {
+        } else if KERNEL_BINARY.contains(&range) && range.contains_addr(const_addr2) {
             PagePurpose::KernelStrings
-        } else if map.virt_start <= static_addr && static_addr <= map.virt_end {
+        } else if KERNEL_BINARY.contains(&range) && range.contains_addr(static_addr) {
             PagePurpose::KernelStatics
-        } else if map.virt_start <= code_addr && code_addr <= map.virt_end {
+        } else if KERNEL_BINARY.contains(&range) && range.contains_addr(code_addr) {
             PagePurpose::KernelCode
-        } else if map.virt_start == BOOT_INFO_START {
+        } else if BOOT_INFO.contains(&range) {
             PagePurpose::BootInfo
         } else {
             PagePurpose::Unknown
