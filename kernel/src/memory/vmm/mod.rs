@@ -13,9 +13,9 @@ use crate::memory::vmm::mapping::PagePurpose;
 use crate::memory::KERNEL_HEAP;
 use crate::{println, Locked};
 use fixed_size_block::FixedSizeBlockAllocator;
-use x86_64::structures::paging::mapper::{MapToError, TranslateResult};
+use x86_64::structures::paging::mapper::{MapToError, MapperFlushAll};
 use x86_64::structures::paging::{
-    FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, Size4KiB, Translate,
+    FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, Size4KiB,
 };
 
 mod bump;
@@ -66,33 +66,55 @@ pub fn init(
 // any unknown mappings left over by the bootloader.
 //
 unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
+    // Analyse and iterate through the page mappings
+    // in the PML4.
+    //
+    // Rather than constantly flushing the TLB as we
+    // go along, we do one big flush at the end.
     let mappings = mapping::level_4_table(mapper.level_4_table());
     for mapping in mappings.iter() {
         match mapping.purpose {
             // Unmap pages we no longer need.
             PagePurpose::Unknown | PagePurpose::NullPage | PagePurpose::Userspace => {
-                for page in mapping.page_range() {
-                    mapper
-                        .unmap(page)
-                        .expect("failed to unmap page")
-                        .1 // This returns a tuple of the frame and the flusher.
-                        .flush();
-                }
+                mapping.unmap(mapper).expect("failed to unmap page");
             }
-            PagePurpose::KernelStack => {
-                for page in mapping.page_range() {
-                    let res = mapper.translate(page.start_address());
-                    if let TranslateResult::Mapped { flags, .. } = res {
-                        mapper
-                            .update_flags(page, flags | PageTableFlags::NO_EXECUTE)
-                            .expect("failed to remap stack page as NO_EXECUTE")
-                            .flush();
-                    }
-                }
+            // Global and read-write (kernel stack, heap, data, physical memory).
+            PagePurpose::KernelStack
+            | PagePurpose::KernelHeap
+            | PagePurpose::KernelStatics
+            | PagePurpose::AllPhysicalMemory => {
+                let flags = PageTableFlags::GLOBAL
+                    | PageTableFlags::PRESENT
+                    | PageTableFlags::WRITABLE
+                    | PageTableFlags::NO_EXECUTE;
+                mapping
+                    .update_flags(mapper, flags)
+                    .expect("failed to update page flags");
             }
-            _ => {}
+            // Global read only (kernel constants, boot info).
+            PagePurpose::KernelConstants | PagePurpose::KernelStrings | PagePurpose::BootInfo => {
+                let flags =
+                    PageTableFlags::GLOBAL | PageTableFlags::PRESENT | PageTableFlags::NO_EXECUTE;
+                mapping
+                    .update_flags(mapper, flags)
+                    .expect("failed to update page flags");
+            }
+            // Global read execute (kernel code).
+            PagePurpose::KernelCode => {
+                let flags = PageTableFlags::GLOBAL | PageTableFlags::PRESENT;
+                mapping
+                    .update_flags(mapper, flags)
+                    .expect("failed to update page flags");
+            }
+            // This shouldn't happen.
+            PagePurpose::KernelBinaryUnknown => {
+                println!("WARNING: detected unknown kernel binary page:\n{}", mapping);
+            }
         }
     }
+
+    // Flush the TLB.
+    MapperFlushAll::new().flush_all();
 }
 
 /// align_up aligns the given address upwards to alignment align.

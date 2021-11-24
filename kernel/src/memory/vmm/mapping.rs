@@ -9,8 +9,9 @@ use alloc::vec::Vec;
 use core::fmt;
 use core::sync::atomic::{AtomicU64, Ordering};
 use x86_64::instructions;
-use x86_64::structures::paging::page::{Page, PageRangeInclusive};
-use x86_64::structures::paging::{PageTable, PageTableFlags};
+use x86_64::structures::paging::mapper::{FlagUpdateError, Mapper, OffsetPageTable, UnmapError};
+use x86_64::structures::paging::page::Page;
+use x86_64::structures::paging::{PageTable, PageTableFlags, Size1GiB, Size2MiB, Size4KiB};
 use x86_64::{PhysAddr, VirtAddr};
 
 // indices_to_addr converts a sequence of page table
@@ -312,13 +313,80 @@ impl Mapping {
         }
     }
 
-    /// page_range returns an iterator over the
-    /// virtual pages covered by this mapping.
+    /// unmap uses the given mapper to unmap the
+    /// entire mapping.
     ///
-    pub fn page_range(&self) -> PageRangeInclusive {
-        let start = Page::containing_address(self.virt_start);
-        let end = Page::containing_address(self.virt_end);
-        Page::range_inclusive(start, end)
+    /// Note that unmap will not flush the TLB.
+    ///
+    pub fn unmap(&self, mapper: &mut OffsetPageTable) -> Result<(), UnmapError> {
+        match self.page_size {
+            PageBytesSize::Size4KiB => {
+                let start = Page::<Size4KiB>::containing_address(self.virt_start);
+                let end = Page::<Size4KiB>::containing_address(self.virt_end);
+                let range = Page::range_inclusive(start, end);
+                for page in range {
+                    mapper.unmap(page)?.1.ignore();
+                }
+            }
+            PageBytesSize::Size2MiB => {
+                let start = Page::<Size2MiB>::containing_address(self.virt_start);
+                let end = Page::<Size2MiB>::containing_address(self.virt_end);
+                let range = Page::range_inclusive(start, end);
+                for page in range {
+                    mapper.unmap(page)?.1.ignore();
+                }
+            }
+            PageBytesSize::Size1GiB => {
+                let start = Page::<Size1GiB>::containing_address(self.virt_start);
+                let end = Page::<Size1GiB>::containing_address(self.virt_end);
+                let range = Page::range_inclusive(start, end);
+                for page in range {
+                    mapper.unmap(page)?.1.ignore();
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// update_flags uses the given mapper to update the
+    /// flags entire mapping.
+    ///
+    /// Note that update_flags will not flush the TLB.
+    ///
+    pub fn update_flags(
+        &self,
+        mapper: &mut OffsetPageTable,
+        flags: PageTableFlags,
+    ) -> Result<(), FlagUpdateError> {
+        match self.page_size {
+            PageBytesSize::Size4KiB => {
+                let start = Page::<Size4KiB>::containing_address(self.virt_start);
+                let end = Page::<Size4KiB>::containing_address(self.virt_end);
+                let range = Page::range_inclusive(start, end);
+                for page in range {
+                    unsafe { mapper.update_flags(page, flags) }?.ignore();
+                }
+            }
+            PageBytesSize::Size2MiB => {
+                let start = Page::<Size2MiB>::containing_address(self.virt_start);
+                let end = Page::<Size2MiB>::containing_address(self.virt_end);
+                let range = Page::range_inclusive(start, end);
+                for page in range {
+                    unsafe { mapper.update_flags(page, flags) }?.ignore();
+                }
+            }
+            PageBytesSize::Size1GiB => {
+                let start = Page::<Size1GiB>::containing_address(self.virt_start);
+                let end = Page::<Size1GiB>::containing_address(self.virt_end);
+                let range = Page::range_inclusive(start, end);
+                for page in range {
+                    unsafe { mapper.update_flags(page, flags) }?.ignore();
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
