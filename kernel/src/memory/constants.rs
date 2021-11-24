@@ -16,11 +16,27 @@ use x86_64::{PhysAddr, VirtAddr};
 //
 // | Region              |         Start address |          Last address |
 // | ------------------- | --------------------- | --------------------- |
+// | NULL page           |                   0x0 |             0x1f_ffff |
+// | Userspace           |             0x20_0000 |      0x7fff_ffff_ffff |
 // | Kernel binary       | 0xffff_8000_0000_0000 | 0xffff_8000_3fff_ffff |
 // | Bootloader info     | 0xffff_8000_4000_0000 | 0xffff_8000_4000_0fff |
 // | Kernel heap         | 0xffff_8000_4444_0000 | 0xffff_8000_444b_ffff |
 // | Kernel stack        | 0xffff_8000_5555_1000 | 0xffff_8000_555d_0fff |
 // | Physical memory map | 0xffff_8000_6000_0000 | 0xffff_ffff_ffff_ffff |
+
+/// NULL_PAGE is reserved and always unmapped to ensure that null pointer
+/// dereferences always result in a page fault.
+///
+pub const NULL_PAGE: VirtAddrRange = VirtAddrRange::new(NULL_PAGE_START, NULL_PAGE_END);
+const NULL_PAGE_START: VirtAddr = VirtAddr::zero();
+const NULL_PAGE_END: VirtAddr = const_virt_addr(0x1f_ffff as u64);
+
+/// USERSPACE is the address space in which memory can be allocated for
+/// userspace programs.
+///
+pub const USERSPACE: VirtAddrRange = VirtAddrRange::new(USERSPACE_START, USERSPACE_END);
+const USERSPACE_START: VirtAddr = const_virt_addr(0x20_0000 as u64);
+const USERSPACE_END: VirtAddr = const_virt_addr(0x7fff_ffff_ffff as u64);
 
 /// KERNEL_BINARY is the virtual address at which the kernel binary
 /// is loaded.

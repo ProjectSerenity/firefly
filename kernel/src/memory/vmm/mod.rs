@@ -69,11 +69,12 @@ unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
     let mappings = mapping::level_4_table(mapper.level_4_table());
     for mapping in mappings.iter() {
         match mapping.purpose {
-            PagePurpose::Unknown => {
+            // Unmap pages we no longer need.
+            PagePurpose::Unknown | PagePurpose::NullPage | PagePurpose::Userspace => {
                 for page in mapping.page_range() {
                     mapper
                         .unmap(page)
-                        .expect("failed to unmap unknown page")
+                        .expect("failed to unmap page")
                         .1 // This returns a tuple of the frame and the flusher.
                         .flush();
                 }

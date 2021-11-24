@@ -3,7 +3,7 @@
 
 use crate::memory::{
     phys_to_virt_addr, VirtAddrRange, BOOT_INFO, KERNEL_BINARY, KERNEL_HEAP, KERNEL_STACK,
-    PHYSICAL_MEMORY,
+    NULL_PAGE, PHYSICAL_MEMORY, USERSPACE,
 };
 use alloc::vec::Vec;
 use core::fmt;
@@ -131,22 +131,30 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
     let mut out = Vec::with_capacity(mappings.len());
     for map in mappings {
         let range = VirtAddrRange::new(map.virt_start, map.virt_end);
-        let purpose = if KERNEL_HEAP.contains(&range) {
+        let purpose = if NULL_PAGE.contains(&range) {
+            PagePurpose::NullPage
+        } else if USERSPACE.contains(&range) {
+            PagePurpose::Userspace
+        } else if KERNEL_BINARY.contains(&range) {
+            if range.contains_addr(const_addr1) {
+                PagePurpose::KernelConstants
+            } else if range.contains_addr(const_addr2) {
+                PagePurpose::KernelStrings
+            } else if range.contains_addr(static_addr) {
+                PagePurpose::KernelStatics
+            } else if range.contains_addr(code_addr) {
+                PagePurpose::KernelCode
+            } else {
+                PagePurpose::KernelBinaryUnknown
+            }
+        } else if BOOT_INFO.contains(&range) {
+            PagePurpose::BootInfo
+        } else if KERNEL_HEAP.contains(&range) {
             PagePurpose::KernelHeap
         } else if KERNEL_STACK.contains(&range) {
             PagePurpose::KernelStack
         } else if PHYSICAL_MEMORY.contains(&range) {
             PagePurpose::AllPhysicalMemory
-        } else if KERNEL_BINARY.contains(&range) && range.contains_addr(const_addr1) {
-            PagePurpose::KernelConstants
-        } else if KERNEL_BINARY.contains(&range) && range.contains_addr(const_addr2) {
-            PagePurpose::KernelStrings
-        } else if KERNEL_BINARY.contains(&range) && range.contains_addr(static_addr) {
-            PagePurpose::KernelStatics
-        } else if KERNEL_BINARY.contains(&range) && range.contains_addr(code_addr) {
-            PagePurpose::KernelCode
-        } else if BOOT_INFO.contains(&range) {
-            PagePurpose::BootInfo
         } else {
             PagePurpose::Unknown
         };
@@ -192,11 +200,14 @@ impl fmt::Display for PageBytesSize {
 #[derive(Clone, Copy, PartialEq)]
 pub enum PagePurpose {
     Unknown,
+    NullPage,
+    Userspace,
     BootInfo,
     KernelCode,
     KernelConstants,
     KernelStrings,
     KernelStatics,
+    KernelBinaryUnknown,
     KernelStack,
     KernelHeap,
     AllPhysicalMemory,
@@ -206,11 +217,14 @@ impl fmt::Display for PagePurpose {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             PagePurpose::Unknown => write!(f, ""),
+            PagePurpose::NullPage => write!(f, " (null page)"),
+            PagePurpose::Userspace => write!(f, " (userspace)"),
             PagePurpose::BootInfo => write!(f, " (boot info)"),
             PagePurpose::KernelCode => write!(f, " (kernel code)"),
             PagePurpose::KernelConstants => write!(f, " (kernel constants)"),
             PagePurpose::KernelStrings => write!(f, " (kernel strings)"),
             PagePurpose::KernelStatics => write!(f, " (kernel statics)"),
+            PagePurpose::KernelBinaryUnknown => write!(f, " (kernel binary unknown)"),
             PagePurpose::KernelStack => write!(f, " (kernel stack)"),
             PagePurpose::KernelHeap => write!(f, " (kernel heap)"),
             PagePurpose::AllPhysicalMemory => write!(f, " (all physical memory)"),
