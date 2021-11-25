@@ -11,7 +11,7 @@ use bootloader::bootinfo::{FrameRange, MemoryRegion, MemoryRegionType};
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use kernel::memory::pmm::BitmapFrameAllocator;
-use kernel::memory::{self, KERNEL_HEAP_SIZE};
+use kernel::memory::{self, KERNEL_HEAP};
 use kernel::Bitmap;
 use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame};
 use x86_64::PhysAddr;
@@ -46,7 +46,7 @@ fn large_vec() {
 
 #[test_case]
 fn many_boxes() {
-    for i in 0..KERNEL_HEAP_SIZE {
+    for i in 0..KERNEL_HEAP.size() {
         let x = Box::new(i);
         assert_eq!(*x, i);
     }
