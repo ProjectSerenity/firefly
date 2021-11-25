@@ -50,7 +50,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(not(test))]
 fn kmain(boot_info: &'static BootInfo) {
     // Set up the heap allocator.
-    let mut mapper = unsafe { memory::init(boot_info) };
+    unsafe { memory::init(boot_info) };
 
     println!("Kernel ready!");
     println!("Kernel booted at {}.", time::boot_time());
@@ -62,7 +62,7 @@ fn kmain(boot_info: &'static BootInfo) {
         println!("Kernel running on unknown CPU.");
     }
 
-    unsafe { memory::vmm::debug(mapper.level_4_table()) };
+    unsafe { memory::vmm::debug(memory::kernel_pml4().level_4_table()) };
     memory::pmm::debug();
 }
 

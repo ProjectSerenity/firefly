@@ -182,6 +182,7 @@
 use bootloader::BootInfo;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{OffsetPageTable, PageTable};
+use x86_64::VirtAddr;
 
 mod constants;
 pub mod pmm;
@@ -194,7 +195,14 @@ pub use crate::memory::constants::{
 
 // PML4 functionality.
 
-/// init initialises a new OffsetPageTable.
+/// KERNEL_PML4_ADDRESS contains the virtual address of the kernel's
+/// level 4 page table. This enables the kernel_pml4 function to
+/// construct the structured data.
+///
+static KERNEL_PML4_ADDRESS: spin::Mutex<VirtAddr> = spin::Mutex::new(VirtAddr::zero());
+
+/// init initialises the kernel's memory, including setting up the
+/// heap.
 ///
 /// # Safety
 ///
@@ -203,38 +211,34 @@ pub use crate::memory::constants::{
 /// PHYSICAL_MEMORY_OFFSET. Also, this function must be only called once
 /// to avoid aliasing &mut references (which is undefined behavior).
 ///
-pub unsafe fn init(boot_info: &'static BootInfo) -> OffsetPageTable<'static> {
-    let level_4_table = active_level_4_table();
-    let mut page_table = OffsetPageTable::new(level_4_table, PHYSICAL_MEMORY_OFFSET);
+pub unsafe fn init(boot_info: &'static BootInfo) {
+    // Prepare the kernel's PML4.
+    let (level_4_table_frame, _) = Cr3::read();
+    let phys = level_4_table_frame.start_address();
+    *KERNEL_PML4_ADDRESS.lock() = phys_to_virt_addr(phys);
+
+    let mut page_table = kernel_pml4();
     let mut frame_allocator = pmm::bootstrap(&boot_info.memory_map);
 
     vmm::init(&mut page_table, &mut frame_allocator).expect("heap initialization failed");
 
     // Switch over to a more sophisticated physical memory manager.
     pmm::init(frame_allocator);
-
-    page_table
 }
 
-/// active_level_4_table returns a mutable reference
-/// to the active level 4 table.
+/// kernel_pml4 returns a mutable reference to the
+/// kernel's level 4 table.
 ///
 /// # Safety
 ///
-/// This function is unsafe because the caller must
-/// guarantee that all physical memory is mapped to
-/// virtual memory at PHYSICAL_MEMORY_OFFSET.
-///
-/// active_level_4_table must only be called once to
+/// kernel_pml4 must only be called once at a time to
 /// avoid aliasing &mut references (which is undefined
 /// behavior).
 ///
-unsafe fn active_level_4_table() -> &'static mut PageTable {
-    let (level_4_table_frame, _) = Cr3::read();
-
-    let phys = level_4_table_frame.start_address();
-    let virt = phys_to_virt_addr(phys);
+pub unsafe fn kernel_pml4() -> OffsetPageTable<'static> {
+    let virt = KERNEL_PML4_ADDRESS.lock();
     let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
 
-    &mut *page_table_ptr // unsafe
+    let page_table = &mut *page_table_ptr; // unsafe
+    OffsetPageTable::new(page_table, PHYSICAL_MEMORY_OFFSET)
 }
