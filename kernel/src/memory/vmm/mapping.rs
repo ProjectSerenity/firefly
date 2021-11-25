@@ -3,7 +3,7 @@
 
 use crate::memory::{
     phys_to_virt_addr, VirtAddrRange, BOOT_INFO, KERNEL_BINARY, KERNEL_HEAP, KERNEL_STACK,
-    NULL_PAGE, PHYSICAL_MEMORY, USERSPACE,
+    KERNEL_STACK_GUARD, NULL_PAGE, PHYSICAL_MEMORY, USERSPACE,
 };
 use alloc::vec::Vec;
 use core::fmt;
@@ -154,6 +154,8 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
             PagePurpose::KernelHeap
         } else if KERNEL_STACK.contains(&range) {
             PagePurpose::KernelStack
+        } else if KERNEL_STACK_GUARD.contains(&range) {
+            PagePurpose::KernelStackGuard
         } else if PHYSICAL_MEMORY.contains(&range) {
             PagePurpose::AllPhysicalMemory
         } else {
@@ -210,6 +212,7 @@ pub enum PagePurpose {
     KernelStatics,
     KernelBinaryUnknown,
     KernelStack,
+    KernelStackGuard,
     KernelHeap,
     AllPhysicalMemory,
 }
@@ -227,6 +230,7 @@ impl fmt::Display for PagePurpose {
             PagePurpose::KernelStatics => write!(f, " (kernel statics)"),
             PagePurpose::KernelBinaryUnknown => write!(f, " (kernel binary unknown)"),
             PagePurpose::KernelStack => write!(f, " (kernel stack)"),
+            PagePurpose::KernelStackGuard => write!(f, " (kernel stack guard)"),
             PagePurpose::KernelHeap => write!(f, " (kernel heap)"),
             PagePurpose::AllPhysicalMemory => write!(f, " (all physical memory)"),
         }

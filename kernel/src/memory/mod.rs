@@ -189,7 +189,7 @@ pub mod vmm;
 
 pub use crate::memory::constants::{
     phys_to_virt_addr, VirtAddrRange, BOOT_INFO, KERNEL_BINARY, KERNEL_HEAP, KERNEL_STACK,
-    NULL_PAGE, PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET, USERSPACE,
+    KERNEL_STACK_GUARD, NULL_PAGE, PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET, USERSPACE,
 };
 
 // PML4 functionality.

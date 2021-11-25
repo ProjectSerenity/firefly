@@ -21,7 +21,8 @@ use x86_64::{PhysAddr, VirtAddr};
 // | Kernel binary       | 0xffff_8000_0000_0000 | 0xffff_8000_3fff_ffff |
 // | Bootloader info     | 0xffff_8000_4000_0000 | 0xffff_8000_4000_0fff |
 // | Kernel heap         | 0xffff_8000_4444_0000 | 0xffff_8000_444b_ffff |
-// | Kernel stack        | 0xffff_8000_5555_1000 | 0xffff_8000_555d_0fff |
+// | Kernel stack guard  | 0xffff_8000_5554_f000 | 0xffff_8000_5554_ffff |
+// | Kernel stack        | 0xffff_8000_5555_0000 | 0xffff_8000_555c_ffff |
 // | Physical memory map | 0xffff_8000_6000_0000 | 0xffff_ffff_ffff_ffff |
 
 /// NULL_PAGE is reserved and always unmapped to ensure that null pointer
@@ -59,14 +60,22 @@ pub const KERNEL_HEAP: VirtAddrRange = VirtAddrRange::new(KERNEL_HEAP_START, KER
 const KERNEL_HEAP_START: VirtAddr = const_virt_addr(0xffff_8000_4444_0000 as u64);
 const KERNEL_HEAP_END: VirtAddr = const_virt_addr(0xffff_8000_444b_ffff as u64);
 
+/// KERNEL_STACK_GUARD is the area of memory we deliberately leave unmapped
+/// so we can diagnose stack overflows by spotting page faults in this region.
+///
+pub const KERNEL_STACK_GUARD: VirtAddrRange =
+    VirtAddrRange::new(KERNEL_STACK_GUARD_START, KERNEL_STACK_GUARD_END);
+const KERNEL_STACK_GUARD_START: VirtAddr = const_virt_addr(0xffff_8000_5554_f000 as u64);
+const KERNEL_STACK_GUARD_END: VirtAddr = const_virt_addr(0xffff_8000_5554_ffff as u64);
+
 /// KERNEL_STACK is the virtual address of the kernel's stack.
 ///
 /// Note that the stack counts downwards, so the start address is larger than
 /// the end address.
 ///
 pub const KERNEL_STACK: VirtAddrRange = VirtAddrRange::new(KERNEL_STACK_END, KERNEL_STACK_START);
-const KERNEL_STACK_START: VirtAddr = const_virt_addr(0xffff_8000_555d_0fff as u64);
-const KERNEL_STACK_END: VirtAddr = const_virt_addr(0xffff_8000_5555_1000 as u64);
+const KERNEL_STACK_START: VirtAddr = const_virt_addr(0xffff_8000_555c_ffff as u64);
+const KERNEL_STACK_END: VirtAddr = const_virt_addr(0xffff_8000_5555_0000 as u64);
 
 /// PHYSICAL_MEMORY_OFFSET is the virtual address at which the mapping of
 /// all physical memory begins. That is, for any valid physical address,

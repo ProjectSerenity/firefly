@@ -75,7 +75,10 @@ unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
     for mapping in mappings.iter() {
         match mapping.purpose {
             // Unmap pages we no longer need.
-            PagePurpose::Unknown | PagePurpose::NullPage | PagePurpose::Userspace => {
+            PagePurpose::Unknown
+            | PagePurpose::NullPage
+            | PagePurpose::Userspace
+            | PagePurpose::KernelStackGuard => {
                 mapping.unmap(mapper).expect("failed to unmap page");
             }
             // Global and read-write (kernel stack, heap, data, physical memory).
