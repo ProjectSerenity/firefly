@@ -23,7 +23,8 @@ use x86_64::{PhysAddr, VirtAddr};
 // | Kernel heap         | 0xffff_8000_4444_0000 | 0xffff_8000_444b_ffff |
 // | Kernel stack guard  | 0xffff_8000_5554_f000 | 0xffff_8000_5554_ffff |
 // | Kernel stack        | 0xffff_8000_5555_0000 | 0xffff_8000_555c_ffff |
-// | Physical memory map | 0xffff_8000_6000_0000 | 0xffff_ffff_ffff_ffff |
+// | MMIO address space  | 0xffff_8000_6666_0000 | 0xffff_8000_6675_ffff |
+// | Physical memory map | 0xffff_8000_8000_0000 | 0xffff_ffff_ffff_ffff |
 
 /// NULL_PAGE is reserved and always unmapped to ensure that null pointer
 /// dereferences always result in a page fault.
@@ -77,6 +78,13 @@ pub const KERNEL_STACK: VirtAddrRange = VirtAddrRange::new(KERNEL_STACK_END, KER
 const KERNEL_STACK_START: VirtAddr = const_virt_addr(0xffff_8000_555c_ffff as u64);
 const KERNEL_STACK_END: VirtAddr = const_virt_addr(0xffff_8000_5555_0000 as u64);
 
+/// MMIO_SPACE is the virtual address space used for accessing
+/// hardware devices via memory mapped I/O.
+///
+pub const MMIO_SPACE: VirtAddrRange = VirtAddrRange::new(MMIO_SPACE_START, MMIO_SPACE_END);
+const MMIO_SPACE_START: VirtAddr = const_virt_addr(0xffff_8000_6666_0000 as u64);
+const MMIO_SPACE_END: VirtAddr = const_virt_addr(0xffff_8000_6675_ffff as u64);
+
 /// PHYSICAL_MEMORY_OFFSET is the virtual address at which the mapping of
 /// all physical memory begins. That is, for any valid physical address,
 /// that address can be reached at the same virtual address, plus
@@ -84,7 +92,7 @@ const KERNEL_STACK_END: VirtAddr = const_virt_addr(0xffff_8000_5555_0000 as u64)
 ///
 pub const PHYSICAL_MEMORY: VirtAddrRange =
     VirtAddrRange::new(PHYSICAL_MEMORY_OFFSET, VIRTUAL_MEMORY_END);
-pub const PHYSICAL_MEMORY_OFFSET: VirtAddr = const_virt_addr(0xffff_8000_6000_0000 as u64);
+pub const PHYSICAL_MEMORY_OFFSET: VirtAddr = const_virt_addr(0xffff_8000_8000_0000 as u64);
 const VIRTUAL_MEMORY_END: VirtAddr = const_virt_addr(0xffff_ffff_ffff_ffff as u64);
 
 /// phys_to_virt_addr returns a virtual address that is mapped to the

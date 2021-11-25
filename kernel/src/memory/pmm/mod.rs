@@ -18,7 +18,7 @@ lazy_static! {
     /// been set up. To bootstrap the heap, use a BootInfoFrameAllocator,
     /// then pass that to pmm::init so ALLOCATOR can take over.
     ///
-    static ref ALLOCATOR: Locked<BitmapFrameAllocator> = Locked::new(BitmapFrameAllocator::empty());
+    pub static ref ALLOCATOR: Locked<BitmapFrameAllocator> = Locked::new(BitmapFrameAllocator::empty());
 }
 
 /// init sets up the physical memory manager, taking over
