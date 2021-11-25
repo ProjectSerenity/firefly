@@ -35,23 +35,20 @@ entry_point!(kernel_main);
 #[allow(unused_variables)]
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     println!("Kernel booting...");
-    kernel::init();
+    kernel::init(boot_info);
 
     #[cfg(test)]
     test_main();
 
     #[cfg(not(test))]
-    kmain(boot_info);
+    kmain();
 
     kernel::shutdown_qemu();
     kernel::halt_loop();
 }
 
 #[cfg(not(test))]
-fn kmain(boot_info: &'static BootInfo) {
-    // Set up the heap allocator.
-    unsafe { memory::init(boot_info) };
-
+fn kmain() {
     println!("Kernel ready!");
     println!("Kernel booted at {}.", time::boot_time());
     if let Some(branding) = CPU_ID.get_processor_brand_string() {

@@ -11,7 +11,7 @@ use bootloader::bootinfo::{FrameRange, MemoryRegion, MemoryRegionType};
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use kernel::memory::pmm::BitmapFrameAllocator;
-use kernel::memory::{self, KERNEL_HEAP};
+use kernel::memory::KERNEL_HEAP;
 use kernel::Bitmap;
 use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame};
 use x86_64::PhysAddr;
@@ -19,8 +19,7 @@ use x86_64::PhysAddr;
 entry_point!(main);
 
 fn main(boot_info: &'static BootInfo) -> ! {
-    kernel::init();
-    unsafe { memory::init(boot_info) };
+    kernel::init(boot_info);
 
     test_main();
     loop {}

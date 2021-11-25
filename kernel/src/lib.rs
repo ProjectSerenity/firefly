@@ -31,6 +31,7 @@ extern crate alloc;
 
 use alloc::vec;
 use alloc::vec::Vec;
+use bootloader::BootInfo;
 use core::panic::PanicInfo;
 use lazy_static::lazy_static;
 use raw_cpuid::CpuId;
@@ -50,11 +51,14 @@ lazy_static! {
 
 /// init sets up critical core functions of the kernel.
 ///
-pub fn init() {
+pub fn init(boot_info: &'static BootInfo) {
     gdt::init();
     interrupts::init();
     time::init();
     x86_64::instructions::interrupts::enable();
+
+    // Set up the heap allocator.
+    unsafe { memory::init(boot_info) };
 }
 
 #[alloc_error_handler]
@@ -287,7 +291,7 @@ pub fn shutdown_qemu() {
 }
 
 #[cfg(test)]
-use bootloader::{entry_point, BootInfo};
+use bootloader::entry_point;
 
 #[cfg(test)]
 entry_point!(test_kernel_main);
@@ -295,8 +299,8 @@ entry_point!(test_kernel_main);
 /// test_kernel_main is the entry point for `cargo xtest`.
 ///
 #[cfg(test)]
-fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
-    init();
+fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
+    init(boot_info);
     test_main();
     halt_loop();
 }
