@@ -14,7 +14,7 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use kernel::{memory, println, time, CPU_ID};
+use kernel::{memory, pci, println, time, CPU_ID};
 
 /// This function is called on panic.
 #[cfg(not(test))]
@@ -61,6 +61,8 @@ fn kmain() {
 
     unsafe { memory::vmm::debug(memory::kernel_pml4().level_4_table()) };
     memory::pmm::debug();
+    pci::init();
+    pci::debug();
 }
 
 // Testing framework.
