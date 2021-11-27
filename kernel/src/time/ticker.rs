@@ -4,7 +4,6 @@
 // with a static TICKER instance used with interrupts to
 // track the passage of time.
 
-use crate::print;
 use spin::Mutex;
 use x86_64::instructions::port::Port;
 
@@ -18,9 +17,6 @@ static TICKER: Mutex<Ticker> = Mutex::new(Ticker::new());
 pub fn tick() {
     let mut ticker = TICKER.lock();
     ticker.counter += 1;
-    if ticker.counter % TICKS_PER_SECOND == 0 {
-        print!("\rUptime: {} seconds.", ticker.counter / TICKS_PER_SECOND);
-    }
 }
 
 /// ticks returns the number of ticks of the
