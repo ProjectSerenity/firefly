@@ -9,14 +9,15 @@ use x86_64::instructions::port::Port;
 pub const CONFIG_ADDRESS: u16 = 0xcf8;
 pub const CONFIG_DATA: u16 = 0xcfc;
 
+pub const NONE: u16 = 0xffff;
+
 pub const VENDOR_ID: u8 = 0x00;
 pub const DEVICE_ID: u8 = 0x02;
 pub const COMMAND: u8 = 0x04;
 pub const SUBCLASS: u8 = 0x0a;
 pub const CLASS: u8 = 0x0b;
 pub const HEADER_TYPE: u8 = 0x0e;
-
-pub const NONE: u16 = 0xffff;
+pub const INTERRUPT_LINE: u8 = 0x3c;
 
 pub const BAR0: u8 = 0x10;
 pub const BAR1: u8 = 0x14;
@@ -157,6 +158,10 @@ impl Device {
 
     pub fn write_field_u32(&self, field: u8, value: u32) {
         write_u32(self.bus, self.slot, self.func, field, value);
+    }
+
+    pub fn get_irq(&self) -> usize {
+        self.read_field_u8(INTERRUPT_LINE) as usize
     }
 }
 
