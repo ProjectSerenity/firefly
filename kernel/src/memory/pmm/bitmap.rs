@@ -6,6 +6,7 @@ use crate::{println, Bitmap};
 use alloc::vec::Vec;
 use bootloader::bootinfo::{MemoryRegion, MemoryRegionType};
 use core::slice::Iter;
+use x86_64::structures::paging::frame::PhysFrameRange;
 use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame, Size4KiB};
 use x86_64::PhysAddr;
 
@@ -121,6 +122,29 @@ impl BitmapPool {
         }
     }
 
+    /// allocate_n_frames returns n sequential free frames,
+    /// or None.
+    ///
+    pub fn allocate_n_frames(&mut self, n: usize) -> Option<PhysFrameRange> {
+        if n == 0 || self.free_frames == 0 {
+            return None;
+        }
+
+        match self.bitmap.next_n_set(n) {
+            None => None,
+            Some(index) => {
+                for i in 0..n {
+                    self.bitmap.unset(index + i);
+                }
+
+                self.free_frames -= n as u64;
+                let start = self.frame_at(index);
+                let end = self.frame_at(index + n);
+                Some(PhysFrame::range(start, end))
+            }
+        }
+    }
+
     /// mark_frame_allocated marks the given frame as
     /// allocated.
     ///
@@ -232,6 +256,20 @@ impl BitmapFrameAllocator {
             free_frames,
             pools,
         }
+    }
+
+    /// allocate_n_frames returns n sequential free frames,
+    /// or None.
+    ///
+    pub fn allocate_n_frames(&mut self, n: usize) -> Option<PhysFrameRange> {
+        for pool in self.pools.iter_mut() {
+            if let Some(range) = pool.allocate_n_frames(n) {
+                self.free_frames -= n as u64;
+                return Some(range);
+            }
+        }
+
+        None
     }
 
     /// mark_frame_allocated marks the given frame as

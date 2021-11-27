@@ -112,10 +112,14 @@ impl Bitmap {
     /// bits set to true.
     ///
     pub fn new_set(num: usize) -> Self {
-        Bitmap {
-            num,
-            bits: vec![!0u64; (num + 63) / 64],
+        // Make sure we only set the bits we
+        // have.
+        let mut bitmap = Bitmap::new_unset(num);
+        for i in 0..num {
+            bitmap.set(i);
         }
+
+        bitmap
     }
 
     /// new_unset returns a new bitmap with all
@@ -188,6 +192,27 @@ impl Bitmap {
             for j in 0..64 {
                 let mask = 1u64 << (j as u64);
                 if values & mask == mask {
+                    return Some(i * 64 + j);
+                }
+            }
+        }
+
+        None
+    }
+
+    // next_n_set returns the smallest i, such that
+    // bits i to i+n-1 are set (true), or None if
+    // no such i can be found..
+    //
+    pub fn next_n_set(&self, n: usize) -> Option<usize> {
+        let mut mask = 0u64;
+        for i in 0..n {
+            mask |= 1 << i;
+        }
+
+        for (i, values) in self.bits.iter().enumerate() {
+            for j in 0..64 - n {
+                if values & mask << j == mask << j {
                     return Some(i * 64 + j);
                 }
             }

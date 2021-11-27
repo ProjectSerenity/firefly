@@ -13,6 +13,7 @@ use core::panic::PanicInfo;
 use kernel::memory::pmm::BitmapFrameAllocator;
 use kernel::memory::KERNEL_HEAP;
 use kernel::Bitmap;
+use x86_64::structures::paging::frame::PhysFrameRange;
 use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame};
 use x86_64::PhysAddr;
 
@@ -195,6 +196,29 @@ fn bitmap_frame_allocator() {
 
     // Check that we get nothing once we run out of frames.
     assert_eq!(alloc.allocate_frame(), None);
+    assert_eq!(alloc.num_frames, 6u64);
+    assert_eq!(alloc.free_frames, 0u64);
+
+    // Check that sequential allocations work correctly.
+
+    // Deallocate 2 non-sequential frames, expect None.
+    unsafe { alloc.deallocate_frame(frame_for(0x5000)) };
+    unsafe { alloc.deallocate_frame(frame_for(0x7000)) };
+    assert_eq!(alloc.allocate_n_frames(2), None);
+
+    // Leave 2 sequential frames, check we get the right pair.
+    // Note: we use PhysFrameRange, not PhysFrameRangeInclusive.
+    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x5000)));
+    unsafe { alloc.deallocate_frame(frame_for(0x6000)) };
+    assert_eq!(
+        alloc.allocate_n_frames(2),
+        Some(PhysFrameRange {
+            start: frame_for(0x6000),
+            end: frame_for(0x8000) // exclusive
+        })
+    );
+
+    // Check that we get nothing once we run out of frames.
     assert_eq!(alloc.num_frames, 6u64);
     assert_eq!(alloc.free_frames, 0u64);
 }
