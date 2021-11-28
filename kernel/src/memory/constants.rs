@@ -14,17 +14,18 @@ use x86_64::{PhysAddr, VirtAddr};
 // Reminder of the memory layout (documented in more
 // detail in README.md):
 //
-// | Region              |         Start address |          Last address |
-// | ------------------- | --------------------- | --------------------- |
-// | NULL page           |                   0x0 |             0x1f_ffff |
-// | Userspace           |             0x20_0000 |      0x7fff_ffff_ffff |
-// | Kernel binary       | 0xffff_8000_0000_0000 | 0xffff_8000_3fff_ffff |
-// | Bootloader info     | 0xffff_8000_4000_0000 | 0xffff_8000_4000_0fff |
-// | Kernel heap         | 0xffff_8000_4444_0000 | 0xffff_8000_444b_ffff |
-// | Kernel stack guard  | 0xffff_8000_5554_f000 | 0xffff_8000_5554_ffff |
-// | Kernel stack        | 0xffff_8000_5555_0000 | 0xffff_8000_555c_ffff |
-// | MMIO address space  | 0xffff_8000_6666_0000 | 0xffff_8000_6675_ffff |
-// | Physical memory map | 0xffff_8000_8000_0000 | 0xffff_ffff_ffff_ffff |
+// | Region               |         Start address |          Last address |
+// | -------------------- | --------------------- | --------------------- |
+// | NULL page            |                   0x0 |             0x1f_ffff |
+// | Userspace            |             0x20_0000 |      0x7fff_ffff_ffff |
+// | Kernel binary        | 0xffff_8000_0000_0000 | 0xffff_8000_3fff_ffff |
+// | Bootloader info      | 0xffff_8000_4000_0000 | 0xffff_8000_4000_0fff |
+// | Kernel heap          | 0xffff_8000_4444_0000 | 0xffff_8000_444b_ffff |
+// | Kernel stack 0 guard | 0xffff_8000_5554_f000 | 0xffff_8000_5554_ffff |
+// | Kernel stack 0       | 0xffff_8000_5555_0000 | 0xffff_8000_555c_ffff |
+// | Kernel stacks 1+     | 0xffff_8000_555d_0000 | 0xffff_8000_5d5c_ffff |
+// | MMIO address space   | 0xffff_8000_6666_0000 | 0xffff_8000_6675_ffff |
+// | Physical memory map  | 0xffff_8000_8000_0000 | 0xffff_ffff_ffff_ffff |
 
 /// NULL_PAGE is reserved and always unmapped to ensure that null pointer
 /// dereferences always result in a page fault.
@@ -75,8 +76,9 @@ const KERNEL_STACK_GUARD_END: VirtAddr = const_virt_addr(0xffff_8000_5554_ffff a
 /// the end address.
 ///
 pub const KERNEL_STACK: VirtAddrRange = VirtAddrRange::new(KERNEL_STACK_END, KERNEL_STACK_START);
-const KERNEL_STACK_START: VirtAddr = const_virt_addr(0xffff_8000_555c_ffff as u64);
+const KERNEL_STACK_START: VirtAddr = const_virt_addr(0xffff_8000_5d5c_ffff as u64);
 const KERNEL_STACK_END: VirtAddr = const_virt_addr(0xffff_8000_5555_0000 as u64);
+pub const KERNEL_STACK_1_START: VirtAddr = const_virt_addr(0xffff_8000_555d_0000 as u64);
 
 /// MMIO_SPACE is the virtual address space used for accessing
 /// hardware devices via memory mapped I/O.
