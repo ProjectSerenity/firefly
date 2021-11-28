@@ -14,7 +14,7 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use kernel::{memory, pci, println, time, CPU_ID};
+use kernel::{memory, pci, println};
 
 /// This function is called on panic.
 #[cfg(not(test))]
@@ -48,6 +48,8 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
 #[cfg(not(test))]
 fn kmain() {
+    use kernel::{time, CPU_ID};
+
     println!("Kernel ready!");
     println!("Kernel booted at {}.", time::boot_time());
     if let Some(branding) = CPU_ID.get_processor_brand_string() {
