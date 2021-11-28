@@ -62,8 +62,6 @@ fn kmain() {
 
     pci::init();
 
-    debug();
-
     kernel::shutdown_qemu();
 }
 
