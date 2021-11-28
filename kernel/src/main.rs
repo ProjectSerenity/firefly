@@ -43,7 +43,6 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     #[cfg(not(test))]
     kmain();
 
-    kernel::shutdown_qemu();
     kernel::halt_loop();
 }
 
@@ -63,6 +62,8 @@ fn kmain() {
     memory::pmm::debug();
     pci::init();
     pci::debug();
+
+    kernel::shutdown_qemu();
 }
 
 // Testing framework.
