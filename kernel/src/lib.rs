@@ -39,10 +39,10 @@ pub mod drivers;
 pub mod gdt;
 pub mod interrupts;
 pub mod memory;
+pub mod multitasking;
 pub mod pci;
 pub mod serial;
 pub mod structures;
-pub mod task;
 pub mod time;
 
 lazy_static! {
