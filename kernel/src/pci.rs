@@ -216,8 +216,8 @@ fn scan_slot(bus: u8, slot: u8) {
         devtype,
     };
 
-    if drivers::device_supported(&dev) {
-        drivers::register_device(dev);
+    if let Some(driver) = drivers::device_supported(&dev) {
+        driver(dev);
     } else {
         UNKNOWN_DEVICES.lock().push(dev);
     }
