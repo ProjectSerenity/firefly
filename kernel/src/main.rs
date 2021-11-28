@@ -58,12 +58,23 @@ fn kmain() {
         println!("Kernel running on unknown CPU.");
     }
 
-    unsafe { memory::vmm::debug(memory::kernel_pml4().level_4_table()) };
-    memory::pmm::debug();
     pci::init();
-    pci::debug();
+
+    debug();
 
     kernel::shutdown_qemu();
+}
+
+#[allow(dead_code)]
+fn debug() {
+    // Virtual memory.
+    unsafe { memory::vmm::debug(memory::kernel_pml4().level_4_table()) };
+
+    // Physical memory.
+    memory::pmm::debug();
+
+    // Unclaimed PCI devices.
+    pci::debug();
 }
 
 // Testing framework.
