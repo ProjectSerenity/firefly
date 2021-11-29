@@ -13,6 +13,7 @@ use crate::memory::vmm::mapping::PagePurpose;
 use crate::memory::KERNEL_HEAP;
 use crate::{println, Locked};
 use fixed_size_block::FixedSizeBlockAllocator;
+use x86_64::registers::control::{Cr4, Cr4Flags};
 use x86_64::structures::paging::mapper::{MapToError, MapperFlushAll};
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, Size4KiB,
@@ -54,6 +55,12 @@ pub fn init(
             KERNEL_HEAP.size() as usize,
         );
     }
+
+    // Set the CR4 fields, so we can then use the global
+    // page flag when we remap the kernel.
+    let mut flags = Cr4::read();
+    flags |= Cr4Flags::PAGE_GLOBAL; // Enable the global flag in page tables.
+    unsafe { Cr4::write(flags) };
 
     // Remap the kernel, now that the heap is set up.
     unsafe { remap_kernel(mapper) };
