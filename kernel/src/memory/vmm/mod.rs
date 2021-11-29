@@ -14,6 +14,7 @@ use crate::memory::KERNEL_HEAP;
 use crate::{println, Locked};
 use fixed_size_block::FixedSizeBlockAllocator;
 use x86_64::registers::control::{Cr4, Cr4Flags};
+use x86_64::registers::model_specific::{Efer, EferFlags};
 use x86_64::structures::paging::mapper::{MapToError, MapperFlushAll};
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, Size4KiB,
@@ -61,6 +62,12 @@ pub fn init(
     let mut flags = Cr4::read();
     flags |= Cr4Flags::PAGE_GLOBAL; // Enable the global flag in page tables.
     unsafe { Cr4::write(flags) };
+
+    // Set the EFER fields, so we can use the no-execute
+    // page flag when we remap the kernel.
+    let mut flags = Efer::read();
+    flags |= EferFlags::NO_EXECUTE_ENABLE; // Enable the no-execute flag in page tables.
+    unsafe { Efer::write(flags) };
 
     // Remap the kernel, now that the heap is set up.
     unsafe { remap_kernel(mapper) };
