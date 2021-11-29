@@ -3,7 +3,7 @@
 
 use crate::memory::pmm::boot_info::BootInfoFrameAllocator;
 use crate::println;
-use crate::structures::bitmap::Bitmap;
+use crate::utils::bitmap::Bitmap;
 use alloc::vec::Vec;
 use bootloader::bootinfo::{MemoryRegion, MemoryRegionType};
 use core::slice::Iter;

@@ -42,8 +42,8 @@ pub mod memory;
 pub mod multitasking;
 pub mod pci;
 pub mod serial;
-pub mod structures;
 pub mod time;
+pub mod utils;
 
 lazy_static! {
     #[doc(hidden)]
