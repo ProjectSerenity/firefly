@@ -22,13 +22,16 @@
 #![cfg_attr(test, no_main)]
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
+#![feature(const_btree_new)]
 #![feature(const_mut_refs)]
 #![feature(custom_test_frameworks)]
+#![feature(global_asm)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
 extern crate alloc;
 
+use crate::multitasking::thread;
 use bootloader::BootInfo;
 use core::panic::PanicInfo;
 use lazy_static::lazy_static;
@@ -60,6 +63,7 @@ pub fn init(boot_info: &'static BootInfo) {
 
     // Set up the heap allocator.
     unsafe { memory::init(boot_info) };
+    thread::init();
 }
 
 #[alloc_error_handler]

@@ -17,8 +17,12 @@
 // build the memory manager.
 
 use bootloader::BootInfo;
+use core::sync::atomic::{AtomicU64, Ordering};
 use x86_64::registers::control::Cr3;
-use x86_64::structures::paging::{OffsetPageTable, PageTable};
+use x86_64::structures::paging::mapper::MapToError;
+use x86_64::structures::paging::{
+    FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, Size4KiB,
+};
 use x86_64::VirtAddr;
 
 mod constants;
@@ -80,6 +84,93 @@ pub unsafe fn kernel_pml4() -> OffsetPageTable<'static> {
 
     let page_table = &mut *page_table_ptr; // unsafe
     OffsetPageTable::new(page_table, PHYSICAL_MEMORY_OFFSET)
+}
+
+/// StackBounds describes the address space used
+/// for a stack.
+///
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StackBounds {
+    start: VirtAddr,
+    end: VirtAddr,
+}
+
+impl StackBounds {
+    /// from returns a set of stack bounds consisting of the
+    /// given virtual address range.
+    ///
+    pub fn from(range: &VirtAddrRange) -> Self {
+        StackBounds {
+            start: range.start(),
+            end: range.end() + 1u64, // StackBounds is exclusive, range is inclusive.
+        }
+    }
+
+    /// start returns the smallest valid address in the
+    /// stack bounds. As the stack grows downwards, this
+    /// is also known as the bottom of the stack.
+    ///
+    pub fn start(&self) -> VirtAddr {
+        self.start
+    }
+
+    /// end returns the first address beyond the stack
+    /// bounds. As the stack grows downwards, this is
+    /// also known as the top of the stack.
+    ///
+    pub fn end(&self) -> VirtAddr {
+        self.end
+    }
+}
+
+/// reserve_kernel_stack reserves num_pages pages of
+/// stack memory for a kernel thread.
+///
+/// reserve_kernel_stack returns the page at the start
+/// of the stack (the lowest address).
+///
+fn reserve_kernel_stack(num_pages: u64) -> Page {
+    static STACK_ALLOC_NEXT: AtomicU64 = AtomicU64::new(constants::KERNEL_STACK_1_START.as_u64());
+    let start_addr = VirtAddr::new(
+        STACK_ALLOC_NEXT.fetch_add(num_pages * Page::<Size4KiB>::SIZE, Ordering::Relaxed),
+    );
+
+    let last_addr = start_addr + (num_pages * Page::<Size4KiB>::SIZE) - 1u64;
+    if !KERNEL_STACK.contains_range(start_addr, last_addr) {
+        panic!("cannot reserve kernel stack: kernel stack space exhausted");
+    }
+
+    Page::from_start_address(start_addr).expect("`STACK_ALLOC_NEXT` not page aligned")
+}
+
+/// new_kernel_stack allocates num_pages pages of stack
+/// memory for a kernel thread and guard page, returning
+/// the address space of the allocated stack.
+///
+pub fn new_kernel_stack(num_pages: u64) -> Result<StackBounds, MapToError<Size4KiB>> {
+    let guard_page = reserve_kernel_stack(num_pages + 1);
+    let stack_start = guard_page + 1;
+    let stack_end = stack_start + num_pages;
+
+    let mut mapper = unsafe { kernel_pml4() };
+    let mut frame_allocator = pmm::ALLOCATOR.lock();
+    for page in Page::range(stack_start, stack_end) {
+        let frame = frame_allocator
+            .allocate_frame()
+            .ok_or(MapToError::FrameAllocationFailed)?;
+
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+        unsafe {
+            mapper
+                .map_to(page, frame, flags, &mut *frame_allocator)?
+                .flush()
+        };
+    }
+
+    Ok(StackBounds {
+        start: stack_start.start_address(),
+        end: stack_end.start_address(),
+    })
 }
 
 #[test_case]

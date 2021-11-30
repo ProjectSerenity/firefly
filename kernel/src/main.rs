@@ -14,6 +14,7 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
+use kernel::multitasking::thread;
 use kernel::{memory, pci, println};
 
 /// This function is called on panic.
@@ -62,7 +63,26 @@ fn kmain() {
 
     pci::init();
 
-    kernel::shutdown_qemu();
+    // Schedule the thread we want to run next
+    // with switch.
+    thread::Thread::new_kernel_thread(debug_threading);
+
+    // Hand over to the scheduler.
+    thread::switch();
+
+    // We're now executing as the idle
+    // thread.
+    thread::idle_thread();
+}
+
+fn debug_threading() -> ! {
+    let foo: u64 = 1;
+    println!(
+        "Successfully entered new thread with stack address {:p}.",
+        &foo
+    );
+
+    thread::exit();
 }
 
 #[allow(dead_code)]
