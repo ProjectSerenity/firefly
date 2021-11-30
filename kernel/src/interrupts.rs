@@ -31,6 +31,7 @@
 use crate::{gdt, halt_loop, println, time};
 use lazy_static::lazy_static;
 use pic8259::ChainedPics;
+use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
 
@@ -130,11 +131,8 @@ fn irq_handler_none(_frame: InterruptStackFrame, _irq: u8) {}
 
 #[inline]
 fn irq_handler_generic(frame: InterruptStackFrame, irq: u8) {
-    let irqs = IRQS.try_lock();
-    if let Some(irqs) = irqs {
-        let handler = irqs[irq as usize];
-        handler(frame, irq);
-    }
+    let handler = IRQS.lock()[irq as usize];
+    handler(frame, irq);
 
     unsafe {
         PICS.lock()
@@ -218,16 +216,18 @@ static IRQS: spin::Mutex<[IrqHandler; 16]> = spin::Mutex::new([irq_handler_none;
 /// panics.
 ///
 pub fn register_irq(irq: u8, handler: IrqHandler) {
-    let mut irqs = IRQS.lock();
     if irq > 15 {
         panic!("invalid IRQ {} passed to register_irq", irq);
     }
 
-    if irqs[irq as usize] != irq_handler_none {
-        panic!("IRQ {} has already been registered", irq);
-    }
+    interrupts::without_interrupts(|| {
+        let mut irqs = IRQS.lock();
+        if irqs[irq as usize] != irq_handler_none {
+            panic!("IRQ {} has already been registered", irq);
+        }
 
-    irqs[irq as usize] = handler;
+        irqs[irq as usize] = handler;
+    });
 }
 
 // Tests
