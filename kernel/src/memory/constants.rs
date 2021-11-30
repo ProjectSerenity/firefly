@@ -72,12 +72,16 @@ const KERNEL_STACK_GUARD_END: VirtAddr = const_virt_addr(0xffff_8000_5554_ffff a
 
 /// KERNEL_STACK is the virtual address of the kernel's stack.
 ///
-/// Note that the stack counts downwards, so the start address is larger than
-/// the end address.
+/// Note that even though the stack counts downwards, we use the smaller address as
+/// the start address and the larger address as the end address.
 ///
-pub const KERNEL_STACK: VirtAddrRange = VirtAddrRange::new(KERNEL_STACK_END, KERNEL_STACK_START);
-const KERNEL_STACK_START: VirtAddr = const_virt_addr(0xffff_8000_5d5c_ffff as u64);
-const KERNEL_STACK_END: VirtAddr = const_virt_addr(0xffff_8000_5555_0000 as u64);
+pub const KERNEL_STACK: VirtAddrRange = VirtAddrRange::new(KERNEL_STACK_START, KERNEL_STACK_END);
+const KERNEL_STACK_START: VirtAddr = const_virt_addr(0xffff_8000_5555_0000 as u64);
+const KERNEL_STACK_END: VirtAddr = const_virt_addr(0xffff_8000_5d5c_ffff as u64);
+pub const KERNEL_STACK_0: VirtAddrRange =
+    VirtAddrRange::new(KERNEL_STACK_0_START, KERNEL_STACK_0_END);
+const KERNEL_STACK_0_START: VirtAddr = KERNEL_STACK_START;
+const KERNEL_STACK_0_END: VirtAddr = const_virt_addr(0xffff_8000_555c_ffff as u64);
 pub const KERNEL_STACK_1_START: VirtAddr = const_virt_addr(0xffff_8000_555d_0000 as u64);
 
 /// MMIO_SPACE is the virtual address space used for accessing
