@@ -13,6 +13,7 @@ Firefly uses the following layout of virtual memory:
 | Kernel stack 0       | `0xffff_8000_5555_0000` | `0xffff_8000_555c_ffff` |       128x 4 KiB page |   512 KiB |
 | Kernel stacks 1+     | `0xffff_8000_555d_0000` | `0xffff_8000_5d5c_ffff` |    32,768x 4 KiB page |   128 MiB |
 | MMIO address space   | `0xffff_8000_6666_0000` | `0xffff_8000_6675_ffff` |       256x 4 KiB page |     1 MiB |
+| CPU-local storage    | `0xffff_8000_7777_0000` | `0xffff_8000_7f76_ffff` |    32,768x 4 KiB page |   128 MiB |
 | Physical memory map  | `0xffff_8000_8000_0000` | `0xffff_ffff_ffff_ffff` |        rest of memory | < 128 TiB |
 
 ## Paging

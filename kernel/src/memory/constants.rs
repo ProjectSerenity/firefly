@@ -25,6 +25,7 @@ use x86_64::{PhysAddr, VirtAddr};
 // | Kernel stack 0       | 0xffff_8000_5555_0000 | 0xffff_8000_555c_ffff |
 // | Kernel stacks 1+     | 0xffff_8000_555d_0000 | 0xffff_8000_5d5c_ffff |
 // | MMIO address space   | 0xffff_8000_6666_0000 | 0xffff_8000_6675_ffff |
+// | CPU-local storage    | 0xffff_8000_7777_0000 | 0xffff_8000_7f76_ffff |
 // | Physical memory map  | 0xffff_8000_8000_0000 | 0xffff_ffff_ffff_ffff |
 
 /// NULL_PAGE is reserved and always unmapped to ensure that null pointer
@@ -90,6 +91,15 @@ pub const KERNEL_STACK_1_START: VirtAddr = const_virt_addr(0xffff_8000_555d_0000
 pub const MMIO_SPACE: VirtAddrRange = VirtAddrRange::new(MMIO_SPACE_START, MMIO_SPACE_END);
 const MMIO_SPACE_START: VirtAddr = const_virt_addr(0xffff_8000_6666_0000 as u64);
 const MMIO_SPACE_END: VirtAddr = const_virt_addr(0xffff_8000_6675_ffff as u64);
+
+/// CPU_LOCAL is the virtual address space used for storing
+/// CPU-local data. Successive CPU cores use successive chunks of
+/// the address space, with each chunk containing a copy of the
+/// .tdata and .tbss segments from the TLS template.
+///
+pub const CPU_LOCAL: VirtAddrRange = VirtAddrRange::new(CPU_LOCAL_START, CPU_LOCAL_END);
+const CPU_LOCAL_START: VirtAddr = const_virt_addr(0xffff_8000_7777_0000 as u64);
+const CPU_LOCAL_END: VirtAddr = const_virt_addr(0xffff_8000_7f76_ffff as u64);
 
 /// PHYSICAL_MEMORY_OFFSET is the virtual address at which the mapping of
 /// all physical memory begins. That is, for any valid physical address,
