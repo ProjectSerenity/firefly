@@ -1,9 +1,9 @@
 //! thread implements preemptive multitasking, using threads of execution.
 
-use crate::memory::{new_kernel_stack, StackBounds, KERNEL_STACK_0};
+use crate::memory::{new_kernel_stack, StackBounds, VirtAddrRange};
+use crate::multitasking::cpu_local::{current_thread, idle_thread, set_current_thread};
 use crate::multitasking::thread::scheduler::Scheduler;
 use crate::println;
-use crate::utils::lazy::Lazy;
 use crate::utils::once::Once;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -14,17 +14,6 @@ use crossbeam::atomic::AtomicCell;
 
 mod scheduler;
 mod switch;
-
-/// IDLE_THREAD is the idle kernel thread, which we
-/// only ever execute if no other threads are runnable.
-///
-/// Note that this is not thread-safe, as we haven't
-/// set up thread-local storage yet. However, as we
-/// haven't set up multiple CPUs yet either, it's
-/// safe in practice. We still have to use unsafe
-/// to access it, but for now that will have to do.
-///
-pub static mut IDLE_THREAD: Lazy<Arc<Thread>> = Lazy::new();
 
 type ThreadTable = BTreeMap<ThreadId, Arc<Thread>>;
 
@@ -38,23 +27,6 @@ static THREADS: spin::Mutex<ThreadTable> = spin::Mutex::new(BTreeMap::new());
 /// SCHEDULER is the thread scheduler.
 ///
 static SCHEDULER: Once<spin::Mutex<Scheduler>> = Once::new();
-
-/// CURRENT is the currently executing thread, which
-/// is initialised in init().
-///
-/// Note that this is not thread-safe, as we haven't
-/// set up thread-local storage yet. However, as we
-/// haven't set up multiple CPUs yet either, it's
-/// safe in practice. We still have to use unsafe
-/// to access it, but for now that will have to do.
-///
-static mut CURRENT: Lazy<Arc<Thread>> = Lazy::new();
-
-/// current_thread returns the currently executing thread.
-///
-pub fn current_thread() -> &'static Arc<Thread> {
-    unsafe { CURRENT.get() }
-}
 
 /// DEAD_STACKS is a free list of kernel stacks that
 /// have been released by kernel threads that have
@@ -72,11 +44,11 @@ pub fn current_thread() -> &'static Arc<Thread> {
 ///
 static DEAD_STACKS: spin::Mutex<Vec<StackBounds>> = spin::Mutex::new(Vec::new());
 
-/// idle_thread implements the idle thread. We
+/// idle_loop implements the idle thread. We
 /// fall back to this if the kernel has no other
 /// work left to do.
 ///
-pub fn idle_thread() -> ! {
+pub fn idle_loop() -> ! {
     println!("Kernel entering the idle thread.");
     loop {
         println!("Shutting down.");
@@ -101,18 +73,6 @@ const DEFAULT_RFLAGS: u64 = 0x2;
 /// init prepares the thread scheduler.
 ///
 pub fn init() {
-    // Set up the idle thread so that when
-    // kmain hands over to the scheduler,
-    // the idle thread inherits the kernel's
-    // initial stack and has something to
-    // fall back to if no other threads
-    // are runnable.
-    let idle = Thread::new_idle_thread();
-    unsafe {
-        CURRENT.set(idle.clone());
-        IDLE_THREAD.set(idle);
-    }
-
     SCHEDULER.init(|| spin::Mutex::new(Scheduler::new()));
 }
 
@@ -135,7 +95,7 @@ pub fn switch() {
 
         match scheduler.next() {
             Some(thread) => THREADS.lock().get(&thread).unwrap().clone(),
-            None => unsafe { IDLE_THREAD.get().clone() },
+            None => idle_thread(),
         }
     };
 
@@ -153,7 +113,7 @@ pub fn switch() {
     let new_stack_pointer = next.stack_pointer.get();
 
     // Switch into the next thread.
-    unsafe { CURRENT.set(next.clone()) };
+    set_current_thread(next.clone());
     unsafe { switch::switch_stack(current_stack_pointer, new_stack_pointer) };
 }
 
@@ -257,7 +217,7 @@ impl Thread {
     /// new_idle_thread creates a new kernel thread, to
     /// which we fall back if no other threads are runnable.
     ///
-    fn new_idle_thread() -> Arc<Thread> {
+    pub fn new_idle_thread(stack_space: &VirtAddrRange) -> Arc<Thread> {
         // The idle thread always has thread id 0, which
         // is otherwise invalid.
         let id = ThreadId(0);
@@ -273,7 +233,7 @@ impl Thread {
         // We inherit the kernel's initial stack, although
         // we never access any data previously stored
         // on the stack.
-        let stack_bounds = Some(StackBounds::from(&KERNEL_STACK_0));
+        let stack_bounds = Some(StackBounds::from(stack_space));
 
         let thread = Arc::new(Thread {
             id,

@@ -31,7 +31,8 @@
 
 extern crate alloc;
 
-use crate::multitasking::thread;
+use crate::memory::KERNEL_STACK_0;
+use crate::multitasking::{cpu_local, thread};
 use bootloader::BootInfo;
 use core::panic::PanicInfo;
 use lazy_static::lazy_static;
@@ -63,6 +64,7 @@ pub fn init(boot_info: &'static BootInfo) {
 
     // Set up the heap allocator.
     unsafe { memory::init(boot_info) };
+    cpu_local::init(cpu_local::CpuId::new(), &KERNEL_STACK_0);
     thread::init();
 }
 

@@ -72,7 +72,7 @@ fn kmain() {
 
     // We're now executing as the idle
     // thread.
-    thread::idle_thread();
+    thread::idle_loop();
 }
 
 fn debug_threading() -> ! {
