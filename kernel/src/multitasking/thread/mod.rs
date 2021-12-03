@@ -233,13 +233,13 @@ impl Thread {
         thread
     }
 
-    /// new_kernel_thread creates a new kernel thread,
+    /// start_kernel_thread creates a new kernel thread,
     /// allocating a stack, and adding it to the scheduler.
     ///
     /// When the thread runs, it will start by enabling
     /// interrupts and calling entry_point.
     ///
-    pub fn new_kernel_thread(entry_point: fn() -> !) {
+    pub fn start_kernel_thread(entry_point: fn() -> !) {
         // Allocate and prepare the stack pointer.
         let stack = new_kernel_stack(Thread::DEFAULT_KERNEL_STACK_PAGES)
             .expect("failed to allocate stack for new kernel thread");
