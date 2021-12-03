@@ -1,0 +1,4 @@
+[toolchain]
+channel = "nightly-2021-12-02"
+profile = "minimal"
+components = ["rustfmt", "rust-src", "llvm-tools-preview"]
