@@ -30,10 +30,6 @@ use x86_64::structures::paging::{
 /// space.
 ///
 pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
-    if cpu_id.0 != 0 {
-        unimplemented!("additional CPUs not implemented: no idle stack space");
-    }
-
     // Next, work out where we will store our CpuId
     // data. We align up to page size to make paging
     // easier.
