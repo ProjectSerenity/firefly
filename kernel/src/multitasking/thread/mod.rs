@@ -8,6 +8,7 @@ use crate::utils::once::Once;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use core::cell::UnsafeCell;
+use core::mem;
 use core::sync::atomic::{AtomicU64, Ordering};
 use crossbeam::atomic::AtomicCell;
 
@@ -64,7 +65,7 @@ pub fn init() {
 /// again.
 ///
 pub fn switch() {
-    let current = current_thread().clone();
+    let current = current_thread();
     let next = {
         let scheduler = SCHEDULER.lock();
 
@@ -95,9 +96,26 @@ pub fn switch() {
     let current_stack_pointer = current.stack_pointer.get();
     let new_stack_pointer = next.stack_pointer.get();
 
+    // We drop the reference count for both threads here,
+    // as the current thread will never return from switch_stack
+    // if it's exiting. This should be safe, as there's still
+    // a reference to the current thread in the per-CPU data.
+    debug_assert!(Arc::strong_count(&current) > 1);
+    debug_assert!(Arc::strong_count(&next) > 1);
+    unsafe {
+        Arc::decrement_strong_count(Arc::as_ptr(&current));
+        Arc::decrement_strong_count(Arc::as_ptr(&next));
+    }
+
     // Switch into the next thread.
-    set_current_thread(next.clone());
+    set_current_thread(next);
     unsafe { switch::switch_stack(current_stack_pointer, new_stack_pointer) };
+
+    // Don't call current's destructor as we've already
+    // decremented the reference count with `Arc::decrement_strong_count`
+    // above. We moved next into set_current_thread, so that
+    // wouldn't be destructed here anyway.
+    mem::forget(current);
 }
 
 /// exit terminates the current thread and switches to
