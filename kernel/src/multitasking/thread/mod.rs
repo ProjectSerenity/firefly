@@ -1,13 +1,12 @@
 //! thread implements preemptive multitasking, using threads of execution.
 
-use crate::memory::{new_kernel_stack, StackBounds, VirtAddrRange};
+use crate::memory::{free_kernel_stack, new_kernel_stack, StackBounds, VirtAddrRange};
 use crate::multitasking::cpu_local::{current_thread, idle_thread, set_current_thread};
 use crate::multitasking::thread::scheduler::Scheduler;
 use crate::println;
 use crate::utils::once::Once;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
-use alloc::vec::Vec;
 use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicU64, Ordering};
 use crossbeam::atomic::AtomicCell;
@@ -27,22 +26,6 @@ static THREADS: spin::Mutex<ThreadTable> = spin::Mutex::new(BTreeMap::new());
 /// SCHEDULER is the thread scheduler.
 ///
 static SCHEDULER: Once<spin::Mutex<Scheduler>> = Once::new();
-
-/// DEAD_STACKS is a free list of kernel stacks that
-/// have been released by kernel threads that have
-/// exited.
-///
-/// If there is a stack available in DEAD_STACKS
-/// when a new thread is created, it is used instead
-/// of allocating a new stack. This mitigates the
-/// inability to track unused stacks in new_kernel_stack,
-/// which would otherwise limit the number of
-/// kernel threads that can be created during the
-/// lifetime of the kernel. Instead, we're left
-/// with just a limit on the number of simultaneous
-/// kernel threads.
-///
-static DEAD_STACKS: spin::Mutex<Vec<StackBounds>> = spin::Mutex::new(Vec::new());
 
 /// idle_loop implements the idle thread. We
 /// fall back to this if the kernel has no other
@@ -129,7 +112,7 @@ pub fn exit() -> ! {
     current.set_state(ThreadState::Exited);
     THREADS.lock().remove(&current.id);
     if let Some(bounds) = current.stack_bounds {
-        DEAD_STACKS.lock().push(bounds);
+        free_kernel_stack(bounds);
     }
 
     // We've now been unscheduled, so we
@@ -258,16 +241,8 @@ impl Thread {
     ///
     pub fn new_kernel_thread(entry_point: fn() -> !) {
         // Allocate and prepare the stack pointer.
-        // Check if we can reuse a dead stack, rather
-        // than allocating a new one.
-        let stack = {
-            let mut stacks = DEAD_STACKS.lock();
-            match stacks.pop() {
-                Some(stack) => stack,
-                None => new_kernel_stack(Thread::DEFAULT_KERNEL_STACK_PAGES)
-                    .expect("failed to allocate stack for new kernel thread"),
-            }
-        };
+        let stack = new_kernel_stack(Thread::DEFAULT_KERNEL_STACK_PAGES)
+            .expect("failed to allocate stack for new kernel thread");
 
         let rsp = unsafe {
             let mut rsp: *mut u64 = stack.end().as_mut_ptr();

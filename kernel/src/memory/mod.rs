@@ -16,12 +16,13 @@
 // allocator, which is used in the allocator module to
 // build the memory manager.
 
+use alloc::vec::Vec;
 use bootloader::BootInfo;
 use core::sync::atomic::{AtomicU64, Ordering};
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::{
-    FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, Size4KiB,
+    FrameAllocator, Mapper, OffsetPageTable, Page, PageSize, PageTable, PageTableFlags, Size4KiB,
 };
 use x86_64::VirtAddr;
 
@@ -121,6 +122,13 @@ impl StackBounds {
     pub fn end(&self) -> VirtAddr {
         self.end
     }
+
+    /// num_pages returns the number of pages included
+    /// in the bounds.
+    ///
+    pub fn num_pages(&self) -> u64 {
+        (self.end - self.start) / Size4KiB::SIZE as u64
+    }
 }
 
 /// reserve_kernel_stack reserves num_pages pages of
@@ -143,11 +151,42 @@ fn reserve_kernel_stack(num_pages: u64) -> Page {
     Page::from_start_address(start_addr).expect("`STACK_ALLOC_NEXT` not page aligned")
 }
 
+/// DEAD_STACKS is a free list of kernel stacks that
+/// have been released by kernel threads that have
+/// exited.
+///
+/// If there is a stack available in DEAD_STACKS
+/// when a new thread is created, it is used instead
+/// of allocating a new stack. This mitigates the
+/// inability to track unused stacks in new_kernel_stack,
+/// which would otherwise limit the number of
+/// kernel threads that can be created during the
+/// lifetime of the kernel. Instead, we're left
+/// with just a limit on the number of simultaneous
+/// kernel threads.
+///
+static DEAD_STACKS: spin::Mutex<Vec<StackBounds>> = spin::Mutex::new(Vec::new());
+
 /// new_kernel_stack allocates num_pages pages of stack
 /// memory for a kernel thread and guard page, returning
 /// the address space of the allocated stack.
 ///
 pub fn new_kernel_stack(num_pages: u64) -> Result<StackBounds, MapToError<Size4KiB>> {
+    // Check whether we can just recycle an old stack.
+    // We use an extra scope so we don't hold the lock
+    // on DEAD_STACKS for unnecessarily long.
+    {
+        let mut stacks = DEAD_STACKS.lock();
+        let stack = stacks.pop();
+        if let Some(stack) = stack {
+            if stack.num_pages() >= num_pages {
+                return Ok(stack);
+            } else {
+                stacks.push(stack);
+            }
+        }
+    }
+
     let guard_page = reserve_kernel_stack(num_pages + 1);
     let stack_start = guard_page + 1;
     let stack_end = stack_start + num_pages;
@@ -171,6 +210,13 @@ pub fn new_kernel_stack(num_pages: u64) -> Result<StackBounds, MapToError<Size4K
         start: stack_start.start_address(),
         end: stack_end.start_address(),
     })
+}
+
+/// free_kernel_stack adds the given stack to the dead
+/// stacks list, allowing us to reuse it in future.
+///
+pub fn free_kernel_stack(stack_bounds: StackBounds) {
+    DEAD_STACKS.lock().push(stack_bounds);
 }
 
 #[test_case]
