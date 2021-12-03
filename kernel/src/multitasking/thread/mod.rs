@@ -109,7 +109,7 @@ pub fn exit() -> ! {
         panic!("idle thread tried to exit");
     }
 
-    current.set_state(ThreadState::Exited);
+    current.set_state(ThreadState::Exiting);
     THREADS.lock().remove(&current.id);
     if let Some(bounds) = current.stack_bounds {
         free_kernel_stack(bounds);
@@ -148,8 +148,9 @@ pub enum ThreadState {
     /// The thread is runnable.
     Runnable,
 
-    /// The thread has exited.
-    Exited,
+    /// The thread is in the process
+    /// of exiting.
+    Exiting,
 }
 
 /// Thread contains the data necessary to contain
@@ -298,7 +299,7 @@ impl Thread {
         self.state.store(new_state);
         match new_state {
             ThreadState::Runnable => {}
-            ThreadState::Exited => {
+            ThreadState::Exiting => {
                 scheduler.remove(self.id);
             }
         }
