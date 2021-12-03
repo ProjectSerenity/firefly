@@ -123,9 +123,14 @@ unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
                     .update_flags(mapper, flags)
                     .expect("failed to update page flags");
             }
-            // This shouldn't happen.
+            // This means a segment spans multiple pages
+            // and the page we got in our constants was
+            // not in this one, so we don't know which
+            // segment this is.
             PagePurpose::KernelBinaryUnknown => {
-                println!("WARNING: detected unknown kernel binary page:\n{}", mapping);
+                // Leave with the default flags. They might have more
+                // permissions than we'd like, but removing permissions
+                // could easily break things.
             }
         }
     }
