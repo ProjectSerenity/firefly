@@ -132,6 +132,12 @@ unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
                 // permissions than we'd like, but removing permissions
                 // could easily break things.
             }
+            // MMIO and CPU-local data won't have been
+            // mapped yet, so this shouldn't happen,
+            // but if it does, we just leave it as is.
+            PagePurpose::Mmio | PagePurpose::CpuLocal => {
+                // Nothing to do.
+            }
         }
     }
 

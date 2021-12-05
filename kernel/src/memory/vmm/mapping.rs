@@ -2,9 +2,10 @@
 //! on the contents of a level 4 page table.
 
 use crate::memory::{
-    phys_to_virt_addr, VirtAddrRange, BOOT_INFO, KERNEL_BINARY, KERNEL_HEAP, KERNEL_STACK,
-    KERNEL_STACK_GUARD, NULL_PAGE, PHYSICAL_MEMORY, USERSPACE,
+    phys_to_virt_addr, VirtAddrRange, BOOT_INFO, CPU_LOCAL, KERNEL_BINARY, KERNEL_HEAP,
+    KERNEL_STACK, KERNEL_STACK_GUARD, MMIO_SPACE, NULL_PAGE, PHYSICAL_MEMORY, USERSPACE,
 };
+use crate::utils::pretty::Bytes;
 use alloc::vec::Vec;
 use core::fmt;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -156,6 +157,10 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
             PagePurpose::KernelStack
         } else if KERNEL_STACK_GUARD.contains(&range) {
             PagePurpose::KernelStackGuard
+        } else if MMIO_SPACE.contains(&range) {
+            PagePurpose::Mmio
+        } else if CPU_LOCAL.contains(&range) {
+            PagePurpose::CpuLocal
         } else if PHYSICAL_MEMORY.contains(&range) {
             PagePurpose::AllPhysicalMemory
         } else {
@@ -211,9 +216,11 @@ pub enum PagePurpose {
     KernelStrings,
     KernelStatics,
     KernelBinaryUnknown,
+    KernelHeap,
     KernelStack,
     KernelStackGuard,
-    KernelHeap,
+    Mmio,
+    CpuLocal,
     AllPhysicalMemory,
 }
 
@@ -229,9 +236,11 @@ impl fmt::Display for PagePurpose {
             PagePurpose::KernelStrings => write!(f, " (kernel strings)"),
             PagePurpose::KernelStatics => write!(f, " (kernel statics)"),
             PagePurpose::KernelBinaryUnknown => write!(f, " (kernel binary unknown)"),
+            PagePurpose::KernelHeap => write!(f, " (kernel heap)"),
             PagePurpose::KernelStack => write!(f, " (kernel stack)"),
             PagePurpose::KernelStackGuard => write!(f, " (kernel stack guard)"),
-            PagePurpose::KernelHeap => write!(f, " (kernel heap)"),
+            PagePurpose::Mmio => write!(f, " (MMIO)"),
+            PagePurpose::CpuLocal => write!(f, " (CPU-local data)"),
             PagePurpose::AllPhysicalMemory => write!(f, " (all physical memory)"),
         }
     }
