@@ -3,3 +3,4 @@
 pub mod bitmap;
 pub mod lazy;
 pub mod once;
+pub mod pretty;

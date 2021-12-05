@@ -192,16 +192,6 @@ impl PageBytesSize {
     }
 }
 
-impl fmt::Display for PageBytesSize {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            PageBytesSize::Size1GiB => write!(f, "{}", "1GiB"),
-            PageBytesSize::Size2MiB => write!(f, "{}", "2MiB"),
-            PageBytesSize::Size4KiB => write!(f, "{}", "4kiB"),
-        }
-    }
-}
-
 /// PagePurpose describes the known use of a contiguous
 /// set of mapped pages.
 ///
@@ -254,7 +244,7 @@ pub struct Mapping {
     pub virt_end: VirtAddr,
     pub phys_start: PhysAddr,
     pub phys_end: PhysAddr,
-    pub page_count: usize,
+    pub page_count: u64,
     pub page_size: PageBytesSize,
     pub flags: PageTableFlags,
     pub purpose: PagePurpose,
@@ -434,13 +424,14 @@ impl fmt::Display for Mapping {
 
         write!(
             f,
-            "{:p}-{:p} -> {:p}-{:p} {}x {} page {}{}{}{}{}{}",
+            "{:p}-{:p} -> {:p}-{:p} {}x {} page ({}) {}{}{}{}{}{}",
             self.virt_start,
             self.virt_end,
             self.phys_start,
             self.phys_end,
             self.page_count,
-            self.page_size,
+            Bytes::from_u64(self.page_size.size()),
+            Bytes::from_u64(self.page_count * self.page_size.size()),
             global,
             user,
             read,

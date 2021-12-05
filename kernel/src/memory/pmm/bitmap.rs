@@ -4,6 +4,7 @@
 use crate::memory::pmm::boot_info::BootInfoFrameAllocator;
 use crate::println;
 use crate::utils::bitmap::Bitmap;
+use crate::utils::pretty::Bytes;
 use alloc::vec::Vec;
 use bootloader::bootinfo::{MemoryRegion, MemoryRegionType};
 use core::slice::Iter;
@@ -312,10 +313,21 @@ impl BitmapFrameAllocator {
             "physical memory manager: {}/{} frames available.",
             self.free_frames, self.num_frames
         );
+        println!(
+            "{} used, {} free, {} total",
+            Bytes::from_u64((self.num_frames - self.free_frames) * 4096),
+            Bytes::from_u64(self.free_frames * 4096),
+            Bytes::from_u64(self.num_frames * 4096)
+        );
         for pool in self.pools.iter() {
             println!(
-                "{:p}-{:p} {}x 4kiB frame ({} free)",
-                pool.start_address, pool.last_address, pool.num_frames, pool.free_frames
+                "{:p}-{:p} {}x {} frame ({} free: {})",
+                pool.start_address,
+                pool.last_address,
+                pool.num_frames,
+                Bytes::from_u64(4096),
+                pool.free_frames,
+                Bytes::from_u64(pool.free_frames * 4096)
             );
         }
     }
