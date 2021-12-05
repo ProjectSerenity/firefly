@@ -129,6 +129,13 @@ impl StackBounds {
     pub fn num_pages(&self) -> u64 {
         (self.end - self.start) / Size4KiB::SIZE as u64
     }
+
+    /// contains returns whether the stack bounds include
+    /// the given virtual address.
+    ///
+    pub fn contains(&self, addr: VirtAddr) -> bool {
+        self.start <= addr && addr < self.end
+    }
 }
 
 /// reserve_kernel_stack reserves num_pages pages of

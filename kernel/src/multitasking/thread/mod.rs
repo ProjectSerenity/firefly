@@ -5,12 +5,14 @@ use crate::multitasking::cpu_local::{current_thread, idle_thread, set_current_th
 use crate::multitasking::thread::scheduler::Scheduler;
 use crate::println;
 use crate::utils::once::Once;
+use crate::utils::pretty::Bytes;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use core::cell::UnsafeCell;
 use core::mem;
 use core::sync::atomic::{AtomicU64, Ordering};
 use crossbeam::atomic::AtomicCell;
+use x86_64::VirtAddr;
 
 mod scheduler;
 mod switch;
@@ -137,6 +139,27 @@ pub fn exit() -> ! {
     // switch to the next thread.
     switch();
     unreachable!("Exited thread was re-scheduled somehow");
+}
+
+/// debug prints debug information about the currently
+/// executing thread.
+///
+/// Note: to debug a non-executing thread, call
+/// its debug method.
+///
+pub fn debug() {
+    // Start by getting the current stack pointer.
+    let rsp: u64;
+    unsafe {
+        asm!("mov {}, rsp", out(reg) rsp, options(nostack, nomem, preserves_flags));
+    }
+
+    // Update the current stack pointer.
+    let current = current_thread();
+    unsafe { current.stack_pointer.get().write(rsp) };
+
+    // Debug as normal.
+    current.debug();
 }
 
 /// ThreadId uniquely identifies a thread.
@@ -321,5 +344,48 @@ impl Thread {
                 scheduler.remove(self.id);
             }
         }
+    }
+
+    /// debug prints debug information about the
+    /// thread.
+    ///
+    /// Do not call debug on the currently executing
+    /// thread, as its stack pointer will be out of
+    /// date. Call thread::debug() instead.
+    ///
+    pub fn debug(&self) {
+        let stack_bounds = match self.stack_bounds {
+            Some(bounds) => bounds,
+            None => {
+                println!("thread {:?} has no stack", self.id.0);
+                return;
+            }
+        };
+
+        let stack_pointer = unsafe { VirtAddr::new(*self.stack_pointer.get()) };
+        if !stack_bounds.contains(stack_pointer) {
+            panic!(
+                "thread {:?}: current stack pointer {:p} is not in stack bounds {:p}-{:p}",
+                self.id.0,
+                stack_pointer,
+                stack_bounds.start(),
+                stack_bounds.end()
+            );
+        }
+
+        // Do the calculations, remembering that the stack grows
+        // downwards, so some of these look the wrong way around.
+        let total_stack = stack_bounds.end() - stack_bounds.start();
+        let used_stack = stack_bounds.end() - stack_pointer;
+        let free_stack = stack_pointer - stack_bounds.start();
+        let percent = (100 * used_stack) / total_stack;
+        println!(
+            "thread {:?}: {} ({}%) of stack used, {} / {} remaining.",
+            self.id.0,
+            Bytes::from_u64(used_stack),
+            percent,
+            Bytes::from_u64(free_stack),
+            Bytes::from_u64(total_stack)
+        );
     }
 }

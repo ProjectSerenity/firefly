@@ -22,6 +22,7 @@
 #![cfg_attr(test, no_main)]
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
+#![feature(asm)]
 #![feature(const_btree_new)]
 #![feature(const_mut_refs)]
 #![feature(custom_test_frameworks)]
