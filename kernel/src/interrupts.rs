@@ -28,7 +28,7 @@
 // IRQ handlers don't need to acknowledge the PIC, and
 // are passed the IRQ number.
 
-use crate::{gdt, halt_loop, println, time};
+use crate::{gdt, halt_loop, println};
 use lazy_static::lazy_static;
 use pic8259::ChainedPics;
 use x86_64::instructions::interrupts;
@@ -41,7 +41,6 @@ use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, Pag
 pub fn init() {
     IDT.load();
     unsafe { PICS.lock().initialize() };
-    register_irq(Irq::new_unsafe(0), timer_interrupt_handler);
 }
 
 lazy_static! {
@@ -131,14 +130,6 @@ extern "x86-interrupt" fn page_fault_handler(
     println!("Error Code: {:?}", error_code);
     println!("{:#?}", stack_frame);
     halt_loop();
-}
-
-// IRQ handlers.
-
-fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
-    time::tick();
-
-    irq.acknowledge();
 }
 
 // PIC code.

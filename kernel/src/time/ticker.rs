@@ -4,8 +4,10 @@
 // with a static TICKER instance used with interrupts to
 // track the passage of time.
 
+use crate::interrupts::{register_irq, Irq};
 use spin::Mutex;
 use x86_64::instructions::port::Port;
+use x86_64::structures::idt::InterruptStackFrame;
 
 // Lazily initialise TICKER as a Ticker, protected
 // by a spin lock.
@@ -14,7 +16,7 @@ static TICKER: Mutex<Ticker> = Mutex::new(Ticker::new());
 
 /// tick increments the internal chronometer.
 ///
-pub fn tick() {
+fn tick() {
     let mut ticker = TICKER.lock();
     ticker.counter += 1;
 }
@@ -31,6 +33,13 @@ pub fn ticks() -> u64 {
 ///
 pub fn init() {
     set_ticker_frequency(TICKS_PER_SECOND);
+    register_irq(Irq::new(0).expect("invalid IRQ"), timer_interrupt_handler);
+}
+
+fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
+    tick();
+
+    irq.acknowledge();
 }
 
 /// Ticker contains a counter, which is used

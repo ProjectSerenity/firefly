@@ -15,7 +15,7 @@ mod cmos;
 mod ticker;
 
 pub use crate::time::cmos::boot_time;
-pub use crate::time::ticker::{tick, ticks};
+pub use crate::time::ticker::ticks;
 pub use core::time::Duration;
 
 /// init sets up the time functionality, setting the
