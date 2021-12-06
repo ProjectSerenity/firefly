@@ -36,14 +36,13 @@ static SCHEDULER: Once<spin::Mutex<Scheduler>> = Once::new();
 ///
 pub fn idle_loop() -> ! {
     println!("Kernel entering the idle thread.");
-    loop {
-        println!("Shutting down.");
-        crate::shutdown_qemu();
 
-        #[allow(unreachable_code)]
-        {
-            x86_64::instructions::interrupts::enable_and_hlt();
-        }
+    println!("Shutting down.");
+    crate::shutdown_qemu();
+
+    #[allow(unreachable_code)]
+    loop {
+        x86_64::instructions::interrupts::enable_and_hlt();
     }
 }
 
