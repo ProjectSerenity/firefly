@@ -135,8 +135,10 @@ extern "x86-interrupt" fn page_fault_handler(
 
 // IRQ handlers.
 
-fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, _irq: Irq) {
+fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
     time::tick();
+
+    irq.acknowledge();
 }
 
 // PIC code.
@@ -228,8 +230,6 @@ fn irq_handler_none(_frame: InterruptStackFrame, _irq: Irq) {}
 fn irq_handler_generic(frame: InterruptStackFrame, irq: Irq) {
     let handler = IRQS.lock()[irq.as_usize()];
     handler(frame, irq);
-
-    irq.acknowledge();
 }
 
 extern "x86-interrupt" fn irq_handler_0(frame: InterruptStackFrame) {
@@ -301,6 +301,10 @@ extern "x86-interrupt" fn irq_handler_15(frame: InterruptStackFrame) {
 static IRQS: spin::Mutex<[IrqHandler; 16]> = spin::Mutex::new([irq_handler_none; 16]);
 
 /// register_irq sets the handler for the given IRQ.
+///
+/// The handler will almost certainly want to acknowledge
+/// the interrupt using irq.acknowledge(), so that future
+/// interrupts will follow.
 ///
 /// The irq parameter must be an integer between 0 and 15.
 ///
