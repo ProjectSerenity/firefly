@@ -12,9 +12,11 @@
 // the wall clock time when the kernel booted.
 
 mod cmos;
+mod slice;
 mod ticker;
 
 pub use crate::time::cmos::boot_time;
+pub use crate::time::slice::TimeSlice;
 pub use crate::time::ticker::{ticks, NANOSECONDS_PER_TICK, TICKS_PER_SECOND};
 pub use core::time::Duration;
 
