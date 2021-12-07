@@ -58,7 +58,7 @@ pub fn after(wait: Duration) -> Instant {
 /// made useful by comparing with another Instant to
 /// produce a Duration.
 ///
-#[derive(Copy, Clone, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 pub struct Instant(u64);
 
 /// BOOT_TIME is the Instant that represents the time
