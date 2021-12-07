@@ -68,11 +68,7 @@ fn kmain() {
     thread::Thread::start_kernel_thread(debug_threading);
 
     // Hand over to the scheduler.
-    thread::switch();
-
-    // We're now executing as the idle
-    // thread.
-    thread::idle_loop();
+    thread::start();
 }
 
 fn debug_threading() -> ! {

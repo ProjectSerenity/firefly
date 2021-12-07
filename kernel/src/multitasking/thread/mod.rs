@@ -34,7 +34,7 @@ static SCHEDULER: Once<spin::Mutex<Scheduler>> = Once::new();
 /// fall back to this if the kernel has no other
 /// work left to do.
 ///
-pub fn idle_loop() -> ! {
+fn idle_loop() -> ! {
     println!("Kernel entering the idle thread.");
 
     println!("Shutting down.");
@@ -59,6 +59,18 @@ const DEFAULT_RFLAGS: u64 = 0x2;
 ///
 pub fn init() {
     SCHEDULER.init(|| spin::Mutex::new(Scheduler::new()));
+}
+
+/// start hands control over to the scheduler, by
+/// letting the idle thread take control of the
+/// kernel's initial state.
+///
+pub fn start() -> ! {
+    // Hand over to the scheduler.
+    switch();
+
+    // We're now executing as the idle thread.
+    idle_loop();
 }
 
 /// switch schedules out the current thread and switches to
