@@ -201,7 +201,6 @@ pub struct Thread {
     id: ThreadId,
     state: AtomicCell<ThreadState>,
     stack_pointer: UnsafeCell<u64>,
-    #[allow(dead_code)]
     stack_bounds: Option<StackBounds>,
 }
 
