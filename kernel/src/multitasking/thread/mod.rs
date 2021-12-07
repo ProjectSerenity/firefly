@@ -10,7 +10,7 @@ use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use core::cell::UnsafeCell;
 use core::mem;
-use core::sync::atomic::{AtomicU64, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use crossbeam::atomic::AtomicCell;
 use x86_64::VirtAddr;
 
@@ -29,6 +29,12 @@ static THREADS: spin::Mutex<ThreadTable> = spin::Mutex::new(BTreeMap::new());
 /// SCHEDULER is the thread scheduler.
 ///
 static SCHEDULER: Once<spin::Mutex<Scheduler>> = Once::new();
+
+/// INITIALSED tracks whether the scheduler
+/// has been set up. It is set in start()
+/// and can be checked by calling ready().
+///
+static INITIALISED: AtomicBool = AtomicBool::new(false);
 
 /// idle_loop implements the idle thread. We
 /// fall back to this if the kernel has no other
@@ -66,11 +72,21 @@ pub fn init() {
 /// kernel's initial state.
 ///
 pub fn start() -> ! {
+    // Mark the scheduler as in control.
+    INITIALISED.store(true, Ordering::Relaxed);
+
     // Hand over to the scheduler.
     switch();
 
     // We're now executing as the idle thread.
     idle_loop();
+}
+
+/// ready returns whether the scheduler has been
+/// initialised.
+///
+pub fn ready() -> bool {
+    INITIALISED.load(Ordering::Relaxed)
 }
 
 /// switch schedules out the current thread and switches to
