@@ -102,7 +102,7 @@ pub fn switch() {
         // queue, unless it's the idle thread, which
         // always has thread id 0 (which is otherwise
         // invalid).
-        if current.id != ThreadId(0) && current.thread_state() == ThreadState::Runnable {
+        if current.id != ThreadId::IDLE && current.thread_state() == ThreadState::Runnable {
             scheduler.add(current.id);
         }
 
@@ -195,6 +195,10 @@ pub fn debug() {
 pub struct ThreadId(u64);
 
 impl ThreadId {
+    /// IDLE is the unique thread id for the idle thread.
+    ///
+    pub const IDLE: Self = ThreadId(0);
+
     /// new allocates and returns the next available
     /// ThreadId.
     ///
@@ -271,7 +275,7 @@ impl Thread {
     pub fn new_idle_thread(stack_space: &VirtAddrRange) -> Arc<Thread> {
         // The idle thread always has thread id 0, which
         // is otherwise invalid.
-        let id = ThreadId(0);
+        let id = ThreadId::IDLE;
 
         // The initial stack pointer is 0, as the idle
         // thread inherits the kernel's initial stack.
