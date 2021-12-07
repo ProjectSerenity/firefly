@@ -19,11 +19,18 @@ use crate::memory::{kernel_pml4, pmm, VirtAddrRange, CPU_LOCAL};
 use crate::multitasking::thread::Thread;
 use alloc::sync::Arc;
 use core::mem::size_of;
-use core::sync::atomic::{AtomicU64, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use x86_64::registers::model_specific::GsBase;
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
 };
+
+/// INITIALSED tracks whether the CPU-local
+/// data has been set up on this CPU. It is
+/// set in init() and can be checked by
+/// calling ready().
+///
+static INITIALISED: AtomicBool = AtomicBool::new(false);
 
 /// init prepares the current CPU's local
 /// data using the given CPU ID and stack
@@ -75,6 +82,15 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
             current_thread: idle,
         });
     }
+
+    INITIALISED.store(true, Ordering::Relaxed);
+}
+
+/// ready returns whether the CPU-local data
+/// has been initialised on this CPU.
+///
+pub fn ready() -> bool {
+    INITIALISED.load(Ordering::Relaxed)
 }
 
 // Helper functions to expose the CPU data.
