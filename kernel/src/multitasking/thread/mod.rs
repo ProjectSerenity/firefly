@@ -4,6 +4,7 @@ use crate::memory::{free_kernel_stack, new_kernel_stack, StackBounds, VirtAddrRa
 use crate::multitasking::cpu_local::{current_thread, idle_thread, set_current_thread};
 use crate::multitasking::thread::scheduler::Scheduler;
 use crate::println;
+use crate::time::{Duration, TimeSlice};
 use crate::utils::once::Once;
 use crate::utils::pretty::Bytes;
 use alloc::collections::BTreeMap;
@@ -17,6 +18,11 @@ use x86_64::VirtAddr;
 
 mod scheduler;
 mod switch;
+
+/// DEFAULT_TIME_SLICE is the amount of CPU time given to
+/// threads when they are scheduled.
+///
+pub const DEFAULT_TIME_SLICE: TimeSlice = TimeSlice::from_duration(&Duration::from_millis(100));
 
 type ThreadTable = BTreeMap<ThreadId, Arc<Thread>>;
 
@@ -245,6 +251,7 @@ pub enum ThreadState {
 pub struct Thread {
     id: ThreadId,
     state: AtomicCell<ThreadState>,
+    time_slice: UnsafeCell<TimeSlice>,
     stack_pointer: UnsafeCell<u64>,
     stack_bounds: Option<StackBounds>,
 }
@@ -306,6 +313,7 @@ impl Thread {
         let thread = Arc::new(Thread {
             id,
             state: AtomicCell::new(ThreadState::Runnable),
+            time_slice: UnsafeCell::new(TimeSlice::ZERO),
             stack_pointer,
             stack_bounds,
         });
@@ -354,6 +362,7 @@ impl Thread {
         let thread = Arc::new(Thread {
             id,
             state: AtomicCell::new(ThreadState::Runnable),
+            time_slice: UnsafeCell::new(DEFAULT_TIME_SLICE),
             stack_pointer: UnsafeCell::new(rsp as u64),
             stack_bounds: Some(stack),
         });
@@ -389,6 +398,23 @@ impl Thread {
                 scheduler.remove(self.id);
             }
         }
+    }
+
+    /// tick decrements the thread's time slice by
+    /// a single tick, returning true if the time
+    /// slice is now zero.
+    ///
+    pub fn tick(&self) -> bool {
+        let time_slice = unsafe { &mut *self.time_slice.get() };
+        time_slice.tick()
+    }
+
+    /// add_time adds the given additional time
+    /// slice to the thread.
+    ///
+    pub fn add_time(&self, extra: TimeSlice) {
+        let time_slice = unsafe { &mut *self.time_slice.get() };
+        *time_slice += extra;
     }
 
     /// debug prints debug information about the
