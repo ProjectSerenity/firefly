@@ -179,13 +179,29 @@ pub fn exit() -> ! {
         panic!("idle thread tried to exit");
     }
 
-    current.set_state(ThreadState::Exiting);
-    interrupts::without_interrupts(|| THREADS.lock().remove(&current.id));
+    // We want to make sure we exit cleanly
+    // by following the next steps in one go.
+    //
+    // If we get pre-empted after setting
+    // the thread's state to exiting but
+    // before we remove it from THREADS
+    // or drop our handle to it, we'll
+    // leak those resources.
+    //
+    // It's ok for us to get pre-empted
+    // after we've dropped these resources,
+    // as the pre-emption will have the
+    // same effect and we'll never return
+    // to exit.
+    interrupts::without_interrupts(|| {
+        current.set_state(ThreadState::Exiting);
+        THREADS.lock().remove(&current.id);
 
-    // We need to drop our handle on the current
-    // thread now, as we'll never return from
-    // switch.
-    mem::drop(current);
+        // We need to drop our handle on the current
+        // thread now, as we'll never return from
+        // switch.
+        mem::drop(current);
+    });
 
     // We've now been unscheduled, so we
     // switch to the next thread.
