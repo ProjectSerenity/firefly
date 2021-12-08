@@ -171,15 +171,12 @@ pub fn switch() {
 ///
 pub fn exit() -> ! {
     let current = current_thread();
-    if current.id == ThreadId(0) {
+    if current.id == ThreadId::IDLE {
         panic!("idle thread tried to exit");
     }
 
     current.set_state(ThreadState::Exiting);
     interrupts::without_interrupts(|| THREADS.lock().remove(&current.id));
-    if let Some(bounds) = current.stack_bounds {
-        free_kernel_stack(bounds);
-    }
 
     // We've now been unscheduled, so we
     // switch to the next thread.
@@ -458,5 +455,18 @@ impl Thread {
             Bytes::from_u64(free_stack),
             Bytes::from_u64(total_stack)
         );
+    }
+}
+
+impl Drop for Thread {
+    fn drop(&mut self) {
+        if self.id == ThreadId::IDLE {
+            println!("WARNING: idle thread being dropped");
+        }
+
+        // Return our stack to the dead stacks list.
+        if let Some(bounds) = self.stack_bounds {
+            free_kernel_stack(bounds);
+        }
     }
 }
