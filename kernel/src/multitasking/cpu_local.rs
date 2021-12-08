@@ -20,6 +20,7 @@ use crate::multitasking::thread::Thread;
 use alloc::sync::Arc;
 use core::mem::size_of;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use x86_64::addr::align_up;
 use x86_64::registers::model_specific::GsBase;
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
@@ -40,7 +41,7 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
     // Next, work out where we will store our CpuId
     // data. We align up to page size to make paging
     // easier.
-    let size = align_up(size_of::<CpuId>(), Size4KiB::SIZE as usize) as u64;
+    let size = align_up(size_of::<CpuId>() as u64, Size4KiB::SIZE);
     let start = CPU_LOCAL.start() + cpu_id.as_u64() * size;
     let end = start + size;
 
@@ -128,14 +129,6 @@ pub fn current_thread() -> Arc<Thread> {
 ///
 pub fn set_current_thread(thread: Arc<Thread>) {
     unsafe { cpu_data() }.current_thread = thread;
-}
-
-/// align_up aligns the given address upwards to alignment align.
-///
-/// Requires that align is a power of two.
-///
-fn align_up(addr: usize, align: usize) -> usize {
-    (addr + align - 1) & !(align - 1)
 }
 
 /// CpuId uniquely identifies a CPU core.
