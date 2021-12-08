@@ -14,7 +14,7 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use kernel::multitasking::thread;
+use kernel::multitasking::{cpu_local, thread};
 use kernel::{memory, pci, println};
 
 /// This function is called on panic.
@@ -73,11 +73,22 @@ fn kmain() {
 
 fn debug_threading() -> ! {
     let foo: u64 = 1;
+    let thread_id = cpu_local::current_thread().thread_id();
     println!(
-        "Successfully entered new thread with stack address {:p}.",
-        &foo
+        "Successfully entered {:?} with stack address {:p}.",
+        thread_id, &foo
     );
 
+    let done = kernel::time::after(kernel::time::Duration::from_secs(1));
+    loop {
+        // Wait a while.
+        for _ in 0..100000 {}
+        if kernel::time::now() >= done {
+            break;
+        }
+    }
+
+    println!("exiting debug_threading for {:?}", thread_id);
     thread::exit();
 }
 
