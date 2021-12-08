@@ -66,6 +66,7 @@ fn kmain() {
     // Schedule the thread we want to run next
     // with switch.
     thread::Thread::start_kernel_thread(debug_threading);
+    thread::Thread::start_kernel_thread(debug_threading);
 
     // Hand over to the scheduler.
     thread::start();
