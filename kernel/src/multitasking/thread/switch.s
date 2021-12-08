@@ -1,8 +1,8 @@
 //; Implement context switching between threads.
 
-//; The C-compatible signature of this function is:
+//; The Rust signature of this function is:
 //;
-//;     fn switch_stack(current_stack_pointer: u64, new_stack_pointer: u64);
+//;     fn switch_stack(current_stack_pointer: *mut u64, new_stack_pointer: *mut u64);
 //;
 //; switch_stack saves the current thread context
 //; into the current stack and then loads the new
@@ -50,7 +50,7 @@ switch_stack:
 	//; Resume the new thread
 	ret
 
-//; The C-compatible signature of this function is:
+//; The Rust signature of this function is:
 //;
 //;     fn start_kernel_thread() -> !;
 //;
