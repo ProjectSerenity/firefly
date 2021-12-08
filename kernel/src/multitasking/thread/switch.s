@@ -52,6 +52,56 @@ switch_stack:
 
 //; The Rust signature of this function is:
 //;
+//;     fn replace_stack(new_stack_pointer: *mut u64);
+//;
+//; replace_stack loads the new thread context from
+//; the new stack.
+//;
+//; This is identical to switch_stack, but without
+//; saving or using the current stack. This is for
+//; when we switch away from an exiting thread. We
+//; drop the thread's resources immediately before
+//; calling replace_stack, so it's important that
+//; we don't use the current stack, as there's a
+//; remote possibility that it could be allocated
+//; to another thread on another CPU and being used.
+//; However, we don't unmap old stacks, so there's
+//; no risk of a page fault.
+//;
+//; The thread context consists of the following
+//; details, as specified in the System V ABI
+//; (https://www.uclibc.org/docs/psABI-x86_64.pdf,
+//; page 21):
+//;
+//; - The instruction Pointer (saved and restored by CALL/RET)
+//; - The stack sointer (RSP)
+//; - The callee-saved registers (RBP, RBX, R12-R15)
+//; - RFLAGS
+//;
+//; When switch_stack is called to start a new thread,
+//; it will 'return' to one of the following:
+//;
+//; - start_kernel_thread
+//;
+.global replace_stack
+replace_stack:
+	//; Load the new stack pointer (given as a parameter).
+	mov rsp, [rdi]
+
+	//; Load the callee-saved registers from the new stack.
+	popfq
+	pop r15
+	pop r14
+	pop r13
+	pop r12
+	pop rbx
+	pop rbp
+
+	//; Resume the new thread
+	ret
+
+//; The Rust signature of this function is:
+//;
 //;     fn start_kernel_thread() -> !;
 //;
 //; start_kernel_thread pops the entry point off the

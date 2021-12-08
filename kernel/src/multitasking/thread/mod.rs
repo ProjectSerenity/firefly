@@ -153,17 +153,21 @@ pub fn switch() {
     // moved our reference to it when we called
     // set_current_thread(next).
     //
-    // We don't currently drop the current thread when it is
-    // exiting. This leaves us with a memory leak, but it's
-    // going to be tricky to fix and it's better than running
-    // the risk of a race condition to memory corruption.
+    // We drop the current thread, even when it is exiting.
+    // This means the thread's stack will be freed, so there
+    // is a slight risk another thread on another CPU will
+    // be given our stack. As a result, we should minimise
+    // our stack use as much as possible. Making a single
+    // function call that doesn't directly use the stack
+    // feels like a good compromise.
     if current.thread_state() == ThreadState::Exiting {
         debug_assert!(Arc::strong_count(&current) >= 1);
+        mem::drop(current);
+        unsafe { switch::replace_stack(new_stack_pointer) };
     } else {
         mem::drop(current);
+        unsafe { switch::switch_stack(current_stack_pointer, new_stack_pointer) };
     }
-
-    unsafe { switch::switch_stack(current_stack_pointer, new_stack_pointer) };
 }
 
 /// exit terminates the current thread and switches to
