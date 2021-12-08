@@ -14,14 +14,11 @@ extern "sysv64" {
     ///
     pub fn switch_stack(current_stack_pointer: *const u64, new_stack_pointer: *const u64);
 
-    /// replace_stack replaces the current stack with a
-    /// new stack, using the System V ABI. Its last action
-    /// is to start executing a new thread.
-    ///
-    /// replace_stack takes a pointer to the new thread's
-    /// saved stack pointer.
-    ///
-    pub fn replace_stack(new_stack_pointer: *const u64);
+    // Note that we have no Rust function declaration for
+    // replace_stack, as we jump to it in inline assembly,
+    // rather than calling it from Rust. This allows us to
+    // avoid using the current stack at all, removing the
+    // risk of memory corruption.
 
     /// start_kernel_thread should be used to start a new
     /// kernel thread by placing its address into the new

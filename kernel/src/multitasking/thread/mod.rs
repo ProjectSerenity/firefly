@@ -156,14 +156,19 @@ pub fn switch() {
     // We drop the current thread, even when it is exiting.
     // This means the thread's stack will be freed, so there
     // is a slight risk another thread on another CPU will
-    // be given our stack. As a result, we should minimise
-    // our stack use as much as possible. Making a single
-    // function call that doesn't directly use the stack
-    // feels like a good compromise.
+    // be given our stack. As a result, we use a jump, rather
+    // than a function call, to avoid using our stack.
     if current.thread_state() == ThreadState::Exiting {
         debug_assert!(Arc::strong_count(&current) == 1);
         mem::drop(current);
-        unsafe { switch::replace_stack(new_stack_pointer) };
+        unsafe {
+            asm!(
+                "mov rdi, {0}",
+                "jmp replace_stack",
+                in(reg) new_stack_pointer,
+                options(nostack, nomem, preserves_flags)
+            );
+        }
     } else {
         mem::drop(current);
         unsafe { switch::switch_stack(current_stack_pointer, new_stack_pointer) };
