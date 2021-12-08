@@ -161,7 +161,7 @@ pub fn switch() {
     // function call that doesn't directly use the stack
     // feels like a good compromise.
     if current.thread_state() == ThreadState::Exiting {
-        debug_assert!(Arc::strong_count(&current) >= 1);
+        debug_assert!(Arc::strong_count(&current) == 1);
         mem::drop(current);
         unsafe { switch::replace_stack(new_stack_pointer) };
     } else {
@@ -181,6 +181,11 @@ pub fn exit() -> ! {
 
     current.set_state(ThreadState::Exiting);
     interrupts::without_interrupts(|| THREADS.lock().remove(&current.id));
+
+    // We need to drop our handle on the current
+    // thread now, as we'll never return from
+    // switch.
+    mem::drop(current);
 
     // We've now been unscheduled, so we
     // switch to the next thread.
