@@ -125,26 +125,32 @@ pub fn switch() {
     let current_stack_pointer = current.stack_pointer.get();
     let new_stack_pointer = next.stack_pointer.get();
 
-    // We drop the reference count for both threads here,
-    // as the current thread will never return from switch_stack
-    // if it's exiting. This should be safe, as there's still
-    // a reference to the current thread in the per-CPU data.
-    debug_assert!(Arc::strong_count(&current) > 1);
-    debug_assert!(Arc::strong_count(&next) > 1);
-    unsafe {
-        Arc::decrement_strong_count(Arc::as_ptr(&current));
-        Arc::decrement_strong_count(Arc::as_ptr(&next));
+    // Switch into the next thread and re-enable interrupts.
+    set_current_thread(next);
+
+    // We can now drop our reference to the current thread
+    // If the current thread is not exiting, then there
+    // will be one handle to it in THREADS. The next thread
+    // will have one handle in THREADS and another now in
+    // our CPU-local data. The reason we want to do this here
+    // is that if the current thread is exiting, we will
+    // never return from switch_stack.
+    //
+    // We don't drop the next thread, as we've already
+    // moved our reference to it when we called
+    // set_current_thread(next).
+    //
+    // We don't currently drop the current thread when it is
+    // exiting. This leaves us with a memory leak, but it's
+    // going to be tricky to fix and it's better than running
+    // the risk of a race condition to memory corruption.
+    if current.thread_state() == ThreadState::Exiting {
+        debug_assert!(Arc::strong_count(&current) >= 1);
+    } else {
+        mem::drop(current);
     }
 
-    // Switch into the next thread.
-    set_current_thread(next);
     unsafe { switch::switch_stack(current_stack_pointer, new_stack_pointer) };
-
-    // Don't call current's destructor as we've already
-    // decremented the reference count with `Arc::decrement_strong_count`
-    // above. We moved next into set_current_thread, so that
-    // wouldn't be destructed here anyway.
-    mem::forget(current);
 }
 
 /// exit terminates the current thread and switches to
