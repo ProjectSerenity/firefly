@@ -12,6 +12,7 @@ use core::cell::UnsafeCell;
 use core::mem;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use crossbeam::atomic::AtomicCell;
+use x86_64::instructions::interrupts;
 use x86_64::VirtAddr;
 
 mod scheduler;
@@ -94,6 +95,8 @@ pub fn ready() -> bool {
 /// again.
 ///
 pub fn switch() {
+    let restart_interrupts = interrupts::are_enabled();
+    interrupts::disable();
     let current = current_thread();
     let next = {
         let scheduler = SCHEDULER.lock();
@@ -116,6 +119,10 @@ pub fn switch() {
         // We're already running the right
         // thread, so return without doing
         // anything further.
+        if restart_interrupts {
+            interrupts::enable();
+        }
+
         return;
     }
 
@@ -163,7 +170,7 @@ pub fn exit() -> ! {
     }
 
     current.set_state(ThreadState::Exiting);
-    THREADS.lock().remove(&current.id);
+    interrupts::without_interrupts(|| THREADS.lock().remove(&current.id));
     if let Some(bounds) = current.stack_bounds {
         free_kernel_stack(bounds);
     }
@@ -351,8 +358,10 @@ impl Thread {
             stack_bounds: Some(stack),
         });
 
-        THREADS.lock().insert(id, thread);
-        SCHEDULER.lock().add(id);
+        interrupts::without_interrupts(|| {
+            THREADS.lock().insert(id, thread);
+            SCHEDULER.lock().add(id);
+        });
     }
 
     /// thread_id returns the thread's ThreadId.
