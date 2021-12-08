@@ -5,6 +5,8 @@
 // track the passage of time.
 
 use crate::interrupts::{register_irq, Irq};
+use crate::multitasking::{cpu_local, thread};
+use core::mem;
 use spin::Mutex;
 use x86_64::instructions::port::Port;
 use x86_64::structures::idt::InterruptStackFrame;
@@ -40,6 +42,28 @@ fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
     tick();
 
     irq.acknowledge();
+
+    if !cpu_local::ready() || !thread::ready() {
+        return;
+    }
+
+    // Time to pre-empt the current thread.
+    let current_thread = cpu_local::current_thread();
+    if !current_thread.tick() {
+        return;
+    }
+
+    let thread_id = current_thread.thread_id();
+    if thread_id != thread::ThreadId::IDLE {
+        current_thread.add_time(thread::DEFAULT_TIME_SLICE);
+    }
+
+    // Drop our reference to the current thread,
+    // so the scheduler has full control.
+    mem::drop(thread_id);
+    mem::drop(current_thread);
+
+    thread::switch();
 }
 
 /// Ticker contains a counter, which is used
