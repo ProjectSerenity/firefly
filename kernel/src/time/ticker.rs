@@ -7,27 +7,26 @@
 use crate::interrupts::{register_irq, Irq};
 use crate::multitasking::{cpu_local, thread};
 use core::mem;
-use spin::Mutex;
+use core::sync::atomic::{AtomicU64, Ordering};
 use x86_64::instructions::port::Port;
 use x86_64::structures::idt::InterruptStackFrame;
 
 // Lazily initialise TICKER as a Ticker, protected
 // by a spin lock.
 //
-static TICKER: Mutex<Ticker> = Mutex::new(Ticker::new());
+static TICKER: AtomicU64 = AtomicU64::new(0);
 
 /// tick increments the internal chronometer.
 ///
 fn tick() {
-    let mut ticker = TICKER.lock();
-    ticker.counter += 1;
+    TICKER.fetch_add(1, Ordering::Relaxed);
 }
 
 /// ticks returns the number of ticks of the
 /// internal chronometer.
 ///
 pub fn ticks() -> u64 {
-    TICKER.lock().counter
+    TICKER.load(Ordering::Relaxed)
 }
 
 /// init starts the programmable interval timer,
@@ -64,23 +63,6 @@ fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
     mem::drop(current_thread);
 
     thread::switch();
-}
-
-/// Ticker contains a counter, which is used
-/// to track the passage of time by a regular
-/// sequence of ticks.
-///
-struct Ticker {
-    counter: u64,
-}
-
-impl Ticker {
-    /// new creates a new ticker, with a zero
-    /// counter.
-    ///
-    pub const fn new() -> Self {
-        Ticker { counter: 0 }
-    }
 }
 
 pub const TICKS_PER_SECOND: u64 = 1000;
