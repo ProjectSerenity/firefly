@@ -1,7 +1,7 @@
 //! thread implements preemptive multitasking, using threads of execution.
 
 use crate::memory::{free_kernel_stack, new_kernel_stack, StackBounds, VirtAddrRange};
-use crate::multitasking::cpu_local::{current_thread, idle_thread, set_current_thread};
+use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler::Scheduler;
 use crate::println;
 use crate::time::{Duration, TimeSlice};
@@ -103,7 +103,7 @@ pub fn ready() -> bool {
 pub fn switch() {
     let restart_interrupts = interrupts::are_enabled();
     interrupts::disable();
-    let current = current_thread();
+    let current = cpu_local::current_thread();
     let next = {
         let scheduler = SCHEDULER.lock();
 
@@ -117,7 +117,7 @@ pub fn switch() {
 
         match scheduler.next() {
             Some(thread) => THREADS.lock().get(&thread).unwrap().clone(),
-            None => idle_thread(),
+            None => cpu_local::idle_thread(),
         }
     };
 
@@ -139,7 +139,7 @@ pub fn switch() {
     let new_stack_pointer = next.stack_pointer.get();
 
     // Switch into the next thread and re-enable interrupts.
-    set_current_thread(next);
+    cpu_local::set_current_thread(next);
 
     // We can now drop our reference to the current thread
     // If the current thread is not exiting, then there
@@ -179,7 +179,7 @@ pub fn switch() {
 /// the next runnable thread.
 ///
 pub fn exit() -> ! {
-    let current = current_thread();
+    let current = cpu_local::current_thread();
     if current.id == ThreadId::IDLE {
         panic!("idle thread tried to exit");
     }
@@ -228,7 +228,7 @@ pub fn debug() {
     }
 
     // Update the current stack pointer.
-    let current = current_thread();
+    let current = cpu_local::current_thread();
     unsafe { current.stack_pointer.get().write(rsp) };
 
     // Debug as normal.
