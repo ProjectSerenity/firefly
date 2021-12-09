@@ -6,6 +6,7 @@
 
 use crate::interrupts::{register_irq, Irq};
 use crate::multitasking::{cpu_local, thread};
+use crate::time;
 use core::mem;
 use core::sync::atomic::{AtomicU64, Ordering};
 use x86_64::instructions::port::Port;
@@ -45,6 +46,9 @@ fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
     if !cpu_local::ready() || !thread::ready() {
         return;
     }
+
+    // Check whether any timers have expired.
+    time::timers::process();
 
     // Time to pre-empt the current thread.
     let current_thread = cpu_local::current_thread();
