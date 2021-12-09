@@ -14,6 +14,7 @@
 mod cmos;
 mod slice;
 mod ticker;
+pub mod timers;
 
 pub use crate::time::cmos::boot_time;
 pub use crate::time::slice::TimeSlice;
@@ -27,6 +28,7 @@ pub use core::time::Duration;
 ///
 pub fn init() {
     ticker::init();
+    timers::init();
     cmos::init();
 }
 
