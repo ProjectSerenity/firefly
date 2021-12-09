@@ -3,10 +3,10 @@
 use crate::memory::{free_kernel_stack, new_kernel_stack, StackBounds, VirtAddrRange};
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler::Scheduler;
-use crate::println;
 use crate::time::{Duration, TimeSlice};
 use crate::utils::once::Once;
 use crate::utils::pretty::Bytes;
+use crate::{println, time};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use core::cell::UnsafeCell;
@@ -207,6 +207,24 @@ pub fn switch() {
         mem::drop(current);
         unsafe { switch::switch_stack(current_stack_pointer, new_stack_pointer) };
     }
+}
+
+/// sleep sleeps the current thread for the given
+/// duration.
+///
+pub fn sleep(duration: time::Duration) {
+    let stop = time::after(duration);
+    let current = cpu_local::current_thread();
+
+    // Create a timer to wake us up.
+    time::timers::add(current.id, stop);
+
+    // Put ourselves to sleep.
+    current.set_state(ThreadState::Sleeping);
+    mem::drop(current);
+
+    // Switch to the next thread.
+    switch();
 }
 
 /// exit terminates the current thread and switches to
