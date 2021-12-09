@@ -141,6 +141,18 @@ pub fn switch() {
     // Switch into the next thread and re-enable interrupts.
     cpu_local::set_current_thread(next);
 
+    // Note that once we have multiple CPUs, there will be
+    // an unsafe gap between when we schedule the current
+    // thread in the block that assigns next and when we
+    // call switch_stack below. In this gap, the saved state
+    // in the thread structure will be stale, as it was last
+    // updated when the current thread last started. If
+    // another CPU schedules the current thread in this gap,
+    // it will switch to the stale state, and do so while
+    // we're using it here. We'll need to work out how to
+    // stop that happening before adding support for multiple
+    // CPUs.
+
     // We can now drop our reference to the current thread
     // If the current thread is not exiting, then there
     // will be one handle to it in THREADS. The next thread
