@@ -96,6 +96,28 @@ pub fn ready() -> bool {
     INITIALISED.load(Ordering::Relaxed)
 }
 
+/// resume marks the given thread as runnable,
+/// adds it to the scheduler, and returns true if
+/// it still exists.
+///
+/// If the given thread has already exited, resume
+/// returns false.
+///
+pub fn resume(thread_id: ThreadId) -> bool {
+    match THREADS.lock().get(&thread_id) {
+        None => false,
+        Some(thread) => match thread.thread_state() {
+            ThreadState::Runnable => true,
+            ThreadState::Sleeping => {
+                thread.set_state(ThreadState::Runnable);
+                SCHEDULER.lock().add(thread_id);
+                true
+            }
+            ThreadState::Exiting => false,
+        },
+    }
+}
+
 /// switch schedules out the current thread and switches to
 /// the next runnable thread, which may be the current thread
 /// again.
