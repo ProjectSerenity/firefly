@@ -278,6 +278,9 @@ pub enum ThreadState {
     /// The thread is runnable.
     Runnable,
 
+    /// The thread is sleeping.
+    Sleeping,
+
     /// The thread is in the process
     /// of exiting.
     Exiting,
@@ -433,9 +436,8 @@ impl Thread {
         self.state.store(new_state);
         match new_state {
             ThreadState::Runnable => {}
-            ThreadState::Exiting => {
-                scheduler.remove(self.id);
-            }
+            ThreadState::Sleeping => scheduler.remove(self.id),
+            ThreadState::Exiting => scheduler.remove(self.id),
         }
     }
 
