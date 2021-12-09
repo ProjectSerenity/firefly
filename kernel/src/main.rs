@@ -73,6 +73,8 @@ fn kmain() {
 }
 
 fn debug_threading() -> ! {
+    use kernel::time;
+
     let foo: u64 = 1;
     let thread_id = cpu_local::current_thread().thread_id();
     println!(
@@ -80,16 +82,9 @@ fn debug_threading() -> ! {
         thread_id, &foo
     );
 
-    let done = kernel::time::after(kernel::time::Duration::from_secs(1));
-    loop {
-        // Wait a while.
-        for _ in 0..100000 {}
-        if kernel::time::now() >= done {
-            break;
-        }
-    }
+    thread::sleep(time::Duration::from_secs(1));
 
-    println!("exiting debug_threading for {:?}", thread_id);
+    println!("Exiting debug_threading for {:?}", thread_id);
     thread::exit();
 }
 
