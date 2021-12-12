@@ -14,6 +14,7 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
+use kernel::multitasking::thread::scheduler;
 use kernel::multitasking::{cpu_local, thread};
 use kernel::{memory, pci, println};
 
@@ -69,7 +70,7 @@ fn kmain() {
     thread::Thread::start_kernel_thread(debug_threading);
 
     // Hand over to the scheduler.
-    thread::start();
+    scheduler::start();
 }
 
 fn debug_threading() -> ! {
@@ -82,7 +83,7 @@ fn debug_threading() -> ! {
         thread_id, &foo
     );
 
-    thread::sleep(time::Duration::from_secs(1));
+    time::sleep(time::Duration::from_secs(1));
 
     println!("Exiting debug_threading for {:?}", thread_id);
     thread::exit();

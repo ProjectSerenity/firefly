@@ -11,6 +11,10 @@
 // booted) and the clock is used to record and later print
 // the wall clock time when the kernel booted.
 
+use crate::multitasking::cpu_local;
+use crate::multitasking::thread::{scheduler, ThreadState};
+use core::mem;
+
 mod cmos;
 mod slice;
 mod ticker;
@@ -53,6 +57,24 @@ pub fn after(wait: Duration) -> Instant {
     let now = ticks();
     let delta = wait.as_nanos() / (ticker::NANOSECONDS_PER_TICK as u128);
     Instant::new(now + delta as u64)
+}
+
+/// sleep sleeps the current thread for the given
+/// duration.
+///
+pub fn sleep(duration: Duration) {
+    let stop = after(duration);
+    let current = cpu_local::current_thread();
+
+    // Create a timer to wake us up.
+    timers::add(current.thread_id(), stop);
+
+    // Put ourselves to sleep.
+    current.set_state(ThreadState::Sleeping);
+    mem::drop(current);
+
+    // Switch to the next thread.
+    scheduler::switch();
 }
 
 /// Instant represents a single point in the kernel's

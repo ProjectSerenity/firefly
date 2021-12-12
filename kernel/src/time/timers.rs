@@ -5,6 +5,7 @@
 // fire, and the thread id of the thread we should wake.
 
 use crate::multitasking::thread;
+use crate::multitasking::thread::scheduler;
 use crate::time;
 use crate::utils::lazy::Lazy;
 use alloc::collections::binary_heap::BinaryHeap;
@@ -54,7 +55,7 @@ pub fn process() {
 
         mem::drop(next);
         let next = timers.pop().unwrap();
-        thread::resume(next.thread_id);
+        scheduler::resume(next.thread_id);
     }
 }
 

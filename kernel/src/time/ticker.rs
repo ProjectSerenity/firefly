@@ -5,6 +5,7 @@
 // track the passage of time.
 
 use crate::interrupts::{register_irq, Irq};
+use crate::multitasking::thread::scheduler;
 use crate::multitasking::{cpu_local, thread};
 use crate::time;
 use core::mem;
@@ -43,7 +44,7 @@ fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
 
     irq.acknowledge();
 
-    if !cpu_local::ready() || !thread::ready() {
+    if !cpu_local::ready() || !scheduler::ready() {
         return;
     }
 
@@ -66,7 +67,7 @@ fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
     mem::drop(thread_id);
     mem::drop(current_thread);
 
-    thread::switch();
+    scheduler::switch();
 }
 
 pub const TICKS_PER_SECOND: u64 = 1000;

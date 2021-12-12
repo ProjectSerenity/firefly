@@ -3,20 +3,20 @@
 use crate::memory::{free_kernel_stack, new_kernel_stack, StackBounds, VirtAddrRange};
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler::Scheduler;
+use crate::println;
 use crate::time::{Duration, TimeSlice};
 use crate::utils::once::Once;
 use crate::utils::pretty::Bytes;
-use crate::{println, time};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use core::cell::UnsafeCell;
 use core::mem;
-use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use core::sync::atomic::{AtomicU64, Ordering};
 use crossbeam::atomic::AtomicCell;
 use x86_64::instructions::interrupts;
 use x86_64::VirtAddr;
 
-mod scheduler;
+pub mod scheduler;
 mod switch;
 
 /// DEFAULT_TIME_SLICE is the amount of CPU time given to
@@ -37,25 +37,6 @@ static THREADS: spin::Mutex<ThreadTable> = spin::Mutex::new(BTreeMap::new());
 ///
 static SCHEDULER: Once<spin::Mutex<Scheduler>> = Once::new();
 
-/// INITIALSED tracks whether the scheduler
-/// has been set up. It is set in start()
-/// and can be checked by calling ready().
-///
-static INITIALISED: AtomicBool = AtomicBool::new(false);
-
-/// idle_loop implements the idle thread. We
-/// fall back to this if the kernel has no other
-/// work left to do.
-///
-fn idle_loop() -> ! {
-    println!("Kernel entering the idle thread.");
-
-    #[allow(unreachable_code)]
-    loop {
-        x86_64::instructions::interrupts::enable_and_hlt();
-    }
-}
-
 /// DEFAULT_RFLAGS contains the reserved bits of the
 /// RFLAGS register so we can include them when we
 /// build a new thread's initial stack.
@@ -69,159 +50,6 @@ const DEFAULT_RFLAGS: u64 = 0x2;
 ///
 pub fn init() {
     SCHEDULER.init(|| spin::Mutex::new(Scheduler::new()));
-}
-
-/// start hands control over to the scheduler, by
-/// letting the idle thread take control of the
-/// kernel's initial state.
-///
-pub fn start() -> ! {
-    // Mark the scheduler as in control.
-    INITIALISED.store(true, Ordering::Relaxed);
-
-    // Hand over to the scheduler.
-    switch();
-
-    // We're now executing as the idle thread.
-    idle_loop();
-}
-
-/// ready returns whether the scheduler has been
-/// initialised.
-///
-pub fn ready() -> bool {
-    INITIALISED.load(Ordering::Relaxed)
-}
-
-/// resume marks the given thread as runnable,
-/// adds it to the scheduler, and returns true if
-/// it still exists.
-///
-/// If the given thread has already exited, resume
-/// returns false.
-///
-pub fn resume(thread_id: ThreadId) -> bool {
-    match THREADS.lock().get(&thread_id) {
-        None => false,
-        Some(thread) => match thread.thread_state() {
-            ThreadState::Runnable => true,
-            ThreadState::Sleeping => {
-                thread.set_state(ThreadState::Runnable);
-                SCHEDULER.lock().add(thread_id);
-                true
-            }
-            ThreadState::Exiting => false,
-        },
-    }
-}
-
-/// switch schedules out the current thread and switches to
-/// the next runnable thread, which may be the current thread
-/// again.
-///
-pub fn switch() {
-    let restart_interrupts = interrupts::are_enabled();
-    interrupts::disable();
-    let current = cpu_local::current_thread();
-    let next = {
-        let scheduler = SCHEDULER.lock();
-
-        // Add the current thread to the runnable
-        // queue, unless it's the idle thread, which
-        // always has thread id 0 (which is otherwise
-        // invalid).
-        if current.id != ThreadId::IDLE && current.thread_state() == ThreadState::Runnable {
-            scheduler.add(current.id);
-        }
-
-        match scheduler.next() {
-            Some(thread) => THREADS.lock().get(&thread).unwrap().clone(),
-            None => cpu_local::idle_thread(),
-        }
-    };
-
-    if Arc::ptr_eq(&current, &next) {
-        // We're already running the right
-        // thread, so return without doing
-        // anything further.
-        if restart_interrupts {
-            interrupts::enable();
-        }
-
-        return;
-    }
-
-    // Retrieve a pointer to each stack pointer. These point
-    // to the value in the Thread structure, where we keep a
-    // copy of the current stack pointer.
-    let current_stack_pointer = current.stack_pointer.get();
-    let new_stack_pointer = next.stack_pointer.get();
-
-    // Switch into the next thread and re-enable interrupts.
-    cpu_local::set_current_thread(next);
-
-    // Note that once we have multiple CPUs, there will be
-    // an unsafe gap between when we schedule the current
-    // thread in the block that assigns next and when we
-    // call switch_stack below. In this gap, the saved state
-    // in the thread structure will be stale, as it was last
-    // updated when the current thread last started. If
-    // another CPU schedules the current thread in this gap,
-    // it will switch to the stale state, and do so while
-    // we're using it here. We'll need to work out how to
-    // stop that happening before adding support for multiple
-    // CPUs.
-
-    // We can now drop our reference to the current thread
-    // If the current thread is not exiting, then there
-    // will be one handle to it in THREADS. The next thread
-    // will have one handle in THREADS and another now in
-    // our CPU-local data. The reason we want to do this here
-    // is that if the current thread is exiting, we will
-    // never return from switch_stack.
-    //
-    // We don't drop the next thread, as we've already
-    // moved our reference to it when we called
-    // set_current_thread(next).
-    //
-    // We drop the current thread, even when it is exiting.
-    // This means the thread's stack will be freed, so there
-    // is a slight risk another thread on another CPU will
-    // be given our stack. As a result, we use a jump, rather
-    // than a function call, to avoid using our stack.
-    if current.thread_state() == ThreadState::Exiting {
-        debug_assert!(Arc::strong_count(&current) == 1);
-        mem::drop(current);
-        unsafe {
-            asm!(
-                "mov rdi, {0}",
-                "jmp replace_stack",
-                in(reg) new_stack_pointer,
-                options(nostack, nomem, preserves_flags)
-            );
-        }
-    } else {
-        mem::drop(current);
-        unsafe { switch::switch_stack(current_stack_pointer, new_stack_pointer) };
-    }
-}
-
-/// sleep sleeps the current thread for the given
-/// duration.
-///
-pub fn sleep(duration: time::Duration) {
-    let stop = time::after(duration);
-    let current = cpu_local::current_thread();
-
-    // Create a timer to wake us up.
-    time::timers::add(current.id, stop);
-
-    // Put ourselves to sleep.
-    current.set_state(ThreadState::Sleeping);
-    mem::drop(current);
-
-    // Switch to the next thread.
-    switch();
 }
 
 /// exit terminates the current thread and switches to
@@ -259,7 +87,7 @@ pub fn exit() -> ! {
 
     // We've now been unscheduled, so we
     // switch to the next thread.
-    switch();
+    scheduler::switch();
     unreachable!("Exited thread was re-scheduled somehow");
 }
 
