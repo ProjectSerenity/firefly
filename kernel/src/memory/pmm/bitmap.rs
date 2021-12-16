@@ -310,7 +310,7 @@ impl BitmapFrameAllocator {
 
     pub fn debug(&self) {
         println!(
-            "physical memory manager: {}/{} frames available.",
+            "Physical memory manager: {}/{} frames available.",
             self.free_frames, self.num_frames
         );
         println!(
@@ -321,11 +321,12 @@ impl BitmapFrameAllocator {
         );
         for pool in self.pools.iter() {
             println!(
-                "{:p}-{:p} {}x {} frame ({} free: {})",
+                "{:#011x}-{:#011x} {:5} x {} frame = {:7}, {:5} x free frames = {:7}",
                 pool.start_address,
                 pool.last_address,
                 pool.num_frames,
                 Bytes::from_u64(4096),
+                Bytes::from_u64(4096 * pool.num_frames),
                 pool.free_frames,
                 Bytes::from_u64(pool.free_frames * 4096)
             );
