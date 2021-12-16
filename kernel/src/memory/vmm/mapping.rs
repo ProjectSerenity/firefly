@@ -424,7 +424,7 @@ impl fmt::Display for Mapping {
 
         write!(
             f,
-            "{:p}-{:p} -> {:p}-{:p} {}x {} page ({}) {}{}{}{}{}{}",
+            "{:p}-{:p} -> {:#011x}-{:#011x} {:5} x {} page = {:7} {}{}{}{}{}{}",
             self.virt_start,
             self.virt_end,
             self.phys_start,
