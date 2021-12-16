@@ -58,7 +58,10 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
             .allocate_frame()
             .expect("failed to allocate for per-CPU data");
 
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+        let flags = PageTableFlags::PRESENT
+            | PageTableFlags::GLOBAL
+            | PageTableFlags::WRITABLE
+            | PageTableFlags::NO_EXECUTE;
         unsafe {
             mapper
                 .map_to(page, frame, flags, &mut *frame_allocator)
