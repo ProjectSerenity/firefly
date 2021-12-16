@@ -91,14 +91,21 @@ fn debug_threading() -> ! {
 
 #[allow(dead_code)]
 fn debug() {
+    println!("");
+
     // Virtual memory.
+    println!("Virtual memory manager:");
     unsafe { memory::vmm::debug(memory::kernel_pml4().level_4_table()) };
+    println!("");
 
     // Physical memory.
     memory::pmm::debug();
+    println!("");
 
     // Unclaimed PCI devices.
+    println!("Unclaimed PCI devices:");
     pci::debug();
+    println!("");
 }
 
 // Testing framework.
