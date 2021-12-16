@@ -20,15 +20,28 @@ impl fmt::Display for Bytes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"];
         let mut b = self.0;
+        let width = f.width();
         for unit in units.iter() {
             if b >= 1024 {
                 b >>= 10;
                 continue;
             }
 
-            return write!(f, "{} {}", b, unit);
+            return match width {
+                None => write!(f, "{} {}", b, unit),
+                Some(width) => write!(
+                    f,
+                    "{:width$} {}",
+                    b,
+                    unit,
+                    width = width.saturating_sub(1 + unit.len())
+                ),
+            };
         }
 
-        write!(f, "{} ZiB", b)
+        match width {
+            None => write!(f, "{} ZiB", b),
+            Some(width) => write!(f, "{:width$} ZiB", b, width = width.saturating_sub(4)),
+        }
     }
 }
