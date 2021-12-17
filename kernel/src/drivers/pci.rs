@@ -11,20 +11,26 @@ pub const CONFIG_DATA: u16 = 0xcfc;
 
 pub const NONE: u16 = 0xffff;
 
-pub const VENDOR_ID: u8 = 0x00;
-pub const DEVICE_ID: u8 = 0x02;
-pub const COMMAND: u8 = 0x04;
-pub const SUBCLASS: u8 = 0x0a;
-pub const CLASS: u8 = 0x0b;
-pub const HEADER_TYPE: u8 = 0x0e;
-pub const INTERRUPT_LINE: u8 = 0x3c;
+// See https://en.wikipedia.org/wiki/PCI_configuration_space#/media/File:Pci-config-space.svg
 
-pub const BAR0: u8 = 0x10;
-pub const BAR1: u8 = 0x14;
-pub const BAR2: u8 = 0x18;
-pub const BAR3: u8 = 0x1c;
-pub const BAR4: u8 = 0x20;
-pub const BAR5: u8 = 0x24;
+pub const VENDOR_ID: u8 = 0x00; // u16
+pub const DEVICE_ID: u8 = 0x02; // u16
+pub const COMMAND: u8 = 0x04; // u16
+pub const STATUS: u8 = 0x06; // u16
+pub const REVISION_ID: u8 = 0x08; // u8
+pub const SUBCLASS: u8 = 0x0a; // u8
+pub const CLASS: u8 = 0x0b; // u8
+pub const HEADER_TYPE: u8 = 0x0e; // u8
+pub const SUBSYSTEM_VENDOR_ID: u8 = 0x2c; // u16
+pub const SUBSYSTEM_ID: u8 = 0x2e; // u16
+pub const INTERRUPT_LINE: u8 = 0x3c; // u8
+
+pub const BAR0: u8 = 0x10; // u32
+pub const BAR1: u8 = 0x14; // u32
+pub const BAR2: u8 = 0x18; // u32
+pub const BAR3: u8 = 0x1c; // u32
+pub const BAR4: u8 = 0x20; // u32
+pub const BAR5: u8 = 0x24; // u32
 
 pub const SECONDARY_BUS: u8 = 0x19;
 
