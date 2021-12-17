@@ -14,9 +14,10 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
+use kernel::drivers::pci;
 use kernel::multitasking::thread::scheduler;
 use kernel::multitasking::{cpu_local, thread};
-use kernel::{memory, pci, println};
+use kernel::{memory, println};
 
 /// This function is called on panic.
 #[cfg(not(test))]

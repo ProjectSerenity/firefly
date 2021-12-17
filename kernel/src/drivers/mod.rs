@@ -1,7 +1,7 @@
 //! drivers handles the initialisation of devices, using the
 //! driver child modules.
 
-use crate::pci;
+pub mod pci;
 
 /// PciDeviceDriver takes ownership of a PCI device.
 ///
