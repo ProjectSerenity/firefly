@@ -88,6 +88,8 @@ pub struct Device {
     pub vendor: u16,
     pub device: u16,
     pub devtype: u16,
+    pub subsystem_vendor: u16,
+    pub subsystem: u16,
 }
 
 // set_address sets the PCI slot.
@@ -175,8 +177,8 @@ impl fmt::Display for Device {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "PCI device with vendor={:04x}, device={:04x}, type={:04x}",
-            self.vendor, self.device, self.devtype
+            "PCI device with vendor={:04x}, device={:04x}, type={:04x}, subsystem vendor={:04x}, subsystem={:04x}",
+            self.vendor, self.device, self.devtype, self.subsystem_vendor, self.subsystem
         )
     }
 }
@@ -201,6 +203,17 @@ fn read_device_type(bus: u8, slot: u8, func: u8) -> u16 {
     (class << 8) | subclass
 }
 
+// read_subsystem returns the vendor and id for the
+// subsystem details for the given slot.
+//
+fn read_subsystem(bus: u8, slot: u8) -> (u16, u16) {
+    let data = read_u32(bus, slot, 0, SUBSYSTEM_VENDOR_ID);
+    let vendor = (data & 0xffff) as u16;
+    let device = (data >> 16) as u16;
+
+    (vendor, device)
+}
+
 // scan_slot scans a PCI slot for a recognised
 // device.
 //
@@ -212,6 +225,7 @@ fn scan_slot(bus: u8, slot: u8) {
     }
 
     let devtype = read_device_type(bus, slot, 0);
+    let (subsystem_vendor, subsystem) = read_subsystem(bus, slot);
 
     let dev = Device {
         bus,
@@ -220,6 +234,8 @@ fn scan_slot(bus: u8, slot: u8) {
         vendor,
         device,
         devtype,
+        subsystem_vendor,
+        subsystem,
     };
 
     if let Some(driver) = drivers::device_supported(&dev) {
