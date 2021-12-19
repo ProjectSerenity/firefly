@@ -16,7 +16,7 @@ raw-cpuid = {version = "=10.2.0", default-features = false}
 spin = "=0.9.2"
 uart_16550 = "=0.2.15"
 volatile = "=0.4.4"
-x86_64 = "=0.14.6"
+x86_64 = "=0.14.7"
 
 [package.metadata.bootimage]
 test-success-exit-code = 33    # (0x10 << 1) | 1
