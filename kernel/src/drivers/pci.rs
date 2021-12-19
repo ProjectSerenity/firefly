@@ -14,6 +14,7 @@ const NONE: u16 = 0xffff;
 
 // See https://en.wikipedia.org/wiki/PCI_configuration_space#/media/File:Pci-config-space.svg
 const VENDOR_ID: u8 = 0x00; // u16
+const COMMAND: u8 = 0x04; // u16
 const HEADER_TYPE: u8 = 0x0e; // u8
 
 /// UNKNOWN_DEVICES is the list of PCI devices that have been
@@ -183,6 +184,15 @@ impl Device {
 
     pub fn write_field_u32(&self, field: u8, value: u32) {
         write_u32(self.bus, self.slot, self.func, field, value);
+    }
+
+    /// enable_bus_master informs the device
+    /// that it can initiate direct memory
+    /// access.
+    ///
+    pub fn enable_bus_master(&self) {
+        let command = self.read_field_u16(COMMAND);
+        self.write_field_u16(COMMAND, command | (1 << 2));
     }
 
     /// bar returns the corresponding base
