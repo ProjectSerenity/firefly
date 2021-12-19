@@ -7,6 +7,7 @@ use crate::Locked;
 use bootloader::bootinfo::MemoryMap;
 use lazy_static::lazy_static;
 use x86_64::structures::paging::frame::PhysFrameRange;
+use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame, Size4KiB};
 
 mod bitmap;
 mod boot_info;
@@ -38,6 +39,26 @@ pub unsafe fn init(bootstrap: BootInfoFrameAllocator) {
 pub fn allocate_n_frames(n: usize) -> Option<PhysFrameRange> {
     let mut allocator = ALLOCATOR.lock();
     allocator.allocate_n_frames(n)
+}
+
+/// allocate_frame returns the next available physical frame,
+/// or None.
+///
+pub fn allocate_frame() -> Option<PhysFrame> {
+    let mut allocator = ALLOCATOR.lock();
+    allocator.allocate_frame()
+}
+
+/// deallocate_frame returns the given frame to the list of
+/// free frames for later use.
+///
+/// # Safety
+///
+/// The caller must ensure that the given frame is unused.
+///
+unsafe fn deallocate_frame(frame: PhysFrame<Size4KiB>) {
+    let mut allocator = ALLOCATOR.lock();
+    allocator.deallocate_frame(frame);
 }
 
 /// debug prints debug information about the physical memory
