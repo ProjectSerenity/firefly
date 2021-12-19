@@ -9,6 +9,7 @@
 
 use crate::memory;
 use crate::memory::MMIO_SPACE;
+use core::sync::atomic;
 use x86_64::structures::paging::frame::PhysFrameRange;
 use x86_64::structures::paging::page::Page;
 use x86_64::structures::paging::page_table::PageTableFlags;
@@ -19,6 +20,14 @@ use x86_64::VirtAddr;
 /// will be placed.
 ///
 static MMIO_START_ADDRESS: spin::Mutex<VirtAddr> = spin::Mutex::new(MMIO_SPACE.start());
+
+/// access_barrier ensures the compiler will not rearrange any
+/// reads or writes from one side of the barrier to the other.
+///
+#[inline]
+pub fn access_barrier() {
+    atomic::compiler_fence(atomic::Ordering::SeqCst);
+}
 
 /// reserve_space reserves the given amount of MMIO address space,
 /// returning the virtual address where the reservation begins.
