@@ -57,6 +57,15 @@ pub fn debug() {
     }
 }
 
+/// Capability represents a PCI device
+/// capability.
+///
+#[derive(Debug)]
+pub struct Capability {
+    pub id: u8,
+    pub data: Vec<u8>,
+}
+
 /// Device represents a PCI device.
 ///
 pub struct Device {
@@ -86,6 +95,8 @@ pub struct Device {
     pub interrupt_pin: u8,
     pub min_grant: u8,
     pub max_latency: u8,
+
+    pub capabilities: Vec<Capability>,
 }
 
 // set_address sets the PCI slot.
@@ -201,6 +212,21 @@ fn scan_slot(bus: u8, slot: u8) {
         return;
     }
 
+    // Fetch the list of capabilities.
+    let mut capabilities = Vec::new();
+    let mut offset = registers[13] as u8;
+    while offset != 0 {
+        let id = read_u8(bus, slot, 0, offset);
+        let len = read_u8(bus, slot, 0, offset + 2);
+        let mut data = Vec::with_capacity(len as usize);
+        for i in 0..len {
+            data.push(read_u8(bus, slot, 0, offset + 3 + i));
+        }
+
+        capabilities.push(Capability { id, data });
+        offset = read_u8(bus, slot, 0, offset + 1);
+    }
+
     let dev = Device {
         bus,
         slot,
@@ -234,6 +260,7 @@ fn scan_slot(bus: u8, slot: u8) {
         interrupt_pin: (registers[15] >> 8) as u8,
         min_grant: (registers[15] >> 16) as u8,
         max_latency: (registers[15] >> 24) as u8,
+        capabilities,
     };
 
     if let Some(driver) = drivers::device_supported(&dev) {
