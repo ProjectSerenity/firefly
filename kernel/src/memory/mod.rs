@@ -37,52 +37,6 @@ pub use crate::memory::constants::{
     PHYSICAL_MEMORY_OFFSET, USERSPACE,
 };
 
-extern "C" {
-    /// memcmp returns an integer less than, equal to, or greater
-    /// than zero if the first n bytes of s1 is found, respectively,
-    /// to be less than, to match, or be greater than the first n
-    /// bytes of s2.
-    ///
-    /// For a nonzero return value, the sign is determined by the
-    /// sign of the difference between the first pair of bytes
-    /// (interpreted as u8) that differ in s1 and s2.
-    ///
-    /// If n is zero, the return value is zero.
-    ///
-    pub fn memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32;
-
-    /// memcpy copies n bytes from memory area src to memory area
-    /// dst. The memory areas must not overlap. Use memmove if the
-    /// areas overlap.
-    ///
-    /// memcpy returns a pointer to dst.
-    ///
-    pub fn memcpy(dst: *mut u8, src: *const u8, n: usize) -> *mut u8;
-
-    /// memmove copies n bytes from memory area src to memory area
-    /// dst. The memory areas may overlap: copying take place as
-    /// though the bytes in src are copied into a temporary array
-    /// that does not overlap with src or dst, and the bytes are
-    /// then copied from the temporary array  to dst.
-    ///
-    /// memmove returns a pointer to dst.
-    ///
-    pub fn memmove(dst: *mut u8, src: *const u8, n: usize) -> *mut u8;
-
-    /// memset fills the first n bytes of the memory area pointed
-    /// to by s with the constant byte c.
-    ///
-    /// memset returns a pointer to the memory area s.
-    ///
-    pub fn memset(s: *mut u8, c: i32, n: usize) -> *mut u8;
-}
-
-/// memzero zeros the first n bytes at s.
-///
-pub unsafe fn memzero(s: *mut u8, n: usize) {
-    memset(s, 0, n);
-}
-
 // PML4 functionality.
 
 /// KERNEL_PML4_ADDRESS contains the virtual address of the kernel's
