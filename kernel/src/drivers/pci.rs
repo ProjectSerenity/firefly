@@ -6,35 +6,14 @@ use alloc::vec::Vec;
 use core::fmt;
 use x86_64::instructions::port::Port;
 
-pub const CONFIG_ADDRESS: u16 = 0xcf8;
-pub const CONFIG_DATA: u16 = 0xcfc;
+const CONFIG_ADDRESS: u16 = 0xcf8;
+const CONFIG_DATA: u16 = 0xcfc;
 
-pub const NONE: u16 = 0xffff;
+const NONE: u16 = 0xffff;
 
 // See https://en.wikipedia.org/wiki/PCI_configuration_space#/media/File:Pci-config-space.svg
-
-pub const VENDOR_ID: u8 = 0x00; // u16
-pub const DEVICE_ID: u8 = 0x02; // u16
-pub const COMMAND: u8 = 0x04; // u16
-pub const STATUS: u8 = 0x06; // u16
-pub const REVISION_ID: u8 = 0x08; // u8
-pub const SUBCLASS: u8 = 0x0a; // u8
-pub const CLASS: u8 = 0x0b; // u8
-pub const HEADER_TYPE: u8 = 0x0e; // u8
-pub const SUBSYSTEM_VENDOR_ID: u8 = 0x2c; // u16
-pub const SUBSYSTEM_ID: u8 = 0x2e; // u16
-pub const INTERRUPT_LINE: u8 = 0x3c; // u8
-
-pub const BAR0: u8 = 0x10; // u32
-pub const BAR1: u8 = 0x14; // u32
-pub const BAR2: u8 = 0x18; // u32
-pub const BAR3: u8 = 0x1c; // u32
-pub const BAR4: u8 = 0x20; // u32
-pub const BAR5: u8 = 0x24; // u32
-
-pub const SECONDARY_BUS: u8 = 0x19;
-
-pub const TYPE_BRIDGE: u16 = 0x0604;
+const VENDOR_ID: u8 = 0x00; // u16
+const HEADER_TYPE: u8 = 0x0e; // u8
 
 /// UNKNOWN_DEVICES is the list of PCI devices that have been
 /// identified by init but were not claimed by a device driver.
@@ -87,9 +66,26 @@ pub struct Device {
 
     pub vendor: u16,
     pub device: u16,
-    pub devtype: u16,
+    pub command: u16,
+    pub status: u16,
+    pub revision_id: u8,
+    pub prog_if: u8,
+    pub subclass: u8,
+    pub class_code: u8,
+    pub cache_line_size: u8,
+    pub latency_timer: u8,
+    pub header_type: u8,
+    pub built_in_self_test: u8,
+    pub base_address_registers: [u32; 6],
+    pub cardbus_cis_pointer: u32,
     pub subsystem_vendor: u16,
-    pub subsystem: u16,
+    pub subsystem_device: u16,
+    pub expansion_rom_base_address: u32,
+    pub capabilities_pointer: u8,
+    pub interrupt_line: u8,
+    pub interrupt_pin: u8,
+    pub min_grant: u8,
+    pub max_latency: u8,
 }
 
 // set_address sets the PCI slot.
@@ -167,86 +163,83 @@ impl Device {
     pub fn write_field_u32(&self, field: u8, value: u32) {
         write_u32(self.bus, self.slot, self.func, field, value);
     }
-
-    pub fn get_irq(&self) -> usize {
-        self.read_field_u8(INTERRUPT_LINE) as usize
-    }
 }
 
 impl fmt::Display for Device {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "PCI device with vendor={:04x}, device={:04x}, type={:04x}, subsystem vendor={:04x}, subsystem={:04x}",
-            self.vendor, self.device, self.devtype, self.subsystem_vendor, self.subsystem
+            "PCI device with vendor={:04x}, device={:04x}, subsystem vendor={:04x}, subsystem device={:04x}",
+            self.vendor, self.device, self.subsystem_vendor, self.subsystem_device
         )
     }
-}
-
-// read_vendor_device returns the vendor and device
-// details for the given slot.
-//
-fn read_vendor_device(bus: u8, slot: u8) -> (u16, u16) {
-    let data = read_u32(bus, slot, 0, VENDOR_ID);
-    let vendor = (data & 0xffff) as u16;
-    let device = (data >> 16) as u16;
-
-    (vendor, device)
-}
-
-// read_device_type returns the device type of the
-// given device.
-//
-fn read_device_type(bus: u8, slot: u8, func: u8) -> u16 {
-    let class = read_u8(bus, slot, func, CLASS) as u16;
-    let subclass = read_u8(bus, slot, func, SUBCLASS) as u16;
-    (class << 8) | subclass
-}
-
-// read_subsystem returns the vendor and id for the
-// subsystem details for the given slot.
-//
-fn read_subsystem(bus: u8, slot: u8) -> (u16, u16) {
-    let data = read_u32(bus, slot, 0, SUBSYSTEM_VENDOR_ID);
-    let vendor = (data & 0xffff) as u16;
-    let device = (data >> 16) as u16;
-
-    (vendor, device)
 }
 
 // scan_slot scans a PCI slot for a recognised
 // device.
 //
 fn scan_slot(bus: u8, slot: u8) {
-    let (vendor, device) = read_vendor_device(bus, slot);
-    if vendor == NONE {
+    // See https://en.wikipedia.org/wiki/PCI_configuration_space#/media/File:Pci-config-space.svg
+    //
+    // Read the header fields, 32 bits at a time.
+    // We stop to check the vendor is valid and
+    // the header type is 0, but otherwise just
+    // store everything blindly.
+    let mut registers = [0u32; 16];
+    registers[0] = read_u32(bus, slot, 0, 0x00);
+    if registers[0] as u16 == NONE {
         // Device doesn't exist.
         return;
     }
 
-    let devtype = read_device_type(bus, slot, 0);
-    let (subsystem_vendor, subsystem) = read_subsystem(bus, slot);
+    for i in 1..16 {
+        registers[i] = read_u32(bus, slot, 0, (i * 4) as u8);
+    }
+
+    if (registers[3] >> 16) as u8 != 0 {
+        // Not a type-0 header.
+        return;
+    }
 
     let dev = Device {
         bus,
         slot,
         func: 0,
-        vendor,
-        device,
-        devtype,
-        subsystem_vendor,
-        subsystem,
+        vendor: registers[0] as u16,
+        device: (registers[0] >> 16) as u16,
+        command: registers[1] as u16,
+        status: (registers[1] >> 16) as u16,
+        revision_id: registers[2] as u8,
+        prog_if: (registers[2] >> 8) as u8,
+        subclass: (registers[2] >> 16) as u8,
+        class_code: (registers[2] >> 24) as u8,
+        cache_line_size: registers[3] as u8,
+        latency_timer: (registers[3] >> 8) as u8,
+        header_type: (registers[3] >> 16) as u8,
+        built_in_self_test: (registers[3] >> 24) as u8,
+        base_address_registers: [
+            registers[4],
+            registers[5],
+            registers[6],
+            registers[7],
+            registers[8],
+            registers[9],
+        ],
+        cardbus_cis_pointer: registers[10],
+        subsystem_vendor: registers[11] as u16,
+        subsystem_device: (registers[11] >> 16) as u16,
+        expansion_rom_base_address: registers[12],
+        capabilities_pointer: registers[13] as u8,
+        interrupt_line: registers[15] as u8,
+        interrupt_pin: (registers[15] >> 8) as u8,
+        min_grant: (registers[15] >> 16) as u8,
+        max_latency: (registers[15] >> 24) as u8,
     };
 
     if let Some(driver) = drivers::device_supported(&dev) {
         driver(dev);
     } else {
         UNKNOWN_DEVICES.lock().push(dev);
-    }
-
-    if devtype == TYPE_BRIDGE {
-        let bus = read_u8(bus, slot, 0, SECONDARY_BUS);
-        scan_bus(bus);
     }
 }
 
