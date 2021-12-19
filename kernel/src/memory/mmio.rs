@@ -46,6 +46,22 @@ fn reserve_space(size: u64) -> VirtAddr {
     out
 }
 
+/// read_volatile returns the referenced field in a way that
+/// will not be optimised away by the compiler or reordered
+/// at runtime.
+///
+pub macro read_volatile($typ:ident.$field:ident) {
+    core::ptr::read_volatile(core::ptr::addr_of!($typ.$field))
+}
+
+/// write_volatile writes to the referenced field in a way
+/// that will not be optimised away by the compiler or
+/// reordered at runtime.
+///
+pub macro write_volatile($typ:ident.$field:ident, $value:expr) {
+    core::ptr::write_volatile(core::ptr::addr_of_mut!($typ.$field), $value)
+}
+
 /// RegionOverflow indicates that a read or write in an MMIO
 /// region exceeded the bounds of the region.
 ///
