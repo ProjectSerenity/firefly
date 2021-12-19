@@ -95,32 +95,34 @@ impl Region {
         }
     }
 
-    /// read reads a generic value at the given offset into
-    /// the region.
+    /// as_mut returns a mutable reference to the given
+    /// type at the given offset into the region.
     ///
-    pub fn read<T: Copy>(&self, offset: u64) -> Result<T, RegionOverflow> {
+    pub fn as_mut<T: Copy>(&self, offset: u64) -> Result<&'static mut T, RegionOverflow> {
         let addr = self.start + offset;
         let size = core::mem::size_of::<T>() as u64;
         if (addr + size) > self.end {
             return Err(RegionOverflow(addr + size));
         }
 
-        let ptr = addr.as_ptr() as *const T;
-        unsafe { Ok(*ptr) }
+        let ptr = addr.as_ptr::<T>() as *mut T;
+        unsafe { Ok(ptr.as_mut().unwrap()) }
+    }
+
+    /// read reads a generic value at the given offset into
+    /// the region.
+    ///
+    pub fn read<T: 'static + Copy>(&self, offset: u64) -> Result<T, RegionOverflow> {
+        let ptr = self.as_mut(offset)?;
+        Ok(*ptr)
     }
 
     /// write writes a generic value to the given offset into
     /// the region.
     ///
-    pub fn write<T: Copy>(&mut self, offset: u64, val: T) -> Result<(), RegionOverflow> {
-        let addr = self.start + offset;
-        let size = core::mem::size_of::<T>() as u64;
-        if (addr + size) > self.end {
-            return Err(RegionOverflow(addr + size));
-        }
-
-        let ptr = addr.as_mut_ptr() as *mut T;
-        unsafe { *ptr = val };
+    pub fn write<T: 'static + Copy>(&mut self, offset: u64, val: T) -> Result<(), RegionOverflow> {
+        let ptr = self.as_mut(offset)?;
+        *ptr = val;
 
         Ok(())
     }
