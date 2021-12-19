@@ -5,6 +5,7 @@ use crate::{drivers, println};
 use alloc::vec::Vec;
 use core::fmt;
 use x86_64::instructions::port::Port;
+use x86_64::PhysAddr;
 
 const CONFIG_ADDRESS: u16 = 0xcf8;
 const CONFIG_DATA: u16 = 0xcfc;
@@ -64,6 +65,15 @@ pub fn debug() {
 pub struct Capability {
     pub id: u8,
     pub data: Vec<u8>,
+}
+
+/// Bar represents a PCI base address
+/// register.
+///
+#[derive(Debug)]
+pub enum Bar {
+    IOMapped { port: u32 },
+    MemoryMapped { addr: PhysAddr },
 }
 
 /// Device represents a PCI device.
@@ -173,6 +183,25 @@ impl Device {
 
     pub fn write_field_u32(&self, field: u8, value: u32) {
         write_u32(self.bus, self.slot, self.func, field, value);
+    }
+
+    /// bar returns the corresponding base
+    /// address register.
+    ///
+    /// The index must be in the range [0, 6).
+    ///
+    pub fn bar(&self, index: usize) -> Bar {
+        assert!(index < 6);
+        let bar = self.base_address_registers[index];
+        if bar & 1 == 0 {
+            Bar::MemoryMapped {
+                addr: PhysAddr::new(bar as u64 & 0xfff0),
+            }
+        } else {
+            Bar::IOMapped {
+                port: bar & 0xffff_fffc,
+            }
+        }
     }
 }
 
