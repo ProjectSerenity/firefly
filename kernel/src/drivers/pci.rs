@@ -205,7 +205,7 @@ impl Device {
         let bar = self.base_address_registers[index];
         if bar & 1 == 0 {
             Bar::MemoryMapped {
-                addr: PhysAddr::new(bar as u64 & 0xfff0),
+                addr: PhysAddr::new((bar & !0b1111) as u64),
             }
         } else {
             Bar::IOMapped {
