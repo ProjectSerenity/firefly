@@ -2,7 +2,6 @@
 
 use crate::multitasking::thread::{ThreadId, ThreadState, SCHEDULER, THREADS};
 use crate::multitasking::{cpu_local, thread};
-use crate::println;
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use core::mem;
@@ -58,9 +57,6 @@ static INITIALISED: AtomicBool = AtomicBool::new(false);
 /// work left to do.
 ///
 fn idle_loop() -> ! {
-    println!("Kernel entering the idle thread.");
-
-    #[allow(unreachable_code)]
     loop {
         x86_64::instructions::interrupts::enable_and_hlt();
     }
