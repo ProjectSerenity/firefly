@@ -87,6 +87,15 @@ pub unsafe fn kernel_pml4() -> OffsetPageTable<'static> {
     OffsetPageTable::new(page_table, PHYSICAL_MEMORY_OFFSET)
 }
 
+/// align_up aligns the given address upwards to alignment align.
+///
+/// Requires that align is a power of two. Unlike x86_64::align_up,
+/// this operates on usize values, rather than u64.
+///
+pub fn align_up(addr: usize, align: usize) -> usize {
+    (addr + align - 1) & !(align - 1)
+}
+
 /// StackBounds describes the address space used
 /// for a stack.
 ///

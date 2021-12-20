@@ -145,14 +145,6 @@ unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
     MapperFlushAll::new().flush_all();
 }
 
-/// align_up aligns the given address upwards to alignment align.
-///
-/// Requires that align is a power of two.
-///
-fn align_up(addr: usize, align: usize) -> usize {
-    (addr + align - 1) & !(align - 1)
-}
-
 /// debug iterates through a level 4 page
 /// table, printing its mappings using print!.
 ///

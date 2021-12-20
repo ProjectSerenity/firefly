@@ -1,7 +1,7 @@
 // This module is a bump allocator, which can be
 // used to allocate heap memory.
 
-use super::align_up;
+use crate::memory::align_up;
 use crate::Locked;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr;
