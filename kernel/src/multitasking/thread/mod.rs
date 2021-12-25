@@ -239,7 +239,7 @@ impl Thread {
     /// When the thread runs, it will start by enabling
     /// interrupts and calling entry_point.
     ///
-    pub fn start_kernel_thread(entry_point: fn() -> !) {
+    pub fn start_kernel_thread(entry_point: fn() -> !) -> ThreadId {
         // Allocate and prepare the stack pointer.
         let stack = new_kernel_stack(Thread::DEFAULT_KERNEL_STACK_PAGES)
             .expect("failed to allocate stack for new kernel thread");
@@ -278,6 +278,8 @@ impl Thread {
             THREADS.lock().insert(id, thread);
             SCHEDULER.lock().add(id);
         });
+
+        id
     }
 
     /// thread_id returns the thread's ThreadId.
