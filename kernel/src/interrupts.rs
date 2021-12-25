@@ -40,7 +40,11 @@ use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, Pag
 ///
 pub fn init() {
     IDT.load();
-    unsafe { PICS.lock().initialize() };
+    unsafe {
+        let mut pics = PICS.lock();
+        pics.initialize();
+        pics.disable(); // We disable all PIC lines by default.
+    }
 }
 
 lazy_static! {
