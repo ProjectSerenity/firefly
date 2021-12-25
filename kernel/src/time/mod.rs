@@ -98,6 +98,13 @@ impl Instant {
         Instant(ticks)
     }
 
+    /// system_micros returns the number of microseconds
+    /// since the system booted.
+    ///
+    pub const fn system_micros(&self) -> u64 {
+        (self.0 * ticker::NANOSECONDS_PER_TICK) / 1000
+    }
+
     /// duration_since returns a Duration describing the
     /// amount of time that passed between the two
     /// Instants.
