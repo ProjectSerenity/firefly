@@ -175,7 +175,7 @@ impl Irq {
 
     /// as_usize returns the IRQ in the range [0, 15].
     ///
-    fn as_usize(&self) -> usize {
+    pub fn as_usize(&self) -> usize {
         self.0 as usize
     }
 
