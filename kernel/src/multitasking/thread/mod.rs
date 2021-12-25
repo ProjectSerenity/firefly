@@ -140,6 +140,10 @@ impl ThreadId {
 ///
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum ThreadState {
+    /// The thread is being created
+    /// and not yet runnable.
+    BeingCreated,
+
     /// The thread is runnable.
     Runnable,
 
@@ -302,6 +306,7 @@ impl Thread {
         let scheduler = SCHEDULER.lock();
         self.state.store(new_state);
         match new_state {
+            ThreadState::BeingCreated => panic!("thread state set to BeingCreated"),
             ThreadState::Runnable => {}
             ThreadState::Sleeping => scheduler.remove(self.id),
             ThreadState::Exiting => scheduler.remove(self.id),

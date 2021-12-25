@@ -186,6 +186,11 @@ pub fn resume(thread_id: ThreadId) -> bool {
     match THREADS.lock().get(&thread_id) {
         None => false,
         Some(thread) => match thread.thread_state() {
+            ThreadState::BeingCreated => {
+                thread.set_state(ThreadState::Runnable);
+                SCHEDULER.lock().add(thread_id);
+                true
+            }
             ThreadState::Runnable => true,
             ThreadState::Sleeping => {
                 thread.set_state(ThreadState::Runnable);
