@@ -304,12 +304,32 @@ static IRQS: spin::Mutex<[IrqHandler; 16]> = spin::Mutex::new([irq_handler_none;
 ///
 pub fn register_irq(irq: Irq, handler: IrqHandler) {
     interrupts::without_interrupts(|| {
+        // Register the handler.
         let mut irqs = IRQS.lock();
         if irqs[irq.as_usize()] != irq_handler_none {
             panic!("IRQ {:?} has already been registered", irq);
         }
 
         irqs[irq.as_usize()] = handler;
+
+        // Enable the PIC line.
+        let mut pics = PICS.lock();
+        let mut masks = unsafe { pics.read_masks() };
+        let (pic, line) = if irq.as_u8() < 8 {
+            (0, irq.as_u8())
+        } else {
+            (1, irq.as_u8() - 8)
+        };
+
+        masks[pic] &= !(1 << line);
+
+        // We have to unmask the link between the
+        // PICs to unmask the second PIC.
+        if pic == 1 {
+            masks[0] &= !(1 << 2);
+        }
+
+        unsafe { pics.write_masks(masks[0], masks[1]) };
     });
 }
 
