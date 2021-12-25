@@ -237,13 +237,15 @@ impl Thread {
         thread
     }
 
-    /// start_kernel_thread creates a new kernel thread,
-    /// allocating a stack, and adding it to the scheduler.
+    /// create_kernel_thread creates a new kernel thread,
+    /// allocating a stack, and marking it as not runnable.
+    /// The new thread will not start until scheduler::resume
+    /// is called with its thread id.
     ///
     /// When the thread runs, it will start by enabling
     /// interrupts and calling entry_point.
     ///
-    pub fn start_kernel_thread(entry_point: fn() -> !) -> ThreadId {
+    pub fn create_kernel_thread(entry_point: fn() -> !) -> ThreadId {
         // Allocate and prepare the stack pointer.
         let stack = new_kernel_stack(Thread::DEFAULT_KERNEL_STACK_PAGES)
             .expect("failed to allocate stack for new kernel thread");
@@ -272,7 +274,7 @@ impl Thread {
         let id = ThreadId::new();
         let thread = Arc::new(Thread {
             id,
-            state: AtomicCell::new(ThreadState::Runnable),
+            state: AtomicCell::new(ThreadState::BeingCreated),
             time_slice: UnsafeCell::new(DEFAULT_TIME_SLICE),
             stack_pointer: UnsafeCell::new(rsp as u64),
             stack_bounds: Some(stack),
@@ -280,8 +282,20 @@ impl Thread {
 
         interrupts::without_interrupts(|| {
             THREADS.lock().insert(id, thread);
-            SCHEDULER.lock().add(id);
         });
+
+        id
+    }
+
+    /// start_kernel_thread creates a new kernel thread,
+    /// allocating a stack, and adding it to the scheduler.
+    ///
+    /// When the thread runs, it will start by enabling
+    /// interrupts and calling entry_point.
+    ///
+    pub fn start_kernel_thread(entry_point: fn() -> !) -> ThreadId {
+        let id = Thread::create_kernel_thread(entry_point);
+        scheduler::resume(id);
 
         id
     }
