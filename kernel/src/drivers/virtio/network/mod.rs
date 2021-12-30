@@ -2,11 +2,16 @@
 
 use crate::drivers::virtio;
 use crate::drivers::virtio::virtqueue;
-use crate::memory::pmm;
+use crate::memory::{phys_to_virt_addr, pmm};
 use crate::println;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
+use core::{mem, slice};
+use smoltcp::phy::RxToken;
+use smoltcp::time::Instant;
 use smoltcp::wire::EthernetAddress;
+use x86_64::instructions::interrupts;
 use x86_64::structures::paging::frame::PhysFrame;
 use x86_64::PhysAddr;
 
@@ -16,6 +21,20 @@ use x86_64::PhysAddr;
 //
 const RECV_VIRTQUEUE: u16 = 0;
 const SEND_VIRTQUEUE: u16 = 1;
+
+// PACKET_LEN_MAX is the maximum size of
+// a buffer used to send or receive
+// packets from the device. Note that
+// this includes the 12-byte header
+// used by the Virtio network driver.
+//
+// This allows us to achieve an MTU of
+// 2036 bytes with single buffers. To
+// utilise a larger MTU, we would need
+// to send the packets over more than
+// one buffer.
+//
+const PACKET_LEN_MAX: usize = 2048;
 
 /// Driver represents a virtio network card, which can
 /// be used to send and receive packets.
@@ -111,6 +130,57 @@ impl Drop for Driver {
                 Err(_e) => {}
             }
         }
+    }
+}
+
+/// RecvBuffer is returned to the interface by our
+/// driver when we receive a packet for it to
+/// process. The buffer is a recv buffer we just
+/// received from the device. The buffer can only
+/// be used once (enforced by the fact it's a method
+/// on self, not &self).
+///
+pub struct RecvBuffer {
+    addr: PhysAddr,
+    len: usize,
+    driver: Arc<spin::Mutex<Driver>>,
+}
+
+impl<'a> RxToken for RecvBuffer {
+    fn consume<R, F>(self, _timestamp: Instant, f: F) -> smoltcp::Result<R>
+    where
+        F: FnOnce(&mut [u8]) -> smoltcp::Result<R>,
+    {
+        // Process and strip the virtio network header.
+        // We don't use any advanced features yet, so
+        // the virtio network header fields can be ignored.
+        let offset = mem::size_of::<Header>();
+
+        // Pass our buffer to the callback to
+        // process the packet.
+        let virt_addr = phys_to_virt_addr(self.addr) + offset;
+        let len = self.len - offset;
+        let mut buf = unsafe { slice::from_raw_parts_mut(virt_addr.as_mut_ptr(), len) };
+        let ret = f(&mut buf);
+
+        // Return the used buffer to the device
+        // so it can use it to receive a future
+        // packet.
+        interrupts::without_interrupts(|| {
+            let mut dev = self.driver.lock();
+            let addr = self.addr;
+            let len = PACKET_LEN_MAX;
+
+            dev.driver
+                .send(
+                    RECV_VIRTQUEUE,
+                    &[virtqueue::Buffer::DeviceCanWrite { addr, len }],
+                )
+                .expect("failed to return receive buffer to device");
+            dev.driver.notify(RECV_VIRTQUEUE);
+        });
+
+        ret
     }
 }
 
