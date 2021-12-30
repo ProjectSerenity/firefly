@@ -56,7 +56,7 @@ pub fn allocate_frame() -> Option<PhysFrame> {
 ///
 /// The caller must ensure that the given frame is unused.
 ///
-unsafe fn deallocate_frame(frame: PhysFrame<Size4KiB>) {
+pub unsafe fn deallocate_frame(frame: PhysFrame<Size4KiB>) {
     let mut allocator = ALLOCATOR.lock();
     allocator.deallocate_frame(frame);
 }
