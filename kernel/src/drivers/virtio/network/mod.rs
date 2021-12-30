@@ -1,6 +1,118 @@
 //! network implements virtio network cards.
 
+use crate::drivers::virtio;
+use crate::drivers::virtio::virtqueue;
+use crate::memory::pmm;
+use crate::println;
+use alloc::vec::Vec;
 use bitflags::bitflags;
+use smoltcp::wire::EthernetAddress;
+use x86_64::structures::paging::frame::PhysFrame;
+use x86_64::PhysAddr;
+
+// These constants are used to ensure we
+// always receive packets from Virtqueue
+// 0 and send them from Virtqueue 1.
+//
+const RECV_VIRTQUEUE: u16 = 0;
+const SEND_VIRTQUEUE: u16 = 1;
+
+/// Driver represents a virtio network card, which can
+/// be used to send and receive packets.
+///
+pub struct Driver {
+    // driver is the underlying virtio generic driver.
+    driver: virtio::Driver,
+
+    // mac is the device's MAC address.
+    mac: EthernetAddress,
+
+    // recv_buffers is the list of pre-allocated
+    // buffers we use to receive packets. Note that
+    // we only keep this list so we can deallocate
+    // them if the driver is dropped. We don't use
+    // this vector during the driver's life like we
+    // do with send_buffers.
+    recv_buffers: Vec<PhysAddr>,
+
+    // send_buffers is the list of pre-allocated
+    // buffers we've prepared for sending packets.
+    send_buffers: Vec<PhysAddr>,
+
+    // mtu is the path MTU.
+    mtu: u16,
+}
+
+impl Driver {
+    /// mac_address returns the device's MAC address.
+    ///
+    pub fn mac_address(&self) -> EthernetAddress {
+        self.mac
+    }
+
+    /// reclaim_send_buffers retrieves any returned
+    /// buffers from the send queue and adds them to
+    /// the list of send buffers.
+    ///
+    pub fn reclaim_send_buffers(&mut self) {
+        loop {
+            match self.driver.recv(SEND_VIRTQUEUE) {
+                None => return,
+                Some(bufs) => {
+                    for buf in bufs.buffers.iter() {
+                        let addr = match buf {
+                            virtqueue::Buffer::DeviceCanRead { addr, len: _len } => *addr,
+                            _ => panic!("invalid buffer from send queue"),
+                        };
+
+                        self.send_buffers.push(addr);
+                        println!("Send buffer reclaimed.");
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl Drop for Driver {
+    fn drop(&mut self) {
+        // Start by resetting the device in case
+        // that leads to us receiving more send
+        // buffers.
+        self.driver.reset();
+
+        // As documented earlier, we use the fact that
+        // PACKET_LEN_MAX is exactly half a frame, so
+        // we have two buffers from each allocated
+        // frame.
+        //
+        // What we do here is deallocate the buffers
+        // that start on a frame boundary. We can safely
+        // ignore those not on a frame boundary.
+
+        self.reclaim_send_buffers();
+
+        // De-allocate the send buffers.
+        for addr in self.send_buffers.iter() {
+            match PhysFrame::from_start_address(*addr) {
+                Ok(frame) => {
+                    unsafe { pmm::deallocate_frame(frame) };
+                }
+                Err(_e) => {}
+            }
+        }
+
+        // De-allocate the receive buffers.
+        for addr in self.recv_buffers.iter() {
+            match PhysFrame::from_start_address(*addr) {
+                Ok(frame) => {
+                    unsafe { pmm::deallocate_frame(frame) };
+                }
+                Err(_e) => {}
+            }
+        }
+    }
+}
 
 /// Header represents the header data that must preceed
 /// each buffer sent to the device.
