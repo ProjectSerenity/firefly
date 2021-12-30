@@ -111,3 +111,56 @@ struct DriverArea {
     // in the device area.
     recv_event: &'static mut u16,
 }
+
+bitflags! {
+    /// DeviceFlags represents the set of flags that can
+    /// be used in a split virtqueue's device area's flags field.
+    ///
+    struct DeviceFlags: u16 {
+        /// NO_NOTIFICATIONS indicates that the driver should not
+        /// send notifications to the device after future descriptor
+        /// chains are provided in the driver area.
+        const NO_NOTIFICATIONS = 1;
+    }
+}
+
+/// DeviceElem contains a reference to a
+/// buffer that the device has finished using,
+/// along with the number of bytes written to
+/// the buffer.
+///
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+struct DeviceElem {
+    // index indicates the descriptor chain
+    // head for the buffer being returned.
+    index: u32,
+
+    // len is the minimum number of bytes
+    // that have been written to the buffer.
+    len: u32,
+}
+
+/// DeviceArea represents a split virtqueue's area where
+/// the device returns descriptors to the driver, as described
+/// in section 2.6.8.
+///
+#[derive(Debug)]
+struct DeviceArea {
+    // flags indicates the device's behaviour recommendations
+    // to the driver.
+    flags: &'static mut u16,
+
+    // index is the index into ring (modulo the ring's size)
+    // at which the next descriptor will be written.
+    index: &'static mut u16,
+
+    // ring is the ring buffer containing the descriptor heads
+    // returned by the device.
+    ring: &'static mut [DeviceElem],
+
+    // send_event is used by the device to indicate to the driver
+    // when to send notifications when future descriptors are
+    // passed in the driver area.
+    send_event: &'static mut u16,
+}
