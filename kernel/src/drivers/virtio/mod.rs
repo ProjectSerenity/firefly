@@ -4,6 +4,8 @@
 // Note, all references to 'sections' are relative to the
 // Virtio 1.1 specification linked above.
 
+pub mod features;
+
 use crate::drivers;
 use crate::drivers::pci;
 
