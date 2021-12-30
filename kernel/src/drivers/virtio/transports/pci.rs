@@ -1,9 +1,12 @@
 //! pci implements the PCI transport mechanism documented in section
 //! 4.1 of <https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html>.
 
-use crate::drivers::pci;
+use crate::drivers::{pci, virtio};
+use crate::interrupts::Irq;
 use crate::memory::mmio;
+use crate::memory::mmio::{read_volatile, write_volatile};
 use x86_64::structures::paging::frame::{PhysFrame, PhysFrameRange};
+use x86_64::PhysAddr;
 
 /// CAPABILITY_ID_VENDOR is the unique identifier
 /// for a PCI capability containing vendor-specific
@@ -300,5 +303,200 @@ impl Transport {
         self.common
             .as_mut::<CommonConfig>(0)
             .expect("invalid config address space")
+    }
+}
+
+impl virtio::Transport for Transport {
+    /// read_device_config_u8 returns the device-specific
+    /// configuration byte at the given offset.
+    ///
+    fn read_device_config_u8(&self, offset: u16) -> u8 {
+        self.device
+            .read(offset as u64)
+            .expect("failed to read device configuration")
+    }
+
+    /// read_irq returns the device's interrupt number.
+    ///
+    fn read_irq(&self) -> Irq {
+        Irq::new(self.pci.interrupt_line).expect("bad IRQ")
+    }
+
+    /// read_interrupt_status returns the device's current
+    /// interrupt status.
+    ///
+    fn read_interrupt_status(&self) -> virtio::InterruptStatus {
+        virtio::InterruptStatus::from_bits_truncate(self.interrupt.read::<u8>(0).unwrap())
+    }
+
+    /// read_status returns the device's status.
+    ///
+    fn read_status(&self) -> virtio::DeviceStatus {
+        let common = self.common();
+
+        virtio::DeviceStatus::from_bits_truncate(unsafe { read_volatile!(common.device_status) })
+    }
+
+    /// write_status sets the device's status.
+    ///
+    fn write_status(&self, device_status: virtio::DeviceStatus) {
+        let common = self.common();
+
+        unsafe { write_volatile!(common.device_status, device_status.bits()) };
+    }
+
+    /// add_status reads the current device status
+    /// and sets the given additional bits.
+    ///
+    fn add_status(&self, device_status: virtio::DeviceStatus) {
+        let current = self.read_status();
+        self.write_status(current | device_status);
+    }
+
+    /// has_status returns whether the current device
+    /// status includes the given bits.
+    ///
+    fn has_status(&self, device_status: virtio::DeviceStatus) -> bool {
+        let current = self.read_status();
+        current.contains(device_status)
+    }
+
+    /// read_device_features returns the
+    /// first 64 of the device's feature bits.
+    ///
+    fn read_device_features(&self) -> u64 {
+        let common = self.common();
+
+        let low;
+        let high;
+        unsafe {
+            write_volatile!(common.device_feature_select, 0u32.to_le());
+            low = u32::from_le(read_volatile!(common.device_feature));
+            write_volatile!(common.device_feature_select, 1u32.to_le());
+            high = u32::from_le(read_volatile!(common.device_feature));
+        }
+
+        ((high as u64) << 32) | (low as u64)
+    }
+
+    /// write_driver_features sets the
+    /// first 64 of the driver's feature bits.
+    ///
+    fn write_driver_features(&self, features: u64) {
+        let common = self.common();
+
+        unsafe {
+            write_volatile!(common.driver_feature_select, 0u32.to_le());
+            write_volatile!(common.driver_feature, features.to_le() as u32);
+            write_volatile!(common.driver_feature_select, 1u32.to_le());
+            write_volatile!(common.driver_feature, (features.to_le() >> 32) as u32);
+        }
+    }
+
+    /// read_num_queues returns the maximum number of
+    /// virtqueues supported by the device.
+    ///
+    fn read_num_queues(&self) -> u16 {
+        let common = self.common();
+
+        unsafe { u16::from_le(read_volatile!(common.num_queues)) }
+    }
+
+    /// select_queue sets the current virtqueue.
+    ///
+    fn select_queue(&self, index: u16) {
+        let common = self.common();
+
+        unsafe {
+            write_volatile!(common.queue_select, index.to_le());
+        }
+    }
+
+    /// queue_size returns the maximum number of descriptors
+    /// supported by the device in any virtqueue.
+    ///
+    fn queue_size(&self) -> u16 {
+        let common = self.common();
+
+        unsafe { u16::from_le(read_volatile!(common.queue_size)) }
+    }
+
+    /// set_queue_size notifies the device of the number
+    /// of descriptors in the descriptor area of the
+    /// current virtqueue (set using select_queue).
+    ///
+    fn set_queue_size(&self, size: u16) {
+        let common = self.common();
+
+        unsafe {
+            write_volatile!(common.queue_size, size.to_le());
+        }
+    }
+
+    /// notify_queue notifies the device that the
+    /// virtqueue at the given index has descriptors
+    /// ready in the driver area.
+    ///
+    fn notify_queue(&self, queue_index: u16) {
+        let common = self.common();
+
+        unsafe {
+            let offset = self.notify_offset_multiplier
+                * u16::from_le(read_volatile!(common.queue_notify_off)) as u64;
+            *self.notify.as_mut(offset).unwrap() = queue_index;
+        }
+    }
+
+    /// enable_queue notifies the device to use the
+    /// current virtqueue (set using select_queue).
+    ///
+    fn enable_queue(&self) {
+        let common = self.common();
+
+        unsafe {
+            write_volatile!(common.queue_enable, 1u16.to_le());
+        }
+    }
+
+    /// set_queue_descriptor_area notifies the device of
+    /// the physical address of the descriptor area of
+    /// the current virtqueue (set using select_queue).
+    ///
+    fn set_queue_descriptor_area(&self, area: PhysAddr) {
+        let common = self.common();
+        let value = area.as_u64().to_le();
+
+        unsafe {
+            write_volatile!(common.queue_desc_lo, value as u32);
+            write_volatile!(common.queue_desc_hi, (value >> 32) as u32);
+        }
+    }
+
+    /// set_queue_driver_area notifies the device of the
+    /// physical address of the driver area of the current
+    /// virtqueue (set using select_queue).
+    ///
+    fn set_queue_driver_area(&self, area: PhysAddr) {
+        let common = self.common();
+        let value = area.as_u64().to_le();
+
+        unsafe {
+            write_volatile!(common.queue_driver_lo, value as u32);
+            write_volatile!(common.queue_driver_hi, (value >> 32) as u32);
+        }
+    }
+
+    /// set_queue_device_area notifies the device of the
+    /// physical address of the device area of the current
+    /// virtqueue (set using select_queue).
+    ///
+    fn set_queue_device_area(&self, area: PhysAddr) {
+        let common = self.common();
+        let value = area.as_u64().to_le();
+
+        unsafe {
+            write_volatile!(common.queue_device_lo, value as u32);
+            write_volatile!(common.queue_device_hi, (value >> 32) as u32);
+        }
     }
 }
