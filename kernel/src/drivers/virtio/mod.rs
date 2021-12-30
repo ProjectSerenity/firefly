@@ -6,6 +6,7 @@
 
 pub mod features;
 pub mod transports;
+pub mod virtqueue;
 
 use crate::drivers;
 use crate::drivers::pci;
