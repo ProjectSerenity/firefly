@@ -2,7 +2,17 @@
 //! 4.1 of <https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html>.
 
 use crate::drivers::pci;
+use crate::memory::mmio;
 use x86_64::structures::paging::frame::{PhysFrame, PhysFrameRange};
+
+/// CAPABILITY_ID_VENDOR is the unique identifier
+/// for a PCI capability containing vendor-specific
+/// data.
+///
+/// All Virtio configuration data is provided in
+/// PCI capabilities with this id.
+///
+const CAPABILITY_ID_VENDOR: u8 = 0x09;
 
 /// Type represents a virtio configuration type.
 ///
@@ -158,4 +168,137 @@ struct CommonConfig {
     queue_driver_hi: u32,
     queue_device_lo: u32,
     queue_device_hi: u32,
+}
+
+/// Transport implements virtio configuration for
+/// the PCI transport, as described in section
+/// 4.1.
+///
+pub struct Transport {
+    // pci is a handle to the PCI device.
+    //
+    pci: pci::Device,
+
+    // common implements the configuration to all
+    // virtio devices.
+    common: mmio::Region,
+
+    // notify implements notification configuratin.
+    notify: mmio::Region,
+    notify_offset_multiplier: u64,
+
+    // interrupt implements the interrupt handler
+    // status configuration.
+    interrupt: mmio::Region,
+
+    // device implements device-specific
+    // configuration.
+    pub device: mmio::Region,
+}
+
+impl Transport {
+    /// new iterates through the given PCI capabilities,
+    /// parsing the virtio-related structures and returning
+    /// them.
+    ///
+    pub fn new(device: pci::Device) -> Result<Self, ConfigError> {
+        let mut common: Option<PhysFrameRange> = None;
+        let mut notify: Option<PhysFrameRange> = None;
+        let mut notify_off_multiplier: Option<u64> = None;
+        let mut interrupt: Option<PhysFrameRange> = None;
+        let mut device_spec: Option<PhysFrameRange> = None;
+
+        // For now, we just take the first instance of
+        // each configuration type we see. In future,
+        // we should do proper feature detection to
+        // check we only choose configurations we can
+        // support.
+        for capability in device.capabilities.iter() {
+            if capability.id != CAPABILITY_ID_VENDOR {
+                continue;
+            }
+
+            if capability.data.len() < 13 {
+                continue;
+            }
+
+            let cfg_type = capability.data[0];
+            let bar = capability.data[1];
+            if bar > 5 {
+                // Invalid.
+                continue;
+            }
+
+            let offset = u32::from_le_bytes([
+                capability.data[5],
+                capability.data[6],
+                capability.data[7],
+                capability.data[8],
+            ]);
+            let length = u32::from_le_bytes([
+                capability.data[9],
+                capability.data[10],
+                capability.data[11],
+                capability.data[12],
+            ]);
+
+            match Type::from_u8(cfg_type) {
+                Some(Type::Common) => {
+                    common = bar_frame_range(&device, bar, offset, length);
+                }
+                Some(Type::Notify) => {
+                    notify = bar_frame_range(&device, bar, offset, length);
+                    if notify.is_some() && capability.data.len() >= 17 {
+                        notify_off_multiplier = Some(u32::from_le_bytes([
+                            capability.data[13],
+                            capability.data[14],
+                            capability.data[15],
+                            capability.data[16],
+                        ]) as u64);
+                    }
+                }
+                Some(Type::Interrupt) => {
+                    interrupt = bar_frame_range(&device, bar, offset, length);
+                }
+                Some(Type::Device) => {
+                    device_spec = bar_frame_range(&device, bar, offset, length);
+                }
+                Some(Type::PCI) => {
+                    // We don't support this yet.
+                }
+                None => {}
+            }
+        }
+
+        if common.is_none() {
+            Err(ConfigError::NoCommon)
+        } else if notify.is_none() || notify_off_multiplier.is_none() {
+            Err(ConfigError::NoNotify)
+        } else if interrupt.is_none() {
+            Err(ConfigError::NoInterrupt)
+        } else if device_spec.is_none() {
+            Err(ConfigError::NoDevice)
+        } else {
+            device.enable_bus_master();
+            unsafe {
+                Ok(Transport {
+                    pci: device,
+                    common: mmio::Region::map(common.unwrap()),
+                    notify: mmio::Region::map(notify.unwrap()),
+                    notify_offset_multiplier: notify_off_multiplier.unwrap(),
+                    interrupt: mmio::Region::map(interrupt.unwrap()),
+                    device: mmio::Region::map(device_spec.unwrap()),
+                })
+            }
+        }
+    }
+
+    // common returns the mutable common config, which
+    // can be used to read or write the configuration.
+    //
+    fn common(&self) -> &'static mut CommonConfig {
+        self.common
+            .as_mut::<CommonConfig>(0)
+            .expect("invalid config address space")
+    }
 }
