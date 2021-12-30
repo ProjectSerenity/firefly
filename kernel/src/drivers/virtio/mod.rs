@@ -10,7 +10,11 @@ pub mod virtqueue;
 
 use crate::drivers;
 use crate::drivers::pci;
+use crate::drivers::virtio::virtqueue::split;
 use crate::interrupts::Irq;
+use alloc::boxed::Box;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
 use bitflags::bitflags;
 use x86_64::PhysAddr;
 
@@ -289,4 +293,170 @@ pub trait Transport: Send + Sync {
     /// virtqueue (set using select_queue).
     ///
     fn set_queue_device_area(&self, area: PhysAddr);
+}
+
+/// InitError describes an error initialising
+/// a virtio device.
+///
+#[derive(Debug)]
+pub enum InitError {
+    /// The device did not indicate support
+    /// for a feature required by the driver.
+    MissingRequiredFeatures(u64),
+
+    /// The driver attempted to initialise
+    /// the device with more virtqueues than
+    /// are supported. The device's maximum
+    /// number of virtqueues is included.
+    TooManyQueues(u16),
+
+    /// The device rejected the feature set
+    /// selected by the driver.
+    DeviceRefusedFeatures,
+}
+
+/// Driver represents a virtio driver.
+///
+pub struct Driver {
+    transport: Arc<dyn Transport>,
+    features: u64,
+    virtqueues: Vec<Box<dyn virtqueue::Virtqueue + Send>>,
+}
+
+impl Driver {
+    /// new initialises the device, negotiating
+    /// the given required and optional features
+    /// and number of virtqueues.
+    ///
+    pub fn new(
+        transport: Arc<dyn Transport>,
+        must_features: u64,
+        like_features: u64,
+        num_queues: u16,
+    ) -> Result<Self, InitError> {
+        // See section 3.1.1 for the driver initialisation
+        // process.
+        transport.write_status(DeviceStatus::RESET);
+        loop {
+            // Section 4.1.4.3.2:
+            //   After writing 0 to device_status, the driver MUST
+            //   wait for a read of device_status to return 0 before
+            //   reinitializing the device.
+            if transport.read_status() == DeviceStatus::RESET {
+                break;
+            }
+        }
+
+        transport.add_status(DeviceStatus::ACKNOWLEDGE);
+        transport.add_status(DeviceStatus::DRIVER);
+        let max_queues = transport.read_num_queues();
+        if max_queues < num_queues {
+            return Err(InitError::TooManyQueues(max_queues));
+        }
+
+        // Read the feature set.
+        let device_features = transport.read_device_features();
+        if (device_features & must_features) != must_features {
+            return Err(InitError::MissingRequiredFeatures(
+                must_features & !device_features,
+            ));
+        }
+
+        // Negotiate our supported features.
+        let features = device_features & (must_features | like_features);
+        transport.write_driver_features(features);
+        transport.add_status(DeviceStatus::FEATURES_OK);
+        if !transport.has_status(DeviceStatus::FEATURES_OK) {
+            return Err(InitError::DeviceRefusedFeatures);
+        }
+
+        // Prepare our virtqueues.
+        let mut virtqueues = Vec::new();
+        for i in 0..num_queues {
+            virtqueues.push(Box::new(split::Virtqueue::new(i, transport.clone()))
+                as Box<dyn virtqueue::Virtqueue + Send>);
+        }
+
+        // Finish initialisation.
+        transport.add_status(DeviceStatus::DRIVER_OK);
+
+        Ok(Driver {
+            transport,
+            features,
+            virtqueues,
+        })
+    }
+
+    /// reset permanently resets the device.
+    ///
+    pub fn reset(&mut self) {
+        self.transport.write_status(DeviceStatus::RESET);
+    }
+
+    /// features returns the features that were negotiated
+    /// with the device.
+    ///
+    pub fn features(&self) -> u64 {
+        self.features
+    }
+
+    /// irq returns this driver's IRQ number.
+    ///
+    pub fn irq(&self) -> Irq {
+        self.transport.read_irq()
+    }
+
+    /// interrupt_status returns this driver's interrupt
+    /// status.
+    ///
+    pub fn interrupt_status(&self) -> InterruptStatus {
+        self.transport.read_interrupt_status()
+    }
+
+    /// read_device_config_u8 returns the device-specific
+    /// configuration byte at the given offset.
+    ///
+    fn read_device_config_u8(&self, offset: u16) -> u8 {
+        self.transport.read_device_config_u8(offset)
+    }
+
+    /// send enqueues a request to the given virtqueue. A request
+    /// consists of a sequence of buffers. The sequence of buffers
+    /// should place device-writable buffers after all
+    /// device-readable buffers.
+    ///
+    /// send returns the descriptor index for the head of the chain.
+    /// This can be used to identify when the device returns the
+    /// buffer chain. If there are not enough descriptors to send
+    /// the chain, send returns None.
+    ///
+    pub fn send(
+        &mut self,
+        queue_index: u16,
+        buffers: &[virtqueue::Buffer],
+    ) -> Result<(), virtqueue::Error> {
+        self.virtqueues[queue_index as usize].send(buffers)
+    }
+
+    /// notify informs the device that descriptors are ready
+    /// to use in the given virtqueue.
+    ///
+    pub fn notify(&self, queue_index: u16) {
+        self.virtqueues[queue_index as usize].notify();
+    }
+
+    /// num_descriptors returns the number of descriptors in the
+    /// given virtqueue.
+    ///
+    pub fn num_descriptors(&self, queue_index: u16) -> usize {
+        self.virtqueues[queue_index as usize].num_descriptors()
+    }
+
+    /// recv returns the next set of buffers
+    /// returned by the device to the given
+    /// queue, or None.
+    ///
+    pub fn recv(&mut self, queue_index: u16) -> Option<virtqueue::UsedBuffers> {
+        self.virtqueues[queue_index as usize].recv()
+    }
 }
