@@ -106,3 +106,56 @@ pub enum ConfigError {
     /// configuration.
     NoDevice,
 }
+
+/// CommonConfig is a helper type that gives the
+/// layout of the common config type defined in
+/// section 4.1.4.3:
+///
+/// ```
+/// struct virtio_pci_common_cfg {
+///     /* About the whole device. */
+///     le32 device_feature_select;     /* read-write */
+///     le32 device_feature;            /* read-only for driver */
+///     le32 driver_feature_select;     /* read-write */
+///     le32 driver_feature;            /* read-write */
+///     le16 msix_config;               /* read-write */
+///     le16 num_queues;                /* read-only for driver */
+///     u8 device_status;               /* read-write */
+///     u8 config_generation;           /* read-only for driver */
+///
+///     /* About a specific virtqueue. */
+///     le16 queue_select;              /* read-write */
+///     le16 queue_size;                /* read-write */
+///     le16 queue_msix_vector;         /* read-write */
+///     le16 queue_enable;              /* read-write */
+///     le16 queue_notify_off;          /* read-only for driver */
+///     le64 queue_desc;                /* read-write */
+///     le64 queue_driver;              /* read-write */
+///     le64 queue_device;              /* read-write */
+/// };
+/// ```
+///
+#[repr(C, packed)]
+#[derive(Clone, Copy)]
+struct CommonConfig {
+    device_feature_select: u32,
+    device_feature: u32,
+    driver_feature_select: u32,
+    driver_feature: u32,
+    msix_config: u16,
+    num_queues: u16,
+    device_status: u8,
+    config_generation: u8,
+
+    queue_select: u16,
+    queue_size: u16,
+    queue_msix_vector: u16,
+    queue_enable: u16,
+    queue_notify_off: u16,
+    queue_desc_lo: u32,
+    queue_desc_hi: u32,
+    queue_driver_lo: u32,
+    queue_driver_hi: u32,
+    queue_device_lo: u32,
+    queue_device_hi: u32,
+}
