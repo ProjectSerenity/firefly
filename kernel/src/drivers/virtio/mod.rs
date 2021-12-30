@@ -8,6 +8,7 @@ pub mod features;
 
 use crate::drivers;
 use crate::drivers::pci;
+use bitflags::bitflags;
 
 /// VENDOR_ID is the PCI vendor id of a virtio device.
 ///
@@ -125,5 +126,62 @@ impl DeviceId {
             DeviceId::P9Transport => Some(0x1009),
             _ => None,
         }
+    }
+}
+
+bitflags! {
+    /// DeviceStatus represents the status of a virtio device,
+    /// as described in section 2.1.
+    ///
+    pub struct DeviceStatus: u8 {
+        /// RESET instructs the device to reset, or indicates that
+        /// the device has been reset.
+        const RESET = 0;
+
+        /// ACKNOWLEDGE indicates that the guest OS has found
+        /// the device and recognized it as a valid virtio device.
+        const ACKNOWLEDGE = 1;
+
+        /// DRIVER indicates that the guest OS knows how to drive
+        /// the device.
+        ///
+        /// Note: There could be a significant (or infinite)
+        /// delay before setting this bit. For example, under Linux,
+        /// drivers can be loadable modules.
+        const DRIVER = 2;
+
+        /// FAILED indicates that something went wrong in the guest,
+        /// and it has given up on the device. This could be an
+        /// internal error, or the driver didn’t like the device for
+        /// some reason, or even a fatal error during device operation.
+        const FAILED = 128;
+
+        /// FEATURES_OK indicates that the driver has acknowledged
+        /// all the features it understands, and feature negotiation
+        /// is complete.
+        const FEATURES_OK = 8;
+
+        /// DRIVER_OK indicates that the driver is set up and ready
+        /// to drive the device.
+        const DRIVER_OK = 4;
+
+        /// DEVICE_NEEDS_RESET indicates that the device has
+        /// experienced an error from which it can’t recover.
+        const DEVICE_NEEDS_RESET = 64;
+    }
+}
+
+bitflags! {
+    /// InterruptStatus records the ISR status capability
+    /// values documented in section 4.1.4.5.
+    ///
+    pub struct InterruptStatus: u8 {
+        /// QUEUE_INTERRUPT indicates that a virtqueue has had buffers
+        /// returned by the device.
+        const QUEUE_INTERRUPT = 1 << 0;
+
+        /// DEVICE_CONFIG_INTERRUPT indicates that the device has made
+        /// a configuration change.
+        const DEVICE_CONFIG_INTERRUPT = 1 << 1;
     }
 }
