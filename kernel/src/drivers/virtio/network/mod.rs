@@ -448,6 +448,7 @@ bitflags! {
 /// GsoType represents the generic segmentation offload
 /// types used in the gos_type field of the Header type.
 ///
+#[allow(dead_code)]
 #[derive(Clone, Copy, Debug)]
 enum GsoType {
     None = 0,

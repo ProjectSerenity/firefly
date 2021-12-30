@@ -107,6 +107,7 @@ bitflags! {
 struct DriverArea {
     // flags indicates the driver's behaviour recommendations
     // to the device.
+    #[allow(dead_code)]
     flags: &'static mut u16,
 
     // index is the index into ring (modulo the ring's size)
@@ -160,6 +161,7 @@ struct DeviceElem {
 struct DeviceArea {
     // flags indicates the device's behaviour recommendations
     // to the driver.
+    #[allow(dead_code)]
     flags: &'static mut u16,
 
     // index is the index into ring (modulo the ring's size)
@@ -173,6 +175,7 @@ struct DeviceArea {
     // send_event is used by the device to indicate to the driver
     // when to send notifications when future descriptors are
     // passed in the driver area.
+    #[allow(dead_code)]
     send_event: &'static mut u16,
 }
 
