@@ -2,6 +2,7 @@
 //! driver child modules.
 
 pub mod pci;
+pub mod virtio;
 
 /// PciDeviceDriver takes ownership of a PCI device.
 ///
@@ -13,9 +14,6 @@ pub type PciDeviceDriver = fn(device: pci::Device);
 /// the device is passed to register_device, so the driver
 /// can take ownership.
 ///
-pub fn device_supported(_device: &pci::Device) -> Option<PciDeviceDriver> {
-    // TODO: once we have device drivers, ask them here,
-    // returning their driver if so.
-
-    None
+pub fn device_supported(device: &pci::Device) -> Option<PciDeviceDriver> {
+    virtio::pci_device_supported(device)
 }
