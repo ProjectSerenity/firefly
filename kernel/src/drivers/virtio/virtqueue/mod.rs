@@ -21,3 +21,44 @@ pub struct UsedBuffers {
     pub buffers: Vec<Buffer>,
     pub written: usize,
 }
+
+/// Error represents an error interacting with a
+/// virtqueue.
+///
+#[derive(Clone, Copy, Debug)]
+pub enum Error {
+    /// No descriptors were available for sending
+    /// a buffer to the queue.
+    NoDescriptors,
+}
+
+/// Virtqueue abstracts the implementation details
+/// of a virtqueue.
+///
+pub trait Virtqueue: Send {
+    /// send enqueues a request to the device. A request consists of
+    /// a sequence of buffers. The sequence of buffers should place
+    /// device-writable buffers after all device-readable buffers.
+    ///
+    /// send returns the descriptor index for the head of the chain.
+    /// This can be used to identify when the device returns the
+    /// buffer chain. If there are not enough descriptors to send
+    /// the chain, send returns None.
+    ///
+    fn send(&mut self, buffers: &[Buffer]) -> Result<(), Error>;
+
+    /// notify informs the device that descriptors are ready
+    /// to use in this virtqueue.
+    ///
+    fn notify(&self);
+
+    /// recv returns the next set of buffers
+    /// returned by the device, or None.
+    ///
+    fn recv(&mut self) -> Option<UsedBuffers>;
+
+    /// num_descriptors returns the number of descriptors
+    /// in this queue.
+    ///
+    fn num_descriptors(&self) -> usize;
+}
