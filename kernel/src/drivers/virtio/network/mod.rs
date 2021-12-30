@@ -8,7 +8,7 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
 use core::{mem, slice};
-use smoltcp::phy::{RxToken, TxToken};
+use smoltcp::phy::{DeviceCapabilities, Medium, RxToken, TxToken};
 use smoltcp::time::Instant;
 use smoltcp::wire::EthernetAddress;
 use x86_64::instructions::interrupts;
@@ -251,6 +251,73 @@ impl<'a> TxToken for SendBuffer {
         });
 
         Ok(ret)
+    }
+}
+
+/// Device wraps a driver so we can manage access to
+/// the driver, creating additional references for
+/// use by RecvBuffer and SendBuffer.
+///
+pub struct Device {
+    driver: Arc<spin::Mutex<Driver>>,
+}
+
+impl<'a> smoltcp::phy::Device<'a> for Device {
+    type RxToken = RecvBuffer;
+    type TxToken = SendBuffer;
+
+    /// receive is called by the interface to check
+    /// whether we have any packets to receive. We
+    /// pop off the next packet from the receive
+    /// queue and return it, or return None if not.
+    ///
+    fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
+        interrupts::without_interrupts(|| {
+            let mut dev = self.driver.lock();
+            match dev.driver.recv(RECV_VIRTQUEUE) {
+                None => None,
+                Some(buf) => {
+                    debug_assert!(buf.buffers.len() == 1);
+                    let len = buf.written;
+                    let recv_addr = match buf.buffers[0] {
+                        virtqueue::Buffer::DeviceCanWrite { addr, .. } => addr,
+                        _ => panic!("invalid buffer type returned by device"),
+                    };
+
+                    Some((
+                        RecvBuffer {
+                            addr: recv_addr,
+                            len,
+                            driver: self.driver.clone(),
+                        },
+                        SendBuffer {
+                            driver: self.driver.clone(),
+                        },
+                    ))
+                }
+            }
+        })
+    }
+
+    /// transmit is called by the interface when
+    /// it wants to send a packet.
+    fn transmit(&'a mut self) -> Option<Self::TxToken> {
+        Some(SendBuffer {
+            driver: self.driver.clone(),
+        })
+    }
+
+    /// capabilities describes this deivce's
+    /// capabilities.
+    ///
+    fn capabilities(&self) -> DeviceCapabilities {
+        interrupts::without_interrupts(|| {
+            let dev = self.driver.lock();
+            let mut caps = DeviceCapabilities::default();
+            caps.medium = Medium::Ethernet;
+            caps.max_transmission_unit = dev.mtu as usize;
+            caps
+        })
     }
 }
 
