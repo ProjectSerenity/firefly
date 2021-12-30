@@ -84,3 +84,25 @@ fn bar_frame_range(
 
     Some(PhysFrame::range(start_frame.unwrap(), end_frame.unwrap()))
 }
+
+/// ConfigError indicates an issue that caused a
+/// virtio configuration to be unacceptable.
+///
+#[derive(Debug)]
+pub enum ConfigError {
+    /// NoCommon indicates there was no common
+    /// configuration.
+    NoCommon,
+
+    /// NoNotify indicates there was no notify
+    /// configuration.
+    NoNotify,
+
+    /// NoInterrupt indicates there was no interrupt
+    /// configuration.
+    NoInterrupt,
+
+    /// NoDevice indicates there was no device
+    /// configuration.
+    NoDevice,
+}
