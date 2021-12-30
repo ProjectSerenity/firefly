@@ -5,6 +5,7 @@
 // Virtio 1.1 specification linked above.
 
 pub mod features;
+pub mod network;
 pub mod transports;
 pub mod virtqueue;
 
