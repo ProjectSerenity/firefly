@@ -1,24 +1,28 @@
 //! network implements virtio network cards.
 
-use crate::drivers::virtio;
-use crate::drivers::virtio::virtqueue;
-use crate::interrupts::Irq;
+use crate::drivers::virtio::features::{Network, Reserved};
+use crate::drivers::virtio::{transports, virtqueue};
+use crate::drivers::{pci, virtio};
+use crate::interrupts::{register_irq, Irq};
 use crate::memory::{phys_to_virt_addr, pmm};
 use crate::multitasking::cpu_local;
-use crate::multitasking::thread::ThreadId;
-use crate::network::InterfaceHandle;
+use crate::multitasking::thread::{scheduler, Thread, ThreadId};
+use crate::network::{register_interface, InterfaceHandle};
 use crate::{println, time};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
+use alloc::vec;
 use alloc::vec::Vec;
 use bitflags::bitflags;
 use core::{mem, slice};
+use smoltcp::iface::{InterfaceBuilder, NeighborCache, Routes, SocketStorage};
 use smoltcp::phy::{DeviceCapabilities, Medium, RxToken, TxToken};
 use smoltcp::time::Instant;
-use smoltcp::wire::EthernetAddress;
+use smoltcp::wire::{EthernetAddress, HardwareAddress, IpCidr, Ipv4Address, Ipv4Cidr};
 use x86_64::instructions::interrupts;
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::structures::paging::frame::PhysFrame;
+use x86_64::structures::paging::{PageSize, Size4KiB};
 use x86_64::PhysAddr;
 
 // These constants are used to ensure we
@@ -474,4 +478,139 @@ struct Config {
     status: u16,
     max_virtqueue_pairs: u16,
     mtu: u16,
+}
+
+/// install_device can be used to take ownership of the
+/// given PCI device that represents a virtio network
+/// card.
+///
+pub fn install_pci_device(device: pci::Device) {
+    let transport = match transports::pci::Transport::new(device) {
+        Err(err) => {
+            println!("Ignoring invalid device: {:?}.", err);
+            return;
+        }
+        Ok(transport) => Arc::new(transport),
+    };
+
+    let must_features = Reserved::VERSION_1.bits() | Network::MAC.bits();
+    let like_features = Reserved::RING_EVENT_IDX.bits();
+    let mut driver = match virtio::Driver::new(transport, must_features, like_features, 2) {
+        Ok(driver) => driver,
+        Err(err) => {
+            println!("Failed to initialise network card: {:?}.", err);
+            return;
+        }
+    };
+
+    // Determine the MAC address.
+    let mac = EthernetAddress([
+        driver.read_device_config_u8(0),
+        driver.read_device_config_u8(1),
+        driver.read_device_config_u8(2),
+        driver.read_device_config_u8(3),
+        driver.read_device_config_u8(4),
+        driver.read_device_config_u8(5),
+    ]);
+    println!("Found network card with MAC {}.", mac);
+
+    let net_features = Network::from_bits_truncate(driver.features());
+    let mtu = if net_features.contains(Network::MTU) {
+        u16::from_le_bytes([
+            driver.read_device_config_u8(10),
+            driver.read_device_config_u8(11),
+        ])
+    } else {
+        // Educated guess.
+        1500
+    };
+
+    // Prepare the send and receive virtqueues.
+    let send_queue_len = driver.num_descriptors(SEND_VIRTQUEUE);
+    let recv_queue_len = driver.num_descriptors(RECV_VIRTQUEUE);
+
+    // We make use of the fact that the max packet
+    // size we use is exactly half the page size.
+    // This means we can allocate a single physical
+    // frame and use it for two packet buffers, each
+    // of which is internally contiguous. This means
+    // we don't need any frame to be contiguous with
+    // any other, making things *much* easier for
+    // the allocator.
+    assert!(PACKET_LEN_MAX * 2 == Size4KiB::SIZE as usize);
+    let mut send_buffers = Vec::new();
+    while send_buffers.len() < send_queue_len {
+        let frame = pmm::allocate_frame().expect("failed to allocate for device send buffer");
+        send_buffers.push(frame.start_address());
+        send_buffers.push(frame.start_address() + PACKET_LEN_MAX);
+    }
+
+    let mut recv_buffers = Vec::new();
+    while recv_buffers.len() < recv_queue_len {
+        let frame = pmm::allocate_frame().expect("failed to allocate for device recv buffer");
+        recv_buffers.push(frame.start_address());
+        recv_buffers.push(frame.start_address() + PACKET_LEN_MAX);
+    }
+
+    // Send the receive buffers to the device.
+    for i in 0..recv_queue_len {
+        let addr = send_buffers[i];
+        let len = PACKET_LEN_MAX;
+        driver
+            .send(
+                RECV_VIRTQUEUE,
+                &[virtqueue::Buffer::DeviceCanWrite { addr, len }],
+            )
+            .expect("failed to send receive buffer to device");
+    }
+    driver.notify(RECV_VIRTQUEUE);
+
+    // Prepare the network driver.
+    let irq = driver.irq();
+    let driver = Driver {
+        driver,
+        mac,
+        recv_buffers,
+        send_buffers,
+        mtu,
+    };
+
+    let driver = Arc::new(spin::Mutex::new(driver));
+    let device = Device {
+        driver: driver.clone(),
+    };
+
+    // Turn it into an interface.
+    // TODO: Add a random seed.
+    let ip_addrs = vec![IpCidr::Ipv4(Ipv4Cidr::new(Ipv4Address::UNSPECIFIED, 0))];
+    let routes = Routes::new(BTreeMap::new());
+    let neighbours = NeighborCache::new(BTreeMap::new());
+    let sockets = Vec::<SocketStorage>::new();
+    let iface = InterfaceBuilder::new(device, sockets)
+        .hardware_addr(HardwareAddress::Ethernet(mac))
+        .neighbor_cache(neighbours)
+        .ip_addrs(ip_addrs)
+        .routes(routes)
+        .finalize();
+
+    // Pass the interface to the network stack
+    // and set up its interrupts.
+    let handle = register_interface(iface);
+    let iface_handle = InterfaceDriver {
+        driver: driver,
+        handle,
+    };
+
+    interrupts::without_interrupts(|| {
+        let mut int = INTERFACES.lock();
+        int[irq.as_usize()] = Some(iface_handle);
+    });
+
+    register_irq(irq, interrupt_handler);
+
+    // Create the background thread that performs
+    // network activity.
+    let thread_id = Thread::create_kernel_thread(network_entry_point);
+    INTERFACE_HANDLES.lock().insert(thread_id, handle);
+    scheduler::resume(thread_id);
 }
