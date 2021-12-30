@@ -1,7 +1,16 @@
 //! split implements split virtqueues, as described in section
 //! 2.6.
 
+use crate::drivers::virtio;
+use crate::drivers::virtio::Transport;
+use crate::memory::{mmio, pmm};
+use crate::utils::bitmap;
+use alloc::sync::Arc;
 use bitflags::bitflags;
+use core::mem::size_of;
+use core::slice;
+use x86_64::align_up;
+use x86_64::structures::paging::{PageSize, Size4KiB};
 
 bitflags! {
     /// DescriptorFlags represents the set of flags that can
@@ -163,4 +172,147 @@ struct DeviceArea {
     // when to send notifications when future descriptors are
     // passed in the driver area.
     send_event: &'static mut u16,
+}
+
+/// Virtqueue implements a split virtqueue, as
+/// described in section 2.6.
+///
+pub struct Virtqueue<'a> {
+    // queue_index records which virtqueue
+    // this is. The first virtqueue shared
+    // with the device is number 0 and the
+    // rest follow.
+    queue_index: u16,
+
+    // transport is the transport mechanism
+    // used to configure and notify the
+    // device.
+    transport: Arc<dyn Transport>,
+
+    // free_list is a bitmap with a bit for
+    // each descriptor, indicating whether
+    // the descriptor is free or currently
+    // passed to the device. A descriptor
+    // is free if its bit is set.
+    free_list: bitmap::Bitmap,
+
+    // last_used_index stores the most recent
+    // value seen in device_area.index.
+    last_used_index: u16,
+
+    // descriptors is the list of descriptors
+    // in the descriptor area.
+    descriptors: &'a mut [Descriptor],
+
+    // driver_area is the area used to pass
+    // buffers to the device.
+    driver_area: DriverArea,
+
+    // device_area is the area used by the
+    // device to return used buffers.
+    device_area: DeviceArea,
+}
+
+impl<'a> Virtqueue<'a> {
+    /// new allocates a new split virtqueue
+    /// and uses the transport to configure
+    /// the device to use the virtqueue.
+    ///
+    /// The queue_index field indicates which
+    /// virtqueue this is.
+    ///
+    pub fn new(queue_index: u16, transport: Arc<dyn Transport>) -> Self {
+        transport.select_queue(queue_index);
+
+        let num_descriptors = core::cmp::min(transport.queue_size(), virtio::MAX_DESCRIPTORS);
+        transport.set_queue_size(num_descriptors);
+
+        // Calculate the size of each section of the
+        // virtqueue, with the alignment requirements
+        // described in section 2.6:
+        //
+        //  | Area       | Alignment | Size               |
+        //  |------------|-----------|--------------------|
+        //  | Descriptor | 16        | 16 * queue_size    |
+        //  | Driver     | 2         | 6 + 2 * queue_size |
+        //  | Device     | 4         | 6 + 8 * queue_size |
+        //
+        // For each area, we calculate the offset from
+        // the frame start (which has at least KiB
+        // alignment), and the size. Each area after
+        // the first has an offset of the previous
+        // area's offset, plus its size, aligned up
+        // if necessary.
+
+        let queue_size = num_descriptors as u64;
+        let descriptors_offset = 0 as u64; // Offset from frame start.
+        let descriptors_size = size_of::<Descriptor>() as u64 * queue_size;
+        let descriptors_end = descriptors_offset + descriptors_size;
+        let driver_offset = align_up(descriptors_end, 2);
+        let driver_size = 6u64 + 2u64 * queue_size;
+        let driver_end = driver_offset + driver_size;
+        let device_offset = align_up(driver_end, 4);
+        let device_size = 6u64 + 8 * queue_size;
+        let device_end = device_offset + device_size;
+
+        // Allocate the physical memory and map it
+        // in the MMIO address space.
+        let num_frames = align_up(device_end, Size4KiB::SIZE) / Size4KiB::SIZE;
+        let frame_range = pmm::allocate_n_frames(num_frames as usize)
+            .expect("failed to allocate physical memory for virtqueue");
+        let mmio_region = unsafe { mmio::Region::map(frame_range) };
+        let start_phys = frame_range.start.start_address();
+        let start_virt = mmio_region.as_mut::<u8>(0).unwrap() as *mut u8;
+        let descriptors_phys = start_phys + descriptors_offset;
+        let driver_phys = start_phys + driver_offset;
+        let device_phys = start_phys + device_offset;
+        unsafe { start_virt.write_bytes(0u8, device_end as usize) };
+
+        // Inform the device of the virtqueue.
+        transport.set_queue_descriptor_area(descriptors_phys);
+        transport.set_queue_driver_area(driver_phys);
+        transport.set_queue_device_area(device_phys);
+        transport.enable_queue();
+
+        // Prepare the last bits of our state.
+        let free_list = bitmap::Bitmap::new_set(num_descriptors as usize);
+        let last_used_index = 0;
+        let descriptors = unsafe {
+            slice::from_raw_parts_mut(start_virt as *mut Descriptor, num_descriptors as usize)
+        };
+
+        let driver_area = DriverArea {
+            flags: mmio_region.as_mut::<u16>(driver_offset + 0).unwrap(),
+            index: mmio_region.as_mut::<u16>(driver_offset + 2).unwrap(),
+            ring: unsafe {
+                slice::from_raw_parts_mut(
+                    mmio_region.as_mut::<u16>(driver_offset + 4).unwrap(),
+                    num_descriptors as usize,
+                )
+            },
+            recv_event: mmio_region.as_mut::<u16>(driver_end - 2).unwrap(),
+        };
+
+        let device_area = DeviceArea {
+            flags: mmio_region.as_mut::<u16>(device_offset + 0).unwrap(),
+            index: mmio_region.as_mut::<u16>(device_offset + 2).unwrap(),
+            ring: unsafe {
+                slice::from_raw_parts_mut(
+                    mmio_region.as_mut::<DeviceElem>(device_offset + 4).unwrap(),
+                    num_descriptors as usize,
+                )
+            },
+            send_event: mmio_region.as_mut::<u16>(device_end - 2).unwrap(),
+        };
+
+        Virtqueue {
+            queue_index,
+            transport,
+            free_list,
+            last_used_index,
+            descriptors,
+            driver_area,
+            device_area,
+        }
+    }
 }

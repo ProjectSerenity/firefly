@@ -14,6 +14,11 @@ use crate::interrupts::Irq;
 use bitflags::bitflags;
 use x86_64::PhysAddr;
 
+/// MAX_DESCRIPTORS is the maximum number of
+/// descriptors allowed in each virtqueue.
+///
+pub const MAX_DESCRIPTORS: u16 = 128;
+
 /// VENDOR_ID is the PCI vendor id of a virtio device.
 ///
 const VENDOR_ID: u16 = 0x1af4;
