@@ -5,6 +5,7 @@
 // Virtio 1.1 specification linked above.
 
 pub mod features;
+pub mod transports;
 
 use crate::drivers;
 use crate::drivers::pci;
