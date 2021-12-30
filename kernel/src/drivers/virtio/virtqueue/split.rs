@@ -2,15 +2,17 @@
 //! 2.6.
 
 use crate::drivers::virtio;
-use crate::drivers::virtio::Transport;
+use crate::drivers::virtio::{virtqueue, Transport};
 use crate::memory::{mmio, pmm};
 use crate::utils::bitmap;
 use alloc::sync::Arc;
+use alloc::vec::Vec;
 use bitflags::bitflags;
 use core::mem::size_of;
 use core::slice;
-use x86_64::align_up;
+use core::sync::atomic::{fence, Ordering};
 use x86_64::structures::paging::{PageSize, Size4KiB};
+use x86_64::{align_up, PhysAddr};
 
 bitflags! {
     /// DescriptorFlags represents the set of flags that can
@@ -314,5 +316,122 @@ impl<'a> Virtqueue<'a> {
             driver_area,
             device_area,
         }
+    }
+}
+
+impl<'a> virtqueue::Virtqueue for Virtqueue<'a> {
+    /// send enqueues a request to the device. A request consists of
+    /// a sequence of buffers. The sequence of buffers should place
+    /// device-writable buffers after all device-readable buffers.
+    ///
+    fn send(&mut self, buffers: &[virtqueue::Buffer]) -> Result<(), virtqueue::Error> {
+        if buffers.is_empty() || self.free_list.num_set() < buffers.len() {
+            // Not enough descriptors left.
+            return Err(virtqueue::Error::NoDescriptors);
+        }
+
+        // TODO: Ensure writable buffers come after readable ones.
+
+        let mut head_index: Option<u16> = None;
+        let mut prev_index: Option<u16> = None;
+        for (i, buffer) in buffers.iter().enumerate() {
+            // Get the next free descriptor. We know we
+            // have enough.
+            let idx = self.free_list.next_set().unwrap();
+            self.free_list.unset(idx);
+            if i == 0 {
+                head_index = Some(idx as u16);
+            }
+
+            let (addr, len, flags) = match buffer {
+                virtqueue::Buffer::DeviceCanRead { addr, len } => {
+                    (*addr, *len, DescriptorFlags::NONE)
+                }
+                virtqueue::Buffer::DeviceCanWrite { addr, len } => {
+                    (*addr, *len, DescriptorFlags::WRITE)
+                }
+            };
+
+            self.descriptors[idx].addr = addr.as_u64().to_le();
+            self.descriptors[idx].len = (len as u32).to_le();
+            self.descriptors[idx].flags = flags.bits().to_le();
+            self.descriptors[idx].next = 0;
+
+            match prev_index {
+                Some(prev) => {
+                    self.descriptors[prev as usize].flags |= DescriptorFlags::NEXT.bits().to_le();
+                    self.descriptors[prev as usize].next = idx as u16;
+                }
+                _ => {}
+            }
+
+            prev_index = Some(idx as u16);
+        }
+
+        // Notify the device that descriptors
+        // are ready.
+        let send_index = (*self.driver_area.index) as usize & (self.num_descriptors() - 1);
+        self.driver_area.ring[send_index] = head_index.unwrap();
+        fence(Ordering::Release);
+        *self.driver_area.index = (*self.driver_area.index).wrapping_add(1);
+
+        Ok(())
+    }
+
+    /// notify informs the device that descriptors are ready
+    /// to use in this virtqueue.
+    ///
+    fn notify(&self) {
+        fence(Ordering::Release);
+        self.transport.notify_queue(self.queue_index);
+    }
+
+    /// recv returns the next set of buffers
+    /// returned by the device, or None.
+    ///
+    fn recv(&mut self) -> Option<virtqueue::UsedBuffers> {
+        if self.last_used_index == *self.device_area.index {
+            return None;
+        }
+
+        // Get the head descriptor index.
+        let head =
+            self.device_area.ring[self.last_used_index as usize % self.device_area.ring.len()];
+        self.last_used_index = self.last_used_index.wrapping_add(1);
+        *self.driver_area.recv_event = self.last_used_index;
+
+        let written = head.len as usize;
+        let mut buffers = Vec::new();
+        let mut next_index = head.index as u16;
+        loop {
+            let desc = self.descriptors[next_index as usize];
+            buffers.push(if desc.writable() {
+                virtqueue::Buffer::DeviceCanWrite {
+                    addr: PhysAddr::new(desc.addr as u64),
+                    len: desc.len as usize,
+                }
+            } else {
+                virtqueue::Buffer::DeviceCanRead {
+                    addr: PhysAddr::new(desc.addr as u64),
+                    len: desc.len as usize,
+                }
+            });
+
+            self.free_list.set(next_index as usize);
+            if desc.has_next() {
+                next_index = desc.next;
+            } else {
+                break;
+            }
+        }
+
+        Some(virtqueue::UsedBuffers { buffers, written })
+    }
+
+    /// num_descriptors returns the number of descriptors
+    /// in this queue.
+    ///
+    fn num_descriptors(&self) -> usize {
+        self.descriptors.len()
     }
 }
