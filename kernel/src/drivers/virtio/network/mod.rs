@@ -2,7 +2,9 @@
 
 use crate::drivers::virtio;
 use crate::drivers::virtio::virtqueue;
+use crate::interrupts::Irq;
 use crate::memory::{phys_to_virt_addr, pmm};
+use crate::network::InterfaceHandle;
 use crate::println;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -12,6 +14,7 @@ use smoltcp::phy::{DeviceCapabilities, Medium, RxToken, TxToken};
 use smoltcp::time::Instant;
 use smoltcp::wire::EthernetAddress;
 use x86_64::instructions::interrupts;
+use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::structures::paging::frame::PhysFrame;
 use x86_64::PhysAddr;
 
@@ -35,6 +38,58 @@ const SEND_VIRTQUEUE: u16 = 1;
 // one buffer.
 //
 const PACKET_LEN_MAX: usize = 2048;
+
+/// InterfaceDriver contains an interface handle and
+/// a driver handle, allowing us to access both the
+/// driver's internals and the external interface.
+///
+struct InterfaceDriver {
+    driver: Arc<spin::Mutex<Driver>>,
+    handle: InterfaceHandle,
+}
+
+/// INTERFACES maps IRQs to the drivers that use them.
+///
+/// When we receive interrupts, we poll the corresponding
+/// interface.
+///
+static INTERFACES: spin::Mutex<[Option<InterfaceDriver>; 16]> = {
+    const NONE: Option<InterfaceDriver> = Option::None;
+    spin::Mutex::new([NONE; 16])
+};
+
+/// interrupt_handler receives interrupts for
+/// PCI virtio devices.
+///
+fn interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
+    let int = INTERFACES.lock();
+    if let Some(iface_driver) = &int[irq.as_u8() as usize] {
+        let mut dev = iface_driver.driver.lock();
+        if !dev
+            .driver
+            .interrupt_status()
+            .contains(virtio::InterruptStatus::QUEUE_INTERRUPT)
+        {
+            // TODO: Handle configuration changes.
+            irq.acknowledge();
+            return;
+        }
+
+        // Return any used send buffers to the
+        // queue.
+        dev.reclaim_send_buffers();
+
+        // Drop our mutex lock to unlock
+        // the driver.
+        mem::drop(dev);
+
+        // Poll the interface so it picks
+        // up any received packets.
+        iface_driver.handle.poll();
+    }
+
+    irq.acknowledge();
+}
 
 /// Driver represents a virtio network card, which can
 /// be used to send and receive packets.
