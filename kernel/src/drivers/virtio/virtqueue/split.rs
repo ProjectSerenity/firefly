@@ -75,3 +75,39 @@ impl Descriptor {
         self.flags().contains(DescriptorFlags::INDIRECT)
     }
 }
+
+bitflags! {
+    /// DriverFlags represents the set of flags that can
+    /// be used in a split virtqueue's driver area's flags field.
+    ///
+    struct DriverFlags: u16 {
+        /// NO_NOTIFICATIONS indicates that the device should not
+        /// send notifications to the driver after the descriptor
+        /// chain is returned in the device area.
+        const NO_NOTIFICATIONS = 1;
+    }
+}
+
+/// DriverArea represents a split virtqueue's area where
+/// the driver provides descriptors to the device, as described
+/// in section 2.6.6.
+///
+#[derive(Debug)]
+struct DriverArea {
+    // flags indicates the driver's behaviour recommendations
+    // to the device.
+    flags: &'static mut u16,
+
+    // index is the index into ring (modulo the ring's size)
+    // at which the next descriptor will be written.
+    index: &'static mut u16,
+
+    // ring is the ring buffer containing the descriptor heads
+    // passed to the device.
+    ring: &'static mut [u16],
+
+    // recv_event is used by the driver to indicate to the device
+    // when to send notifications when descriptors are returned
+    // in the device area.
+    recv_event: &'static mut u16,
+}
