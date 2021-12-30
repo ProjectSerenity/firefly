@@ -4,8 +4,11 @@ use crate::drivers::virtio;
 use crate::drivers::virtio::virtqueue;
 use crate::interrupts::Irq;
 use crate::memory::{phys_to_virt_addr, pmm};
+use crate::multitasking::cpu_local;
+use crate::multitasking::thread::ThreadId;
 use crate::network::InterfaceHandle;
-use crate::println;
+use crate::{println, time};
+use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
@@ -89,6 +92,28 @@ fn interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
     }
 
     irq.acknowledge();
+}
+
+/// INTERFACE_HANDLES maps helper thread ids to the
+/// interface handles they use to perform background
+/// network management.
+///
+static INTERFACE_HANDLES: spin::Mutex<BTreeMap<ThreadId, InterfaceHandle>> =
+    spin::Mutex::new(BTreeMap::new());
+
+/// network_entry_point is an entry point used by a
+/// network management thread to ensure an interface
+/// continues to process network events.
+///
+fn network_entry_point() -> ! {
+    let thread_id = cpu_local::current_thread().thread_id();
+    let iface_handle = &INTERFACE_HANDLES.lock()[&thread_id];
+    loop {
+        let wait = interrupts::without_interrupts(|| iface_handle.poll());
+
+        //println!("Waiting for {:?}.", wait);
+        time::sleep(wait);
+    }
 }
 
 /// Driver represents a virtio network card, which can
