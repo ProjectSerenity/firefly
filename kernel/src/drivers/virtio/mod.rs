@@ -8,7 +8,9 @@ pub mod features;
 
 use crate::drivers;
 use crate::drivers::pci;
+use crate::interrupts::Irq;
 use bitflags::bitflags;
+use x86_64::PhysAddr;
 
 /// VENDOR_ID is the PCI vendor id of a virtio device.
 ///
@@ -184,4 +186,100 @@ bitflags! {
         /// a configuration change.
         const DEVICE_CONFIG_INTERRUPT = 1 << 1;
     }
+}
+
+/// Transport represents a virtio transport
+/// mechanism.
+///
+pub trait Transport: Send + Sync {
+    /// read_device_config_u8 returns the device-specific
+    /// configuration byte at the given offset.
+    ///
+    fn read_device_config_u8(&self, offset: u16) -> u8;
+
+    /// read_irq returns the device's interrupt number.
+    ///
+    fn read_irq(&self) -> Irq;
+
+    /// read_interrupt_status returns the device's current
+    /// interrupt status.
+    ///
+    fn read_interrupt_status(&self) -> InterruptStatus;
+
+    /// read_status returns the device's status.
+    ///
+    fn read_status(&self) -> DeviceStatus;
+
+    /// write_status sets the device's status.
+    ///
+    fn write_status(&self, device_status: DeviceStatus);
+
+    /// add_status reads the current device status
+    /// and sets the given additional bits.
+    ///
+    fn add_status(&self, device_status: DeviceStatus);
+
+    /// has_status returns whether the current device
+    /// status includes all of the given bits.
+    ///
+    fn has_status(&self, device_status: DeviceStatus) -> bool;
+
+    /// read_device_features returns the first 64 bits
+    /// of the device's features.
+    ///
+    fn read_device_features(&self) -> u64;
+
+    /// write_driver_features sets the first 64 bits
+    /// of the driver's features.
+    ///
+    fn write_driver_features(&self, features: u64);
+
+    /// read_num_queues returns the maximum number of
+    /// virtqueues supported by the device.
+    ///
+    fn read_num_queues(&self) -> u16;
+
+    /// select_queue sets the current virtqueue.
+    ///
+    fn select_queue(&self, index: u16);
+
+    /// queue_size returns the maximum number of descriptors
+    /// supported by the device in any virtqueue.
+    ///
+    fn queue_size(&self) -> u16;
+
+    /// set_queue_size notifies the device of the number
+    /// of descriptors in the descriptor area of the
+    /// current virtqueue (set using select_queue).
+    ///
+    fn set_queue_size(&self, size: u16);
+
+    /// notify_queue notifies the device that the
+    /// virtqueue at the given index has descriptors
+    /// ready in the driver area.
+    ///
+    fn notify_queue(&self, queue_index: u16);
+
+    /// enable_queue notifies the device to use the
+    /// current virtqueue (set using select_queue).
+    ///
+    fn enable_queue(&self);
+
+    /// set_queue_descriptor_area notifies the device of
+    /// the physical address of the descriptor area of
+    /// the current virtqueue (set using select_queue).
+    ///
+    fn set_queue_descriptor_area(&self, area: PhysAddr);
+
+    /// set_queue_driver_area notifies the device of the
+    /// physical address of the driver area of the current
+    /// virtqueue (set using select_queue).
+    ///
+    fn set_queue_driver_area(&self, area: PhysAddr);
+
+    /// set_queue_device_area notifies the device of the
+    /// physical address of the device area of the current
+    /// virtqueue (set using select_queue).
+    ///
+    fn set_queue_device_area(&self, area: PhysAddr);
 }
