@@ -8,7 +8,7 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
 use core::{mem, slice};
-use smoltcp::phy::RxToken;
+use smoltcp::phy::{RxToken, TxToken};
 use smoltcp::time::Instant;
 use smoltcp::wire::EthernetAddress;
 use x86_64::instructions::interrupts;
@@ -181,6 +181,76 @@ impl<'a> RxToken for RecvBuffer {
         });
 
         ret
+    }
+}
+
+/// SendBuffer is returned to the interface by our
+/// driver when the interface wants to send a
+/// packet. The buffer is a send buffer we've made
+/// available and won't be used elsewhere. The
+/// buffer can only be used once (enforced by the
+/// fact it's a method on self, not &self).
+///
+pub struct SendBuffer {
+    driver: Arc<spin::Mutex<Driver>>,
+}
+
+impl<'a> TxToken for SendBuffer {
+    fn consume<R, F>(self, _timestamp: Instant, len: usize, f: F) -> smoltcp::Result<R>
+    where
+        F: FnOnce(&mut [u8]) -> smoltcp::Result<R>,
+    {
+        // Check that the buffer will have
+        // enough space for the requested length,
+        // plus the virtio network header.
+        let offset = mem::size_of::<Header>();
+        if len > (PACKET_LEN_MAX - offset) {
+            return Err(smoltcp::Error::Truncated);
+        }
+
+        // Retrieve our send buffer.
+        let addr = match self.driver.lock().send_buffers.pop() {
+            Some(addr) => addr,
+            None => {
+                println!("warn: network out of send buffers on send.");
+                return Err(smoltcp::Error::Exhausted);
+            }
+        };
+
+        let virt_addr = phys_to_virt_addr(addr);
+
+        // Prepend the buffer with the virtio
+        // network header. We don't use any of
+        // the advanced features yet, so we can
+        // populate the fields with zeros.
+        let mut header = unsafe { *virt_addr.as_mut_ptr::<Header>() };
+        header.flags = HeaderFlags::NONE.bits();
+        header.gso_type = GsoType::None as u8;
+        header.header_len = 0u16.to_le();
+        header.gso_size = 0u16.to_le();
+        header.checksum_start = 0u16.to_le();
+        header.checksum_offset = 0u16.to_le();
+        header.num_buffers = 0u16.to_le();
+
+        let virt_addr = virt_addr + offset;
+        let mut buf = unsafe { slice::from_raw_parts_mut(virt_addr.as_mut_ptr(), len) };
+        let ret = f(&mut buf)?;
+
+        // Send the packet.
+        interrupts::without_interrupts(|| {
+            let mut dev = self.driver.lock();
+            let len = len + offset;
+
+            dev.driver
+                .send(
+                    SEND_VIRTQUEUE,
+                    &[virtqueue::Buffer::DeviceCanRead { addr, len }],
+                )
+                .expect("failed to send packet buffer to device");
+            dev.driver.notify(SEND_VIRTQUEUE);
+        });
+
+        Ok(ret)
     }
 }
 
