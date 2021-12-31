@@ -81,8 +81,7 @@ impl Descriptor {
     /// indirect returns whether the buffer contains
     /// a sequence of descriptors.
     ///
-    #[allow(dead_code)]
-    fn indirect(&self) -> bool {
+    fn _indirect(&self) -> bool {
         self.flags().contains(DescriptorFlags::INDIRECT)
     }
 }
@@ -107,8 +106,7 @@ bitflags! {
 struct DriverArea {
     // flags indicates the driver's behaviour recommendations
     // to the device.
-    #[allow(dead_code)]
-    flags: &'static mut u16,
+    _flags: &'static mut u16,
 
     // index is the index into ring (modulo the ring's size)
     // at which the next descriptor will be written.
@@ -161,8 +159,7 @@ struct DeviceElem {
 struct DeviceArea {
     // flags indicates the device's behaviour recommendations
     // to the driver.
-    #[allow(dead_code)]
-    flags: &'static mut u16,
+    _flags: &'static mut u16,
 
     // index is the index into ring (modulo the ring's size)
     // at which the next descriptor will be written.
@@ -175,8 +172,7 @@ struct DeviceArea {
     // send_event is used by the device to indicate to the driver
     // when to send notifications when future descriptors are
     // passed in the driver area.
-    #[allow(dead_code)]
-    send_event: &'static mut u16,
+    _send_event: &'static mut u16,
 }
 
 /// Virtqueue implements a split virtqueue, as
@@ -287,7 +283,7 @@ impl<'a> Virtqueue<'a> {
         };
 
         let driver_area = DriverArea {
-            flags: mmio_region.as_mut::<u16>(driver_offset + 0).unwrap(),
+            _flags: mmio_region.as_mut::<u16>(driver_offset + 0).unwrap(),
             index: mmio_region.as_mut::<u16>(driver_offset + 2).unwrap(),
             ring: unsafe {
                 slice::from_raw_parts_mut(
@@ -299,7 +295,7 @@ impl<'a> Virtqueue<'a> {
         };
 
         let device_area = DeviceArea {
-            flags: mmio_region.as_mut::<u16>(device_offset + 0).unwrap(),
+            _flags: mmio_region.as_mut::<u16>(device_offset + 0).unwrap(),
             index: mmio_region.as_mut::<u16>(device_offset + 2).unwrap(),
             ring: unsafe {
                 slice::from_raw_parts_mut(
@@ -307,7 +303,7 @@ impl<'a> Virtqueue<'a> {
                     num_descriptors as usize,
                 )
             },
-            send_event: mmio_region.as_mut::<u16>(device_end - 2).unwrap(),
+            _send_event: mmio_region.as_mut::<u16>(device_end - 2).unwrap(),
         };
 
         Virtqueue {

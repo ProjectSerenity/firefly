@@ -445,14 +445,13 @@ bitflags! {
 /// GsoType represents the generic segmentation offload
 /// types used in the gos_type field of the Header type.
 ///
-#[allow(dead_code)]
 #[derive(Clone, Copy, Debug)]
 enum GsoType {
     None = 0,
-    TcpV4 = 1,
-    Udp = 3,
-    TcpV6 = 4,
-    Ecn = 0x80,
+    _TcpV4 = 1,
+    _Udp = 3,
+    _TcpV6 = 4,
+    _Ecn = 0x80,
 }
 
 /// Config is a helper type that gives the layout
