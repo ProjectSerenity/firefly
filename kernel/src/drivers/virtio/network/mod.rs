@@ -114,8 +114,6 @@ fn network_entry_point() -> ! {
     let iface_handle = &INTERFACE_HANDLES.lock()[&thread_id];
     loop {
         let wait = interrupts::without_interrupts(|| iface_handle.poll());
-
-        //println!("Waiting for {:?}.", wait);
         time::sleep(wait);
     }
 }
@@ -169,7 +167,6 @@ impl Driver {
                         };
 
                         self.send_buffers.push(addr);
-                        println!("Send buffer reclaimed.");
                     }
                 }
             }

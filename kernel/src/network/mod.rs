@@ -9,7 +9,7 @@ use managed::ManagedSlice;
 use smoltcp;
 use smoltcp::iface::SocketHandle;
 use smoltcp::socket::{Dhcpv4Event, Dhcpv4Socket};
-use smoltcp::time::{Duration, Instant};
+use smoltcp::time::Instant;
 use smoltcp::wire::{IpCidr, Ipv4Address, Ipv4Cidr};
 use x86_64::instructions::interrupts;
 
@@ -146,8 +146,7 @@ pub fn register_interface(
     mut iface: smoltcp::iface::Interface<'static, network::Device>,
 ) -> InterfaceHandle {
     // Enable DHCP.
-    let mut socket = Dhcpv4Socket::new();
-    socket.set_max_lease_duration(Some(Duration::from_secs(5)));
+    let socket = Dhcpv4Socket::new();
     let dhcp = iface.add_socket(socket);
 
     interrupts::without_interrupts(|| {
