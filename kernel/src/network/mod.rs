@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 use managed::ManagedSlice;
 use smoltcp;
 use smoltcp::iface::SocketHandle;
-use smoltcp::socket::{Dhcpv4Event, Dhcpv4Socket};
+use smoltcp::socket::{Dhcpv4Config, Dhcpv4Event, Dhcpv4Socket};
 use smoltcp::time::Instant;
 use smoltcp::wire::{IpCidr, Ipv4Address, Ipv4Cidr};
 use x86_64::instructions::interrupts;
@@ -26,6 +26,9 @@ pub struct Interface {
 
     // dhcp is the socket handle to the DHCP socket.
     dhcp: SocketHandle,
+
+    // config is our current DHCP configuration, if any.
+    config: Option<Dhcpv4Config>,
 }
 
 /// InterfaceHandle uniquely identifies a network interface.
@@ -41,6 +44,17 @@ impl InterfaceHandle {
         InterfaceHandle(index)
     }
 
+    /// dhcp_config returns the current DHCP configuration
+    /// if we have established one.
+    ///
+    pub fn dhcp_config(&self) -> Option<Dhcpv4Config> {
+        interrupts::without_interrupts(|| {
+            let ifaces = INTERFACES.lock();
+            let iface = ifaces.get(self.0).expect("invalid interface handle");
+            iface.config
+        })
+    }
+
     /// poll instructs the referenced interface to
     /// process inbound and outbound packets.
     ///
@@ -50,7 +64,7 @@ impl InterfaceHandle {
     pub fn poll(&self) -> time::Duration {
         interrupts::without_interrupts(|| {
             let mut ifaces = INTERFACES.lock();
-            let iface = ifaces.get_mut(self.0).expect("invalid interface handle");
+            let mut iface = ifaces.get_mut(self.0).expect("invalid interface handle");
             let now = Instant::from_micros(time::now().system_micros() as i64);
             loop {
                 // Process the next inbound or outbound
@@ -104,6 +118,8 @@ impl InterfaceHandle {
                                 println!("DNS server {}: {}.", i, srv);
                             }
                         }
+
+                        iface.config = Some(config);
                     }
                     Some(Dhcpv4Event::Deconfigured) => {
                         println!("Lost DHCP configuration.");
@@ -117,6 +133,7 @@ impl InterfaceHandle {
                         });
 
                         iface.iface.routes_mut().remove_default_ipv4_route();
+                        iface.config = None;
                     }
                 }
 
@@ -152,7 +169,12 @@ pub fn register_interface(
     interrupts::without_interrupts(|| {
         let mut ifaces = INTERFACES.lock();
         let handle = InterfaceHandle::new(ifaces.len());
-        ifaces.push(Interface { iface, dhcp });
+        let config = None;
+        ifaces.push(Interface {
+            iface,
+            dhcp,
+            config,
+        });
 
         handle
     })
