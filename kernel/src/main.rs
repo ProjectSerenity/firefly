@@ -15,8 +15,8 @@ extern crate alloc;
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use kernel::drivers::pci;
-use kernel::multitasking::thread::scheduler;
-use kernel::{memory, println};
+use kernel::multitasking::thread::{scheduler, Thread};
+use kernel::{memory, network, println};
 
 /// This function is called on panic.
 #[cfg(not(test))]
@@ -62,10 +62,20 @@ fn kmain() {
         println!("Kernel running on unknown CPU.");
     }
 
+    // Set up our initial workload for when
+    // we get a DHCP configuration.
+    network::register_workload(Thread::create_kernel_thread(initial_workload));
+
     pci::init();
 
     // Hand over to the scheduler.
     scheduler::start();
+}
+
+fn initial_workload() -> ! {
+    println!("Starting initial workload.");
+
+    kernel::shutdown_qemu();
 }
 
 #[allow(dead_code)]
