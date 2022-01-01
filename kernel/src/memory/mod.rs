@@ -20,11 +20,12 @@ use alloc::vec::Vec;
 use bootloader::BootInfo;
 use core::sync::atomic::{AtomicU64, Ordering};
 use x86_64::registers::control::Cr3;
-use x86_64::structures::paging::mapper::MapToError;
+use x86_64::structures::paging::mapper::{MapToError, MappedFrame, TranslateResult};
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, OffsetPageTable, Page, PageSize, PageTable, PageTableFlags, Size4KiB,
+    Translate,
 };
-use x86_64::VirtAddr;
+use x86_64::{PhysAddr, VirtAddr};
 
 mod constants;
 pub mod mmio;
@@ -263,4 +264,76 @@ fn many_boxes() {
         let x = Box::new(i);
         assert_eq!(*x, i);
     }
+}
+
+/// DebugPageTable is a helper type for testing code that
+/// uses page tables. It emulates the behaviour for a level
+/// 4 page table using heap memory, without modifying the
+/// system page tables.
+///
+#[cfg(test)]
+pub struct DebugPageTable {
+    mappings: BTreeMap<VirtAddr, PhysFrame>,
+}
+
+#[cfg(test)]
+use alloc::collections::BTreeMap;
+#[cfg(test)]
+use x86_64::align_down;
+#[cfg(test)]
+use x86_64::structures::paging::PhysFrame;
+
+#[cfg(test)]
+impl DebugPageTable {
+    pub fn new() -> Self {
+        DebugPageTable {
+            mappings: BTreeMap::new(),
+        }
+    }
+
+    pub fn map(&mut self, addr: VirtAddr, frame: PhysFrame) {
+        // Check the virtual address is at a page boundary,
+        // to simplify things.
+        assert_eq!(addr.as_u64(), align_down(addr.as_u64(), Size4KiB::SIZE));
+
+        self.mappings.insert(addr, frame);
+    }
+}
+
+#[cfg(test)]
+impl Translate for DebugPageTable {
+    fn translate(&self, addr: VirtAddr) -> TranslateResult {
+        let truncated = VirtAddr::new(align_down(addr.as_u64(), Size4KiB::SIZE));
+        match self.mappings.get(&truncated) {
+            None => return TranslateResult::NotMapped,
+            Some(frame) => TranslateResult::Mapped {
+                frame: MappedFrame::Size4KiB(*frame),
+                offset: addr - truncated,
+                flags: PageTableFlags::PRESENT,
+            },
+        }
+    }
+}
+
+#[test_case]
+fn debug_page_table() {
+    // Check that the debug page table works
+    // correctly.
+    let mut page_table = DebugPageTable::new();
+    fn phys_frame(addr: u64) -> PhysFrame {
+        let addr = PhysAddr::new(addr);
+        let frame = PhysFrame::from_start_address(addr);
+        frame.unwrap()
+    }
+
+    assert_eq!(page_table.translate_addr(VirtAddr::new(4096)), None);
+    page_table.map(VirtAddr::new(4096), phys_frame(4096));
+    assert_eq!(
+        page_table.translate_addr(VirtAddr::new(4096)),
+        Some(PhysAddr::new(4096))
+    );
+    assert_eq!(
+        page_table.translate_addr(VirtAddr::new(4097)),
+        Some(PhysAddr::new(4097))
+    );
 }
