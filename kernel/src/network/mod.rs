@@ -3,6 +3,7 @@
 // TODO: Make the smoltcp Interface generic over devices, rather than specialising to drivers::virtio::network::Device.
 
 use crate::drivers::virtio::network;
+use crate::multitasking::thread::{scheduler, ThreadId};
 use crate::{println, time};
 use alloc::vec::Vec;
 use managed::ManagedSlice;
@@ -12,6 +13,27 @@ use smoltcp::socket::{Dhcpv4Config, Dhcpv4Event, Dhcpv4Socket};
 use smoltcp::time::Instant;
 use smoltcp::wire::{IpCidr, Ipv4Address, Ipv4Cidr};
 use x86_64::instructions::interrupts;
+
+/// INITIAL_WORKLOADS can be a set of thread ids that
+/// should be resumed once we have a DHCP configuration.
+///
+/// When we next get a DHCP configuration, INITIAL_WORKLOADS
+/// is iterated through, wich each thread resumed and
+/// then removed from INITIAL_WORKLOADS.
+///
+static INITIAL_WORKLOADS: spin::Mutex<Vec<ThreadId>> = spin::Mutex::new(Vec::new());
+
+/// register_workload ensures that the given thread id
+/// will be resumed when a DHCP configuration is next
+/// negotiated. The thread id will be resumed at most
+/// once.
+///
+pub fn register_workload(thread_id: ThreadId) {
+    interrupts::without_interrupts(|| {
+        let mut workloads = INITIAL_WORKLOADS.lock();
+        workloads.push(thread_id);
+    });
+}
 
 /// INTERFACES is the list of network interfaces.
 ///
@@ -120,6 +142,14 @@ impl InterfaceHandle {
                         }
 
                         iface.config = Some(config);
+
+                        // Resume any initial workloads.
+                        let mut workloads = INITIAL_WORKLOADS.lock();
+                        for thread_id in workloads.iter() {
+                            scheduler::resume(*thread_id);
+                        }
+
+                        workloads.clear();
                     }
                     Some(Dhcpv4Event::Deconfigured) => {
                         println!("Lost DHCP configuration.");
