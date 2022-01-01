@@ -16,6 +16,7 @@
 // allocator, which is used in the allocator module to
 // build the memory manager.
 
+use alloc::vec;
 use alloc::vec::Vec;
 use bootloader::BootInfo;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -86,6 +87,73 @@ pub unsafe fn kernel_pml4() -> OffsetPageTable<'static> {
 
     let page_table = &mut *page_table_ptr; // unsafe
     OffsetPageTable::new(page_table, PHYSICAL_MEMORY_OFFSET)
+}
+
+/// PhysBuffer describes a single physical memory
+/// buffer.
+///
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+pub struct PhysBuffer {
+    pub addr: PhysAddr,
+    pub len: usize,
+}
+
+/// virt_to_phys_addrs resolves a contiguous memory
+/// buffer in virtual memory to one or more contiguous
+/// memory buffers in physical memory. If the virtual
+/// memory maps to sequential physical memory (such as
+/// if the virtual memory does not cross a page boundary),
+/// then a single physical buffer will be returned.
+///
+/// If any part of the virtual memory is not mapped in
+/// the given page table, then None is returned.
+///
+pub fn virt_to_phys_addrs<T: Translate>(
+    page_table: &T,
+    addr: VirtAddr,
+    len: usize,
+) -> Option<Vec<PhysBuffer>> {
+    // We will allow an address with length zero
+    // as a special case for a single address.
+    if len == 0 {
+        match page_table.translate_addr(addr) {
+            None => return None,
+            Some(addr) => return Some(vec![PhysBuffer { addr, len }]),
+        }
+    }
+
+    // Now we pass through the buffer until we
+    // have translated all of it.
+    let mut bufs = Vec::new();
+    let mut addr = addr;
+    let mut len = len;
+    while len > 0 {
+        match page_table.translate(addr) {
+            TranslateResult::NotMapped => return None,
+            TranslateResult::InvalidFrameAddress(_) => return None,
+            TranslateResult::Mapped { frame, offset, .. } => {
+                // Advance the buffer by the amount of
+                // physical memory we just found.
+                let found = (frame.size() - offset) as usize;
+                let phys_addr = match frame {
+                    MappedFrame::Size4KiB(frame) => frame.start_address() + offset,
+                    MappedFrame::Size2MiB(frame) => frame.start_address() + offset,
+                    MappedFrame::Size1GiB(frame) => frame.start_address() + offset,
+                };
+
+                bufs.push(PhysBuffer {
+                    addr: phys_addr,
+                    len: core::cmp::min(len, found),
+                });
+                addr += found;
+                len = len.saturating_sub(found);
+            }
+        }
+    }
+
+    // TODO: merge contiguous regions to reduce the number of buffers we return.
+
+    Some(bufs)
 }
 
 /// align_up aligns the given address upwards to alignment align.
@@ -335,5 +403,79 @@ fn debug_page_table() {
     assert_eq!(
         page_table.translate_addr(VirtAddr::new(4097)),
         Some(PhysAddr::new(4097))
+    );
+}
+
+#[test_case]
+fn virt_to_phys_addrs() {
+    // Start by making some mappings we can use.
+    // We map as follows:
+    // - page 1 => frame 3
+    // - page 2 => frame 1
+    // - page 3 => frame 2
+    let page1 = VirtAddr::new(1 * Size4KiB::SIZE);
+    let page2 = VirtAddr::new(2 * Size4KiB::SIZE);
+    let page3 = VirtAddr::new(3 * Size4KiB::SIZE);
+    let frame1 = PhysAddr::new(1 * Size4KiB::SIZE);
+    let frame2 = PhysAddr::new(2 * Size4KiB::SIZE);
+    let frame3 = PhysAddr::new(3 * Size4KiB::SIZE);
+
+    let mut page_table = DebugPageTable::new();
+    fn phys_frame(addr: PhysAddr) -> PhysFrame {
+        let frame = PhysFrame::from_start_address(addr);
+        frame.unwrap()
+    }
+
+    page_table.map(page1, phys_frame(frame3));
+    page_table.map(page2, phys_frame(frame1));
+    page_table.map(page3, phys_frame(frame2));
+
+    // Simple example: single address.
+    assert_eq!(
+        virt_to_phys_addrs(&page_table, page1, 0),
+        Some(vec![PhysBuffer {
+            addr: frame3,
+            len: 0
+        }])
+    );
+
+    // Simple example: within a single page.
+    assert_eq!(
+        virt_to_phys_addrs(&page_table, page1 + 2u64, 2),
+        Some(vec![PhysBuffer {
+            addr: frame3 + 2u64,
+            len: 2
+        }])
+    );
+
+    // Crossing a split page boundary.
+    assert_eq!(
+        virt_to_phys_addrs(&page_table, page1 + 4090u64, 12),
+        Some(vec![
+            PhysBuffer {
+                addr: frame3 + 4090u64,
+                len: 6
+            },
+            PhysBuffer {
+                addr: frame1,
+                len: 6
+            }
+        ])
+    );
+
+    // Crossing a contiguous page boundary.
+    // TODO: merge contiguous regions to reduce the number of buffers we return.
+    assert_eq!(
+        virt_to_phys_addrs(&page_table, page2 + 4090u64, 12),
+        Some(vec![
+            PhysBuffer {
+                addr: frame1 + 4090u64,
+                len: 6
+            },
+            PhysBuffer {
+                addr: frame2,
+                len: 6
+            }
+        ])
     );
 }
