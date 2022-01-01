@@ -55,6 +55,9 @@ pub fn register_entropy_source(src: Box<dyn EntropySource>) {
 /// over time.
 ///
 pub fn init() {
+    // Detect RDRAND support before we lock ENTROPY_SOURCES.
+    rdrand::init();
+
     let mut csprng = CSPRNG.lock();
     let mut sources = ENTROPY_SOURCES.lock();
     if sources.is_empty() {
