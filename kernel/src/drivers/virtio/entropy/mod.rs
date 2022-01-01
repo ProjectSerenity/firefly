@@ -5,10 +5,14 @@
 use crate::drivers::virtio::features::Reserved;
 use crate::drivers::virtio::{transports, virtqueue};
 use crate::drivers::{pci, virtio};
-use crate::memory::{phys_to_virt_addr, pmm};
-use crate::memory::{PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
+use crate::memory::{
+    kernel_pml4, phys_to_virt_addr, pmm, virt_to_phys_addrs, PHYSICAL_MEMORY,
+    PHYSICAL_MEMORY_OFFSET,
+};
 use crate::println;
 use alloc::sync::Arc;
+use alloc::vec;
+use alloc::vec::Vec;
 use core::slice;
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -30,25 +34,35 @@ impl Driver {
     /// with entropy. read returns the number of
     /// bytes written.
     ///
-    /// For now, buf's address must be in the
-    /// PHYSICAL_MEMORY range.
-    ///
     pub fn read(&mut self, buf: &mut [u8]) -> usize {
         let virt_addr = unsafe { VirtAddr::new_unsafe(buf.as_ptr() as u64) };
-        if !PHYSICAL_MEMORY.contains_addr(virt_addr) {
-            panic!("drivers::virtio::entropy::Driver.read called with invalid address");
-        }
+        let (first_addr, buffers) = if PHYSICAL_MEMORY.contains_addr(virt_addr) {
+            let addr = PhysAddr::new(virt_addr - PHYSICAL_MEMORY_OFFSET);
+            let len = buf.len();
+            let bufs = vec![virtqueue::Buffer::DeviceCanWrite { addr, len }];
 
-        let addr = PhysAddr::new(virt_addr - PHYSICAL_MEMORY_OFFSET);
-        let len = buf.len();
+            (addr, bufs)
+        } else {
+            let pml4 = unsafe { kernel_pml4() };
+            let bufs = match virt_to_phys_addrs(&pml4, virt_addr, buf.len()) {
+                None => panic!("failed to resolve physical memory region"),
+                Some(bufs) => bufs,
+            };
+
+            let addr = bufs[0].addr;
+            let bufs = bufs
+                .iter()
+                .map(|b| virtqueue::Buffer::DeviceCanWrite {
+                    addr: b.addr,
+                    len: b.len,
+                })
+                .collect::<Vec<virtqueue::Buffer>>();
+
+            (addr, bufs)
+        };
 
         // Send the buffer to be filled.
-        self.driver
-            .send(
-                REQUEST_VIRTQUEUE,
-                &[virtqueue::Buffer::DeviceCanWrite { addr, len }],
-            )
-            .unwrap();
+        self.driver.send(REQUEST_VIRTQUEUE, &buffers[..]).unwrap();
         self.driver.notify(REQUEST_VIRTQUEUE);
 
         // Wait for the device to return it.
@@ -60,17 +74,13 @@ impl Driver {
             match self.driver.recv(REQUEST_VIRTQUEUE) {
                 None => continue,
                 Some(bufs) => {
-                    if bufs.buffers.len() != 1 {
-                        panic!("got more than 1 buffer back from device");
-                    }
-
-                    // Check the address is right.
+                    // Check we got the right buffer.
                     let got_addr = match bufs.buffers[0] {
                         virtqueue::Buffer::DeviceCanWrite { addr, len: _len } => addr,
                         _ => panic!("invalid buffer from entropy device"),
                     };
 
-                    if got_addr != addr {
+                    if got_addr != first_addr {
                         panic!("got unexpected buffer from entropy device");
                     }
 
