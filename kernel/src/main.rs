@@ -76,6 +76,12 @@ fn kmain() {
 fn initial_workload() -> ! {
     println!("Starting initial workload.");
 
+    let mut array = [0u8; 16];
+    let buf = &mut array[..];
+    println!("RNG before: {:02x?}", buf.to_vec());
+    random::read(buf);
+    println!("RNG after:  {:02x?}", buf.to_vec());
+
     kernel::shutdown_qemu();
 }
 
