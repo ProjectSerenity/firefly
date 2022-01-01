@@ -53,6 +53,17 @@ pub struct Interface {
     config: Option<Dhcpv4Config>,
 }
 
+impl Interface {
+    fn new(iface: smoltcp::iface::Interface<'static, network::Device>, dhcp: SocketHandle) -> Self {
+        let config = None;
+        Interface {
+            iface,
+            dhcp,
+            config,
+        }
+    }
+}
+
 /// InterfaceHandle uniquely identifies a network interface.
 ///
 #[derive(Clone, Copy)]
@@ -199,12 +210,7 @@ pub fn register_interface(
     interrupts::without_interrupts(|| {
         let mut ifaces = INTERFACES.lock();
         let handle = InterfaceHandle::new(ifaces.len());
-        let config = None;
-        ifaces.push(Interface {
-            iface,
-            dhcp,
-            config,
-        });
+        ifaces.push(Interface::new(iface, dhcp));
 
         handle
     })
