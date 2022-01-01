@@ -5,15 +5,11 @@
 use crate::drivers::virtio::features::Reserved;
 use crate::drivers::virtio::{transports, virtqueue};
 use crate::drivers::{pci, virtio};
-use crate::memory::{
-    kernel_pml4, phys_to_virt_addr, pmm, virt_to_phys_addrs, PHYSICAL_MEMORY,
-    PHYSICAL_MEMORY_OFFSET,
-};
+use crate::memory::{kernel_pml4, virt_to_phys_addrs, PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
 use crate::println;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
-use core::slice;
 use x86_64::{PhysAddr, VirtAddr};
 
 /// REQUEST_VIRTQUEUE is the sole virtqueue used
@@ -121,12 +117,8 @@ pub fn install_pci_device(device: pci::Device) {
     let mut driver = Driver { driver };
 
     // Show that it works.
-    let frame = pmm::allocate_frame().expect("failed to allocate test buffer");
-    let virt_addr = phys_to_virt_addr(frame.start_address());
-    let len = 16;
-    let buf = unsafe { slice::from_raw_parts_mut(virt_addr.as_mut_ptr(), len) };
-    buf.fill(0); // Initialise with zeros.
-
+    let mut array = [0u8; 16];
+    let buf = &mut array[..];
     println!("RNG before: {} bytes: {:02x?}", buf.len(), buf.to_vec());
     let written = driver.read(buf);
     println!(
@@ -134,6 +126,4 @@ pub fn install_pci_device(device: pci::Device) {
         written,
         buf[0..written].to_vec()
     );
-
-    unsafe { pmm::deallocate_frame(frame) };
 }
