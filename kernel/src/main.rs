@@ -16,7 +16,7 @@ use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use kernel::drivers::pci;
 use kernel::multitasking::thread::{scheduler, Thread};
-use kernel::{memory, network, println};
+use kernel::{memory, network, println, random};
 
 /// This function is called on panic.
 #[cfg(not(test))]
@@ -67,6 +67,7 @@ fn kmain() {
     network::register_workload(Thread::create_kernel_thread(initial_workload));
 
     pci::init();
+    random::init();
 
     // Hand over to the scheduler.
     scheduler::start();
