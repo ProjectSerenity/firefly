@@ -6,7 +6,8 @@ use crate::drivers::virtio::features::Reserved;
 use crate::drivers::virtio::{transports, virtqueue};
 use crate::drivers::{pci, virtio};
 use crate::memory::{kernel_pml4, virt_to_phys_addrs, PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
-use crate::println;
+use crate::{println, random};
+use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -87,6 +88,18 @@ impl Driver {
     }
 }
 
+impl random::EntropySource for Driver {
+    fn get_entropy(&mut self, buf: &mut [u8; 32]) {
+        let mut len = buf.len();
+        let mut done = 0;
+        while len > 0 {
+            let written = self.read(&mut buf[done..]);
+            len -= written;
+            done += written;
+        }
+    }
+}
+
 /// install_device can be used to take ownership of the
 /// given PCI device that represents a virtio entropy
 /// device.
@@ -114,16 +127,8 @@ pub fn install_pci_device(device: pci::Device) {
     driver.disable_notifications(REQUEST_VIRTQUEUE);
 
     // Prepare the entropy driver.
-    let mut driver = Driver { driver };
+    let driver = Driver { driver };
 
     // Show that it works.
-    let mut array = [0u8; 16];
-    let buf = &mut array[..];
-    println!("RNG before: {} bytes: {:02x?}", buf.len(), buf.to_vec());
-    let written = driver.read(buf);
-    println!(
-        "RNG after:  {} bytes: {:02x?}",
-        written,
-        buf[0..written].to_vec()
-    );
+    random::register_entropy_source(Box::new(driver));
 }
