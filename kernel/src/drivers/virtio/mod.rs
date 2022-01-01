@@ -374,8 +374,10 @@ impl Driver {
         // Prepare our virtqueues.
         let mut virtqueues = Vec::new();
         for i in 0..num_queues {
-            virtqueues.push(Box::new(split::Virtqueue::new(i, transport.clone()))
-                as Box<dyn virtqueue::Virtqueue + Send>);
+            virtqueues.push(
+                Box::new(split::Virtqueue::new(i, transport.clone(), features))
+                    as Box<dyn virtqueue::Virtqueue + Send>,
+            );
         }
 
         // Finish initialisation.

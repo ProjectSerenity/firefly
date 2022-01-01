@@ -190,6 +190,11 @@ pub struct Virtqueue<'a> {
     // device.
     transport: Arc<dyn Transport>,
 
+    // features is the set of virtio features
+    // that have been negotiated with the
+    // device.
+    features: u64,
+
     // free_list is a bitmap with a bit for
     // each descriptor, indicating whether
     // the descriptor is free or currently
@@ -222,7 +227,7 @@ impl<'a> Virtqueue<'a> {
     /// The queue_index field indicates which
     /// virtqueue this is.
     ///
-    pub fn new(queue_index: u16, transport: Arc<dyn Transport>) -> Self {
+    pub fn new(queue_index: u16, transport: Arc<dyn Transport>, features: u64) -> Self {
         transport.select_queue(queue_index);
 
         let num_descriptors = core::cmp::min(transport.queue_size(), virtio::MAX_DESCRIPTORS);
@@ -309,6 +314,7 @@ impl<'a> Virtqueue<'a> {
         Virtqueue {
             queue_index,
             transport,
+            features,
             free_list,
             last_used_index,
             descriptors,
