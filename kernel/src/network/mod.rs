@@ -62,6 +62,109 @@ impl Interface {
             config,
         }
     }
+
+    /// poll instructs the interface to process inbound
+    /// and outbound packets.
+    ///
+    /// poll returns the instant at which poll should
+    /// next be called.
+    ///
+    pub fn poll(&mut self) -> time::Duration {
+        let now = Instant::from_micros(time::now().system_micros() as i64);
+        loop {
+            // Process the next inbound or outbound
+            // packet.
+            let processed = match self.iface.poll(now) {
+                Ok(processed) => processed,
+                Err(smoltcp::Error::Unrecognized) => continue, // Ignore bad packets.
+                Err(err) => {
+                    println!("warn: network poll error: {:?}", err);
+                    break;
+                }
+            };
+
+            // Check whether we've had a DHCP
+            // state change.
+            let event = self.iface.get_socket::<Dhcpv4Socket>(self.dhcp).poll();
+            match event {
+                None => {}
+                Some(Dhcpv4Event::Configured(config)) => {
+                    // We've received a new configuration.
+                    println!("Received {}.", config.address);
+                    self.iface.update_ip_addrs(|addrs| {
+                        let addrs = match addrs {
+                            ManagedSlice::Owned(vector) => vector,
+                            _ => panic!("unexpected non-vector set of IP addresses"),
+                        };
+
+                        if addrs.len() == 0 {
+                            addrs.push(IpCidr::Ipv4(config.address));
+                            return;
+                        }
+
+                        let dst = addrs.iter_mut().next().unwrap();
+                        *dst = IpCidr::Ipv4(config.address);
+                    });
+
+                    if let Some(router) = config.router {
+                        println!("Default gateway at {}.", router);
+                        self.iface
+                            .routes_mut()
+                            .add_default_ipv4_route(router)
+                            .unwrap();
+                    } else {
+                        println!("No default gateway.");
+                        self.iface.routes_mut().remove_default_ipv4_route();
+                    }
+
+                    for (i, srv) in config.dns_servers.iter().enumerate() {
+                        if let Some(srv) = srv {
+                            println!("DNS server {}: {}.", i, srv);
+                        }
+                    }
+
+                    self.config = Some(config);
+
+                    // Resume any initial workloads.
+                    let mut workloads = INITIAL_WORKLOADS.lock();
+                    for thread_id in workloads.iter() {
+                        scheduler::resume(*thread_id);
+                    }
+
+                    workloads.clear();
+                }
+                Some(Dhcpv4Event::Deconfigured) => {
+                    println!("Lost DHCP configuration.");
+                    self.iface.update_ip_addrs(|addrs| {
+                        if addrs.len() == 0 {
+                            return;
+                        }
+
+                        let dst = addrs.iter_mut().next().unwrap();
+                        *dst = IpCidr::Ipv4(Ipv4Cidr::new(Ipv4Address::UNSPECIFIED, 0));
+                    });
+
+                    self.iface.routes_mut().remove_default_ipv4_route();
+                    self.config = None;
+                }
+            }
+
+            // Stop if there are no more packets
+            // to process.
+            if !processed {
+                break;
+            }
+        }
+
+        // Determine when to poll again.
+        let next = self.iface.poll_delay(now);
+        let duration = match next {
+            Some(duration) => time::Duration::from_micros(duration.micros()),
+            None => time::Duration::from_secs(1),
+        };
+
+        duration
+    }
 }
 
 /// InterfaceHandle uniquely identifies a network interface.
@@ -97,102 +200,8 @@ impl InterfaceHandle {
     pub fn poll(&self) -> time::Duration {
         interrupts::without_interrupts(|| {
             let mut ifaces = INTERFACES.lock();
-            let mut iface = ifaces.get_mut(self.0).expect("invalid interface handle");
-            let now = Instant::from_micros(time::now().system_micros() as i64);
-            loop {
-                // Process the next inbound or outbound
-                // packet.
-                let processed = match iface.iface.poll(now) {
-                    Ok(processed) => processed,
-                    Err(smoltcp::Error::Unrecognized) => continue, // Ignore bad packets.
-                    Err(err) => {
-                        println!("warn: network poll error: {:?}", err);
-                        break;
-                    }
-                };
-
-                // Check whether we've had a DHCP
-                // state change.
-                let event = iface.iface.get_socket::<Dhcpv4Socket>(iface.dhcp).poll();
-                match event {
-                    None => {}
-                    Some(Dhcpv4Event::Configured(config)) => {
-                        // We've received a new configuration.
-                        println!("Received {}.", config.address);
-                        iface.iface.update_ip_addrs(|addrs| {
-                            let addrs = match addrs {
-                                ManagedSlice::Owned(vector) => vector,
-                                _ => panic!("unexpected non-vector set of IP addresses"),
-                            };
-
-                            if addrs.len() == 0 {
-                                addrs.push(IpCidr::Ipv4(config.address));
-                                return;
-                            }
-
-                            let dst = addrs.iter_mut().next().unwrap();
-                            *dst = IpCidr::Ipv4(config.address);
-                        });
-
-                        if let Some(router) = config.router {
-                            println!("Default gateway at {}.", router);
-                            iface
-                                .iface
-                                .routes_mut()
-                                .add_default_ipv4_route(router)
-                                .unwrap();
-                        } else {
-                            println!("No default gateway.");
-                            iface.iface.routes_mut().remove_default_ipv4_route();
-                        }
-
-                        for (i, srv) in config.dns_servers.iter().enumerate() {
-                            if let Some(srv) = srv {
-                                println!("DNS server {}: {}.", i, srv);
-                            }
-                        }
-
-                        iface.config = Some(config);
-
-                        // Resume any initial workloads.
-                        let mut workloads = INITIAL_WORKLOADS.lock();
-                        for thread_id in workloads.iter() {
-                            scheduler::resume(*thread_id);
-                        }
-
-                        workloads.clear();
-                    }
-                    Some(Dhcpv4Event::Deconfigured) => {
-                        println!("Lost DHCP configuration.");
-                        iface.iface.update_ip_addrs(|addrs| {
-                            if addrs.len() == 0 {
-                                return;
-                            }
-
-                            let dst = addrs.iter_mut().next().unwrap();
-                            *dst = IpCidr::Ipv4(Ipv4Cidr::new(Ipv4Address::UNSPECIFIED, 0));
-                        });
-
-                        iface.iface.routes_mut().remove_default_ipv4_route();
-                        iface.config = None;
-                    }
-                }
-
-                // Stop if there are no more packets
-                // to process.
-                if !processed {
-                    break;
-                }
-            }
-
-            // Determine when to poll again.
-            let next = iface.iface.poll_delay(now);
-            let duration = match next {
-                Some(duration) => time::Duration::from_micros(duration.micros()),
-                None => time::Duration::from_secs(1),
-            };
-
-            duration
+            let iface = ifaces.get_mut(self.0).expect("invalid interface handle");
+            iface.poll()
         })
     }
 }
