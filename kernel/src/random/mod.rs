@@ -1,6 +1,7 @@
 //! random provides a cryptographically secure pseudo-random number generator (CSPRNG).
 
 mod csprng;
+mod rdrand;
 
 use crate::multitasking::thread::Thread;
 use crate::time;
