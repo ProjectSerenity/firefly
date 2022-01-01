@@ -4,6 +4,7 @@
 // Note, all references to 'sections' are relative to the
 // Virtio 1.1 specification linked above.
 
+pub mod entropy;
 pub mod features;
 pub mod network;
 pub mod transports;
@@ -52,6 +53,7 @@ pub fn pci_device_supported(device: &pci::Device) -> Option<drivers::PciDeviceDr
 
     match DeviceId::from_pci_device_id(device.device) {
         Some(DeviceId::NetworkCard) => Some(network::install_pci_device),
+        Some(DeviceId::EntropySource) => Some(entropy::install_pci_device),
         Some(_device) => None,
         None => None,
     }
