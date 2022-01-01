@@ -63,4 +63,14 @@ pub trait Virtqueue: Send {
     /// in this queue.
     ///
     fn num_descriptors(&self) -> usize;
+
+    /// disable_notifications requests the device not to send
+    /// notifications to this queue.
+    ///
+    fn disable_notifications(&mut self);
+
+    /// enable_notifications requests the device to send
+    /// notifications to this queue.
+    ///
+    fn enable_notifications(&mut self);
 }

@@ -2,6 +2,7 @@
 //! 2.6.
 
 use crate::drivers::virtio;
+use crate::drivers::virtio::features::Reserved;
 use crate::drivers::virtio::{virtqueue, Transport};
 use crate::memory::{mmio, pmm};
 use crate::utils::bitmap;
@@ -106,7 +107,7 @@ bitflags! {
 struct DriverArea {
     // flags indicates the driver's behaviour recommendations
     // to the device.
-    _flags: &'static mut u16,
+    flags: &'static mut u16,
 
     // index is the index into ring (modulo the ring's size)
     // at which the next descriptor will be written.
@@ -206,6 +207,11 @@ pub struct Virtqueue<'a> {
     // value seen in device_area.index.
     last_used_index: u16,
 
+    // update_used_index tracks whether we
+    // should keep the used_index up to date
+    // as we receive used buffers.
+    update_used_index: bool,
+
     // descriptors is the list of descriptors
     // in the descriptor area.
     descriptors: &'a mut [Descriptor],
@@ -288,7 +294,7 @@ impl<'a> Virtqueue<'a> {
         };
 
         let driver_area = DriverArea {
-            _flags: mmio_region.as_mut::<u16>(driver_offset + 0).unwrap(),
+            flags: mmio_region.as_mut::<u16>(driver_offset + 0).unwrap(),
             index: mmio_region.as_mut::<u16>(driver_offset + 2).unwrap(),
             ring: unsafe {
                 slice::from_raw_parts_mut(
@@ -311,12 +317,20 @@ impl<'a> Virtqueue<'a> {
             _send_event: mmio_region.as_mut::<u16>(device_end - 2).unwrap(),
         };
 
+        // Enable used index updates by default if
+        // we have negotiated VIRTIO_F_RING_EVENT_IDX.
+        //
+        // This can be disabled by calling disable_notifications.
+        let update_used_index =
+            Reserved::from_bits_truncate(features).contains(Reserved::RING_EVENT_IDX);
+
         Virtqueue {
             queue_index,
             transport,
             features,
             free_list,
             last_used_index,
+            update_used_index,
             descriptors,
             driver_area,
             device_area,
@@ -403,7 +417,9 @@ impl<'a> virtqueue::Virtqueue for Virtqueue<'a> {
         let head =
             self.device_area.ring[self.last_used_index as usize % self.device_area.ring.len()];
         self.last_used_index = self.last_used_index.wrapping_add(1);
-        *self.driver_area.recv_event = self.last_used_index;
+        if self.update_used_index {
+            *self.driver_area.recv_event = self.last_used_index;
+        }
 
         let written = head.len as usize;
         let mut buffers = Vec::new();
@@ -438,5 +454,35 @@ impl<'a> virtqueue::Virtqueue for Virtqueue<'a> {
     ///
     fn num_descriptors(&self) -> usize {
         self.descriptors.len()
+    }
+
+    /// disable_notifications requests the device not to send
+    /// notifications to this queue.
+    ///
+    fn disable_notifications(&mut self) {
+        let event_idx =
+            Reserved::from_bits_truncate(self.features).contains(Reserved::RING_EVENT_IDX);
+        if event_idx {
+            // We simply set the used_event to an impossible
+            // value.
+            *self.driver_area.recv_event = u16::MAX;
+            self.update_used_index = false;
+        } else {
+            *self.driver_area.flags |= DriverFlags::NO_NOTIFICATIONS.bits();
+        }
+    }
+
+    /// enable_notifications requests the device to send
+    /// notifications to this queue.
+    ///
+    fn enable_notifications(&mut self) {
+        let event_idx =
+            Reserved::from_bits_truncate(self.features).contains(Reserved::RING_EVENT_IDX);
+        if event_idx {
+            *self.driver_area.recv_event = self.last_used_index;
+            self.update_used_index = true;
+        } else {
+            *self.driver_area.flags &= !DriverFlags::NO_NOTIFICATIONS.bits();
+        }
     }
 }

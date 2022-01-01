@@ -462,4 +462,18 @@ impl Driver {
     pub fn recv(&mut self, queue_index: u16) -> Option<virtqueue::UsedBuffers> {
         self.virtqueues[queue_index as usize].recv()
     }
+
+    /// disable_notifications requests the device not to send
+    /// notifications to the given queue.
+    ///
+    pub fn disable_notifications(&mut self, queue_index: u16) {
+        self.virtqueues[queue_index as usize].disable_notifications();
+    }
+
+    /// enable_notifications requests the device to send
+    /// notifications to the given queue.
+    ///
+    pub fn enable_notifications(&mut self, queue_index: u16) {
+        self.virtqueues[queue_index as usize].enable_notifications();
+    }
 }
