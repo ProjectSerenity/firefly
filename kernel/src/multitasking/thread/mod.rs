@@ -203,7 +203,7 @@ impl Thread {
     /// new_idle_thread creates a new kernel thread, to
     /// which we fall back if no other threads are runnable.
     ///
-    pub fn new_idle_thread(stack_space: &VirtAddrRange) -> Arc<Thread> {
+    pub(super) fn new_idle_thread(stack_space: &VirtAddrRange) -> Arc<Thread> {
         // The idle thread always has thread id 0, which
         // is otherwise invalid.
         let id = ThreadId::IDLE;
