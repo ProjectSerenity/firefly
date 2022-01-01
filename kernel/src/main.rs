@@ -16,7 +16,6 @@ use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use kernel::drivers::pci;
 use kernel::multitasking::thread::scheduler;
-use kernel::multitasking::{cpu_local, thread};
 use kernel::{memory, println};
 
 /// This function is called on panic.
@@ -65,29 +64,8 @@ fn kmain() {
 
     pci::init();
 
-    // Schedule the thread we want to run next
-    // with switch.
-    thread::Thread::start_kernel_thread(debug_threading);
-    thread::Thread::start_kernel_thread(debug_threading);
-
     // Hand over to the scheduler.
     scheduler::start();
-}
-
-fn debug_threading() -> ! {
-    use kernel::time;
-
-    let foo: u64 = 1;
-    let thread_id = cpu_local::current_thread().thread_id();
-    println!(
-        "Successfully entered {:?} with stack address {:p}.",
-        thread_id, &foo
-    );
-
-    time::sleep(time::Duration::from_secs(1));
-
-    println!("Exiting debug_threading for {:?}", thread_id);
-    thread::exit();
 }
 
 #[allow(dead_code)]
