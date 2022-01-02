@@ -1,7 +1,7 @@
 //! network implements virtio network cards.
 
 use crate::drivers::virtio::features::{Network, Reserved};
-use crate::drivers::virtio::{transports, virtqueue};
+use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
 use crate::drivers::{pci, virtio};
 use crate::interrupts::{register_irq, Irq};
 use crate::memory::{phys_to_virt_addr, pmm};
@@ -75,7 +75,7 @@ fn interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
         if !dev
             .driver
             .interrupt_status()
-            .contains(virtio::InterruptStatus::QUEUE_INTERRUPT)
+            .contains(InterruptStatus::QUEUE_INTERRUPT)
         {
             // TODO: Handle configuration changes.
             irq.acknowledge();
@@ -162,7 +162,7 @@ impl Driver {
                 Some(bufs) => {
                     for buf in bufs.buffers.iter() {
                         let addr = match buf {
-                            virtqueue::Buffer::DeviceCanRead { addr, len: _len } => *addr,
+                            Buffer::DeviceCanRead { addr, len: _len } => *addr,
                             _ => panic!("invalid buffer from send queue"),
                         };
 
@@ -253,10 +253,7 @@ impl<'a> RxToken for RecvBuffer {
             let len = PACKET_LEN_MAX;
 
             dev.driver
-                .send(
-                    RECV_VIRTQUEUE,
-                    &[virtqueue::Buffer::DeviceCanWrite { addr, len }],
-                )
+                .send(RECV_VIRTQUEUE, &[Buffer::DeviceCanWrite { addr, len }])
                 .expect("failed to return receive buffer to device");
             dev.driver.notify(RECV_VIRTQUEUE);
         });
@@ -323,10 +320,7 @@ impl<'a> TxToken for SendBuffer {
             let len = len + offset;
 
             dev.driver
-                .send(
-                    SEND_VIRTQUEUE,
-                    &[virtqueue::Buffer::DeviceCanRead { addr, len }],
-                )
+                .send(SEND_VIRTQUEUE, &[Buffer::DeviceCanRead { addr, len }])
                 .expect("failed to send packet buffer to device");
             dev.driver.notify(SEND_VIRTQUEUE);
         });
@@ -361,7 +355,7 @@ impl<'a> smoltcp::phy::Device<'a> for Device {
                     debug_assert!(buf.buffers.len() == 1);
                     let len = buf.written;
                     let recv_addr = match buf.buffers[0] {
-                        virtqueue::Buffer::DeviceCanWrite { addr, .. } => addr,
+                        Buffer::DeviceCanWrite { addr, .. } => addr,
                         _ => panic!("invalid buffer type returned by device"),
                     };
 
@@ -554,10 +548,7 @@ pub fn install_pci_device(device: pci::Device) {
         let addr = send_buffers[i];
         let len = PACKET_LEN_MAX;
         driver
-            .send(
-                RECV_VIRTQUEUE,
-                &[virtqueue::Buffer::DeviceCanWrite { addr, len }],
-            )
+            .send(RECV_VIRTQUEUE, &[Buffer::DeviceCanWrite { addr, len }])
             .expect("failed to send receive buffer to device");
     }
     driver.notify(RECV_VIRTQUEUE);

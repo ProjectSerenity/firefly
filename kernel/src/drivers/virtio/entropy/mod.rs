@@ -3,7 +3,7 @@
 // See section 5.4.
 
 use crate::drivers::virtio::features::Reserved;
-use crate::drivers::virtio::{transports, virtqueue};
+use crate::drivers::virtio::{transports, Buffer};
 use crate::drivers::{pci, virtio};
 use crate::memory::{kernel_pml4, virt_to_phys_addrs, PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
 use crate::{println, random};
@@ -36,7 +36,7 @@ impl Driver {
         let (first_addr, buffers) = if PHYSICAL_MEMORY.contains_addr(virt_addr) {
             let addr = PhysAddr::new(virt_addr - PHYSICAL_MEMORY_OFFSET);
             let len = buf.len();
-            let bufs = vec![virtqueue::Buffer::DeviceCanWrite { addr, len }];
+            let bufs = vec![Buffer::DeviceCanWrite { addr, len }];
 
             (addr, bufs)
         } else {
@@ -49,11 +49,11 @@ impl Driver {
             let addr = bufs[0].addr;
             let bufs = bufs
                 .iter()
-                .map(|b| virtqueue::Buffer::DeviceCanWrite {
+                .map(|b| Buffer::DeviceCanWrite {
                     addr: b.addr,
                     len: b.len,
                 })
-                .collect::<Vec<virtqueue::Buffer>>();
+                .collect::<Vec<Buffer>>();
 
             (addr, bufs)
         };
@@ -73,7 +73,7 @@ impl Driver {
                 Some(bufs) => {
                     // Check we got the right buffer.
                     let got_addr = match bufs.buffers[0] {
-                        virtqueue::Buffer::DeviceCanWrite { addr, len: _len } => addr,
+                        Buffer::DeviceCanWrite { addr, len: _len } => addr,
                         _ => panic!("invalid buffer from entropy device"),
                     };
 

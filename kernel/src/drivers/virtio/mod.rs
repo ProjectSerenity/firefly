@@ -272,6 +272,75 @@ pub trait Transport: Send + Sync {
     fn set_queue_device_area(&self, area: PhysAddr);
 }
 
+/// Buffer represents a contiguous sequence of
+/// physical memory, which can either be read
+/// or written by the device.
+///
+pub enum Buffer {
+    DeviceCanRead { addr: PhysAddr, len: usize },
+    DeviceCanWrite { addr: PhysAddr, len: usize },
+}
+
+/// UsedBuffers contains a set of buffers that
+/// the device has returned, along with the number
+/// of bytes written to them.
+///
+pub struct UsedBuffers {
+    pub buffers: Vec<Buffer>,
+    pub written: usize,
+}
+
+/// VirtqueueError represents an error interacting
+/// with a virtqueue.
+///
+#[derive(Clone, Copy, Debug)]
+pub enum VirtqueueError {
+    /// No descriptors were available for sending
+    /// a buffer to the queue.
+    NoDescriptors,
+}
+
+/// Virtqueue abstracts the implementation details
+/// of a virtqueue.
+///
+pub trait Virtqueue: Send {
+    /// send enqueues a request to the device. A request consists of
+    /// a sequence of buffers. The sequence of buffers should place
+    /// device-writable buffers after all device-readable buffers.
+    ///
+    /// send returns the descriptor index for the head of the chain.
+    /// This can be used to identify when the device returns the
+    /// buffer chain. If there are not enough descriptors to send
+    /// the chain, send returns None.
+    ///
+    fn send(&mut self, buffers: &[Buffer]) -> Result<(), VirtqueueError>;
+
+    /// notify informs the device that descriptors are ready
+    /// to use in this virtqueue.
+    ///
+    fn notify(&self);
+
+    /// recv returns the next set of buffers
+    /// returned by the device, or None.
+    ///
+    fn recv(&mut self) -> Option<UsedBuffers>;
+
+    /// num_descriptors returns the number of descriptors
+    /// in this queue.
+    ///
+    fn num_descriptors(&self) -> usize;
+
+    /// disable_notifications requests the device not to send
+    /// notifications to this queue.
+    ///
+    fn disable_notifications(&mut self);
+
+    /// enable_notifications requests the device to send
+    /// notifications to this queue.
+    ///
+    fn enable_notifications(&mut self);
+}
+
 /// InitError describes an error initialising
 /// a virtio device.
 ///
@@ -297,7 +366,7 @@ pub enum InitError {
 pub struct Driver {
     transport: Arc<dyn Transport>,
     features: u64,
-    virtqueues: Vec<Box<dyn virtqueue::Virtqueue + Send>>,
+    virtqueues: Vec<Box<dyn Virtqueue + Send>>,
 }
 
 impl Driver {
@@ -352,7 +421,7 @@ impl Driver {
         for i in 0..num_queues {
             virtqueues.push(
                 Box::new(split::Virtqueue::new(i, transport.clone(), features))
-                    as Box<dyn virtqueue::Virtqueue + Send>,
+                    as Box<dyn Virtqueue + Send>,
             );
         }
 
@@ -409,11 +478,7 @@ impl Driver {
     /// buffer chain. If there are not enough descriptors to send
     /// the chain, send returns None.
     ///
-    pub fn send(
-        &mut self,
-        queue_index: u16,
-        buffers: &[virtqueue::Buffer],
-    ) -> Result<(), virtqueue::Error> {
+    pub fn send(&mut self, queue_index: u16, buffers: &[Buffer]) -> Result<(), VirtqueueError> {
         self.virtqueues[queue_index as usize].send(buffers)
     }
 
@@ -435,7 +500,7 @@ impl Driver {
     /// returned by the device to the given
     /// queue, or None.
     ///
-    pub fn recv(&mut self, queue_index: u16) -> Option<virtqueue::UsedBuffers> {
+    pub fn recv(&mut self, queue_index: u16) -> Option<UsedBuffers> {
         self.virtqueues[queue_index as usize].recv()
     }
 

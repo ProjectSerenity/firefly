@@ -1,6 +1,7 @@
 //! pci implements the PCI transport mechanism documented in section
 //! 4.1 of <https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html>.
 
+use crate::drivers::virtio::{DeviceStatus, InterruptStatus};
 use crate::drivers::{pci, virtio};
 use crate::interrupts::Irq;
 use crate::memory::mmio;
@@ -325,21 +326,21 @@ impl virtio::Transport for Transport {
     /// read_interrupt_status returns the device's current
     /// interrupt status.
     ///
-    fn read_interrupt_status(&self) -> virtio::InterruptStatus {
-        virtio::InterruptStatus::from_bits_truncate(self.interrupt.read::<u8>(0).unwrap())
+    fn read_interrupt_status(&self) -> InterruptStatus {
+        InterruptStatus::from_bits_truncate(self.interrupt.read::<u8>(0).unwrap())
     }
 
     /// read_status returns the device's status.
     ///
-    fn read_status(&self) -> virtio::DeviceStatus {
+    fn read_status(&self) -> DeviceStatus {
         let common = self.common();
 
-        virtio::DeviceStatus::from_bits_truncate(unsafe { read_volatile!(common.device_status) })
+        DeviceStatus::from_bits_truncate(unsafe { read_volatile!(common.device_status) })
     }
 
     /// write_status sets the device's status.
     ///
-    fn write_status(&self, device_status: virtio::DeviceStatus) {
+    fn write_status(&self, device_status: DeviceStatus) {
         let common = self.common();
 
         unsafe { write_volatile!(common.device_status, device_status.bits()) };
@@ -348,7 +349,7 @@ impl virtio::Transport for Transport {
     /// add_status reads the current device status
     /// and sets the given additional bits.
     ///
-    fn add_status(&self, device_status: virtio::DeviceStatus) {
+    fn add_status(&self, device_status: DeviceStatus) {
         let current = self.read_status();
         self.write_status(current | device_status);
     }
@@ -356,7 +357,7 @@ impl virtio::Transport for Transport {
     /// has_status returns whether the current device
     /// status includes the given bits.
     ///
-    fn has_status(&self, device_status: virtio::DeviceStatus) -> bool {
+    fn has_status(&self, device_status: DeviceStatus) -> bool {
         let current = self.read_status();
         current.contains(device_status)
     }
