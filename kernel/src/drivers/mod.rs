@@ -2,6 +2,7 @@
 //! driver child modules.
 
 pub mod pci;
+pub mod serial;
 pub mod virtio;
 
 /// PciDeviceDriver takes ownership of a PCI device.

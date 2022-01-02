@@ -48,7 +48,6 @@ pub mod memory;
 pub mod multitasking;
 pub mod network;
 pub mod random;
-pub mod serial;
 pub mod time;
 pub mod utils;
 
