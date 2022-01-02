@@ -15,7 +15,7 @@ pub struct Irq(u8);
 impl Irq {
     /// new returns an IRQ if within the range [0, 15], or None otherwise.
     ///
-    pub fn new(irq: u8) -> Option<Irq> {
+    pub const fn new(irq: u8) -> Option<Irq> {
         if irq <= 15 {
             Some(Irq(irq))
         } else {
@@ -26,7 +26,7 @@ impl Irq {
     /// new_unsafe returns an IRQ if within the range [0, 15], or panics
     /// otherwise.
     ///
-    pub fn new_unsafe(irq: u8) -> Irq {
+    pub const fn new_unsafe(irq: u8) -> Irq {
         if irq > 15 {
             panic!("invalid IRQ larger than 15");
         }
