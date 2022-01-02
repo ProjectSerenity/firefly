@@ -61,7 +61,7 @@ pub fn pci_device_supported(device: &pci::Device) -> Option<pci::DeviceDriver> {
 /// in section 5.
 ///
 #[derive(Clone, Copy, Debug)]
-pub enum DeviceId {
+enum DeviceId {
     NetworkCard = 1,
     BlockDevice = 2,
     Console = 3,
@@ -114,30 +114,6 @@ impl DeviceId {
             0x1057 => Some(DeviceId::PstoreDevice),
             0x1058 => Some(DeviceId::IommuDevice),
             0x1059 => Some(DeviceId::MemoryDevice),
-            _ => None,
-        }
-    }
-
-    /// pci_device_id returns the PCI device id that
-    /// corresponds to this virtio device id.
-    ///
-    pub fn pci_device_id(self) -> u16 {
-        self as u16 + 0x1040
-    }
-
-    /// transitional_pci_device_id returns the PCI
-    /// device id for the legacy representation of
-    /// this virtio device id, if applicable.
-    ///
-    pub fn transitional_pci_device_id(&self) -> Option<u16> {
-        match self {
-            DeviceId::NetworkCard => Some(0x1000),
-            DeviceId::BlockDevice => Some(0x1001),
-            DeviceId::MemoryBallooning => Some(0x1002),
-            DeviceId::Console => Some(0x1003),
-            DeviceId::ScsiHost => Some(0x1004),
-            DeviceId::EntropySource => Some(0x1005),
-            DeviceId::P9Transport => Some(0x1009),
             _ => None,
         }
     }
