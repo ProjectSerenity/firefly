@@ -134,7 +134,10 @@ impl Interface {
                     workloads.clear();
                 }
                 Some(Dhcpv4Event::Deconfigured) => {
-                    println!("Lost DHCP configuration.");
+                    if self.config.is_some() {
+                        println!("Lost DHCP configuration.");
+                    }
+
                     self.iface.update_ip_addrs(|addrs| {
                         if addrs.len() == 0 {
                             return;
