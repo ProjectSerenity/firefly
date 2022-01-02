@@ -353,10 +353,10 @@ bitflags! {
 }
 
 bitflags! {
-    /// DeviceId represents the set of device id virtio
+    /// Input represents the set of input device virtio
     /// feature flags, as documented in section 5.8.3.
     ///
-    pub struct DeviceId: u64 {
+    pub struct Input: u64 {
         // None defined yet.
     }
 }
