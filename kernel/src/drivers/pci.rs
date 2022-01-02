@@ -7,6 +7,25 @@ use core::fmt;
 use x86_64::instructions::port::Port;
 use x86_64::PhysAddr;
 
+/// DeviceDriver takes ownership of a PCI device.
+///
+pub type DeviceDriver = fn(device: Device);
+
+/// DeviceDriverSupport determines whether a PCI
+/// device driver supports the given device.
+///
+pub type DeviceDriverSupport = fn(device: &Device) -> Option<DeviceDriver>;
+
+/// DEVICE_DRIVERS is the set of configured PCI device
+/// drivers.
+///
+/// For each PCI device discovered, each callback listed
+/// here will be checked to determine whether the driver
+/// supports the device. The first device that returns a
+/// driver will then take ownership of the device.
+///
+pub const DEVICE_DRIVERS: &[DeviceDriverSupport] = &[drivers::virtio::pci_device_supported];
+
 const CONFIG_ADDRESS: u16 = 0xcf8;
 const CONFIG_DATA: u16 = 0xcfc;
 
@@ -302,10 +321,13 @@ fn scan_slot(bus: u8, slot: u8) {
         capabilities,
     };
 
-    if let Some(driver) = drivers::device_supported(&dev) {
-        driver(dev);
-    } else {
-        UNKNOWN_DEVICES.lock().push(dev);
+    match DEVICE_DRIVERS
+        .iter()
+        .map_while(|supports| supports(&dev))
+        .next()
+    {
+        Some(driver) => driver(dev),
+        None => UNKNOWN_DEVICES.lock().push(dev),
     }
 }
 
