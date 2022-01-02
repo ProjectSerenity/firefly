@@ -8,10 +8,10 @@ pub mod entropy;
 pub mod features;
 pub mod network;
 pub mod transports;
-pub mod virtqueue;
+pub mod virtqueues;
 
 use crate::drivers::pci;
-use crate::drivers::virtio::virtqueue::split;
+use crate::drivers::virtio::virtqueues::split;
 use crate::interrupts::Irq;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
