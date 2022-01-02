@@ -6,50 +6,47 @@
 // which are written to the serial port.
 
 use core::fmt::Write;
-use lazy_static::lazy_static;
-use spin::Mutex;
 use uart_16550::SerialPort;
 use x86_64::instructions::interrupts;
 
-// SERIAL1 is used to read or write data to
-// the first serial port, sometimes referred
-// to as COM1.
-//
-lazy_static! {
-    static ref SERIAL1: Mutex<SerialPort> = {
-        let mut serial_port = unsafe { SerialPort::new(0x3F8) };
-        serial_port.init();
-        Mutex::new(serial_port)
-    };
-}
+/// COM1 is the first serial port device.
+///
+pub const COM1: spin::Mutex<SerialPort> = unsafe { spin::Mutex::new(SerialPort::new(0x3f8)) };
+
+/// COM2 is the second serial port device.
+///
+pub const COM2: spin::Mutex<SerialPort> = unsafe { spin::Mutex::new(SerialPort::new(0x2f8)) };
+
+/// COM3 is the third serial port device.
+///
+pub const COM3: spin::Mutex<SerialPort> = unsafe { spin::Mutex::new(SerialPort::new(0x3e8)) };
+
+/// COM4 is the fourth serial port device.
+///
+pub const COM4: spin::Mutex<SerialPort> = unsafe { spin::Mutex::new(SerialPort::new(0x2e8)) };
 
 /// _print writes text to the serial port by
-/// acquiring SERIAL1 using a spin lock.
+/// acquiring COM1 using a spin lock.
 ///
 #[doc(hidden)]
 pub fn _print(args: ::core::fmt::Arguments) {
     interrupts::without_interrupts(|| {
-        SERIAL1
-            .lock()
+        COM1.lock()
             .write_fmt(args)
-            .expect("Printing to serial failed");
+            .expect("Printing to COM1 failed");
     });
 }
 
-/// print! is the standard printing macro, implemented
-/// using the _print function, which acquires SERIAL1
-/// using a spin lock and writes the message to the
-/// serial port.
+/// print! is the standard printing macro, which writes
+/// its output to COM1.
 ///
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ($crate::drivers::serial::_print(format_args!($($arg)*)));
 }
 
-/// println! is the standard printing macro, implemented
-/// using the _print function, which acquires WRITER
-/// using a spin lock and writes the message to the
-/// serial port.
+/// println! is the standard printing macro, which writes
+/// its output to COM1.
 ///
 #[macro_export]
 macro_rules! println {
