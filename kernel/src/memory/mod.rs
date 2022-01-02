@@ -151,7 +151,7 @@ pub fn virt_to_phys_addrs<T: Translate>(
         }
     }
 
-    // TODO: merge contiguous regions to reduce the number of buffers we return.
+    // TODO(#10): Merge contiguous regions to reduce the number of buffers we return.
 
     Some(bufs)
 }
