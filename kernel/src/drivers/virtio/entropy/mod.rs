@@ -27,6 +27,13 @@ pub struct Driver {
 }
 
 impl Driver {
+    /// new returns an entropy source built using
+    /// the given Virtio driver.
+    ///
+    pub fn new(driver: virtio::Driver) -> Self {
+        Driver { driver }
+    }
+
     /// read can be used to populate a byte slice
     /// with entropy. read returns the number of
     /// bytes written.
@@ -127,7 +134,7 @@ pub fn install_pci_device(device: pci::Device) {
     driver.disable_notifications(REQUEST_VIRTQUEUE);
 
     // Prepare the entropy driver.
-    let driver = Driver { driver };
+    let driver = Driver::new(driver);
 
     // Show that it works.
     random::register_entropy_source(Box::new(driver));
