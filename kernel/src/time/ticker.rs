@@ -65,7 +65,7 @@ fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
 
     let thread_id = current_thread.thread_id();
     if thread_id != thread::ThreadId::IDLE {
-        current_thread.add_time(thread::DEFAULT_TIME_SLICE);
+        current_thread.reset_time_slice();
     }
 
     // Drop our reference to the current thread,

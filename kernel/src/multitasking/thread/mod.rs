@@ -52,7 +52,7 @@ mod switch;
 
 /// The amount of CPU time given to threads when they are scheduled.
 ///
-pub const DEFAULT_TIME_SLICE: TimeSlice = TimeSlice::from_duration(&Duration::from_millis(100));
+const DEFAULT_TIME_SLICE: TimeSlice = TimeSlice::from_duration(&Duration::from_millis(100));
 
 type ThreadTable = BTreeMap<ThreadId, Arc<Thread>>;
 
@@ -393,6 +393,14 @@ impl Thread {
     pub fn add_time(&self, extra: TimeSlice) {
         let time_slice = unsafe { &mut *self.time_slice.get() };
         *time_slice += extra;
+    }
+
+    /// Resets the thread's time slice to its initial
+    /// value.
+    ///
+    pub fn reset_time_slice(&self) {
+        let time_slice = unsafe { &mut *self.time_slice.get() };
+        *time_slice = DEFAULT_TIME_SLICE;
     }
 
     /// Prints debug information about the thread.
