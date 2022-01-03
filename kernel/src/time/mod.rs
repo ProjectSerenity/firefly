@@ -22,15 +22,15 @@ use crate::multitasking::cpu_local;
 use crate::multitasking::thread::{scheduler, ThreadState};
 use core::mem;
 
-mod cmos;
+mod rtc;
 mod slice;
 mod ticker;
 pub mod timers;
 
-pub use crate::time::cmos::boot_time;
-pub use crate::time::slice::TimeSlice;
-pub use crate::time::ticker::{ticks, NANOSECONDS_PER_TICK, TICKS_PER_SECOND};
 pub use core::time::Duration;
+pub use rtc::boot_time;
+pub use slice::TimeSlice;
+pub use ticker::{ticks, NANOSECONDS_PER_TICK, TICKS_PER_SECOND};
 
 /// Initialise the time functionality.
 ///
@@ -41,7 +41,7 @@ pub use core::time::Duration;
 pub fn init() {
     ticker::init();
     timers::init();
-    cmos::init();
+    rtc::init();
 }
 
 /// Returns an Instant representing the current time.
