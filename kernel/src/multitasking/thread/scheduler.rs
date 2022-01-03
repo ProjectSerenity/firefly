@@ -1,4 +1,15 @@
-//! scheduler is a simple round robin scheduler for threads.
+//! Implements a simple round robin scheduler for threads.
+//!
+//! ## Initialisation
+//!
+//! The scheduler will not activate and start preempting the running thread
+//! until the kernel's initial thread calls [`start`], at which point the
+//! scheduler takes ownership of the flow of execution.
+//!
+//! ## Thread switching
+//!
+//! [`switch`] can be called to proactively switch to the next available
+//! thread in the scheduler.
 
 use crate::multitasking::thread::{ThreadId, ThreadState, SCHEDULER, THREADS};
 use crate::multitasking::{cpu_local, thread};
@@ -46,14 +57,15 @@ impl Scheduler {
     }
 }
 
-/// INITIALSED tracks whether the scheduler
-/// has been set up. It is set in start()
-/// and can be checked by calling ready().
+/// Tracks whether the scheduler has been activated.
+/// It is set in [`start`] and can be checked with
+/// [`ready`].
 ///
 static INITIALISED: AtomicBool = AtomicBool::new(false);
 
-/// idle_loop implements the idle thread. We
-/// fall back to this if the kernel has no other
+/// Implements the idle thread.
+///
+/// We fall back to this if the kernel has no other
 /// work left to do.
 ///
 fn idle_loop() -> ! {
@@ -62,9 +74,15 @@ fn idle_loop() -> ! {
     }
 }
 
-/// start hands control over to the scheduler, by
-/// letting the idle thread take control of the
-/// kernel's initial state.
+/// Hands control over to the scheduler.
+///
+/// This lets the idle thread take control of the kernel's
+/// initial state and lets the scheduler take ownership of
+/// the flow of execution.
+///
+/// Note that newly created threads will not be started and
+/// the kernel's initial thread will not be preempted until
+/// `start` is called.
 ///
 pub fn start() -> ! {
     // Mark the scheduler as in control.
@@ -77,16 +95,19 @@ pub fn start() -> ! {
     idle_loop();
 }
 
-/// ready returns whether the scheduler has been
-/// initialised.
+/// Returns whether the scheduler has been activated and owns
+/// the flow of execution.
 ///
 pub fn ready() -> bool {
     INITIALISED.load(Ordering::Relaxed)
 }
 
-/// switch schedules out the current thread and switches to
-/// the next runnable thread, which may be the current thread
-/// again.
+/// Schedules out the current thread and switches to the next
+/// runnable thread.
+///
+/// If no other threads are ready to run, `switch` may return
+/// immediately. Calling `switch` does not modify the current
+/// thread's time slice.
 ///
 pub fn switch() {
     let restart_interrupts = interrupts::are_enabled();
@@ -175,12 +196,11 @@ pub fn switch() {
     }
 }
 
-/// resume marks the given thread as runnable,
-/// adds it to the scheduler, and returns true if
-/// it still exists.
+/// Marks the given thread as runnable, allowing it to
+/// run.
 ///
-/// If the given thread has already exited, resume
-/// returns false.
+/// `resume` returns whether the thread still exists and
+/// is now runnable.
 ///
 pub fn resume(thread_id: ThreadId) -> bool {
     match THREADS.lock().get(&thread_id) {

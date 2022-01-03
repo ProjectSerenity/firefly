@@ -1,4 +1,50 @@
-//! network implements virtio network cards.
+//! Implements Virtio [network cards](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-1940001).
+//!
+//! A network card can be used to send and receive Ethernet frames.
+//! This works using a pair of virtqueues; one for receiving frames
+//! from the network and a second for sending them. Frames are
+//! prepended with a header structure, used to inform the network
+//! card of any advanced features being used. The header has the
+//! following structure in C syntax:
+//!
+//! ```
+//! struct virtio_net_hdr {
+//! #define VIRTIO_NET_HDR_F_NEEDS_CSUM    1
+//! #define VIRTIO_NET_HDR_F_DATA_VALID    2
+//! #define VIRTIO_NET_HDR_F_RSC_INFO      4
+//!         u8 flags;
+//! #define VIRTIO_NET_HDR_GSO_NONE        0
+//! #define VIRTIO_NET_HDR_GSO_TCPV4       1
+//! #define VIRTIO_NET_HDR_GSO_UDP         3
+//! #define VIRTIO_NET_HDR_GSO_TCPV6       4
+//! #define VIRTIO_NET_HDR_GSO_ECN      0x80
+//!         u8 gso_type;
+//!         le16 hdr_len;
+//!         le16 gso_size;
+//!         le16 csum_start;
+//!         le16 csum_offset;
+//!         le16 num_buffers;
+//! };
+//! ```
+//!
+//! This implementation does not currently use any of the advanced
+//! network card features, such as checksum offloading. The [`Driver`]
+//! struct takes ownership of the underlying Virtio driver and the
+//! buffers we exchange with the network card.
+//!
+//! ## Integration with smoltcp
+//!
+//! We use [smoltcp](https://docs.rs/crate/smoltcp) as the foundation
+//! for our network stack. As a result, [`Driver`] is wrapped by
+//! [`Device`] and its companion types to implement the [`smoltcp::phy::Device`]
+//! trait. We then use this to create a [`smoltcp::iface::Interface`],
+//! which we register with the network stack.
+//!
+//! When not being used directly by a separate socket, there are two
+//! ways in which an interface built on a Virtio network card is driven.
+//!
+//! 1. Interrupts from the device advance the network stack, processing any received packets.
+//! 2. A companion kernel thread advances the network stack periodically, following the interface's interval recommendations.
 
 use crate::drivers::virtio::features::{Network, Reserved};
 use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
@@ -118,7 +164,7 @@ fn network_entry_point() -> ! {
     }
 }
 
-/// Driver represents a virtio network card, which can
+/// A `Driver` represents a virtio network card, which can
 /// be used to send and receive packets.
 ///
 pub struct Driver {
@@ -214,12 +260,19 @@ impl Drop for Driver {
     }
 }
 
-/// RecvBuffer is returned to the interface by our
+/// A `RecvBuffer` contains a buffer to which a
+/// packet has been written.
+///
+/// `RecvBuffer` is returned to the interface by our
 /// driver when we receive a packet for it to
 /// process. The buffer is a recv buffer we just
 /// received from the device. The buffer can only
 /// be used once (enforced by the fact it's a method
-/// on self, not &self).
+/// on `self`, not `&self`).
+///
+/// Once the buffer has been consumed, it is sent
+/// back to the device so it can receive a subsequent
+/// packet.
 ///
 pub struct RecvBuffer {
     addr: PhysAddr,
@@ -262,12 +315,19 @@ impl<'a> RxToken for RecvBuffer {
     }
 }
 
-/// SendBuffer is returned to the interface by our
+/// A `SendBuffer` contains a reference to a
+/// [`Driver`], which can be used to send a packet.
+///
+/// `SendBuffer` is returned to the interface by our
 /// driver when the interface wants to send a
-/// packet. The buffer is a send buffer we've made
-/// available and won't be used elsewhere. The
-/// buffer can only be used once (enforced by the
-/// fact it's a method on self, not &self).
+/// packet. The buffer can only be used once
+/// (enforced by the fact it's a method on `self`,
+/// not `&self`).
+///
+/// When the buffer is consumed, a send buffer is
+/// retrieved from the driver and passed to the
+/// callback. If the callback returns a non-error
+/// result, we use the driver to send the packet.
 ///
 pub struct SendBuffer {
     driver: Arc<spin::Mutex<Driver>>,
@@ -329,9 +389,12 @@ impl<'a> TxToken for SendBuffer {
     }
 }
 
-/// Device wraps a driver so we can manage access to
+/// A `Device` contains a reference to a
+/// [`Driver`], which can send/receive packets.
+///
+/// `Device` wraps a driver so we can manage access to
 /// the driver, creating additional references for
-/// use by RecvBuffer and SendBuffer.
+/// use by `RecvBuffer` and `SendBuffer`.
 ///
 pub struct Device {
     driver: Arc<spin::Mutex<Driver>>,
@@ -471,9 +534,8 @@ struct Config {
     mtu: u16,
 }
 
-/// install_device can be used to take ownership of the
-/// given PCI device that represents a virtio network
-/// card.
+/// Takes ownership of the given PCI device to reset and configure
+/// a virtio network card.
 ///
 pub fn install_pci_device(device: pci::Device) {
     let transport = match transports::pci::Transport::new(device) {

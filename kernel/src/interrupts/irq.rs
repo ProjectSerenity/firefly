@@ -1,4 +1,15 @@
-//! irq contains code for handling interrupts via the programmable interrupt controller (PIC).
+//! Handles interrupts via the [Programmable Interrupt Controller](https://en.wikipedia.org/wiki/Programmable_interrupt_controller) (PIC).
+//!
+//! The functionality for the PIC is quite different from the functionality
+//! for CPU exceptions. Exceptions are handled directly through the IDT.
+//! The PIC's IRQs are instead registered using the [`register_irq`] function,
+//! making it easier to handle IRQs, without needing to know the details of
+//! the PIC.
+//!
+//! The other big difference with the IRQ handling is that IRQ handlers don't
+//! need to acknowledge the PIC, and are passed the IRQ number. This is made
+//! easier by the [`Irq`] type and its [`acknowledge`](Irq::acknowledge)
+//! method.
 
 use crate::interrupts::{PICS, PIC_1_OFFSET};
 use x86_64::instructions::interrupts;
@@ -13,7 +24,7 @@ use x86_64::structures::idt::{HandlerFunc, InterruptStackFrame};
 pub struct Irq(u8);
 
 impl Irq {
-    /// new returns an IRQ if within the range [0, 15], or None otherwise.
+    /// Returns an IRQ if within the range [0, 15], or None otherwise.
     ///
     pub const fn new(irq: u8) -> Option<Irq> {
         if irq <= 15 {
@@ -23,8 +34,7 @@ impl Irq {
         }
     }
 
-    /// new_unsafe returns an IRQ if within the range [0, 15], or panics
-    /// otherwise.
+    /// Returns an IRQ if within the range [0, 15], or panics otherwise.
     ///
     pub const fn new_unsafe(irq: u8) -> Irq {
         if irq > 15 {
@@ -34,27 +44,26 @@ impl Irq {
         Irq(irq)
     }
 
-    /// as_u8 returns the IRQ in the range [0, 15].
+    /// Returns the IRQ in the range [0, 15].
     ///
     pub fn as_u8(&self) -> u8 {
         self.0
     }
 
-    /// as_usize returns the IRQ in the range [0, 15].
+    /// Returns the IRQ in the range [0, 15].
     ///
     pub fn as_usize(&self) -> usize {
         self.0 as usize
     }
 
-    /// interrupt_id returns the IRQ as its offset in the interrupt table,
-    /// which will be offset from 0.
+    /// Returns the IRQ as its offset in the [Interrupt Descriptor Table](https://en.wikipedia.org/wiki/Interrupt_descriptor_table) (IDT).
     ///
     pub fn interrupt_id(&self) -> u8 {
         self.0 + PIC_1_OFFSET as u8
     }
 
-    /// acknowledge informs the programmable interrupt controller that
-    /// this IRQ has been handled. Do not call acknowledge more than
+    /// Informs the programmable interrupt controller that the
+    /// IRQ has been handled. Do not call `acknowledge` more than
     /// once.
     ///
     pub fn acknowledge(&self) {
@@ -64,9 +73,7 @@ impl Irq {
     }
 }
 
-/// IrqHandler represents an IRQ handler function.
-///
-/// The irq argument is an integer between 0 and 15.
+/// Represents an IRQ handler function.
 ///
 pub type IrqHandler = fn(frame: InterruptStackFrame, irq: Irq);
 
@@ -74,16 +81,14 @@ pub type IrqHandler = fn(frame: InterruptStackFrame, irq: Irq);
 ///
 static IRQS: spin::Mutex<[IrqHandler; 16]> = spin::Mutex::new([irq_handler_none; 16]);
 
-/// register_irq sets the handler for the given IRQ.
+/// Sets the handler for the given IRQ.
 ///
 /// The handler will almost certainly want to acknowledge
-/// the interrupt using irq.acknowledge(), so that future
+/// the interrupt using `irq.acknowledge()`, so that future
 /// interrupts will follow.
 ///
-/// The irq parameter must be an integer between 0 and 15.
-///
-/// If the given IRQ has already been assigned, register_irq
-/// panics.
+/// If the given IRQ has already been assigned, `register_irq`
+/// will panic.
 ///
 pub fn register_irq(irq: Irq, handler: IrqHandler) {
     interrupts::without_interrupts(|| {

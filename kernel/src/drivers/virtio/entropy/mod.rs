@@ -1,6 +1,24 @@
-//! entropy implements virtio entropy devices.
-
-// See section 5.4.
+//! Implements Virtio [entropy source devices](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-2700004).
+//!
+//! An entropy source can be used to receive cryptographically secure pseudo-random
+//! data from the host. This functions using a single virtqueue, which is used to
+//! make device-writable buffers available. These buffers are then filled with
+//! entropy and returned to the driver.
+//!
+//! While Virtio devices normally use notifications, we only use entropy sources
+//! infrequently to seed our [CSPRNG](crate::random). This means there should be
+//! no need for concurrent requests for entropy. Taking a sequential approach
+//! allows us to retrieving entropy allows us to provide a synchronous API, which
+//! is easier to use.
+//!
+//! # Examples
+//!
+//! ```
+//! let driver = Driver::new(virtio_driver);
+//! let mut buf = [0u8; 16];
+//! let written = driver.read(&mut buf[..]);
+//! let _random_data = buf[..written];
+//! ```
 
 use crate::drivers::virtio::features::Reserved;
 use crate::drivers::virtio::{transports, Buffer};
@@ -18,8 +36,8 @@ use x86_64::{PhysAddr, VirtAddr};
 ///
 const REQUEST_VIRTQUEUE: u16 = 0;
 
-/// Driver represents a virtio entropy device,
-/// which can be used to receive random data.
+/// Represents a virtio entropy device, which can be
+/// used to receive random data.
 ///
 pub struct Driver {
     // driver is the underlying virtio generic driver.
@@ -27,16 +45,19 @@ pub struct Driver {
 }
 
 impl Driver {
-    /// new returns an entropy source built using
-    /// the given Virtio driver.
+    /// Returns an entropy source built using the given
+    /// Virtio driver.
     ///
     pub fn new(driver: virtio::Driver) -> Self {
         Driver { driver }
     }
 
-    /// read can be used to populate a byte slice
-    /// with entropy. read returns the number of
-    /// bytes written.
+    /// Populates a byte slice with entropy from the device.
+    /// `read` returns the number of bytes written to the slice.
+    ///
+    /// Note that `read` may return a number of written bytes
+    /// smaller than `buf`'s length. That is, `buf` may not be
+    /// completely filled with entropy.
     ///
     pub fn read(&mut self, buf: &mut [u8]) -> usize {
         let virt_addr = unsafe { VirtAddr::new_unsafe(buf.as_ptr() as u64) };
@@ -96,6 +117,12 @@ impl Driver {
 }
 
 impl random::EntropySource for Driver {
+    /// Fills the buffer with entropy from the device.
+    ///
+    /// Note that unlike [`read`](Driver::read),
+    /// `get_entropy` will loop until it has filled the
+    /// entire buffer.
+    ///
     fn get_entropy(&mut self, buf: &mut [u8; 32]) {
         let mut len = buf.len();
         let mut done = 0;
@@ -107,9 +134,8 @@ impl random::EntropySource for Driver {
     }
 }
 
-/// install_device can be used to take ownership of the
-/// given PCI device that represents a virtio entropy
-/// device.
+/// Takes ownership of the given PCI device to reset and configure
+/// a virtio entropy device.
 ///
 pub fn install_pci_device(device: pci::Device) {
     let transport = match transports::pci::Transport::new(device) {

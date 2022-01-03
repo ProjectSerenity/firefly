@@ -1,11 +1,10 @@
-//! cmos includes the functionality to read the CMOS/RTC, returning a
-//! low-precision wall clock time.
-
-// The cloc functionality is captured in the Time type,
-// which can be produced by reading the current time from
-// the CMOS/RTC. A static BOOT_TIME instance is initialsed
-// with the time when ::init is called, which we treat as
-// the time when the kernel booted.
+//! Implements the functionality to read the [Real-time clock](https://en.wikipedia.org/wiki/Real-time_clock) (RTC).
+//!
+//! The clock functionality is captured in the Time type,
+//! which can be produced by reading the current time from
+//! the CMOS/RTC. A static BOOT_TIME instance is initialsed
+//! with the time when ::init is called, which we treat as
+//! the time when the kernel booted.
 
 use core::fmt;
 use spin::Mutex;
@@ -16,17 +15,15 @@ use x86_64::instructions::port::Port;
 //
 static BOOT_TIME: Mutex<Time> = Mutex::new(Time::new());
 
-/// boot_time returns the clock time when the
-/// kernel booted.
+/// Returns the clock time when the kernel booted.
 ///
 pub fn boot_time() -> Time {
     *BOOT_TIME.lock()
 }
 
-/// init sets the boot time by reading the
-/// CMOS/RTC.
+/// Sets the boot time by reading the RTC.
 ///
-pub fn init() {
+pub(super) fn init() {
     let time = read_cmos();
     let mut boot = BOOT_TIME.lock();
     boot.year = time.year;
@@ -37,8 +34,7 @@ pub fn init() {
     boot.second = time.second;
 }
 
-/// Time stores a low-precision wall clock
-/// time.
+/// Stores a low-precision wall clock time.
 ///
 #[derive(Clone, Copy)]
 pub struct Time {
@@ -51,7 +47,7 @@ pub struct Time {
 }
 
 impl Time {
-    /// new creates the zero time.
+    /// Creates a time representing the zero time.
     ///
     pub const fn new() -> Self {
         Time {
@@ -87,10 +83,9 @@ const CMOS_MONTH: usize = 8; // Range: 1-12.
 const CMOS_YEAR: usize = 9; // Range: 0-99.
 const CMOS_REGISTER_B: usize = 0xb;
 
-// cmos_updating returns whether the CMOS is
-// currently updating and therefore should be
-// left alone.
-//
+/// Returns whether the CMOS is currently updating
+/// and therefore should be left alone.
+///
 fn cmos_updating() -> bool {
     unsafe {
         Port::new(CMOS_ADDRESS).write(0x0a as u8);
@@ -98,9 +93,9 @@ fn cmos_updating() -> bool {
     }
 }
 
-// read_cmos_values populates values with the
-// CMOS's current register values.
-//
+/// Populates values with the RTC's current register
+/// values.
+///
 fn read_cmos_values(values: &mut [u8; CMOS_REGISTERS]) {
     for i in 0..CMOS_REGISTERS {
         unsafe {
@@ -110,17 +105,16 @@ fn read_cmos_values(values: &mut [u8; CMOS_REGISTERS]) {
     }
 }
 
-// from_bcd translates val from the semi-textual
-// BCD format into binary values, as described in
-// https://wiki.osdev.org/CMOS#Format_of_Bytes.
-//
+/// Translates val from the semi-textual BCD format
+/// into binary values, as described in [here](https://wiki.osdev.org/CMOS#Format_of_Bytes).
+///
 #[inline]
 fn from_bcd(val: u8) -> u8 {
     ((val & 0xf0) >> 1) + ((val & 0xF0) >> 3) + (val & 0xf)
 }
 
-// read_cmos returns the current time.
-//
+/// Returns the current time.
+///
 fn read_cmos() -> Time {
     let mut values = [0u8; CMOS_REGISTERS];
     let mut prev_values: [u8; CMOS_REGISTERS];

@@ -1,8 +1,42 @@
-//! virtio contains drivers for Virtio v1.1, as described in
-//! <https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html>.
-
-// Note, all references to 'sections' are relative to the
-// Virtio 1.1 specification linked above.
+//! Partially implements [Virtio v1.1](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html)
+//! for virtual device drivers, plus drivers for network devices and entropy sources.
+//!
+//! Virtual I/O (Virtio) devices provide a generic abstraction for device drivers.
+//! Virtio is used by hypervisors to provide guest virtual machines with efficient
+//! access to physical devices. This avoids the security risks of giving guests
+//! direct access to physical devices and the engineering and performance overhead
+//! of reimplementing device behaviours in software.
+//!
+//! A Virtio [`Driver`] consists of a [`Transport`] and at least one [`Virtqueue`].
+//! A device driver uses a [`Driver`] to exchange memory buffers and notifications
+//! with the device. The [`Transport`] is used to discover and configure the device.
+//! [`Virtqueue`]s provide a way to exchange memory buffers with the device, both
+//! to send data to the device and receive data from it.
+//!
+//! This module currently supports the [PCI transport](transports::pci::Transport)
+//! and the [split virtqueue](virtqueues::split::Virtqueue). There is currently no
+//! support for the [MMIO transport](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-1440002)
+//! or the [packed virtqueue](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-610007).
+//!
+//! We currently have Virtio device drivers for the following device types:
+//!
+//! - [Entropy source](entropy)
+//! - [Network card](network)
+//!
+//! # Examples
+//!
+//! A [`Transport`] will be obtained using a transport-specific mechanism. For
+//! example, a PCI transport is produced from a [`PCI Device`](crate::drivers::pci::Device)
+//! using [`transports::pci::Transport::new`]:
+//!
+//! ```
+//! fn install_pci_device(device: pci::Device) {
+//!     let _driver = Transport::new(device).unwrap();
+//! }
+//! ```
+//!
+//! The transport can then be used to reset and initialise the device, negotiating
+//! features and preparing virtqueues.
 
 pub mod entropy;
 pub mod features;
@@ -38,7 +72,7 @@ const MIN_DEVICE_ID: u16 = 0x1000;
 ///
 const MAX_DEVICE_ID: u16 = 0x107f;
 
-/// pci_device_supported returns a PciDeviceDriver if the
+/// pci_device_supported returns a PCI DeviceDriver if the
 /// given device is a supported virtio device.
 ///
 pub fn pci_device_supported(device: &pci::Device) -> Option<pci::DeviceDriver> {
@@ -51,8 +85,8 @@ pub fn pci_device_supported(device: &pci::Device) -> Option<pci::DeviceDriver> {
     }
 
     match DeviceId::from_pci_device_id(device.device) {
-        Some(DeviceId::NetworkCard) => Some(network::install_pci_device),
         Some(DeviceId::EntropySource) => Some(entropy::install_pci_device),
+        Some(DeviceId::NetworkCard) => Some(network::install_pci_device),
         _ => None,
     }
 }
@@ -370,9 +404,9 @@ pub struct Driver {
 }
 
 impl Driver {
-    /// new initialises the device, negotiating
-    /// the given required and optional features
-    /// and number of virtqueues.
+    /// Initialise the device, negotiating the
+    /// given required and optional features and
+    /// number of virtqueues.
     ///
     pub fn new(
         transport: Arc<dyn Transport>,
@@ -435,84 +469,85 @@ impl Driver {
         })
     }
 
-    /// reset permanently resets the device.
+    /// Permanently reset the device.
     ///
     pub fn reset(&mut self) {
         self.transport.write_status(DeviceStatus::RESET);
     }
 
-    /// features returns the features that were negotiated
-    /// with the device.
+    /// Returns the features that were negotiated with
+    /// the device.
     ///
     pub fn features(&self) -> u64 {
         self.features
     }
 
-    /// irq returns this driver's IRQ number.
+    /// Returns this driver's IRQ number.
     ///
     pub fn irq(&self) -> Irq {
         self.transport.read_irq()
     }
 
-    /// interrupt_status returns this driver's interrupt
-    /// status.
+    /// Returns this driver's interrupt status.
+    ///
+    /// Note that `interrupt_status` must be called in
+    /// response to each interrupt so that the nature of
+    /// the interrupt can be determined and so that the
+    /// device will de-assert the interrupt. Failing to
+    /// call `interrupt_status` will lead to the interrupt
+    /// handler being called in an infinite loop.
     ///
     pub fn interrupt_status(&self) -> InterruptStatus {
         self.transport.read_interrupt_status()
     }
 
-    /// read_device_config_u8 returns the device-specific
-    /// configuration byte at the given offset.
+    /// Returns one byte of the device-specific configuration
+    /// at the given offset.
     ///
     fn read_device_config_u8(&self, offset: u16) -> u8 {
         self.transport.read_device_config_u8(offset)
     }
 
-    /// send enqueues a request to the given virtqueue. A request
-    /// consists of a sequence of buffers. The sequence of buffers
-    /// should place device-writable buffers after all
-    /// device-readable buffers.
+    /// Enqueues a request to the given virtqueue.
     ///
-    /// send returns the descriptor index for the head of the chain.
-    /// This can be used to identify when the device returns the
-    /// buffer chain. If there are not enough descriptors to send
-    /// the chain, send returns None.
+    /// A request consists of a sequence of buffers. The sequence
+    /// of buffers should place device-writable buffers after all
+    /// device-readable buffers.
     ///
     pub fn send(&mut self, queue_index: u16, buffers: &[Buffer]) -> Result<(), VirtqueueError> {
         self.virtqueues[queue_index as usize].send(buffers)
     }
 
-    /// notify informs the device that descriptors are ready
-    /// to use in the given virtqueue.
+    /// Notifies the device that descriptors are ready to use
+    /// in the given virtqueue.
     ///
     pub fn notify(&self, queue_index: u16) {
         self.virtqueues[queue_index as usize].notify();
     }
 
-    /// num_descriptors returns the number of descriptors in the
-    /// given virtqueue.
+    /// Returns the number of descriptors in the given
+    /// virtqueue.
     ///
     pub fn num_descriptors(&self, queue_index: u16) -> usize {
         self.virtqueues[queue_index as usize].num_descriptors()
     }
 
-    /// recv returns the next set of buffers
-    /// returned by the device to the given
-    /// queue, or None.
+    /// Returns the next set of buffers returned by the device
+    /// to the given virtqueue, or None.
     ///
     pub fn recv(&mut self, queue_index: u16) -> Option<UsedBuffers> {
         self.virtqueues[queue_index as usize].recv()
     }
 
-    /// disable_notifications requests the device not to send
-    /// notifications to the given queue.
+    /// Requests the device not to send notifications to the
+    /// given queue.
     ///
     pub fn disable_notifications(&mut self, queue_index: u16) {
         self.virtqueues[queue_index as usize].disable_notifications();
     }
 
-    /// enable_notifications requests the device to send
-    /// notifications to the given queue.
+    /// Requests the device to send notifications to the given
+    /// queue.
     ///
     pub fn enable_notifications(&mut self, queue_index: u16) {
         self.virtqueues[queue_index as usize].enable_notifications();

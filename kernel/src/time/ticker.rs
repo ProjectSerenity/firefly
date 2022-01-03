@@ -1,8 +1,8 @@
-//! ticker handles the kernel's internal monotonic ticker.
-
-// The ticker functionality is captured in the Ticker type,
-// with a static TICKER instance used with interrupts to
-// track the passage of time.
+//! Handles the kernel's internal monotonic ticker.
+//!
+//! The ticker functionality is captured in the static [`TICKER`],
+//! which is accessed using [`tick`] and [`ticks`] to track the
+//! passage of time.
 
 use crate::interrupts::{register_irq, Irq};
 use crate::multitasking::thread::scheduler;
@@ -13,32 +13,33 @@ use core::sync::atomic::{AtomicU64, Ordering};
 use x86_64::instructions::port::Port;
 use x86_64::structures::idt::InterruptStackFrame;
 
-// Lazily initialise TICKER as a Ticker, protected
-// by a spin lock.
+// The system ticker, which is a monotonic counter.
 //
 static TICKER: AtomicU64 = AtomicU64::new(0);
 
-/// tick increments the internal chronometer.
+/// Increments the system ticker.
 ///
 fn tick() {
     TICKER.fetch_add(1, Ordering::Relaxed);
 }
 
-/// ticks returns the number of ticks of the
-/// internal chronometer.
+/// Returns the number of times the system ticker
+/// has been incremented.
 ///
 pub fn ticks() -> u64 {
     TICKER.load(Ordering::Relaxed)
 }
 
-/// init starts the programmable interval timer,
-/// setting its frequency to TICKS_PER_SECOND Hz.
+/// Starts the [Programmable Interval Timer](https://en.wikipedia.org/wiki/Programmable_interval_timer),
+/// setting its frequency to [`TICKS_PER_SECOND`] Hz.
 ///
-pub fn init() {
+pub(super) fn init() {
     set_ticker_frequency(TICKS_PER_SECOND);
     register_irq(Irq::new(0).expect("invalid IRQ"), timer_interrupt_handler);
 }
 
+/// The PIT's interrupt handler.
+///
 fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
     tick();
 
@@ -70,15 +71,25 @@ fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
     scheduler::switch();
 }
 
+/// The number of times the system ticker will be
+/// incremented per second.
+///
 pub const TICKS_PER_SECOND: u64 = 1000;
+
+/// The number of nanoseconds in one second.
+///
 const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
+
+/// The number of nanoseconds that will pass between
+/// each increment to the system ticker.
+///
 pub const NANOSECONDS_PER_TICK: u64 = NANOSECONDS_PER_SECOND / TICKS_PER_SECOND;
 
 const MIN_FREQUENCY: u64 = 18; // See https://wiki.osdev.org/Programmable_Interval_Timer
 const MAX_FREQUENCY: u64 = 1193181;
 
-/// set_ticker_frequency initialises the hardware
-/// timer, setting its frequency to `freq` Hz.
+/// Initialise the hardware timer, settings its
+/// frequency to `freq` Hz.
 ///
 fn set_ticker_frequency(mut freq: u64) {
     if freq < MIN_FREQUENCY {

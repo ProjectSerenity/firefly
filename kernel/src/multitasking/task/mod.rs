@@ -1,10 +1,8 @@
-//! task implements cooperative multi-tasking for kernel tasks,
-//! using Rust's async/await functionality. This allows the kernel
-//! to perform background processing, separate from userland
-//! processes.
-
-// This module implements kernel tasks for asynchronous background
-// processing.
+//! Implements cooperative multitasking for kernel tasks, using Rust's
+//! `async`/`await` functionality.
+//!
+//! This module allows the kernel to perform background processing,
+//! separate from userland processes.
 
 use alloc::boxed::Box;
 use core::future::Future;
@@ -14,7 +12,7 @@ use core::task::{Context, Poll};
 
 pub mod executor;
 
-/// Task contains a Rust Future, which is used to track background
+/// Wraps a Rust `Future`, which is used to track background
 /// processing.
 ///
 pub struct Task {

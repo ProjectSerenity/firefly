@@ -1,4 +1,13 @@
-//! network includes the kernel's networking functionality.
+//! Implements the kernel's networking functionality.
+//!
+//! This module manages the set of network interfaces that have been
+//! discovered and installed. Interfaces can be used to send and
+//! receive network packets.
+//!
+//! The network stack also controls the initial workloads, which are
+//! started once a network interface receives a DHCP configuration.
+//! This allows us to ensure that the network will be available when
+//! the initial workload starts.
 
 // TODO: Make the smoltcp Interface generic over devices, rather than specialising to drivers::virtio::network::Device.
 
@@ -23,10 +32,10 @@ use x86_64::instructions::interrupts;
 ///
 static INITIAL_WORKLOADS: spin::Mutex<Vec<ThreadId>> = spin::Mutex::new(Vec::new());
 
-/// register_workload ensures that the given thread id
-/// will be resumed when a DHCP configuration is next
-/// negotiated. The thread id will be resumed at most
-/// once.
+/// Ensures that `thread_id` will be [resumed](crate::multitasking::thread::scheduler::resume)
+/// when a DHCP configuration is next negotiated.
+///
+/// `thread_id` will be resumed at most once.
 ///
 pub fn register_workload(thread_id: ThreadId) {
     interrupts::without_interrupts(|| {
@@ -39,8 +48,8 @@ pub fn register_workload(thread_id: ThreadId) {
 ///
 static INTERFACES: spin::Mutex<Vec<Interface>> = spin::Mutex::new(Vec::new());
 
-/// Interface describes a network interface, which can be
-/// used to send and receive packets.
+/// Represents a network interface, which can be used to
+/// send and receive packets.
 ///
 pub struct Interface {
     // iface is the underlying Smoltcp Interface.
@@ -63,11 +72,11 @@ impl Interface {
         }
     }
 
-    /// poll instructs the interface to process inbound
-    /// and outbound packets.
+    /// Instructs the interface to process inbound and outbound
+    /// packets.
     ///
-    /// poll returns the instant at which poll should
-    /// next be called.
+    /// `poll` returns the delay before `poll` should next be
+    /// called to balance performance and resource usage.
     ///
     pub fn poll(&mut self) -> time::Duration {
         let now = Instant::from_micros(time::now().system_micros() as i64);
@@ -170,21 +179,20 @@ impl Interface {
     }
 }
 
-/// InterfaceHandle uniquely identifies a network interface.
+/// Uniquely identifies a network interface.
 ///
 #[derive(Clone, Copy)]
 pub struct InterfaceHandle(usize);
 
 impl InterfaceHandle {
-    /// new returns a handle with the given
-    /// index into INTERFACES.
+    /// Returns a handle with the given index into INTERFACES.
     ///
     fn new(index: usize) -> Self {
         InterfaceHandle(index)
     }
 
-    /// dhcp_config returns the current DHCP configuration
-    /// if we have established one.
+    /// Returns the current DHCP configuration, if one has been
+    /// established.
     ///
     pub fn dhcp_config(&self) -> Option<Dhcpv4Config> {
         interrupts::without_interrupts(|| {
@@ -194,11 +202,11 @@ impl InterfaceHandle {
         })
     }
 
-    /// poll instructs the referenced interface to
-    /// process inbound and outbound packets.
+    /// Instructs the interface to process inbound and outbound
+    /// packets.
     ///
-    /// poll returns the instant at which poll should
-    /// next be called.
+    /// `poll` returns the delay before `poll` should next be
+    /// called to balance performance and resource usage.
     ///
     pub fn poll(&self) -> time::Duration {
         interrupts::without_interrupts(|| {
@@ -209,8 +217,8 @@ impl InterfaceHandle {
     }
 }
 
-/// register_interface registers a new network interface, returning
-/// a unique interface handle.
+/// Registers a new network interface, returning a unique
+/// interface handle.
 ///
 pub fn register_interface(
     mut iface: smoltcp::iface::Interface<'static, network::Device>,

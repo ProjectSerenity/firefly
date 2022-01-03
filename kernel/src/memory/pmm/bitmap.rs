@@ -1,5 +1,5 @@
-//! bitmap includes a bitmap frame allocator, which can be used
-//! to allocate and deallocate physical memory frames.
+//! Provides a bitmap frame allocator, which can be used to allocate
+//! and deallocate physical memory frames.
 
 use crate::memory::pmm::boot_info::BootInfoFrameAllocator;
 use crate::println;
@@ -17,8 +17,8 @@ use x86_64::PhysAddr;
 ///
 const FRAME_SIZE: usize = 4096;
 
-/// BitmapPool is a single contiguous chunk of physical
-/// memory, which is tracked using a bitmap.
+/// A single contiguous chunk of physical memory, which is
+/// tracked using a bitmap.
 ///
 struct BitmapPool {
     // start_address is the address of the first
@@ -193,9 +193,10 @@ impl BitmapPool {
     }
 }
 
-/// BitmapFrameAllocator is a more sophisticated allocator
-/// that takes over from the BootInfoFrameAllocator once
-/// the kernel's heap has been initialised.
+/// A more sophisticated physical memory allocator.
+///
+/// `BitmapFrameAllocator` takes over from the [`BootInfoFrameAllocator`](super::BootInfoFrameAllocator)
+/// once the kernel's heap has been initialised.
 ///
 pub struct BitmapFrameAllocator {
     // num_frames is the number of 4 kiB frames in
@@ -217,8 +218,7 @@ pub struct BitmapFrameAllocator {
 }
 
 impl BitmapFrameAllocator {
-    /// empty returns an empty allocator, which can allocate
-    /// no memory.
+    /// Returns an empty allocator, which can allocate no memory.
     ///
     pub fn empty() -> Self {
         BitmapFrameAllocator {
@@ -228,14 +228,13 @@ impl BitmapFrameAllocator {
         }
     }
 
-    /// new creates a FrameAllocator from the passed memory map.
+    /// Creates a BitmapFrameAllocator from the passed memory map.
     ///
     /// # Safety
     ///
-    /// This function is unsafe because the caller must guarantee
-    /// that the passed memory map is valid. The main requirement
-    /// is that all frames that are marked as USABLE in it are
-    /// really unused.
+    /// This function is unsafe because the caller must guarantee that the
+    /// memory map is valid and complete. All frames that are marked as `USABLE`
+    /// in the memory map must be unused.
     ///
     pub unsafe fn new(regions: Iter<MemoryRegion>) -> Self {
         // Start out by determining the set of
@@ -260,8 +259,11 @@ impl BitmapFrameAllocator {
         }
     }
 
-    /// allocate_n_frames returns n sequential free frames,
-    /// or None.
+    /// Returns `n` sequential free frames, or `None`.
+    ///
+    /// It's possible that `n` frames may be available, but `allocate_n_frames`
+    /// still return `None`. The bitmap allocator must be able to return `n`
+    /// frames in a single contiguous sequence for it to succeed.
     ///
     pub fn allocate_n_frames(&mut self, n: usize) -> Option<PhysFrameRange> {
         for pool in self.pools.iter_mut() {
@@ -274,8 +276,7 @@ impl BitmapFrameAllocator {
         None
     }
 
-    /// mark_frame_allocated marks the given frame as
-    /// already allocated.
+    /// Marks the given frame as already allocated.
     ///
     fn mark_frame_allocated(&mut self, frame: PhysFrame<Size4KiB>) {
         for pool in self.pools.iter_mut() {
@@ -290,17 +291,15 @@ impl BitmapFrameAllocator {
         panic!("cannot mark frame at {:p}: frame not tracked", start_addr);
     }
 
-    /// repossess takes ownership of the given boot info
-    /// allocator, along with any frames it has already
-    /// allocated, allowing them to be freed using
-    /// deallocate_frame.
+    /// Takes ownership of the given [`BootInfoFrameAllocator`](super::BootInfoFrameAllocator),
+    /// along with any frames it has already allocated, allowing them to be freed using
+    /// `deallocate_frame`.
     ///
     /// # Safety
     ///
-    /// This function is unsafe because the caller must guarantee
-    /// that the passed memory map is valid. The main requirement
-    /// is that all frames that are marked as USABLE in it are
-    /// really unused.
+    /// This function is unsafe because the caller must guarantee that the
+    /// memory map is valid and complete. All frames that are marked as `USABLE`
+    /// in the memory map must be unused.
     ///
     pub unsafe fn repossess(&mut self, alloc: BootInfoFrameAllocator) {
         for frame in alloc.used_frames() {
@@ -308,6 +307,8 @@ impl BitmapFrameAllocator {
         }
     }
 
+    /// Prints debug information about the allocator's state.
+    ///
     pub fn debug(&self) {
         println!(
             "Physical memory manager: {}/{} frames available.",
@@ -335,6 +336,8 @@ impl BitmapFrameAllocator {
 }
 
 unsafe impl FrameAllocator<Size4KiB> for BitmapFrameAllocator {
+    /// Returns the next available physical frame, or `None`.
+    ///
     fn allocate_frame(&mut self) -> Option<PhysFrame> {
         for pool in self.pools.iter_mut() {
             if let Some(frame) = pool.allocate_frame() {
@@ -348,6 +351,13 @@ unsafe impl FrameAllocator<Size4KiB> for BitmapFrameAllocator {
 }
 
 impl FrameDeallocator<Size4KiB> for BitmapFrameAllocator {
+    /// Marks the given physical memory frame as unused and returns it to the
+    /// list of free frames for later use.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `frame` is unused.
+    ///
     unsafe fn deallocate_frame(&mut self, frame: PhysFrame<Size4KiB>) {
         for pool in self.pools.iter_mut() {
             if pool.contains_frame(frame) {

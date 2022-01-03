@@ -1,22 +1,21 @@
 //! kernel implements the Firefly kernel.
-
-// This module covers the normal initialisation
-// that must always happen when the kernel starts.
-//
-// There is also various helper functionality, such
-// as the test runner and code to exit successfully
-// or with an error from QEMU to aid the testing
-// process.
-//
-// This also includes the Locked type, which wraps
-// a spin lock to allow us to define traits and
-// methods on locked types.
-//
-// ::init is called when the kernel starts, so it
-// should only perform actions that the kernel must
-// always take. In particular, it does not set up
-// the heap allocator, as there are situations (tests)
-// where we want to change that behaviour.
+//!
+//! This module covers the normal initialisation
+//! that must always happen when the kernel starts.
+//!
+//! There is also various helper functionality, such
+//! as the test runner and code to exit successfully
+//! or with an error from QEMU to aid the testing
+//! process.
+//!
+//! This also includes the [`Locked`] type, which wraps
+//! a spin lock to allow us to define traits and
+//! methods on locked types.
+//!
+//! [`init`] is called when the kernel starts, so it
+//! should only perform actions that the kernel must
+//! always take. In particular, it does not set up
+//! device drivers.
 
 #![no_std]
 #![cfg_attr(test, no_main)]
@@ -56,7 +55,17 @@ lazy_static! {
     pub static ref CPU_ID: CpuId = CpuId::new();
 }
 
-/// init sets up critical core functions of the kernel.
+/// Initialise the kernel and its core components.
+///
+/// `init` currently performs the following steps:
+///
+/// - Initialise the [Global Descriptor Table](gdt).
+/// - Initialise the [Programmable Interrupt Controller](interrupts).
+/// - Initialise the [Real-time clock and Programmable Interval Timer](time)
+/// - Enables system interrupts.
+/// - Initialise the [memory managers and kernel heap](memory).
+/// - Initialise the [CPU-local data](multitasking/cpu_local).
+/// - Initialise the [scheduler](multitasking/thread).
 ///
 pub fn init(boot_info: &'static BootInfo) {
     gdt::init();
@@ -75,8 +84,7 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     panic!("allocation error: {:?}", layout)
 }
 
-/// halt_loop halts the CPU using a loop of the hlt
-/// instruction.
+/// Halt the CPU using a loop of the `hlt` instruction.
 ///
 pub fn halt_loop() -> ! {
     loop {
@@ -86,10 +94,9 @@ pub fn halt_loop() -> ! {
 
 // Data structures.
 
-/// Locked is a wrapper around spin::Mutex so we can
+/// Wrap a type in a [`spin::Mutex`] so we can
 /// implement traits on a locked type.
 ///
-#[doc(hidden)]
 pub struct Locked<A> {
     inner: spin::Mutex<A>,
 }

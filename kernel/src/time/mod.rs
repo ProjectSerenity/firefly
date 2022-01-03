@@ -1,15 +1,17 @@
-//! time handles the hardware timer for regular ticks and
-//! the clock in the CMOS/RTC.
-
-// This module focuses on time-related functionality. In
-// particular, it currently implements getting the current
-// wall clock time from the CMOS/RTC, along with getting
-// ticks from the PIT.
-//
-// Currently, the ticker is used to print the uptime to
-// the serial port every second (once the kernel has
-// booted) and the clock is used to record and later print
-// the wall clock time when the kernel booted.
+//! Handles the hardware timer for regular ticks and the clock in the [Real-time clock](https://en.wikipedia.org/wiki/Real-time_clock) (RTC).
+//!
+//! This module focuses on time-related functionality. In particular, it
+//! currently implements getting the current wall clock time from the RTC,
+//! along with getting ticks from the PIT. It also interacts with the
+//! [scheduler](crate::multitasking::thread::scheduler) to perform thread
+//! preemption and provide timers to allow threads to sleep.
+//!
+//! The clock is used to [record](boot_time) the wall clock time when the kernel booted.
+//!
+//! The [`Duration`] and [`Instant`] types can be used to measure and compare
+//! points in time.
+//!
+//!
 
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::{scheduler, ThreadState};
@@ -25,10 +27,11 @@ pub use crate::time::slice::TimeSlice;
 pub use crate::time::ticker::{ticks, NANOSECONDS_PER_TICK, TICKS_PER_SECOND};
 pub use core::time::Duration;
 
-/// init sets up the time functionality, setting the
-/// ticker frequency we expect from the PIT and recording
-/// the current time from the CMOS/RTC as the kernel's
-/// boot time.
+/// Initialise the time functionality.
+///
+/// `init` sets the [Programmable Interval Timer](https://en.wikipedia.org/wiki/Programmable_interval_timer)'s
+/// timer frequency and records the current clock time from
+/// the RTC as the kernel's [boot time](boot_time).
 ///
 pub fn init() {
     ticker::init();
@@ -36,22 +39,21 @@ pub fn init() {
     cmos::init();
 }
 
-/// now returns an Instant representing the current
-/// time.
+/// Returns an Instant representing the current time.
 ///
 pub fn now() -> Instant {
     Instant::new(ticks())
 }
 
-/// since returns a Duration describing the amount
-/// of time that has passed since the given Instant.
+/// Returns a Duration describing the amount of time
+/// that has passed since the given `Instant`.
 ///
 pub fn since(earlier: Instant) -> Duration {
     now().duration_since(earlier)
 }
 
-/// after returns an Instant in the future that will
-/// occur after the given Duration.
+/// Returns an Instant in the future that will occur
+/// after the given `Duration`.
 ///
 pub fn after(wait: Duration) -> Instant {
     let now = ticks();
@@ -59,8 +61,7 @@ pub fn after(wait: Duration) -> Instant {
     Instant::new(now + delta as u64)
 }
 
-/// sleep sleeps the current thread for the given
-/// duration.
+/// Sleep the current thread for the given `duration`.
 ///
 pub fn sleep(duration: Duration) {
     let stop = after(duration);
@@ -77,37 +78,37 @@ pub fn sleep(duration: Duration) {
     scheduler::switch();
 }
 
-/// Instant represents a single point in the kernel's
-/// monotonically nondecreasing clock. In Instant is
-/// made useful by comparing with another Instant to
-/// produce a Duration.
+/// Represents a single point in the kernel's monotonically
+/// nondecreasing clock.
+///
+/// An `Instant` is made useful by comparing it with another
+/// `Instant` to produce a `Duration`.
 ///
 #[derive(Copy, Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Instant(u64);
 
-/// BOOT_TIME is the Instant that represents the time
-/// when the kernel booted.
+/// The `Instant` that represents the time when the kernel
+/// booted.
 ///
 pub const BOOT_TIME: Instant = Instant(0u64);
 
 impl Instant {
-    /// new returns an Instant representing the given
-    /// number of ticks.
+    /// Returns an `Instant` representing the given number
+    /// of system ticks.
     ///
     fn new(ticks: u64) -> Self {
         Instant(ticks)
     }
 
-    /// system_micros returns the number of microseconds
-    /// since the system booted.
+    /// Returns the number of microseconds since the system
+    /// booted.
     ///
     pub const fn system_micros(&self) -> u64 {
         (self.0 * ticker::NANOSECONDS_PER_TICK) / 1000
     }
 
-    /// duration_since returns a Duration describing the
-    /// amount of time that passed between the two
-    /// Instants.
+    /// Returns a `Duration` describing the amount of time
+    /// that passed between the two `Instant`s.
     ///
     /// # Panics
     ///

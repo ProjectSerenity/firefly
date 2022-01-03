@@ -1,5 +1,9 @@
-//! split implements split virtqueues, as described in section
-//! 2.6.
+//! Implements the [split Virtqueue](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-240006).
+//!
+//! A split [`Virtqueue`] can be used to exchange buffers with a Virtio device. A `Virtqueue`
+//! is initialised by calling its [`new`](Virtqueue::new) function, which allocates the memory
+//! backing the Virtqueue, then uses the passed [`Transport`](crate::drivers::virtio::Transport)
+//! to configure the device to use the Virtqueue.
 
 use crate::drivers::virtio;
 use crate::drivers::virtio::features::Reserved;
@@ -226,12 +230,20 @@ pub struct Virtqueue<'a> {
 }
 
 impl<'a> Virtqueue<'a> {
-    /// new allocates a new split virtqueue
-    /// and uses the transport to configure
+    /// Allocates and configures a new split
+    /// `Virtqueue`.
+    ///
+    /// `new` allocates a new split virtqueue
+    /// and uses the `transport` to configure
     /// the device to use the virtqueue.
     ///
-    /// The queue_index field indicates which
-    /// virtqueue this is.
+    /// The `queue_index` field indicates which
+    /// Virtqueue this is, indexed from `0`.
+    ///
+    /// The `features` field should contain the
+    /// set of Virtio [feature flags](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-130002)
+    /// that have been negotiated with the
+    /// device.
     ///
     pub fn new(queue_index: u16, transport: Arc<dyn Transport>, features: u64) -> Self {
         transport.select_queue(queue_index);

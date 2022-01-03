@@ -1,5 +1,16 @@
-//! pci implements the PCI transport mechanism documented in section
-//! 4.1 of <https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html>.
+//! Implements the [PCI transport mechanism](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-1000001).
+//!
+//! A PCI [`Device`](crate::drivers::pci::Device) can be used to instantiate
+//! a PCI [`Transport`], which can then be used to reset and configure a
+//! Virtio device.
+//!
+//! # Examples
+//!
+//! ```
+//! fn install_pci_device(device: pci::Device) {
+//!     let _driver = Transport::new(device).unwrap();
+//! }
+//! ```
 
 use crate::drivers::virtio::{DeviceStatus, InterruptStatus};
 use crate::drivers::{pci, virtio};
@@ -99,8 +110,8 @@ fn bar_frame_range(
     Some(PhysFrame::range(start_frame.unwrap(), end_frame.unwrap()))
 }
 
-/// ConfigError indicates an issue that caused a
-/// virtio configuration to be unacceptable.
+/// Describes a Virtio PCI transport that is for
+/// some reason unacceptable.
 ///
 #[derive(Debug)]
 pub enum ConfigError {
@@ -174,9 +185,7 @@ struct CommonConfig {
     queue_device_hi: u32,
 }
 
-/// Transport implements virtio configuration for
-/// the PCI transport, as described in section
-/// 4.1.
+/// Implements Virtio configuration for the PCI transport.
 ///
 pub struct Transport {
     // pci is a handle to the PCI device.
@@ -201,7 +210,9 @@ pub struct Transport {
 }
 
 impl Transport {
-    /// new iterates through the given PCI capabilities,
+    /// Instantiate a PCI transport using the given device.
+    ///
+    /// `new` iterates through the given PCI capabilities,
     /// parsing the virtio-related structures and returning
     /// them.
     ///

@@ -1,10 +1,26 @@
-//! bitmaps implement a bitmap structure, backed by an array of u64s.
+//! Implements a bitmap structure, backed by a sequence of `u64`s.
+//!
+//! # Examples
+//!
+//! ```
+//! let mut data = bitmap::new_unset(64);
+//! assert_eq!(data.num_set(), 0);
+//! assert_eq!(data.num_unset(), 64);
+//!
+//! data.set(8);
+//! data.set(9);
+//! assert_eq!(data.num_set(), 2);
+//! assert_eq!(data.num_unset(), 62);
+//! assert_eq!(data.next_set(), 8);
+//! assert_eq!(data.next_n_set(3), None);
+//! assert_eq!(data.next_n_set(2), Some(8));
+//! ```
 
 use alloc::vec;
 use alloc::vec::Vec;
 use x86_64::align_up;
 
-/// Bitmap is a simple bitmap implementation.
+/// A simple bitmap implementation, backed by a sequence of `u64`s.
 ///
 #[derive(Debug, PartialEq)]
 pub struct Bitmap {
@@ -13,8 +29,7 @@ pub struct Bitmap {
 }
 
 impl Bitmap {
-    /// new_set returns a new bitmap with all
-    /// bits set to true.
+    /// Returns a new bitmap with all bits set to `true`.
     ///
     pub fn new_set(num: usize) -> Self {
         // Make sure we only set the bits we
@@ -27,8 +42,7 @@ impl Bitmap {
         bitmap
     }
 
-    /// new_unset returns a new bitmap with all
-    /// bits set to false.
+    /// Returns a new bitmap with all bits set to `false`.
     ///
     pub fn new_unset(num: usize) -> Self {
         Bitmap {
@@ -37,8 +51,8 @@ impl Bitmap {
         }
     }
 
-    /// num_set returns the number of bits
-    /// in the bitmap that are set.
+    /// Returns the number of bits in the bitmap that are
+    /// set.
     ///
     pub fn num_set(&self) -> usize {
         self.bits
@@ -48,8 +62,8 @@ impl Bitmap {
             .unwrap() as usize
     }
 
-    /// num_unset returns the number of bits
-    /// in the bitmap that are not set.
+    /// Returns the number of bits in the bitmap that are
+    /// not set.
     ///
     pub fn num_unset(&self) -> usize {
         // We need to ignore the zero
@@ -64,10 +78,10 @@ impl Bitmap {
             - ignore
     }
 
-    /// get returns whether bit n is set.
+    /// Returns whether bit `n` is set.
     ///
-    /// get will panic if n exceeds the bitmap's
-    /// size in bits.
+    /// `get` will panic if `n` exceeds the bitmap's size
+    /// in bits.
     ///
     pub fn get(&self, n: usize) -> bool {
         if n >= self.num {
@@ -81,10 +95,10 @@ impl Bitmap {
         self.bits[i] & mask == mask
     }
 
-    /// set sets bit n to true.
+    /// Sets bit `n` to `true`.
     ///
-    /// set will panic if n exceeds the bitmap's
-    /// size in bits.
+    /// `set` will panic if `n` exceeds the bitmap's size
+    /// in bits.
     ///
     pub fn set(&mut self, n: usize) {
         if n >= self.num {
@@ -98,9 +112,9 @@ impl Bitmap {
         self.bits[i] |= mask;
     }
 
-    /// unset sets bit n to false.
+    /// Sets bit `n` to `false`.
     ///
-    /// unset will panic if n exceeds the bitmap's
+    /// `unset` will panic if `n` exceeds the bitmap's
     /// size in bits.
     ///
     pub fn unset(&mut self, n: usize) {
@@ -115,9 +129,8 @@ impl Bitmap {
         self.bits[i] &= !mask;
     }
 
-    /// next_set returns the smallest n, such that
-    /// bit n is set (true), or None if all bits
-    /// are false.
+    /// Returns the smallest `n`, such that bit `n` is
+    /// set, or `None` if all bits are unset.
     ///
     pub fn next_set(&self) -> Option<usize> {
         for (i, values) in self.bits.iter().enumerate() {
@@ -132,9 +145,9 @@ impl Bitmap {
         None
     }
 
-    /// next_n_set returns the smallest i, such that
-    /// bits i to i+n-1 are set (true), or None if
-    /// no such i can be found..
+    /// Returns the smallest `i`, such that bits `i` to
+    /// to `i + (n-1)` are set, or `None` if no such `i`
+    /// could be found.
     ///
     pub fn next_n_set(&self, n: usize) -> Option<usize> {
         let mut mask = 0u64;
@@ -153,9 +166,8 @@ impl Bitmap {
         None
     }
 
-    /// next_unset returns the smallest n, such that
-    /// bit n is unset (false), or None if all bits
-    /// are true.
+    /// Returns the smallest `n`, such that bit `n` is
+    /// unset, or `None` if all bits are set.
     ///
     pub fn next_unset(&self) -> Option<usize> {
         for (i, values) in self.bits.iter().enumerate() {

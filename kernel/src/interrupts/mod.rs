@@ -1,32 +1,64 @@
-//! interrupts handles hardware interrupts and the PIC.
-
-// This module handles hardware interrupts and the PIC.
-// ::init sets up the interrupt descriptor table and
-// initialises the PIC, remapping it to available interrupt
-// lines.
-//
-// Currently, there are 4 interrupt handlers configured:
-//
-// 1. Breakpoints: the breakpoint handler prints a message
-//    and then continues execution.
-// 2. Page faults: the page fault handler currently prints
-//    and error message and enters a halt loop.
-// 3. Double faults: the double fault handler switches to
-//    a safe stack using the GDT and panics with an error
-//    message.
-// 4. Timer: the timer handler increments the counter in
-//    the time module and acknowledges the interrupt.
-//
-// The functionality for the PIC is quite different from
-// the functionality for CPU exceptions. Exceptions are
-// handled directly through the IDT. The PIC's IRQs are
-// instead registered using the register_irq function,
-// making it easier to handle IRQs, without needing to
-// know the details of the PIC.
-//
-// The other big difference with the IRQ handling is that
-// IRQ handlers don't need to acknowledge the PIC, and
-// are passed the IRQ number.
+//! Handles hardware and software interrupts and the [Programmable Interrupt Controller](https://en.wikipedia.org/wiki/Programmable_interrupt_controller) (PIC).
+//!
+//! This module handles hardware and software interrupts and the PIC.
+//! [`init`] sets up the interrupt descriptor table and initialises
+//! the PIC, remapping it to available interrupt lines.
+//!
+//! ## CPU exceptions
+//!
+//! Currently, there are several [CPU exception](https://wiki.osdev.org/Exceptions) handlers configured:
+//!
+//! - [Breakpoints]: The breakpoint handler prints a message and then resumes execution.
+//! - [Invalid opcode]: The invalid opcode handler panics with an error.
+//! - [Double fault]: The double fault handler switches to a safe stack using the GDT and panics with an error message.
+//! - [Segment not present]: The segment not present handler panics with an error.
+//! - [General protection]: The general protection fault handler panics with an error.
+//! - [Page fault]: The page fault handler prints an error message and enters a halt loop.
+//!
+//! ## Software interrupts
+//!
+//! No software interrupts are handled yet.
+//!
+//! ## IRQ handling and the PIC
+//!
+//! The functionality for the PIC is quite different from the functionality
+//! for CPU exceptions. Exceptions are handled directly through the IDT.
+//! The PIC's IRQs are instead registered using the [`register_irq`] function,
+//! making it easier to handle IRQs, without needing to know the details of
+//! the PIC.
+//!
+//! The other big difference with the IRQ handling is that IRQ handlers don't
+//! need to acknowledge the PIC, and are passed the IRQ number. This is made
+//! easier by the [`Irq`] type and its [`acknowledge`](Irq::acknowledge)
+//! method.
+//!
+//! # Examples
+//!
+//! Register a simple ticker using the [Programmable Interval Timer](https://en.wikipedia.org/wiki/Programmable_interval_timer) (PIT):
+//!
+//! ```
+//! /// TICKER stores the counter we use to measure the passage of time.
+//! static TICKER: AtomicU64 = AtomicU64::new(0);
+//!
+//! /// Our IRQ handler, which increments the counter.
+//! fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
+//!     TICKER.fetch_add(1, Ordering::Relaxed);
+//! }
+//!
+//! /// Register our IRQ handler.
+//! fn init() {
+//!     const PIT_IRQ: Irq::new_unsafe(0);
+//!     register_irq(PIT_IRQ, timer_interrupt_handler);
+//! }
+//! ```
+//!
+//! [Breakpoints]: https://wiki.osdev.org/Exceptions#Breakpoint
+//! [Invalid opcode]: https://wiki.osdev.org/Exceptions#Invalid_Opcode
+//! [Double fault]: https://wiki.osdev.org/Exceptions#Double_Fault
+//! [Segment not present]: https://wiki.osdev.org/Exceptions#Segment_Not_Present
+//! [General protection]: https://wiki.osdev.org/Exceptions#General_Protection_Fault
+//! [Page fault]: https://wiki.osdev.org/Exceptions#Page_Fault
+//!
 
 mod irq;
 
@@ -38,8 +70,13 @@ use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, Pag
 
 pub use irq::{register_irq, Irq};
 
-/// init loads the interrupt descriptor table and maps
-/// the PIC to available interrupt lines.
+/// Loads the [Interrupt Descriptor Table](https://en.wikipedia.org/wiki/Interrupt_descriptor_table) (IDT)
+/// and the [Programmable Interrupt Controller](https://en.wikipedia.org/wiki/Programmable_interrupt_controller) (PIC).
+///
+/// The PIC is remapped from its initial offsets so that it
+/// does not overlap with CPU exceptions. All IRQs in the PIC
+/// are disabled by default. Individual IRQs can be enabled
+/// by registering a handler using [`register_irq`].
 ///
 pub fn init() {
     IDT.load();
@@ -51,6 +88,11 @@ pub fn init() {
 }
 
 lazy_static! {
+    /// IDT is our interrupt descriptor table.
+    ///
+    /// We configure it with our CPU exception handlers,
+    /// plus default exception handlers for the IRQs.
+    ///
     static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
         idt.breakpoint.set_handler_fn(breakpoint_handler);

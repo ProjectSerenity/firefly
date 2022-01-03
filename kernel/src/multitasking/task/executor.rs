@@ -1,7 +1,5 @@
-//! executor implements the scheduler for a series of Tasks, using
-//! Rust's async/await feature.
-
-// This module implements an executor for Rust's async/await feature.
+//! Implements the scheduler for a series of Tasks, using Rust's
+//! `async`/`await` feature.
 
 use super::{Task, TaskId};
 use alloc::{collections::BTreeMap, sync::Arc, task::Wake};
@@ -9,7 +7,7 @@ use core::task::{Context, Poll, Waker};
 use crossbeam_queue::ArrayQueue;
 use x86_64::instructions::interrupts;
 
-/// Executor keeps track of a series of Tasks, ensuring
+/// Schedules a series of [`Tasks`](super::Task), ensuring
 /// that each progresses through its state machine.
 ///
 pub struct Executor {
@@ -27,6 +25,9 @@ impl Executor {
         }
     }
 
+    /// Starts the `task`, progressing its state machine
+    /// asynchronously until it completes.
+    ///
     pub fn spawn(&mut self, task: Task) {
         let task_id = task.id;
         if self.tasks.insert(task.id, task).is_some() {
@@ -36,6 +37,9 @@ impl Executor {
         self.task_queue.push(task_id).expect("task queue full");
     }
 
+    /// Starts the scheduler, which runs endlessly, advancing
+    /// its tasks when possible.
+    ///
     pub fn run(&mut self) -> ! {
         loop {
             self.run_ready_tasks();

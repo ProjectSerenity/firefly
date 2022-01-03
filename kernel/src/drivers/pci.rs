@@ -1,5 +1,16 @@
-//! pci is a basic implementation of PCI bus scanning, which will
+//! A basic implementation of PCI bus scanning, which will
 //! detect and identify the PCI devices available.
+//!
+//! The PCI module provides an [`init`] function to scan the set of attached
+//! PCI buses for supported devices. Any supported devices are initialised by
+//! a driver and put into use.
+//!
+//! PCI [`Device`]s can be used to access the resources and data of a PCI
+//! device. A device driver can be implemented by adding a [`DeviceDriverSupport`]
+//! to [`DEVICE_DRIVERS`].
+//!
+//! [`debug`] can be called after [`init`] to print debug information about
+//! detected devices that were not adopted by any device drivers.
 
 use crate::{drivers, println};
 use alloc::vec::Vec;
@@ -7,17 +18,20 @@ use core::fmt;
 use x86_64::instructions::port::Port;
 use x86_64::PhysAddr;
 
-/// DeviceDriver takes ownership of a PCI device.
+/// A DeviceDriver takes ownership of a PCI device.
 ///
 pub type DeviceDriver = fn(device: Device);
 
-/// DeviceDriverSupport determines whether a PCI
+/// This check determines whether a PCI
 /// device driver supports the given device.
+///
+/// If a driver returns some device driver,
+/// that driver is called to take ownership
+/// of the device.
 ///
 pub type DeviceDriverSupport = fn(device: &Device) -> Option<DeviceDriver>;
 
-/// DEVICE_DRIVERS is the set of configured PCI device
-/// drivers.
+/// This is the set of configured PCI device drivers.
 ///
 /// For each PCI device discovered, each callback listed
 /// here will be checked to determine whether the driver
@@ -41,7 +55,14 @@ const HEADER_TYPE: u8 = 0x0e; // u8
 ///
 static UNKNOWN_DEVICES: spin::Mutex<Vec<Device>> = spin::Mutex::new(Vec::new());
 
-/// init scans PCI busses for devices, populating DEVICES.
+/// Scans the PCI buses for devices, installing those that
+/// are supported by a device driver.
+///
+/// For each device discovered, we iterate through [`DEVICE_DRIVERS`],
+/// passing the device to the first driver that claims to
+/// support it. If a device is not supported by any drivers,
+/// then it is retained as an unclaimed device, which can be
+/// debugged by calling [`debug`].
 ///
 pub fn init() {
     if read_u8(0, 0, 0, HEADER_TYPE) & 0x80 == 0 {
@@ -68,8 +89,10 @@ pub fn init() {
     }
 }
 
-/// debug iterates through the discovered but unsupported
+/// Iterates through the discovered but unsupported
 /// PCI devices, printing each device.
+///
+/// See [`init`] for more details.
 ///
 pub fn debug() {
     let devices = UNKNOWN_DEVICES.lock();

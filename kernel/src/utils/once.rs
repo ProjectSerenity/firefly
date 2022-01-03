@@ -1,10 +1,8 @@
-//! once implements a simple wrapper type, which is initialised
-//! exactly once.
+//! Implements a simple wrapper type, which is initialised exactly once.
 
 use core::ops::{Deref, DerefMut};
 
-/// Once is a wrapper, which is initialised
-/// extacly once.
+/// A wrapper, which is initialised extacly once.
 ///
 pub struct Once<T> {
     inner: spin::Once<T>,

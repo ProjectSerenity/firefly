@@ -1,4 +1,4 @@
-//! pretty provides pretty printing for various data types.
+//! Provides pretty printing for various data types.
 
 mod bytes;
 

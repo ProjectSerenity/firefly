@@ -1,15 +1,20 @@
-//! bytes provides pretty printing for bytes, using base 2 for larger units.
-
-// For more details, see https://en.wikipedia.org/wiki/Byte#Units_based_on_powers_of_2.
+//! Provides pretty printing for bytes, using [powers of 2 for larger units](https://en.wikipedia.org/wiki/Byte#Units_based_on_powers_of_2).
+//!
+//! # Examples
+//!
+//! ```
+//! println!("{}", Bytes::from_u64(2)); // Prints "2 B"
+//! println!("{}", Bytes::from_u64(4096)); // Prints "4 KiB"
+//! ```
 
 use core::fmt;
 
-/// Bytes contains a number of bytes.
+/// Contains a number of bytes.
 ///
 pub struct Bytes(u64);
 
 impl Bytes {
-    /// from_u64 treats n as a number of bytes.
+    /// Wraps a number of bytes.
     ///
     pub fn from_u64(n: u64) -> Self {
         Bytes(n)

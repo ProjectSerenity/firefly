@@ -1,32 +1,56 @@
-//! features provides bitflags for each of the different feature flags.
-
-// Virtio negotiates features using specific bits in an arbitrary
-// length bit sequence. This is documented in more detail in
-// https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html,
-// section 2.2, with specific constants defined in other sections.
-//
-// Since different kinds of devices can have overlapping feature bit
-// spaces (with the same bit indicating a different feature in each
-// device type), we can't have a single Rust type for all features.
-// Instead, we have a separate type for each feature space. This
-// includes one for features shared by all device types (Reserved),
-// plus another type for each device type (Network, Block, Console,
-// Entropy, Ballooning, Scsi, Gpu, DeviceId, and Crypto).
-//
-// When producing feature bits, simply OR together tbe bits you want
-// to use:
-//
-//     General::RING_EVENT_IDX.bits() | Network::MAC.bits()
-//
-// When parsing feature bits, simply parse the feature types you care
-// about:
-//
-//     (General::from_bits_truncate(bits), Network::from_bits_truncate(bits))
+//! Provides bitflags for each of the different Virtio [feature flags](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-130002).
+//!
+//! Virtio negotiates features using specific bits in an arbitrary
+//! length bit sequence.
+//!
+//! Since different kinds of devices can have overlapping feature bit
+//! spaces (with the same bit indicating a different feature in each
+//! device type), we can't have a single Rust type for all features.
+//! Instead, we have a separate type for each feature space. This
+//! includes:
+//!
+//! - [`Reserved`]: Features shared by all device types ([section 6]).
+//! - [`Network`]: Features used by network cards ([section 5.1.3]).
+//! - [`Block`]: Features used by block storage devices ([section 5.2.3]).
+//! - [`Console`]: Features used by console I/O devices ([section 5.3.3]).
+//! - [`Entropy`]: Features used by entropy source devices ([section 5.4.3]).
+//! - [`Ballooning`]: Features used by traditional memory ballooning devices ([section 5.5.3]).
+//! - [`Scsi`]: Features used by SCSI host devices ([section 5.6.3]).
+//! - [`Gpu`]: Features used by GPU graphics adaptors ([section 5.7.3]).
+//! - [`Input`]: Features used by human input devices ([section 5.8.3]).
+//! - [`Crypto`]: Features used by virtual cryptography devices ([section 5.9.3]).
+//!
+//! # Examples
+//!
+//! When producing feature bits, simply OR together tbe bits you want
+//! to use:
+//!
+//! ```
+//! Reserved::RING_EVENT_IDX.bits() | Network::MAC.bits()
+//! ```
+//!
+//! When parsing feature bits, simply parse the feature types you care
+//! about:
+//!
+//! ```
+//! (Reserved::from_bits_truncate(bits), Network::from_bits_truncate(bits))
+//! ```
+//!
+//! [section 5.1.3]: https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-1970003
+//! [section 5.2.3]: https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-2420003
+//! [section 5.3.3]: https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-2580003
+//! [section 5.4.3]: https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-2730003
+//! [section 5.5.3]: https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-2820003
+//! [section 5.6.3]: https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-3010003
+//! [section 5.7.3]: https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-3230003
+//! [section 5.8.3]: https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-3420003
+//! [section 5.9.3]: https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-3530003
+//! [section 6]: https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-4100006
 
 use crate::print;
 use bitflags::bitflags;
 
-/// debug prints flags as a sequence of set bits.
+/// Prints flags as a sequence of set bits.
 ///
 pub fn debug(flags: u64) {
     print!("flags(");
@@ -48,8 +72,8 @@ pub fn debug(flags: u64) {
 }
 
 bitflags! {
-    /// Reserved represents the set of reserved virtio
-    /// feature flags, as documented in section 6.
+    /// The set of reserved virtio feature flags, as documented in
+    /// [section 6](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-4100006).
     ///
     pub struct Reserved: u64 {
         /// Negotiating this feature indicates that the driver
@@ -141,8 +165,8 @@ bitflags! {
 }
 
 bitflags! {
-    /// Network represents the set of network virtio
-    /// feature flags, as documented in section 5.1.3.
+    /// The set of network virtio feature flags, as documented in
+    /// [section 5.1.3](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-1970003).
     ///
     pub struct Network: u64 {
         /// Device handles packets with partial checksum. This
@@ -225,8 +249,8 @@ bitflags! {
 }
 
 bitflags! {
-    /// Block represents the set of block virtio
-    /// feature flags, as documented in section 5.2.3.
+    /// The set of block virtio feature flags, as documented in
+    /// [section 5.2.3](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-2420003).
     ///
     pub struct Block: u64 {
         /// Maximum size of any single segment is in size_max.
@@ -269,8 +293,8 @@ bitflags! {
 }
 
 bitflags! {
-    /// Console represents the set of console virtio
-    /// feature flags, as documented in section 5.3.3.
+    /// The set of console virtio feature flags, as documented in
+    /// [section 5.3.3](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-2580003).
     ///
     pub struct Console: u64 {
         /// Configuration cols and rows are valid.
@@ -287,8 +311,8 @@ bitflags! {
 }
 
 bitflags! {
-    /// Entropy represents the set of entropy virtio
-    /// feature flags, as documented in section 5.4.3.
+    /// The set of entropy virtio feature flags, as documented in
+    /// [section 5.4.3](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-2730003).
     ///
     pub struct Entropy: u64 {
         // None defined yet.
@@ -296,8 +320,8 @@ bitflags! {
 }
 
 bitflags! {
-    /// Ballooning represents the set of memory ballooning
-    /// virtio feature flags, as documented in section 5.5.3.
+    /// The set of memory ballooning virtio feature flags, as documented in
+    /// [section 5.5.3](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-2820003).
     ///
     pub struct Ballooning: u64 {
         /// Host has to be told before pages from the balloon
@@ -314,8 +338,8 @@ bitflags! {
 }
 
 bitflags! {
-    /// Scsi represents the set of SCSI virtio
-    /// feature flags, as documented in section 5.6.3.
+    /// The set of SCSI virtio feature flags, as documented in
+    /// [section 5.6.3](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-3010003).
     ///
     pub struct Scsi: u64 {
         /// A single request can include both device-readable
@@ -340,8 +364,8 @@ bitflags! {
 }
 
 bitflags! {
-    /// Gpu represents the set of GPU virtio
-    /// feature flags, as documented in section 5.7.3.
+    /// The set of GPU virtio feature flags, as documented in
+    /// [section 5.7.3](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-3230003).
     ///
     pub struct Gpu: u64 {
         /// Virgl 3D mode is supported.
@@ -353,8 +377,8 @@ bitflags! {
 }
 
 bitflags! {
-    /// Input represents the set of input device virtio
-    /// feature flags, as documented in section 5.8.3.
+    /// The set of input device virtio feature flags, as documented in
+    /// [section 5.8.3](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-3420003).
     ///
     pub struct Input: u64 {
         // None defined yet.
@@ -362,8 +386,8 @@ bitflags! {
 }
 
 bitflags! {
-    /// Crypto represents the set of crypto virtio
-    /// feature flags, as documented in section 5.9.3.
+    /// The set of crypto virtio feature flags, as documented in
+    /// [section 5.9.3](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-3530003).
     ///
     pub struct Crypto: u64 {
         /// Revision 1. Revision 1 has a specific request format

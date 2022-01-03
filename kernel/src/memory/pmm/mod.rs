@@ -1,6 +1,46 @@
-//! pmm manages physical memory.
-
-// Physical memory frame allocation functionality.
+//! Physical memory management and allocation.
+//!
+//! This module consists of two physical memory allocators:
+//!
+//! 1. [`BootInfoFrameAllocator`], which is used to initialise the kernel heap.
+//! 2. [`BitmapFrameAllocator`], which takes over from the bootstrap allocator for subsequent use.
+//!
+//! The bootstrap allocator (constructed using [`bootstrap`])
+//! uses the memory map provided by the bootloader to identify
+//! a series of available physical memory frames and allocate
+//! them sequentially. This is only intended for early use and
+//! cannot de-allocate the frames it allocates.
+//!
+//! Once the kernel heap is initialised, we switch over to the
+//! second-phase allocator in [`init`], which takes ownership
+//! of the memory map from the bootstrap allocator, including
+//! the frames it has already allocated. From that point onwards,
+//! we only use the bitmap allocator, which can de-allocate pages.
+//!
+//! ## Helper functions
+//!
+//! While the bitmap allocator can be used directly via [`ALLOCATOR`](struct@ALLOCATOR),
+//! the [`allocate_frame`], [`allocate_n_frames`], and [`deallocate_frame`]
+//! helper functions are typically easier to use. The [`debug`]
+//! function can be used to print debug information about the bitmap
+//! allocator's state.
+//!
+//! # Examples
+//!
+//! ```
+//! // Allocate a physical memory frame.
+//! let frame = pmm::allocate_frame().unwrap();
+//!
+//! // Write to the frame.
+//! let virt_addr = memory::phys_to_virt_addr(frame.start_address());
+//! let buf: &mut [u8] =
+//!     unsafe { slice::from_raw_parts_mut(virt_addr.as_mut_ptr(), frame.size() as usize) };
+//! buf[0] = 0xff;
+//!
+//! // Drop the virtual memory and de-allocate the frame.
+//! mem::drop(buf);
+//! unsafe { pmm::deallocate_frame(frame) };
+//! ```
 
 use bootloader::bootinfo::MemoryMap;
 use lazy_static::lazy_static;
@@ -14,16 +54,24 @@ pub use bitmap::BitmapFrameAllocator;
 pub use boot_info::BootInfoFrameAllocator;
 
 lazy_static! {
-    /// ALLOCATOR is the physical memory allocator. ALLOCATOR can be
-    /// initialised by calling pmm::init, once the kernel's heap has
-    /// been set up. To bootstrap the heap, use a BootInfoFrameAllocator,
-    /// then pass that to pmm::init so ALLOCATOR can take over.
+    /// The second-phase physical memory allocator.
+    ///
+    /// `ALLOCATOR` can be initialised by calling [`init`], once the kernel's heap has
+    /// been set up. To bootstrap the heap, use [`bootstrap`] to build a [`BootInfoFrameAllocator`],
+    /// then pass that to [`init`] so `ALLOCATOR` can take over.
     ///
     pub static ref ALLOCATOR: spin::Mutex<BitmapFrameAllocator> = spin::Mutex::new(BitmapFrameAllocator::empty());
 }
 
-/// init sets up the physical memory manager, taking over
-/// from the bootstrap BootInfoFrameAllocator.
+/// Sets up the second-phase physical memory manager, taking over
+/// from the bootstrap allocator.
+///
+/// # Safety
+///
+/// The `bootstrap` allocator passed to `init` must have sole control
+/// over all physical memory it describes. If any physical memory is
+/// being used but is marked as available in `bootstrap`, then undefined
+/// behaviour may ensue.
 ///
 pub unsafe fn init(bootstrap: BootInfoFrameAllocator) {
     let mut alloc = BitmapFrameAllocator::new(bootstrap.underlying_map());
@@ -32,52 +80,61 @@ pub unsafe fn init(bootstrap: BootInfoFrameAllocator) {
     *ALLOCATOR.lock() = alloc;
 }
 
-/// allocate_n_frames returns n sequential physical frames,
-/// or None.
+/// Returns the next available physical frame, or `None`.
 ///
-pub fn allocate_n_frames(n: usize) -> Option<PhysFrameRange> {
-    let mut allocator = ALLOCATOR.lock();
-    allocator.allocate_n_frames(n)
-}
-
-/// allocate_frame returns the next available physical frame,
-/// or None.
+/// If `allocate_frame` is called before [`init`], it will return `None`.
 ///
 pub fn allocate_frame() -> Option<PhysFrame> {
     let mut allocator = ALLOCATOR.lock();
     allocator.allocate_frame()
 }
 
-/// deallocate_frame returns the given frame to the list of
-/// free frames for later use.
+/// Returns `n` sequential physical frames, or `None`.
+///
+/// It's possible that `n` frames may be available, but `allocate_n_frames`
+/// still return `None`. The bitmap allocator must be able to return `n`
+/// frames in a single contiguous sequence for it to succeed.
+///
+/// If `allocate_n_frames` is called before [`init`], it will return `None`.
+///
+pub fn allocate_n_frames(n: usize) -> Option<PhysFrameRange> {
+    let mut allocator = ALLOCATOR.lock();
+    allocator.allocate_n_frames(n)
+}
+
+/// Marks the given physical memory frame as unused and returns it to the
+/// list of free frames for later use.
 ///
 /// # Safety
 ///
-/// The caller must ensure that the given frame is unused.
+/// The caller must ensure that `frame` is unused.
 ///
 pub unsafe fn deallocate_frame(frame: PhysFrame<Size4KiB>) {
     let mut allocator = ALLOCATOR.lock();
     allocator.deallocate_frame(frame);
 }
 
-/// debug prints debug information about the physical memory
-/// manager.
+/// Prints debug information about the physical memory manager.
 ///
 pub fn debug() {
     let mm = ALLOCATOR.lock();
     mm.debug();
 }
 
-/// bootstrap returns an initial frame allocator, which can be
-/// used to allocate the kernel's heap, so a more advanced
-/// allocator can be initialised.
+/// Returns an initial frame allocator, which can be used to allocate the
+/// the kernel's heap.
+///
+/// Once the kernel's heap has been initialised, the kernel should switch
+/// over to a more advanced allocator, by calling [`init`].
 ///
 /// # Safety
 ///
-/// This function is unsafe because the caller must guarantee
-/// that the passed memory map is valid. The main requirement
-/// is that all frames that are marked as USABLE in it are
-/// really unused.
+/// This function is unsafe because the caller must guarantee that the
+/// memory map is valid and complete. All frames that are marked as `USABLE`
+/// in the memory map must be unused.
+///
+/// `bootstrap` must be called at most once, and must not be called after
+/// a call to [`init`].
 ///
 pub unsafe fn bootstrap(memory_map: &'static MemoryMap) -> BootInfoFrameAllocator {
     BootInfoFrameAllocator::new(memory_map)

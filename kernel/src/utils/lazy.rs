@@ -1,9 +1,9 @@
-//! lazy implements a simple wrapper type, which can be left
-//! uninitialised until it is written to for the first time.
+//! Implements a simple wrapper type, which can be left
+//! uninitialised until the first time it is overwritten.
 
 use core::ops::{Deref, DerefMut};
 
-/// Lazy is a wrapper type that can be left uninitialized until
+/// A wrapper type that can be left uninitialized until
 /// the first time it is overwritten.
 ///
 pub struct Lazy<T> {

@@ -1,4 +1,45 @@
-//! random provides a cryptographically secure pseudo-random number generator (CSPRNG).
+//! Provides a cryptographically secure pseudo-random number generator (CSPRNG).
+//!
+//! ## Design and algorithm selection
+//!
+//! The design here is directly inspired by [Fuchsia's](https://fuchsia.dev/fuchsia-src/concepts/kernel/cprng).
+//!
+//! There are two main methods on the RNG: `add_entropy` and `read`. Calling `add_entropy`
+//! mixes bytes into the current entropy pool, which is a 256-bit buffer. The bytes are
+//! mixed in by replacing the buffer's contents with the SHA-256 hash of the new data,
+//! followed by the buffer's previous contents:
+//!
+//! ```
+//! buffer = SHA-256(new-entropy || buffer);
+//! ```
+//!
+//! Calling `read` populates the supplied buffer with random bytes by encrypting it using
+//! ChaCha20, where the key is the entropy buffer and the nonce is a monotonically incrementing
+//! 96-bit integer, which starts at 0. Note that the nonce is never reset, and if it reaches
+//! 2^95, the kernel panics. This feels like a reasonable limit for now, but may change in
+//! the future.
+//!
+//! To make the CSPRNG usable, `seed` must be called at least once before `read` is called.
+//! `seed` is a specialised version of `add_entropy`, which requires exactly 256 bits of entropy.
+//!
+//! ## Initialisation
+//!
+//! To prepare the CSPRNG, at least one entropy source must be registered by calling [`register_entropy_source`]
+//! (or the host must support the [`RDRAND`](https://en.wikipedia.org/wiki/RDRAND) instruction),
+//! then [`init`] must be called to seed the CSPRNG and start the companion thread. This thread
+//! re-seeds the CSPRNG with more entropy every 30 seconds.
+//!
+//! Once the CSPRNG has been initialised with `init`, memory buffers can be filled with random
+//! data by calling [`read`].
+//!
+//! # Examples
+//!
+//! Fill a buffer with random data.
+//!
+//! ```
+//! let mut buf = [0u8; 16];
+//! random::read(&mut buf[..]);
+//! ```
 
 mod csprng;
 mod rdrand;
@@ -21,10 +62,12 @@ use alloc::vec::Vec;
 ///
 static CSPRNG: spin::Mutex<csprng::Csprng> = spin::Mutex::new(csprng::Csprng::new());
 
-/// read fills the given buffer with random data.
+/// Fills the given buffer with random data.
 ///
-/// read will panic if the CSPRNG has not been seeded by registering at least one
-/// entropy source, then calling init.
+/// # Panics
+///
+/// `read` will panic if the CSPRNG has not been seeded by registering at least one
+/// entropy source, then calling [`init`].
 ///
 pub fn read(buf: &mut [u8]) {
     CSPRNG.lock().read(buf);
@@ -43,16 +86,22 @@ pub trait EntropySource: Send {
 ///
 static ENTROPY_SOURCES: spin::Mutex<Vec<Box<dyn EntropySource>>> = spin::Mutex::new(Vec::new());
 
-/// register_entropy_source is used to provide an ongoing source of entropy to the
-/// kernel for use in seeding the CSPRNG.
+/// Provide an ongoing source of entropy to the kernel for use in seeding the CSPRNG.
+///
+/// `register_entropy_source` should be called before calling [`init`] to ensure it
+/// provides entropy when the CSPRNG is first set up. However, provided at least one
+/// entropy source was available when `init` was called, subsequent calls to `register_entropy_source`
+/// will still result in the entropy source being used during the periodic re-seeding
+/// of the CSPRNG.
 ///
 pub fn register_entropy_source(src: Box<dyn EntropySource>) {
     ENTROPY_SOURCES.lock().push(src);
 }
 
-/// init initialises the CSPNRG using the entropy sources that have been registered,
-/// then starts the companion thread to ensure the CSPRNG gets a steady feed of entropy
-/// over time.
+/// Initialise the CSPNRG using the entropy sources that have been registered.
+///
+/// `init` also starts a companion kernel thread to ensure the CSPRNG gets a steady
+/// feed of entropy  over time.
 ///
 pub fn init() {
     // Detect RDRAND support before we lock ENTROPY_SOURCES.

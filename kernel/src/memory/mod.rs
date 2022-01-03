@@ -1,20 +1,84 @@
-//! memory handles paging and a basic physical memory
-//! frame allocator.
-
-// This module governs management of physical memory.
-// Specifically, ::init and ::active_level_4_table
-// produce a page table for the level 4 page table
-// (or PML4), as described on the OS Dev wiki: https://wiki.osdev.org/Paging#64-Bit_Paging
-// and in the Intel x86 64 manual, volume 3A, section
-// 4.5 (4-Level Paging). The functionality for mapping
-// pages and translating virtual to physical addresses
-// is implemented in the x86_64 crate, in the
-// x86_64::structures::paging::OffsetPageTable returned
-// by ::init.
-//
-// This crate also provides a basic physical memory frame
-// allocator, which is used in the allocator module to
-// build the memory manager.
+//! Handles paging, memory management, and enabling the kernel's heap allocator.
+//!
+//! ## Physical memory management
+//!
+//! The [`pmm`] module provides the ability to allocate physical
+//! memory frames. This is then used as the foundation for the
+//! virtual memory manager.
+//!
+//! ## Virtual memory management
+//!
+//! The [`vmm`] module provides functionality to analyse and modify
+//! page tables, manage the virtual memory address space, and
+//! operate the kernel's heap.
+//!
+//! ## Memory-mapped I/O
+//!
+//! The [`mmio`] module provides a way to map physical memory into
+//! the virtual address space with safe data accessors and write
+//! back page flags.
+//!
+//! # Memory management
+//!
+//! This module governs various details of the management of virtual
+//! and physical memory.
+//!
+//! ## Initialising the kernel heap
+//!
+//! Calling [`init`] initialises the physical and virtual memory
+//! managers, then initialises the kernel heap:
+//!
+//! - The bootstrap physical memory manager is initialised using the memory map included in the boot info we are passed by the bootloader.
+//! - The bootstrap allocator is used to initialise the virtual memory management (including for allocating page tables).
+//! - The global heap allocator is initialised to set up the kernel's heap.
+//! - The heap and the bootstrap physical memory manager are used to initialse the second stage physical memory manager.
+//!
+//! ## Kernel page tables
+//!
+//! Calling [`kernel_pml4`] returns a mutable reference to the kernel's
+//! level 4 page table. This can be used to inspect or modify the virtual
+//! page mappings.
+//!
+//! ## Virtual memory helpers
+//!
+//! This module contains various constants and helper functions for
+//! physical and virtual memory management. The following constants
+//! describe a [region of virtual memory](VirtAddrRange) that is used
+//! for a prescribed purpose:
+//!
+//! - [`NULL_PAGE`]: The first virtual page, which is reserved to ensure null pointer dereferences cause a page fault.
+//! - [`USERSPACE`]: The first half of virtual memory, which is used by userspace processes.
+//! - [`KERNEL_BINARY`]: The kernel binary is mapped within this range.
+//! - [`BOOT_INFO`]: The boot info provided by the bootloader is stored here.
+//! - [`KERNEL_HEAP`]: The region used for the kernel's heap.
+//! - [`KERNEL_STACK_GUARD`]: The page beneath the kernel's initial stack, reserved to ensure stack overflows cause a page fault.
+//! - [`KERNEL_STACK`]: The region used for the all kernel stacks.
+//! - [`KERNEL_STACK_0`]: The region used for the kernel's initial stack.
+//! - [`MMIO_SPACE`]: The region used for mapping direct memory access for memory-mapped I/O.
+//! - [`CPU_LOCAL`]: The region used for storing CPU-local data.
+//! - [`PHYSICAL_MEMORY`]: The region into which all physical memory is mapped.
+//!
+//! There are also the following address constants:
+//!
+//! - [`KERNEL_STACK_1_START`]: The bottom of the second kernel stack.
+//! - [`PHYSICAL_MEMORY_OFFSET`]: The offset at which all physical memory is mapped.
+//!
+//! The [`phys_to_virt_addr`] function can be called to return a virtual
+//! address that can be used to access the passed physical address. A set
+//! of page tables (such as the kernel's level 4 page table returned by
+//! [`kernel_pml4`]) can be used with [`virt_to_phys_addrs`] to determine
+//! the set of physical memory buffers referenced by the given virtual
+//! memory buffer.
+//!
+//! ## Kernel stack management
+//!
+//! Each kernel thread (including the initial kernel thread, started by
+//! the bootloader) has its own stack, which exist within the [`KERNEL_STACK`]
+//! memory region. The initial kernel thread is given its stack ([`KERNEL_STACK_0`])
+//! implicitly by the bootloader. Subsequent kernel threads are allocated
+//! by calling [`new_kernel_stack`] and can be de-allocated by calling
+//! [`free_kernel_stack`]. De-allocated stacks are reused and can be
+//! returned by subsequent calls to [`new_kernel_stack`].
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -35,8 +99,8 @@ pub mod vmm;
 
 pub use crate::memory::constants::{
     phys_to_virt_addr, VirtAddrRange, BOOT_INFO, CPU_LOCAL, KERNEL_BINARY, KERNEL_HEAP,
-    KERNEL_STACK, KERNEL_STACK_0, KERNEL_STACK_GUARD, MMIO_SPACE, NULL_PAGE, PHYSICAL_MEMORY,
-    PHYSICAL_MEMORY_OFFSET, USERSPACE,
+    KERNEL_STACK, KERNEL_STACK_0, KERNEL_STACK_1_START, KERNEL_STACK_GUARD, MMIO_SPACE, NULL_PAGE,
+    PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET, USERSPACE,
 };
 
 // PML4 functionality.
@@ -47,15 +111,22 @@ pub use crate::memory::constants::{
 ///
 static KERNEL_PML4_ADDRESS: spin::Mutex<VirtAddr> = spin::Mutex::new(VirtAddr::zero());
 
-/// init initialises the kernel's memory, including setting up the
+/// Initialise the kernel's memory, including setting up the
 /// heap.
+///
+/// - The bootstrap physical memory manager is initialised using the memory map included in the boot info we are passed by the bootloader.
+/// - The bootstrap allocator is used to initialise the virtual memory management (including for allocating page tables).
+/// - The global heap allocator is initialised to set up the kernel's heap.
+/// - The heap and the bootstrap physical memory manager are used to initialse the second stage physical memory manager.
 ///
 /// # Safety
 ///
-/// This function is unsafe because the caller must guarantee that the
-/// complete physical memory is mapped to virtual memory at the passed
-/// PHYSICAL_MEMORY_OFFSET. Also, this function must be only called once
-/// to avoid aliasing &mut references (which is undefined behavior).
+/// This function is unsafe because the caller must guarantee
+/// that the complete physical memory is mapped to virtual memory
+/// at [`PHYSICAL_MEMORY_OFFSET`].
+///
+/// `init` must be called only once to avoid aliasing &mut
+/// references (which is undefined behavior).
 ///
 pub unsafe fn init(boot_info: &'static BootInfo) {
     // Prepare the kernel's PML4.
@@ -72,14 +143,13 @@ pub unsafe fn init(boot_info: &'static BootInfo) {
     pmm::init(frame_allocator);
 }
 
-/// kernel_pml4 returns a mutable reference to the
-/// kernel's level 4 table.
+/// Returns a mutable reference to the kernel's level 4 page
+/// table.
 ///
 /// # Safety
 ///
-/// kernel_pml4 must only be called once at a time to
-/// avoid aliasing &mut references (which is undefined
-/// behavior).
+/// The returned page tables must only be used to translate
+/// addresses when it is the active level 4 page table.
 ///
 pub unsafe fn kernel_pml4() -> OffsetPageTable<'static> {
     let virt = KERNEL_PML4_ADDRESS.lock();
@@ -89,8 +159,7 @@ pub unsafe fn kernel_pml4() -> OffsetPageTable<'static> {
     OffsetPageTable::new(page_table, PHYSICAL_MEMORY_OFFSET)
 }
 
-/// PhysBuffer describes a single physical memory
-/// buffer.
+/// Describes a single contiguous physical memory region.
 ///
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct PhysBuffer {
@@ -98,15 +167,11 @@ pub struct PhysBuffer {
     pub len: usize,
 }
 
-/// virt_to_phys_addrs resolves a contiguous memory
-/// buffer in virtual memory to one or more contiguous
-/// memory buffers in physical memory. If the virtual
-/// memory maps to sequential physical memory (such as
-/// if the virtual memory does not cross a page boundary),
-/// then a single physical buffer will be returned.
+/// Translates a contiguous virtual memory region into one
+/// or more contiguous physical memory regions.
 ///
-/// If any part of the virtual memory is not mapped in
-/// the given page table, then None is returned.
+/// If any part of the virtual memory region is not mapped
+/// in the given page table, then None is returned.
 ///
 pub fn virt_to_phys_addrs<T: Translate>(
     page_table: &T,
@@ -156,7 +221,7 @@ pub fn virt_to_phys_addrs<T: Translate>(
     Some(bufs)
 }
 
-/// align_up aligns the given address upwards to alignment align.
+/// Aligns the given address upwards to the given alignment.
 ///
 /// Requires that align is a power of two. Unlike x86_64::align_up,
 /// this operates on usize values, rather than u64.
@@ -165,8 +230,7 @@ pub fn align_up(addr: usize, align: usize) -> usize {
     (addr + align - 1) & !(align - 1)
 }
 
-/// StackBounds describes the address space used
-/// for a stack.
+/// Describes the address space used for a kernel stack region.
 ///
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StackBounds {
@@ -175,8 +239,8 @@ pub struct StackBounds {
 }
 
 impl StackBounds {
-    /// from returns a set of stack bounds consisting of the
-    /// given virtual address range.
+    /// Returns a set of stack bounds consisting of the given
+    /// virtual address range.
     ///
     pub fn from(range: &VirtAddrRange) -> Self {
         StackBounds {
@@ -185,42 +249,41 @@ impl StackBounds {
         }
     }
 
-    /// start returns the smallest valid address in the
-    /// stack bounds. As the stack grows downwards, this
-    /// is also known as the bottom of the stack.
+    /// Returns the smallest valid address in the stack bounds.
+    /// As the stack grows downwards, this is also known as the
+    /// bottom of the stack.
     ///
     pub fn start(&self) -> VirtAddr {
         self.start
     }
 
-    /// end returns the first address beyond the stack
-    /// bounds. As the stack grows downwards, this is
-    /// also known as the top of the stack.
+    /// Returns the first address beyond the stack bounds. As
+    /// the stack grows downwards, this is also known as the
+    /// top of the stack.
     ///
     pub fn end(&self) -> VirtAddr {
         self.end
     }
 
-    /// num_pages returns the number of pages included
-    /// in the bounds.
+    /// Returns the number of pages included in the bounds.
     ///
     pub fn num_pages(&self) -> u64 {
         (self.end - self.start) / Size4KiB::SIZE as u64
     }
 
-    /// contains returns whether the stack bounds include
-    /// the given virtual address.
+    /// Returns whether the stack bounds include the given
+    /// virtual address.
     ///
     pub fn contains(&self, addr: VirtAddr) -> bool {
         self.start <= addr && addr < self.end
     }
 }
 
-/// reserve_kernel_stack reserves num_pages pages of
-/// stack memory for a kernel thread.
+/// Reserves `num_pages` pages of stack memory for a kernel
+/// thread.
 ///
-/// reserve_kernel_stack returns the page at the start
-/// of the stack (the lowest address).
+/// `reserve_kernel_stack` returns the page at the start of
+/// the stack (the lowest address).
 ///
 fn reserve_kernel_stack(num_pages: u64) -> Page {
     static STACK_ALLOC_NEXT: AtomicU64 = AtomicU64::new(constants::KERNEL_STACK_1_START.as_u64());
@@ -252,9 +315,11 @@ fn reserve_kernel_stack(num_pages: u64) -> Page {
 ///
 static DEAD_STACKS: spin::Mutex<Vec<StackBounds>> = spin::Mutex::new(Vec::new());
 
-/// new_kernel_stack allocates num_pages pages of stack
-/// memory for a kernel thread and guard page, returning
-/// the address space of the allocated stack.
+/// Allocates `num_pages` pages of stack memory for a
+/// kernel thread and guard page.
+///
+/// `new_kernel_stack` returns the address space of the
+/// allocated stack.
 ///
 pub fn new_kernel_stack(num_pages: u64) -> Result<StackBounds, MapToError<Size4KiB>> {
     // Check whether we can just recycle an old stack.
@@ -297,8 +362,8 @@ pub fn new_kernel_stack(num_pages: u64) -> Result<StackBounds, MapToError<Size4K
     })
 }
 
-/// free_kernel_stack adds the given stack to the dead
-/// stacks list, allowing us to reuse it in future.
+/// Adds the given stack to the dead stacks list, so it
+/// can be reused later.
 ///
 pub fn free_kernel_stack(stack_bounds: StackBounds) {
     DEAD_STACKS.lock().push(stack_bounds);

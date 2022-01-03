@@ -1,11 +1,29 @@
-// This module is a bump allocator, which can be
-// used to allocate heap memory.
+//! Provides a bump allocator, which can be used to allocate heap memory.
 
 use crate::memory::align_up;
 use crate::Locked;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr;
 
+/// A simple virtual memory allocator, tracking the next free
+/// address.
+///
+/// `BumpAllocator` simply tracks the number of allocations
+/// currently active and the next available address. When an
+/// allocation is made, the `next` address is incremented by
+/// the allocation size and the number of `allocations is
+/// incremented by one.
+///
+/// When memory is de-allocated, `allocations` is decremented.
+/// If this result in `allocations` becoming `0`, then we know
+/// all memory is free, so the `next` address is reset to the
+/// start of the heap memory region.
+///
+/// Since it is not possible to reuse memory without the entire
+/// memory space being de-allocated, `BumpAllocator` is likely
+/// to run out of available memory. However, the implementation
+/// is very simple.
+///
 pub struct BumpAllocator {
     heap_start: usize,
     heap_end: usize,
@@ -15,6 +33,7 @@ pub struct BumpAllocator {
 
 impl BumpAllocator {
     /// Creates a new empty bump allocator.
+    ///
     pub const fn new() -> Self {
         BumpAllocator {
             heap_start: 0,
@@ -39,6 +58,9 @@ impl BumpAllocator {
 }
 
 unsafe impl GlobalAlloc for Locked<BumpAllocator> {
+    /// Returns the next available address, or a null
+    /// pointer if the heap has been exhausted.
+    ///
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let mut bump = self.lock(); // get a mutable reference
 
@@ -57,6 +79,9 @@ unsafe impl GlobalAlloc for Locked<BumpAllocator> {
         }
     }
 
+    /// Marks the given pointer as unused and free for
+    /// later re-use.
+    ///
     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
         let mut bump = self.lock(); // get a mutable reference
 

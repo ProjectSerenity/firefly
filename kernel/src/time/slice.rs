@@ -1,21 +1,21 @@
-//! slice includes the functionality to create and manage the time slices used
+//! Implements the functionality to create and manage the time slices used
 //! to determine a thread's time left on the CPU.
 
 use crate::time::{Duration, NANOSECONDS_PER_TICK};
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 
-/// TimeSlice includes the number of timer ticks a thread has left on the CPU
-/// before it is next rescheduled.
+/// Includes the number of system timer ticks a thread has left on the CPU
+/// before it is next preempted and rescheduled.
 ///
 #[derive(Clone, Copy, Debug)]
 pub struct TimeSlice(u64);
 
 impl TimeSlice {
-    /// ZERO is the empty time slice.
+    /// The empty time slice.
     ///
     pub const ZERO: TimeSlice = TimeSlice(0);
 
-    /// from_duration returns the smallest time slice no less than duration.
+    /// Returns the smallest time slice no less than duration.
     ///
     /// Note that the returned TimeSlice may last slightly longer than the
     /// given duration, if limited by the frequency of the programmable
@@ -29,15 +29,15 @@ impl TimeSlice {
         TimeSlice(delta as u64)
     }
 
-    /// tick decrements the time slice by a single tick, returning true if
-    /// the time slice is now zero.
+    /// Decrements the time slice by a single tick, returning true if the
+    /// time slice is now zero.
     ///
     pub fn tick(&mut self) -> bool {
         self.0 = self.0.saturating_sub(1);
         self.0 == 0u64
     }
 
-    /// is_zero returns true if the time slice is now zero.
+    /// Returns true if the time slice is now zero.
     ///
     pub const fn is_zero(&self) -> bool {
         self.0 == 0u64

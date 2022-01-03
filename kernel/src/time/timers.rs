@@ -1,8 +1,8 @@
-//! timers implements the priority queue of timers.
-
-// This is a fairly simple design to get us started. Each
-// timer consists of the Instant at which the timer will
-// fire, and the thread id of the thread we should wake.
+//! Implements the priority queue of system timers.
+//!
+//! This is a fairly simple design to get us started. Each timer consists of
+//! the [`Instant`](super::Instant) at which the timer will fire, and the [`ThreadId`](crate::multitasking::thread::ThreadId)
+//! of the thread we should resume.
 
 use crate::multitasking::thread;
 use crate::multitasking::thread::scheduler;
@@ -13,28 +13,31 @@ use core::cmp::{Ordering, PartialEq, PartialOrd};
 use core::mem;
 use x86_64::instructions::interrupts;
 
-/// TIMERS is the priority queue of pending timers.
+/// The priority queue of pending timers.
 ///
 static TIMERS: spin::Mutex<Lazy<BinaryHeap<Timer>>> = spin::Mutex::new(Lazy::new());
 
-/// init sets up the system timers.
+/// Initialise the system timers.
 ///
-pub fn init() {
+pub(super) fn init() {
     TIMERS.lock().set(BinaryHeap::new());
 }
 
-/// add creates a new timer and adds it to the
-/// priority queue of timers.
+/// Creates a new timer and adds it to the priority
+//// queue of timers.
 ///
-/// The given thread will be resumed once wakeup
-/// is no longer in the future.
+/// The given thread will be resumed once wakeup is
+/// no longer in the future.
 ///
 pub fn add(thread_id: thread::ThreadId, wakeup: time::Instant) {
     interrupts::without_interrupts(|| TIMERS.lock().push(Timer::new(thread_id, wakeup)));
 }
 
-/// process iterates through the priority queue of
-/// timers, removing any timers that have expired,
+/// Processes the set of system timers, waking threads
+/// as necessary.
+///
+/// `process` iterates through the priority queue of
+/// timers, removing any timers that have expired and
 /// marking the corresponding threads as runnable.
 ///
 pub fn process() {
@@ -59,7 +62,7 @@ pub fn process() {
     }
 }
 
-/// Timer represents a system time when a thread
+/// Represents a system time when a thread
 /// should be woken.
 ///
 #[derive(Clone, Copy, Eq, Ord)]
@@ -88,6 +91,7 @@ impl PartialEq for Timer {
 // That is, a timer with a smaller ticks
 // has a higher priority and therefore
 // compares as 'larger'.
+//
 impl PartialOrd for Timer {
     fn partial_cmp(&self, other: &Timer) -> Option<Ordering> {
         if self.wakeup == other.wakeup {

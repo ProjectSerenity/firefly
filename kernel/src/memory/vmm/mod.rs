@@ -1,18 +1,38 @@
-//! vmm manages virtual memory and underpins Rust's heap.
-
-// This module provides the functionality to allocate heap
-// memory. This is primarily used by Rust's runtime to
-// allocate heap memory for the kernel.
-//
-// The module includes three different allocator implementations,
-// a bump allocator, a linked list allocator, and a fixed size
-// block allocator. Currently the fixed size block allocator
-// is used.
+//! Virtual memory management and allocation, plus kernel heap management.
+//!
+//! This module provides the functionality to allocate heap memory. This is
+//! primarily used by Rust's runtime to allocate heap memory for the kernel.
+//!
+//! Most of the module's functionality is internal. The two external APIs
+//! are:
+//!
+//! 1. [`init`]: Use a page table and physical memory allocator to initialise the kernel heap.
+//! 2. [`debug`]: Print debug info about the page tables and the virtual address spaces in use.
+//!
+//! ## Heap initialisation
+//!
+//! The [`init`] function starts by mapping the entirety of the kernel heap
+//! address space ([`KERNEL_HEAP`](super::KERNEL_HEAP)) using the physical
+//! frame allocator provided. This virtual memory is then used to initialise
+//! the heap allocator.
+//!
+//! The module includes three different heap allocator implementations:
+//!
+//! - [`BumpAllocator`]
+//! - [`LinkedListAllocator`]
+//! - [`FixedSizeBlockAllocator`]
+//!
+//! Currently, we use `FixedSizeBlockAllocator`.
+//!
+//! With the heap initialised, `init` enables global page mappings and the
+//! no-execute permission bit and then remaps virtual memory. This ensures
+//! that unexpected page mappings are removed and the remaining page mappings
+//! have the correct flags. For example, the kernel stack is mapped with the
+//! no-execute permission bit set.
 
 use crate::memory::vmm::mapping::PagePurpose;
 use crate::memory::KERNEL_HEAP;
 use crate::{println, Locked};
-use fixed_size_block::FixedSizeBlockAllocator;
 use x86_64::registers::control::{Cr4, Cr4Flags};
 use x86_64::registers::model_specific::{Efer, EferFlags};
 use x86_64::structures::paging::mapper::{MapToError, MapperFlushAll};
@@ -25,11 +45,25 @@ mod fixed_size_block;
 mod linked_list;
 mod mapping;
 
+// Re-export the heap allocators. We don't need to do this, but it's useful
+// to expose their documentation to aid future development.
+pub use bump::BumpAllocator;
+pub use fixed_size_block::FixedSizeBlockAllocator;
+pub use linked_list::LinkedListAllocator;
+
 #[global_allocator]
 static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
 
-/// init initialises the static global allocator, using
-/// the given page mapper and physical memory frame allocator.
+/// Initialise the static global allocator, enabling the kernel heap.
+///
+/// The given page mapper and physical memory frame allocator are used to
+/// map the entirety of the kernel heap address space ([`KERNEL_HEAP`](super::KERNEL_HEAP)).
+///
+/// With the heap initialised, `init` enables global page mappings and the
+/// no-execute permission bit and then remaps virtual memory. This ensures
+/// that unexpected page mappings are removed and the remaining page mappings
+/// have the correct flags. For example, the kernel stack is mapped with the
+/// no-execute permission bit set.
 ///
 pub fn init(
     mapper: &mut OffsetPageTable,
@@ -145,8 +179,8 @@ unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
     MapperFlushAll::new().flush_all();
 }
 
-/// debug iterates through a level 4 page
-/// table, printing its mappings using print!.
+/// Prints debug info about the passed level 4 page table, including
+/// its mappings.
 ///
 /// # Safety
 ///

@@ -1,19 +1,21 @@
-//! cpu_local provides functionality to access a different copy of the same
-//! structure on each CPU. This is used to track data like the CPU ID and
+//! Provides functionality to access a different copy of the same
+//! structure on each CPU.
+//!
+//! This module allows each CPU to track data like the CPU ID and
 //! the currently-executing thread.
-
-// For now, we take a simple but slightly inefficient approach, where we
-// allocate a copy of the CpuData struct in the CPU-local address space
-// and store a pointer to it in the GS base. To access the data, we use
-// a wrapper function to retrieve the pointer from the GS base, casting
-// it to the right type, then access the data as usual.
-//
-// This is less efficient than using offsets from the GS base directly
-// in assembly, as described here[1], but it's much simpler to implement.
-// If rust-osdev/x86_64#257 is merged, that will probably be used to
-// replace this module.
-//
-// [1]: https://github.com/rust-osdev/x86_64/pull/257#issuecomment-849514649
+//!
+//! For now, we take a simple but slightly inefficient approach, where we
+//! allocate a copy of the CpuData struct in the CPU-local address space
+//! and store a pointer to it in the GS base. To access the data, we use
+//! a wrapper function to retrieve the pointer from the GS base, casting
+//! it to the right type, then access the data as usual.
+//!
+//! This is less efficient than using offsets from the GS base directly
+//! in assembly, as described [here], but it's much simpler to implement.
+//! If [rust-osdev/x86_64#257](https://github.com/rust-osdev/x86_64/pull/257)
+//! is merged, that will probably be used to replace this module.
+//!
+//! [here]: https://github.com/rust-osdev/x86_64/pull/257#issuecomment-849514649
 
 use crate::memory::{kernel_pml4, pmm, VirtAddrRange, CPU_LOCAL};
 use crate::multitasking::thread::Thread;
@@ -33,9 +35,16 @@ use x86_64::structures::paging::{
 ///
 static INITIALISED: AtomicBool = AtomicBool::new(false);
 
-/// init prepares the current CPU's local
-/// data using the given CPU ID and stack
-/// space.
+/// CpuData contains the data specific to an individual CPU core.
+///
+struct CpuData {
+    id: CpuId,
+    idle_thread: Arc<Thread>,
+    current_thread: Arc<Thread>,
+}
+
+/// Initialise the current CPU's local data using the given CPU
+/// ID and stack space.
 ///
 pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
     // Next, work out where we will store our CpuId
@@ -90,8 +99,8 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
     INITIALISED.store(true, Ordering::Relaxed);
 }
 
-/// ready returns whether the CPU-local data
-/// has been initialised on this CPU.
+/// Returns whether the CPU-local data has been initialised
+/// on this CPU.
 ///
 pub fn ready() -> bool {
     INITIALISED.load(Ordering::Relaxed)
@@ -109,54 +118,47 @@ unsafe fn cpu_data() -> &'static mut CpuData {
     &mut *(ptr.as_mut_ptr() as *mut CpuData)
 }
 
-/// cpu_id returns this CPU's unique ID.
+/// Returns this CPU's unique ID.
 ///
 pub fn cpu_id() -> CpuId {
     unsafe { cpu_data() }.id
 }
 
-/// idle_thread returns this CPU's idle thread.
+/// Returns this CPU's idle thread.
 ///
 pub fn idle_thread() -> Arc<Thread> {
     unsafe { cpu_data() }.idle_thread.clone()
 }
 
-/// current_thread returns the currently executing thread.
+/// Returns the currently executing thread.
 ///
 pub fn current_thread() -> Arc<Thread> {
     unsafe { cpu_data() }.current_thread.clone()
 }
 
-/// set_current_thread overwrites the currently executing
-/// thread.
+/// Overwrites the currently executing thread.
 ///
 pub fn set_current_thread(thread: Arc<Thread>) {
     unsafe { cpu_data() }.current_thread = thread;
 }
 
-/// CpuId uniquely identifies a CPU core.
+/// Uniquely identifies a CPU core.
 ///
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CpuId(u64);
 
 impl CpuId {
-    /// new allocates and returns the next available
-    /// CpuId.
+    /// Allocates and returns the next available CpuId.
     ///
     pub fn new() -> Self {
         static NEXT_CPU_ID: AtomicU64 = AtomicU64::new(0);
         CpuId(NEXT_CPU_ID.fetch_add(1, Ordering::Relaxed))
     }
 
+    /// Returns a numerical representation for the CPU
+    /// ID.
+    ///
     pub const fn as_u64(&self) -> u64 {
         self.0
     }
-}
-
-// CpuData contains the data specific to an individual CPU core.
-//
-struct CpuData {
-    id: CpuId,
-    idle_thread: Arc<Thread>,
-    current_thread: Arc<Thread>,
 }

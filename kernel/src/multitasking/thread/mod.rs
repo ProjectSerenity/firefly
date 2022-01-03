@@ -1,4 +1,30 @@
-//! thread implements preemptive multitasking, using threads of execution.
+//! Implements preemptive multitasking, using independent threads of execution.
+//!
+//! This module allows the kernel to start an arbitrary number of threads,
+//! preemptively scheduling between them. Threads can sleep, be resumed, and
+//! exit as needed.
+//!
+//! ## Initialisation
+//!
+//! The [`init`] function initialises the scheduler, allowing new threads to be
+//! created. However, the scheduler will not activate and start preempting the
+//! running thread until the kernel's initial thread calls [`scheduler::start`],
+//! at which point the scheduler takes ownership of the flow of execution.
+//!
+//! ## Manipulating threads
+//!
+//! Threads can be created without being started using [`Thread::create_kernel_thread`].
+//! This allows the caller to manipulate the thread's state (or make use of its
+//! thread id) before then starting the thread with [`scheduler::resume`].
+//! Alternatively, a thread can be started immediately by using [`Thread::start_kernel_thread`].
+//!
+//! A running thread may terminate its execution by calling [`exit`], or pause
+//! its execution by calling [`time::sleep`](crate::time::sleep). A sleeping
+//! thread can be resumed early by calling [`scheduler::resume`], but this will
+//! not cancel the timer that would have awoken it.
+//!
+//! Calling [`debug`] (or [`Thread::debug`]) will print debug info about the
+//! thread.
 
 use crate::memory::{free_kernel_stack, new_kernel_stack, StackBounds, VirtAddrRange};
 use crate::multitasking::cpu_local;
@@ -19,8 +45,7 @@ use x86_64::VirtAddr;
 pub mod scheduler;
 mod switch;
 
-/// DEFAULT_TIME_SLICE is the amount of CPU time given to
-/// threads when they are scheduled.
+/// The amount of CPU time given to threads when they are scheduled.
 ///
 pub const DEFAULT_TIME_SLICE: TimeSlice = TimeSlice::from_duration(&Duration::from_millis(100));
 
@@ -46,14 +71,29 @@ static SCHEDULER: Once<spin::Mutex<Scheduler>> = Once::new();
 ///
 const DEFAULT_RFLAGS: u64 = 0x2;
 
-/// init prepares the thread scheduler.
+/// Initialise the thread scheduler, allowing the creation
+/// of new threads.
+///
+/// Note that no new threads will begin execution until the
+/// kernel's initial thread calls [`scheduler::start`] to
+/// hand control over to the scheduler.
+///
+/// # Panics
+///
+/// `init` will panic if called mroe than once.
 ///
 pub fn init() {
     SCHEDULER.init(|| spin::Mutex::new(Scheduler::new()));
 }
 
-/// exit terminates the current thread and switches to
+/// Terminates the current thread and switches to
 /// the next runnable thread.
+///
+/// # Panics
+///
+/// `exit` will panic if called by the idle thread,
+/// which must execute indefinitely to manage the
+/// CPU.
 ///
 pub fn exit() -> ! {
     let current = cpu_local::current_thread();
@@ -91,11 +131,10 @@ pub fn exit() -> ! {
     unreachable!("Exited thread was re-scheduled somehow");
 }
 
-/// debug prints debug information about the currently
-/// executing thread.
+/// Prints debug info about the currently executing thread.
 ///
-/// Note: to debug a non-executing thread, call
-/// its debug method.
+/// Note: to debug a different thread, call its [`debug`](Thread::debug)
+/// method.
 ///
 pub fn debug() {
     // Start by getting the current stack pointer.
@@ -112,7 +151,7 @@ pub fn debug() {
     current.debug();
 }
 
-/// ThreadId uniquely identifies a thread.
+/// Uniquely identifies a thread.
 ///
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ThreadId(u64);
@@ -122,21 +161,22 @@ impl ThreadId {
     ///
     pub const IDLE: Self = ThreadId(0);
 
-    /// new allocates and returns the next available
-    /// ThreadId.
+    /// Allocates and returns the next available ThreadId.
     ///
     fn new() -> Self {
         static NEXT_THREAD_ID: AtomicU64 = AtomicU64::new(1);
         ThreadId(NEXT_THREAD_ID.fetch_add(1, Ordering::Relaxed))
     }
 
+    /// Returns a numerical representation for the thread
+    /// ID.
+    ///
     pub const fn as_u64(&self) -> u64 {
         self.0
     }
 }
 
-/// ThreadState describes the scheduling state
-/// of a thread.
+/// Describes the scheduling state of a thread.
 ///
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum ThreadState {
@@ -155,8 +195,8 @@ pub enum ThreadState {
     Exiting,
 }
 
-/// Thread contains the data necessary to contain
-/// a thread of execution.
+/// Contains the metadata for a thread of
+/// execution.
 ///
 #[derive(Debug)]
 pub struct Thread {
@@ -195,13 +235,13 @@ unsafe fn push_stack(mut rsp: *mut u64, value: u64) -> *mut u64 {
 unsafe impl Sync for Thread {}
 
 impl Thread {
-    /// DEFAULT_KERNEL_STACK_PAGES is the number of pages
-    /// that will be allocated for new kernel threads.
+    /// The number of pages that will be allocated
+    /// for new kernel threads' stack.
     ///
     const DEFAULT_KERNEL_STACK_PAGES: u64 = 128; // 128 4-KiB pages = 512 KiB.
 
-    /// new_idle_thread creates a new kernel thread, to
-    /// which we fall back if no other threads are runnable.
+    /// Creates a new kernel thread, to which we fall
+    /// back if no other threads are runnable.
     ///
     pub(super) fn new_idle_thread(stack_space: &VirtAddrRange) -> Arc<Thread> {
         // The idle thread always has thread id 0, which
@@ -237,13 +277,14 @@ impl Thread {
         thread
     }
 
-    /// create_kernel_thread creates a new kernel thread,
-    /// allocating a stack, and marking it as not runnable.
-    /// The new thread will not start until scheduler::resume
+    /// Creates a new kernel thread, allocating a stack,
+    /// and marking it as not runnable.
+    ///
+    /// The new thread will not start until [`scheduler::resume`]
     /// is called with its thread id.
     ///
     /// When the thread runs, it will start by enabling
-    /// interrupts and calling entry_point.
+    /// interrupts and calling `entry_point`.
     ///
     pub fn create_kernel_thread(entry_point: fn() -> !) -> ThreadId {
         // Allocate and prepare the stack pointer.
@@ -287,11 +328,11 @@ impl Thread {
         id
     }
 
-    /// start_kernel_thread creates a new kernel thread,
-    /// allocating a stack, and adding it to the scheduler.
+    /// Creates a new kernel thread, allocating a stack,
+    /// and adding it to the scheduler.
     ///
     /// When the thread runs, it will start by enabling
-    /// interrupts and calling entry_point.
+    /// interrupts and calling `entry_point`.
     ///
     pub fn start_kernel_thread(entry_point: fn() -> !) -> ThreadId {
         let id = Thread::create_kernel_thread(entry_point);
@@ -300,21 +341,26 @@ impl Thread {
         id
     }
 
-    /// thread_id returns the thread's ThreadId.
+    /// Returns the thread's ThreadId.
     ///
     pub fn thread_id(&self) -> ThreadId {
         self.id
     }
 
-    /// thread_state returns the thread's current
-    /// scheduling state.
+    /// Returns the thread's current scheduling state.
     ///
     pub fn thread_state(&self) -> ThreadState {
         self.state.load()
     }
 
-    /// set_state updates the thread's scheduling
-    /// state.
+    /// Updates the thread's scheduling state.
+    ///
+    /// If this changes the thread's state to `Sleeping`
+    /// or `Exiting`, it is removed from the scheduler.
+    ///
+    /// # Panics
+    ///
+    /// `set_state` panics if changed to `BeingCreated`.
     ///
     pub fn set_state(&self, new_state: ThreadState) {
         let scheduler = SCHEDULER.lock();
@@ -327,29 +373,28 @@ impl Thread {
         }
     }
 
-    /// tick decrements the thread's time slice by
-    /// a single tick, returning true if the time
-    /// slice is now zero.
+    /// Decrements the thread's time slice by a single
+    /// tick, returning `true` if the time slice is now
+    /// zero.
     ///
     pub fn tick(&self) -> bool {
         let time_slice = unsafe { &mut *self.time_slice.get() };
         time_slice.tick()
     }
 
-    /// add_time adds the given additional time
-    /// slice to the thread.
+    /// Adds the given additional time slice to the
+    /// thread.
     ///
     pub fn add_time(&self, extra: TimeSlice) {
         let time_slice = unsafe { &mut *self.time_slice.get() };
         *time_slice += extra;
     }
 
-    /// debug prints debug information about the
-    /// thread.
+    /// Prints debug information about the thread.
     ///
     /// Do not call debug on the currently executing
     /// thread, as its stack pointer will be out of
-    /// date. Call thread::debug() instead.
+    /// date. Call [`debug`] instead.
     ///
     pub fn debug(&self) {
         let stack_bounds = match self.stack_bounds {

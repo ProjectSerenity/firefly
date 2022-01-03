@@ -1,5 +1,14 @@
-//! virtqueue implements Virtio Virtqueues, as described in
-//! section 2.5 of <https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html>.
+//! Contains modules for different Virtio [Virtqueues](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-230005).
+//!
+//! ## Split Virtqueues
+//!
+//! The [split] module provides the split [`Virtqueue`](split::Virtqueue), which can be
+//! used to exchange buffers with a Virtio device.
+//!
+//! ## Packed Virtqueues
+//!
+//! Virtio [packed Virtqueue](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-610007)
+//! are not yet supported.
 
 // TODO(#9): Implement packed virtqueues.
 

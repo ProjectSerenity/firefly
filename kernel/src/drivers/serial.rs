@@ -1,9 +1,23 @@
-//! serial implements the `print` and `println` macros,
-//! writing their output to the first serial port, COM1.
-
-// This module handles interactions with serial ports.
-// In particular, this is used for early kernel logs,
-// which are written to the serial port.
+//! Provides access to serial ports and implements the `print` and `println` macros.
+//!
+//! This module provides functionality to write text to a serial port device. Each
+//! of the four devices is provided ([`COM1`], [`COM2`], [`COM3`], and [`COM4`]),
+//! protected with a spin lock.
+//!
+//! This module also implements the [`print`] and [`println`] macros, both of which
+//! write their output to [`COM1`].
+//!
+//! # Examples
+//!
+//! ```
+//! println!("This is written to serial port COM{}!", 1);
+//! ```
+//!
+//! # Safety
+//!
+//! The [`print`] and [`println`] macros both disable interrupts while running, to
+//! prevent deadlocks when locking [`COM1`]. Direct access to the individual serial
+//! ports without disabling interrupts could lead to deadlocks.
 
 use core::fmt::Write;
 use uart_16550::SerialPort;
@@ -37,16 +51,14 @@ pub fn _print(args: ::core::fmt::Arguments) {
     });
 }
 
-/// print! is the standard printing macro, which writes
-/// its output to COM1.
+/// Print to the first serial port, COM1.
 ///
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ($crate::drivers::serial::_print(format_args!($($arg)*)));
 }
 
-/// println! is the standard printing macro, which writes
-/// its output to COM1.
+/// Print to the first serial port, COM1.
 ///
 #[macro_export]
 macro_rules! println {

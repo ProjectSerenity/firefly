@@ -1,10 +1,12 @@
-//! gdt handles the global descriptor table.
-
-// This module governs the global descriptor table,
-// which is currently only used to store the kernel's
-// code segment and the task state segment, which is
-// used to store a safe stack for the double fault
-// handler.
+//! Manages the [Global Descriptor Table](https://en.wikipedia.org/wiki/Global_Descriptor_Table) (GDT).
+//!
+//! This module governs the GDT, which is currently only used to store the
+//! kernel's code segment and the task state segment, which is used to store
+//! a safe stack for the double fault handler.
+//!
+//! We also store a kernel data segment for use with the GS segment to
+//! store per-CPU data. See [`cpu_local`](crate::multitasking::cpu_local)
+//! for more details.
 
 use lazy_static::lazy_static;
 use x86_64::instructions::segmentation::{Segment, CS, GS};
@@ -13,8 +15,8 @@ use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector
 use x86_64::structures::tss::TaskStateSegment;
 use x86_64::VirtAddr;
 
-/// init installs the global descriptor table,
-/// allong with the code and task state segments.
+/// Installs the global descriptor table,
+/// along with the code and task state segments.
 ///
 pub fn init() {
     GDT.0.load();
@@ -51,7 +53,15 @@ struct Selectors {
 // Set up the task state segment with a safe
 // backup stack for the double fault handler.
 
-#[doc(hidden)]
+/// Index into the TSS where the double fault
+/// handler stack is stored.
+///
+/// This ensures that the double fault handler
+/// operates with a known-good stack so that
+/// a kernel stack overflow does not result in
+/// a page fault in the double handler, leading
+/// to a triple fault.
+///
 pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
 
 lazy_static! {
