@@ -1,3 +1,8 @@
+// Copyright 2021 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 //! Implements the [PCI transport mechanism](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-1000001).
 //!
 //! A PCI [`Device`](crate::drivers::pci::Device) can be used to instantiate

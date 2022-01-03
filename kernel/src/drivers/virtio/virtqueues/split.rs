@@ -1,3 +1,8 @@
+// Copyright 2021 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 //! Implements the [split Virtqueue](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-240006).
 //!
 //! A split [`Virtqueue`] can be used to exchange buffers with a Virtio device. A `Virtqueue`

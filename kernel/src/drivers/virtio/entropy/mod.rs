@@ -1,3 +1,8 @@
+// Copyright 2022 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 //! Implements Virtio [entropy source devices](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-2700004).
 //!
 //! An entropy source can be used to receive cryptographically secure pseudo-random

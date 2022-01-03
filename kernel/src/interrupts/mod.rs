@@ -1,3 +1,8 @@
+// Copyright 2021 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 //! Handles hardware and software interrupts and the [Programmable Interrupt Controller](https://en.wikipedia.org/wiki/Programmable_interrupt_controller) (PIC).
 //!
 //! This module handles hardware and software interrupts and the PIC.

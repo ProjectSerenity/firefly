@@ -1,3 +1,8 @@
+// Copyright 2021 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 //! Implements a simple wrapper type, which can be left
 //! uninitialised until the first time it is overwritten.
 

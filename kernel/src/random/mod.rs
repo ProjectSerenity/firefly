@@ -1,3 +1,8 @@
+// Copyright 2022 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 //! Provides a cryptographically secure pseudo-random number generator (CSPRNG).
 //!
 //! ## Design and algorithm selection

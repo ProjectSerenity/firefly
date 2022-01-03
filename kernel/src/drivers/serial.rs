@@ -1,3 +1,8 @@
+// Copyright 2021 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 //! Provides access to serial ports and implements the `print` and `println` macros.
 //!
 //! This module provides functionality to write text to a serial port device. Each

@@ -1,3 +1,8 @@
+// Copyright 2021 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 //! Implements Virtio [network cards](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-1940001).
 //!
 //! A network card can be used to send and receive Ethernet frames.

@@ -1,3 +1,8 @@
+// Copyright 2021 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 //! Implements the functionality to read the [Real-time clock](https://en.wikipedia.org/wiki/Real-time_clock) (RTC).
 //!
 //! The clock functionality is captured in the Time type,

@@ -1,3 +1,8 @@
+// Copyright 2021 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 //! Provides a bitmap frame allocator, which can be used to allocate
 //! and deallocate physical memory frames.
 

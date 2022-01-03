@@ -1,3 +1,8 @@
+// Copyright 2021 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 //! mapping includes helper functionality for mapping out virtual memory, based
 //! on the contents of a level 4 page table.
 

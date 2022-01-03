@@ -1,3 +1,8 @@
+// Copyright 2021 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 //! Implements the priority queue of system timers.
 //!
 //! This is a fairly simple design to get us started. Each timer consists of

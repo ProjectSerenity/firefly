@@ -1,3 +1,8 @@
+// Copyright 2021 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 //! Handles the hardware timer for regular ticks and the clock in the [Real-time clock](https://en.wikipedia.org/wiki/Real-time_clock) (RTC).
 //!
 //! This module focuses on time-related functionality. In particular, it

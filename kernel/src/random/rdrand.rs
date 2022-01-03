@@ -1,3 +1,8 @@
+// Copyright 2022 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 //! rdrand provides an entropy source using the RDRAND instruction, if available.
 
 use crate::random::{register_entropy_source, EntropySource};

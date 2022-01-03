@@ -1,3 +1,8 @@
+// Copyright 2021 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 //! Manages the [Global Descriptor Table](https://en.wikipedia.org/wiki/Global_Descriptor_Table) (GDT).
 //!
 //! This module governs the GDT, which is currently only used to store the
