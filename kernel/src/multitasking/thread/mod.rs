@@ -25,8 +25,8 @@
 //!
 //! A running thread may terminate its execution by calling [`exit`], or pause
 //! its execution by calling [`time::sleep`](crate::time::sleep). A sleeping
-//! thread can be resumed early by calling [`scheduler::resume`], but this will
-//! not cancel the timer that would have awoken it.
+//! thread can be resumed early by calling [`scheduler::resume`] (or [`ThreadId.resume`](ThreadId::resume),
+//! but this will not cancel the timer that would have awoken it.
 //!
 //! Calling [`debug`] (or [`Thread::debug`]) will print debug info about the
 //! thread.
@@ -178,6 +178,12 @@ impl ThreadId {
     ///
     pub const fn as_u64(&self) -> u64 {
         self.0
+    }
+
+    /// Resumes the referenced thread.
+    ///
+    pub fn resume(&self) {
+        scheduler::resume(*self);
     }
 }
 
@@ -341,7 +347,7 @@ impl Thread {
     ///
     pub fn start_kernel_thread(entry_point: fn() -> !) -> ThreadId {
         let id = Thread::create_kernel_thread(entry_point);
-        scheduler::resume(id);
+        id.resume();
 
         id
     }

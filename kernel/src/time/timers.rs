@@ -10,7 +10,6 @@
 //! of the thread we should resume.
 
 use crate::multitasking::thread;
-use crate::multitasking::thread::scheduler;
 use crate::time;
 use crate::utils::lazy::Lazy;
 use alloc::collections::binary_heap::BinaryHeap;
@@ -63,7 +62,7 @@ pub fn process() {
 
         mem::drop(next);
         let next = timers.pop().unwrap();
-        scheduler::resume(next.thread_id);
+        next.thread_id.resume();
     }
 }
 

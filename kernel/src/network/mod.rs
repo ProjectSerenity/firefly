@@ -17,7 +17,7 @@
 // TODO: Make the smoltcp Interface generic over devices, rather than specialising to drivers::virtio::network::Device.
 
 use crate::drivers::virtio::network;
-use crate::multitasking::thread::{scheduler, ThreadId};
+use crate::multitasking::thread::ThreadId;
 use crate::{println, time};
 use alloc::vec::Vec;
 use managed::ManagedSlice;
@@ -142,7 +142,7 @@ impl Interface {
                     // Resume any initial workloads.
                     let mut workloads = INITIAL_WORKLOADS.lock();
                     for thread_id in workloads.iter() {
-                        scheduler::resume(*thread_id);
+                        thread_id.resume();
                     }
 
                     workloads.clear();
