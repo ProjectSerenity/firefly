@@ -3,7 +3,6 @@
 // Physical memory frame allocation functionality.
 
 use crate::memory::pmm::boot_info::BootInfoFrameAllocator;
-use crate::Locked;
 use bootloader::bootinfo::MemoryMap;
 use lazy_static::lazy_static;
 use x86_64::structures::paging::frame::PhysFrameRange;
@@ -20,7 +19,7 @@ lazy_static! {
     /// been set up. To bootstrap the heap, use a BootInfoFrameAllocator,
     /// then pass that to pmm::init so ALLOCATOR can take over.
     ///
-    pub static ref ALLOCATOR: Locked<BitmapFrameAllocator> = Locked::new(BitmapFrameAllocator::empty());
+    pub static ref ALLOCATOR: spin::Mutex<BitmapFrameAllocator> = spin::Mutex::new(BitmapFrameAllocator::empty());
 }
 
 /// init sets up the physical memory manager, taking over
