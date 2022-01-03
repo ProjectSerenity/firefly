@@ -15,8 +15,7 @@ extern crate alloc;
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use kernel::drivers::pci;
-use kernel::multitasking::thread::{scheduler, Thread};
-use kernel::{memory, network, println, random};
+use kernel::{memory, println, random};
 
 /// This function is called on panic.
 #[cfg(not(test))]
@@ -50,7 +49,8 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
 #[cfg(not(test))]
 fn kmain() {
-    use kernel::{time, CPU_ID};
+    use kernel::multitasking::thread::{scheduler, Thread};
+    use kernel::{network, time, CPU_ID};
 
     println!("Kernel ready!");
     println!("Kernel booted at {}.", time::boot_time());
@@ -73,6 +73,7 @@ fn kmain() {
     scheduler::start();
 }
 
+#[allow(dead_code)]
 fn initial_workload() -> ! {
     println!("Starting initial workload.");
 
