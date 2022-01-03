@@ -2,7 +2,6 @@
 
 // Physical memory frame allocation functionality.
 
-use crate::memory::pmm::boot_info::BootInfoFrameAllocator;
 use bootloader::bootinfo::MemoryMap;
 use lazy_static::lazy_static;
 use x86_64::structures::paging::frame::PhysFrameRange;
@@ -11,7 +10,8 @@ use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame, Si
 mod bitmap;
 mod boot_info;
 
-pub use crate::memory::pmm::bitmap::BitmapFrameAllocator;
+pub use bitmap::BitmapFrameAllocator;
+pub use boot_info::BootInfoFrameAllocator;
 
 lazy_static! {
     /// ALLOCATOR is the physical memory allocator. ALLOCATOR can be
