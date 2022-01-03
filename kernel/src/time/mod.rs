@@ -16,7 +16,8 @@
 //! The [`Duration`] and [`Instant`] types can be used to measure and compare
 //! points in time.
 //!
-//!
+//! The [`sleep`] function can be used to pause the current thread for the
+//! given duration, allowing other threads to execute instead.
 
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::{scheduler, ThreadState};
