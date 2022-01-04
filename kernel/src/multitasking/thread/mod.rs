@@ -91,6 +91,34 @@ pub fn init() {
     SCHEDULER.init(|| spin::Mutex::new(Scheduler::new()));
 }
 
+/// Puts the current thread to sleep indefinitely
+/// and switches to the next runnable thread. The
+/// thread can be awoken later by calling [`scheduler::resume`]
+/// or by calling its [`ThreadId.resume`](ThreadId::resume).
+///
+/// # Panics
+///
+/// `suspend` will panic if called by the idle thread,
+/// which must execute indefinitely to manage the
+/// CPU.
+///
+pub fn suspend() {
+    let current = cpu_local::current_thread();
+    if current.id == ThreadId::IDLE {
+        panic!("idle thread tried to suspend");
+    }
+
+    // This is just like time::sleep, but we
+    // don't create a waking timer.
+
+    // Put ourselves to sleep.
+    current.set_state(ThreadState::Sleeping);
+    mem::drop(current);
+
+    // Switch to the next thread.
+    scheduler::switch();
+}
+
 /// Terminates the current thread and switches to
 /// the next runnable thread.
 ///
