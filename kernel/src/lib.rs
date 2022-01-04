@@ -195,6 +195,11 @@ pub fn shutdown_qemu() -> ! {
         x86_64::instructions::port::Port::new(0x604).write(0x2000u16);
     }
 
+    // Sometimes there's a delay before QEMU fully
+    // exits, so to avoid the below panic triggering
+    // unnecessarily, we loop briefly.
+    for _ in 0..10000 {}
+
     unreachable!("instruction to exit QEMU returned somehow");
 }
 
