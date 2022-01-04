@@ -40,9 +40,11 @@ use crate::utils::once::Once;
 use crate::utils::pretty::Bytes;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
+use alloc::task::Wake;
 use core::cell::UnsafeCell;
 use core::mem;
 use core::sync::atomic::{AtomicU64, Ordering};
+use core::task::Waker;
 use crossbeam::atomic::AtomicCell;
 use x86_64::instructions::interrupts;
 use x86_64::VirtAddr;
@@ -212,6 +214,27 @@ impl ThreadId {
     ///
     pub fn resume(&self) {
         scheduler::resume(*self);
+    }
+
+    /// Returns a Waker that will resume this thread when
+    /// invoked.
+    ///
+    pub fn waker(self) -> Waker {
+        Waker::from(Arc::new(self))
+    }
+}
+
+impl Wake for ThreadId {
+    /// Wake the thread, using [`resume`](ThreadId::resume).
+    ///
+    fn wake(self: Arc<Self>) {
+        self.resume();
+    }
+
+    /// Wake the thread, using [`resume`](ThreadId::resume).
+    ///
+    fn wake_by_ref(self: &Arc<Self>) {
+        self.resume();
     }
 }
 
