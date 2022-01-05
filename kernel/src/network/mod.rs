@@ -19,13 +19,15 @@
 use crate::drivers::virtio::network;
 use crate::multitasking::thread::ThreadId;
 use crate::{println, time};
+use alloc::collections::BTreeMap;
+use alloc::vec;
 use alloc::vec::Vec;
 use managed::ManagedSlice;
 use smoltcp;
-use smoltcp::iface::SocketHandle;
+use smoltcp::iface::{InterfaceBuilder, NeighborCache, Routes, SocketHandle, SocketStorage};
 use smoltcp::socket::{Dhcpv4Config, Dhcpv4Event, Dhcpv4Socket};
 use smoltcp::time::Instant;
-use smoltcp::wire::{IpCidr, Ipv4Address, Ipv4Cidr};
+use smoltcp::wire::{EthernetAddress, HardwareAddress, IpCidr, Ipv4Address, Ipv4Cidr};
 use x86_64::instructions::interrupts;
 
 /// INITIAL_WORKLOADS can be a set of thread ids that
@@ -225,9 +227,20 @@ impl InterfaceHandle {
 /// Registers a new network interface, returning a unique
 /// interface handle.
 ///
-pub fn register_interface(
-    mut iface: smoltcp::iface::Interface<'static, network::Device>,
-) -> InterfaceHandle {
+pub fn add_interface(device: network::Device, mac: EthernetAddress) -> InterfaceHandle {
+    // Create the interface.
+    // TODO: Add a random seed.
+    let ip_addrs = vec![IpCidr::Ipv4(Ipv4Cidr::new(Ipv4Address::UNSPECIFIED, 0))];
+    let routes = Routes::new(BTreeMap::new());
+    let neighbours = NeighborCache::new(BTreeMap::new());
+    let sockets = Vec::<SocketStorage>::new();
+    let mut iface = InterfaceBuilder::new(device, sockets)
+        .hardware_addr(HardwareAddress::Ethernet(mac))
+        .neighbor_cache(neighbours)
+        .ip_addrs(ip_addrs)
+        .routes(routes)
+        .finalize();
+
     // Enable DHCP.
     let socket = Dhcpv4Socket::new();
     let dhcp = iface.add_socket(socket);

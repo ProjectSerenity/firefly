@@ -58,18 +58,16 @@ use crate::interrupts::{register_irq, Irq};
 use crate::memory::{phys_to_virt_addr, pmm};
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::{scheduler, Thread, ThreadId};
-use crate::network::{register_interface, InterfaceHandle};
+use crate::network::{add_interface, InterfaceHandle};
 use crate::{println, time};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
-use alloc::vec;
 use alloc::vec::Vec;
 use bitflags::bitflags;
 use core::{mem, slice};
-use smoltcp::iface::{InterfaceBuilder, NeighborCache, Routes, SocketStorage};
 use smoltcp::phy::{DeviceCapabilities, Medium, RxToken, TxToken};
 use smoltcp::time::Instant;
-use smoltcp::wire::{EthernetAddress, HardwareAddress, IpCidr, Ipv4Address, Ipv4Cidr};
+use smoltcp::wire::EthernetAddress;
 use x86_64::instructions::interrupts;
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::structures::paging::frame::PhysFrame;
@@ -635,22 +633,9 @@ pub fn install_pci_device(device: pci::Device) {
         driver: driver.clone(),
     };
 
-    // Turn it into an interface.
-    // TODO: Add a random seed.
-    let ip_addrs = vec![IpCidr::Ipv4(Ipv4Cidr::new(Ipv4Address::UNSPECIFIED, 0))];
-    let routes = Routes::new(BTreeMap::new());
-    let neighbours = NeighborCache::new(BTreeMap::new());
-    let sockets = Vec::<SocketStorage>::new();
-    let iface = InterfaceBuilder::new(device, sockets)
-        .hardware_addr(HardwareAddress::Ethernet(mac))
-        .neighbor_cache(neighbours)
-        .ip_addrs(ip_addrs)
-        .routes(routes)
-        .finalize();
-
-    // Pass the interface to the network stack
+    // Pass the device to the network stack
     // and set up its interrupts.
-    let handle = register_interface(iface);
+    let handle = add_interface(device, mac);
     let iface_handle = InterfaceDriver {
         driver: driver,
         handle,
