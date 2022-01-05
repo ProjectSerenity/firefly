@@ -568,7 +568,6 @@ pub fn install_pci_device(device: pci::Device) {
         driver.read_device_config_u8(4),
         driver.read_device_config_u8(5),
     ]);
-    println!("Found network card with MAC {}.", mac);
 
     let net_features = Network::from_bits_truncate(driver.features());
     let mtu = if net_features.contains(Network::MTU) {

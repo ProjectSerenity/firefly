@@ -20,6 +20,8 @@ use crate::drivers::virtio::network;
 use crate::multitasking::thread::ThreadId;
 use crate::{println, time};
 use alloc::collections::BTreeMap;
+use alloc::format;
+use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use managed::ManagedSlice;
@@ -59,6 +61,9 @@ static INTERFACES: spin::Mutex<Vec<Interface>> = spin::Mutex::new(Vec::new());
 /// send and receive packets.
 ///
 pub struct Interface {
+    // name is the interface's unique name.
+    name: String,
+
     // iface is the underlying Smoltcp Interface.
     iface: smoltcp::iface::Interface<'static, network::Device>,
 
@@ -70,9 +75,14 @@ pub struct Interface {
 }
 
 impl Interface {
-    fn new(iface: smoltcp::iface::Interface<'static, network::Device>, dhcp: SocketHandle) -> Self {
+    fn new(
+        name: String,
+        iface: smoltcp::iface::Interface<'static, network::Device>,
+        dhcp: SocketHandle,
+    ) -> Self {
         let config = None;
         Interface {
+            name,
             iface,
             dhcp,
             config,
@@ -198,6 +208,16 @@ impl InterfaceHandle {
         InterfaceHandle(index)
     }
 
+    /// Returns the interface's unique name.
+    ///
+    pub fn name(&self) -> String {
+        interrupts::without_interrupts(|| {
+            let ifaces = INTERFACES.lock();
+            let iface = ifaces.get(self.0).expect("invalid interface handle");
+            iface.name.clone()
+        })
+    }
+
     /// Returns the current DHCP configuration, if one has been
     /// established.
     ///
@@ -247,8 +267,10 @@ pub fn add_interface(device: network::Device, mac: EthernetAddress) -> Interface
 
     interrupts::without_interrupts(|| {
         let mut ifaces = INTERFACES.lock();
+        let name = format!("ethernet{}", ifaces.len());
         let handle = InterfaceHandle::new(ifaces.len());
-        ifaces.push(Interface::new(iface, dhcp));
+        println!("New interface {} with MAC address {}.", &name, mac);
+        ifaces.push(Interface::new(name, iface, dhcp));
 
         handle
     })
