@@ -35,7 +35,7 @@ use crate::memory::{free_kernel_stack, new_kernel_stack, StackBounds, VirtAddrRa
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler::Scheduler;
 use crate::println;
-use crate::time::{Duration, TimeSlice};
+use crate::time::{timers, Duration, TimeSlice};
 use crate::utils::once::Once;
 use crate::utils::pretty::Bytes;
 use alloc::collections::BTreeMap;
@@ -221,6 +221,15 @@ impl ThreadId {
     ///
     pub fn waker(self) -> Waker {
         Waker::from(Arc::new(self))
+    }
+
+    /// Cancels any pending timers due to awake this thread.
+    ///
+    /// Returns whether any timers were cancelled without
+    /// having fired.
+    ///
+    pub fn cancel_timers(self) -> bool {
+        timers::cancel_all_for_thread(self)
     }
 }
 

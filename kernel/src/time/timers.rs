@@ -28,7 +28,7 @@ pub(super) fn init() {
 }
 
 /// Creates a new timer and adds it to the priority
-//// queue of timers.
+/// queue of timers.
 ///
 /// The given thread will be resumed once wakeup is
 /// no longer in the future.
@@ -38,6 +38,20 @@ pub fn add(thread_id: thread::ThreadId, wakeup: time::Instant) -> Timer {
     interrupts::without_interrupts(|| TIMERS.lock().push(timer));
 
     timer
+}
+
+/// Cancel all timers for the given thread.
+///
+/// Returns whether any timers were cancelled without
+/// having fired.
+///
+pub fn cancel_all_for_thread(thread_id: thread::ThreadId) -> bool {
+    let mut timers = TIMERS.lock();
+    let len1 = timers.len();
+    timers.retain(|x| x.thread_id != thread_id);
+    let len2 = timers.len();
+
+    len1 != len2
 }
 
 /// Processes the set of system timers, waking threads
