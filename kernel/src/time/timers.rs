@@ -33,8 +33,11 @@ pub(super) fn init() {
 /// The given thread will be resumed once wakeup is
 /// no longer in the future.
 ///
-pub fn add(thread_id: thread::ThreadId, wakeup: time::Instant) {
-    interrupts::without_interrupts(|| TIMERS.lock().push(Timer::new(thread_id, wakeup)));
+pub fn add(thread_id: thread::ThreadId, wakeup: time::Instant) -> Timer {
+    let timer = Timer::new(thread_id, wakeup);
+    interrupts::without_interrupts(|| TIMERS.lock().push(timer));
+
+    timer
 }
 
 /// Processes the set of system timers, waking threads
@@ -70,7 +73,7 @@ pub fn process() {
 /// should be woken.
 ///
 #[derive(Clone, Copy, Eq, Ord)]
-struct Timer {
+pub struct Timer {
     wakeup: time::Instant,
     thread_id: thread::ThreadId,
 }
