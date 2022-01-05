@@ -85,6 +85,20 @@ impl Timer {
     fn new(thread_id: thread::ThreadId, wakeup: time::Instant) -> Self {
         Timer { wakeup, thread_id }
     }
+
+    /// Cancels the timer, ensuring that it will
+    /// not fire from this point onward.
+    ///
+    /// Returns whether the timer has expired,
+    /// and therefore may have fired already.
+    ///
+    pub fn cancel(self) -> bool {
+        let expired = self.wakeup <= time::now();
+        let mut timers = TIMERS.lock();
+        timers.retain(|x| *x != self);
+
+        expired
+    }
 }
 
 impl PartialEq for Timer {

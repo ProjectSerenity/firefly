@@ -27,6 +27,7 @@
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
 #![feature(asm)]
+#![feature(binary_heap_retain)]
 #![feature(const_btree_new)]
 #![feature(const_mut_refs)]
 #![feature(custom_test_frameworks)]
