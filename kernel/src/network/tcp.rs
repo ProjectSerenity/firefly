@@ -154,6 +154,11 @@ const DEFAULT_BACKLOG: usize = 16;
 /// Contains the configuration options for a TCP server.
 ///
 pub struct ListenConfig {
+    // If true, calls to send_to and recv_from on new
+    // ports will return `Err(Error::NotReady)` if they
+    // cannot occur immediately, instead of blocking.
+    non_blocking: bool,
+
     // The max number of pending connections.
     backlog: usize,
 
@@ -169,6 +174,7 @@ impl Default for ListenConfig {
     ///
     fn default() -> Self {
         ListenConfig {
+            non_blocking: false,
             backlog: DEFAULT_BACKLOG,
             recv_buffer_size: DEFAULT_RECV_BUFFER_SIZE,
             send_buffer_size: DEFAULT_SEND_BUFFER_SIZE,
@@ -177,6 +183,23 @@ impl Default for ListenConfig {
 }
 
 impl ListenConfig {
+    /// Sets new connections to non-blocking mode.
+    ///
+    /// If a call to [`accept`](Listener::accept) on a
+    /// non-blocking listener, or [`send`](Connection::send)
+    /// or [`recv`](Connection::recv) on a non-blocking
+    /// connection would otherwise block, it will instead
+    /// return [`Error::NotReady`](super::Error::NotReady).
+    ///
+    /// Repeating the call at a later time may succeed.
+    ///
+    pub fn set_non_blocking(self) -> Self {
+        ListenConfig {
+            non_blocking: true,
+            ..self
+        }
+    }
+
     /// Sets the maximum number of pending connections that can be held
     /// simultaneously.
     ///
@@ -263,6 +286,7 @@ impl ListenConfig {
                 let conn = Connection {
                     iface: iface_handle,
                     socket: sock_handle,
+                    non_blocking: self.non_blocking,
                     local,
                     remote: IpEndpoint::UNSPECIFIED,
                 };
@@ -275,6 +299,7 @@ impl ListenConfig {
                 local,
                 backlog,
                 listening: true,
+                non_blocking: self.non_blocking,
                 recv_buffer_size: self.recv_buffer_size,
                 send_buffer_size: self.send_buffer_size,
             };
@@ -298,6 +323,10 @@ pub struct Listener {
 
     // Whether we are still listening.
     listening: bool,
+
+    // Whether the listener's APIs will return
+    // an error, rather than blocking.
+    non_blocking: bool,
 
     // The receive buffer size for new connections.
     recv_buffer_size: usize,
@@ -341,6 +370,10 @@ impl Listener {
 
                 match found {
                     None => {
+                        if self.non_blocking {
+                            return Err(Error::ConnectionClosed);
+                        }
+
                         // Set a recv waker on each backlog socket
                         // then drop our handles and suspend ourself.
                         //
@@ -378,6 +411,7 @@ impl Listener {
                         self.backlog.push(Connection {
                             iface: self.iface,
                             socket: sock_handle,
+                            non_blocking: self.non_blocking,
                             local: self.local,
                             remote: IpEndpoint::UNSPECIFIED,
                         });
@@ -426,6 +460,11 @@ impl Drop for Listener {
 /// Contains the configuration options for a TCP client.
 ///
 pub struct DialConfig {
+    // If true, calls to send and recv on new
+    // connections will return `Err(Error::NotReady)` if
+    // they cannot occur immediately, instead of blocking.
+    non_blocking: bool,
+
     // The local address that should be used when opening
     // new, outbound, connections.
     local: IpEndpoint,
@@ -442,6 +481,7 @@ impl Default for DialConfig {
     ///
     fn default() -> Self {
         DialConfig {
+            non_blocking: false,
             local: IpEndpoint::UNSPECIFIED,
             recv_buffer_size: DEFAULT_RECV_BUFFER_SIZE,
             send_buffer_size: DEFAULT_SEND_BUFFER_SIZE,
@@ -450,6 +490,21 @@ impl Default for DialConfig {
 }
 
 impl DialConfig {
+    /// Sets new connections to non-blocking mode.
+    ///
+    /// If a call to [`send`](Connection::send) or [`recv`](Connection::recv)
+    /// on a non-blocking connection would otherwise block, it
+    /// will instead return [`Error::NotReady`](super::Error::NotReady).
+    ///
+    /// Repeating the call at a later time may succeed.
+    ///
+    pub fn set_non_blocking(self) -> Self {
+        DialConfig {
+            non_blocking: true,
+            ..self
+        }
+    }
+
     /// Set the local address that should be used when
     /// opening new, outbound, connections.
     ///
@@ -547,6 +602,7 @@ impl DialConfig {
                 let conn = Connection {
                     iface: iface_handle,
                     socket: sock_handle,
+                    non_blocking: self.non_blocking,
                     local,
                     remote,
                 };
@@ -584,6 +640,7 @@ impl DialConfig {
                     let conn = Connection {
                         iface: iface_handle,
                         socket: sock_handle,
+                        non_blocking: self.non_blocking,
                         local,
                         remote,
                     };
@@ -606,6 +663,12 @@ pub struct Connection {
 
     // The socket we use to send and receive packets.
     socket: SocketHandle,
+
+    // If true, calls to send and recv on new
+    // connections will return `Err(Error::NotReady)`
+    // if they cannot occur immediately, instead of
+    // blocking.
+    non_blocking: bool,
 
     // The address at our end of the connection.
     local: IpEndpoint,
@@ -668,6 +731,10 @@ impl Connection {
                 }
 
                 if !socket.can_send() {
+                    if self.non_blocking {
+                        return Err(Error::NotReady);
+                    }
+
                     socket.register_send_waker(&thread_id.waker());
 
                     // Drop our handles to avoid a deadlock.
@@ -717,6 +784,10 @@ impl Connection {
                 }
 
                 if !socket.can_recv() {
+                    if self.non_blocking {
+                        return Err(Error::NotReady);
+                    }
+
                     socket.register_recv_waker(&thread_id.waker());
 
                     // Drop our handles to avoid a deadlock.
@@ -733,6 +804,10 @@ impl Connection {
                 let bytes_read = socket.recv_slice(buf)?;
                 if bytes_read > 0 {
                     return Ok(bytes_read);
+                }
+
+                if self.non_blocking {
+                    return Err(Error::NotReady);
                 }
 
                 // Try again.
