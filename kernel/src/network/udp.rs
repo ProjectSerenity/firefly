@@ -119,6 +119,11 @@ pub fn ephemeral_port() -> u16 {
 /// Contains the configuration options for a UDP port.
 ///
 pub struct Config {
+    // If true, calls to send_to and recv_from on new
+    // ports will return `Err(Error::NotReady)` if they
+    // cannot occur immediately, instead of blocking.
+    non_blocking: bool,
+
     // The number of packets in the receive buffer for
     // new ports.
     recv_packet_size: usize,
@@ -141,6 +146,7 @@ impl Default for Config {
     ///
     fn default() -> Self {
         Config {
+            non_blocking: false,
             recv_packet_size: DEFAULT_RECV_PACKETS_BUFFER,
             send_packet_size: DEFAULT_SEND_PACKETS_BUFFER,
             recv_buffer_size: DEFAULT_RECV_BUFFER_SIZE,
@@ -150,6 +156,21 @@ impl Default for Config {
 }
 
 impl Config {
+    /// Sets new ports to non-blocking mode.
+    ///
+    /// If a call to [`send_to`](Port::send_to) or [`recv_from`](Port::recv_from)
+    /// on a non-blocking port would otherwise block, it
+    /// will instead return [`Error::NotReady`](super::Error::NotReady).
+    ///
+    /// Repeating the call at a later time may succeed.
+    ///
+    pub fn set_non_blocking(self) -> Self {
+        Config {
+            non_blocking: true,
+            ..self
+        }
+    }
+
     /// Sets the number of packets in the receive buffer
     /// in new ports.
     ///
@@ -247,6 +268,7 @@ impl Config {
                 iface: iface_handle,
                 socket: sock_handle,
                 local,
+                non_blocking: self.non_blocking,
             })
         })
     }
@@ -264,6 +286,10 @@ pub struct Port {
 
     // The address at our end of the connection.
     local: IpEndpoint,
+
+    // Whether the port's APIs will return an error,
+    // rather than blocking.
+    non_blocking: bool,
 }
 
 impl Port {
@@ -293,6 +319,10 @@ impl Port {
     /// returned, then the number of bytes sent will be
     /// the length of `buf`.
     ///
+    /// If the port is in non-blocking mode, and there is
+    /// insufficient buffer space to send the packet now,
+    /// `send_to` will return [`Error::NotReady`](super::Error::NotReady).
+    ///
     pub fn send_to<T: Into<IpEndpoint>>(&self, buf: &[u8], peer: T) -> Result<usize, Error> {
         // Realise the peer's address.
         let peer = peer.into();
@@ -312,6 +342,10 @@ impl Port {
                 }
 
                 if !socket.can_send() {
+                    if self.non_blocking {
+                        return Err(Error::NotReady);
+                    }
+
                     socket.register_send_waker(&thread_id.waker());
 
                     // Drop our handles to avoid a deadlock.
@@ -342,6 +376,10 @@ impl Port {
     /// error is returned, then the number of bytes will be
     /// non-zero.
     ///
+    /// If the port is in non-blocking mode, and there are
+    /// no packets currently buffered, `recv_from` will return
+    /// [`Error::NotReady`](super::Error::NotReady).
+    ///
     pub fn recv_from(&self, buf: &mut [u8]) -> Result<(usize, IpEndpoint), Error> {
         let thread_id = cpu_local::current_thread().thread_id();
 
@@ -359,6 +397,10 @@ impl Port {
                 }
 
                 if !socket.can_recv() {
+                    if self.non_blocking {
+                        return Err(Error::NotReady);
+                    }
+
                     socket.register_recv_waker(&thread_id.waker());
 
                     // Drop our handles to avoid a deadlock.
@@ -375,6 +417,10 @@ impl Port {
                 let (bytes_read, peer) = socket.recv_slice(buf)?;
                 if bytes_read > 0 {
                     return Ok((bytes_read, peer));
+                }
+
+                if self.non_blocking {
+                    return Err(Error::NotReady);
                 }
 
                 // Try again.
