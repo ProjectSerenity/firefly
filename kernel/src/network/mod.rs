@@ -16,6 +16,7 @@
 
 // TODO: Make the smoltcp Interface generic over devices, rather than specialising to drivers::virtio::network::Device.
 
+pub mod tcp;
 pub mod udp;
 
 use crate::drivers::virtio::network;
