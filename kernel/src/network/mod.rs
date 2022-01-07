@@ -275,3 +275,51 @@ pub fn add_interface(device: network::Device, mac: EthernetAddress) -> Interface
         handle
     })
 }
+
+/// The set of errors that can occur when performing
+/// network activities.
+///
+#[derive(Clone, Copy, Debug)]
+pub enum Error {
+    /// The provided address is not valid.
+    InvalidAddress,
+
+    /// The attempted operation is not currently valid.
+    ///
+    /// For example, this error would be returned if trying
+    /// to send packets when a connection is not yet open.
+    InvalidOperation,
+
+    /// Failed to establish a connection.
+    ConnectFailure,
+
+    /// The connection is already closed.
+    ConnectionClosed,
+
+    /// The listener is already closed.
+    ListenerClosed,
+
+    /// This port is already being used elsewhere.
+    PortInUse,
+
+    /// An operation was cancelled by an expired timeout.
+    Timeout,
+
+    /// This error was unexpected.
+    ///
+    /// Examine the inner error for more details.
+    Unknown(smoltcp::Error),
+}
+
+impl From<smoltcp::Error> for Error {
+    /// Convert the smoltcp error to a Firefly network error.
+    ///
+    fn from(err: smoltcp::Error) -> Self {
+        match err {
+            smoltcp::Error::Illegal => Error::InvalidOperation,
+            smoltcp::Error::Unaddressable => Error::InvalidAddress,
+            smoltcp::Error::Finished => Error::ConnectionClosed,
+            _ => Error::Unknown(err),
+        }
+    }
+}
