@@ -308,6 +308,11 @@ pub enum Error {
     /// An operation was cancelled by an expired timeout.
     Timeout,
 
+    /// A non-blocking API has been called, but the action
+    /// cannot yet be completed. Repeating the call at a
+    /// later time may succeed.
+    NotReady,
+
     /// This error was unexpected.
     ///
     /// Examine the inner error for more details.
