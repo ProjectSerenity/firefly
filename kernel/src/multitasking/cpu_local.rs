@@ -217,6 +217,9 @@ pub fn ready() -> bool {
 ///
 unsafe fn cpu_data() -> &'static mut CpuData {
     let ptr = GsBase::read();
+    if ptr.is_null() {
+        panic!("CPU-local data fetched but GS base is 0");
+    }
 
     &mut *(ptr.as_mut_ptr() as *mut CpuData)
 }
