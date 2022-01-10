@@ -35,12 +35,22 @@ use x86_64::instructions::interrupts;
 use x86_64::instructions::segmentation::{Segment, CS, GS, SS};
 use x86_64::instructions::tables::load_tss;
 use x86_64::registers::model_specific::GsBase;
+use x86_64::registers::model_specific::Msr;
 use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable};
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
 };
 use x86_64::structures::tss::TaskStateSegment;
 use x86_64::VirtAddr;
+
+/// The model-specific register used to provide
+/// the user code and stack segment selectors to
+/// SYSEXIT.
+//
+// We define that here, as it's not yet definned
+// in [`x86_64::registers::model_specific`].
+//
+pub const IA32_SYSENTER_CS: Msr = Msr::new(0x174);
 
 /// INITIALSED tracks whether the CPU-local
 /// data has been set up on this CPU. It is
