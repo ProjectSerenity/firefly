@@ -250,7 +250,7 @@ impl StackBounds {
     pub fn from(range: &VirtAddrRange) -> Self {
         StackBounds {
             start: range.start(),
-            end: range.end() + 1u64, // StackBounds is exclusive, range is inclusive.
+            end: range.end(),
         }
     }
 
@@ -262,8 +262,8 @@ impl StackBounds {
         self.start
     }
 
-    /// Returns the first address beyond the stack bounds. As
-    /// the stack grows downwards, this is also known as the
+    /// Returns the largest valid address in the stack bounds.
+    /// As the stack grows downwards, this is also known as the
     /// top of the stack.
     ///
     pub fn end(&self) -> VirtAddr {
@@ -273,14 +273,14 @@ impl StackBounds {
     /// Returns the number of pages included in the bounds.
     ///
     pub fn num_pages(&self) -> u64 {
-        (self.end - self.start) / Size4KiB::SIZE as u64
+        ((self.end - self.start) + (Size4KiB::SIZE - 1)) / Size4KiB::SIZE as u64
     }
 
     /// Returns whether the stack bounds include the given
     /// virtual address.
     ///
     pub fn contains(&self, addr: VirtAddr) -> bool {
-        self.start <= addr && addr < self.end
+        self.start <= addr && addr <= self.end
     }
 }
 
@@ -363,7 +363,7 @@ pub fn new_kernel_stack(num_pages: u64) -> Result<StackBounds, MapToError<Size4K
 
     Ok(StackBounds {
         start: stack_start.start_address(),
-        end: stack_end.start_address(),
+        end: stack_end.start_address() - 1u64,
     })
 }
 

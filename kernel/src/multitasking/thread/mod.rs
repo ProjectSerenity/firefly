@@ -365,6 +365,15 @@ impl Thread {
         let rsp = unsafe {
             let mut rsp: *mut u64 = stack.end().as_mut_ptr();
 
+            // The stack pointer starts out pointing to
+            // the last address in range, which is not
+            // aligned. We add one to the pointer value
+            // so it becomes aligned again. The next
+            // `push_stack` will subtract 8 straight
+            // away, so we will still remain within the
+            // stack bounds.
+            rsp = (rsp as *mut u8).add(1) as *mut u64;
+
             // Push the entry point, to be called by
             // start_kernel_thread.
             rsp = push_stack(rsp, entry_point as u64);
