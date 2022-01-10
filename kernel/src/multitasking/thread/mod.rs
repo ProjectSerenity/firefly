@@ -274,6 +274,7 @@ pub struct Thread {
     id: ThreadId,
     state: AtomicCell<ThreadState>,
     time_slice: UnsafeCell<TimeSlice>,
+    interrupt_stack: VirtAddr,
     stack_pointer: UnsafeCell<u64>,
     stack_bounds: Option<StackBounds>,
 }
@@ -336,6 +337,7 @@ impl Thread {
             id,
             state: AtomicCell::new(ThreadState::Runnable),
             time_slice: UnsafeCell::new(TimeSlice::ZERO),
+            interrupt_stack: VirtAddr::zero(),
             stack_pointer,
             stack_bounds,
         });
@@ -397,6 +399,7 @@ impl Thread {
             id,
             state: AtomicCell::new(ThreadState::BeingCreated),
             time_slice: UnsafeCell::new(DEFAULT_TIME_SLICE),
+            interrupt_stack: VirtAddr::zero(),
             stack_pointer: UnsafeCell::new(rsp as u64),
             stack_bounds: Some(stack),
         });

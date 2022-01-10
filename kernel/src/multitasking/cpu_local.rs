@@ -41,7 +41,7 @@ use x86_64::structures::paging::{
     FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
 };
 use x86_64::structures::tss::TaskStateSegment;
-use x86_64::VirtAddr;
+use x86_64::{PrivilegeLevel, VirtAddr};
 
 /// The model-specific register used to provide
 /// the user code and stack segment selectors to
@@ -245,10 +245,29 @@ pub fn current_thread() -> Arc<Thread> {
     unsafe { cpu_data() }.current_thread.clone()
 }
 
+/// Index into the TSS where the userland interrupt
+/// handler's stack is stored.
+///
+/// User threads have a stack space in ring 3,
+/// so we cannot use that thread for handling
+/// interrupts. As a result, each user thread
+/// has an additional stack, allocated in
+/// kernel space. Kernel threads don't need
+/// the extra stack, so they use their existing
+/// stack.
+///
+/// Each time we switch thread, we update this
+/// index with the new thread's kernel stack
+/// top (or 0 for kernel threads).
+///
+const INTERRUPT_KERNEL_STACK_INDEX: usize = PrivilegeLevel::Ring0 as usize;
+
 /// Overwrites the currently executing thread.
 ///
-pub fn set_current_thread(thread: Arc<Thread>) {
-    unsafe { cpu_data() }.current_thread = thread;
+pub fn set_current_thread(thread: Arc<Thread>, interrupt_stack: VirtAddr) {
+    let mut data = unsafe { cpu_data() };
+    data.current_thread = thread;
+    data.tss.privilege_stack_table[INTERRUPT_KERNEL_STACK_INDEX] = interrupt_stack;
 }
 
 /// Uniquely identifies a CPU core.
