@@ -162,6 +162,8 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
         let kernel_stack_selector = data.gdt.add_entry(Descriptor::kernel_data_segment());
         let tss_selector = data.gdt.add_entry(Descriptor::tss_segment(tss_ref));
         let cpu_local_selector = data.gdt.add_entry(Descriptor::kernel_data_segment());
+        let user_code_selector = data.gdt.add_entry(Descriptor::user_code_segment());
+        let user_stack_selector = data.gdt.add_entry(Descriptor::user_data_segment());
 
         // Load the GDT and its selectors.
         data.gdt.load();
@@ -171,6 +173,29 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
             GS::set_reg(cpu_local_selector);
             GsBase::write(start); // Set the GS base again now we've updated GS.
             load_tss(tss_selector);
+
+            // Check that the user code and stack
+            // selectors will work correctly with
+            // SYSEXIT, where the stack selector
+            // is determined by adding 8 to the
+            // code selector. See Intel 64 manual,
+            // volume 2B, chapter 4, page 684 and
+            // volume 3A, section 5.8.7.
+            debug_assert_eq!(user_code_selector.0 + 8, user_stack_selector.0);
+
+            // From Intel 64 manual, volume 3A,
+            // section 5.8.7.1:
+            //
+            //     Target code segment - Computed by adding 32 to the value in the IA32_SYSENTER_CS.
+            //
+            // From volume 2B, chapter 4, page 686:
+            //
+            //     #GP(0)   If IA32_SYSENTER_CS = 0.
+            //
+            debug_assert!(user_code_selector.0 > 32);
+
+            #[allow(const_item_mutation)] // Safe, as we don't actually modify the value.
+            IA32_SYSENTER_CS.write(user_code_selector.0 as u64 - 32);
         }
     });
 
