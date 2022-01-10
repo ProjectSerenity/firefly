@@ -30,6 +30,7 @@ test-args = [
 ]
 run-command = [
 	"qemu-system-x86_64",
+	"-cpu", "Icelake-Server",
 	"-drive", "format=raw,file={}",
 	"-device", "virtio-net,netdev=net0,disable-legacy=on,disable-modern=off",
 	"-netdev", "user,id=net0",
