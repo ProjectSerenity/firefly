@@ -12,6 +12,11 @@
 //! We also store a kernel data segment for use with the GS segment to
 //! store per-CPU data. See [`cpu_local`](crate::multitasking::cpu_local)
 //! for more details.
+//!
+//! This version of the GDT and TSS are only used to bootstrap the kernel.
+//! Once we have created the CPU-local data, we switch over to a per-CPU
+//! GDT and TSS. After that point, any changes made to this module will
+//! have no effect.
 
 use lazy_static::lazy_static;
 use x86_64::instructions::segmentation::{Segment, CS, GS, SS};

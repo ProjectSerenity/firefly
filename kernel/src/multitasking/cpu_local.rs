@@ -22,16 +22,25 @@
 //!
 //! [here]: https://github.com/rust-osdev/x86_64/pull/257#issuecomment-849514649
 
+use crate::gdt::DOUBLE_FAULT_IST_INDEX;
 use crate::memory::{kernel_pml4, pmm, VirtAddrRange, CPU_LOCAL};
 use crate::multitasking::thread::Thread;
 use alloc::sync::Arc;
+use alloc::vec;
+use alloc::vec::Vec;
 use core::mem::size_of;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use x86_64::addr::align_up;
+use x86_64::instructions::interrupts;
+use x86_64::instructions::segmentation::{Segment, CS, GS, SS};
+use x86_64::instructions::tables::load_tss;
 use x86_64::registers::model_specific::GsBase;
+use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable};
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
 };
+use x86_64::structures::tss::TaskStateSegment;
+use x86_64::VirtAddr;
 
 /// INITIALSED tracks whether the CPU-local
 /// data has been set up on this CPU. It is
@@ -43,9 +52,27 @@ static INITIALISED: AtomicBool = AtomicBool::new(false);
 /// CpuData contains the data specific to an individual CPU core.
 ///
 struct CpuData {
+    // This CPU's unique ID.
     id: CpuId,
+
+    // This CPU's idle thread.
     idle_thread: Arc<Thread>,
+
+    // The currently executing thread on
+    // this CPU.
     current_thread: Arc<Thread>,
+
+    // Our task state segment.
+    tss: TaskStateSegment,
+
+    // The stack we reserve for the double
+    // fault handler. We only store this
+    // so it doesn't get dropped.
+    #[allow(dead_code)]
+    double_fault_stack: Vec<u8>,
+
+    // Our descriptor table.
+    gdt: GlobalDescriptorTable,
 }
 
 /// Initialise the current CPU's local data using the given CPU
@@ -90,16 +117,52 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
     // Create our idle thread.
     let idle = Thread::new_idle_thread(stack_space);
 
+    // Set up our TSS. We set up the GDT
+    // once our per-CPU data is ready, as
+    // we need to access its address to
+    // add the TSS segment.
+    let mut tss = TaskStateSegment::new();
+    const STACK_SIZE: usize = 4096 * 5;
+    let double_fault_stack = vec![0u8; STACK_SIZE];
+    let stack_start = VirtAddr::from_ptr(double_fault_stack.as_ptr());
+    let stack_end = stack_start + STACK_SIZE;
+    tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = stack_end;
+    let gdt = GlobalDescriptorTable::new();
+
     // Initialise the CpuData from a pointer at the
     // start of the address space.
-    let cpu_data = start.as_mut_ptr() as *mut CpuData;
+    let cpu_local_data = start.as_mut_ptr() as *mut CpuData;
     unsafe {
-        cpu_data.write(CpuData {
+        cpu_local_data.write(CpuData {
             id: cpu_id,
             idle_thread: idle.clone(),
             current_thread: idle,
+            tss,
+            double_fault_stack,
+            gdt,
         });
     }
+
+    // Set up the GDT now that everything
+    // else is ready.
+    interrupts::without_interrupts(|| {
+        let tss_ref = tss_ref();
+        let data = unsafe { cpu_data() };
+        let kernel_code_selector = data.gdt.add_entry(Descriptor::kernel_code_segment());
+        let kernel_stack_selector = data.gdt.add_entry(Descriptor::kernel_data_segment());
+        let tss_selector = data.gdt.add_entry(Descriptor::tss_segment(tss_ref));
+        let cpu_local_selector = data.gdt.add_entry(Descriptor::kernel_data_segment());
+
+        // Load the GDT and its selectors.
+        data.gdt.load();
+        unsafe {
+            CS::set_reg(kernel_code_selector);
+            SS::set_reg(kernel_stack_selector);
+            GS::set_reg(cpu_local_selector);
+            GsBase::write(start); // Set the GS base again now we've updated GS.
+            load_tss(tss_selector);
+        }
+    });
 
     INITIALISED.store(true, Ordering::Relaxed);
 }
@@ -121,6 +184,12 @@ unsafe fn cpu_data() -> &'static mut CpuData {
     let ptr = GsBase::read();
 
     &mut *(ptr.as_mut_ptr() as *mut CpuData)
+}
+
+/// Fetches a static reference to our TSS.
+///
+fn tss_ref() -> &'static TaskStateSegment {
+    unsafe { &cpu_data().tss }
 }
 
 /// Returns this CPU's unique ID.
