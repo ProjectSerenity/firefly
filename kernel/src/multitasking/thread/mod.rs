@@ -31,7 +31,9 @@
 //! Calling [`debug`] (or [`Thread::debug`]) will print debug info about the
 //! thread.
 
-use crate::memory::{free_kernel_stack, new_kernel_stack, StackBounds, VirtAddrRange};
+use crate::memory::{
+    free_kernel_stack, kernel_pml4, new_kernel_stack, pmm, StackBounds, VirtAddrRange, USERSPACE,
+};
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler::Scheduler;
 use crate::println;
@@ -47,6 +49,7 @@ use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::Waker;
 use crossbeam::atomic::AtomicCell;
 use x86_64::instructions::interrupts;
+use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
 
 pub mod scheduler;
@@ -312,6 +315,12 @@ impl Thread {
     ///
     const DEFAULT_KERNEL_STACK_PAGES: u64 = 128; // 128 4-KiB pages = 512 KiB.
 
+    /// The number of pages that will be allocated
+    /// for new user threads' stack. Unlike kernel
+    /// stacks, these can grow at runtime.
+    ///
+    const DEFAULT_USER_STACK_PAGES: u64 = 128; // 128 4-KiB pages = 512 KiB.
+
     /// Creates a new kernel thread, to which we fall
     /// back if no other threads are runnable.
     ///
@@ -419,6 +428,115 @@ impl Thread {
     ///
     pub fn start_kernel_thread(entry_point: fn() -> !) -> ThreadId {
         let id = Thread::create_kernel_thread(entry_point);
+        id.resume();
+
+        id
+    }
+
+    /// Creates a new user thread, allocating a stack, and
+    /// marking it as not runnable.
+    ///
+    /// The new thread will not start until [`scheduler::resume`]
+    /// is called with its thread id.
+    ///
+    /// When the thread runs, it will start by enabling
+    /// interrupts and calling `entry_point`.
+    ///
+    pub fn create_user_thread(entry_point: VirtAddr) -> ThreadId {
+        // Allocate and prepare the stack pointer.
+        // We place the stack at the end of userspace, growing
+        // downwards. We need to be careful not to add 1 to the
+        // end of the stack, as that would be a non-canonical
+        // address.
+        //
+        // TODO: Support binaries that place binary segments in this space.
+        let stack_top = USERSPACE.end() - 7u64;
+        let stack_bottom =
+            stack_top - (Thread::DEFAULT_USER_STACK_PAGES * Page::<Size4KiB>::SIZE) + 8u64;
+        let stack_top_page = Page::containing_address(stack_top);
+        let stack_bottom_page = Page::from_start_address(stack_bottom).unwrap();
+
+        // Map the stack.
+        let mut mapper = unsafe { kernel_pml4() };
+        let mut frame_allocator = pmm::ALLOCATOR.lock();
+        let pages = Page::range_inclusive(stack_bottom_page, stack_top_page);
+        for page in pages {
+            let frame = frame_allocator
+                .allocate_frame()
+                .expect("failed to allocate stack for user thread");
+
+            let flags = PageTableFlags::PRESENT
+                | PageTableFlags::USER_ACCESSIBLE
+                | PageTableFlags::WRITABLE
+                | PageTableFlags::NO_EXECUTE;
+            unsafe {
+                mapper
+                    .map_to(page, frame, flags, &mut *frame_allocator)
+                    .expect("failed to map stack for user thread")
+                    .flush()
+            };
+        }
+
+        drop(mapper);
+        drop(frame_allocator);
+
+        let stack = StackBounds::from_page_range(pages);
+        let int_stack = new_kernel_stack(Thread::DEFAULT_KERNEL_STACK_PAGES)
+            .expect("failed to allocate interrupt stack for new user thread");
+
+        let rsp = unsafe {
+            let mut rsp: *mut u64 = stack.end().as_mut_ptr();
+
+            // The stack pointer starts out pointing to
+            // the last address in range, which is not
+            // aligned. We subtract seven to the pointer
+            // value so it becomes aligned again.
+            rsp = (rsp as *mut u8).sub(7) as *mut u64;
+
+            // Push the entry point and the stack pointer,
+            // to be used by start_user_thread.
+            rsp = push_stack(rsp, rsp as u64);
+            rsp = push_stack(rsp, entry_point.as_u64());
+
+            // Push start_kernel_thread and the initial
+            // registers to be loaded by switch_stack.
+            rsp = push_stack(rsp, switch::start_user_thread as *const u8 as u64); // RIP.
+            rsp = push_stack(rsp, 0); // Initial RBP.
+            rsp = push_stack(rsp, 0); // Initial RBX.
+            rsp = push_stack(rsp, 0); // Initial R12.
+            rsp = push_stack(rsp, 0); // Initial R13.
+            rsp = push_stack(rsp, 0); // Initial R14.
+            rsp = push_stack(rsp, 0); // Initial R15.
+            rsp = push_stack(rsp, DEFAULT_RFLAGS); // RFLAGS (interrupts disabled).
+
+            rsp
+        };
+
+        let id = ThreadId::new();
+        let thread = Arc::new(Thread {
+            id,
+            state: AtomicCell::new(ThreadState::BeingCreated),
+            time_slice: UnsafeCell::new(DEFAULT_TIME_SLICE),
+            interrupt_stack: int_stack.end() - 7u64,
+            stack_pointer: UnsafeCell::new(rsp as u64),
+            stack_bounds: Some(stack),
+        });
+
+        interrupts::without_interrupts(|| {
+            THREADS.lock().insert(id, thread);
+        });
+
+        id
+    }
+
+    /// Creates a new user thread, allocating a stack,
+    /// and adding it to the scheduler.
+    ///
+    /// When the thread runs, it will start by enabling
+    /// interrupts and calling `entry_point`.
+    ///
+    pub fn start_user_thread(entry_point: VirtAddr) -> ThreadId {
+        let id = Thread::create_user_thread(entry_point);
         id.resume();
 
         id
