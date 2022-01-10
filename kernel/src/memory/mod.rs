@@ -91,6 +91,7 @@ use bootloader::BootInfo;
 use core::sync::atomic::{AtomicU64, Ordering};
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::mapper::{MapToError, MappedFrame, TranslateResult};
+use x86_64::structures::paging::page::PageRangeInclusive;
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, OffsetPageTable, Page, PageSize, PageTable, PageTableFlags, Size4KiB,
     Translate,
@@ -251,6 +252,16 @@ impl StackBounds {
         StackBounds {
             start: range.start(),
             end: range.end(),
+        }
+    }
+
+    /// Returns a set of stack bounds consisting of the given
+    /// virtual page range.
+    ///
+    pub fn from_page_range(range: PageRangeInclusive) -> Self {
+        StackBounds {
+            start: range.start.start_address(),
+            end: range.end.start_address() + (Size4KiB::SIZE - 1u64),
         }
     }
 
