@@ -36,4 +36,16 @@ extern "sysv64" {
     /// instruction exception will be triggered.
     ///
     pub fn start_kernel_thread() -> !;
+
+    /// start_user_thread should be used to start a new
+    /// user thread by placing its address into the new
+    /// thread's stack before calling switch_stack.
+    ///
+    /// start_user pops the thread's entry point and stack
+    /// pointer from the stack and calls sysexit.
+    ///
+    /// The entry point must never return, or an invalid
+    /// instruction exception will be triggered.
+    ///
+    pub fn start_user_thread() -> !;
 }

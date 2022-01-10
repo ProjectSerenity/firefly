@@ -131,3 +131,33 @@ start_kernel_thread:
 	//; The ud2 instruction just triggers an invalid
 	//; instruction exception and is otherwise a NOP.
 	ud2
+
+//; The Rust signature of this function is:
+//;
+//;     fn start_user_thread() -> !;
+//;
+//; start_user_thread pops the entry point off the
+//; stack and calls it using sysexit. If the entry
+//; point function returns, an invalid instruction
+//; exception will be triggered.
+//;
+.global start_user_thread
+start_user_thread:
+	//; Clear the frame pointer so that any debuggers
+	//; will treat this as the root of the stack trace.
+	xor rbp, rbp
+
+	//; Pop the entry point and RSP. The entry point
+	//; should never return.
+	pop rdx //; RIP
+	pop rcx //; RSP
+	sysexit
+
+	//; If the entry point returned, we trigger an
+	//; invalid instruction exception so the bug gets
+	//; found and fixed quickly. Anything else would
+	//; cause more problems in the long run.
+	//;
+	//; The ud2 instruction just triggers an invalid
+	//; instruction exception and is otherwise a NOP.
+	ud2
