@@ -42,10 +42,9 @@ use crate::memory::KERNEL_STACK_0;
 use crate::multitasking::{cpu_local, thread};
 use bootloader::BootInfo;
 use core::panic::PanicInfo;
-use lazy_static::lazy_static;
-use raw_cpuid::CpuId;
 use x86_64::instructions::port::Port;
 
+pub mod cpu;
 pub mod drivers;
 pub mod gdt;
 pub mod interrupts;
@@ -56,15 +55,11 @@ pub mod random;
 pub mod time;
 pub mod utils;
 
-lazy_static! {
-    #[doc(hidden)]
-    pub static ref CPU_ID: CpuId = CpuId::new();
-}
-
 /// Initialise the kernel and its core components.
 ///
 /// `init` currently performs the following steps:
 ///
+/// - Check that the CPU supports the features we need.
 /// - Initialise the [Global Descriptor Table](gdt).
 /// - Initialise the [Programmable Interrupt Controller](interrupts).
 /// - Initialise the [Real-time clock and Programmable Interval Timer](time)
@@ -74,6 +69,7 @@ lazy_static! {
 /// - Initialise the [scheduler](multitasking/thread).
 ///
 pub fn init(boot_info: &'static BootInfo) {
+    cpu::init();
     gdt::init();
     interrupts::init();
     time::init();

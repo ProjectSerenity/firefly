@@ -55,17 +55,11 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(not(test))]
 fn kmain() {
     use kernel::multitasking::thread::{scheduler, Thread};
-    use kernel::{network, time, CPU_ID};
+    use kernel::{cpu, network, time};
 
     println!("Kernel ready!");
     println!("Kernel booted at {}.", time::boot_time());
-    if let Some(branding) = CPU_ID.get_processor_brand_string() {
-        println!("Kernel running on {} CPU.", branding.as_str());
-    } else if let Some(version) = CPU_ID.get_vendor_info() {
-        println!("Kernel running on {} CPU.", version.as_str());
-    } else {
-        println!("Kernel running on unknown CPU.");
-    }
+    cpu::print_branding();
 
     // Set up our initial workload for when
     // we get a DHCP configuration.
