@@ -32,7 +32,7 @@ use core::mem::size_of;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use x86_64::addr::align_up;
 use x86_64::instructions::interrupts;
-use x86_64::instructions::segmentation::{Segment, CS, GS, SS};
+use x86_64::instructions::segmentation::{Segment, CS, SS};
 use x86_64::instructions::tables::load_tss;
 use x86_64::registers::model_specific::GsBase;
 use x86_64::registers::model_specific::Msr;
@@ -161,7 +161,6 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
         let kernel_code_selector = data.gdt.add_entry(Descriptor::kernel_code_segment());
         let kernel_stack_selector = data.gdt.add_entry(Descriptor::kernel_data_segment());
         let tss_selector = data.gdt.add_entry(Descriptor::tss_segment(tss_ref));
-        let cpu_local_selector = data.gdt.add_entry(Descriptor::kernel_data_segment());
         let user_code_selector = data.gdt.add_entry(Descriptor::user_code_segment());
         let user_stack_selector = data.gdt.add_entry(Descriptor::user_data_segment());
 
@@ -170,7 +169,6 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
         unsafe {
             CS::set_reg(kernel_code_selector);
             SS::set_reg(kernel_stack_selector);
-            GS::set_reg(cpu_local_selector);
             GsBase::write(start); // Set the GS base again now we've updated GS.
             load_tss(tss_selector);
 
