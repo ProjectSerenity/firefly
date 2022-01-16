@@ -21,15 +21,6 @@ lazy_static! {
 /// Firefly requires.
 ///
 pub fn init() {
-    match CPU_ID.get_feature_info() {
-        None => panic!("unable to determine CPU features"),
-        Some(features) => {
-            if !features.has_sysenter_sysexit() {
-                panic!("CPU does not support the sysexit instruction");
-            }
-        }
-    }
-
     match CPU_ID.get_extended_processor_and_feature_identifiers() {
         None => panic!("unable to determine CPU features"),
         Some(features) => {
