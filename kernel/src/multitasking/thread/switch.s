@@ -147,11 +147,15 @@ start_user_thread:
 	//; will treat this as the root of the stack trace.
 	xor rbp, rbp
 
-	//; Pop the entry point and RSP. The entry point
+	//; Copy the RFLAGS into R11 by pushing them onto
+	//; the stack, then popping them into R11.
+	pushfq
+	pop r11
+
+	//; Pop the entry point into RCX. The entry point
 	//; should never return.
-	pop rdx //; RIP
-	pop rcx //; RSP
-	sysexitq
+	pop rcx
+	sysretq
 
 	//; If the entry point returned, we trigger an
 	//; invalid instruction exception so the bug gets

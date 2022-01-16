@@ -493,9 +493,8 @@ impl Thread {
             // value so it becomes aligned again.
             rsp = (rsp as *mut u8).sub(7) as *mut u64;
 
-            // Push the entry point and the stack pointer,
-            // to be used by start_user_thread.
-            rsp = push_stack(rsp, rsp as u64);
+            // Push the entry point to be used by
+            // start_user_thread.
             rsp = push_stack(rsp, entry_point.as_u64());
 
             // Push start_kernel_thread and the initial
