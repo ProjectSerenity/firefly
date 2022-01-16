@@ -151,7 +151,7 @@ start_user_thread:
 	//; should never return.
 	pop rdx //; RIP
 	pop rcx //; RSP
-	sysexit
+	sysexitq
 
 	//; If the entry point returned, we trigger an
 	//; invalid instruction exception so the bug gets
