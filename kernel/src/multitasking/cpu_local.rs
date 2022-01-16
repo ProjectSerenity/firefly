@@ -32,25 +32,14 @@ use core::mem::size_of;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use x86_64::addr::align_up;
 use x86_64::instructions::interrupts;
-use x86_64::instructions::segmentation::{Segment, CS, SS};
 use x86_64::instructions::tables::load_tss;
 use x86_64::registers::model_specific::GsBase;
-use x86_64::registers::model_specific::Msr;
-use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable};
+use x86_64::structures::gdt::{Descriptor, DescriptorFlags, GlobalDescriptorTable, SegmentSelector};
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
 };
 use x86_64::structures::tss::TaskStateSegment;
 use x86_64::{PrivilegeLevel, VirtAddr};
-
-/// The model-specific register used to provide
-/// the user code and stack segment selectors to
-/// SYSEXIT.
-//
-// We define that here, as it's not yet definned
-// in [`x86_64::registers::model_specific`].
-//
-pub const IA32_SYSENTER_CS: Msr = Msr::new(0x174);
 
 /// INITIALSED tracks whether the CPU-local
 /// data has been set up on this CPU. It is
@@ -83,6 +72,12 @@ struct CpuData {
 
     // Our descriptor table.
     gdt: GlobalDescriptorTable,
+
+    kernel_code_64: SegmentSelector,
+    kernel_data: SegmentSelector,
+    user_code_32: SegmentSelector,
+    user_data: SegmentSelector,
+    user_code_64: SegmentSelector,
 }
 
 /// Initialise the current CPU's local data using the given CPU
@@ -150,6 +145,13 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
             tss,
             double_fault_stack,
             gdt,
+            // Placeholder values until we set up
+            // the GDT below.
+            kernel_code_64: SegmentSelector(0),
+            kernel_data: SegmentSelector(0),
+            user_code_32: SegmentSelector(0),
+            user_data: SegmentSelector(0),
+            user_code_64: SegmentSelector(0),
         });
     }
 
@@ -158,42 +160,26 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
     interrupts::without_interrupts(|| {
         let tss_ref = tss_ref();
         let data = unsafe { cpu_data() };
-        let kernel_code_selector = data.gdt.add_entry(Descriptor::kernel_code_segment());
-        let kernel_stack_selector = data.gdt.add_entry(Descriptor::kernel_data_segment());
+        let kernel_code_64 = data.gdt.add_entry(Descriptor::kernel_code_segment());
+        let kernel_data = data.gdt.add_entry(Descriptor::kernel_data_segment());
         let tss_selector = data.gdt.add_entry(Descriptor::tss_segment(tss_ref));
-        let user_code_selector = data.gdt.add_entry(Descriptor::user_code_segment());
-        let user_stack_selector = data.gdt.add_entry(Descriptor::user_data_segment());
+        let user_code_32 = data.gdt.add_entry(Descriptor::UserSegment(DescriptorFlags::USER_CODE32.bits()));
+        let user_data = data.gdt.add_entry(Descriptor::user_data_segment());
+        let user_code_64 = data.gdt.add_entry(Descriptor::user_code_segment());
 
         // Load the GDT and its selectors.
         data.gdt.load();
         unsafe {
-            CS::set_reg(kernel_code_selector);
-            SS::set_reg(kernel_stack_selector);
             GsBase::write(start); // Set the GS base again now we've updated GS.
             load_tss(tss_selector);
 
-            // Check that the user code and stack
-            // selectors will work correctly with
-            // SYSEXIT, where the stack selector
-            // is determined by adding 8 to the
-            // code selector. See Intel 64 manual,
-            // volume 2B, chapter 4, page 684 and
-            // volume 3A, section 5.8.7.
-            debug_assert_eq!(user_code_selector.0 + 8, user_stack_selector.0);
-
-            // From Intel 64 manual, volume 3A,
-            // section 5.8.7.1:
-            //
-            //     Target code segment - Computed by adding 32 to the value in the IA32_SYSENTER_CS.
-            //
-            // From volume 2B, chapter 4, page 686:
-            //
-            //     #GP(0)   If IA32_SYSENTER_CS = 0.
-            //
-            debug_assert!(user_code_selector.0 > 32);
-
-            #[allow(const_item_mutation)] // Safe, as we don't actually modify the value.
-            IA32_SYSENTER_CS.write(user_code_selector.0 as u64 - 32);
+            // Store our segment selectors.
+            let mut data = &mut *cpu_local_data;
+            data.kernel_code_64 = kernel_code_64;
+            data.kernel_data = kernel_data;
+            data.user_code_32 = user_code_32;
+            data.user_data = user_data;
+            data.user_code_64 = user_code_64;
         }
     });
 
@@ -238,6 +224,22 @@ pub fn cpu_id() -> CpuId {
 ///
 pub fn idle_thread() -> Arc<Thread> {
     unsafe { cpu_data() }.idle_thread.clone()
+}
+
+/// Returns the code and stack segment selectors
+/// for the kernel in this CPU.
+///
+pub fn kernel_selectors() -> (SegmentSelector, SegmentSelector) {
+    let data = unsafe { cpu_data() };
+    (data.kernel_code_64, data.kernel_data)
+}
+
+/// Returns the code and stack segment selectors
+/// for 32-bit user code in this CPU.
+///
+pub fn user_selectors() -> (SegmentSelector, SegmentSelector, SegmentSelector) {
+    let data = unsafe { cpu_data() };
+    (data.user_code_32, data.user_data, data.user_code_64)
 }
 
 /// Returns the currently executing thread.
