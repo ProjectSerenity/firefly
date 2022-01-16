@@ -29,6 +29,15 @@ pub fn init() {
             }
         }
     }
+
+    match CPU_ID.get_extended_processor_and_feature_identifiers() {
+        None => panic!("unable to determine CPU features"),
+        Some(features) => {
+            if !features.has_syscall_sysret() {
+                panic!("CPU does not support the syscall/sysret instructions");
+            }
+        }
+    }
 }
 
 /// Prints the CPU's branding information.
