@@ -274,12 +274,36 @@ pub enum ThreadState {
 ///
 #[derive(Debug)]
 pub struct Thread {
+    // This thread's unique id. The one exception
+    // is the idle thread, where one instance exists
+    // on each CPU. Every idle thread has the thread
+    // id 0.
     id: ThreadId,
+
+    // The thread's current state.
     state: AtomicCell<ThreadState>,
+
+    // The amount of CPU time remaining for this
+    // thread.
     time_slice: UnsafeCell<TimeSlice>,
+
+    // The thread's stack for handling interrupts.
+    // Kernel threads use their main stack for interrupts,
+    // so have no separate interrupt stack.
     interrupt_stack: VirtAddr,
-    stack_pointer: UnsafeCell<u64>,
+
+    // The thread's primary stack. For kernel threads,
+    // this is the only stack, and is in kernel space,
+    // within the bounds of `KERNEL_STACK`.
     stack_bounds: Option<StackBounds>,
+
+    // The thread's saved stack pointer. While the
+    // thread is executing, this value will be stale.
+    // When the thread is switched out, its final stack
+    // pointer is written to this cell. When the thread
+    // is resumed, its stack pointer is restored from
+    // this value.
+    stack_pointer: UnsafeCell<u64>,
 }
 
 /// push_stack is used to build a new thread's stack
