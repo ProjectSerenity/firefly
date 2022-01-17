@@ -153,7 +153,7 @@ pub fn switch() {
     let new_stack_pointer = next.stack_pointer.get();
 
     // Switch into the next thread and re-enable interrupts.
-    let interrupt_stack = next.interrupt_stack;
+    let interrupt_stack = next.interrupt_stack();
     cpu_local::set_current_thread(next, interrupt_stack);
 
     // Note that once we have multiple CPUs, there will be

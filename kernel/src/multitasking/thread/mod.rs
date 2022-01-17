@@ -290,7 +290,7 @@ pub struct Thread {
     // The thread's stack for handling interrupts.
     // Kernel threads use their main stack for interrupts,
     // so have no separate interrupt stack.
-    interrupt_stack: VirtAddr,
+    interrupt_stack: Option<StackBounds>,
 
     // The thread's primary stack. For kernel threads,
     // this is the only stack, and is in kernel space,
@@ -370,7 +370,7 @@ impl Thread {
             id,
             state: AtomicCell::new(ThreadState::Runnable),
             time_slice: UnsafeCell::new(TimeSlice::ZERO),
-            interrupt_stack: VirtAddr::zero(),
+            interrupt_stack: None,
             stack_pointer,
             stack_bounds,
         });
@@ -432,7 +432,7 @@ impl Thread {
             id,
             state: AtomicCell::new(ThreadState::BeingCreated),
             time_slice: UnsafeCell::new(DEFAULT_TIME_SLICE),
-            interrupt_stack: VirtAddr::zero(),
+            interrupt_stack: None,
             stack_pointer: UnsafeCell::new(rsp as u64),
             stack_bounds: Some(stack),
         });
@@ -540,7 +540,7 @@ impl Thread {
             id,
             state: AtomicCell::new(ThreadState::BeingCreated),
             time_slice: UnsafeCell::new(DEFAULT_TIME_SLICE),
-            interrupt_stack: int_stack.end() - 7u64,
+            interrupt_stack: Some(int_stack),
             stack_pointer: UnsafeCell::new(rsp as u64),
             stack_bounds: Some(stack),
         });
@@ -594,6 +594,17 @@ impl Thread {
             ThreadState::Runnable => {}
             ThreadState::Sleeping => scheduler.remove(self.id),
             ThreadState::Exiting => scheduler.remove(self.id),
+        }
+    }
+
+    /// Returns the address of the top of the thread's
+    /// interrupt stack. Kernel threads always return
+    /// the null address.
+    ///
+    pub fn interrupt_stack(&self) -> VirtAddr {
+        match self.interrupt_stack {
+            None => VirtAddr::zero(),
+            Some(range) => range.end() - 7u64,
         }
     }
 
@@ -673,6 +684,11 @@ impl Drop for Thread {
 
         // Return our stack to the dead stacks list.
         if let Some(bounds) = self.stack_bounds {
+            free_kernel_stack(bounds);
+        }
+
+        // Same again for our interrupt stack, if we have one.
+        if let Some(bounds) = self.interrupt_stack {
             free_kernel_stack(bounds);
         }
     }
