@@ -267,10 +267,10 @@ const INTERRUPT_KERNEL_STACK_INDEX: usize = PrivilegeLevel::Ring0 as usize;
 
 /// Overwrites the currently executing thread.
 ///
-pub fn set_current_thread(thread: Arc<Thread>, interrupt_stack: VirtAddr) {
+pub fn set_current_thread(thread: Arc<Thread>) {
     let mut data = unsafe { cpu_data() };
+    data.tss.privilege_stack_table[INTERRUPT_KERNEL_STACK_INDEX] = thread.interrupt_stack();
     data.current_thread = thread;
-    data.tss.privilege_stack_table[INTERRUPT_KERNEL_STACK_INDEX] = interrupt_stack;
 }
 
 /// Uniquely identifies a CPU core.
