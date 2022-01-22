@@ -147,6 +147,23 @@ start_user_thread:
 	//; will treat this as the root of the stack trace.
 	xor rbp, rbp
 
+	//; Zero the remaining registers to avoid leaking
+	//; kernel pointers to user space.
+	xor rax, rax
+	//; Skip RBX, as it was restored by switch_stack and set to 0 in create_user_thread.
+	//; Skip RCX, as we overwrite it below.
+	xor rdx, rdx
+	xor rsi, rsi
+	xor rdi, rdi
+	xor r8, r8
+	xor r9, r9
+	xor r10, r10
+	//; Skip R11, as we overwrite it below.
+	//; Skip R12, as it was restored by switch_stack and set to 0 in create_user_thread.
+	//; Skip R13, as it was restored by switch_stack and set to 0 in create_user_thread.
+	//; Skip R14, as it was restored by switch_stack and set to 0 in create_user_thread.
+	//; Skip R15, as it was restored by switch_stack and set to 0 in create_user_thread.
+
 	//; Copy the RFLAGS into R11 by pushing them onto
 	//; the stack, then popping them into R11.
 	pushfq
