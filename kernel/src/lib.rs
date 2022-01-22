@@ -52,6 +52,7 @@ pub mod memory;
 pub mod multitasking;
 pub mod network;
 pub mod random;
+pub mod syscalls;
 pub mod time;
 pub mod utils;
 
@@ -78,6 +79,7 @@ pub fn init(boot_info: &'static BootInfo) {
     // Set up the heap allocator.
     unsafe { memory::init(boot_info) };
     cpu_local::init(cpu_local::CpuId::new(), &KERNEL_STACK_0);
+    syscalls::init();
     thread::init();
 }
 
