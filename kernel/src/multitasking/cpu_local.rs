@@ -51,6 +51,28 @@ static INITIALISED: AtomicBool = AtomicBool::new(false);
 /// CpuData contains the data specific to an individual CPU core.
 ///
 struct CpuData {
+	// The current thread's syscall stack
+	// pointer. We read this when entering
+	// the syscall handler to switch to
+	// the syscall stack. This is fetched
+	// by dereferencing the GS register,
+	// as the syscall handler is written
+	// in assembly. It's important that
+	// the location of thia value within
+	// CpuData not be changed without also
+	// changing it in the syscall handler.
+	syscall_stack_pointer: VirtAddr,
+
+	// The current thread's user stack
+	// pointer. This is overwritten when
+	// we enter the syscall handler and
+	// switch to the syscall stack, and
+	// restored when we return to user
+	// space. As above, do not move within
+	// CpuData without updating the syscall
+	// handler too.
+	user_stack_pointer: VirtAddr,
+
     // This CPU's unique ID.
     id: CpuId,
 
@@ -139,6 +161,8 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
     let cpu_local_data = start.as_mut_ptr() as *mut CpuData;
     unsafe {
         cpu_local_data.write(CpuData {
+            syscall_stack_pointer: VirtAddr::zero(),
+            user_stack_pointer: VirtAddr::zero(),
             id: cpu_id,
             idle_thread: idle.clone(),
             current_thread: idle,
@@ -269,7 +293,14 @@ const INTERRUPT_KERNEL_STACK_INDEX: usize = PrivilegeLevel::Ring0 as usize;
 ///
 pub fn set_current_thread(thread: Arc<Thread>) {
     let mut data = unsafe { cpu_data() };
+
+    // Save the current thread's user stack pointer.
+    data.current_thread.set_user_stack(data.user_stack_pointer);
+
+    // Overwrite the state from the new thread.
     data.tss.privilege_stack_table[INTERRUPT_KERNEL_STACK_INDEX] = thread.interrupt_stack();
+    data.syscall_stack_pointer = thread.syscall_stack();
+    data.user_stack_pointer = thread.user_stack();
     data.current_thread = thread;
 }
 

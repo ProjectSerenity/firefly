@@ -292,6 +292,20 @@ pub struct Thread {
     // so have no separate interrupt stack.
     interrupt_stack: Option<StackBounds>,
 
+    // The thread's stack for handling syscalls.
+    // Kernel threads don't call syscalls, so have
+    // no separate syscall stack.
+    syscall_stack: Option<StackBounds>,
+
+    // The thread's saved user stack pointer. This is
+    // for if we switch threads while handling a syscall.
+    // While we handle syscalls, the user stack pointer
+    // is saved in the CPU-local data. This is overwritten
+    // when we switch threads so when that happens we save
+    // it here. We then restore it to the CPU-local data
+    // when we switch back in.
+    user_stack_pointer: UnsafeCell<VirtAddr>,
+
     // The thread's primary stack. For kernel threads,
     // this is the only stack, and is in kernel space,
     // within the bounds of `KERNEL_STACK`.
@@ -371,6 +385,8 @@ impl Thread {
             state: AtomicCell::new(ThreadState::Runnable),
             time_slice: UnsafeCell::new(TimeSlice::ZERO),
             interrupt_stack: None,
+            syscall_stack: None,
+            user_stack_pointer: UnsafeCell::new(VirtAddr::zero()),
             stack_pointer,
             stack_bounds,
         });
@@ -433,6 +449,8 @@ impl Thread {
             state: AtomicCell::new(ThreadState::BeingCreated),
             time_slice: UnsafeCell::new(DEFAULT_TIME_SLICE),
             interrupt_stack: None,
+            syscall_stack: None,
+            user_stack_pointer: UnsafeCell::new(VirtAddr::zero()),
             stack_pointer: UnsafeCell::new(rsp as u64),
             stack_bounds: Some(stack),
         });
@@ -507,6 +525,8 @@ impl Thread {
         let stack = StackBounds::from_page_range(pages);
         let int_stack = new_kernel_stack(Thread::DEFAULT_KERNEL_STACK_PAGES)
             .expect("failed to allocate interrupt stack for new user thread");
+        let sys_stack = new_kernel_stack(Thread::DEFAULT_KERNEL_STACK_PAGES)
+            .expect("failed to allocate syscall stack for new user thread");
 
         let rsp = unsafe {
             let mut rsp: *mut u64 = stack.end().as_mut_ptr();
@@ -541,6 +561,8 @@ impl Thread {
             state: AtomicCell::new(ThreadState::BeingCreated),
             time_slice: UnsafeCell::new(DEFAULT_TIME_SLICE),
             interrupt_stack: Some(int_stack),
+            syscall_stack: Some(sys_stack),
+            user_stack_pointer: UnsafeCell::new(VirtAddr::zero()),
             stack_pointer: UnsafeCell::new(rsp as u64),
             stack_bounds: Some(stack),
         });
@@ -606,6 +628,41 @@ impl Thread {
             None => VirtAddr::zero(),
             Some(range) => range.end() - 7u64,
         }
+    }
+
+    /// Returns the address of the top of the thread's
+    /// syscall stack. Kernel threads always return
+    /// the null address.
+    ///
+    pub fn syscall_stack(&self) -> VirtAddr {
+        match self.syscall_stack {
+            None => VirtAddr::zero(),
+            Some(range) => range.end() - 7u64,
+        }
+    }
+
+    /// Returns the address of the saved user stack
+    /// pointer if this thread switched out while
+    /// handling a syscall. Otherwise, the null address
+    /// is returned.
+    ///
+    pub fn user_stack(&self) -> VirtAddr {
+        unsafe { *self.user_stack_pointer.get() }
+    }
+
+    /// Updates the thread's user stack pointer.
+    ///
+    pub fn set_user_stack(&self, addr: VirtAddr) {
+        // This is called when we switch from this
+        // thread to another, in case we do so while
+        // handling a syscall. If we do, the current
+        // stack pointer is in the thread's syscall
+        // stack and its user stack pointer is saved
+        // in the CPU-local data. That will be
+        // overwritten by the next thread after we
+        // switch, so we need to save it into the
+        // thread first.
+        unsafe { self.user_stack_pointer.get().write(addr) };
     }
 
     /// Decrements the thread's time slice by a single
@@ -689,6 +746,11 @@ impl Drop for Thread {
 
         // Same again for our interrupt stack, if we have one.
         if let Some(bounds) = self.interrupt_stack {
+            free_kernel_stack(bounds);
+        }
+
+        // Same again for our syscall stack, if we have one.
+        if let Some(bounds) = self.syscall_stack {
             free_kernel_stack(bounds);
         }
     }
