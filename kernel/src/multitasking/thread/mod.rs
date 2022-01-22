@@ -541,7 +541,7 @@ impl Thread {
             // start_user_thread.
             rsp = push_stack(rsp, entry_point.as_u64());
 
-            // Push start_kernel_thread and the initial
+            // Push start_user_thread and the initial
             // registers to be loaded by switch_stack.
             rsp = push_stack(rsp, switch::start_user_thread as *const u8 as u64); // RIP.
             rsp = push_stack(rsp, 0); // Initial RBP.
