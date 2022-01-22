@@ -7,6 +7,7 @@ Note that Firefly is an early prototype and is not yet ready for use.
 This repository consists of:
 
 - the Firefly kernel in [`kernel`](/kernel)
+- code shared between the kernel and userspace in [`shared`](/shared)
 
 Firefly is intended for executing cloud-native containerised server software. As a result, there are no plans to add a graphical user interface, device drivers, or a concept of users. Instead, the priority is to support userland applications on a virtual machine, with strong separation between processes. Firefly will provide a highly stable ABI, with syscalls providing the sole interface between userland processes and the kernel.
 
