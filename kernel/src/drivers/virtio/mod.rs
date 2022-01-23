@@ -52,6 +52,7 @@ pub mod virtqueues;
 use crate::drivers::pci;
 use crate::drivers::virtio::virtqueues::split;
 use crate::interrupts::Irq;
+use crate::println;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -92,6 +93,10 @@ pub fn pci_device_supported(device: &pci::Device) -> Option<pci::DeviceDriver> {
     match DeviceId::from_pci_device_id(device.device) {
         Some(DeviceId::EntropySource) => Some(entropy::install_pci_device),
         Some(DeviceId::NetworkCard) => Some(network::install_pci_device),
+        Some(other) => {
+            println!("Detected unsupported VirtIO device {:?}.", other);
+            None
+        }
         _ => None,
     }
 }
