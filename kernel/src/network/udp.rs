@@ -56,7 +56,7 @@ use alloc::vec;
 use smoltcp::iface::SocketHandle;
 use smoltcp::socket::{UdpPacketMetadata, UdpSocket, UdpSocketBuffer};
 use smoltcp::wire::IpEndpoint;
-use x86_64::instructions::interrupts;
+use x86_64::instructions::interrupts::without_interrupts;
 
 /// Used as the number of packets in each port's receive
 /// buffer.
@@ -254,7 +254,7 @@ impl Config {
         let mut socket = UdpSocket::new(recv_buffer, send_buffer);
         socket.bind(local)?;
 
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             let mut ifaces = INTERFACES.lock();
             let iface = ifaces
                 .get_mut(iface_handle.0)
@@ -295,7 +295,7 @@ impl Port {
     /// Close the connection.
     ///
     pub fn close(&self) {
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             let mut ifaces = INTERFACES.lock();
             let iface = ifaces
                 .get_mut(self.iface.0)
@@ -327,7 +327,7 @@ impl Port {
         let peer = peer.into();
         let global_thread_id = cpu_local::current_thread().global_thread_id();
 
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             // Wait until we're able to send.
             loop {
                 let mut ifaces = INTERFACES.lock();
@@ -382,7 +382,7 @@ impl Port {
     pub fn recv_from(&self, buf: &mut [u8]) -> Result<(usize, IpEndpoint), Error> {
         let global_thread_id = cpu_local::current_thread().global_thread_id();
 
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             // Wait until we're able to receive.
             loop {
                 let mut ifaces = INTERFACES.lock();
@@ -436,7 +436,7 @@ impl Port {
 
 impl Drop for Port {
     fn drop(&mut self) {
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             let mut ifaces = INTERFACES.lock();
             let iface = ifaces
                 .get_mut(self.iface.0)

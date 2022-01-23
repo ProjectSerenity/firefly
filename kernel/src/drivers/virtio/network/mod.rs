@@ -68,7 +68,7 @@ use core::{mem, slice};
 use smoltcp::phy::{DeviceCapabilities, Medium, RxToken, TxToken};
 use smoltcp::time::Instant;
 use smoltcp::wire::EthernetAddress;
-use x86_64::instructions::interrupts;
+use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::structures::paging::frame::PhysFrame;
 use x86_64::structures::paging::{PageSize, Size4KiB};
@@ -162,7 +162,7 @@ fn network_entry_point() -> ! {
     let global_thread_id = cpu_local::current_thread().global_thread_id();
     let iface_handle = &INTERFACE_HANDLES.lock()[&global_thread_id];
     loop {
-        let wait = interrupts::without_interrupts(|| iface_handle.poll());
+        let wait = without_interrupts(|| iface_handle.poll());
         time::sleep(wait);
     }
 }
@@ -303,7 +303,7 @@ impl<'a> RxToken for RecvBuffer {
         // Return the used buffer to the device
         // so it can use it to receive a future
         // packet.
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             let mut dev = self.driver.lock();
             let addr = self.addr;
             let len = PACKET_LEN_MAX;
@@ -378,7 +378,7 @@ impl<'a> TxToken for SendBuffer {
         let ret = f(&mut buf)?;
 
         // Send the packet.
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             let mut dev = self.driver.lock();
             let len = len + offset;
 
@@ -413,7 +413,7 @@ impl<'a> smoltcp::phy::Device<'a> for Device {
     /// queue and return it, or return None if not.
     ///
     fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             let mut dev = self.driver.lock();
             match dev.driver.recv(RECV_VIRTQUEUE) {
                 None => None,
@@ -452,7 +452,7 @@ impl<'a> smoltcp::phy::Device<'a> for Device {
     /// capabilities.
     ///
     fn capabilities(&self) -> DeviceCapabilities {
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             let dev = self.driver.lock();
             let mut caps = DeviceCapabilities::default();
             caps.medium = Medium::Ethernet;
@@ -640,7 +640,7 @@ pub fn install_pci_device(device: pci::Device) {
         handle,
     };
 
-    interrupts::without_interrupts(|| {
+    without_interrupts(|| {
         let mut int = INTERFACES.lock();
         int[irq.as_usize()] = Some(iface_handle);
     });

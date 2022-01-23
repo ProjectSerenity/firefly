@@ -80,7 +80,7 @@ use core::cmp::min;
 use smoltcp::iface::SocketHandle;
 use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::wire::IpEndpoint;
-use x86_64::instructions::interrupts;
+use x86_64::instructions::interrupts::without_interrupts;
 
 /// Used as the number of bytes in each connection's receive
 /// buffer.
@@ -264,7 +264,7 @@ impl ListenConfig {
 
         let iface_handle = InterfaceHandle::new(0); // TODO: get this properly.
 
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             let mut ifaces = INTERFACES.lock();
             let iface = ifaces
                 .get_mut(iface_handle.0)
@@ -348,7 +348,7 @@ impl Listener {
 
         let global_thread_id = cpu_local::current_thread().global_thread_id();
 
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             // Loop until we find a pending connection.
             loop {
                 let mut ifaces = INTERFACES.lock();
@@ -448,7 +448,7 @@ impl Listener {
 
 impl Drop for Listener {
     fn drop(&mut self) {
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             for conn in self.backlog.iter_mut() {
                 conn.close();
             }
@@ -569,7 +569,7 @@ impl DialConfig {
         let iface_handle = InterfaceHandle::new(0); // TODO: get this properly.
         let global_thread_id = cpu_local::current_thread().global_thread_id();
 
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             let mut ifaces = INTERFACES.lock();
             let iface = ifaces
                 .get_mut(iface_handle.0)
@@ -680,7 +680,7 @@ impl Connection {
     /// Close the connection.
     ///
     pub fn close(&self) {
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             let mut ifaces = INTERFACES.lock();
             let iface = ifaces
                 .get_mut(self.iface.0)
@@ -716,7 +716,7 @@ impl Connection {
         let mut bytes_sent = 0;
         let global_thread_id = cpu_local::current_thread().global_thread_id();
 
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             // Wait until we're able to send.
             loop {
                 let mut ifaces = INTERFACES.lock();
@@ -769,7 +769,7 @@ impl Connection {
     pub fn recv(&self, buf: &mut [u8]) -> Result<usize, Error> {
         let global_thread_id = cpu_local::current_thread().global_thread_id();
 
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             // Wait until we're able to receive.
             loop {
                 let mut ifaces = INTERFACES.lock();
@@ -823,7 +823,7 @@ impl Connection {
 
 impl Drop for Connection {
     fn drop(&mut self) {
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             let mut ifaces = INTERFACES.lock();
             let iface = ifaces
                 .get_mut(self.iface.0)

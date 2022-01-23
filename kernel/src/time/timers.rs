@@ -14,7 +14,7 @@ use crate::time;
 use crate::utils::lazy::Lazy;
 use alloc::collections::binary_heap::BinaryHeap;
 use core::cmp::{Ordering, PartialEq, PartialOrd};
-use x86_64::instructions::interrupts;
+use x86_64::instructions::interrupts::without_interrupts;
 
 /// The priority queue of pending timers.
 ///
@@ -34,7 +34,7 @@ pub(super) fn init() {
 ///
 pub fn add(thread_id: thread::ThreadId, wakeup: time::Instant) -> Timer {
     let timer = Timer::new(thread_id, wakeup);
-    interrupts::without_interrupts(|| TIMERS.lock().push(timer));
+    without_interrupts(|| TIMERS.lock().push(timer));
 
     timer
 }

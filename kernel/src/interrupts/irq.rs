@@ -17,7 +17,7 @@
 //! method.
 
 use crate::interrupts::{PICS, PIC_1_OFFSET};
-use x86_64::instructions::interrupts;
+use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::idt::{HandlerFunc, InterruptStackFrame};
 
 /// Irq represents an IRQ number.
@@ -96,7 +96,7 @@ static IRQS: spin::Mutex<[IrqHandler; 16]> = spin::Mutex::new([irq_handler_none;
 /// will panic.
 ///
 pub fn register_irq(irq: Irq, handler: IrqHandler) {
-    interrupts::without_interrupts(|| {
+    without_interrupts(|| {
         // Register the handler.
         let mut irqs = IRQS.lock();
         if irqs[irq.as_usize()] != irq_handler_none {

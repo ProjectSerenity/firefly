@@ -31,10 +31,12 @@ use alloc::vec::Vec;
 use core::mem::size_of;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use x86_64::addr::align_up;
-use x86_64::instructions::interrupts;
+use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::instructions::tables::load_tss;
 use x86_64::registers::model_specific::GsBase;
-use x86_64::structures::gdt::{Descriptor, DescriptorFlags, GlobalDescriptorTable, SegmentSelector};
+use x86_64::structures::gdt::{
+    Descriptor, DescriptorFlags, GlobalDescriptorTable, SegmentSelector,
+};
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
 };
@@ -51,27 +53,27 @@ static INITIALISED: AtomicBool = AtomicBool::new(false);
 /// CpuData contains the data specific to an individual CPU core.
 ///
 struct CpuData {
-	// The current thread's syscall stack
-	// pointer. We read this when entering
-	// the syscall handler to switch to
-	// the syscall stack. This is fetched
-	// by dereferencing the GS register,
-	// as the syscall handler is written
-	// in assembly. It's important that
-	// the location of thia value within
-	// CpuData not be changed without also
-	// changing it in the syscall handler.
-	syscall_stack_pointer: VirtAddr,
+    // The current thread's syscall stack
+    // pointer. We read this when entering
+    // the syscall handler to switch to
+    // the syscall stack. This is fetched
+    // by dereferencing the GS register,
+    // as the syscall handler is written
+    // in assembly. It's important that
+    // the location of thia value within
+    // CpuData not be changed without also
+    // changing it in the syscall handler.
+    syscall_stack_pointer: VirtAddr,
 
-	// The current thread's user stack
-	// pointer. This is overwritten when
-	// we enter the syscall handler and
-	// switch to the syscall stack, and
-	// restored when we return to user
-	// space. As above, do not move within
-	// CpuData without updating the syscall
-	// handler too.
-	user_stack_pointer: VirtAddr,
+    // The current thread's user stack
+    // pointer. This is overwritten when
+    // we enter the syscall handler and
+    // switch to the syscall stack, and
+    // restored when we return to user
+    // space. As above, do not move within
+    // CpuData without updating the syscall
+    // handler too.
+    user_stack_pointer: VirtAddr,
 
     // This CPU's unique ID.
     id: CpuId,
@@ -181,13 +183,15 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
 
     // Set up the GDT now that everything
     // else is ready.
-    interrupts::without_interrupts(|| {
+    without_interrupts(|| {
         let tss_ref = tss_ref();
         let data = unsafe { cpu_data() };
         let kernel_code_64 = data.gdt.add_entry(Descriptor::kernel_code_segment());
         let kernel_data = data.gdt.add_entry(Descriptor::kernel_data_segment());
         let tss_selector = data.gdt.add_entry(Descriptor::tss_segment(tss_ref));
-        let user_code_32 = data.gdt.add_entry(Descriptor::UserSegment(DescriptorFlags::USER_CODE32.bits()));
+        let user_code_32 = data
+            .gdt
+            .add_entry(Descriptor::UserSegment(DescriptorFlags::USER_CODE32.bits()));
         let user_data = data.gdt.add_entry(Descriptor::user_data_segment());
         let user_code_64 = data.gdt.add_entry(Descriptor::user_code_segment());
 

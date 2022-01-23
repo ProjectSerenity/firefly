@@ -26,7 +26,7 @@
 
 use core::fmt::Write;
 use uart_16550::SerialPort;
-use x86_64::instructions::interrupts;
+use x86_64::instructions::interrupts::without_interrupts;
 
 /// COM1 is the first serial port device.
 ///
@@ -49,7 +49,7 @@ pub const COM4: spin::Mutex<SerialPort> = unsafe { spin::Mutex::new(SerialPort::
 ///
 #[doc(hidden)]
 pub fn _print(args: ::core::fmt::Arguments) {
-    interrupts::without_interrupts(|| {
+    without_interrupts(|| {
         COM1.lock()
             .write_fmt(args)
             .expect("Printing to COM1 failed");

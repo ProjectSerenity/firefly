@@ -47,7 +47,7 @@ use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::Waker;
 use crossbeam::atomic::AtomicCell;
-use x86_64::instructions::interrupts;
+use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
 
@@ -152,7 +152,7 @@ pub fn exit() -> ! {
     // as the pre-emption will have the
     // same effect and we'll never return
     // to exit.
-    interrupts::without_interrupts(|| {
+    without_interrupts(|| {
         current.set_state(ThreadState::Exiting);
         THREADS.lock().remove(&current.global_id);
 
@@ -454,7 +454,7 @@ impl Thread {
             stack_bounds: Some(stack),
         });
 
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             THREADS.lock().insert(global_id, thread);
         });
 
@@ -566,7 +566,7 @@ impl Thread {
             stack_bounds: Some(stack),
         });
 
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             THREADS.lock().insert(global_id, thread);
         });
 

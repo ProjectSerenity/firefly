@@ -33,7 +33,7 @@ use smoltcp::iface::{InterfaceBuilder, NeighborCache, Routes, SocketHandle, Sock
 use smoltcp::socket::{Dhcpv4Config, Dhcpv4Event, Dhcpv4Socket};
 use smoltcp::time::Instant;
 use smoltcp::wire::{EthernetAddress, HardwareAddress, IpCidr, Ipv4Address, Ipv4Cidr};
-use x86_64::instructions::interrupts;
+use x86_64::instructions::interrupts::without_interrupts;
 
 /// INITIAL_WORKLOADS can be a set of thread ids that
 /// should be resumed once we have a DHCP configuration.
@@ -50,7 +50,7 @@ static INITIAL_WORKLOADS: spin::Mutex<Vec<ThreadId>> = spin::Mutex::new(Vec::new
 /// `thread_id` will be resumed at most once.
 ///
 pub fn register_workload(thread_id: ThreadId) {
-    interrupts::without_interrupts(|| {
+    without_interrupts(|| {
         let mut workloads = INITIAL_WORKLOADS.lock();
         workloads.push(thread_id);
     });
@@ -214,7 +214,7 @@ impl InterfaceHandle {
     /// Returns the interface's unique name.
     ///
     pub fn name(&self) -> String {
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             let ifaces = INTERFACES.lock();
             let iface = ifaces.get(self.0).expect("invalid interface handle");
             iface.name.clone()
@@ -225,7 +225,7 @@ impl InterfaceHandle {
     /// established.
     ///
     pub fn dhcp_config(&self) -> Option<Dhcpv4Config> {
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             let ifaces = INTERFACES.lock();
             let iface = ifaces.get(self.0).expect("invalid interface handle");
             iface.config
@@ -239,7 +239,7 @@ impl InterfaceHandle {
     /// called to balance performance and resource usage.
     ///
     pub fn poll(&self) -> time::Duration {
-        interrupts::without_interrupts(|| {
+        without_interrupts(|| {
             let mut ifaces = INTERFACES.lock();
             let iface = ifaces.get_mut(self.0).expect("invalid interface handle");
             iface.poll()
@@ -268,7 +268,7 @@ pub fn add_interface(device: network::Device, mac: EthernetAddress) -> Interface
     let socket = Dhcpv4Socket::new();
     let dhcp = iface.add_socket(socket);
 
-    interrupts::without_interrupts(|| {
+    without_interrupts(|| {
         let mut ifaces = INTERFACES.lock();
         let name = format!("ethernet{}", ifaces.len());
         let handle = InterfaceHandle::new(ifaces.len());
