@@ -125,8 +125,8 @@ pub fn switch() {
         // queue, unless it's the idle thread, which
         // always has thread id 0 (which is otherwise
         // invalid).
-        if current.id != ThreadId::IDLE && current.thread_state() == ThreadState::Runnable {
-            scheduler.add(current.id);
+        if current.global_id != ThreadId::IDLE && current.thread_state() == ThreadState::Runnable {
+            scheduler.add(current.global_id);
         }
 
         match scheduler.next() {

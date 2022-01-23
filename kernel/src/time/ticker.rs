@@ -63,14 +63,14 @@ fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
         return;
     }
 
-    let thread_id = current_thread.thread_id();
-    if thread_id != thread::ThreadId::IDLE {
+    let global_thread_id = current_thread.global_thread_id();
+    if global_thread_id != thread::ThreadId::IDLE {
         current_thread.reset_time_slice();
     }
 
     // Drop our reference to the current thread,
     // so the scheduler has full control.
-    mem::drop(thread_id);
+    mem::drop(global_thread_id);
     mem::drop(current_thread);
 
     scheduler::switch();

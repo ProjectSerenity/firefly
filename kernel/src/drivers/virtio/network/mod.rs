@@ -159,8 +159,8 @@ static INTERFACE_HANDLES: spin::Mutex<BTreeMap<ThreadId, InterfaceHandle>> =
 /// continues to process network events.
 ///
 fn network_entry_point() -> ! {
-    let thread_id = cpu_local::current_thread().thread_id();
-    let iface_handle = &INTERFACE_HANDLES.lock()[&thread_id];
+    let global_thread_id = cpu_local::current_thread().global_thread_id();
+    let iface_handle = &INTERFACE_HANDLES.lock()[&global_thread_id];
     loop {
         let wait = interrupts::without_interrupts(|| iface_handle.poll());
         time::sleep(wait);

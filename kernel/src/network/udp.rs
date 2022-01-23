@@ -326,7 +326,7 @@ impl Port {
     pub fn send_to<T: Into<IpEndpoint>>(&self, buf: &[u8], peer: T) -> Result<usize, Error> {
         // Realise the peer's address.
         let peer = peer.into();
-        let thread_id = cpu_local::current_thread().thread_id();
+        let global_thread_id = cpu_local::current_thread().global_thread_id();
 
         interrupts::without_interrupts(|| {
             // Wait until we're able to send.
@@ -346,7 +346,7 @@ impl Port {
                         return Err(Error::NotReady);
                     }
 
-                    socket.register_send_waker(&thread_id.waker());
+                    socket.register_send_waker(&global_thread_id.waker());
 
                     // Drop our handles to avoid a deadlock.
                     drop(socket);
@@ -381,7 +381,7 @@ impl Port {
     /// [`Error::NotReady`](super::Error::NotReady).
     ///
     pub fn recv_from(&self, buf: &mut [u8]) -> Result<(usize, IpEndpoint), Error> {
-        let thread_id = cpu_local::current_thread().thread_id();
+        let global_thread_id = cpu_local::current_thread().global_thread_id();
 
         interrupts::without_interrupts(|| {
             // Wait until we're able to receive.
@@ -401,7 +401,7 @@ impl Port {
                         return Err(Error::NotReady);
                     }
 
-                    socket.register_recv_waker(&thread_id.waker());
+                    socket.register_recv_waker(&global_thread_id.waker());
 
                     // Drop our handles to avoid a deadlock.
                     drop(socket);

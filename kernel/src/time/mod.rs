@@ -74,7 +74,7 @@ pub fn sleep(duration: Duration) {
     let current = cpu_local::current_thread();
 
     // Create a timer to wake us up.
-    timers::add(current.thread_id(), stop);
+    timers::add(current.global_thread_id(), stop);
 
     // Put ourselves to sleep.
     current.set_state(ThreadState::Sleeping);
