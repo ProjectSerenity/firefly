@@ -32,7 +32,8 @@
 //! thread.
 
 use crate::memory::{
-    free_kernel_stack, kernel_pml4, new_kernel_stack, pmm, StackBounds, VirtAddrRange, USERSPACE,
+    free_kernel_stack, kernel_pml4, new_kernel_stack, pmm, StackBounds, VirtAddrRange,
+    KERNEL_STACK, USERSPACE,
 };
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler::Scheduler;
@@ -743,7 +744,9 @@ impl Drop for Thread {
 
         // Return our stack to the dead stacks list.
         if let Some(bounds) = self.stack_bounds {
-            free_kernel_stack(bounds);
+            if KERNEL_STACK.contains_range(bounds.start(), bounds.end()) {
+                free_kernel_stack(bounds);
+            }
         }
 
         // Same again for our interrupt stack, if we have one.
