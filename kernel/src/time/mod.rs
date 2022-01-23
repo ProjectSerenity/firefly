@@ -21,7 +21,6 @@
 
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::{scheduler, ThreadState};
-use core::mem;
 
 mod rtc;
 mod slice;
@@ -78,7 +77,7 @@ pub fn sleep(duration: Duration) {
 
     // Put ourselves to sleep.
     current.set_state(ThreadState::Sleeping);
-    mem::drop(current);
+    drop(current);
 
     // Switch to the next thread.
     scheduler::switch();

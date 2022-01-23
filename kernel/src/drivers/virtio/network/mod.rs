@@ -137,7 +137,7 @@ fn interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
 
         // Drop our mutex lock to unlock
         // the driver.
-        mem::drop(dev);
+        drop(dev);
 
         // Poll the interface so it picks
         // up any received packets.

@@ -77,7 +77,6 @@ use alloc::collections::BTreeSet;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::cmp::min;
-use core::mem::drop;
 use smoltcp::iface::SocketHandle;
 use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::wire::IpEndpoint;

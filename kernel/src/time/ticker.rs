@@ -13,7 +13,6 @@ use crate::interrupts::{register_irq, Irq};
 use crate::multitasking::thread::scheduler;
 use crate::multitasking::{cpu_local, thread};
 use crate::time;
-use core::mem;
 use core::sync::atomic::{AtomicU64, Ordering};
 use x86_64::instructions::port::Port;
 use x86_64::structures::idt::InterruptStackFrame;
@@ -70,8 +69,8 @@ fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
 
     // Drop our reference to the current thread,
     // so the scheduler has full control.
-    mem::drop(global_thread_id);
-    mem::drop(current_thread);
+    drop(global_thread_id);
+    drop(current_thread);
 
     scheduler::switch();
 }

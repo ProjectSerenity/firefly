@@ -53,7 +53,6 @@ use crate::multitasking::{cpu_local, thread};
 use crate::random;
 use alloc::collections::BTreeSet;
 use alloc::vec;
-use core::mem::drop;
 use smoltcp::iface::SocketHandle;
 use smoltcp::socket::{UdpPacketMetadata, UdpSocket, UdpSocketBuffer};
 use smoltcp::wire::IpEndpoint;

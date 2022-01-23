@@ -20,7 +20,6 @@ use crate::multitasking::thread::{ThreadId, ThreadState, SCHEDULER, THREADS};
 use crate::multitasking::{cpu_local, thread};
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
-use core::mem;
 use core::sync::atomic::{AtomicBool, Ordering};
 use x86_64::instructions::interrupts;
 
@@ -186,7 +185,7 @@ pub fn switch() {
     // than a function call, to avoid using our stack.
     if current.thread_state() == ThreadState::Exiting {
         debug_assert!(Arc::strong_count(&current) == 1);
-        mem::drop(current);
+        drop(current);
         unsafe {
             asm!(
                 "mov rdi, {0}",
@@ -196,7 +195,7 @@ pub fn switch() {
             );
         }
     } else {
-        mem::drop(current);
+        drop(current);
         unsafe { thread::switch::switch_stack(current_stack_pointer, new_stack_pointer) };
     }
 }

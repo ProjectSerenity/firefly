@@ -44,7 +44,6 @@ use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::task::Wake;
 use core::cell::UnsafeCell;
-use core::mem;
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::Waker;
 use crossbeam::atomic::AtomicCell;
@@ -118,7 +117,7 @@ pub fn suspend() {
 
     // Put ourselves to sleep.
     current.set_state(ThreadState::Sleeping);
-    mem::drop(current);
+    drop(current);
 
     // Switch to the next thread.
     scheduler::switch();
@@ -160,7 +159,7 @@ pub fn exit() -> ! {
         // We need to drop our handle on the current
         // thread now, as we'll never return from
         // switch.
-        mem::drop(current);
+        drop(current);
     });
 
     // We've now been unscheduled, so we

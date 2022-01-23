@@ -14,7 +14,6 @@ use crate::time;
 use crate::utils::lazy::Lazy;
 use alloc::collections::binary_heap::BinaryHeap;
 use core::cmp::{Ordering, PartialEq, PartialOrd};
-use core::mem;
 use x86_64::instructions::interrupts;
 
 /// The priority queue of pending timers.
@@ -77,7 +76,7 @@ pub fn process() {
             return;
         }
 
-        mem::drop(next);
+        drop(next);
         let next = timers.pop().unwrap();
         next.thread_id.resume();
     }

@@ -43,7 +43,7 @@
 //! buf[0] = 0xff;
 //!
 //! // Drop the virtual memory and de-allocate the frame.
-//! mem::drop(buf);
+//! drop(buf);
 //! unsafe { pmm::deallocate_frame(frame) };
 //! ```
 
