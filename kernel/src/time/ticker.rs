@@ -10,8 +10,8 @@
 //! passage of time.
 
 use crate::interrupts::{register_irq, Irq};
+use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler;
-use crate::multitasking::{cpu_local, thread};
 use crate::time;
 use core::sync::atomic::{AtomicU64, Ordering};
 use x86_64::instructions::port::Port;
@@ -56,23 +56,8 @@ fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
     // Check whether any timers have expired.
     time::timers::process();
 
-    // Time to pre-empt the current thread.
-    let current_thread = cpu_local::current_thread();
-    if !current_thread.tick() {
-        return;
-    }
-
-    let global_thread_id = current_thread.global_thread_id();
-    if global_thread_id != thread::ThreadId::IDLE {
-        current_thread.reset_time_slice();
-    }
-
-    // Drop our reference to the current thread,
-    // so the scheduler has full control.
-    drop(global_thread_id);
-    drop(current_thread);
-
-    scheduler::switch();
+    // Switch thread if necessary.
+    scheduler::preempt();
 }
 
 /// The number of times the system ticker will be

@@ -106,6 +106,31 @@ pub fn ready() -> bool {
     INITIALISED.load(Ordering::Relaxed)
 }
 
+/// Check whether the currently executing thread's time slice
+/// has been exhausted. If it has, we refill it and switch to
+/// the next runnable thread. If The current thread still has
+/// time remaining, `preempt` returns.
+///
+pub fn preempt() {
+    // Time to pre-empt the current thread.
+    let current_thread = cpu_local::current_thread();
+    if !current_thread.tick() {
+        return;
+    }
+
+    let global_thread_id = current_thread.global_thread_id();
+    if global_thread_id != thread::ThreadId::IDLE {
+        current_thread.reset_time_slice();
+    }
+
+    // Drop our reference to the current thread,
+    // so the scheduler has full control.
+    drop(global_thread_id);
+    drop(current_thread);
+
+    switch();
+}
+
 /// Schedules out the current thread and switches to the next
 /// runnable thread.
 ///

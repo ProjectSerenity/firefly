@@ -672,7 +672,7 @@ impl Thread {
     /// tick, returning `true` if the time slice is now
     /// zero.
     ///
-    pub fn tick(&self) -> bool {
+    fn tick(&self) -> bool {
         let time_slice = unsafe { &mut *self.time_slice.get() };
         time_slice.tick()
     }
