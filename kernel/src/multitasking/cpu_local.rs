@@ -198,7 +198,6 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
         // Load the GDT and its selectors.
         data.gdt.load();
         unsafe {
-            GsBase::write(start); // Set the GS base again now we've updated GS.
             load_tss(tss_selector);
 
             // Store our segment selectors.
