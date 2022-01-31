@@ -7,7 +7,7 @@
 //!
 //! A PCI [`Device`](crate::drivers::pci::Device) can be used to instantiate
 //! a PCI [`Transport`], which can then be used to reset and configure a
-//! Virtio device.
+//! VirtIO device.
 //!
 //! # Examples
 //!
@@ -29,7 +29,7 @@ use x86_64::PhysAddr;
 /// for a PCI capability containing vendor-specific
 /// data.
 ///
-/// All Virtio configuration data is provided in
+/// All VirtIO configuration data is provided in
 /// PCI capabilities with this id.
 ///
 const CAPABILITY_ID_VENDOR: u8 = 0x09;
@@ -115,7 +115,7 @@ fn bar_frame_range(
     Some(PhysFrame::range(start_frame.unwrap(), end_frame.unwrap()))
 }
 
-/// Describes a Virtio PCI transport that is for
+/// Describes a VirtIO PCI transport that is for
 /// some reason unacceptable.
 ///
 #[derive(Debug)]
@@ -190,7 +190,7 @@ struct CommonConfig {
     queue_device_hi: u32,
 }
 
-/// Implements Virtio configuration for the PCI transport.
+/// Implements VirtIO configuration for the PCI transport.
 ///
 pub struct Transport {
     // pci is a handle to the PCI device.

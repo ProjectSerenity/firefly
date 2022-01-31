@@ -5,7 +5,7 @@
 
 //! Implements the [split Virtqueue](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-240006).
 //!
-//! A split [`Virtqueue`] can be used to exchange buffers with a Virtio device. A `Virtqueue`
+//! A split [`Virtqueue`] can be used to exchange buffers with a VirtIO device. A `Virtqueue`
 //! is initialised by calling its [`new`](Virtqueue::new) function, which allocates the memory
 //! backing the Virtqueue, then uses the passed [`Transport`](crate::drivers::virtio::Transport)
 //! to configure the device to use the Virtqueue.
@@ -246,7 +246,7 @@ impl<'a> Virtqueue<'a> {
     /// Virtqueue this is, indexed from `0`.
     ///
     /// The `features` field should contain the
-    /// set of Virtio [feature flags](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-130002)
+    /// set of VirtIO [feature flags](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-130002)
     /// that have been negotiated with the
     /// device.
     ///

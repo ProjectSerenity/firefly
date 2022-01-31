@@ -3,16 +3,16 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-//! Partially implements [Virtio v1.1](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html)
+//! Partially implements [VirtIO v1.1](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html)
 //! for virtual device drivers, plus drivers for network devices and entropy sources.
 //!
-//! Virtual I/O (Virtio) devices provide a generic abstraction for device drivers.
-//! Virtio is used by hypervisors to provide guest virtual machines with efficient
+//! Virtual I/O (VirtIO) devices provide a generic abstraction for device drivers.
+//! VirtIO is used by hypervisors to provide guest virtual machines with efficient
 //! access to physical devices. This avoids the security risks of giving guests
 //! direct access to physical devices and the engineering and performance overhead
 //! of reimplementing device behaviours in software.
 //!
-//! A Virtio [`Driver`] consists of a [`Transport`] and at least one [`Virtqueue`].
+//! A VirtIO [`Driver`] consists of a [`Transport`] and at least one [`Virtqueue`].
 //! A device driver uses a [`Driver`] to exchange memory buffers and notifications
 //! with the device. The [`Transport`] is used to discover and configure the device.
 //! [`Virtqueue`]s provide a way to exchange memory buffers with the device, both
@@ -23,7 +23,7 @@
 //! support for the [MMIO transport](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-1440002)
 //! or the [packed virtqueue](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-610007).
 //!
-//! We currently have Virtio device drivers for the following device types:
+//! We currently have VirtIO device drivers for the following device types:
 //!
 //! - [Entropy source](entropy)
 //! - [Network card](network)
@@ -92,11 +92,11 @@ pub fn pci_device_supported(device: &pci::Device) -> Option<pci::DeviceDriver> {
 
     match DeviceId::from_pci_device_id(device.device) {
         Some(DeviceId::EntropySource) => {
-            println!("Installing Virtio entropy source.");
+            println!("Installing VirtIO entropy source.");
             Some(entropy::install_pci_device)
         }
         Some(DeviceId::NetworkCard) => {
-            println!("Installing Virtio network card.");
+            println!("Installing VirtIO network card.");
             Some(network::install_pci_device)
         }
         Some(other) => {
@@ -123,7 +123,7 @@ enum DeviceId {
     P9Transport = 9,
     Mac80211Wan = 10,
     RprocSerial = 11,
-    VirtioCaif = 12,
+    VirtIOCaif = 12,
     MemoryBalloon = 13,
     GpuDevice = 16,
     TimerClockDevice = 17,
@@ -153,7 +153,7 @@ impl DeviceId {
             0x1049 | 0x1009 => Some(DeviceId::P9Transport),
             0x104a => Some(DeviceId::Mac80211Wan),
             0x104b => Some(DeviceId::RprocSerial),
-            0x104c => Some(DeviceId::VirtioCaif),
+            0x104c => Some(DeviceId::VirtIOCaif),
             0x1050 => Some(DeviceId::MemoryBalloon),
             0x1051 => Some(DeviceId::GpuDevice),
             0x1052 => Some(DeviceId::TimerClockDevice),

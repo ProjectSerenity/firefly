@@ -3,14 +3,14 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-//! Implements Virtio [entropy source devices](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-2700004).
+//! Implements VirtIO [entropy source devices](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-2700004).
 //!
 //! An entropy source can be used to receive cryptographically secure pseudo-random
 //! data from the host. This functions using a single virtqueue, which is used to
 //! make device-writable buffers available. These buffers are then filled with
 //! entropy and returned to the driver.
 //!
-//! While Virtio devices normally use notifications, we only use entropy sources
+//! While VirtIO devices normally use notifications, we only use entropy sources
 //! infrequently to seed our [CSPRNG](crate::random). This means there should be
 //! no need for concurrent requests for entropy. Taking a sequential approach
 //! allows us to retrieving entropy allows us to provide a synchronous API, which
@@ -51,7 +51,7 @@ pub struct Driver {
 
 impl Driver {
     /// Returns an entropy source built using the given
-    /// Virtio driver.
+    /// VirtIO driver.
     ///
     pub fn new(driver: virtio::Driver) -> Self {
         Driver { driver }

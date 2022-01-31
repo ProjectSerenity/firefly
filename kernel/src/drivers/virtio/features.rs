@@ -3,9 +3,9 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-//! Provides bitflags for each of the different Virtio [feature flags](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-130002).
+//! Provides bitflags for each of the different VirtIO [feature flags](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-130002).
 //!
-//! Virtio negotiates features using specific bits in an arbitrary
+//! VirtIO negotiates features using specific bits in an arbitrary
 //! length bit sequence.
 //!
 //! Since different kinds of devices can have overlapping feature bit

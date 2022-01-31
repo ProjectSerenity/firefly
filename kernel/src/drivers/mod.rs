@@ -29,10 +29,10 @@
 //! The Serial module also implements the [`print`] and [`println`] macros, both
 //! of which write their output to [`COM1`](serial::COM1).
 //!
-//! ## Virtio
+//! ## VirtIO
 //!
-//! The [Virtio](virtio) module is a partial implementation of the [Virtual I/O
-//! (Virtio) Device version 1.1 specification](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html).
+//! The [VirtIO](virtio) module is a partial implementation of the [Virtual I/O
+//! (VirtIO) Device version 1.1 specification](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html).
 //! This is used to provide efficient access to virtual devices implemented by
 //! the hypervisor.
 

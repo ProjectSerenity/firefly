@@ -3,7 +3,7 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-//! Implements Virtio [network cards](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-1940001).
+//! Implements VirtIO [network cards](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-1940001).
 //!
 //! A network card can be used to send and receive Ethernet frames.
 //! This works using a pair of virtqueues; one for receiving frames
@@ -34,7 +34,7 @@
 //!
 //! This implementation does not currently use any of the advanced
 //! network card features, such as checksum offloading. The [`Driver`]
-//! struct takes ownership of the underlying Virtio driver and the
+//! struct takes ownership of the underlying VirtIO driver and the
 //! buffers we exchange with the network card.
 //!
 //! ## Integration with smoltcp
@@ -46,7 +46,7 @@
 //! which we register with the network stack.
 //!
 //! When not being used directly by a separate socket, there are two
-//! ways in which an interface built on a Virtio network card is driven.
+//! ways in which an interface built on a VirtIO network card is driven.
 //!
 //! 1. Interrupts from the device advance the network stack, processing any received packets.
 //! 2. A companion kernel thread advances the network stack periodically, following the interface's interval recommendations.
@@ -85,7 +85,7 @@ const SEND_VIRTQUEUE: u16 = 1;
 // a buffer used to send or receive
 // packets from the device. Note that
 // this includes the 12-byte header
-// used by the Virtio network driver.
+// used by the VirtIO network driver.
 //
 // This allows us to achieve an MTU of
 // 2036 bytes with single buffers. To
