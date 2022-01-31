@@ -24,120 +24,17 @@ pub fn add_device(device: Box<dyn Device + Send>) {
     });
 }
 
-// TODO: Select the device, rather than just using the first one.
-
-/// Returns the number of bytes in each segment.
+/// Iterate through the set of block storage devices,
+/// calling f on each device.
 ///
-pub fn segment_size() -> usize {
-    without_interrupts(|| {
-        let devices = DEVICES.lock();
-        match devices.get(0) {
-            None => 0,
-            Some(dev) => dev.segment_size(),
-        }
-    })
-}
-
-/// Returns the device capacity as a number of
-/// segments.
-//
-pub fn num_segments() -> usize {
-    without_interrupts(|| {
-        let devices = DEVICES.lock();
-        match devices.get(0) {
-            None => 0,
-            Some(dev) => dev.num_segments(),
-        }
-    })
-}
-
-/// Returns the device capacity in bytes.
-///
-pub fn capacity() -> usize {
-    without_interrupts(|| {
-        let devices = DEVICES.lock();
-        match devices.get(0) {
-            None => 0,
-            Some(dev) => dev.capacity(),
-        }
-    })
-}
-
-/// Returns the set of operations supported by the
-/// device.
-///
-/// If an unsupported operation is attempted, it
-/// will return [`Error::NotSupported`].
-///
-pub fn operations() -> Operations {
-    without_interrupts(|| {
-        let devices = DEVICES.lock();
-        match devices.get(0) {
-            None => Operations::empty(),
-            Some(dev) => dev.operations(),
-        }
-    })
-}
-
-/// Populates a byte slice with data from the device.
-///
-/// `segment` indicates from which segment the data
-/// should be read. The data read will start at the
-/// offset `segment` * [`segment_size`](segment_size).
-///
-/// Note that `buf` must have a length that is an exact
-/// multiple the [`segment_size`](segment_size).
-///
-/// `read` returns the number of bytes read.
-///
-pub fn read(segment: usize, buf: &mut [u8]) -> Result<usize, Error> {
-    without_interrupts(|| {
-        let mut devices = DEVICES.lock();
-        match devices.get_mut(0) {
-            None => Err(Error::NotSupported),
-            Some(dev) => dev.read(segment, buf),
-        }
-    })
-}
-
-/// Writes data from a byte slice to the device.
-///
-/// `segment` indicates from which segment the data
-/// should be read. The data written will start at the
-/// offset `segment` * [`segment_size`](segment_size).
-///
-/// Note that `buf` must have a length that is an exact
-/// multiple the [`segment_size`](segment_size).
-///
-/// `write` returns the number of bytes written.
-///
-/// If the device is read-only, calls to `write` will
-/// return [`Error::NotSupported`].
-///
-pub fn write(segment: usize, buf: &mut [u8]) -> Result<usize, Error> {
-    without_interrupts(|| {
-        let mut devices = DEVICES.lock();
-        match devices.get_mut(0) {
-            None => Err(Error::NotSupported),
-            Some(dev) => dev.write(segment, buf),
-        }
-    })
-}
-
-/// Flush the buffered data at the given `segment`.
-///
-/// `segment` indicates from which segment the data
-/// should be flushed. The data flushed will start at the
-/// offset `segment` * [`segment_size`](segment_size).
-///
-pub fn flush(segment: usize) -> Result<(), Error> {
-    without_interrupts(|| {
-        let mut devices = DEVICES.lock();
-        match devices.get_mut(0) {
-            None => Err(Error::NotSupported),
-            Some(dev) => dev.flush(segment),
-        }
-    })
+pub fn iter<F>(f: F)
+where
+    F: FnOnce(&mut Box<dyn Device + Send>) + Copy,
+{
+    let mut devices = without_interrupts(|| DEVICES.lock());
+    for dev in devices.iter_mut() {
+        f(dev);
+    }
 }
 
 bitflags! {
