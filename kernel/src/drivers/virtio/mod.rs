@@ -25,6 +25,7 @@
 //!
 //! We currently have VirtIO device drivers for the following device types:
 //!
+//! - [Block storage device](block)
 //! - [Entropy source](entropy)
 //! - [Network card](network)
 //!
@@ -43,6 +44,7 @@
 //! The transport can then be used to reset and initialise the device, negotiating
 //! features and preparing virtqueues.
 
+pub mod block;
 pub mod entropy;
 pub mod features;
 pub mod network;
@@ -91,6 +93,10 @@ pub fn pci_device_supported(device: &pci::Device) -> Option<pci::DeviceDriver> {
     }
 
     match DeviceId::from_pci_device_id(device.device) {
+        Some(DeviceId::BlockDevice) => {
+            println!("Installing VirtIO block device.");
+            Some(block::install_pci_device)
+        }
         Some(DeviceId::EntropySource) => {
             println!("Installing VirtIO entropy source.");
             Some(entropy::install_pci_device)
