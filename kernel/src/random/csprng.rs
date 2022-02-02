@@ -74,7 +74,7 @@ impl Csprng {
         let mut sha256 = Sha256::new();
         sha256.update(entropy.to_vec());
         sha256.update(self.entropy.to_vec());
-        sha256.finalize_into(&mut GenericArray::from_mut_slice(&mut self.entropy[..]));
+        sha256.finalize_into(GenericArray::from_mut_slice(&mut self.entropy[..]));
     }
 
     /// seed is a specialised version of add_entropy, which
@@ -128,7 +128,7 @@ impl Csprng {
         ];
         let nonce = Nonce::from_slice(&nonce[..]);
 
-        let mut cipher = ChaCha20::new(&key, &nonce);
+        let mut cipher = ChaCha20::new(key, nonce);
         cipher.apply_keystream(buf);
     }
 }

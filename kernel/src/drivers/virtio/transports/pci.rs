@@ -37,6 +37,7 @@ const CAPABILITY_ID_VENDOR: u8 = 0x09;
 /// Type represents a virtio configuration type.
 ///
 #[derive(Debug)]
+#[allow(clippy::upper_case_acronyms)]
 enum Type {
     // Common indicates the configuration common
     // to all virtio devices.
@@ -290,25 +291,36 @@ impl Transport {
             }
         }
 
-        if common.is_none() {
-            Err(ConfigError::NoCommon)
-        } else if notify.is_none() || notify_off_multiplier.is_none() {
-            Err(ConfigError::NoNotify)
-        } else if interrupt.is_none() {
-            Err(ConfigError::NoInterrupt)
-        } else if device_spec.is_none() {
-            Err(ConfigError::NoDevice)
-        } else {
-            device.enable_bus_master();
-            unsafe {
-                Ok(Transport {
-                    pci: device,
-                    common: mmio::Region::map(common.unwrap()),
-                    notify: mmio::Region::map(notify.unwrap()),
-                    notify_offset_multiplier: notify_off_multiplier.unwrap(),
-                    interrupt: mmio::Region::map(interrupt.unwrap()),
-                    device: mmio::Region::map(device_spec.unwrap()),
-                })
+        match (
+            common,
+            notify,
+            notify_off_multiplier,
+            interrupt,
+            device_spec,
+        ) {
+            (None, _, _, _, _) => Err(ConfigError::NoCommon),
+            (_, None, _, _, _) => Err(ConfigError::NoNotify),
+            (_, _, None, _, _) => Err(ConfigError::NoNotify),
+            (_, _, _, None, _) => Err(ConfigError::NoInterrupt),
+            (_, _, _, _, None) => Err(ConfigError::NoDevice),
+            (
+                Some(common),
+                Some(notify),
+                Some(notify_off_multiplier),
+                Some(interrupt),
+                Some(device_spec),
+            ) => {
+                device.enable_bus_master();
+                unsafe {
+                    Ok(Transport {
+                        pci: device,
+                        common: mmio::Region::map(common),
+                        notify: mmio::Region::map(notify),
+                        notify_offset_multiplier: notify_off_multiplier,
+                        interrupt: mmio::Region::map(interrupt),
+                        device: mmio::Region::map(device_spec),
+                    })
+                }
             }
         }
     }

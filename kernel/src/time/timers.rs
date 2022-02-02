@@ -64,28 +64,25 @@ pub fn process() {
     let now = time::now();
     let mut timers = TIMERS.lock();
     loop {
-        let next = timers.peek();
-        if !next.is_some() {
+        if let Some(next) = timers.peek() {
+            if next.wakeup > now {
+                // Nothing more ready.
+                return;
+            }
+
+            let next = timers.pop().unwrap();
+            next.thread_id.resume();
+        } else {
             // Nothing left to do.
             return;
         }
-
-        let next = next.unwrap();
-        if next.wakeup > now {
-            // Nothing more ready.
-            return;
-        }
-
-        drop(next);
-        let next = timers.pop().unwrap();
-        next.thread_id.resume();
     }
 }
 
 /// Represents a system time when a thread
 /// should be woken.
 ///
-#[derive(Clone, Copy, Eq, Ord)]
+#[derive(Clone, Copy, Eq)]
 pub struct Timer {
     wakeup: time::Instant,
     thread_id: thread::ThreadId,
@@ -127,13 +124,17 @@ impl PartialEq for Timer {
 // compares as 'larger'.
 //
 impl PartialOrd for Timer {
-    fn partial_cmp(&self, other: &Timer) -> Option<Ordering> {
-        if self.wakeup == other.wakeup {
-            Some(Ordering::Equal)
-        } else if self.wakeup < other.wakeup {
-            Some(Ordering::Greater)
-        } else {
-            Some(Ordering::Less)
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Timer {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self.wakeup.cmp(&other.wakeup) {
+            Ordering::Equal => Ordering::Equal,
+            Ordering::Less => Ordering::Greater,
+            _ => Ordering::Less,
         }
     }
 }

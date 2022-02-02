@@ -52,7 +52,7 @@
 //! [section 5.9.3]: https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-3530003
 //! [section 6]: https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-4100006
 
-use crate::print;
+use crate::{print, println};
 use bitflags::bitflags;
 
 /// Prints flags as a sequence of set bits.
@@ -73,7 +73,7 @@ pub fn debug(flags: u64) {
         }
     }
 
-    print!(")\n");
+    println!(")");
 }
 
 bitflags! {

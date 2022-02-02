@@ -274,7 +274,7 @@ impl<'a> Virtqueue<'a> {
         // if necessary.
 
         let queue_size = num_descriptors as u64;
-        let descriptors_offset = 0 as u64; // Offset from frame start.
+        let descriptors_offset = 0u64; // Offset from frame start.
         let descriptors_size = size_of::<Descriptor>() as u64 * queue_size;
         let descriptors_end = descriptors_offset + descriptors_size;
         let driver_offset = align_up(descriptors_end, 2);
@@ -311,7 +311,7 @@ impl<'a> Virtqueue<'a> {
         };
 
         let driver_area = DriverArea {
-            flags: mmio_region.as_mut::<u16>(driver_offset + 0).unwrap(),
+            flags: mmio_region.as_mut::<u16>(driver_offset).unwrap(),
             index: mmio_region.as_mut::<u16>(driver_offset + 2).unwrap(),
             ring: unsafe {
                 slice::from_raw_parts_mut(
@@ -323,7 +323,7 @@ impl<'a> Virtqueue<'a> {
         };
 
         let device_area = DeviceArea {
-            _flags: mmio_region.as_mut::<u16>(device_offset + 0).unwrap(),
+            _flags: mmio_region.as_mut::<u16>(device_offset).unwrap(),
             index: mmio_region.as_mut::<u16>(device_offset + 2).unwrap(),
             ring: unsafe {
                 slice::from_raw_parts_mut(
@@ -389,12 +389,9 @@ impl<'a> virtio::Virtqueue for Virtqueue<'a> {
             self.descriptors[idx].flags = flags.bits().to_le();
             self.descriptors[idx].next = 0;
 
-            match prev_index {
-                Some(prev) => {
-                    self.descriptors[prev as usize].flags |= DescriptorFlags::NEXT.bits().to_le();
-                    self.descriptors[prev as usize].next = idx as u16;
-                }
-                _ => {}
+            if let Some(prev) = prev_index {
+                self.descriptors[prev as usize].flags |= DescriptorFlags::NEXT.bits().to_le();
+                self.descriptors[prev as usize].next = idx as u16;
             }
 
             prev_index = Some(idx as u16);

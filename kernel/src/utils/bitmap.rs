@@ -96,7 +96,7 @@ impl Bitmap {
         // We need to ignore the zero
         // bits in the final u64 after
         // our actual data ends.
-        let ignore = (align_up(self.num as u64, 64 as u64) - self.num as u64) as usize;
+        let ignore = (align_up(self.num as u64, 64_u64) - self.num as u64) as usize;
         self.bits
             .iter()
             .map(|&x| x.count_zeros())

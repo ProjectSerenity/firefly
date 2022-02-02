@@ -71,7 +71,7 @@ impl BootInfoFrameAllocator {
     /// when it takes over from `BootInfoFrameallocator`.
     ///
     pub(super) fn used_frames(&self) -> impl Iterator<Item = PhysFrame> + '_ {
-        self.usable_frames().take(self.next).into_iter()
+        self.usable_frames().take(self.next)
     }
 }
 

@@ -260,7 +260,7 @@ impl<'a> Reader<'a> {
         let is_ustar = self.header(257, 6) == b"ustar\x00" && self.header(263, 2) == b"00";
         if is_ustar {
             let prefix = self.read_string(345, 155);
-            if prefix.len() > 0 {
+            if !prefix.is_empty() {
                 // Parse the prefix as UTF-8.
                 name.push_str(str::from_utf8(prefix).or(Err("invalid name prefix"))?);
             }

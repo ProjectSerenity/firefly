@@ -380,7 +380,12 @@ impl Thread {
         // on the stack.
         let stack_bounds = Some(StackBounds::from(stack_space));
 
-        let thread = Arc::new(Thread {
+        // Note that we don't store the idle thread
+        // in THREADS, as it never enters the scheduler.
+        // This means we only run the idle thread as a
+        // last resort.
+
+        Arc::new(Thread {
             global_id,
             state: AtomicCell::new(ThreadState::Runnable),
             time_slice: UnsafeCell::new(TimeSlice::ZERO),
@@ -389,14 +394,7 @@ impl Thread {
             user_stack_pointer: UnsafeCell::new(VirtAddr::zero()),
             stack_pointer,
             stack_bounds,
-        });
-
-        // Note that we don't store the idle thread
-        // in THREADS, as it never enters the scheduler.
-        // This means we only run the idle thread as a
-        // last resort.
-
-        thread
+        })
     }
 
     /// Creates a new kernel thread, allocating a stack,
@@ -427,7 +425,7 @@ impl Thread {
 
             // Push the entry point, to be called by
             // start_kernel_thread.
-            rsp = push_stack(rsp, entry_point as u64);
+            rsp = push_stack(rsp, entry_point as usize as u64);
 
             // Push start_kernel_thread and the initial
             // registers to be loaded by switch_stack.

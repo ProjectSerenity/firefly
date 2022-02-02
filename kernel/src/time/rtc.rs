@@ -93,7 +93,7 @@ const CMOS_REGISTER_B: usize = 0xb;
 ///
 fn cmos_updating() -> bool {
     unsafe {
-        Port::new(CMOS_ADDRESS).write(0x0a as u8);
+        Port::new(CMOS_ADDRESS).write(0x0a_u8);
         Port::<u8>::new(CMOS_DATA).read() & 0x80 != 0
     }
 }
@@ -102,10 +102,10 @@ fn cmos_updating() -> bool {
 /// values.
 ///
 fn read_cmos_values(values: &mut [u8; CMOS_REGISTERS]) {
-    for i in 0..CMOS_REGISTERS {
+    for (i, register) in values.iter_mut().enumerate() {
         unsafe {
             Port::new(CMOS_ADDRESS).write(i as u8);
-            values[i] = Port::new(CMOS_DATA).read();
+            *register = Port::new(CMOS_DATA).read();
         }
     }
 }
@@ -132,7 +132,7 @@ fn read_cmos() -> Time {
     // they must be consistent.
     read_cmos_values(&mut values);
     loop {
-        prev_values = values.clone();
+        prev_values = values;
         while cmos_updating() {}
         read_cmos_values(&mut values);
 
@@ -168,7 +168,7 @@ fn read_cmos() -> Time {
     let year = 2000 + values[CMOS_YEAR] as u16;
 
     Time {
-        year: year,
+        year,
         month: values[CMOS_MONTH],
         day: values[CMOS_DAY],
         hour: values[CMOS_HOUR],

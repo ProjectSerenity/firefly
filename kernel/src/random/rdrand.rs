@@ -59,7 +59,7 @@ impl EntropySource for RdRandEntropySource {
 ///
 pub fn init() {
     match RdRand::new() {
-        None => return,
+        None => {}
         Some(rdrand) => {
             let source = RdRandEntropySource { rdrand };
             register_entropy_source(Box::new(source));

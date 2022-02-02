@@ -125,7 +125,6 @@ pub fn preempt() {
 
     // Drop our reference to the current thread,
     // so the scheduler has full control.
-    drop(global_thread_id);
     drop(current_thread);
 
     switch();

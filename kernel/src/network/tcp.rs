@@ -122,7 +122,7 @@ pub fn ephemeral_port() -> u16 {
         random::read(&mut buf[..]);
 
         for i in 0..(buf.len() / 2) {
-            let port = ((buf[i * 2 + 0] as u16) << 8) + (buf[i * 2 + 1] as u16);
+            let port = ((buf[i * 2] as u16) << 8) + (buf[i * 2 + 1] as u16);
             if port < 49152 {
                 continue;
             }
@@ -384,7 +384,6 @@ impl Listener {
                             socket.register_recv_waker(&waker);
                         }
 
-                        drop(iface);
                         drop(ifaces);
 
                         thread::suspend();
@@ -585,7 +584,6 @@ impl DialConfig {
 
             // Connect to the remote server.
             socket.connect(context, remote, local)?;
-            drop(socket);
 
             // Send the SYN packet.
             iface.poll();
@@ -614,8 +612,6 @@ impl DialConfig {
 
             // Drop our hold on the interface so we can
             // suspend ourself without causing a deadlock.
-            drop(socket);
-            drop(iface);
             drop(ifaces);
 
             loop {
@@ -737,8 +733,6 @@ impl Connection {
                     socket.register_send_waker(&global_thread_id.waker());
 
                     // Drop our handles to avoid a deadlock.
-                    drop(socket);
-                    drop(iface);
                     drop(ifaces);
 
                     // Sleep until the state changes.
@@ -750,7 +744,6 @@ impl Connection {
                 bytes_sent += socket.send_slice(&buf[bytes_sent..])?;
 
                 // Advance the state machine.
-                drop(socket);
                 iface.poll();
 
                 if bytes_sent == buf.len() {
@@ -790,8 +783,6 @@ impl Connection {
                     socket.register_recv_waker(&global_thread_id.waker());
 
                     // Drop our handles to avoid a deadlock.
-                    drop(socket);
-                    drop(iface);
                     drop(ifaces);
 
                     // Sleep until the state changes.
@@ -810,8 +801,6 @@ impl Connection {
                 }
 
                 // Try again.
-                drop(socket);
-                drop(iface);
                 drop(ifaces);
 
                 // Sleep until the state changes.

@@ -190,7 +190,7 @@ fn read_u16(bus: u8, slot: u8, func: u8, field: u8) -> u16 {
 
 fn read_u32(bus: u8, slot: u8, func: u8, field: u8) -> u32 {
     set_address(bus, slot, func, field);
-    unsafe { Port::new(CONFIG_DATA + (field as u16 & 0)).read() }
+    unsafe { Port::new(CONFIG_DATA).read() }
 }
 
 fn write_u8(bus: u8, slot: u8, func: u8, field: u8, value: u8) {
@@ -289,8 +289,8 @@ fn scan_slot(bus: u8, slot: u8) {
         return;
     }
 
-    for i in 1..16 {
-        registers[i] = read_u32(bus, slot, 0, (i * 4) as u8);
+    for (i, register) in registers.iter_mut().enumerate().skip(1) {
+        *register = read_u32(bus, slot, 0, (i * 4) as u8);
     }
 
     if (registers[3] >> 16) as u8 != 0 {

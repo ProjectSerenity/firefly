@@ -75,7 +75,7 @@ impl BitmapPool {
         BitmapPool {
             start_address: PhysAddr::new(region.range.start_addr()),
             last_address: PhysAddr::new(region.range.end_addr() - 1),
-            num_frames: num_frames,
+            num_frames,
             free_frames: num_frames,
             bitmap: Bitmap::new_set(num_frames as usize),
         }
@@ -249,7 +249,7 @@ impl BitmapFrameAllocator {
                 && r.range.start_frame_number < r.range.end_frame_number
         });
 
-        let pools: Vec<BitmapPool> = usable_regions.map(|r| BitmapPool::new(r)).collect();
+        let pools: Vec<BitmapPool> = usable_regions.map(BitmapPool::new).collect();
         let mut num_frames = 0u64;
         let mut free_frames = 0u64;
         for pool in pools.iter() {

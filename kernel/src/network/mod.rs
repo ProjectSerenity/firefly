@@ -126,7 +126,7 @@ impl Interface {
                             _ => panic!("unexpected non-vector set of IP addresses"),
                         };
 
-                        if addrs.len() == 0 {
+                        if addrs.is_empty() {
                             addrs.push(IpCidr::Ipv4(config.address));
                             return;
                         }
@@ -190,12 +190,10 @@ impl Interface {
 
         // Determine when to poll again.
         let next = self.iface.poll_delay(now);
-        let duration = match next {
+        match next {
             Some(duration) => time::Duration::from_micros(duration.micros()),
             None => time::Duration::from_secs(1),
-        };
-
-        duration
+        }
     }
 }
 

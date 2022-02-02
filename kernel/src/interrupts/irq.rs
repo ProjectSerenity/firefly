@@ -84,7 +84,7 @@ pub type IrqHandler = fn(frame: InterruptStackFrame, irq: Irq);
 
 /// IRQS helps us to track which IRQs have been allocated.
 ///
-static IRQS: spin::Mutex<[IrqHandler; 16]> = spin::Mutex::new([irq_handler_none; 16]);
+static IRQS: spin::Mutex<[Option<IrqHandler>; 16]> = spin::Mutex::new([None; 16]);
 
 /// Sets the handler for the given IRQ.
 ///
@@ -99,11 +99,11 @@ pub fn register_irq(irq: Irq, handler: IrqHandler) {
     without_interrupts(|| {
         // Register the handler.
         let mut irqs = IRQS.lock();
-        if irqs[irq.as_usize()] != irq_handler_none {
+        if irqs[irq.as_usize()].is_some() {
             panic!("IRQ {:?} has already been registered", irq);
         }
 
-        irqs[irq.as_usize()] = handler;
+        irqs[irq.as_usize()] = Some(handler);
 
         // Enable the PIC line.
         let mut pics = PICS.lock();
@@ -126,17 +126,13 @@ pub fn register_irq(irq: Irq, handler: IrqHandler) {
     });
 }
 
-/// irq_handler_none is a dummy IRQ handler, which
-/// does nothing.
-///
-fn irq_handler_none(_frame: InterruptStackFrame, _irq: Irq) {}
-
 // IRQ handlers.
 
 #[inline]
 fn irq_handler_generic(frame: InterruptStackFrame, irq: Irq) {
-    let handler = IRQS.lock()[irq.as_usize()];
-    handler(frame, irq);
+    if let Some(handler) = IRQS.lock()[irq.as_usize()] {
+        handler(frame, irq);
+    }
 }
 
 pub(super) const IRQ_HANDLERS: [HandlerFunc; 16] = [

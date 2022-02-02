@@ -93,7 +93,7 @@ fn set_ticker_frequency(mut freq: u64) {
 
     // See http://kernelx.weebly.com/programmable-interval-timer.html
     unsafe {
-        Port::new(0x43).write(0x34 as u8);
+        Port::new(0x43).write(0x34_u8);
         Port::new(0x40).write((divisor & 0xff) as u8);
         Port::new(0x40).write((divisor >> 8) as u8);
     }

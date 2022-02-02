@@ -65,6 +65,7 @@ const HEADER_SIZE: usize = (32 + 32 + 64) / 8;
 
 /// The number of bytes in the trailer field.
 ///
+#[allow(clippy::eq_op)]
 const TRAILER_SIZE: usize = 8 / 8;
 
 /// The number of bytes per cached buffer.
@@ -108,13 +109,14 @@ impl Allocator {
 
         // Populate the header.
         unsafe {
+            #[allow(clippy::identity_op)]
             (virt + 0u64).as_mut_ptr::<u32>().write(req_type.to_le()); // le32 type;
             (virt + 4u64).as_mut_ptr::<u32>().write(0u32.to_le()); // le32 reserved;
             (virt + 8u64).as_mut_ptr::<u64>().write(sector.to_le()); // le64 sector;
         }
 
         let header = Buffer::DeviceCanRead {
-            addr: phys + 0u64,
+            addr: phys,
             len: HEADER_SIZE,
         };
         let trailer = Buffer::DeviceCanWrite {
@@ -189,5 +191,11 @@ impl Allocator {
         // This buffer does not exist in the frames
         // we have allocated.
         panic!("buffers passed to deallocate were not returned by allocate");
+    }
+}
+
+impl Default for Allocator {
+    fn default() -> Self {
+        Self::new()
     }
 }

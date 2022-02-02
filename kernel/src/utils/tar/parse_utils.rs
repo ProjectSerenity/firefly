@@ -18,7 +18,7 @@ fn trim_spaces_and_nulls(buf: &[u8]) -> &[u8] {
 
     let mut start = 0;
     while start < n {
-        if buf[start] != 0 && buf[start] != ' ' as u8 {
+        if buf[start] != 0 && buf[start] != b' ' {
             break;
         }
 
@@ -27,7 +27,7 @@ fn trim_spaces_and_nulls(buf: &[u8]) -> &[u8] {
 
     let mut end = n - 1;
     while end > start {
-        if buf[end] != 0 && buf[end] != ' ' as u8 {
+        if buf[end] != 0 && buf[end] != b' ' {
             break;
         }
 
@@ -94,15 +94,15 @@ fn parse_base256(buf: &[u8]) -> Option<isize> {
 fn parse_octal(buf: &[u8]) -> Option<isize> {
     // Trim off any leading or trailing spaces and null bytes.
     let buf = trim_spaces_and_nulls(buf);
-    if buf.len() == 0 {
+    if buf.is_empty() {
         return Some(0);
     }
 
     let mut val = 0;
     let mut neg = false;
     for (i, digit) in buf.iter().enumerate() {
-        if i == 0 && buf.len() > 1 && (*digit == '-' as u8 || *digit == '+' as u8) {
-            neg = *digit == '-' as u8;
+        if i == 0 && buf.len() > 1 && (*digit == b'-' || *digit == b'+') {
+            neg = *digit == b'-';
             continue;
         }
 
@@ -111,13 +111,13 @@ fn parse_octal(buf: &[u8]) -> Option<isize> {
             break;
         }
 
-        if *digit < '0' as u8 || ('7' as u8) < *digit {
+        if *digit < b'0' || b'7' < *digit {
             // Invalid character.
             return None;
         }
 
         val <<= 3; // *= 8.
-        val += (*digit - ('0' as u8)) as isize;
+        val += (*digit - b'0') as isize;
         continue;
     }
 
@@ -136,7 +136,7 @@ fn parse_octal(buf: &[u8]) -> Option<isize> {
 /// `None`.
 ///
 pub fn parse_number(buf: &[u8]) -> Option<isize> {
-    if buf.len() > 0 && buf[0] & 0x80 != 0 {
+    if !buf.is_empty() && buf[0] & 0x80 != 0 {
         parse_base256(buf)
     } else {
         parse_octal(buf)
@@ -153,7 +153,7 @@ pub fn parse_string(buf: &[u8]) -> &[u8] {
         }
     }
 
-    &buf
+    buf
 }
 
 /// Parse the checksum value from a header.
@@ -165,8 +165,8 @@ pub fn parse_checksum(buf: &[u8]) -> (isize, isize) {
     let mut signed = 0;
     let mut unsigned = 0;
     for (i, b) in buf.iter().enumerate() {
-        let b = if 148 <= i && i < (148 + 8) {
-            ' ' as u8 // Treat the checksum field as spaces.
+        let b = if (148..(148 + 8)).contains(&i) {
+            b' ' // Treat the checksum field as spaces.
         } else {
             *b
         };

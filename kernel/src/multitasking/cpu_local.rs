@@ -327,3 +327,9 @@ impl CpuId {
         self.0
     }
 }
+
+impl Default for CpuId {
+    fn default() -> Self {
+        Self::new()
+    }
+}

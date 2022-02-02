@@ -37,38 +37,38 @@ use x86_64::{PhysAddr, VirtAddr};
 ///
 pub const NULL_PAGE: VirtAddrRange = VirtAddrRange::new(NULL_PAGE_START, NULL_PAGE_END);
 const NULL_PAGE_START: VirtAddr = VirtAddr::zero();
-const NULL_PAGE_END: VirtAddr = const_virt_addr(0x1f_ffff as u64);
+const NULL_PAGE_END: VirtAddr = const_virt_addr(0x1f_ffff_u64);
 
 /// The first half of virtual memory, which is used by userspace processes.
 ///
 pub const USERSPACE: VirtAddrRange = VirtAddrRange::new(USERSPACE_START, USERSPACE_END);
-const USERSPACE_START: VirtAddr = const_virt_addr(0x20_0000 as u64);
-const USERSPACE_END: VirtAddr = const_virt_addr(0x7fff_ffff_ffff as u64);
+const USERSPACE_START: VirtAddr = const_virt_addr(0x20_0000_u64);
+const USERSPACE_END: VirtAddr = const_virt_addr(0x7fff_ffff_ffff_u64);
 
 /// The kernel binary is mapped within this range.
 ///
 pub const KERNEL_BINARY: VirtAddrRange = VirtAddrRange::new(KERNEL_BINARY_START, KERNEL_BINARY_END);
-const KERNEL_BINARY_START: VirtAddr = const_virt_addr(0xffff_8000_0000_0000 as u64);
-const KERNEL_BINARY_END: VirtAddr = const_virt_addr(0xffff_8000_3fff_ffff as u64);
+const KERNEL_BINARY_START: VirtAddr = const_virt_addr(0xffff_8000_0000_0000_u64);
+const KERNEL_BINARY_END: VirtAddr = const_virt_addr(0xffff_8000_3fff_ffff_u64);
 
 /// The boot info provided by the bootloader is stored here.
 ///
 pub const BOOT_INFO: VirtAddrRange = VirtAddrRange::new(BOOT_INFO_START, BOOT_INFO_END);
-const BOOT_INFO_START: VirtAddr = const_virt_addr(0xffff_8000_4000_0000 as u64);
-const BOOT_INFO_END: VirtAddr = const_virt_addr(0xffff_8000_4000_0fff as u64);
+const BOOT_INFO_START: VirtAddr = const_virt_addr(0xffff_8000_4000_0000_u64);
+const BOOT_INFO_END: VirtAddr = const_virt_addr(0xffff_8000_4000_0fff_u64);
 
 /// The region used for the kernel's heap.
 ///
 pub const KERNEL_HEAP: VirtAddrRange = VirtAddrRange::new(KERNEL_HEAP_START, KERNEL_HEAP_END);
-const KERNEL_HEAP_START: VirtAddr = const_virt_addr(0xffff_8000_4444_0000 as u64);
-const KERNEL_HEAP_END: VirtAddr = const_virt_addr(0xffff_8000_444b_ffff as u64);
+const KERNEL_HEAP_START: VirtAddr = const_virt_addr(0xffff_8000_4444_0000_u64);
+const KERNEL_HEAP_END: VirtAddr = const_virt_addr(0xffff_8000_444b_ffff_u64);
 
 /// The page beneath the kernel's initial stack, reserved to ensure stack overflows cause a page fault.
 ///
 pub const KERNEL_STACK_GUARD: VirtAddrRange =
     VirtAddrRange::new(KERNEL_STACK_GUARD_START, KERNEL_STACK_GUARD_END);
-const KERNEL_STACK_GUARD_START: VirtAddr = const_virt_addr(0xffff_8000_5554_f000 as u64);
-const KERNEL_STACK_GUARD_END: VirtAddr = const_virt_addr(0xffff_8000_5554_ffff as u64);
+const KERNEL_STACK_GUARD_START: VirtAddr = const_virt_addr(0xffff_8000_5554_f000_u64);
+const KERNEL_STACK_GUARD_END: VirtAddr = const_virt_addr(0xffff_8000_5554_ffff_u64);
 
 /// The region used for the all kernel stacks.
 ///
@@ -76,8 +76,8 @@ const KERNEL_STACK_GUARD_END: VirtAddr = const_virt_addr(0xffff_8000_5554_ffff a
 /// the start address and the larger address as the end address.
 ///
 pub const KERNEL_STACK: VirtAddrRange = VirtAddrRange::new(KERNEL_STACK_START, KERNEL_STACK_END);
-const KERNEL_STACK_START: VirtAddr = const_virt_addr(0xffff_8000_5555_0000 as u64);
-const KERNEL_STACK_END: VirtAddr = const_virt_addr(0xffff_8000_5d5c_ffff as u64);
+const KERNEL_STACK_START: VirtAddr = const_virt_addr(0xffff_8000_5555_0000_u64);
+const KERNEL_STACK_END: VirtAddr = const_virt_addr(0xffff_8000_5d5c_ffff_u64);
 /// The region used for the kernel's initial stack.
 ///
 /// Note that even though the stack counts downwards, we use the smaller address as
@@ -86,27 +86,27 @@ const KERNEL_STACK_END: VirtAddr = const_virt_addr(0xffff_8000_5d5c_ffff as u64)
 pub const KERNEL_STACK_0: VirtAddrRange =
     VirtAddrRange::new(KERNEL_STACK_0_START, KERNEL_STACK_0_END);
 const KERNEL_STACK_0_START: VirtAddr = KERNEL_STACK_START;
-const KERNEL_STACK_0_END: VirtAddr = const_virt_addr(0xffff_8000_555c_ffff as u64);
+const KERNEL_STACK_0_END: VirtAddr = const_virt_addr(0xffff_8000_555c_ffff_u64);
 /// The bottom of the second kernel stack.
 ///
 /// Note that even though the stack counts downwards, we use the smaller address as
 /// the start address and the larger address as the end address.
 ///
-pub const KERNEL_STACK_1_START: VirtAddr = const_virt_addr(0xffff_8000_555d_0000 as u64);
+pub const KERNEL_STACK_1_START: VirtAddr = const_virt_addr(0xffff_8000_555d_0000_u64);
 
 /// The region used for mapping direct memory access for memory-mapped I/O.
 ///
 pub const MMIO_SPACE: VirtAddrRange = VirtAddrRange::new(MMIO_SPACE_START, MMIO_SPACE_END);
-const MMIO_SPACE_START: VirtAddr = const_virt_addr(0xffff_8000_6666_0000 as u64);
-const MMIO_SPACE_END: VirtAddr = const_virt_addr(0xffff_8000_6675_ffff as u64);
+const MMIO_SPACE_START: VirtAddr = const_virt_addr(0xffff_8000_6666_0000_u64);
+const MMIO_SPACE_END: VirtAddr = const_virt_addr(0xffff_8000_6675_ffff_u64);
 
 /// The region used for storing CPU-local data.
 ///
 /// Successive CPU cores use successive chunks of the address space.
 ///
 pub const CPU_LOCAL: VirtAddrRange = VirtAddrRange::new(CPU_LOCAL_START, CPU_LOCAL_END);
-const CPU_LOCAL_START: VirtAddr = const_virt_addr(0xffff_8000_7777_0000 as u64);
-const CPU_LOCAL_END: VirtAddr = const_virt_addr(0xffff_8000_7f76_ffff as u64);
+const CPU_LOCAL_START: VirtAddr = const_virt_addr(0xffff_8000_7777_0000_u64);
+const CPU_LOCAL_END: VirtAddr = const_virt_addr(0xffff_8000_7f76_ffff_u64);
 
 /// The region into which all physical memory is mapped.
 ///
@@ -117,8 +117,8 @@ pub const PHYSICAL_MEMORY: VirtAddrRange =
 /// For any valid physical address, that address can be reached at
 /// the same virtual address, plus `PHYSICAL_MEMORY_OFFSET`.
 ///
-pub const PHYSICAL_MEMORY_OFFSET: VirtAddr = const_virt_addr(0xffff_8000_8000_0000 as u64);
-const VIRTUAL_MEMORY_END: VirtAddr = const_virt_addr(0xffff_ffff_ffff_ffff as u64);
+pub const PHYSICAL_MEMORY_OFFSET: VirtAddr = const_virt_addr(0xffff_8000_8000_0000_u64);
+const VIRTUAL_MEMORY_END: VirtAddr = const_virt_addr(0xffff_ffff_ffff_ffff_u64);
 
 /// Returns a virtual address that is mapped to the given physical
 /// address.
@@ -203,17 +203,11 @@ const fn const_virt_addr(addr: u64) -> VirtAddr {
     // Check that the address is a 48-bit canonical address,
     // either as a a low half address (starting with 0x00007,
     // or a high half address (starting with 0xffff8).
-    if addr & 0xffff_8000_0000_0000 == 0 {
-        // Canonical low half address.
-        unsafe { VirtAddr::new_unsafe(addr) }
-    } else if addr & 0xffff_8000_0000_0000 == 0xffff_8000_0000_0000 {
-        // Canonical high half address.
-        unsafe { VirtAddr::new_unsafe(addr) }
-    } else if addr & 0x0000_8000_0000_0000 == 0x0000_8000_0000_0000 {
-        // Noncanonical address we can sign-extend.
-        VirtAddr::new_truncate(addr)
-    } else {
-        // Invalid address.
-        panic!("invalid virtual address")
+    let top_bits = (addr & 0xffff_8000_0000_0000u64) >> 47;
+    match top_bits {
+        0 => unsafe { VirtAddr::new_unsafe(addr) }, // Canonical low half address.
+        0x1ffff => unsafe { VirtAddr::new_unsafe(addr) }, // Canonical high half address.
+        1 => VirtAddr::new_truncate(addr),          // Noncanonical address we can sign-extend.
+        _ => panic!("invalid virtual address"),     // Invalid address.
     }
 }

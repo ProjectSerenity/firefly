@@ -125,7 +125,7 @@ impl<A> Locked<A> {
 ///
 #[doc(hidden)]
 pub trait Testable {
-    fn run(&self) -> ();
+    fn run(&self);
 }
 
 /// Wrap tests with debug statements.

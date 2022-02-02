@@ -243,21 +243,15 @@ impl Drop for Driver {
 
         // De-allocate the send buffers.
         for addr in self.send_buffers.iter() {
-            match PhysFrame::from_start_address(*addr) {
-                Ok(frame) => {
-                    unsafe { pmm::deallocate_frame(frame) };
-                }
-                Err(_e) => {}
+            if let Ok(frame) = PhysFrame::from_start_address(*addr) {
+                unsafe { pmm::deallocate_frame(frame) };
             }
         }
 
         // De-allocate the receive buffers.
         for addr in self.recv_buffers.iter() {
-            match PhysFrame::from_start_address(*addr) {
-                Ok(frame) => {
-                    unsafe { pmm::deallocate_frame(frame) };
-                }
-                Err(_e) => {}
+            if let Ok(frame) = PhysFrame::from_start_address(*addr) {
+                unsafe { pmm::deallocate_frame(frame) };
             }
         }
     }
@@ -297,8 +291,8 @@ impl<'a> RxToken for RecvBuffer {
         // process the packet.
         let virt_addr = phys_to_virt_addr(self.addr) + offset;
         let len = self.len - offset;
-        let mut buf = unsafe { slice::from_raw_parts_mut(virt_addr.as_mut_ptr(), len) };
-        let ret = f(&mut buf);
+        let buf = unsafe { slice::from_raw_parts_mut(virt_addr.as_mut_ptr(), len) };
+        let ret = f(buf);
 
         // Return the used buffer to the device
         // so it can use it to receive a future
@@ -374,8 +368,8 @@ impl<'a> TxToken for SendBuffer {
         header.num_buffers = 0u16.to_le();
 
         let virt_addr = virt_addr + offset;
-        let mut buf = unsafe { slice::from_raw_parts_mut(virt_addr.as_mut_ptr(), len) };
-        let ret = f(&mut buf)?;
+        let buf = unsafe { slice::from_raw_parts_mut(virt_addr.as_mut_ptr(), len) };
+        let ret = f(buf)?;
 
         // Send the packet.
         without_interrupts(|| {
@@ -608,8 +602,8 @@ pub fn install_pci_device(device: pci::Device) {
     }
 
     // Send the receive buffers to the device.
-    for i in 0..recv_queue_len {
-        let addr = send_buffers[i];
+    for buffer in recv_buffers.iter() {
+        let addr = *buffer;
         let len = PACKET_LEN_MAX;
         driver
             .send(RECV_VIRTQUEUE, &[Buffer::DeviceCanWrite { addr, len }])
@@ -635,10 +629,7 @@ pub fn install_pci_device(device: pci::Device) {
     // Pass the device to the network stack
     // and set up its interrupts.
     let handle = add_interface(device, mac);
-    let iface_handle = InterfaceDriver {
-        driver: driver,
-        handle,
-    };
+    let iface_handle = InterfaceDriver { driver, handle };
 
     without_interrupts(|| {
         let mut int = INTERFACES.lock();

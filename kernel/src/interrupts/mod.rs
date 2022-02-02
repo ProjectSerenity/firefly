@@ -124,6 +124,10 @@ lazy_static! {
 // CPU exception handlers.
 
 extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
+    #[cfg(test)]
+    let _ = stack_frame;
+
+    #[cfg(not(test))]
     println!("EXCEPTION: BREAKPOINT\n{:#?}", stack_frame);
 }
 
