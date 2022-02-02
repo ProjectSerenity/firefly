@@ -25,8 +25,14 @@
 //!
 //! The [`pretty`] module provides helper types for pretty printing units, such
 //! as a number of bytes.
+//!
+//! ## Reading TAR archives
+//!
+//! The [`tar`] module provides functionality to read [TAR](https://en.wikipedia.org/wiki/Tar_(computing))
+//! archives from a block device.
 
 pub mod bitmap;
 pub mod lazy;
 pub mod once;
 pub mod pretty;
+pub mod tar;

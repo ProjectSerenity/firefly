@@ -11,6 +11,7 @@ chacha20 = "=0.8.1"
 crossbeam = { version = "=0.8.1", default-features = false, features = ["alloc"] }
 crossbeam-queue = {version = "=0.2.1", default-features = false, features = ["alloc"]}
 firefly_syscalls = {path = "../shared/syscalls"}
+hex-literal = "=0.3.4"
 lazy_static = {version = "=1.4.0", features = ["spin_no_std"]}
 linked_list_allocator = "=0.9.0"
 managed = {version = "=0.8", default-features = false, features = ["map"]}
