@@ -63,7 +63,7 @@ pub enum FileType {
     /// An unknown file type.
     ///
     /// This is normally experienced when accessing
-    /// a file without the [`READ`](Permission::READ) permission.
+    /// a file without the [`READ`](Permissions::READ) permission.
     Unknown = 0,
 
     /// A regular file.
@@ -86,7 +86,7 @@ pub struct FileInfo {
 
     /// The file/directory's type.
     ///
-    /// If the file does not have the [`READ`](Permission::READ) permission,
+    /// If the file does not have the [`READ`](Permissions::READ) permission,
     /// then it will have type [`Unknown`](FileType::Unknown).
     ///
     pub file_type: FileType,

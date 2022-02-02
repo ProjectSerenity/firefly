@@ -285,7 +285,7 @@ impl Device for Driver {
     /// the data at bytes 512 - 1023.
     ///
     /// Note that `buf` must have a length that is an exact
-    /// multiple of [`BYTES_PER_SEGMENT`].
+    /// multiple of `512`.
     ///
     fn read(&mut self, segment: usize, buf: &mut [u8]) -> Result<usize, Error> {
         if self.operations.contains(Operations::READ) {
@@ -303,7 +303,7 @@ impl Device for Driver {
     /// the data at bytes 512 - 1023.
     ///
     /// Note that `buf` must have a length that is an exact
-    /// multiple of [`BYTES_PER_SEGMENT`].
+    /// multiple of `512`.
     ///
     fn write(&mut self, segment: usize, buf: &mut [u8]) -> Result<usize, Error> {
         if self.operations.contains(Operations::WRITE) {
