@@ -163,7 +163,6 @@ dependencies = [
  "bootloader",
  "chacha20",
  "crossbeam",
- "crossbeam-queue",
  "hex-literal",
  "lazy_static",
  "linked_list_allocator",
