@@ -1,9 +1,9 @@
 [package]
-name = "firefly_syscalls"
+name = "syscalls"
 version = "0.1.0"
 authors = ["Jamie Hall <the.sly.marbo@googlemail.com>"]
 edition = "2018"
 
 [lib]
-name = "firefly_syscalls"
+name = "syscalls"
 path = "lib.rs"

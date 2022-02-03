@@ -7,7 +7,7 @@
 
 use crate::multitasking::{cpu_local, thread};
 use crate::println;
-use firefly_syscalls::{Error, Syscall};
+use syscalls::{Error, Syscall};
 use x86_64::registers::model_specific::{Efer, EferFlags, LStar, SFMask, Star};
 use x86_64::registers::rflags::RFlags;
 use x86_64::VirtAddr;
