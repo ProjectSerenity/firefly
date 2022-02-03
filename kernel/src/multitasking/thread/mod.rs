@@ -47,7 +47,6 @@ use alloc::task::Wake;
 use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::Waker;
-use crossbeam::atomic::AtomicCell;
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
@@ -281,7 +280,7 @@ pub struct Thread {
     global_id: ThreadId,
 
     // The thread's current state.
-    state: AtomicCell<ThreadState>,
+    state: UnsafeCell<ThreadState>,
 
     // The amount of CPU time remaining for this
     // thread.
@@ -387,7 +386,7 @@ impl Thread {
 
         Arc::new(Thread {
             global_id,
-            state: AtomicCell::new(ThreadState::Runnable),
+            state: UnsafeCell::new(ThreadState::Runnable),
             time_slice: UnsafeCell::new(TimeSlice::ZERO),
             interrupt_stack: None,
             syscall_stack: None,
@@ -444,7 +443,7 @@ impl Thread {
         let global_id = ThreadId::new();
         let thread = Arc::new(Thread {
             global_id,
-            state: AtomicCell::new(ThreadState::BeingCreated),
+            state: UnsafeCell::new(ThreadState::BeingCreated),
             time_slice: UnsafeCell::new(DEFAULT_TIME_SLICE),
             interrupt_stack: None,
             syscall_stack: None,
@@ -556,7 +555,7 @@ impl Thread {
         let global_id = ThreadId::new();
         let thread = Arc::new(Thread {
             global_id,
-            state: AtomicCell::new(ThreadState::BeingCreated),
+            state: UnsafeCell::new(ThreadState::BeingCreated),
             time_slice: UnsafeCell::new(DEFAULT_TIME_SLICE),
             interrupt_stack: Some(int_stack),
             syscall_stack: Some(sys_stack),
@@ -597,7 +596,7 @@ impl Thread {
     /// Returns the thread's current scheduling state.
     ///
     pub fn thread_state(&self) -> ThreadState {
-        self.state.load()
+        unsafe { self.state.get().read() }
     }
 
     /// Updates the thread's scheduling state.
@@ -611,7 +610,7 @@ impl Thread {
     ///
     pub fn set_state(&self, new_state: ThreadState) {
         let scheduler = SCHEDULER.lock();
-        self.state.store(new_state);
+        unsafe { self.state.get().write(new_state) };
         match new_state {
             ThreadState::BeingCreated => panic!("thread state set to BeingCreated"),
             ThreadState::Runnable => {}
