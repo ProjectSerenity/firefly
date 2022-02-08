@@ -152,6 +152,21 @@ go_register_toolchains(
     version = "1.17",
 )
 
+# Set up the Rust crates we depend on. Most of these are fetched
+# using the experimental crate_universe functionality in rules_rust.
+#
+# Some crates require customisation beyond what crate_universe can
+# give us. In particular, there doesn't seem to be support for:
+#
+# - Avoiding the use of optional dependencies.
+# - Forcing the use of additional dependencies unconditionally.
+#
+# For the few crates this precludes, we instead fetch them using
+# http_archive targets, injecting a custom build file. Those build
+# files are all in //bazel/third_party.
+
+load("@rules_rust//crate_universe:bootstrap.bzl", "crate_universe_bootstrap")
+load("@rules_rust//crate_universe:defs.bzl", "crate", "crate_universe")
 load("@rules_rust//rust:repositories.bzl", "rust_repositories")
 
 RUST_VERSION = "nightly"
@@ -173,3 +188,151 @@ rust_repositories(
     },
     version = RUST_VERSION,
 )
+
+crate_universe_bootstrap()
+
+# Specify and configure the crates we use.
+
+crate_universe(
+    name = "crates",
+    iso_date = RUST_ISO_DATE,
+    overrides = {
+        "byteorder": crate.override(
+            features_to_remove = ["std"],
+        ),
+        "crypto-common": crate.override(
+            features_to_remove = ["std"],
+        ),
+        "digest": crate.override(
+            features_to_remove = ["std"],
+        ),
+        "managed": crate.override(
+            features_to_remove = ["std"],
+        ),
+        "rand": crate.override(
+            features_to_remove = [
+                "std",
+                "std_rng",
+            ],
+        ),
+        "serde": crate.override(
+            features_to_remove = ["std"],
+        ),
+        "sha2": crate.override(
+            features_to_remove = ["std"],
+        ),
+        "toml": crate.override(
+            features_to_remove = ["indexmap"],
+        ),
+    },
+    packages = [
+        crate.spec(
+            name = "bitflags",
+            semver = "=1.3.2",
+        ),
+        crate.spec(
+            name = "bit_field",
+            semver = "=0.10.1",
+        ),
+        crate.spec(
+            name = "byteorder",
+            semver = "=1.4.3",
+        ),
+        crate.spec(
+            name = "chacha20",
+            semver = "=0.8.1",
+        ),
+        crate.spec(
+            name = "fixedvec",
+            semver = "=0.2.4",
+        ),
+        crate.spec(
+            name = "hex-literal",
+            semver = "=0.3.4",
+        ),
+        crate.spec(
+            name = "lazy_static",
+            semver = "=1.4.0",
+            features = ["spin_no_std"],
+        ),
+        crate.spec(
+            name = "linked_list_allocator",
+            semver = "=0.9.0",
+        ),
+        crate.spec(
+            name = "llvm-tools",
+            semver = "=0.1.1",
+        ),
+        crate.spec(
+            name = "managed",
+            semver = "=0.8",
+            features = [
+                "alloc",
+                "map",
+            ],
+        ),
+        crate.spec(
+            name = "pic8259",
+            semver = "=0.10.1",
+        ),
+        crate.spec(
+            name = "raw-cpuid",
+            semver = "=10.2.0",
+        ),
+        crate.spec(
+            name = "rlibc",
+            semver = "=1.0.0",
+        ),
+        crate.spec(
+            name = "serde",
+            semver = "=1.0.116",
+            features = ["alloc"],
+        ),
+        crate.spec(
+            name = "sha2",
+            semver = "=0.10.1",
+            features = ["force-soft"],
+        ),
+        crate.spec(
+            name = "spin",
+            semver = "=0.9.2",
+        ),
+        crate.spec(
+            name = "thiserror",
+            semver = "=1.0.16",
+        ),
+        crate.spec(
+            name = "toml",
+            semver = "=0.5.6",
+        ),
+        crate.spec(
+            name = "usize_conversions",
+            semver = "=0.2.0",
+        ),
+        crate.spec(
+            name = "volatile",
+            semver = "=0.4.4",
+        ),
+        crate.spec(
+            name = "x86_64",
+            semver = "=0.14.7",
+        ),
+        crate.spec(
+            name = "xmas-elf",
+            semver = "=0.6.2",
+        ),
+        crate.spec(
+            name = "zero",
+            semver = "=0.1.2",
+        ),
+    ],
+    resolver = "@rules_rust_crate_universe_bootstrap//:crate_universe_resolver",
+    supported_targets = [
+        "x86_64-unknown-linux-gnu",
+    ],
+    version = RUST_VERSION,
+)
+
+load("@crates//:defs.bzl", "pinned_rust_install")
+
+pinned_rust_install()
