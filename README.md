@@ -8,19 +8,26 @@ This repository consists of:
 
 - the Firefly kernel in [`kernel`](/kernel)
 - code shared between the kernel and userspace in [`shared`](/shared)
+- code to manage the Bazel build system in [`bazel`](/bazel)
 
 Firefly is intended for executing cloud-native containerised server software. As a result, there are no plans to add a graphical user interface, device drivers, or a concept of users. Instead, the priority is to support userland applications on a virtual machine, with strong separation between processes. Firefly will provide a highly stable ABI, with syscalls providing the sole interface between userland processes and the kernel.
 
 # Building Firefly
 
-Building the kernel has the following Rust requirements:
+Firefly is built using the [Bazel](https://bazel.build/) build system. You will need to install Bazel to build Firefly. It is recommended that you use [Bazelisk](https://github.com/bazelbuild/bazelisk), rather than using Bazel directly, to ensure the right version of Bazel is used.
 
-- `rustup override add nightly`
-- `rustup component add rust-src`
-- `rustup component add llvm-tools-preview`
-- `cargo install bootimage`
+While Bazel manages most of the build, some tools are currently used from the host for now. This currently consists of:
 
-Building the kernel can then be performed using `cargo build` and run using `cargo run`.
+- Clang (expected in `/usr/bin/clang`)
+- LLD (expected in `/usr/bin/ld`)
+- GDB (anywhere in the path)
+- LLVM-tools (as installed with `rustup component add llvm-tools-preview`)
+
+Once Bazel and the above host tools are prepared, the following commands are common:
+
+- `bazel build //kernel`: Build the kernel binary.
+- `bazel build //:image`: Build a bootable Firefly disk image.
+- `bazel run //:qemu`:    Build a bootable disk image and run it in Qemu.
 
 ## FAQ
 
