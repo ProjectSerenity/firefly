@@ -12,3 +12,9 @@ buildifier(
     lint_warnings = ["all"],
     mode = "fix",
 )
+
+# Allow the bootable image to be built with `bazel build //:image`.
+alias(
+    name = "image",
+    actual = "//bootimage:bootimage",
+)
