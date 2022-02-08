@@ -46,6 +46,15 @@ rust_no_std(
     target_json = "//kernel:x86_64-firefly.json",
 )
 
+rust_no_std(
+    name = "bootloader_base",
+    liballoc_entry = ":liballoc_entry",
+    libcore_entry = ":libcore_entry",
+    rustc = "@rust_linux_x86_64//:rustc",
+    rustc_srcs = "@rust_linux_x86_64//lib/rustlib/src:rustc_srcs",
+    target_json = "@bootloader//:x86_64-bootloader.json",
+)
+
 # Set up our toolchains now that we have
 # all the underlying pieces.
 
@@ -62,6 +71,12 @@ x86_64_rust_toolchain(
     name = "x86_64_rust_toolchain",
     stdlib_filegroup = ":firefly_base",
     target_json = "//kernel:x86_64-firefly.json",
+)
+
+x86_64_rust_toolchain(
+    name = "x86_64_rust_bootloader_toolchain",
+    stdlib_filegroup = ":bootloader_base",
+    target_json = "@bootloader//:x86_64-bootloader.json",
 )
 
 x86_64_cc_toolchain(
