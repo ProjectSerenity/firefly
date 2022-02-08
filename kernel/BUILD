@@ -4,7 +4,7 @@
 # license that can be found in the LICENSE file.
 
 load("@crates//:defs.bzl", "crate")
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_library")
 load("//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_binary")
 
 # Make the target configuration available to //bazel/cross-compiling.
@@ -110,6 +110,11 @@ rust_library(
         "@smoltcp",
         "@uart_16550",
     ],
+)
+
+rust_clippy(
+    name = "kernel_clippy",
+    deps = [":libkernel"],
 )
 
 rust_binary(
