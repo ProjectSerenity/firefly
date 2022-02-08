@@ -1,0 +1,5 @@
+# Print failed errors, rather than just writing them to logs.
+test --test_output=errors
+
+# Print test size/timeout warnings so we keep them right.
+test --test_verbose_timeout_warnings
