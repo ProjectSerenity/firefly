@@ -44,6 +44,13 @@ http_archive(
     ],
 )
 
+# Used to build our cross-compiling toolchain.
+http_archive(
+    name = "rules_cc",
+    sha256 = "4dccbfd22c0def164c8f47458bd50e0c7148f3d92002cdb459c2a96a68498241",
+    urls = ["https://github.com/bazelbuild/rules_cc/releases/download/0.0.1/rules_cc-0.0.1.tar.gz"],
+)
+
 http_archive(
     name = "rules_rust",
     sha256 = "391d6a7f34c89d475e03e02f71957663c9aff6dbd8b8c974945e604828eebe11",
@@ -54,11 +61,84 @@ http_archive(
     ],
 )
 
+# Rust crates where we use a custom BUILD file.
+
+# Modify the binary build to mimic what `bootimage runner` does.
+# We also patch the binary to fix a path issue.
+http_archive(
+    name = "bootloader",
+    build_file = "//bazel/third_party:bootloader.BUILD",
+    patch_args = ["-p1"],
+    patches = [
+        "//bazel/third_party:bootloader.patch",
+    ],
+    sha256 = "a62c8f6168cd106687ee36a2b71a46c4144d73399f72814104d33094b8092fd2",
+    strip_prefix = "bootloader-0.9.21",
+    type = "tgz",
+    urls = [
+        "https://static.crates.io/crates/bootloader/bootloader-0.9.21.crate",
+    ],
+)
+
+http_archive(
+    name = "compiler_builtins",
+    build_file = "//bazel/third_party:compiler_builtins.BUILD",
+    sha256 = "a68c69e9451f1df4b215c9588c621670c12286b53e60fb5ec4b59aaa1138d18e",
+    strip_prefix = "compiler_builtins-0.1.67",
+    type = "tgz",
+    urls = [
+        "https://static.crates.io/crates/compiler_builtins/compiler_builtins-0.1.67.crate",
+    ],
+)
+
+# Patch out the optional dependency on getrandom.
+http_archive(
+    name = "rand_core",
+    build_file = "//bazel/third_party:rand_core.BUILD",
+    sha256 = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7",
+    strip_prefix = "rand_core-0.6.3",
+    type = "tgz",
+    urls = [
+        "https://static.crates.io/crates/rand_core/rand_core-0.6.3.crate",
+    ],
+)
+
+# Switch from @crates__rand_core__0_6_3 to @rand_core and
+# patch out optional dependency on log.
+http_archive(
+    name = "smoltcp",
+    build_file = "//bazel/third_party:smoltcp.BUILD",
+    sha256 = "d2308a1657c8db1f5b4993bab4e620bdbe5623bd81f254cf60326767bb243237",
+    strip_prefix = "smoltcp-0.8.0",
+    type = "tgz",
+    urls = [
+        "https://static.crates.io/crates/smoltcp/smoltcp-0.8.0.crate",
+    ],
+)
+
+# Patch in unconditional dependency on x86_64.
+http_archive(
+    name = "uart_16550",
+    build_file = "//bazel/third_party:uart_16550.BUILD",
+    sha256 = "65ad019480ef5ff8ffe66d6f6a259cd87cf317649481394981db1739d844f374",
+    strip_prefix = "uart_16550-0.2.15",
+    type = "tgz",
+    urls = [
+        "https://static.crates.io/crates/uart_16550/uart_16550-0.2.15.crate",
+    ],
+)
+
 # Initialise external dependencies.
 
 load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
 
 bazel_skylib_workspace()
+
+load("@rules_cc//cc:repositories.bzl", "rules_cc_dependencies", "rules_cc_toolchains")
+
+rules_cc_dependencies()
+
+rules_cc_toolchains()
 
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 
