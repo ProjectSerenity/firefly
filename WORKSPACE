@@ -167,13 +167,15 @@ go_register_toolchains(
 
 load("@rules_rust//crate_universe:bootstrap.bzl", "crate_universe_bootstrap")
 load("@rules_rust//crate_universe:defs.bzl", "crate", "crate_universe")
-load("@rules_rust//rust:repositories.bzl", "rust_repositories")
+load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_register_toolchains")
+
+rules_rust_dependencies()
 
 RUST_VERSION = "nightly"
 
 RUST_ISO_DATE = "2021-12-12"
 
-rust_repositories(
+rust_register_toolchains(
     edition = "2018",
     include_rustc_srcs = True,
     iso_date = RUST_ISO_DATE,
