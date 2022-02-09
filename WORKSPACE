@@ -5,6 +5,10 @@
 
 workspace(name = "firefly")
 
+RUST_VERSION = "nightly"
+
+RUST_ISO_DATE = "2021-12-12"
+
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # Fetch external dependencies.
@@ -170,10 +174,6 @@ load("@rules_rust//crate_universe:defs.bzl", "crate", "crate_universe")
 load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_register_toolchains")
 
 rules_rust_dependencies()
-
-RUST_VERSION = "nightly"
-
-RUST_ISO_DATE = "2021-12-12"
 
 rust_register_toolchains(
     edition = "2018",
