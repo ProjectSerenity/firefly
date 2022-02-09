@@ -4,7 +4,7 @@
 # license that can be found in the LICENSE file.
 
 load("@crates//:defs.bzl", "crate")
-load("@rules_rust//rust:defs.bzl", "rust_binary")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy")
 
 rust_binary(
     name = "bootimage_bin",
@@ -16,6 +16,11 @@ rust_binary(
         crate("llvm-tools"),
         crate("thiserror"),
     ],
+)
+
+rust_clippy(
+    name = "bootimage_clippy",
+    deps = [":bootimage_bin"],
 )
 
 genrule(
