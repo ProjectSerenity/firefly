@@ -4,6 +4,13 @@
 // license that can be found in the LICENSE file.
 
 //! Provides pretty printing for various data types.
+//!
+//! This crate provides helper types for pretty printing units, such
+//! as a number of bytes.
+
+#![no_std]
+
+extern crate alloc;
 
 mod bytes;
 

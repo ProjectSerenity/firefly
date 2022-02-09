@@ -10,10 +10,10 @@ use crate::memory::{
     phys_to_virt_addr, VirtAddrRange, BOOT_INFO, CPU_LOCAL, KERNEL_BINARY, KERNEL_HEAP,
     KERNEL_STACK, KERNEL_STACK_GUARD, MMIO_SPACE, NULL_PAGE, PHYSICAL_MEMORY, USERSPACE,
 };
-use crate::utils::pretty::Bytes;
 use alloc::vec::Vec;
 use core::fmt;
 use core::sync::atomic::{AtomicU64, Ordering};
+use pretty::Bytes;
 use x86_64::instructions;
 use x86_64::structures::paging::mapper::{FlagUpdateError, Mapper, OffsetPageTable, UnmapError};
 use x86_64::structures::paging::page::Page;

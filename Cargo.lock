@@ -126,6 +126,7 @@ dependencies = [
  "linked_list_allocator",
  "managed",
  "pic8259",
+ "pretty",
  "raw-cpuid",
  "sha2",
  "smoltcp",
@@ -183,6 +184,10 @@ checksum = "08cc920d83ee33c0f9b73aa441e75468bf2d10c959a3eb6260cf720b05ac91a1"
 dependencies = [
  "x86_64",
 ]
+
+[[package]]
+name = "pretty"
+version = "0.1.0"
 
 [[package]]
 name = "raw-cpuid"

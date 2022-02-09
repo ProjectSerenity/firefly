@@ -2,5 +2,6 @@
 members = [
     "kernel",
     "kernel/src/utils/bitmap_index",
+    "kernel/src/utils/pretty",
     "shared/syscalls",
 ]
