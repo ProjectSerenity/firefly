@@ -141,7 +141,6 @@ fn helper_entry_point() -> ! {
     loop {
         time::sleep(HELPER_INTERVAL);
 
-        crate::println!("Reseeding CSPRNG.");
         let mut csprng = CSPRNG.lock();
         let mut sources = ENTROPY_SOURCES.lock();
         if sources.is_empty() {
