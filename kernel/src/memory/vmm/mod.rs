@@ -37,7 +37,8 @@
 
 use crate::memory::vmm::mapping::PagePurpose;
 use crate::memory::KERNEL_HEAP;
-use crate::{println, Locked};
+use crate::Locked;
+use serial::println;
 use x86_64::registers::control::{Cr4, Cr4Flags};
 use x86_64::registers::model_specific::{Efer, EferFlags};
 use x86_64::structures::paging::mapper::{MapToError, MapperFlushAll};

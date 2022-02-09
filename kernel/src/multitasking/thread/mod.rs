@@ -37,7 +37,6 @@ use crate::memory::{
 };
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler::Scheduler;
-use crate::println;
 use crate::time::{timers, Duration, TimeSlice};
 use crate::utils::once::Once;
 use alloc::collections::BTreeMap;
@@ -47,6 +46,7 @@ use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::Waker;
 use pretty::Bytes;
+use serial::println;
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;

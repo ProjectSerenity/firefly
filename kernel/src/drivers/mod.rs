@@ -19,16 +19,6 @@
 //! [`pci::debug`] can be called after [`pci::init`] to print debug information
 //! about detected devices that were not adopted by any device drivers.
 //!
-//! ## Serial Ports
-//!
-//! The [Serial](serial) module provides functionality to write text to a serial
-//! port device. Each of the four devices is provided ([`COM1`](serial::COM1),
-//! [`COM2`](serial::COM2), [`COM3`](serial::COM3), and [`COM4`](serial::COM4)),
-//! protected with a spin lock.
-//!
-//! The Serial module also implements the [`print`] and [`println`] macros, both
-//! of which write their output to [`COM1`](serial::COM1).
-//!
 //! ## VirtIO
 //!
 //! The [VirtIO](virtio) module is a partial implementation of the [Virtual I/O
@@ -37,5 +27,4 @@
 //! the hypervisor.
 
 pub mod pci;
-pub mod serial;
 pub mod virtio;

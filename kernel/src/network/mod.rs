@@ -21,13 +21,14 @@ pub mod udp;
 
 use crate::drivers::virtio::network;
 use crate::multitasking::thread::ThreadId;
-use crate::{println, time};
+use crate::time;
 use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use managed::ManagedSlice;
+use serial::println;
 use smoltcp;
 use smoltcp::iface::{InterfaceBuilder, NeighborCache, Routes, SocketHandle, SocketStorage};
 use smoltcp::socket::{Dhcpv4Config, Dhcpv4Event, Dhcpv4Socket};

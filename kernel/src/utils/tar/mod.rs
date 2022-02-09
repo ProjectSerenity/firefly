@@ -18,12 +18,12 @@
 
 use crate::filesystem::{FileInfo, FileType, Permissions, SEPARATOR};
 use crate::memory::align_up;
-use crate::println;
 use crate::storage::block;
 use alloc::boxed::Box;
 use alloc::string::String;
 use core::cmp::min;
 use core::str;
+use serial::println;
 
 mod parse_utils;
 

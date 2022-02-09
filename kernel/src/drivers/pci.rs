@@ -17,9 +17,10 @@
 //! [`debug`] can be called after [`init`] to print debug information about
 //! detected devices that were not adopted by any device drivers.
 
-use crate::{drivers, println};
+use crate::drivers;
 use alloc::vec::Vec;
 use core::fmt;
+use serial::println;
 use x86_64::instructions::port::Port;
 use x86_64::PhysAddr;
 

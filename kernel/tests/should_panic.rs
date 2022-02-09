@@ -2,7 +2,8 @@
 #![no_main]
 
 use core::panic::PanicInfo;
-use kernel::{exit_qemu, print, println, QemuExitCode};
+use kernel::{exit_qemu, QemuExitCode};
+use serial::{print, println};
 
 // _start is the entry point.
 #[no_mangle]

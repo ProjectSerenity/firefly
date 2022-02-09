@@ -6,7 +6,7 @@
 //! Implements the kernel's syscalls, allowing user processes to access kernel functionality.
 
 use crate::multitasking::{cpu_local, thread};
-use crate::println;
+use serial::println;
 use syscalls::{Error, Syscall};
 use x86_64::registers::model_specific::{Efer, EferFlags, LStar, SFMask, Star};
 use x86_64::registers::rflags::RFlags;

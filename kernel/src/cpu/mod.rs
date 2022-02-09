@@ -5,9 +5,9 @@
 
 //! Analyses the CPU for supported features and branding.
 
-use crate::println;
 use lazy_static::lazy_static;
 use raw_cpuid::CpuId;
+use serial::println;
 
 lazy_static! {
     static ref CPU_ID: CpuId = CpuId::new();

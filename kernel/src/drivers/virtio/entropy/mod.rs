@@ -29,11 +29,12 @@ use crate::drivers::virtio::features::Reserved;
 use crate::drivers::virtio::{transports, Buffer};
 use crate::drivers::{pci, virtio};
 use crate::memory::{kernel_pml4, virt_to_phys_addrs, PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
-use crate::{println, random};
+use crate::random;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
+use serial::println;
 use x86_64::{PhysAddr, VirtAddr};
 
 /// REQUEST_VIRTQUEUE is the sole virtqueue used

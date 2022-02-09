@@ -7,12 +7,12 @@
 //! and deallocate physical memory frames.
 
 use crate::memory::pmm::boot_info::BootInfoFrameAllocator;
-use crate::println;
 use alloc::vec::Vec;
 use bitmap_index::Bitmap;
 use bootloader::bootinfo::{MemoryRegion, MemoryRegionType};
 use core::slice::Iter;
 use pretty::Bytes;
+use serial::println;
 use x86_64::structures::paging::frame::PhysFrameRange;
 use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame, Size4KiB};
 use x86_64::PhysAddr;

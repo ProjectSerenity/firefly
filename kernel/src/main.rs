@@ -20,7 +20,8 @@ extern crate alloc;
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use kernel::drivers::pci;
-use kernel::{memory, println, random};
+use kernel::{memory, random};
+use serial::println;
 
 /// This function is called on panic.
 #[cfg(not(test))]

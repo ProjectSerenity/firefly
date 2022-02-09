@@ -54,11 +54,11 @@ pub mod virtqueues;
 use crate::drivers::pci;
 use crate::drivers::virtio::virtqueues::split;
 use crate::interrupts::Irq;
-use crate::println;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
+use serial::println;
 use x86_64::PhysAddr;
 
 /// MAX_DESCRIPTORS is the maximum number of

@@ -24,25 +24,28 @@
 //! prevent deadlocks when locking [`COM1`]. Direct access to the individual serial
 //! ports without disabling interrupts could lead to deadlocks.
 
+#![no_std]
+
 use core::fmt::Write;
+use spin::Mutex;
 use uart_16550::SerialPort;
 use x86_64::instructions::interrupts::without_interrupts;
 
 /// COM1 is the first serial port device.
 ///
-pub static COM1: spin::Mutex<SerialPort> = unsafe { spin::Mutex::new(SerialPort::new(0x3f8)) };
+pub static COM1: Mutex<SerialPort> = unsafe { Mutex::new(SerialPort::new(0x3f8)) };
 
 /// COM2 is the second serial port device.
 ///
-pub static COM2: spin::Mutex<SerialPort> = unsafe { spin::Mutex::new(SerialPort::new(0x2f8)) };
+pub static COM2: Mutex<SerialPort> = unsafe { Mutex::new(SerialPort::new(0x2f8)) };
 
 /// COM3 is the third serial port device.
 ///
-pub static COM3: spin::Mutex<SerialPort> = unsafe { spin::Mutex::new(SerialPort::new(0x3e8)) };
+pub static COM3: Mutex<SerialPort> = unsafe { Mutex::new(SerialPort::new(0x3e8)) };
 
 /// COM4 is the fourth serial port device.
 ///
-pub static COM4: spin::Mutex<SerialPort> = unsafe { spin::Mutex::new(SerialPort::new(0x2e8)) };
+pub static COM4: Mutex<SerialPort> = unsafe { Mutex::new(SerialPort::new(0x2e8)) };
 
 /// _print writes text to the serial port by
 /// acquiring COM1 using a spin lock.
@@ -60,7 +63,7 @@ pub fn _print(args: ::core::fmt::Arguments) {
 ///
 #[macro_export]
 macro_rules! print {
-    ($($arg:tt)*) => ($crate::drivers::serial::_print(format_args!($($arg)*)));
+    ($($arg:tt)*) => ($crate::_print(format_args!($($arg)*)));
 }
 
 /// Print to the first serial port, COM1.

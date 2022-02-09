@@ -67,9 +67,10 @@
 
 mod irq;
 
-use crate::{gdt, halt_loop, println};
+use crate::{gdt, halt_loop};
 use lazy_static::lazy_static;
 use pic8259::ChainedPics;
+use serial::println;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
 
