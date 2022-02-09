@@ -4,15 +4,11 @@
 # license that can be found in the LICENSE file.
 
 [package]
-name = "bitmap_index"
+name = "align"
 version = "0.1.0"
 authors = ["Jamie Hall <the.sly.marbo@googlemail.com>"]
 edition = "2018"
 
 [lib]
-name = "bitmap_index"
+name = "align"
 path = "lib.rs"
-
-[dependencies]
-align = {path = "../align"}
-x86_64 = "=0.14.7"

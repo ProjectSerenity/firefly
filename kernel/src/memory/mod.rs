@@ -227,15 +227,6 @@ pub fn virt_to_phys_addrs<T: Translate>(
     Some(bufs)
 }
 
-/// Aligns the given address upwards to the given alignment.
-///
-/// Requires that align is a power of two. Unlike x86_64::align_up,
-/// this operates on usize values, rather than u64.
-///
-pub fn align_up(addr: usize, align: usize) -> usize {
-    (addr + align - 1) & !(align - 1)
-}
-
 /// Describes the address space used for a kernel stack region.
 ///
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -426,9 +417,9 @@ pub struct DebugPageTable {
 }
 
 #[cfg(test)]
-use alloc::collections::BTreeMap;
+use align::align_down_u64;
 #[cfg(test)]
-use x86_64::align_down;
+use alloc::collections::BTreeMap;
 #[cfg(test)]
 use x86_64::structures::paging::PhysFrame;
 
@@ -443,7 +434,7 @@ impl DebugPageTable {
     pub fn map(&mut self, addr: VirtAddr, frame: PhysFrame) {
         // Check the virtual address is at a page boundary,
         // to simplify things.
-        assert_eq!(addr.as_u64(), align_down(addr.as_u64(), Size4KiB::SIZE));
+        assert_eq!(addr.as_u64(), align_down_u64(addr.as_u64(), Size4KiB::SIZE));
 
         self.mappings.insert(addr, frame);
     }
@@ -452,7 +443,7 @@ impl DebugPageTable {
 #[cfg(test)]
 impl Translate for DebugPageTable {
     fn translate(&self, addr: VirtAddr) -> TranslateResult {
-        let truncated = VirtAddr::new(align_down(addr.as_u64(), Size4KiB::SIZE));
+        let truncated = VirtAddr::new(align_down_u64(addr.as_u64(), Size4KiB::SIZE));
         match self.mappings.get(&truncated) {
             None => return TranslateResult::NotMapped,
             Some(frame) => TranslateResult::Mapped {

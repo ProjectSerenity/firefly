@@ -5,8 +5,8 @@
 
 //! Provides a linked list allocator, which can be used to allocate heap memory.
 
-use crate::memory::align_up;
 use crate::Locked;
+use align::align_up_usize;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::{mem, ptr};
 
@@ -79,7 +79,7 @@ impl LinkedListAllocator {
     ///
     unsafe fn add_free_region(&mut self, addr: usize, size: usize) {
         // Ensure that the freed region is capable of holding ListNode.
-        assert_eq!(align_up(addr, mem::align_of::<ListNode>()), addr);
+        assert_eq!(align_up_usize(addr, mem::align_of::<ListNode>()), addr);
         assert!(size >= mem::size_of::<ListNode>());
 
         // Create a new list node and prepend it to the start of the list
@@ -128,7 +128,7 @@ impl LinkedListAllocator {
     /// Returns the allocation start address on success.
     ///
     fn alloc_from_region(region: &ListNode, size: usize, align: usize) -> Result<usize, ()> {
-        let alloc_start = align_up(region.start_addr(), align);
+        let alloc_start = align_up_usize(region.start_addr(), align);
         let alloc_end = alloc_start.checked_add(size).ok_or(())?;
 
         if alloc_end > region.end_addr() {

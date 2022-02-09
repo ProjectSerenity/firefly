@@ -102,6 +102,7 @@ rust_library(
         crate("volatile"),
         crate("x86_64"),
         "//kernel/src/drivers/serial",
+        "//kernel/src/utils/align",
         "//kernel/src/utils/bitmap_index",
         "//kernel/src/utils/pretty",
         "//shared/syscalls",

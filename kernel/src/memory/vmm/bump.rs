@@ -5,8 +5,8 @@
 
 //! Provides a bump allocator, which can be used to allocate heap memory.
 
-use crate::memory::align_up;
 use crate::Locked;
+use align::align_up_usize;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr;
 
@@ -69,7 +69,7 @@ unsafe impl GlobalAlloc for Locked<BumpAllocator> {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let mut bump = self.lock(); // get a mutable reference
 
-        let alloc_start = align_up(bump.next, layout.align());
+        let alloc_start = align_up_usize(bump.next, layout.align());
         let alloc_end = match alloc_start.checked_add(layout.size()) {
             Some(end) => end,
             None => return ptr::null_mut(),

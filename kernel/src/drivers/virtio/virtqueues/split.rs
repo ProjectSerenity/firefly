@@ -14,6 +14,7 @@ use crate::drivers::virtio;
 use crate::drivers::virtio::features::Reserved;
 use crate::drivers::virtio::{Buffer, Transport, UsedBuffers, VirtqueueError, MAX_DESCRIPTORS};
 use crate::memory::{mmio, pmm};
+use align::align_up_u64;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
@@ -22,7 +23,7 @@ use core::mem::size_of;
 use core::slice;
 use core::sync::atomic::{fence, Ordering};
 use x86_64::structures::paging::{PageSize, Size4KiB};
-use x86_64::{align_up, PhysAddr};
+use x86_64::PhysAddr;
 
 bitflags! {
     /// DescriptorFlags represents the set of flags that can
@@ -277,16 +278,16 @@ impl<'a> Virtqueue<'a> {
         let descriptors_offset = 0u64; // Offset from frame start.
         let descriptors_size = size_of::<Descriptor>() as u64 * queue_size;
         let descriptors_end = descriptors_offset + descriptors_size;
-        let driver_offset = align_up(descriptors_end, 2);
+        let driver_offset = align_up_u64(descriptors_end, 2);
         let driver_size = 6u64 + 2u64 * queue_size;
         let driver_end = driver_offset + driver_size;
-        let device_offset = align_up(driver_end, 4);
+        let device_offset = align_up_u64(driver_end, 4);
         let device_size = 6u64 + 8 * queue_size;
         let device_end = device_offset + device_size;
 
         // Allocate the physical memory and map it
         // in the MMIO address space.
-        let num_frames = align_up(device_end, Size4KiB::SIZE) / Size4KiB::SIZE;
+        let num_frames = align_up_u64(device_end, Size4KiB::SIZE) / Size4KiB::SIZE;
         let frame_range = pmm::allocate_n_frames(num_frames as usize)
             .expect("failed to allocate physical memory for virtqueue");
         let mmio_region = unsafe { mmio::Region::map(frame_range) };

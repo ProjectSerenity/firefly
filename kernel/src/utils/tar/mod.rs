@@ -17,8 +17,8 @@
 //! links are ignored (or return an error, as appropriate).
 
 use crate::filesystem::{FileInfo, FileType, Permissions, SEPARATOR};
-use crate::memory::align_up;
 use crate::storage::block;
+use align::align_up_usize;
 use alloc::boxed::Box;
 use alloc::string::String;
 use core::cmp::min;
@@ -333,7 +333,7 @@ impl<'a> Reader<'a> {
         };
 
         let offset = self.next_segment + 1;
-        self.next_segment += 1 + align_up(size, BLOCK_SIZE) / BLOCK_SIZE;
+        self.next_segment += 1 + align_up_usize(size, BLOCK_SIZE) / BLOCK_SIZE;
 
         // Get the file mode, so we can derive
         // the permissions by taking the owner's
@@ -398,8 +398,8 @@ impl<'a> Iterator for Reader<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::memory::align_up;
     use crate::storage::block::{Device, Error, Operations};
+    use align::align_up_usize;
     use alloc::boxed::Box;
     use alloc::vec;
     use alloc::vec::Vec;
@@ -442,13 +442,13 @@ mod test {
         /// segments.
         //
         fn num_segments(&self) -> usize {
-            align_up(self.data.len(), SEGMENT_SIZE) / SEGMENT_SIZE
+            align_up_usize(self.data.len(), SEGMENT_SIZE) / SEGMENT_SIZE
         }
 
         /// Returns the device capacity in bytes.
         ///
         fn capacity(&self) -> usize {
-            align_up(self.data.len(), SEGMENT_SIZE)
+            align_up_usize(self.data.len(), SEGMENT_SIZE)
         }
 
         /// Returns the set of operations supported by the

@@ -25,12 +25,12 @@
 use crate::gdt::DOUBLE_FAULT_IST_INDEX;
 use crate::memory::{kernel_pml4, pmm, VirtAddrRange, CPU_LOCAL};
 use crate::multitasking::thread::Thread;
+use align::align_up_u64;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::mem::size_of;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use x86_64::addr::align_up;
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::instructions::tables::load_tss;
 use x86_64::registers::model_specific::GsBase;
@@ -111,7 +111,7 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
     // Next, work out where we will store our CpuId
     // data. We align up to page size to make paging
     // easier.
-    let size = align_up(size_of::<CpuId>() as u64, Size4KiB::SIZE);
+    let size = align_up_u64(size_of::<CpuId>() as u64, Size4KiB::SIZE);
     let start = CPU_LOCAL.start() + cpu_id.as_u64() * size;
     let end = start + size;
 

@@ -29,9 +29,9 @@
 
 extern crate alloc;
 
+use align::align_up_usize;
 use alloc::vec;
 use alloc::vec::Vec;
-use x86_64::align_up;
 
 /// A simple bitmap implementation, backed by a sequence of `u64`s.
 ///
@@ -104,7 +104,7 @@ impl Bitmap {
         // We need to ignore the zero
         // bits in the final u64 after
         // our actual data ends.
-        let ignore = (align_up(self.num as u64, 64_u64) - self.num as u64) as usize;
+        let ignore = align_up_usize(self.num, 64) - self.num;
         self.bits
             .iter()
             .map(|&x| x.count_zeros())

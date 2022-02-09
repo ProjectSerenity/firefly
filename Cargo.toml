@@ -2,6 +2,7 @@
 members = [
     "kernel",
     "kernel/src/drivers/serial",
+    "kernel/src/utils/align",
     "kernel/src/utils/bitmap_index",
     "kernel/src/utils/pretty",
     "shared/syscalls",
