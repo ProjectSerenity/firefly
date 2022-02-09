@@ -113,17 +113,17 @@ rust_library(
 )
 
 rust_clippy(
-    name = "kernel_clippy",
+    name = "clippy",
     deps = [":libkernel"],
 )
 
 rust_doc(
-    name = "kernel_docs",
+    name = "docs",
     crate = ":libkernel",
 )
 
 rust_binary(
-    name = "kernel_bin",
+    name = "binary",
     srcs = ["src/main.rs"],
     rustc_flags = [
         "-Cpanic=abort",
@@ -145,6 +145,6 @@ rust_binary(
 
 x86_64_bare_metal_rust_binary(
     name = "kernel",
-    rust_binary = ":kernel_bin",
+    rust_binary = ":binary",
     visibility = ["//visibility:public"],
 )

@@ -74,7 +74,7 @@ $ bazel build \
      --extra_toolchains=//bazel/cross-compiling:x86_64_rust_toolchain \
      --host_crosstool_top=@bazel_tools//tools/cpp:toolchain \
      --platforms=//bazel/cross-compiling:x86_64_bare_metal \
-     //kernel:kernel_bin
+     //kernel:binary
 ```
 
 This is fine, and it works, but it's tedious. To make it less so, we add a new

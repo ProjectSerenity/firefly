@@ -7,7 +7,7 @@ load("@crates//:defs.bzl", "crate")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy")
 
 rust_binary(
-    name = "bootimage_bin",
+    name = "binary",
     srcs = ["main.rs"],
     crate_root = "main.rs",
     edition = "2018",
@@ -19,8 +19,8 @@ rust_binary(
 )
 
 rust_clippy(
-    name = "bootimage_clippy",
-    deps = [":bootimage_bin"],
+    name = "clippy",
+    deps = [":binary"],
 )
 
 genrule(
@@ -28,7 +28,7 @@ genrule(
     srcs = ["@bootloader//:binary"],
     outs = ["image.bin"],
     cmd = """
-        bootimage="$(location :bootimage_bin)"
+        bootimage="$(location :binary)"
         input="$(location @bootloader//:binary)"
         output="$$(realpath $(location image.bin))"
 
@@ -51,6 +51,6 @@ genrule(
         rm -f $$output
         $$bootimage $$input $$output""",
     message = "Making bootable image",
-    tools = [":bootimage_bin"],
+    tools = [":binary"],
     visibility = ["//visibility:public"],
 )
