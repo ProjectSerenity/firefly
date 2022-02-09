@@ -18,6 +18,7 @@
 
 use crate::filesystem::{FileInfo, FileType, Permissions, SEPARATOR};
 use crate::memory::align_up;
+use crate::println;
 use crate::storage::block;
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -185,7 +186,7 @@ impl<'a> Reader<'a> {
         if signed == got || unsigned == got {
             Ok(())
         } else {
-            crate::println!(
+            println!(
                 "checksum: got {} ({:02x?}), want {} or {}",
                 got,
                 self.header(148, 8),
@@ -313,7 +314,7 @@ impl<'a> Reader<'a> {
         match self.check_checksum() {
             Ok(_) => {}
             Err(err) => {
-                crate::println!("bad checksum for {:?}", name);
+                println!("bad checksum for {:?}", name);
                 return Err(err);
             }
         }
@@ -387,7 +388,7 @@ impl<'a> Iterator for Reader<'a> {
         match self.next_header() {
             Ok(file) => file,
             Err(err) => {
-                crate::println!("tar: bad archive: {}", err);
+                println!("tar: bad archive: {}", err);
                 None
             }
         }
