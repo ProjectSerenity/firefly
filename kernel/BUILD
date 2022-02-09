@@ -146,5 +146,6 @@ rust_binary(
 x86_64_bare_metal_rust_binary(
     name = "kernel",
     rust_binary = ":binary",
+    rust_toolchain = "//bazel/cross-compiling:x86_64_rust_toolchain",
     visibility = ["//visibility:public"],
 )

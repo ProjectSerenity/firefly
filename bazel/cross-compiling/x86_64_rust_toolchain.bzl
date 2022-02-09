@@ -52,4 +52,5 @@ def x86_64_rust_toolchain(name, target_json, stdlib_filegroup):
         ],
         toolchain = rust_toolchain_name,
         toolchain_type = "@rules_rust//rust:toolchain",
+        visibility = ["//visibility:public"],
     )

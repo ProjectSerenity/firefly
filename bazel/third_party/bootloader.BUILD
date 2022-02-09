@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_bootloader_binary")
+load("@//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_binary")
 load("@crates//:defs.bzl", "crate")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
@@ -271,8 +271,9 @@ rust_binary(
 # binary is compiled and linked using our
 # custom C/C++ toolchain and platform.
 
-x86_64_bare_metal_rust_bootloader_binary(
+x86_64_bare_metal_rust_binary(
     name = "binary",
     rust_binary = ":bootloader_bin",
+    rust_toolchain = "@//bazel/cross-compiling:x86_64_rust_bootloader_toolchain",
     visibility = ["//visibility:public"],
 )

@@ -11,13 +11,13 @@
 # specifying the binary to configure.
 
 def _bare_metal_impl(settings, attr):
-    _ignore = (settings, attr)
+    rust_toolchain = str(attr.rust_toolchain)
     return {
         "//command_line_option:cpu": "x86_64",
         "//command_line_option:crosstool_top": "//bazel/cross-compiling:x86_64_cc_toolchain_suite",
         "//command_line_option:extra_toolchains": [
             "//bazel/cross-compiling:x86_64_cc_toolchain",
-            "//bazel/cross-compiling:x86_64_rust_toolchain",
+            rust_toolchain,
         ],
         "//command_line_option:host_crosstool_top": "@bazel_tools//tools/cpp:toolchain",
         "//command_line_option:platforms": "//bazel/cross-compiling:x86_64_bare_metal",
@@ -57,63 +57,17 @@ _transition_rule = rule(
     attrs = {
         # Outgoing edge transition
         "rust_binary": attr.label(cfg = _x86_64_bare_metal_platform_transition),
+        "rust_toolchain": attr.label(cfg = _x86_64_bare_metal_platform_transition),
         "_allowlist_function_transition": attr.label(
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
         ),
     },
 )
 
-def x86_64_bare_metal_rust_binary(name, rust_binary, visibility):
+def x86_64_bare_metal_rust_binary(name, rust_binary, rust_toolchain, visibility):
     _transition_rule(
         name = name,
         rust_binary = rust_binary,
-        visibility = visibility,
-    )
-
-# We also have a second, identical transition for
-# the bootloader. Its only change is that we use
-# the bootloader's target configuration and thus
-# a different Rust toolchain.
-
-def _bare_metal_bootloader_impl(settings, attr):
-    _ignore = (settings, attr)
-    return {
-        "//command_line_option:cpu": "x86_64",
-        "//command_line_option:crosstool_top": "//bazel/cross-compiling:x86_64_cc_toolchain_suite",
-        "//command_line_option:extra_toolchains": [
-            "//bazel/cross-compiling:x86_64_cc_toolchain",
-            "//bazel/cross-compiling:x86_64_rust_bootloader_toolchain",
-        ],
-        "//command_line_option:host_crosstool_top": "@bazel_tools//tools/cpp:toolchain",
-        "//command_line_option:platforms": "//bazel/cross-compiling:x86_64_bare_metal",
-    }
-
-_x86_64_bare_metal_bootloader_platform_transition = transition(
-    implementation = _bare_metal_bootloader_impl,
-    inputs = [],
-    outputs = [
-        "//command_line_option:cpu",
-        "//command_line_option:crosstool_top",
-        "//command_line_option:extra_toolchains",
-        "//command_line_option:host_crosstool_top",
-        "//command_line_option:platforms",
-    ],
-)
-
-_bootloader_transition_rule = rule(
-    implementation = _transition_rule_impl,
-    attrs = {
-        # Outgoing edge transition
-        "rust_binary": attr.label(cfg = _x86_64_bare_metal_bootloader_platform_transition),
-        "_allowlist_function_transition": attr.label(
-            default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
-        ),
-    },
-)
-
-def x86_64_bare_metal_rust_bootloader_binary(name, rust_binary, visibility):
-    _bootloader_transition_rule(
-        name = name,
-        rust_binary = rust_binary,
+        rust_toolchain = rust_toolchain,
         visibility = visibility,
     )
