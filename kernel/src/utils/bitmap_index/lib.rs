@@ -5,6 +5,10 @@
 
 //! Implements a bitmap structure, backed by a sequence of `u64`s.
 //!
+//! This crate can be used to a binary state for an arbitrary number
+//! of sequential items efficently. For example, a bitmap could track whether
+//! each 4 KiB frame in 2 GiB of physical memory with only 64 KiB of overhead.
+//!
 //! # Examples
 //!
 //! ```
@@ -20,6 +24,10 @@
 //! assert_eq!(data.next_n_set(3), None);
 //! assert_eq!(data.next_n_set(2), Some(8));
 //! ```
+
+#![no_std]
+
+extern crate alloc;
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -210,7 +218,7 @@ impl Bitmap {
     }
 }
 
-#[test_case]
+#[test]
 fn bitmap() {
     let mut bitmap = Bitmap::new_unset(7);
     for i in 0..7 {

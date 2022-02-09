@@ -14,10 +14,10 @@ use crate::drivers::virtio;
 use crate::drivers::virtio::features::Reserved;
 use crate::drivers::virtio::{Buffer, Transport, UsedBuffers, VirtqueueError, MAX_DESCRIPTORS};
 use crate::memory::{mmio, pmm};
-use crate::utils::bitmap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
+use bitmap_index::Bitmap;
 use core::mem::size_of;
 use core::slice;
 use core::sync::atomic::{fence, Ordering};
@@ -210,7 +210,7 @@ pub struct Virtqueue<'a> {
     // the descriptor is free or currently
     // passed to the device. A descriptor
     // is free if its bit is set.
-    free_list: bitmap::Bitmap,
+    free_list: Bitmap,
 
     // last_used_index stores the most recent
     // value seen in device_area.index.
@@ -304,7 +304,7 @@ impl<'a> Virtqueue<'a> {
         transport.enable_queue();
 
         // Prepare the last bits of our state.
-        let free_list = bitmap::Bitmap::new_set(num_descriptors as usize);
+        let free_list = Bitmap::new_set(num_descriptors as usize);
         let last_used_index = 0;
         let descriptors = unsafe {
             slice::from_raw_parts_mut(start_virt as *mut Descriptor, num_descriptors as usize)

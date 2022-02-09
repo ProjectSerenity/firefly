@@ -1,5 +1,6 @@
 [workspace]
 members = [
     "kernel",
+    "kernel/src/utils/bitmap_index",
     "shared/syscalls",
 ]

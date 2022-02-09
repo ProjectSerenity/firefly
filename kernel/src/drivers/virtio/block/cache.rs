@@ -53,9 +53,9 @@
 
 use crate::drivers::virtio::Buffer;
 use crate::memory::{phys_to_virt_addr, pmm};
-use crate::utils::bitmap::Bitmap;
 use alloc::vec;
 use alloc::vec::Vec;
+use bitmap_index::Bitmap;
 use x86_64::structures::paging::{PageSize, PhysFrame, Size4KiB};
 use x86_64::PhysAddr;
 

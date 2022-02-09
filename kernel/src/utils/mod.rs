@@ -5,12 +5,6 @@
 
 //! Implements various utilities and data structures used elsewhere in the kernel.
 //!
-//! ## Bitmaps
-//!
-//! The [`bitmap`] module can be used to a binary state for an arbitrary number
-//! of sequential items efficently. For example, a bitmap could track whether
-//! each 4 KiB frame in 2 GiB of physical memory with only 64 KiB of overhead.
-//!
 //! ## Lazy initialisation
 //!
 //! The [`Lazy`](lazy::Lazy) type can be used to create an uninitialised value,
@@ -31,7 +25,6 @@
 //! The [`tar`] module provides functionality to read [TAR](https://en.wikipedia.org/wiki/Tar_(computing))
 //! archives from a block device.
 
-pub mod bitmap;
 pub mod lazy;
 pub mod once;
 pub mod pretty;
