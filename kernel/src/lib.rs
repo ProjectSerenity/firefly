@@ -85,6 +85,11 @@ pub fn init(boot_info: &'static BootInfo) {
     thread::init();
 }
 
+// The kernel's allocator error handling.
+//
+// Note that we disable this for Rustdoc, or it gets
+// confused into thinking it's defined twice.
+#[cfg(not(doc))]
 #[alloc_error_handler]
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     panic!("allocation error: {:?}", layout)
