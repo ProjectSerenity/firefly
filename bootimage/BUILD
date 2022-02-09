@@ -29,11 +29,17 @@ genrule(
 
         # Check whether the stage two bootloader is
         # small enough to be loaded.
-        sectors=`gdb -batch -ex "file $$input" -ex "p (&_rest_of_bootloader_end_addr - &_rest_of_bootloader_start_addr) / 512"`
-        sectors=`echo $$sectors | awk '{print $$3}'`
-        if [ "$$sectors" -gt "127" ]; then
-            echo "\033[1;31mERROR:\033[0m Bootloader stage 2 takes up $$sectors disk sectors, which is too large."
-            exit 1
+        #
+        # This is just to help, so if GDB is not
+        # installed, we skip the check, rather
+        # than failing the build.
+        if command -v gdb &> /dev/null ; then
+            sectors=`gdb -batch -ex "file $$input" -ex "p (&_rest_of_bootloader_end_addr - &_rest_of_bootloader_start_addr) / 512"`
+            sectors=`echo $$sectors | awk '{print $$3}'`
+            if [ "$$sectors" -gt "127" ]; then
+                echo "\033[1;31mERROR:\033[0m Bootloader stage 2 takes up $$sectors disk sectors, which is too large."
+                exit 1
+            fi
         fi
 
         # Repackage the bootable image to a raw binary.

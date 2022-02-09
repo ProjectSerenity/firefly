@@ -20,7 +20,6 @@ While Bazel manages most of the build, some tools are currently used from the ho
 
 - Clang (expected in `/usr/bin/clang`)
 - LLD (expected in `/usr/bin/ld`)
-- GDB (anywhere in the path)
 - LLVM-tools (as installed with `rustup component add llvm-tools-preview`)
 
 Once Bazel and the above host tools are prepared, the following commands are common:
