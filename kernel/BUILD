@@ -50,9 +50,6 @@ rust_library(
         "src/random/mod.rs",
         "src/random/rdrand.rs",
         "src/syscalls/mod.rs",
-        "src/utils/lazy.rs",
-        "src/utils/mod.rs",
-        "src/utils/once.rs",
     ],
     compile_data = [
         "src/multitasking/thread/switch.s",

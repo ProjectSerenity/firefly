@@ -51,7 +51,6 @@ pub mod multitasking;
 pub mod network;
 pub mod random;
 pub mod syscalls;
-pub mod utils;
 
 /// Initialise the kernel and its core components.
 ///
