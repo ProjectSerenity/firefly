@@ -7,17 +7,23 @@
 //!
 //! ## PCI devices
 //!
-//! The [PCI](pci) module provides the [`pci::init`] function to scan the set of
-//! attached PCI buses for supported devices. Any supported devices are initialised
-//! by a driver and put into use.
+//! The [PCI](pci) module provides the [`pci::scan`] function to scan the set of
+//! attached PCI buses for supported devices. Any identified devices are returned.
 //!
 //! PCI [`Device`](pci::Device)s can be used to access the resources and data of a
-//! PCI device. A device driver can be implemented by adding a
-//! [`DeviceDriverSupport`](pci::DeviceDriverSupport) to
-//! [`DEVICE_DRIVERS`](pci::DEVICE_DRIVERS).
+//! PCI device. A device driver can be implemented by adding a [`PciDriverCheck`]
+//! to [`PCI_DRIVERS`], then iteratively installing supported devices:
 //!
-//! [`pci::debug`] can be called after [`pci::init`] to print debug information
-//! about detected devices that were not adopted by any device drivers.
+//! ```
+//! for device in devices.iter() {
+//!     for check in drivers::PCI_DRIVERS.iter() {
+//!         if let Some(install) = check(&device) {
+//!             install(device);
+//!             break;
+//!         }
+//!     }
+//! }
+//! ```
 //!
 //! ## VirtIO
 //!
@@ -28,3 +34,25 @@
 
 pub mod pci;
 pub mod virtio;
+
+/// A PciDriver takes ownership of a PCI device.
+///
+pub type PciDriver = fn(device: pci::Device);
+
+/// This check determines whether a PCI
+/// device driver supports the given device.
+///
+/// If a driver returns some device driver,
+/// that driver is called to take ownership
+/// of the device.
+///
+pub type PciDriverCheck = fn(device: &pci::Device) -> Option<PciDriver>;
+
+/// This is the set of configured PCI device drivers.
+///
+/// For each PCI device discovered, each callback listed
+/// here will be checked to determine whether the driver
+/// supports the device. The first device that returns a
+/// driver will then take ownership of the device.
+///
+pub const PCI_DRIVERS: &[PciDriverCheck] = &[virtio::pci_device_check];

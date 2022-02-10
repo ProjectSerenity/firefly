@@ -3,48 +3,20 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-//! A basic implementation of PCI bus scanning, which will
-//! detect and identify the PCI devices available.
+//! A basic implementation of PCI bus scanning, which will detect and identify
+//! the PCI devices available.
 //!
-//! The PCI module provides an [`init`] function to scan the set of attached
-//! PCI buses for supported devices. Any supported devices are initialised by
-//! a driver and put into use.
+//! The PCI module provides a [`scan`] function to scan the set of attached
+//! PCI buses for supported devices. Any supported devices are collected and
+//! returned.
 //!
 //! PCI [`Device`]s can be used to access the resources and data of a PCI
-//! device. A device driver can be implemented by adding a [`DeviceDriverSupport`]
-//! to [`DEVICE_DRIVERS`].
-//!
-//! [`debug`] can be called after [`init`] to print debug information about
-//! detected devices that were not adopted by any device drivers.
+//! device.
 
-use crate::drivers;
 use alloc::vec::Vec;
 use core::fmt;
-use serial::println;
 use x86_64::instructions::port::Port;
 use x86_64::PhysAddr;
-
-/// A DeviceDriver takes ownership of a PCI device.
-///
-pub type DeviceDriver = fn(device: Device);
-
-/// This check determines whether a PCI
-/// device driver supports the given device.
-///
-/// If a driver returns some device driver,
-/// that driver is called to take ownership
-/// of the device.
-///
-pub type DeviceDriverSupport = fn(device: &Device) -> Option<DeviceDriver>;
-
-/// This is the set of configured PCI device drivers.
-///
-/// For each PCI device discovered, each callback listed
-/// here will be checked to determine whether the driver
-/// supports the device. The first device that returns a
-/// driver will then take ownership of the device.
-///
-pub const DEVICE_DRIVERS: &[DeviceDriverSupport] = &[drivers::virtio::pci_device_supported];
 
 const CONFIG_ADDRESS: u16 = 0xcf8;
 const CONFIG_DATA: u16 = 0xcfc;
@@ -56,24 +28,14 @@ const VENDOR_ID: u8 = 0x00; // u16
 const COMMAND: u8 = 0x04; // u16
 const HEADER_TYPE: u8 = 0x0e; // u8
 
-/// UNKNOWN_DEVICES is the list of PCI devices that have been
-/// identified by init but were not claimed by a device driver.
+/// Scans the PCI buses for devices, returning the set of
+/// discovered devices.
 ///
-static UNKNOWN_DEVICES: spin::Mutex<Vec<Device>> = spin::Mutex::new(Vec::new());
-
-/// Scans the PCI buses for devices, installing those that
-/// are supported by a device driver.
-///
-/// For each device discovered, we iterate through [`DEVICE_DRIVERS`],
-/// passing the device to the first driver that claims to
-/// support it. If a device is not supported by any drivers,
-/// then it is retained as an unclaimed device, which can be
-/// debugged by calling [`debug`].
-///
-pub fn init() {
+pub fn scan() -> Vec<Device> {
+    let mut devices = Vec::new();
     if read_u8(0, 0, 0, HEADER_TYPE) & 0x80 == 0 {
-        scan_bus(0);
-        return;
+        scan_bus(0, &mut devices);
+        return devices;
     }
 
     let mut found = false;
@@ -83,28 +45,18 @@ pub fn init() {
         }
 
         found = true;
-        scan_bus(func);
+        scan_bus(func, &mut devices);
     }
 
     if !found {
-        return;
+        return devices;
     }
 
     for bus in 0..=255 {
-        scan_bus(bus);
+        scan_bus(bus, &mut devices);
     }
-}
 
-/// Iterates through the discovered but unsupported
-/// PCI devices, printing each device.
-///
-/// See [`init`] for more details.
-///
-pub fn debug() {
-    let devices = UNKNOWN_DEVICES.lock();
-    for device in devices.iter() {
-        println!("Found unsupported {}.", device);
-    }
+    devices
 }
 
 /// Capability represents a PCI device
@@ -276,7 +228,7 @@ impl fmt::Display for Device {
 // scan_slot scans a PCI slot for a recognised
 // device.
 //
-fn scan_slot(bus: u8, slot: u8) {
+fn scan_slot(bus: u8, slot: u8, devices: &mut Vec<Device>) {
     // See https://en.wikipedia.org/wiki/PCI_configuration_space#/media/File:Pci-config-space.svg
     //
     // Read the header fields, 32 bits at a time.
@@ -350,21 +302,14 @@ fn scan_slot(bus: u8, slot: u8) {
         capabilities,
     };
 
-    match DEVICE_DRIVERS
-        .iter()
-        .map_while(|supports| supports(&dev))
-        .next()
-    {
-        Some(driver) => driver(dev),
-        None => UNKNOWN_DEVICES.lock().push(dev),
-    }
+    devices.push(dev);
 }
 
 // scan_bus scans a PCI bus for a recognised
 // device.
 //
-fn scan_bus(bus: u8) {
+fn scan_bus(bus: u8, devices: &mut Vec<Device>) {
     for slot in 0..32 {
-        scan_slot(bus, slot);
+        scan_slot(bus, slot, devices);
     }
 }

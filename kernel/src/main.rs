@@ -56,7 +56,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(not(test))]
 fn kmain() {
     use kernel::multitasking::thread::{scheduler, Thread};
-    use kernel::{cpu, network, time};
+    use kernel::{cpu, drivers, network, time};
 
     println!("Kernel ready!");
     println!("Kernel booted at {}.", time::boot_time());
@@ -66,7 +66,15 @@ fn kmain() {
     // we get a DHCP configuration.
     network::register_workload(Thread::create_kernel_thread(initial_workload));
 
-    pci::init();
+    for device in pci::scan().into_iter() {
+        for check in drivers::PCI_DRIVERS.iter() {
+            if let Some(install) = check(&device) {
+                install(device);
+                break;
+            }
+        }
+    }
+
     random::init();
 
     // Hand over to the scheduler.
@@ -96,11 +104,6 @@ fn debug() {
 
     // Physical memory.
     memory::pmm::debug();
-    println!();
-
-    // Unclaimed PCI devices.
-    println!("Unclaimed PCI devices:");
-    pci::debug();
     println!();
 }
 
