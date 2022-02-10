@@ -5,7 +5,7 @@
 
 //! Provides a linked list allocator, which can be used to allocate heap memory.
 
-use crate::Locked;
+use super::Locked;
 use align::align_up_usize;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::{mem, ptr};

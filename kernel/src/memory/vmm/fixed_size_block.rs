@@ -5,7 +5,7 @@
 
 //! Provides a fixed-size block allocator, which can be used to allocate heap memory.
 
-use crate::Locked;
+use super::Locked;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr::NonNull;
 use core::{mem, ptr};

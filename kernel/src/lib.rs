@@ -13,10 +13,6 @@
 //! or with an error from QEMU to aid the testing
 //! process.
 //!
-//! This also includes the [`Locked`] type, which wraps
-//! a spin lock to allow us to define traits and
-//! methods on locked types.
-//!
 //! [`init`] is called when the kernel starts, so it
 //! should only perform actions that the kernel must
 //! always take. In particular, it does not set up
@@ -100,27 +96,6 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
 pub fn halt_loop() -> ! {
     loop {
         x86_64::instructions::hlt();
-    }
-}
-
-// Data structures.
-
-/// Wrap a type in a [`spin::Mutex`] so we can
-/// implement traits on a locked type.
-///
-pub struct Locked<A> {
-    inner: spin::Mutex<A>,
-}
-
-impl<A> Locked<A> {
-    pub const fn new(inner: A) -> Self {
-        Locked {
-            inner: spin::Mutex::new(inner),
-        }
-    }
-
-    pub fn lock(&self) -> spin::MutexGuard<A> {
-        self.inner.lock()
     }
 }
 

@@ -37,8 +37,8 @@
 
 use crate::memory::vmm::mapping::PagePurpose;
 use crate::memory::KERNEL_HEAP;
-use crate::Locked;
 use serial::println;
+use spin::{Mutex, MutexGuard};
 use x86_64::registers::control::{Cr4, Cr4Flags};
 use x86_64::registers::model_specific::{Efer, EferFlags};
 use x86_64::structures::paging::mapper::{MapToError, MapperFlushAll};
@@ -198,5 +198,24 @@ pub unsafe fn debug(pml4: &PageTable) {
     let mappings = mapping::level_4_table(pml4);
     for mapping in mappings.iter() {
         println!("{}", mapping);
+    }
+}
+
+/// Wrap a type in a [`spin::Mutex`] so we can
+/// implement traits on a locked type.
+///
+struct Locked<A> {
+    inner: Mutex<A>,
+}
+
+impl<A> Locked<A> {
+    pub const fn new(inner: A) -> Self {
+        Locked {
+            inner: Mutex::new(inner),
+        }
+    }
+
+    pub fn lock(&self) -> MutexGuard<A> {
+        self.inner.lock()
     }
 }
