@@ -54,7 +54,6 @@
 use crate::drivers::virtio::features::{Network, Reserved};
 use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
 use crate::drivers::{pci, virtio};
-use crate::interrupts::{register_irq, Irq};
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::{scheduler, Thread, ThreadId};
 use crate::network::{add_interface, InterfaceHandle};
@@ -63,6 +62,7 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
 use core::{mem, slice};
+use interrupts::{register_irq, Irq};
 use memlayout::phys_to_virt_addr;
 use physmem::{allocate_frame, deallocate_frame};
 use serial::println;

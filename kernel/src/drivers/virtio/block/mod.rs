@@ -13,7 +13,6 @@
 use crate::drivers::virtio::features::{Block, Reserved};
 use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
 use crate::drivers::{pci, virtio};
-use crate::interrupts::{register_irq, Irq};
 use crate::memory::{kernel_pml4, virt_to_phys_addrs};
 use crate::multitasking::thread::ThreadId;
 use crate::multitasking::{cpu_local, thread};
@@ -22,6 +21,7 @@ use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
+use interrupts::{register_irq, Irq};
 use memlayout::{PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
 use serial::println;
 use spin::Mutex;

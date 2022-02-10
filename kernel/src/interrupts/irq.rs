@@ -16,7 +16,8 @@
 //! easier by the [`Irq`] type and its [`acknowledge`](Irq::acknowledge)
 //! method.
 
-use crate::interrupts::{PICS, PIC_1_OFFSET};
+use super::{PICS, PIC_1_OFFSET};
+use spin::Mutex;
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::idt::{HandlerFunc, InterruptStackFrame};
 
@@ -88,7 +89,7 @@ pub type IrqHandler = fn(frame: InterruptStackFrame, irq: Irq);
 
 /// IRQS helps us to track which IRQs have been allocated.
 ///
-static IRQS: spin::Mutex<[Option<IrqHandler>; 16]> = spin::Mutex::new([None; 16]);
+static IRQS: Mutex<[Option<IrqHandler>; 16]> = Mutex::new([None; 16]);
 
 /// Sets the handler for the given IRQ.
 ///

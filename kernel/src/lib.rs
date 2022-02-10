@@ -20,7 +20,6 @@
 
 #![no_std]
 #![cfg_attr(test, no_main)]
-#![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
 #![feature(asm)]
 #![feature(binary_heap_retain)]
@@ -32,12 +31,12 @@
 
 extern crate alloc;
 
-use crate::interrupts::{register_irq, Irq};
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler;
 use bootloader::BootInfo;
 use core::panic::PanicInfo;
 use core::pin::Pin;
+use interrupts::{register_irq, Irq};
 use memlayout::KERNEL_STACK_0;
 use segmentation::SegmentData;
 use serial::{print, println};
@@ -45,7 +44,6 @@ use x86_64::instructions::port::Port;
 use x86_64::structures::idt::InterruptStackFrame;
 
 pub mod drivers;
-pub mod interrupts;
 pub mod memory;
 pub mod multitasking;
 pub mod network;

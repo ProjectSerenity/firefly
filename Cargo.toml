@@ -5,6 +5,7 @@ members = [
     "kernel/src/drivers/pci",
     "kernel/src/drivers/serial",
     "kernel/src/filesystem",
+    "kernel/src/interrupts",
     "kernel/src/memory/memlayout",
     "kernel/src/memory/mmio",
     "kernel/src/memory/physmem",

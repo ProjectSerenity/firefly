@@ -15,13 +15,13 @@ bootloader = {version = "=0.9.21", features = ["map_physical_memory"]}
 chacha20 = "=0.8.1"
 cpuid = {path = "src/cpuid"}
 filesystem = {path = "src/filesystem"}
+interrupts = {path = "src/interrupts"}
 lazy_static = {version = "=1.4.0", features = ["spin_no_std"]}
 managed = {version = "=0.8", default-features = false, features = ["map"]}
 memlayout = {path = "src/memory/memlayout"}
 mmio = {path = "src/memory/mmio"}
 pci = {path = "src/drivers/pci"}
 physmem = {path = "src/memory/physmem"}
-pic8259 = "=0.10.1"
 pretty = {path = "src/utils/pretty"}
 segmentation = {path = "src/segmentation"}
 serial = {path = "src/drivers/serial"}

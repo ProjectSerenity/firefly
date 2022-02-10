@@ -65,13 +65,16 @@
 //! [Page fault]: https://wiki.osdev.org/Exceptions#Page_Fault
 //!
 
+#![no_std]
+#![feature(abi_x86_interrupt)]
+
 mod irq;
 
-use crate::halt_loop;
 use lazy_static::lazy_static;
 use pic8259::ChainedPics;
 use segmentation::DOUBLE_FAULT_IST_INDEX;
 use serial::println;
+use spin::Mutex;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
 
@@ -176,7 +179,11 @@ extern "x86-interrupt" fn page_fault_handler(
     println!("Accessed Address: {:?}", Cr2::read());
     println!("Error Code: {:?}", error_code);
     println!("{:#?}", stack_frame);
-    halt_loop();
+
+    // Give up forever for now.
+    loop {
+        x86_64::instructions::hlt();
+    }
 }
 
 // PIC code.
@@ -188,13 +195,5 @@ const PIC_2_OFFSET: usize = PIC_1_OFFSET + 8;
 ///
 /// PICS can be used to acknowledge an interrupt.
 ///
-static PICS: spin::Mutex<ChainedPics> =
-    spin::Mutex::new(unsafe { ChainedPics::new(PIC_1_OFFSET as u8, PIC_2_OFFSET as u8) });
-
-// Tests
-
-#[test_case]
-fn test_breakpoint_exception() {
-    // Invoke a breakpoint exception.
-    x86_64::instructions::interrupts::int3();
-}
+static PICS: Mutex<ChainedPics> =
+    Mutex::new(unsafe { ChainedPics::new(PIC_1_OFFSET as u8, PIC_2_OFFSET as u8) });

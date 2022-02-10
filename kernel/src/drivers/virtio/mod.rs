@@ -53,11 +53,11 @@ pub mod virtqueues;
 
 use crate::drivers;
 use crate::drivers::virtio::virtqueues::split;
-use crate::interrupts::Irq;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
+use interrupts::Irq;
 use pci;
 use serial::println;
 use x86_64::PhysAddr;
