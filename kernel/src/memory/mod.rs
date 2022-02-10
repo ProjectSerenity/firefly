@@ -377,6 +377,7 @@ fn large_vec() {
 #[test_case]
 fn many_boxes() {
     use alloc::boxed::Box;
+    use memlayout::KERNEL_HEAP;
     for i in 0..KERNEL_HEAP.size() {
         let x = Box::new(i);
         assert_eq!(*x, i);
