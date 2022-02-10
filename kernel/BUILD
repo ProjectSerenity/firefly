@@ -22,7 +22,6 @@ exports_files(
 rust_library(
     name = "libkernel",
     srcs = [
-        "src/cpu/mod.rs",
         "src/drivers/mod.rs",
         "src/drivers/virtio/block/cache.rs",
         "src/drivers/virtio/block/mod.rs",
@@ -75,11 +74,11 @@ rust_library(
         crate("lazy_static"),
         crate("managed"),
         crate("pic8259"),
-        crate("raw-cpuid"),
         crate("sha2"),
         crate("spin"),
         crate("volatile"),
         crate("x86_64"),
+        "//kernel/src/cpuid",
         "//kernel/src/drivers/pci",
         "//kernel/src/drivers/serial",
         "//kernel/src/filesystem",
@@ -120,6 +119,7 @@ rust_binary(
     deps = [
         crate("x86_64"),
         ":libkernel",
+        "//kernel/src/cpuid",
         "//kernel/src/drivers/pci",
         "//kernel/src/drivers/serial",
         "//kernel/src/memory/physmem",

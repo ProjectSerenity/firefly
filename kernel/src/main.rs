@@ -55,11 +55,11 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(not(test))]
 fn kmain() {
     use kernel::multitasking::thread::{scheduler, Thread};
-    use kernel::{cpu, drivers, network, time};
+    use kernel::{drivers, network, time};
 
     println!("Kernel ready!");
     println!("Kernel booted at {}.", time::boot_time());
-    cpu::print_branding();
+    cpuid::print_branding();
 
     // Set up our initial workload for when
     // we get a DHCP configuration.

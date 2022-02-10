@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "kernel",
+    "kernel/src/cpuid",
     "kernel/src/drivers/pci",
     "kernel/src/drivers/serial",
     "kernel/src/filesystem",

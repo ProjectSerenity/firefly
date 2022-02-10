@@ -5,6 +5,8 @@
 
 //! Analyses the CPU for supported features and branding.
 
+#![no_std]
+
 use raw_cpuid::CpuId;
 use serial::println;
 
@@ -12,10 +14,10 @@ use serial::println;
 ///
 /// # Panics
 ///
-/// `init` will panic if the CPU does not support any features
-/// Firefly requires.
+/// `check_features` will panic if the CPU does not support
+/// any features Firefly requires.
 ///
-pub fn init() {
+pub fn check_features() {
     let cpuid = CpuId::new();
     match cpuid.get_extended_processor_and_feature_identifiers() {
         None => panic!("unable to determine CPU features"),

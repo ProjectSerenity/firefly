@@ -41,7 +41,6 @@ use segmentation::SegmentData;
 use serial::{print, println};
 use x86_64::instructions::port::Port;
 
-pub mod cpu;
 pub mod drivers;
 pub mod interrupts;
 pub mod memory;
@@ -66,7 +65,7 @@ pub mod utils;
 /// - Initialise the [scheduler](multitasking/thread).
 ///
 pub fn init(boot_info: &'static BootInfo) {
-    cpu::init();
+    cpuid::check_features();
 
     // Make sure we shadow the initial segment
     // data so we can't circumvent the pin later.
