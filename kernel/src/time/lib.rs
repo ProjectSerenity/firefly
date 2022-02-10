@@ -16,8 +16,6 @@
 
 #![no_std]
 
-//extern crate alloc;
-
 mod rtc;
 mod slice;
 mod ticker;
