@@ -20,6 +20,8 @@
 
 extern crate alloc;
 
+mod parse_utils;
+
 use align::align_up_usize;
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -28,8 +30,6 @@ use core::str;
 use filesystem::{FileInfo, FileType, Permissions, SEPARATOR};
 use serial::println;
 use storage::block;
-
-mod parse_utils;
 
 /// Helper used for checking whether a filename starts or ends
 /// with a separator.

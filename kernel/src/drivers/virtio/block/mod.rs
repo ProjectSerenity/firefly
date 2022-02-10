@@ -10,6 +10,8 @@
 //! necessary to flush segment caches manually after any
 //! writes.
 
+mod cache;
+
 use crate::drivers::virtio::features::{Block, Reserved};
 use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
 use crate::drivers::{pci, virtio};
@@ -29,8 +31,6 @@ use storage::block::{add_device, Device, Error, Operations};
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::{PhysAddr, VirtAddr};
-
-mod cache;
 
 /// REQUEST_VIRTQUEUE is the sole virtqueue used
 /// with a virtio entropy device.

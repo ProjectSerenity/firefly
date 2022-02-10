@@ -24,6 +24,9 @@
 //! Calling [`debug`] (or [`Thread::debug`]) will print debug info about the
 //! thread.
 
+pub mod scheduler;
+mod switch;
+
 use crate::memory::{free_kernel_stack, kernel_pml4, new_kernel_stack, StackBounds};
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler::{timers, Scheduler};
@@ -43,9 +46,6 @@ use time::{Duration, TimeSlice};
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
-
-pub mod scheduler;
-mod switch;
 
 /// The amount of CPU time given to threads when they are scheduled.
 ///

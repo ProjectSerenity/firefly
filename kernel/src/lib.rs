@@ -31,6 +31,12 @@
 
 extern crate alloc;
 
+pub mod drivers;
+pub mod memory;
+pub mod multitasking;
+pub mod network;
+pub mod syscalls;
+
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler;
 use bootloader::BootInfo;
@@ -42,12 +48,6 @@ use segmentation::SegmentData;
 use serial::{print, println};
 use x86_64::instructions::port::Port;
 use x86_64::structures::idt::InterruptStackFrame;
-
-pub mod drivers;
-pub mod memory;
-pub mod multitasking;
-pub mod network;
-pub mod syscalls;
 
 /// Initialise the kernel and its core components.
 ///

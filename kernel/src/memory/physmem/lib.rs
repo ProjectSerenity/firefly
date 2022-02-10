@@ -51,17 +51,16 @@
 
 extern crate alloc;
 
+mod bitmap;
+mod boot_info;
+
+pub use crate::bitmap::BitmapFrameAllocator;
+pub use crate::boot_info::BootInfoFrameAllocator;
 use bootloader::bootinfo::MemoryMap;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::structures::paging::frame::PhysFrameRange;
 use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame, Size4KiB};
-
-mod bitmap;
-mod boot_info;
-
-pub use bitmap::BitmapFrameAllocator;
-pub use boot_info::BootInfoFrameAllocator;
 
 lazy_static! {
     /// The second-phase physical memory allocator.
