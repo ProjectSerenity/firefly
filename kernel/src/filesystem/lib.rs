@@ -3,7 +3,16 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-//! Implements the virtual filesystem for Firefly.
+//! Implements the logical design for Firefly's virtual filesystem.
+//!
+//! This crate does not implement a specific filesystem, such as
+//! [ext4](https://en.wikipedia.org/wiki/Ext4) or [NTFS](https://en.wikipedia.org/wiki/NTFS).
+//! Instead, it provides the logical structure and interface exposed
+//! to userspace of the virtual filesystem.
+
+#![no_std]
+
+extern crate alloc;
 
 use alloc::string::String;
 use bitflags::bitflags;

@@ -3,6 +3,7 @@ members = [
     "kernel",
     "kernel/src/drivers/pci",
     "kernel/src/drivers/serial",
+    "kernel/src/filesystem",
     "kernel/src/utils/align",
     "kernel/src/utils/bitmap_index",
     "kernel/src/utils/pretty",

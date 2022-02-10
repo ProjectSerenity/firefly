@@ -47,7 +47,6 @@ use x86_64::instructions::port::Port;
 
 pub mod cpu;
 pub mod drivers;
-pub mod filesystem;
 pub mod gdt;
 pub mod interrupts;
 pub mod memory;

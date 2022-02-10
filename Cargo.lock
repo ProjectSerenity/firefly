@@ -103,6 +103,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "filesystem"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -127,6 +134,7 @@ dependencies = [
  "bitmap_index",
  "bootloader",
  "chacha20",
+ "filesystem",
  "hex-literal",
  "lazy_static",
  "linked_list_allocator",
