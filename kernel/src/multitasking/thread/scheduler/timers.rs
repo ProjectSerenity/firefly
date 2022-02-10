@@ -6,16 +6,16 @@
 //! Implements the priority queue of system timers.
 //!
 //! This is a fairly simple design to get us started. Each timer consists of
-//! the [`Instant`](crate::time::Instant) at which the timer will fire, and the
+//! the [`Instant`](time::Instant) at which the timer will fire, and the
 //! [`ThreadId`](crate::multitasking::thread::ThreadId)
 //! of the thread we should resume.
 
 use crate::multitasking::thread;
-use crate::time;
 use alloc::collections::binary_heap::BinaryHeap;
 use core::cmp::{Ordering, PartialEq, PartialOrd};
 use lazy_static::lazy_static;
 use spin::Mutex;
+use time::{now, Instant};
 use x86_64::instructions::interrupts::without_interrupts;
 
 lazy_static! {
@@ -30,7 +30,7 @@ lazy_static! {
 /// The given thread will be resumed once wakeup is
 /// no longer in the future.
 ///
-pub fn add(thread_id: thread::ThreadId, wakeup: time::Instant) -> Timer {
+pub fn add(thread_id: thread::ThreadId, wakeup: Instant) -> Timer {
     let timer = Timer::new(thread_id, wakeup);
     without_interrupts(|| TIMERS.lock().push(timer));
 
@@ -59,7 +59,7 @@ pub fn cancel_all_for_thread(thread_id: thread::ThreadId) -> bool {
 /// marking the corresponding threads as runnable.
 ///
 pub fn process() {
-    let now = time::now();
+    let now = now();
     let mut timers = TIMERS.lock();
     loop {
         if let Some(next) = timers.peek() {
@@ -82,7 +82,7 @@ pub fn process() {
 ///
 #[derive(Clone, Copy, Eq)]
 pub struct Timer {
-    wakeup: time::Instant,
+    wakeup: Instant,
     thread_id: thread::ThreadId,
 }
 
@@ -90,7 +90,7 @@ impl Timer {
     /// new creates a timer that will wake the
     /// given thread at or after the given time.
     ///
-    fn new(thread_id: thread::ThreadId, wakeup: time::Instant) -> Self {
+    fn new(thread_id: thread::ThreadId, wakeup: Instant) -> Self {
         Timer { wakeup, thread_id }
     }
 
@@ -101,7 +101,7 @@ impl Timer {
     /// and therefore may have fired already.
     ///
     pub fn cancel(self) -> bool {
-        let expired = self.wakeup <= time::now();
+        let expired = self.wakeup <= now();
         let mut timers = TIMERS.lock();
         timers.retain(|x| *x != self);
 
@@ -139,9 +139,9 @@ impl Ord for Timer {
 
 #[test_case]
 fn timers_ordering() {
-    let foo = Timer::new(thread::ThreadId::IDLE, time::Instant::new(2));
-    let bar = Timer::new(thread::ThreadId::IDLE, time::Instant::new(3));
-    let baz = Timer::new(thread::ThreadId::IDLE, time::Instant::new(3));
+    let foo = Timer::new(thread::ThreadId::IDLE, Instant::new(2));
+    let bar = Timer::new(thread::ThreadId::IDLE, Instant::new(3));
+    let baz = Timer::new(thread::ThreadId::IDLE, Instant::new(3));
     assert_eq!(foo < bar, false);
     assert_eq!(bar == baz, true);
     assert_eq!(bar < foo, true);

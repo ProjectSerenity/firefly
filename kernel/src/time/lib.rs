@@ -5,7 +5,7 @@
 
 //! Handles the hardware timer for regular ticks and the clock in the [Real-time clock](https://en.wikipedia.org/wiki/Real-time_clock) (RTC).
 //!
-//! This module focuses on time-related functionality. In particular, it
+//! This crate focuses on time-related functionality. In particular, it
 //! currently implements getting the current wall clock time from the RTC,
 //! along with getting ticks from the PIT.
 //!
@@ -13,6 +13,10 @@
 //!
 //! The [`Duration`] and [`Instant`] types can be used to measure and compare
 //! points in time.
+
+#![no_std]
+
+//extern crate alloc;
 
 mod rtc;
 mod slice;
@@ -109,7 +113,7 @@ impl Instant {
     }
 }
 
-#[test_case]
+#[test]
 fn instant() {
     let a = Instant::new(4 * ticker::TICKS_PER_SECOND);
     let b = Instant::new(6 * ticker::TICKS_PER_SECOND);

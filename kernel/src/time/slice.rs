@@ -6,7 +6,7 @@
 //! Implements the functionality to create and manage the time slices used
 //! to determine a thread's time left on the CPU.
 
-use crate::time::{Duration, NANOSECONDS_PER_TICK};
+use crate::{Duration, NANOSECONDS_PER_TICK};
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 
 /// Includes the number of system timer ticks a thread has left on the CPU
@@ -81,7 +81,7 @@ impl Sub<TimeSlice> for TimeSlice {
     }
 }
 
-#[test_case]
+#[test]
 fn time_slice() {
     // We want to have 3 ticks, no matter what the
     // current tick frequency is.

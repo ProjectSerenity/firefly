@@ -21,7 +21,6 @@ pub mod udp;
 
 use crate::drivers::virtio::network;
 use crate::multitasking::thread::ThreadId;
-use crate::time;
 use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::string::String;
@@ -34,6 +33,7 @@ use smoltcp::iface::{InterfaceBuilder, NeighborCache, Routes, SocketHandle, Sock
 use smoltcp::socket::{Dhcpv4Config, Dhcpv4Event, Dhcpv4Socket};
 use smoltcp::time::Instant;
 use smoltcp::wire::{EthernetAddress, HardwareAddress, IpCidr, Ipv4Address, Ipv4Cidr};
+use time::{now, Duration};
 use x86_64::instructions::interrupts::without_interrupts;
 
 /// INITIAL_WORKLOADS can be a set of thread ids that
@@ -99,8 +99,8 @@ impl Interface {
     /// `poll` returns the delay before `poll` should next be
     /// called to balance performance and resource usage.
     ///
-    pub fn poll(&mut self) -> time::Duration {
-        let now = Instant::from_micros(time::now().system_micros() as i64);
+    pub fn poll(&mut self) -> Duration {
+        let now = Instant::from_micros(now().system_micros() as i64);
         loop {
             // Process the next inbound or outbound
             // packet.
@@ -192,8 +192,8 @@ impl Interface {
         // Determine when to poll again.
         let next = self.iface.poll_delay(now);
         match next {
-            Some(duration) => time::Duration::from_micros(duration.micros()),
-            None => time::Duration::from_secs(1),
+            Some(duration) => Duration::from_micros(duration.micros()),
+            None => Duration::from_secs(1),
         }
     }
 }
@@ -237,7 +237,7 @@ impl InterfaceHandle {
     /// `poll` returns the delay before `poll` should next be
     /// called to balance performance and resource usage.
     ///
-    pub fn poll(&self) -> time::Duration {
+    pub fn poll(&self) -> Duration {
         without_interrupts(|| {
             let mut ifaces = INTERFACES.lock();
             let iface = ifaces.get_mut(self.0).expect("invalid interface handle");

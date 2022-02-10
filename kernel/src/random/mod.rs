@@ -50,9 +50,9 @@ mod csprng;
 mod rdrand;
 
 use crate::multitasking::thread::{scheduler, Thread};
-use crate::time::Duration;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use time::Duration;
 
 /// CSPRNG is the kernel's cryptographically secure pseudo-random number generator.
 ///

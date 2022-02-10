@@ -11,6 +11,7 @@ members = [
     "kernel/src/memory/virtmem",
     "kernel/src/segmentation",
     "kernel/src/storage",
+    "kernel/src/time",
     "kernel/src/utils/align",
     "kernel/src/utils/bitmap_index",
     "kernel/src/utils/pretty",

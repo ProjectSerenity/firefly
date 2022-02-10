@@ -34,7 +34,6 @@
 use crate::memory::{free_kernel_stack, kernel_pml4, new_kernel_stack, StackBounds};
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler::{timers, Scheduler};
-use crate::time::{Duration, TimeSlice};
 use crate::utils::once::Once;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -46,6 +45,7 @@ use memlayout::{VirtAddrRange, KERNEL_STACK, USERSPACE};
 use physmem;
 use pretty::Bytes;
 use serial::println;
+use time::{Duration, TimeSlice};
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;

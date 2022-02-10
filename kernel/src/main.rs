@@ -55,7 +55,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(not(test))]
 fn kmain() {
     use kernel::multitasking::thread::{scheduler, Thread};
-    use kernel::{drivers, network, time};
+    use kernel::{drivers, network};
 
     println!("Kernel ready!");
     println!("Kernel booted at {}.", time::boot_time());
