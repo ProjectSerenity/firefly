@@ -22,27 +22,22 @@
 //!
 //! [here]: https://github.com/rust-osdev/x86_64/pull/257#issuecomment-849514649
 
-use crate::gdt::DOUBLE_FAULT_IST_INDEX;
 use crate::memory::{kernel_pml4, VirtAddrRange, CPU_LOCAL};
 use crate::multitasking::thread::Thread;
 use align::align_up_u64;
 use alloc::sync::Arc;
-use alloc::vec;
-use alloc::vec::Vec;
 use core::mem::size_of;
+use core::pin::Pin;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use physmem;
+use segmentation::SegmentData;
 use x86_64::instructions::interrupts::without_interrupts;
-use x86_64::instructions::tables::load_tss;
 use x86_64::registers::model_specific::GsBase;
-use x86_64::structures::gdt::{
-    Descriptor, DescriptorFlags, GlobalDescriptorTable, SegmentSelector,
-};
+use x86_64::structures::gdt::SegmentSelector;
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
 };
-use x86_64::structures::tss::TaskStateSegment;
-use x86_64::{PrivilegeLevel, VirtAddr};
+use x86_64::VirtAddr;
 
 /// INITIALSED tracks whether the CPU-local
 /// data has been set up on this CPU. It is
@@ -86,29 +81,19 @@ struct CpuData {
     // this CPU.
     current_thread: Arc<Thread>,
 
-    // Our task state segment.
-    tss: TaskStateSegment,
-
-    // The stack we reserve for the double
-    // fault handler. We only store this
-    // so it doesn't get dropped.
-    #[allow(dead_code)]
-    double_fault_stack: Vec<u8>,
-
-    // Our descriptor table.
-    gdt: GlobalDescriptorTable,
-
-    kernel_code_64: SegmentSelector,
-    kernel_data: SegmentSelector,
-    user_code_32: SegmentSelector,
-    user_data: SegmentSelector,
-    user_code_64: SegmentSelector,
+    // Our global descriptor table and task
+    // state segment.
+    segment_data: SegmentData,
 }
 
 /// Initialise the current CPU's local data using the given CPU
 /// ID and stack space.
 ///
-pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
+pub fn init(
+    cpu_id: CpuId,
+    stack_space: &VirtAddrRange,
+    current_segment_data: Pin<&mut SegmentData>,
+) {
     // Next, work out where we will store our CpuId
     // data. We align up to page size to make paging
     // easier.
@@ -147,18 +132,6 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
     // Create our idle thread.
     let idle = Thread::new_idle_thread(stack_space);
 
-    // Set up our TSS. We set up the GDT
-    // once our per-CPU data is ready, as
-    // we need to access its address to
-    // add the TSS segment.
-    let mut tss = TaskStateSegment::new();
-    const STACK_SIZE: usize = 4096 * 5;
-    let double_fault_stack = vec![0u8; STACK_SIZE];
-    let stack_start = VirtAddr::from_ptr(double_fault_stack.as_ptr());
-    let stack_end = stack_start + STACK_SIZE;
-    tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = stack_end;
-    let gdt = GlobalDescriptorTable::new();
-
     // Initialise the CpuData from a pointer at the
     // start of the address space.
     let cpu_local_data = start.as_mut_ptr() as *mut CpuData;
@@ -169,46 +142,16 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
             id: cpu_id,
             idle_thread: idle.clone(),
             current_thread: idle,
-            tss,
-            double_fault_stack,
-            gdt,
-            // Placeholder values until we set up
-            // the GDT below.
-            kernel_code_64: SegmentSelector(0),
-            kernel_data: SegmentSelector(0),
-            user_code_32: SegmentSelector(0),
-            user_data: SegmentSelector(0),
-            user_code_64: SegmentSelector(0),
+            segment_data: SegmentData::new_uninitialised(),
         });
     }
 
-    // Set up the GDT now that everything
+    // Set up the segment data now that everything
     // else is ready.
     without_interrupts(|| {
-        let tss_ref = tss_ref();
-        let data = unsafe { cpu_data() };
-        let kernel_code_64 = data.gdt.add_entry(Descriptor::kernel_code_segment());
-        let kernel_data = data.gdt.add_entry(Descriptor::kernel_data_segment());
-        let tss_selector = data.gdt.add_entry(Descriptor::tss_segment(tss_ref));
-        let user_code_32 = data
-            .gdt
-            .add_entry(Descriptor::UserSegment(DescriptorFlags::USER_CODE32.bits()));
-        let user_data = data.gdt.add_entry(Descriptor::user_data_segment());
-        let user_code_64 = data.gdt.add_entry(Descriptor::user_code_segment());
-
-        // Load the GDT and its selectors.
-        data.gdt.load();
-        unsafe {
-            load_tss(tss_selector);
-
-            // Store our segment selectors.
-            let mut data = &mut *cpu_local_data;
-            data.kernel_code_64 = kernel_code_64;
-            data.kernel_data = kernel_data;
-            data.user_code_32 = user_code_32;
-            data.user_data = user_data;
-            data.user_code_64 = user_code_64;
-        }
+        let mut segment_data = segment_data();
+        segment_data.init();
+        segment_data.swap(current_segment_data);
     });
 
     INITIALISED.store(true, Ordering::Relaxed);
@@ -238,8 +181,8 @@ unsafe fn cpu_data() -> &'static mut CpuData {
 
 /// Fetches a static reference to our TSS.
 ///
-fn tss_ref() -> &'static TaskStateSegment {
-    unsafe { &cpu_data().tss }
+fn segment_data() -> Pin<&'static mut SegmentData> {
+    Pin::new(unsafe { &mut cpu_data().segment_data })
 }
 
 /// Returns this CPU's unique ID.
@@ -258,16 +201,14 @@ pub fn idle_thread() -> Arc<Thread> {
 /// for the kernel in this CPU.
 ///
 pub fn kernel_selectors() -> (SegmentSelector, SegmentSelector) {
-    let data = unsafe { cpu_data() };
-    (data.kernel_code_64, data.kernel_data)
+    segment_data().kernel_selectors()
 }
 
 /// Returns the code and stack segment selectors
 /// for 32-bit user code in this CPU.
 ///
 pub fn user_selectors() -> (SegmentSelector, SegmentSelector, SegmentSelector) {
-    let data = unsafe { cpu_data() };
-    (data.user_code_32, data.user_data, data.user_code_64)
+    segment_data().user_selectors()
 }
 
 /// Returns the currently executing thread.
@@ -275,23 +216,6 @@ pub fn user_selectors() -> (SegmentSelector, SegmentSelector, SegmentSelector) {
 pub fn current_thread() -> Arc<Thread> {
     unsafe { cpu_data() }.current_thread.clone()
 }
-
-/// Index into the TSS where the userland interrupt
-/// handler's stack is stored.
-///
-/// User threads have a stack space in ring 3,
-/// so we cannot use that thread for handling
-/// interrupts. As a result, each user thread
-/// has an additional stack, allocated in
-/// kernel space. Kernel threads don't need
-/// the extra stack, so they use their existing
-/// stack.
-///
-/// Each time we switch thread, we update this
-/// index with the new thread's kernel stack
-/// top (or 0 for kernel threads).
-///
-const INTERRUPT_KERNEL_STACK_INDEX: usize = PrivilegeLevel::Ring0 as usize;
 
 /// Overwrites the currently executing thread.
 ///
@@ -302,7 +226,7 @@ pub fn set_current_thread(thread: Arc<Thread>) {
     data.current_thread.set_user_stack(data.user_stack_pointer);
 
     // Overwrite the state from the new thread.
-    data.tss.privilege_stack_table[INTERRUPT_KERNEL_STACK_INDEX] = thread.interrupt_stack();
+    Pin::new(&mut data.segment_data).set_interrupt_stack(thread.interrupt_stack());
     data.syscall_stack_pointer = thread.syscall_stack();
     data.user_stack_pointer = thread.user_stack();
     data.current_thread = thread;

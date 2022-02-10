@@ -67,9 +67,10 @@
 
 mod irq;
 
-use crate::{gdt, halt_loop};
+use crate::halt_loop;
 use lazy_static::lazy_static;
 use pic8259::ChainedPics;
+use segmentation::DOUBLE_FAULT_IST_INDEX;
 use serial::println;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
@@ -106,7 +107,7 @@ lazy_static! {
         unsafe {
             idt.double_fault
                 .set_handler_fn(double_fault_handler)
-                .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
+                .set_stack_index(DOUBLE_FAULT_IST_INDEX);
         }
         idt.segment_not_present
             .set_handler_fn(segment_not_present_handler);

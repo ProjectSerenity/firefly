@@ -3,8 +3,10 @@
 #![feature(abi_x86_interrupt)]
 
 use core::panic::PanicInfo;
+use core::pin::Pin;
 use kernel::{exit_qemu, QemuExitCode};
 use lazy_static::lazy_static;
+use segmentation::{SegmentData, DOUBLE_FAULT_IST_INDEX};
 use serial::{print, println};
 use x86_64::structures::idt::InterruptDescriptorTable;
 use x86_64::structures::idt::InterruptStackFrame;
@@ -24,7 +26,7 @@ lazy_static! {
         unsafe {
             idt.double_fault
                 .set_handler_fn(test_double_fault_handler)
-                .set_stack_index(kernel::gdt::DOUBLE_FAULT_IST_INDEX);
+                .set_stack_index(DOUBLE_FAULT_IST_INDEX);
         }
 
         idt
@@ -39,7 +41,11 @@ pub fn init_test_idt() {
 pub extern "C" fn _start() -> ! {
     print!("stack_overflow::stack_overflow...\t");
 
-    kernel::gdt::init();
+    let mut segment_data = SegmentData::new_uninitialised();
+    let mut segment_data = unsafe { Pin::new_unchecked(&mut segment_data) };
+    segment_data.init();
+    segment_data.activate();
+
     init_test_idt();
 
     // trigger a stack overflow

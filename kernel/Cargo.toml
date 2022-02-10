@@ -22,6 +22,7 @@ physmem = {path = "src/memory/physmem"}
 pic8259 = "=0.10.1"
 pretty = {path = "src/utils/pretty"}
 raw-cpuid = {version = "=10.2.0", default-features = false}
+segmentation = {path = "src/segmentation"}
 serial = {path = "src/drivers/serial"}
 sha2 = {version = "=0.10.1", default-features = false, features = ["force-soft"]}
 smoltcp = {version = "=0.8.0", default-features = false, features = ["alloc", "async", "medium-ethernet", "proto-dhcpv4", "proto-ipv4", "socket", "socket-dhcpv4", "socket-raw", "socket-udp", "socket-tcp"]}

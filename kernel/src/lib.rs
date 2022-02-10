@@ -38,12 +38,13 @@ use crate::memory::KERNEL_STACK_0;
 use crate::multitasking::{cpu_local, thread};
 use bootloader::BootInfo;
 use core::panic::PanicInfo;
+use core::pin::Pin;
+use segmentation::SegmentData;
 use serial::{print, println};
 use x86_64::instructions::port::Port;
 
 pub mod cpu;
 pub mod drivers;
-pub mod gdt;
 pub mod interrupts;
 pub mod memory;
 pub mod multitasking;
@@ -58,7 +59,7 @@ pub mod utils;
 /// `init` currently performs the following steps:
 ///
 /// - Check that the CPU supports the features we need.
-/// - Initialise the [Global Descriptor Table](gdt).
+/// - Initialise the [Global Descriptor Table](segmentation::SegmentData).
 /// - Initialise the [Programmable Interrupt Controller](interrupts).
 /// - Initialise the [Real-time clock and Programmable Interval Timer](time)
 /// - Enables system interrupts.
@@ -68,14 +69,21 @@ pub mod utils;
 ///
 pub fn init(boot_info: &'static BootInfo) {
     cpu::init();
-    gdt::init();
+
+    // Make sure we shadow the initial segment
+    // data so we can't circumvent the pin later.
+    let mut segment_data = SegmentData::new_uninitialised();
+    let mut segment_data = unsafe { Pin::new_unchecked(&mut segment_data) };
+    segment_data.init();
+    segment_data.activate();
+
     interrupts::init();
     time::init();
     x86_64::instructions::interrupts::enable();
 
     // Set up the heap allocator.
     unsafe { memory::init(boot_info) };
-    cpu_local::init(cpu_local::CpuId::new(), &KERNEL_STACK_0);
+    cpu_local::init(cpu_local::CpuId::new(), &KERNEL_STACK_0, segment_data);
     syscalls::init();
     thread::init();
 }

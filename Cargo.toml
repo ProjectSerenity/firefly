@@ -5,6 +5,7 @@ members = [
     "kernel/src/drivers/serial",
     "kernel/src/filesystem",
     "kernel/src/memory/physmem",
+    "kernel/src/segmentation",
     "kernel/src/storage",
     "kernel/src/utils/align",
     "kernel/src/utils/bitmap_index",
