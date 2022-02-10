@@ -5,13 +5,8 @@
 
 //! Analyses the CPU for supported features and branding.
 
-use lazy_static::lazy_static;
 use raw_cpuid::CpuId;
 use serial::println;
-
-lazy_static! {
-    static ref CPU_ID: CpuId = CpuId::new();
-}
 
 /// Checks that the CPU supports all the features we need.
 ///
@@ -21,7 +16,8 @@ lazy_static! {
 /// Firefly requires.
 ///
 pub fn init() {
-    match CPU_ID.get_extended_processor_and_feature_identifiers() {
+    let cpuid = CpuId::new();
+    match cpuid.get_extended_processor_and_feature_identifiers() {
         None => panic!("unable to determine CPU features"),
         Some(features) => {
             if !features.has_syscall_sysret() {
@@ -34,9 +30,10 @@ pub fn init() {
 /// Prints the CPU's branding information.
 ///
 pub fn print_branding() {
-    if let Some(branding) = CPU_ID.get_processor_brand_string() {
+    let cpuid = CpuId::new();
+    if let Some(branding) = cpuid.get_processor_brand_string() {
         println!("Kernel running on {} CPU.", branding.as_str());
-    } else if let Some(version) = CPU_ID.get_vendor_info() {
+    } else if let Some(version) = cpuid.get_vendor_info() {
         println!("Kernel running on {} CPU.", version.as_str());
     } else {
         println!("Kernel running on unknown CPU.");
