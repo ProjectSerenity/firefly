@@ -13,7 +13,7 @@
 use crate::drivers::virtio;
 use crate::drivers::virtio::features::Reserved;
 use crate::drivers::virtio::{Buffer, Transport, UsedBuffers, VirtqueueError, MAX_DESCRIPTORS};
-use crate::memory::{mmio, pmm};
+use crate::memory::mmio;
 use align::align_up_u64;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -22,6 +22,7 @@ use bitmap_index::Bitmap;
 use core::mem::size_of;
 use core::slice;
 use core::sync::atomic::{fence, Ordering};
+use physmem::allocate_n_frames;
 use x86_64::structures::paging::{PageSize, Size4KiB};
 use x86_64::PhysAddr;
 
@@ -288,7 +289,7 @@ impl<'a> Virtqueue<'a> {
         // Allocate the physical memory and map it
         // in the MMIO address space.
         let num_frames = align_up_u64(device_end, Size4KiB::SIZE) / Size4KiB::SIZE;
-        let frame_range = pmm::allocate_n_frames(num_frames as usize)
+        let frame_range = allocate_n_frames(num_frames as usize)
             .expect("failed to allocate physical memory for virtqueue");
         let mmio_region = unsafe { mmio::Region::map(frame_range) };
         let start_phys = frame_range.start.start_address();

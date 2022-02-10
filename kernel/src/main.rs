@@ -102,7 +102,7 @@ fn debug() {
     println!();
 
     // Physical memory.
-    memory::pmm::debug();
+    physmem::debug();
     println!();
 }
 

@@ -34,7 +34,7 @@
 //!
 //! ```
 //! // Allocate a physical memory frame.
-//! let frame = pmm::allocate_frame().unwrap();
+//! let frame = physmem::allocate_frame().unwrap();
 //!
 //! // Write to the frame.
 //! let virt_addr = memory::phys_to_virt_addr(frame.start_address());
@@ -44,11 +44,16 @@
 //!
 //! // Drop the virtual memory and de-allocate the frame.
 //! drop(buf);
-//! unsafe { pmm::deallocate_frame(frame) };
+//! unsafe { physmem::deallocate_frame(frame) };
 //! ```
+
+#![no_std]
+
+extern crate alloc;
 
 use bootloader::bootinfo::MemoryMap;
 use lazy_static::lazy_static;
+use spin::Mutex;
 use x86_64::structures::paging::frame::PhysFrameRange;
 use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame, Size4KiB};
 
@@ -65,7 +70,7 @@ lazy_static! {
     /// been set up. To bootstrap the heap, use [`bootstrap`] to build a [`BootInfoFrameAllocator`],
     /// then pass that to [`init`] so `ALLOCATOR` can take over.
     ///
-    pub static ref ALLOCATOR: spin::Mutex<BitmapFrameAllocator> = spin::Mutex::new(BitmapFrameAllocator::empty());
+    pub static ref ALLOCATOR: Mutex<BitmapFrameAllocator> = Mutex::new(BitmapFrameAllocator::empty());
 }
 
 /// Sets up the second-phase physical memory manager, taking over

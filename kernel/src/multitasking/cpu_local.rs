@@ -23,7 +23,7 @@
 //! [here]: https://github.com/rust-osdev/x86_64/pull/257#issuecomment-849514649
 
 use crate::gdt::DOUBLE_FAULT_IST_INDEX;
-use crate::memory::{kernel_pml4, pmm, VirtAddrRange, CPU_LOCAL};
+use crate::memory::{kernel_pml4, VirtAddrRange, CPU_LOCAL};
 use crate::multitasking::thread::Thread;
 use align::align_up_u64;
 use alloc::sync::Arc;
@@ -31,6 +31,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::mem::size_of;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use physmem;
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::instructions::tables::load_tss;
 use x86_64::registers::model_specific::GsBase;
@@ -122,7 +123,7 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
 
     // Map our per-CPU address space.
     let mut mapper = unsafe { kernel_pml4() };
-    let mut frame_allocator = pmm::ALLOCATOR.lock();
+    let mut frame_allocator = physmem::ALLOCATOR.lock();
     for page in Page::range(start_page, end_page) {
         let frame = frame_allocator
             .allocate_frame()

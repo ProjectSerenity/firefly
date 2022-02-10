@@ -140,6 +140,7 @@ dependencies = [
  "linked_list_allocator",
  "managed",
  "pci",
+ "physmem",
  "pic8259",
  "pretty",
  "raw-cpuid",
@@ -196,6 +197,19 @@ checksum = "0ca88d725a0a943b096803bd34e73a4437208b6077654cc4ecb2947a5f91618d"
 name = "pci"
 version = "0.1.0"
 dependencies = [
+ "x86_64",
+]
+
+[[package]]
+name = "physmem"
+version = "0.1.0"
+dependencies = [
+ "bitmap_index",
+ "bootloader",
+ "lazy_static",
+ "pretty",
+ "serial",
+ "spin 0.9.2",
  "x86_64",
 ]
 

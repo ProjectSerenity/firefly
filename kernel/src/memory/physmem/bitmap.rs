@@ -6,7 +6,7 @@
 //! Provides a bitmap frame allocator, which can be used to allocate
 //! and deallocate physical memory frames.
 
-use crate::memory::pmm::boot_info::BootInfoFrameAllocator;
+use crate::boot_info::BootInfoFrameAllocator;
 use alloc::vec::Vec;
 use bitmap_index::Bitmap;
 use bootloader::bootinfo::{MemoryRegion, MemoryRegionType};
@@ -380,7 +380,7 @@ impl FrameDeallocator<Size4KiB> for BitmapFrameAllocator {
     }
 }
 
-#[test_case]
+#[test]
 fn bitmap_frame_allocator() {
     use bootloader::bootinfo::FrameRange;
     let regions = [

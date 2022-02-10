@@ -32,8 +32,8 @@
 //! thread.
 
 use crate::memory::{
-    free_kernel_stack, kernel_pml4, new_kernel_stack, pmm, StackBounds, VirtAddrRange,
-    KERNEL_STACK, USERSPACE,
+    free_kernel_stack, kernel_pml4, new_kernel_stack, StackBounds, VirtAddrRange, KERNEL_STACK,
+    USERSPACE,
 };
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler::Scheduler;
@@ -45,6 +45,7 @@ use alloc::task::Wake;
 use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::Waker;
+use physmem;
 use pretty::Bytes;
 use serial::println;
 use x86_64::instructions::interrupts::without_interrupts;
@@ -497,7 +498,7 @@ impl Thread {
 
         // Map the stack.
         let mut mapper = unsafe { kernel_pml4() };
-        let mut frame_allocator = pmm::ALLOCATOR.lock();
+        let mut frame_allocator = physmem::ALLOCATOR.lock();
         let pages = Page::range_inclusive(stack_bottom_page, stack_top_page);
         for page in pages {
             let frame = frame_allocator

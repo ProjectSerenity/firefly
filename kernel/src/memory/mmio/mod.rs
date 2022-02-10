@@ -55,6 +55,7 @@
 use crate::memory;
 use crate::memory::MMIO_SPACE;
 use core::sync::atomic;
+use physmem;
 use x86_64::structures::paging::frame::PhysFrameRange;
 use x86_64::structures::paging::page::Page;
 use x86_64::structures::paging::page_table::PageTableFlags;
@@ -156,7 +157,7 @@ impl Region {
         let size = last_addr - first_addr;
 
         let mut mapper = memory::kernel_pml4();
-        let mut frame_allocator = memory::pmm::ALLOCATOR.lock();
+        let mut frame_allocator = physmem::ALLOCATOR.lock();
         let start_address = reserve_space(size);
         let mut next_address = start_address;
         for frame in range {

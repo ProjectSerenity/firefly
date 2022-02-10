@@ -52,10 +52,11 @@
 //! end up needing to allocate another frame.
 
 use crate::drivers::virtio::Buffer;
-use crate::memory::{phys_to_virt_addr, pmm};
+use crate::memory::phys_to_virt_addr;
 use alloc::vec;
 use alloc::vec::Vec;
 use bitmap_index::Bitmap;
+use physmem::allocate_frame;
 use x86_64::structures::paging::{PageSize, PhysFrame, Size4KiB};
 use x86_64::PhysAddr;
 
@@ -88,8 +89,7 @@ impl Allocator {
     /// Allocate one physical frame for header buffers.
     ///
     pub fn new() -> Self {
-        let frame =
-            pmm::allocate_frame().expect("failed to allocate block device request header cache");
+        let frame = allocate_frame().expect("failed to allocate block device request header cache");
         let bitmap = Bitmap::new_set(BUFFERS_PER_FRAME);
         let frames = vec![frame];
 
@@ -147,8 +147,8 @@ impl Allocator {
             Some(idx) => self.get(idx, req_type, sector),
             None => {
                 // Allocate another frame, then try again.
-                let frame = pmm::allocate_frame()
-                    .expect("failed to allocate block device request header cache");
+                let frame =
+                    allocate_frame().expect("failed to allocate block device request header cache");
                 self.frames.push(frame);
                 self.bitmap.add_set(BUFFERS_PER_FRAME);
                 let idx = self

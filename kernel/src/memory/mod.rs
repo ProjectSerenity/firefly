@@ -7,7 +7,7 @@
 //!
 //! ## Physical memory management
 //!
-//! The [`pmm`] module provides the ability to allocate physical
+//! The [`physmem`] crate provides the ability to allocate physical
 //! memory frames. This is then used as the foundation for the
 //! virtual memory manager.
 //!
@@ -89,6 +89,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use bootloader::BootInfo;
 use core::sync::atomic::{AtomicU64, Ordering};
+use physmem;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::mapper::{MapToError, MappedFrame, TranslateResult};
 use x86_64::structures::paging::page::PageRangeInclusive;
@@ -100,7 +101,6 @@ use x86_64::{PhysAddr, VirtAddr};
 
 mod constants;
 pub mod mmio;
-pub mod pmm;
 pub mod vmm;
 
 pub use crate::memory::constants::{
@@ -141,12 +141,12 @@ pub unsafe fn init(boot_info: &'static BootInfo) {
     *KERNEL_PML4_ADDRESS.lock() = phys_to_virt_addr(phys);
 
     let mut page_table = kernel_pml4();
-    let mut frame_allocator = pmm::bootstrap(&boot_info.memory_map);
+    let mut frame_allocator = physmem::bootstrap(&boot_info.memory_map);
 
     vmm::init(&mut page_table, &mut frame_allocator).expect("heap initialization failed");
 
     // Switch over to a more sophisticated physical memory manager.
-    pmm::init(frame_allocator);
+    physmem::init(frame_allocator);
 }
 
 /// Returns a mutable reference to the kernel's level 4 page
@@ -349,7 +349,7 @@ pub fn new_kernel_stack(num_pages: u64) -> Result<StackBounds, MapToError<Size4K
     let stack_end = stack_start + num_pages;
 
     let mut mapper = unsafe { kernel_pml4() };
-    let mut frame_allocator = pmm::ALLOCATOR.lock();
+    let mut frame_allocator = physmem::ALLOCATOR.lock();
     for page in Page::range(stack_start, stack_end) {
         let frame = frame_allocator
             .allocate_frame()

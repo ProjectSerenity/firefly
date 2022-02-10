@@ -55,7 +55,7 @@ use crate::drivers::virtio::features::{Network, Reserved};
 use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
 use crate::drivers::{pci, virtio};
 use crate::interrupts::{register_irq, Irq};
-use crate::memory::{phys_to_virt_addr, pmm};
+use crate::memory::phys_to_virt_addr;
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::{scheduler, Thread, ThreadId};
 use crate::network::{add_interface, InterfaceHandle};
@@ -65,6 +65,7 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
 use core::{mem, slice};
+use physmem::{allocate_frame, deallocate_frame};
 use serial::println;
 use smoltcp::phy::{DeviceCapabilities, Medium, RxToken, TxToken};
 use smoltcp::time::Instant;
@@ -245,14 +246,14 @@ impl Drop for Driver {
         // De-allocate the send buffers.
         for addr in self.send_buffers.iter() {
             if let Ok(frame) = PhysFrame::from_start_address(*addr) {
-                unsafe { pmm::deallocate_frame(frame) };
+                unsafe { deallocate_frame(frame) };
             }
         }
 
         // De-allocate the receive buffers.
         for addr in self.recv_buffers.iter() {
             if let Ok(frame) = PhysFrame::from_start_address(*addr) {
-                unsafe { pmm::deallocate_frame(frame) };
+                unsafe { deallocate_frame(frame) };
             }
         }
     }
@@ -590,14 +591,14 @@ pub fn install_pci_device(device: pci::Device) {
     assert!(PACKET_LEN_MAX * 2 == Size4KiB::SIZE as usize);
     let mut send_buffers = Vec::new();
     while send_buffers.len() < send_queue_len {
-        let frame = pmm::allocate_frame().expect("failed to allocate for device send buffer");
+        let frame = allocate_frame().expect("failed to allocate for device send buffer");
         send_buffers.push(frame.start_address());
         send_buffers.push(frame.start_address() + PACKET_LEN_MAX);
     }
 
     let mut recv_buffers = Vec::new();
     while recv_buffers.len() < recv_queue_len {
-        let frame = pmm::allocate_frame().expect("failed to allocate for device recv buffer");
+        let frame = allocate_frame().expect("failed to allocate for device recv buffer");
         recv_buffers.push(frame.start_address());
         recv_buffers.push(frame.start_address() + PACKET_LEN_MAX);
     }
