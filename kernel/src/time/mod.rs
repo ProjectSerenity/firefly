@@ -7,20 +7,12 @@
 //!
 //! This module focuses on time-related functionality. In particular, it
 //! currently implements getting the current wall clock time from the RTC,
-//! along with getting ticks from the PIT. It also interacts with the
-//! [scheduler](crate::multitasking::thread::scheduler) to perform thread
-//! preemption and provide timers to allow threads to sleep.
+//! along with getting ticks from the PIT.
 //!
 //! The clock is used to [record](boot_time) the wall clock time when the kernel booted.
 //!
 //! The [`Duration`] and [`Instant`] types can be used to measure and compare
 //! points in time.
-//!
-//! The [`sleep`] function can be used to pause the current thread for the
-//! given duration, allowing other threads to execute instead.
-
-use crate::multitasking::cpu_local;
-use crate::multitasking::thread::{scheduler, ThreadState};
 
 mod rtc;
 mod slice;
@@ -64,23 +56,6 @@ pub fn after(wait: Duration) -> Instant {
     let now = ticks();
     let delta = wait.as_nanos() / (ticker::NANOSECONDS_PER_TICK as u128);
     Instant::new(now + delta as u64)
-}
-
-/// Sleep the current thread for the given `duration`.
-///
-pub fn sleep(duration: Duration) {
-    let stop = after(duration);
-    let current = cpu_local::current_thread();
-
-    // Create a timer to wake us up.
-    timers::add(current.global_thread_id(), stop);
-
-    // Put ourselves to sleep.
-    current.set_state(ThreadState::Sleeping);
-    drop(current);
-
-    // Switch to the next thread.
-    scheduler::switch();
 }
 
 /// Represents a single point in the kernel's monotonically

@@ -18,6 +18,7 @@
 
 use crate::multitasking::thread::{ThreadId, ThreadState, SCHEDULER, THREADS};
 use crate::multitasking::{cpu_local, thread};
+use crate::time::{after, timers, Duration};
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicBool, Ordering};
@@ -127,6 +128,23 @@ pub fn preempt() {
     // so the scheduler has full control.
     drop(current_thread);
 
+    switch();
+}
+
+/// Sleep the current thread for the given `duration`.
+///
+pub fn sleep(duration: Duration) {
+    let stop = after(duration);
+    let current = cpu_local::current_thread();
+
+    // Create a timer to wake us up.
+    timers::add(current.global_thread_id(), stop);
+
+    // Put ourselves to sleep.
+    current.set_state(ThreadState::Sleeping);
+    drop(current);
+
+    // Switch to the next thread.
     switch();
 }
 

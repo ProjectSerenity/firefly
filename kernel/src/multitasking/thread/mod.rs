@@ -24,7 +24,7 @@
 //! Alternatively, a thread can be started immediately by using [`Thread::start_kernel_thread`].
 //!
 //! A running thread may terminate its execution by calling [`exit`], or pause
-//! its execution by calling [`time::sleep`](crate::time::sleep). A sleeping
+//! its execution by calling [`scheduler::sleep`]. A sleeping
 //! thread can be resumed early by calling [`scheduler::resume`] (or [`ThreadId.resume`](ThreadId::resume),
 //! but this will not cancel the timer that would have awoken it.
 //!
@@ -111,7 +111,7 @@ pub fn suspend() {
         panic!("idle thread tried to suspend");
     }
 
-    // This is just like time::sleep, but we
+    // This is just like scheduler::sleep, but we
     // don't create a waking timer.
 
     // Put ourselves to sleep.

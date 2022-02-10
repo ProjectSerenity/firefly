@@ -49,8 +49,7 @@
 mod csprng;
 mod rdrand;
 
-use crate::multitasking::thread::Thread;
-use crate::time;
+use crate::multitasking::thread::{scheduler, Thread};
 use crate::time::Duration;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
@@ -139,7 +138,7 @@ const HELPER_INTERVAL: Duration = Duration::from_secs(30);
 fn helper_entry_point() -> ! {
     let mut buf = [0u8; 32];
     loop {
-        time::sleep(HELPER_INTERVAL);
+        scheduler::sleep(HELPER_INTERVAL);
 
         let mut csprng = CSPRNG.lock();
         let mut sources = ENTROPY_SOURCES.lock();
