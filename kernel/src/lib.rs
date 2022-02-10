@@ -32,6 +32,8 @@
 
 extern crate alloc;
 
+use crate::interrupts::{register_irq, Irq};
+use crate::multitasking::thread::scheduler;
 use crate::multitasking::{cpu_local, thread};
 use bootloader::BootInfo;
 use core::panic::PanicInfo;
@@ -40,6 +42,7 @@ use memlayout::KERNEL_STACK_0;
 use segmentation::SegmentData;
 use serial::{print, println};
 use x86_64::instructions::port::Port;
+use x86_64::structures::idt::InterruptStackFrame;
 
 pub mod drivers;
 pub mod interrupts;
@@ -76,6 +79,7 @@ pub fn init(boot_info: &'static BootInfo) {
 
     interrupts::init();
     time::init();
+    register_irq(Irq::PID, timer_interrupt_handler);
     x86_64::instructions::interrupts::enable();
 
     // Set up the heap allocator.
@@ -83,6 +87,24 @@ pub fn init(boot_info: &'static BootInfo) {
     cpu_local::init(cpu_local::CpuId::new(), &KERNEL_STACK_0, segment_data);
     syscalls::init();
     thread::init();
+}
+
+/// The PIT's interrupt handler.
+///
+fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
+    time::tick();
+
+    irq.acknowledge();
+
+    if !cpu_local::ready() || !scheduler::ready() {
+        return;
+    }
+
+    // Check whether any timers have expired.
+    scheduler::timers::process();
+
+    // Switch thread if necessary.
+    scheduler::preempt();
 }
 
 // The kernel's allocator error handling.

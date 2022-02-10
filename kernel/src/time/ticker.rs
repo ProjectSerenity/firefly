@@ -9,12 +9,8 @@
 //! which is accessed using [`tick`] and [`ticks`] to track the
 //! passage of time.
 
-use crate::interrupts::{register_irq, Irq};
-use crate::multitasking::cpu_local;
-use crate::multitasking::thread::scheduler;
 use core::sync::atomic::{AtomicU64, Ordering};
 use x86_64::instructions::port::Port;
-use x86_64::structures::idt::InterruptStackFrame;
 
 // The system ticker, which is a monotonic counter.
 //
@@ -22,7 +18,7 @@ static TICKER: AtomicU64 = AtomicU64::new(0);
 
 /// Increments the system ticker.
 ///
-fn tick() {
+pub fn tick() {
     TICKER.fetch_add(1, Ordering::Relaxed);
 }
 
@@ -38,25 +34,6 @@ pub fn ticks() -> u64 {
 ///
 pub(super) fn init() {
     set_ticker_frequency(TICKS_PER_SECOND);
-    register_irq(Irq::new(0).expect("invalid IRQ"), timer_interrupt_handler);
-}
-
-/// The PIT's interrupt handler.
-///
-fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
-    tick();
-
-    irq.acknowledge();
-
-    if !cpu_local::ready() || !scheduler::ready() {
-        return;
-    }
-
-    // Check whether any timers have expired.
-    scheduler::timers::process();
-
-    // Switch thread if necessary.
-    scheduler::preempt();
 }
 
 /// The number of times the system ticker will be

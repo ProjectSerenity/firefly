@@ -21,7 +21,7 @@ mod ticker;
 pub use core::time::Duration;
 pub use rtc::boot_time;
 pub use slice::TimeSlice;
-pub use ticker::{ticks, NANOSECONDS_PER_TICK, TICKS_PER_SECOND};
+pub use ticker::{tick, ticks, NANOSECONDS_PER_TICK, TICKS_PER_SECOND};
 
 /// Initialise the time functionality.
 ///

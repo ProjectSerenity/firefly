@@ -29,6 +29,10 @@ use x86_64::structures::idt::{HandlerFunc, InterruptStackFrame};
 pub struct Irq(u8);
 
 impl Irq {
+    /// The [Programmable Interval Timer](https://en.wikipedia.org/wiki/Programmable_interval_timer).
+    ///
+    pub const PID: Self = Irq(0);
+
     /// Returns an IRQ if within the range [0, 15], or None otherwise.
     ///
     pub const fn new(irq: u8) -> Option<Irq> {
