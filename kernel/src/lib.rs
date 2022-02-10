@@ -26,7 +26,6 @@
 #![feature(binary_heap_retain)]
 #![feature(const_btree_new)]
 #![feature(custom_test_frameworks)]
-#![feature(decl_macro)]
 #![feature(global_asm)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]

@@ -13,7 +13,7 @@
 use crate::drivers::virtio;
 use crate::drivers::virtio::features::Reserved;
 use crate::drivers::virtio::{Buffer, Transport, UsedBuffers, VirtqueueError, MAX_DESCRIPTORS};
-use crate::memory::{kernel_pml4, mmio};
+use crate::memory::kernel_pml4;
 use align::align_up_u64;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -22,6 +22,7 @@ use bitmap_index::Bitmap;
 use core::mem::size_of;
 use core::slice;
 use core::sync::atomic::{fence, Ordering};
+use mmio;
 use physmem::allocate_n_frames;
 use x86_64::structures::paging::{PageSize, Size4KiB};
 use x86_64::PhysAddr;

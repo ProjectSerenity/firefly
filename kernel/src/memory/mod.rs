@@ -19,7 +19,7 @@
 //!
 //! ## Memory-mapped I/O
 //!
-//! The [`mmio`] module provides a way to map physical memory into
+//! The [`mmio`] crate provides a way to map physical memory into
 //! the virtual address space with safe data accessors and write
 //! back page flags.
 //!
@@ -83,8 +83,6 @@ use x86_64::structures::paging::{
     Translate,
 };
 use x86_64::{PhysAddr, VirtAddr};
-
-pub mod mmio;
 
 // PML4 functionality.
 

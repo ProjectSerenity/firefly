@@ -138,6 +138,7 @@ dependencies = [
  "lazy_static",
  "managed",
  "memlayout",
+ "mmio",
  "pci",
  "physmem",
  "pic8259",
@@ -200,6 +201,16 @@ checksum = "0ca88d725a0a943b096803bd34e73a4437208b6077654cc4ecb2947a5f91618d"
 name = "memlayout"
 version = "0.1.0"
 dependencies = [
+ "x86_64",
+]
+
+[[package]]
+name = "mmio"
+version = "0.1.0"
+dependencies = [
+ "memlayout",
+ "physmem",
+ "spin 0.9.2",
  "x86_64",
 ]
 

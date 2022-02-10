@@ -20,8 +20,8 @@
 use crate::drivers::virtio;
 use crate::drivers::virtio::{DeviceStatus, InterruptStatus};
 use crate::interrupts::Irq;
-use crate::memory::mmio::{read_volatile, write_volatile};
-use crate::memory::{kernel_pml4, mmio};
+use crate::memory::kernel_pml4;
+use mmio::{read_volatile, write_volatile};
 use pci;
 use x86_64::structures::paging::frame::{PhysFrame, PhysFrameRange};
 use x86_64::PhysAddr;

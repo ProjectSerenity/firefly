@@ -52,9 +52,13 @@
 //! }
 //! ```
 
+#![no_std]
+#![feature(decl_macro)]
+
 use core::sync::atomic;
 use memlayout::MMIO_SPACE;
-use physmem;
+use physmem::ALLOCATOR;
+use spin::Mutex;
 use x86_64::structures::paging::frame::PhysFrameRange;
 use x86_64::structures::paging::page::Page;
 use x86_64::structures::paging::page_table::PageTableFlags;
@@ -64,7 +68,7 @@ use x86_64::VirtAddr;
 /// MMIO_START_ADDRESS is the address where the next MMIO mapping
 /// will be placed.
 ///
-static MMIO_START_ADDRESS: spin::Mutex<VirtAddr> = spin::Mutex::new(MMIO_SPACE.start());
+static MMIO_START_ADDRESS: Mutex<VirtAddr> = Mutex::new(MMIO_SPACE.start());
 
 /// Ensures the compiler will not rearrange any reads or
 /// writes from one side of the barrier to the other.
@@ -155,7 +159,7 @@ impl Region {
         let last_addr = range.end.start_address();
         let size = last_addr - first_addr;
 
-        let mut frame_allocator = physmem::ALLOCATOR.lock();
+        let mut frame_allocator = ALLOCATOR.lock();
         let start_address = reserve_space(size);
         let mut next_address = start_address;
         for frame in range {
