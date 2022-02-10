@@ -16,6 +16,10 @@
 //! Firefly. In particular, file ownership details and symbolic
 //! links are ignored (or return an error, as appropriate).
 
+#![no_std]
+
+extern crate alloc;
+
 use align::align_up_usize;
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -519,7 +523,7 @@ mod test {
         }
     }
 
-    #[test_case]
+    #[test]
     fn test_reader() {
         let cases = [
             TestCase {

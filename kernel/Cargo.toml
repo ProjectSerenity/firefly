@@ -14,7 +14,6 @@ bitmap_index = {path = "src/utils/bitmap_index"}
 bootloader = {version = "=0.9.21", features = ["map_physical_memory"]}
 chacha20 = "=0.8.1"
 filesystem = {path = "src/filesystem"}
-hex-literal = "=0.3.4"
 lazy_static = {version = "=1.4.0", features = ["spin_no_std"]}
 linked_list_allocator = "=0.9.0"
 managed = {version = "=0.8", default-features = false, features = ["map"]}
@@ -29,6 +28,7 @@ smoltcp = {version = "=0.8.0", default-features = false, features = ["alloc", "a
 spin = "=0.9.2"
 storage = {path = "src/storage"}
 syscalls = {path = "../shared/syscalls"}
+tar = {path = "src/utils/tar"}
 uart_16550 = "=0.2.15"
 volatile = "=0.4.4"
 x86_64 = "=0.14.7"

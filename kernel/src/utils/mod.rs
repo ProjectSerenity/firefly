@@ -14,12 +14,6 @@
 //!
 //! The [`Once`](once::Once) type can be used to create an uninitialised value,
 //! which is later initialised exactly once.
-//!
-//! ## Reading TAR archives
-//!
-//! The [`tar`] module provides functionality to read [TAR](https://en.wikipedia.org/wiki/Tar_(computing))
-//! archives from a block device.
 
 pub mod lazy;
 pub mod once;
-pub mod tar;

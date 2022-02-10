@@ -66,8 +66,6 @@ rust_library(
         "src/utils/lazy.rs",
         "src/utils/mod.rs",
         "src/utils/once.rs",
-        "src/utils/tar/mod.rs",
-        "src/utils/tar/parse_utils.rs",
     ],
     compile_data = [
         "src/multitasking/thread/switch.s",
@@ -75,9 +73,6 @@ rust_library(
     ],
     crate_name = "kernel",
     edition = "2018",
-    proc_macro_deps = [
-        crate("hex-literal"),
-    ],
     rustc_flags = [
         "-Cpanic=abort",
     ],

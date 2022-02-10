@@ -178,7 +178,7 @@ pub fn parse_checksum(buf: &[u8]) -> (isize, isize) {
     (signed, unsigned)
 }
 
-#[test_case]
+#[test]
 fn test_trim_spaces_and_nulls() {
     assert_eq!(trim_spaces_and_nulls(&[]), &[]);
     assert_eq!(trim_spaces_and_nulls(&[1u8]), &[1u8]);
@@ -197,7 +197,7 @@ fn test_trim_spaces_and_nulls() {
     );
 }
 
-#[test_case]
+#[test]
 fn test_parse_octal() {
     assert_eq!(parse_number(b""), Some(0));
     assert_eq!(parse_number(b"777"), Some(0o777));
@@ -218,7 +218,7 @@ fn test_parse_octal() {
     assert_eq!(parse_number(b"0123\x7e\x5f\x264123"), None);
 }
 
-#[test_case]
+#[test]
 fn test_parse_base256() {
     // Test cases copied from Go's "archive/tar".
     assert_eq!(parse_number(b""), Some(0));

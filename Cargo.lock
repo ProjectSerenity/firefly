@@ -135,7 +135,6 @@ dependencies = [
  "bootloader",
  "chacha20",
  "filesystem",
- "hex-literal",
  "lazy_static",
  "linked_list_allocator",
  "managed",
@@ -150,6 +149,7 @@ dependencies = [
  "spin 0.9.2",
  "storage",
  "syscalls",
+ "tar",
  "uart_16550",
  "volatile",
  "x86_64",
@@ -309,6 +309,18 @@ dependencies = [
 [[package]]
 name = "syscalls"
 version = "0.1.0"
+
+[[package]]
+name = "tar"
+version = "0.1.0"
+dependencies = [
+ "align",
+ "filesystem",
+ "hex-literal",
+ "serial",
+ "sha2",
+ "storage",
+]
 
 [[package]]
 name = "typenum"
