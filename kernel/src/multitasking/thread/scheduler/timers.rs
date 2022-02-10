@@ -136,13 +136,3 @@ impl Ord for Timer {
         }
     }
 }
-
-#[test_case]
-fn timers_ordering() {
-    let foo = Timer::new(thread::ThreadId::IDLE, Instant::new(2));
-    let bar = Timer::new(thread::ThreadId::IDLE, Instant::new(3));
-    let baz = Timer::new(thread::ThreadId::IDLE, Instant::new(3));
-    assert_eq!(foo < bar, false);
-    assert_eq!(bar == baz, true);
-    assert_eq!(bar < foo, true);
-}
