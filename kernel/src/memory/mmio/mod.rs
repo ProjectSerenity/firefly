@@ -52,14 +52,13 @@
 //! }
 //! ```
 
-use crate::memory;
 use crate::memory::MMIO_SPACE;
 use core::sync::atomic;
 use physmem;
 use x86_64::structures::paging::frame::PhysFrameRange;
 use x86_64::structures::paging::page::Page;
 use x86_64::structures::paging::page_table::PageTableFlags;
-use x86_64::structures::paging::Mapper;
+use x86_64::structures::paging::{Mapper, OffsetPageTable};
 use x86_64::VirtAddr;
 
 /// MMIO_START_ADDRESS is the address where the next MMIO mapping
@@ -151,12 +150,11 @@ impl Region {
     /// given physical memory region is not being used already for other
     /// purposes.
     ///
-    pub unsafe fn map(range: PhysFrameRange) -> Self {
+    pub unsafe fn map(mapper: &mut OffsetPageTable, range: PhysFrameRange) -> Self {
         let first_addr = range.start.start_address();
         let last_addr = range.end.start_address();
         let size = last_addr - first_addr;
 
-        let mut mapper = memory::kernel_pml4();
         let mut frame_allocator = physmem::ALLOCATOR.lock();
         let start_address = reserve_space(size);
         let mut next_address = start_address;

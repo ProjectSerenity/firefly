@@ -13,7 +13,7 @@
 use crate::drivers::virtio;
 use crate::drivers::virtio::features::Reserved;
 use crate::drivers::virtio::{Buffer, Transport, UsedBuffers, VirtqueueError, MAX_DESCRIPTORS};
-use crate::memory::mmio;
+use crate::memory::{kernel_pml4, mmio};
 use align::align_up_u64;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -291,7 +291,7 @@ impl<'a> Virtqueue<'a> {
         let num_frames = align_up_u64(device_end, Size4KiB::SIZE) / Size4KiB::SIZE;
         let frame_range = allocate_n_frames(num_frames as usize)
             .expect("failed to allocate physical memory for virtqueue");
-        let mmio_region = unsafe { mmio::Region::map(frame_range) };
+        let mmio_region = unsafe { mmio::Region::map(&mut kernel_pml4(), frame_range) };
         let start_phys = frame_range.start.start_address();
         let start_virt = mmio_region.as_mut::<u8>(0).unwrap() as *mut u8;
         let descriptors_phys = start_phys + descriptors_offset;

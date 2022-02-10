@@ -20,8 +20,8 @@
 use crate::drivers::virtio;
 use crate::drivers::virtio::{DeviceStatus, InterruptStatus};
 use crate::interrupts::Irq;
-use crate::memory::mmio;
 use crate::memory::mmio::{read_volatile, write_volatile};
+use crate::memory::{kernel_pml4, mmio};
 use pci;
 use x86_64::structures::paging::frame::{PhysFrame, PhysFrameRange};
 use x86_64::PhysAddr;
@@ -312,14 +312,15 @@ impl Transport {
                 Some(device_spec),
             ) => {
                 device.enable_bus_master();
+                let mut mapper = unsafe { kernel_pml4() };
                 unsafe {
                     Ok(Transport {
                         pci: device,
-                        common: mmio::Region::map(common),
-                        notify: mmio::Region::map(notify),
+                        common: mmio::Region::map(&mut mapper, common),
+                        notify: mmio::Region::map(&mut mapper, notify),
                         notify_offset_multiplier: notify_off_multiplier,
-                        interrupt: mmio::Region::map(interrupt),
-                        device: mmio::Region::map(device_spec),
+                        interrupt: mmio::Region::map(&mut mapper, interrupt),
+                        device: mmio::Region::map(&mut mapper, device_spec),
                     })
                 }
             }
