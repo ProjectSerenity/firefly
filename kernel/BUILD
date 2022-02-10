@@ -40,7 +40,7 @@ rust_library(
         "src/multitasking/cpu_local.rs",
         "src/multitasking/mod.rs",
         "src/multitasking/thread/mod.rs",
-        "src/multitasking/thread/scheduler.rs",
+        "src/multitasking/thread/scheduler/mod.rs",
         "src/multitasking/thread/switch.rs",
         "src/network/mod.rs",
         "src/network/tcp.rs",
