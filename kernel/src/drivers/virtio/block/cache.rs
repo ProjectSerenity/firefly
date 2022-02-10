@@ -52,10 +52,10 @@
 //! end up needing to allocate another frame.
 
 use crate::drivers::virtio::Buffer;
-use crate::memory::phys_to_virt_addr;
 use alloc::vec;
 use alloc::vec::Vec;
 use bitmap_index::Bitmap;
+use memlayout::phys_to_virt_addr;
 use physmem::allocate_frame;
 use x86_64::structures::paging::{PageSize, PhysFrame, Size4KiB};
 use x86_64::PhysAddr;

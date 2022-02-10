@@ -6,13 +6,13 @@
 //! mapping includes helper functionality for mapping out virtual memory, based
 //! on the contents of a level 4 page table.
 
-use crate::memory::{
-    phys_to_virt_addr, VirtAddrRange, BOOT_INFO, CPU_LOCAL, KERNEL_BINARY, KERNEL_HEAP,
-    KERNEL_STACK, KERNEL_STACK_GUARD, MMIO_SPACE, NULL_PAGE, PHYSICAL_MEMORY, USERSPACE,
-};
 use alloc::vec::Vec;
 use core::fmt;
 use core::sync::atomic::{AtomicU64, Ordering};
+use memlayout::{
+    phys_to_virt_addr, VirtAddrRange, BOOT_INFO, CPU_LOCAL, KERNEL_BINARY, KERNEL_HEAP,
+    KERNEL_STACK, KERNEL_STACK_GUARD, MMIO_SPACE, NULL_PAGE, PHYSICAL_MEMORY, USERSPACE,
+};
 use pretty::Bytes;
 use x86_64::instructions;
 use x86_64::structures::paging::mapper::{FlagUpdateError, Mapper, OffsetPageTable, UnmapError};

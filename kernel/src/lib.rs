@@ -34,11 +34,11 @@
 
 extern crate alloc;
 
-use crate::memory::KERNEL_STACK_0;
 use crate::multitasking::{cpu_local, thread};
 use bootloader::BootInfo;
 use core::panic::PanicInfo;
 use core::pin::Pin;
+use memlayout::KERNEL_STACK_0;
 use segmentation::SegmentData;
 use serial::{print, println};
 use x86_64::instructions::port::Port;

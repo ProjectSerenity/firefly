@@ -31,10 +31,7 @@
 //! Calling [`debug`] (or [`Thread::debug`]) will print debug info about the
 //! thread.
 
-use crate::memory::{
-    free_kernel_stack, kernel_pml4, new_kernel_stack, StackBounds, VirtAddrRange, KERNEL_STACK,
-    USERSPACE,
-};
+use crate::memory::{free_kernel_stack, kernel_pml4, new_kernel_stack, StackBounds};
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler::Scheduler;
 use crate::time::{timers, Duration, TimeSlice};
@@ -45,6 +42,7 @@ use alloc::task::Wake;
 use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::Waker;
+use memlayout::{VirtAddrRange, KERNEL_STACK, USERSPACE};
 use physmem;
 use pretty::Bytes;
 use serial::println;

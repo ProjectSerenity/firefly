@@ -3,10 +3,29 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-//! Contains useful constants and helpers for the virtual memory layout.
+//! Contains constants describing the virtual memory layout.
+//!
+//! This module contains various constants for describe a [region of virtual memory](VirtAddrRange)
+//! that is used for a prescribed purpose:
+//!
+//! - [`NULL_PAGE`]: The first virtual page, which is reserved to ensure null pointer dereferences cause a page fault.
+//! - [`USERSPACE`]: The first half of virtual memory, which is used by userspace processes.
+//! - [`KERNEL_BINARY`]: The kernel binary is mapped within this range.
+//! - [`BOOT_INFO`]: The boot info provided by the bootloader is stored here.
+//! - [`KERNEL_HEAP`]: The region used for the kernel's heap.
+//! - [`KERNEL_STACK_GUARD`]: The page beneath the kernel's initial stack, reserved to ensure stack overflows cause a page fault.
+//! - [`KERNEL_STACK`]: The region used for the all kernel stacks.
+//! - [`KERNEL_STACK_0`]: The region used for the kernel's initial stack.
+//! - [`MMIO_SPACE`]: The region used for mapping direct memory access for memory-mapped I/O.
+//! - [`CPU_LOCAL`]: The region used for storing CPU-local data.
+//! - [`PHYSICAL_MEMORY`]: The region into which all physical memory is mapped.
+//!
+//! There are also the following address constants:
+//!
+//! - [`KERNEL_STACK_1_START`]: The bottom of the second kernel stack.
+//! - [`PHYSICAL_MEMORY_OFFSET`]: The offset at which all physical memory is mapped.
 
-// Ignore dead code warnings for unused constants.
-#![allow(dead_code)]
+#![no_std]
 
 use x86_64::{PhysAddr, VirtAddr};
 

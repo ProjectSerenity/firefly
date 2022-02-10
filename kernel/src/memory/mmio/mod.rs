@@ -7,7 +7,7 @@
 //! I/O devices.
 //!
 //! This module provides basic but safe support for MMIO. Physical memory
-//! regions can be mapped into the [`MMIO_SPACE`](super::MMIO_SPACE) virtual
+//! regions can be mapped into the [`MMIO_SPACE`](memlayout::MMIO_SPACE) virtual
 //! memory region. This mapping disables the use of caching to ensure correct
 //! interaction with the underlying device memory.
 //!
@@ -52,8 +52,8 @@
 //! }
 //! ```
 
-use crate::memory::MMIO_SPACE;
 use core::sync::atomic;
+use memlayout::MMIO_SPACE;
 use physmem;
 use x86_64::structures::paging::frame::PhysFrameRange;
 use x86_64::structures::paging::page::Page;

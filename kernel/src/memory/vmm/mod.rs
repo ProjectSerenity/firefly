@@ -17,7 +17,7 @@
 //! ## Heap initialisation
 //!
 //! The [`init`] function starts by mapping the entirety of the kernel heap
-//! address space ([`KERNEL_HEAP`](super::KERNEL_HEAP)) using the physical
+//! address space ([`KERNEL_HEAP`](memlayout::KERNEL_HEAP)) using the physical
 //! frame allocator provided. This virtual memory is then used to initialise
 //! the heap allocator.
 //!
@@ -36,7 +36,7 @@
 //! no-execute permission bit set.
 
 use crate::memory::vmm::mapping::PagePurpose;
-use crate::memory::KERNEL_HEAP;
+use memlayout::KERNEL_HEAP;
 use serial::println;
 use spin::{Mutex, MutexGuard};
 use x86_64::registers::control::{Cr4, Cr4Flags};
@@ -63,7 +63,7 @@ static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAl
 /// Initialise the static global allocator, enabling the kernel heap.
 ///
 /// The given page mapper and physical memory frame allocator are used to
-/// map the entirety of the kernel heap address space ([`KERNEL_HEAP`](super::KERNEL_HEAP)).
+/// map the entirety of the kernel heap address space ([`KERNEL_HEAP`](memlayout::KERNEL_HEAP)).
 ///
 /// With the heap initialised, `init` enables global page mappings and the
 /// no-execute permission bit and then remaps virtual memory. This ensures

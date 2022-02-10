@@ -46,27 +46,8 @@
 //!
 //! ## Virtual memory helpers
 //!
-//! This module contains various constants and helper functions for
-//! physical and virtual memory management. The following constants
-//! describe a [region of virtual memory](VirtAddrRange) that is used
-//! for a prescribed purpose:
-//!
-//! - [`NULL_PAGE`]: The first virtual page, which is reserved to ensure null pointer dereferences cause a page fault.
-//! - [`USERSPACE`]: The first half of virtual memory, which is used by userspace processes.
-//! - [`KERNEL_BINARY`]: The kernel binary is mapped within this range.
-//! - [`BOOT_INFO`]: The boot info provided by the bootloader is stored here.
-//! - [`KERNEL_HEAP`]: The region used for the kernel's heap.
-//! - [`KERNEL_STACK_GUARD`]: The page beneath the kernel's initial stack, reserved to ensure stack overflows cause a page fault.
-//! - [`KERNEL_STACK`]: The region used for the all kernel stacks.
-//! - [`KERNEL_STACK_0`]: The region used for the kernel's initial stack.
-//! - [`MMIO_SPACE`]: The region used for mapping direct memory access for memory-mapped I/O.
-//! - [`CPU_LOCAL`]: The region used for storing CPU-local data.
-//! - [`PHYSICAL_MEMORY`]: The region into which all physical memory is mapped.
-//!
-//! There are also the following address constants:
-//!
-//! - [`KERNEL_STACK_1_START`]: The bottom of the second kernel stack.
-//! - [`PHYSICAL_MEMORY_OFFSET`]: The offset at which all physical memory is mapped.
+//! This module contains various helper functions for physical and virtual
+//! memory management.
 //!
 //! The [`phys_to_virt_addr`] function can be called to return a virtual
 //! address that can be used to access the passed physical address. A set
@@ -78,8 +59,8 @@
 //! ## Kernel stack management
 //!
 //! Each kernel thread (including the initial kernel thread, started by
-//! the bootloader) has its own stack, which exist within the [`KERNEL_STACK`]
-//! memory region. The initial kernel thread is given its stack ([`KERNEL_STACK_0`])
+//! the bootloader) has its own stack, which exist within the [`KERNEL_STACK`](memlayout::KERNEL_STACK)
+//! memory region. The initial kernel thread is given its stack ([`KERNEL_STACK_0`](memlayout::KERNEL_STACK_0))
 //! implicitly by the bootloader. Subsequent kernel threads are allocated
 //! by calling [`new_kernel_stack`] and can be de-allocated by calling
 //! [`free_kernel_stack`]. De-allocated stacks are reused and can be
@@ -89,6 +70,9 @@ use alloc::vec;
 use alloc::vec::Vec;
 use bootloader::BootInfo;
 use core::sync::atomic::{AtomicU64, Ordering};
+use memlayout::{
+    phys_to_virt_addr, VirtAddrRange, KERNEL_STACK, KERNEL_STACK_1_START, PHYSICAL_MEMORY_OFFSET,
+};
 use physmem;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::mapper::{MapToError, MappedFrame, TranslateResult};
@@ -99,15 +83,8 @@ use x86_64::structures::paging::{
 };
 use x86_64::{PhysAddr, VirtAddr};
 
-mod constants;
 pub mod mmio;
 pub mod vmm;
-
-pub use crate::memory::constants::{
-    phys_to_virt_addr, VirtAddrRange, BOOT_INFO, CPU_LOCAL, KERNEL_BINARY, KERNEL_HEAP,
-    KERNEL_STACK, KERNEL_STACK_0, KERNEL_STACK_1_START, KERNEL_STACK_GUARD, MMIO_SPACE, NULL_PAGE,
-    PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET, USERSPACE,
-};
 
 // PML4 functionality.
 
@@ -293,7 +270,7 @@ impl StackBounds {
 /// the stack (the lowest address).
 ///
 fn reserve_kernel_stack(num_pages: u64) -> Page {
-    static STACK_ALLOC_NEXT: AtomicU64 = AtomicU64::new(constants::KERNEL_STACK_1_START.as_u64());
+    static STACK_ALLOC_NEXT: AtomicU64 = AtomicU64::new(KERNEL_STACK_1_START.as_u64());
     let start_addr = VirtAddr::new(
         STACK_ALLOC_NEXT.fetch_add(num_pages * Page::<Size4KiB>::SIZE, Ordering::Relaxed),
     );

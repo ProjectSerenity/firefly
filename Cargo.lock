@@ -138,6 +138,7 @@ dependencies = [
  "lazy_static",
  "linked_list_allocator",
  "managed",
+ "memlayout",
  "pci",
  "physmem",
  "pic8259",
@@ -194,6 +195,13 @@ name = "managed"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ca88d725a0a943b096803bd34e73a4437208b6077654cc4ecb2947a5f91618d"
+
+[[package]]
+name = "memlayout"
+version = "0.1.0"
+dependencies = [
+ "x86_64",
+]
 
 [[package]]
 name = "pci"

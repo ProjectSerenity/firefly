@@ -22,13 +22,14 @@
 //!
 //! [here]: https://github.com/rust-osdev/x86_64/pull/257#issuecomment-849514649
 
-use crate::memory::{kernel_pml4, VirtAddrRange, CPU_LOCAL};
+use crate::memory::kernel_pml4;
 use crate::multitasking::thread::Thread;
 use align::align_up_u64;
 use alloc::sync::Arc;
 use core::mem::size_of;
 use core::pin::Pin;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use memlayout::{VirtAddrRange, CPU_LOCAL};
 use physmem;
 use segmentation::SegmentData;
 use x86_64::instructions::interrupts::without_interrupts;
