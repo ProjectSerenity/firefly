@@ -112,7 +112,7 @@ pub fn init(cpu_id: CpuId, stack_space: &VirtAddrRange) {
     // Next, work out where we will store our CpuId
     // data. We align up to page size to make paging
     // easier.
-    let size = align_up_u64(size_of::<CpuId>() as u64, Size4KiB::SIZE);
+    let size = align_up_u64(size_of::<CpuData>() as u64, Size4KiB::SIZE);
     let start = CPU_LOCAL.start() + cpu_id.as_u64() * size;
     let end = start + size;
 
