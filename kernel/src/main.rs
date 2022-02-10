@@ -98,7 +98,7 @@ fn debug() {
 
     // Virtual memory.
     println!("Virtual memory manager:");
-    unsafe { memory::vmm::debug(memory::kernel_pml4().level_4_table()) };
+    unsafe { virtmem::debug(memory::kernel_pml4().level_4_table()) };
     println!();
 
     // Physical memory.

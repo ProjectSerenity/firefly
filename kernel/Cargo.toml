@@ -15,7 +15,6 @@ bootloader = {version = "=0.9.21", features = ["map_physical_memory"]}
 chacha20 = "=0.8.1"
 filesystem = {path = "src/filesystem"}
 lazy_static = {version = "=1.4.0", features = ["spin_no_std"]}
-linked_list_allocator = "=0.9.0"
 managed = {version = "=0.8", default-features = false, features = ["map"]}
 memlayout = {path = "src/memory/memlayout"}
 pci = {path = "src/drivers/pci"}
@@ -32,6 +31,7 @@ storage = {path = "src/storage"}
 syscalls = {path = "../shared/syscalls"}
 tar = {path = "src/utils/tar"}
 uart_16550 = "=0.2.15"
+virtmem = {path = "src/memory/virtmem"}
 volatile = "=0.4.4"
 x86_64 = "=0.14.7"
 

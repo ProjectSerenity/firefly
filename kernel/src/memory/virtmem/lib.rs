@@ -35,7 +35,17 @@
 //! have the correct flags. For example, the kernel stack is mapped with the
 //! no-execute permission bit set.
 
-use crate::memory::vmm::mapping::PagePurpose;
+#![no_std]
+#![feature(const_mut_refs)]
+
+extern crate alloc;
+
+mod bump;
+mod fixed_size_block;
+mod linked_list;
+mod mapping;
+
+use mapping::PagePurpose;
 use memlayout::KERNEL_HEAP;
 use serial::println;
 use spin::{Mutex, MutexGuard};
@@ -45,11 +55,6 @@ use x86_64::structures::paging::mapper::{MapToError, MapperFlushAll};
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, Size4KiB,
 };
-
-mod bump;
-mod fixed_size_block;
-mod linked_list;
-mod mapping;
 
 // Re-export the heap allocators. We don't need to do this, but it's useful
 // to expose their documentation to aid future development.

@@ -6,6 +6,7 @@ members = [
     "kernel/src/filesystem",
     "kernel/src/memory/memlayout",
     "kernel/src/memory/physmem",
+    "kernel/src/memory/virtmem",
     "kernel/src/segmentation",
     "kernel/src/storage",
     "kernel/src/utils/align",

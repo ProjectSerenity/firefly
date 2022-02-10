@@ -13,7 +13,7 @@
 //!
 //! ## Virtual memory management
 //!
-//! The [`vmm`] module provides functionality to analyse and modify
+//! The [`virtmem`] crate provides functionality to analyse and modify
 //! page tables, manage the virtual memory address space, and
 //! operate the kernel's heap.
 //!
@@ -74,6 +74,7 @@ use memlayout::{
     phys_to_virt_addr, VirtAddrRange, KERNEL_STACK, KERNEL_STACK_1_START, PHYSICAL_MEMORY_OFFSET,
 };
 use physmem;
+use virtmem;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::mapper::{MapToError, MappedFrame, TranslateResult};
 use x86_64::structures::paging::page::PageRangeInclusive;
@@ -84,7 +85,6 @@ use x86_64::structures::paging::{
 use x86_64::{PhysAddr, VirtAddr};
 
 pub mod mmio;
-pub mod vmm;
 
 // PML4 functionality.
 
@@ -120,7 +120,7 @@ pub unsafe fn init(boot_info: &'static BootInfo) {
     let mut page_table = kernel_pml4();
     let mut frame_allocator = physmem::bootstrap(&boot_info.memory_map);
 
-    vmm::init(&mut page_table, &mut frame_allocator).expect("heap initialization failed");
+    virtmem::init(&mut page_table, &mut frame_allocator).expect("heap initialization failed");
 
     // Switch over to a more sophisticated physical memory manager.
     physmem::init(frame_allocator);

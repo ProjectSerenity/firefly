@@ -5,7 +5,7 @@
 
 //! Provides a bump allocator, which can be used to allocate heap memory.
 
-use super::Locked;
+use crate::Locked;
 use align::align_up_usize;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr;
