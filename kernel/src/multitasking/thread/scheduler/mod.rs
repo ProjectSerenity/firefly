@@ -23,6 +23,7 @@ use crate::multitasking::{cpu_local, thread};
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicBool, Ordering};
+use spin::Mutex;
 use time::{after, Duration};
 use x86_64::instructions::interrupts;
 
@@ -31,13 +32,13 @@ use x86_64::instructions::interrupts;
 /// Currently, it implements a round-robin algorithm.
 ///
 pub(super) struct Scheduler {
-    runnable: spin::Mutex<VecDeque<ThreadId>>,
+    runnable: Mutex<VecDeque<ThreadId>>,
 }
 
 impl Scheduler {
     pub fn new() -> Scheduler {
         Scheduler {
-            runnable: spin::Mutex::new(VecDeque::new()),
+            runnable: Mutex::new(VecDeque::new()),
         }
     }
 

@@ -55,6 +55,7 @@ use alloc::vec;
 use smoltcp::iface::SocketHandle;
 use smoltcp::socket::{UdpPacketMetadata, UdpSocket, UdpSocketBuffer};
 use smoltcp::wire::IpEndpoint;
+use spin::Mutex;
 use x86_64::instructions::interrupts::without_interrupts;
 
 /// Used as the number of packets in each port's receive
@@ -81,7 +82,7 @@ const DEFAULT_SEND_BUFFER_SIZE: usize = 4096;
 //
 // TODO: use a separate set of used ports for each interface.
 //
-static ACTIVE_PORTS: spin::Mutex<BTreeSet<u16>> = spin::Mutex::new(BTreeSet::new());
+static ACTIVE_PORTS: Mutex<BTreeSet<u16>> = Mutex::new(BTreeSet::new());
 
 /// Returns a random port number in the range 49152 - 65535.
 ///

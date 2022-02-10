@@ -74,6 +74,7 @@ use memlayout::{
     phys_to_virt_addr, VirtAddrRange, KERNEL_STACK, KERNEL_STACK_1_START, PHYSICAL_MEMORY_OFFSET,
 };
 use physmem;
+use spin::Mutex;
 use virtmem;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::mapper::{MapToError, MappedFrame, TranslateResult};
@@ -90,7 +91,7 @@ use x86_64::{PhysAddr, VirtAddr};
 /// level 4 page table. This enables the kernel_pml4 function to
 /// construct the structured data.
 ///
-static KERNEL_PML4_ADDRESS: spin::Mutex<VirtAddr> = spin::Mutex::new(VirtAddr::zero());
+static KERNEL_PML4_ADDRESS: Mutex<VirtAddr> = Mutex::new(VirtAddr::zero());
 
 /// Initialise the kernel's memory, including setting up the
 /// heap.
@@ -295,7 +296,7 @@ fn reserve_kernel_stack(num_pages: u64) -> Page {
 /// with just a limit on the number of simultaneous
 /// kernel threads.
 ///
-static DEAD_STACKS: spin::Mutex<Vec<StackBounds>> = spin::Mutex::new(Vec::new());
+static DEAD_STACKS: Mutex<Vec<StackBounds>> = Mutex::new(Vec::new());
 
 /// Allocates `num_pages` pages of stack memory for a
 /// kernel thread and guard page.

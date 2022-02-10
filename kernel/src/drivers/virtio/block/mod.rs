@@ -42,7 +42,7 @@ const REQUEST_VIRTQUEUE: u16 = 0;
 /// When we receive interrupts, we receive requests
 /// from the corresponding drivers.
 ///
-static DRIVERS: spin::Mutex<[Option<Arc<Mutex<virtio::Driver>>>; 16]> = {
+static DRIVERS: Mutex<[Option<Arc<Mutex<virtio::Driver>>>; 16]> = {
     const NONE: Option<Arc<Mutex<virtio::Driver>>> = Option::None;
     Mutex::new([NONE; 16])
 };

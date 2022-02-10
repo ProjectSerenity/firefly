@@ -33,6 +33,7 @@ use smoltcp::iface::{InterfaceBuilder, NeighborCache, Routes, SocketHandle, Sock
 use smoltcp::socket::{Dhcpv4Config, Dhcpv4Event, Dhcpv4Socket};
 use smoltcp::time::Instant;
 use smoltcp::wire::{EthernetAddress, HardwareAddress, IpCidr, Ipv4Address, Ipv4Cidr};
+use spin::Mutex;
 use time::{now, Duration};
 use x86_64::instructions::interrupts::without_interrupts;
 
@@ -43,7 +44,7 @@ use x86_64::instructions::interrupts::without_interrupts;
 /// is iterated through, wich each thread resumed and
 /// then removed from INITIAL_WORKLOADS.
 ///
-static INITIAL_WORKLOADS: spin::Mutex<Vec<ThreadId>> = spin::Mutex::new(Vec::new());
+static INITIAL_WORKLOADS: Mutex<Vec<ThreadId>> = Mutex::new(Vec::new());
 
 /// Ensures that `thread_id` will be [resumed](crate::multitasking::thread::scheduler::resume)
 /// when a DHCP configuration is next negotiated.
@@ -59,7 +60,7 @@ pub fn register_workload(thread_id: ThreadId) {
 
 /// INTERFACES is the list of network interfaces.
 ///
-static INTERFACES: spin::Mutex<Vec<Interface>> = spin::Mutex::new(Vec::new());
+static INTERFACES: Mutex<Vec<Interface>> = Mutex::new(Vec::new());
 
 /// Represents a network interface, which can be used to
 /// send and receive packets.

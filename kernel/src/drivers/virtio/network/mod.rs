@@ -69,6 +69,7 @@ use serial::println;
 use smoltcp::phy::{DeviceCapabilities, Medium, RxToken, TxToken};
 use smoltcp::time::Instant;
 use smoltcp::wire::EthernetAddress;
+use spin::Mutex;
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::structures::paging::frame::PhysFrame;
@@ -101,7 +102,7 @@ const PACKET_LEN_MAX: usize = 2048;
 /// driver's internals and the external interface.
 ///
 struct InterfaceDriver {
-    driver: Arc<spin::Mutex<Driver>>,
+    driver: Arc<Mutex<Driver>>,
     handle: InterfaceHandle,
 }
 
@@ -110,9 +111,9 @@ struct InterfaceDriver {
 /// When we receive interrupts, we poll the corresponding
 /// interface.
 ///
-static INTERFACES: spin::Mutex<[Option<InterfaceDriver>; 16]> = {
+static INTERFACES: Mutex<[Option<InterfaceDriver>; 16]> = {
     const NONE: Option<InterfaceDriver> = Option::None;
-    spin::Mutex::new([NONE; 16])
+    Mutex::new([NONE; 16])
 };
 
 /// interrupt_handler receives interrupts for
@@ -152,8 +153,7 @@ fn interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
 /// interface handles they use to perform background
 /// network management.
 ///
-static INTERFACE_HANDLES: spin::Mutex<BTreeMap<ThreadId, InterfaceHandle>> =
-    spin::Mutex::new(BTreeMap::new());
+static INTERFACE_HANDLES: Mutex<BTreeMap<ThreadId, InterfaceHandle>> = Mutex::new(BTreeMap::new());
 
 /// network_entry_point is an entry point used by a
 /// network management thread to ensure an interface
@@ -275,7 +275,7 @@ impl Drop for Driver {
 pub struct RecvBuffer {
     addr: PhysAddr,
     len: usize,
-    driver: Arc<spin::Mutex<Driver>>,
+    driver: Arc<Mutex<Driver>>,
 }
 
 impl<'a> RxToken for RecvBuffer {
@@ -328,7 +328,7 @@ impl<'a> RxToken for RecvBuffer {
 /// result, we use the driver to send the packet.
 ///
 pub struct SendBuffer {
-    driver: Arc<spin::Mutex<Driver>>,
+    driver: Arc<Mutex<Driver>>,
 }
 
 impl<'a> TxToken for SendBuffer {
@@ -395,7 +395,7 @@ impl<'a> TxToken for SendBuffer {
 /// use by `RecvBuffer` and `SendBuffer`.
 ///
 pub struct Device {
-    driver: Arc<spin::Mutex<Driver>>,
+    driver: Arc<Mutex<Driver>>,
 }
 
 impl<'a> smoltcp::phy::Device<'a> for Device {
@@ -622,7 +622,7 @@ pub fn install_pci_device(device: pci::Device) {
         mtu,
     };
 
-    let driver = Arc::new(spin::Mutex::new(driver));
+    let driver = Arc::new(Mutex::new(driver));
     let device = Device {
         driver: driver.clone(),
     };
