@@ -16,9 +16,11 @@
 //! [`switch`] can be called to proactively switch to the next available
 //! thread in the scheduler.
 
+pub mod timers;
+
 use crate::multitasking::thread::{ThreadId, ThreadState, SCHEDULER, THREADS};
 use crate::multitasking::{cpu_local, thread};
-use crate::time::{after, timers, Duration};
+use crate::time::{after, Duration};
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicBool, Ordering};

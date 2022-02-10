@@ -6,24 +6,22 @@
 //! Implements the priority queue of system timers.
 //!
 //! This is a fairly simple design to get us started. Each timer consists of
-//! the [`Instant`](super::Instant) at which the timer will fire, and the [`ThreadId`](crate::multitasking::thread::ThreadId)
+//! the [`Instant`](crate::time::Instant) at which the timer will fire, and the
+//! [`ThreadId`](crate::multitasking::thread::ThreadId)
 //! of the thread we should resume.
 
 use crate::multitasking::thread;
 use crate::time;
-use crate::utils::lazy::Lazy;
 use alloc::collections::binary_heap::BinaryHeap;
 use core::cmp::{Ordering, PartialEq, PartialOrd};
+use lazy_static::lazy_static;
+use spin::Mutex;
 use x86_64::instructions::interrupts::without_interrupts;
 
-/// The priority queue of pending timers.
-///
-static TIMERS: spin::Mutex<Lazy<BinaryHeap<Timer>>> = spin::Mutex::new(Lazy::new());
-
-/// Initialise the system timers.
-///
-pub(super) fn init() {
-    TIMERS.lock().set(BinaryHeap::new());
+lazy_static! {
+    /// The priority queue of pending timers.
+    ///
+    static ref TIMERS: Mutex<BinaryHeap<Timer>> = Mutex::new(BinaryHeap::new());
 }
 
 /// Creates a new timer and adds it to the priority

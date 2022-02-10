@@ -17,7 +17,6 @@
 mod rtc;
 mod slice;
 mod ticker;
-pub mod timers;
 
 pub use core::time::Duration;
 pub use rtc::boot_time;
@@ -32,7 +31,6 @@ pub use ticker::{ticks, NANOSECONDS_PER_TICK, TICKS_PER_SECOND};
 ///
 pub fn init() {
     ticker::init();
-    timers::init();
     rtc::init();
 }
 

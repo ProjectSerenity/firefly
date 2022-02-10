@@ -33,8 +33,8 @@
 
 use crate::memory::{free_kernel_stack, kernel_pml4, new_kernel_stack, StackBounds};
 use crate::multitasking::cpu_local;
-use crate::multitasking::thread::scheduler::Scheduler;
-use crate::time::{timers, Duration, TimeSlice};
+use crate::multitasking::thread::scheduler::{timers, Scheduler};
+use crate::time::{Duration, TimeSlice};
 use crate::utils::once::Once;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;

@@ -12,7 +12,6 @@
 use crate::interrupts::{register_irq, Irq};
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler;
-use crate::time;
 use core::sync::atomic::{AtomicU64, Ordering};
 use x86_64::instructions::port::Port;
 use x86_64::structures::idt::InterruptStackFrame;
@@ -54,7 +53,7 @@ fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
     }
 
     // Check whether any timers have expired.
-    time::timers::process();
+    scheduler::timers::process();
 
     // Switch thread if necessary.
     scheduler::preempt();
