@@ -148,6 +148,7 @@ dependencies = [
  "sha2",
  "smoltcp",
  "spin 0.9.2",
+ "storage",
  "syscalls",
  "uart_16550",
  "volatile",
@@ -294,6 +295,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75adad84ee84b521fb2cca2d4fd0f1dab1d8d026bda3c5bea4ca63b5f9f9293c"
 dependencies = [
  "lock_api",
+]
+
+[[package]]
+name = "storage"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+ "spin 0.9.2",
+ "x86_64",
 ]
 
 [[package]]

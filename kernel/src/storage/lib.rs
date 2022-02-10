@@ -5,4 +5,8 @@
 
 //! Implements the kernel's storage subsystem.
 
+#![no_std]
+
+extern crate alloc;
+
 pub mod block;

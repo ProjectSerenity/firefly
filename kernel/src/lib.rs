@@ -49,7 +49,6 @@ pub mod memory;
 pub mod multitasking;
 pub mod network;
 pub mod random;
-pub mod storage;
 pub mod syscalls;
 pub mod time;
 pub mod utils;

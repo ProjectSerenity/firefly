@@ -16,7 +16,6 @@
 //! Firefly. In particular, file ownership details and symbolic
 //! links are ignored (or return an error, as appropriate).
 
-use crate::storage::block;
 use align::align_up_usize;
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -24,6 +23,7 @@ use core::cmp::min;
 use core::str;
 use filesystem::{FileInfo, FileType, Permissions, SEPARATOR};
 use serial::println;
+use storage::block;
 
 mod parse_utils;
 
@@ -398,7 +398,6 @@ impl<'a> Iterator for Reader<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::storage::block::{Device, Error, Operations};
     use align::align_up_usize;
     use alloc::boxed::Box;
     use alloc::vec;
@@ -406,6 +405,7 @@ mod test {
     use hex_literal::hex;
     use sha2::digest::generic_array::GenericArray;
     use sha2::{Digest, Sha256};
+    use storage::block::{Device, Error, Operations};
 
     const SEGMENT_SIZE: usize = 512;
     const CHECKSUM_SIZE: usize = 256 / 8;
