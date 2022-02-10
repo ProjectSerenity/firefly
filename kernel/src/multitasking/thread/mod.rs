@@ -9,13 +9,6 @@
 //! preemptively scheduling between them. Threads can sleep, be resumed, and
 //! exit as needed.
 //!
-//! ## Initialisation
-//!
-//! The [`init`] function initialises the scheduler, allowing new threads to be
-//! created. However, the scheduler will not activate and start preempting the
-//! running thread until the kernel's initial thread calls [`scheduler::start`],
-//! at which point the scheduler takes ownership of the flow of execution.
-//!
 //! ## Manipulating threads
 //!
 //! Threads can be created without being started using [`Thread::create_kernel_thread`].
@@ -34,17 +27,18 @@
 use crate::memory::{free_kernel_stack, kernel_pml4, new_kernel_stack, StackBounds};
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler::{timers, Scheduler};
-use crate::utils::once::Once;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::task::Wake;
 use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::Waker;
+use lazy_static::lazy_static;
 use memlayout::{VirtAddrRange, KERNEL_STACK, USERSPACE};
 use physmem;
 use pretty::Bytes;
 use serial::println;
+use spin::Mutex;
 use time::{Duration, TimeSlice};
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
@@ -64,11 +58,13 @@ type ThreadTable = BTreeMap<ThreadId, Arc<Thread>>;
 /// the idle thread, as there will be a separate instance
 /// for each CPU, but a single shared THREADS structure.
 ///
-static THREADS: spin::Mutex<ThreadTable> = spin::Mutex::new(BTreeMap::new());
+static THREADS: Mutex<ThreadTable> = Mutex::new(BTreeMap::new());
 
-/// SCHEDULER is the thread scheduler.
-///
-static SCHEDULER: Once<spin::Mutex<Scheduler>> = Once::new();
+lazy_static! {
+    /// SCHEDULER is the thread scheduler.
+    ///
+    static ref SCHEDULER: Mutex<Scheduler> = Mutex::new(Scheduler::new());
+}
 
 /// DEFAULT_RFLAGS contains the reserved bits of the
 /// RFLAGS register so we can include them when we
@@ -78,21 +74,6 @@ static SCHEDULER: Once<spin::Mutex<Scheduler>> = Once::new();
 /// on page 78 of volume 1 of the Intel 64 manual.
 ///
 const DEFAULT_RFLAGS: u64 = 0x2;
-
-/// Initialise the thread scheduler, allowing the creation
-/// of new threads.
-///
-/// Note that no new threads will begin execution until the
-/// kernel's initial thread calls [`scheduler::start`] to
-/// hand control over to the scheduler.
-///
-/// # Panics
-///
-/// `init` will panic if called mroe than once.
-///
-pub fn init() {
-    SCHEDULER.init(|| spin::Mutex::new(Scheduler::new()));
-}
 
 /// Puts the current thread to sleep indefinitely
 /// and switches to the next runnable thread. The

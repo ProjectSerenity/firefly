@@ -33,8 +33,8 @@
 extern crate alloc;
 
 use crate::interrupts::{register_irq, Irq};
+use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler;
-use crate::multitasking::{cpu_local, thread};
 use bootloader::BootInfo;
 use core::panic::PanicInfo;
 use core::pin::Pin;
@@ -85,7 +85,6 @@ pub fn init(boot_info: &'static BootInfo) {
     unsafe { memory::init(boot_info) };
     cpu_local::init(cpu_local::CpuId::new(), &KERNEL_STACK_0, segment_data);
     syscalls::init();
-    thread::init();
 }
 
 /// The PIT's interrupt handler.
