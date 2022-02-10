@@ -8,7 +8,7 @@
 //! ## PCI devices
 //!
 //! The [PCI](pci) module provides the PCI [`Transport`](pci::Transport), which can
-//! be used to reset and configure a VirtIO device using a PCI [`Device`](crate::drivers::pci::Device).
+//! be used to reset and configure a VirtIO device using a PCI [`Device`](::pci::Device).
 //!
 //! ## MMIO devices
 //!

@@ -13,6 +13,10 @@
 //! PCI [`Device`]s can be used to access the resources and data of a PCI
 //! device.
 
+#![no_std]
+
+extern crate alloc;
+
 use alloc::vec::Vec;
 use core::fmt;
 use x86_64::instructions::port::Port;

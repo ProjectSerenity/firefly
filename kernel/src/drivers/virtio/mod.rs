@@ -32,7 +32,7 @@
 //! # Examples
 //!
 //! A [`Transport`] will be obtained using a transport-specific mechanism. For
-//! example, a PCI transport is produced from a [`PCI Device`](crate::drivers::pci::Device)
+//! example, a PCI transport is produced from a [`PCI Device`](pci::Device)
 //! using [`transports::pci::Transport::new`]:
 //!
 //! ```
@@ -52,13 +52,13 @@ pub mod transports;
 pub mod virtqueues;
 
 use crate::drivers;
-use crate::drivers::pci;
 use crate::drivers::virtio::virtqueues::split;
 use crate::interrupts::Irq;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
+use pci;
 use serial::println;
 use x86_64::PhysAddr;
 

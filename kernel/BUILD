@@ -24,7 +24,6 @@ rust_library(
     srcs = [
         "src/cpu/mod.rs",
         "src/drivers/mod.rs",
-        "src/drivers/pci.rs",
         "src/drivers/virtio/block/cache.rs",
         "src/drivers/virtio/block/mod.rs",
         "src/drivers/virtio/entropy/mod.rs",
@@ -101,6 +100,7 @@ rust_library(
         crate("spin"),
         crate("volatile"),
         crate("x86_64"),
+        "//kernel/src/drivers/pci",
         "//kernel/src/drivers/serial",
         "//kernel/src/utils/align",
         "//kernel/src/utils/bitmap_index",
@@ -133,6 +133,7 @@ rust_binary(
     deps = [
         crate("x86_64"),
         ":libkernel",
+        "//kernel/src/drivers/pci",
         "//kernel/src/drivers/serial",
         "@bootloader",
     ],

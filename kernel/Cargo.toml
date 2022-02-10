@@ -17,6 +17,7 @@ hex-literal = "=0.3.4"
 lazy_static = {version = "=1.4.0", features = ["spin_no_std"]}
 linked_list_allocator = "=0.9.0"
 managed = {version = "=0.8", default-features = false, features = ["map"]}
+pci = {path = "src/drivers/pci"}
 pic8259 = "=0.10.1"
 pretty = {path = "src/utils/pretty"}
 raw-cpuid = {version = "=10.2.0", default-features = false}

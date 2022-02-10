@@ -5,8 +5,8 @@
 
 //! Implements the [PCI transport mechanism](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-1000001).
 //!
-//! A PCI [`Device`](crate::drivers::pci::Device) can be used to instantiate
-//! a PCI [`Transport`], which can then be used to reset and configure a
+//! A PCI [`Device`](pci::Device) can be used to instantiate a PCI
+//! [`Transport`], which can then be used to reset and configure a
 //! VirtIO device.
 //!
 //! # Examples
@@ -17,11 +17,12 @@
 //! }
 //! ```
 
+use crate::drivers::virtio;
 use crate::drivers::virtio::{DeviceStatus, InterruptStatus};
-use crate::drivers::{pci, virtio};
 use crate::interrupts::Irq;
 use crate::memory::mmio;
 use crate::memory::mmio::{read_volatile, write_volatile};
+use pci;
 use x86_64::structures::paging::frame::{PhysFrame, PhysFrameRange};
 use x86_64::PhysAddr;
 

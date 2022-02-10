@@ -7,9 +7,6 @@
 //!
 //! ## PCI devices
 //!
-//! The [PCI](pci) module provides the [`pci::scan`] function to scan the set of
-//! attached PCI buses for supported devices. Any identified devices are returned.
-//!
 //! PCI [`Device`](pci::Device)s can be used to access the resources and data of a
 //! PCI device. A device driver can be implemented by adding a [`PciDriverCheck`]
 //! to [`PCI_DRIVERS`], then iteratively installing supported devices:
@@ -32,8 +29,9 @@
 //! This is used to provide efficient access to virtual devices implemented by
 //! the hypervisor.
 
-pub mod pci;
 pub mod virtio;
+
+use pci;
 
 /// A PciDriver takes ownership of a PCI device.
 ///

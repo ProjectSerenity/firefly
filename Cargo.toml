@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "kernel",
+    "kernel/src/drivers/pci",
     "kernel/src/drivers/serial",
     "kernel/src/utils/align",
     "kernel/src/utils/bitmap_index",
