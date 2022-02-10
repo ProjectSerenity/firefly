@@ -50,7 +50,6 @@
 
 use super::{Error, InterfaceHandle, INTERFACES};
 use crate::multitasking::{cpu_local, thread};
-use crate::random;
 use alloc::collections::BTreeSet;
 use alloc::vec;
 use smoltcp::iface::SocketHandle;

@@ -5,7 +5,7 @@
 
 //! rdrand provides an entropy source using the RDRAND instruction, if available.
 
-use crate::random::{register_entropy_source, EntropySource};
+use super::{register_entropy_source, EntropySource};
 use alloc::boxed::Box;
 use x86_64::instructions::random::RdRand;
 

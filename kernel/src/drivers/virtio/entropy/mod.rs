@@ -11,7 +11,7 @@
 //! entropy and returned to the driver.
 //!
 //! While VirtIO devices normally use notifications, we only use entropy sources
-//! infrequently to seed our [CSPRNG](crate::random). This means there should be
+//! infrequently to seed our [CSPRNG](random). This means there should be
 //! no need for concurrent requests for entropy. Taking a sequential approach
 //! allows us to retrieving entropy allows us to provide a synchronous API, which
 //! is easier to use.
@@ -29,12 +29,12 @@ use crate::drivers::virtio::features::Reserved;
 use crate::drivers::virtio::{transports, Buffer};
 use crate::drivers::{pci, virtio};
 use crate::memory::{kernel_pml4, virt_to_phys_addrs};
-use crate::random;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
 use memlayout::{PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
+use random::{register_entropy_source, EntropySource};
 use serial::println;
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -123,7 +123,7 @@ impl Driver {
     }
 }
 
-impl random::EntropySource for Driver {
+impl EntropySource for Driver {
     /// Fills the buffer with entropy from the device.
     ///
     /// Note that unlike [`read`](Driver::read),
@@ -170,5 +170,5 @@ pub fn install_pci_device(device: pci::Device) {
     let driver = Driver::new(driver);
 
     // Show that it works.
-    random::register_entropy_source(Box::new(driver));
+    register_entropy_source(Box::new(driver));
 }

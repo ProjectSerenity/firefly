@@ -47,7 +47,6 @@ pub mod drivers;
 pub mod memory;
 pub mod multitasking;
 pub mod network;
-pub mod random;
 pub mod syscalls;
 
 /// Initialise the kernel and its core components.
@@ -100,6 +99,18 @@ fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
 
     // Switch thread if necessary.
     scheduler::preempt();
+}
+
+/// entropy_reseed_helper is an entry point used by an
+/// entropy management thread to ensure the CSPRNG
+/// continues to receive entropy over time.
+///
+pub fn entropy_reseed_helper() -> ! {
+    loop {
+        scheduler::sleep(random::RESEED_INTERVAL);
+
+        random::reseed();
+    }
 }
 
 // The kernel's allocator error handling.

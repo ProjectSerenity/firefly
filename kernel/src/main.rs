@@ -19,7 +19,7 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use kernel::{memory, random};
+use kernel::memory;
 use serial::println;
 
 /// This function is called on panic.
@@ -75,6 +75,7 @@ fn kmain() {
     }
 
     random::init();
+    Thread::start_kernel_thread(kernel::entropy_reseed_helper);
 
     // Hand over to the scheduler.
     scheduler::start();

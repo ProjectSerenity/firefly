@@ -10,6 +10,7 @@ members = [
     "kernel/src/memory/mmio",
     "kernel/src/memory/physmem",
     "kernel/src/memory/virtmem",
+    "kernel/src/random",
     "kernel/src/segmentation",
     "kernel/src/storage",
     "kernel/src/time",

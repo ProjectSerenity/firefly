@@ -46,12 +46,16 @@
 //! random::read(&mut buf[..]);
 //! ```
 
+#![no_std]
+
+extern crate alloc;
+
 mod csprng;
 mod rdrand;
 
-use crate::multitasking::thread::{scheduler, Thread};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use spin::Mutex;
 use time::Duration;
 
 /// CSPRNG is the kernel's cryptographically secure pseudo-random number generator.
@@ -64,7 +68,7 @@ use time::Duration;
 /// We do not currently expose add_entropy more widely, but that may change in the
 /// future.
 ///
-static CSPRNG: spin::Mutex<csprng::Csprng> = spin::Mutex::new(csprng::Csprng::new());
+static CSPRNG: Mutex<csprng::Csprng> = Mutex::new(csprng::Csprng::new());
 
 /// Fills the given buffer with random data.
 ///
@@ -88,7 +92,7 @@ pub trait EntropySource: Send {
 
 /// ENTROPY_SOURCES is our set of entropy sources, supplied using register_entropy_source.
 ///
-static ENTROPY_SOURCES: spin::Mutex<Vec<Box<dyn EntropySource>>> = spin::Mutex::new(Vec::new());
+static ENTROPY_SOURCES: Mutex<Vec<Box<dyn EntropySource>>> = Mutex::new(Vec::new());
 
 /// Provide an ongoing source of entropy to the kernel for use in seeding the CSPRNG.
 ///
@@ -122,33 +126,26 @@ pub fn init() {
         source.get_entropy(&mut buf);
         csprng.seed(&buf);
     }
-
-    Thread::start_kernel_thread(helper_entry_point);
 }
 
-/// HELPER_INTERVAL indicates for how long the companion thread sleeps between
-/// each re-seeding of the CSPRNG.
+/// RESEED_INTERVAL is the maximum amount of time after the entropy pool was last
+/// reseeded before it should be reseeded again.
 ///
-const HELPER_INTERVAL: Duration = Duration::from_secs(30);
+pub const RESEED_INTERVAL: Duration = Duration::from_secs(30);
 
-/// helper_entry_point is an entry point used by an
-/// entropy management thread to ensure the CSPRNG
-/// continues to receive entropy over time.
+/// Reseed the CSPRNG's entropy pool. This should be performed periodically, no
+/// less frequently than [`RESEED_INTERVAL`].
 ///
-fn helper_entry_point() -> ! {
+pub fn reseed() {
     let mut buf = [0u8; 32];
-    loop {
-        scheduler::sleep(HELPER_INTERVAL);
+    let mut csprng = CSPRNG.lock();
+    let mut sources = ENTROPY_SOURCES.lock();
+    if sources.is_empty() {
+        panic!("all entropy sources removed");
+    }
 
-        let mut csprng = CSPRNG.lock();
-        let mut sources = ENTROPY_SOURCES.lock();
-        if sources.is_empty() {
-            panic!("all entropy sources removed");
-        }
-
-        for source in sources.iter_mut() {
-            source.get_entropy(&mut buf);
-            csprng.seed(&buf);
-        }
+    for source in sources.iter_mut() {
+        source.get_entropy(&mut buf);
+        csprng.seed(&buf);
     }
 }
