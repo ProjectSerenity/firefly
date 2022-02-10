@@ -351,179 +351,177 @@ pub fn free_kernel_stack(stack_bounds: StackBounds) {
     DEAD_STACKS.lock().push(stack_bounds);
 }
 
-#[test_case]
-fn simple_allocation() {
-    use alloc::boxed::Box;
-    let heap_value_1 = Box::new(41);
-    let heap_value_2 = Box::new(13);
-    assert_eq!(*heap_value_1, 41);
-    assert_eq!(*heap_value_2, 13);
-}
+#[cfg(test)]
+mod test {
+    use super::*;
+    use align::align_down_u64;
+    use alloc::collections::BTreeMap;
+    use x86_64::structures::paging::PhysFrame;
 
-#[test_case]
-fn large_vec() {
-    use alloc::vec::Vec;
-    let n = 1000;
-    let mut vec = Vec::new();
-    for i in 0..n {
-        vec.push(i);
+    #[test_case]
+    fn simple_allocation() {
+        use alloc::boxed::Box;
+        let heap_value_1 = Box::new(41);
+        let heap_value_2 = Box::new(13);
+        assert_eq!(*heap_value_1, 41);
+        assert_eq!(*heap_value_2, 13);
     }
 
-    assert_eq!(vec.iter().sum::<u64>(), (n - 1) * n / 2);
-}
+    #[test_case]
+    fn large_vec() {
+        use alloc::vec::Vec;
+        let n = 1000;
+        let mut vec = Vec::new();
+        for i in 0..n {
+            vec.push(i);
+        }
 
-#[test_case]
-fn many_boxes() {
-    use alloc::boxed::Box;
-    use memlayout::KERNEL_HEAP;
-    for i in 0..KERNEL_HEAP.size() {
-        let x = Box::new(i);
-        assert_eq!(*x, i);
+        assert_eq!(vec.iter().sum::<u64>(), (n - 1) * n / 2);
     }
-}
 
-/// DebugPageTable is a helper type for testing code that
-/// uses page tables. It emulates the behaviour for a level
-/// 4 page table using heap memory, without modifying the
-/// system page tables.
-///
-#[cfg(test)]
-pub struct DebugPageTable {
-    mappings: BTreeMap<VirtAddr, PhysFrame>,
-}
-
-#[cfg(test)]
-use align::align_down_u64;
-#[cfg(test)]
-use alloc::collections::BTreeMap;
-#[cfg(test)]
-use x86_64::structures::paging::PhysFrame;
-
-#[cfg(test)]
-impl DebugPageTable {
-    pub fn new() -> Self {
-        DebugPageTable {
-            mappings: BTreeMap::new(),
+    #[test_case]
+    fn many_boxes() {
+        use alloc::boxed::Box;
+        use memlayout::KERNEL_HEAP;
+        for i in 0..KERNEL_HEAP.size() {
+            let x = Box::new(i);
+            assert_eq!(*x, i);
         }
     }
 
-    pub fn map(&mut self, addr: VirtAddr, frame: PhysFrame) {
-        // Check the virtual address is at a page boundary,
-        // to simplify things.
-        assert_eq!(addr.as_u64(), align_down_u64(addr.as_u64(), Size4KiB::SIZE));
-
-        self.mappings.insert(addr, frame);
+    /// DebugPageTable is a helper type for testing code that
+    /// uses page tables. It emulates the behaviour for a level
+    /// 4 page table using heap memory, without modifying the
+    /// system page tables.
+    ///
+    pub struct DebugPageTable {
+        mappings: BTreeMap<VirtAddr, PhysFrame>,
     }
-}
 
-#[cfg(test)]
-impl Translate for DebugPageTable {
-    fn translate(&self, addr: VirtAddr) -> TranslateResult {
-        let truncated = VirtAddr::new(align_down_u64(addr.as_u64(), Size4KiB::SIZE));
-        match self.mappings.get(&truncated) {
-            None => return TranslateResult::NotMapped,
-            Some(frame) => TranslateResult::Mapped {
-                frame: MappedFrame::Size4KiB(*frame),
-                offset: addr - truncated,
-                flags: PageTableFlags::PRESENT,
-            },
+    impl DebugPageTable {
+        pub fn new() -> Self {
+            DebugPageTable {
+                mappings: BTreeMap::new(),
+            }
+        }
+
+        pub fn map(&mut self, addr: VirtAddr, frame: PhysFrame) {
+            // Check the virtual address is at a page boundary,
+            // to simplify things.
+            assert_eq!(addr.as_u64(), align_down_u64(addr.as_u64(), Size4KiB::SIZE));
+
+            self.mappings.insert(addr, frame);
         }
     }
-}
 
-#[test_case]
-fn debug_page_table() {
-    // Check that the debug page table works
-    // correctly.
-    let mut page_table = DebugPageTable::new();
-    fn phys_frame(addr: u64) -> PhysFrame {
-        let addr = PhysAddr::new(addr);
-        let frame = PhysFrame::from_start_address(addr);
-        frame.unwrap()
+    impl Translate for DebugPageTable {
+        fn translate(&self, addr: VirtAddr) -> TranslateResult {
+            let truncated = VirtAddr::new(align_down_u64(addr.as_u64(), Size4KiB::SIZE));
+            match self.mappings.get(&truncated) {
+                None => return TranslateResult::NotMapped,
+                Some(frame) => TranslateResult::Mapped {
+                    frame: MappedFrame::Size4KiB(*frame),
+                    offset: addr - truncated,
+                    flags: PageTableFlags::PRESENT,
+                },
+            }
+        }
     }
 
-    assert_eq!(page_table.translate_addr(VirtAddr::new(4096)), None);
-    page_table.map(VirtAddr::new(4096), phys_frame(4096));
-    assert_eq!(
-        page_table.translate_addr(VirtAddr::new(4096)),
-        Some(PhysAddr::new(4096))
-    );
-    assert_eq!(
-        page_table.translate_addr(VirtAddr::new(4097)),
-        Some(PhysAddr::new(4097))
-    );
-}
+    #[test_case]
+    fn debug_page_table() {
+        // Check that the debug page table works
+        // correctly.
+        let mut page_table = DebugPageTable::new();
+        fn phys_frame(addr: u64) -> PhysFrame {
+            let addr = PhysAddr::new(addr);
+            let frame = PhysFrame::from_start_address(addr);
+            frame.unwrap()
+        }
 
-#[test_case]
-fn virt_to_phys_addrs() {
-    // Start by making some mappings we can use.
-    // We map as follows:
-    // - page 1 => frame 3
-    // - page 2 => frame 1
-    // - page 3 => frame 2
-    let page1 = VirtAddr::new(1 * Size4KiB::SIZE);
-    let page2 = VirtAddr::new(2 * Size4KiB::SIZE);
-    let page3 = VirtAddr::new(3 * Size4KiB::SIZE);
-    let frame1 = PhysAddr::new(1 * Size4KiB::SIZE);
-    let frame2 = PhysAddr::new(2 * Size4KiB::SIZE);
-    let frame3 = PhysAddr::new(3 * Size4KiB::SIZE);
-
-    let mut page_table = DebugPageTable::new();
-    fn phys_frame(addr: PhysAddr) -> PhysFrame {
-        let frame = PhysFrame::from_start_address(addr);
-        frame.unwrap()
+        assert_eq!(page_table.translate_addr(VirtAddr::new(4096)), None);
+        page_table.map(VirtAddr::new(4096), phys_frame(4096));
+        assert_eq!(
+            page_table.translate_addr(VirtAddr::new(4096)),
+            Some(PhysAddr::new(4096))
+        );
+        assert_eq!(
+            page_table.translate_addr(VirtAddr::new(4097)),
+            Some(PhysAddr::new(4097))
+        );
     }
 
-    page_table.map(page1, phys_frame(frame3));
-    page_table.map(page2, phys_frame(frame1));
-    page_table.map(page3, phys_frame(frame2));
+    #[test_case]
+    fn virt_to_phys_addrs() {
+        // Start by making some mappings we can use.
+        // We map as follows:
+        // - page 1 => frame 3
+        // - page 2 => frame 1
+        // - page 3 => frame 2
+        let page1 = VirtAddr::new(1 * Size4KiB::SIZE);
+        let page2 = VirtAddr::new(2 * Size4KiB::SIZE);
+        let page3 = VirtAddr::new(3 * Size4KiB::SIZE);
+        let frame1 = PhysAddr::new(1 * Size4KiB::SIZE);
+        let frame2 = PhysAddr::new(2 * Size4KiB::SIZE);
+        let frame3 = PhysAddr::new(3 * Size4KiB::SIZE);
 
-    // Simple example: single address.
-    assert_eq!(
-        virt_to_phys_addrs(&page_table, page1, 0),
-        Some(vec![PhysBuffer {
-            addr: frame3,
-            len: 0
-        }])
-    );
+        let mut page_table = DebugPageTable::new();
+        fn phys_frame(addr: PhysAddr) -> PhysFrame {
+            let frame = PhysFrame::from_start_address(addr);
+            frame.unwrap()
+        }
 
-    // Simple example: within a single page.
-    assert_eq!(
-        virt_to_phys_addrs(&page_table, page1 + 2u64, 2),
-        Some(vec![PhysBuffer {
-            addr: frame3 + 2u64,
-            len: 2
-        }])
-    );
+        page_table.map(page1, phys_frame(frame3));
+        page_table.map(page2, phys_frame(frame1));
+        page_table.map(page3, phys_frame(frame2));
 
-    // Crossing a split page boundary.
-    assert_eq!(
-        virt_to_phys_addrs(&page_table, page1 + 4090u64, 12),
-        Some(vec![
-            PhysBuffer {
-                addr: frame3 + 4090u64,
-                len: 6
-            },
-            PhysBuffer {
-                addr: frame1,
-                len: 6
-            }
-        ])
-    );
+        // Simple example: single address.
+        assert_eq!(
+            virt_to_phys_addrs(&page_table, page1, 0),
+            Some(vec![PhysBuffer {
+                addr: frame3,
+                len: 0
+            }])
+        );
 
-    // Crossing a contiguous page boundary.
-    // TODO: merge contiguous regions to reduce the number of buffers we return.
-    assert_eq!(
-        virt_to_phys_addrs(&page_table, page2 + 4090u64, 12),
-        Some(vec![
-            PhysBuffer {
-                addr: frame1 + 4090u64,
-                len: 6
-            },
-            PhysBuffer {
-                addr: frame2,
-                len: 6
-            }
-        ])
-    );
+        // Simple example: within a single page.
+        assert_eq!(
+            virt_to_phys_addrs(&page_table, page1 + 2u64, 2),
+            Some(vec![PhysBuffer {
+                addr: frame3 + 2u64,
+                len: 2
+            }])
+        );
+
+        // Crossing a split page boundary.
+        assert_eq!(
+            virt_to_phys_addrs(&page_table, page1 + 4090u64, 12),
+            Some(vec![
+                PhysBuffer {
+                    addr: frame3 + 4090u64,
+                    len: 6
+                },
+                PhysBuffer {
+                    addr: frame1,
+                    len: 6
+                }
+            ])
+        );
+
+        // Crossing a contiguous page boundary.
+        // TODO: merge contiguous regions to reduce the number of buffers we return.
+        assert_eq!(
+            virt_to_phys_addrs(&page_table, page2 + 4090u64, 12),
+            Some(vec![
+                PhysBuffer {
+                    addr: frame1 + 4090u64,
+                    len: 6
+                },
+                PhysBuffer {
+                    addr: frame2,
+                    len: 6
+                }
+            ])
+        );
+    }
 }
