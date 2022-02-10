@@ -30,7 +30,7 @@ rust_doc(
 rust_test(
     name = "bitmap_index_test",
     size = "small",
-    srcs = ["lib.rs"],
+    crate = ":bitmap_index",
     deps = [
         crate("x86_64"),
         "//kernel/src/utils/align",

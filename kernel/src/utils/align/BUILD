@@ -25,5 +25,5 @@ rust_doc(
 rust_test(
     name = "align_test",
     size = "small",
-    srcs = ["lib.rs"],
+    crate = ":align",
 )
