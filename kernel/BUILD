@@ -79,6 +79,7 @@ rust_library(
         "//kernel/src/utils/align",
         "//kernel/src/utils/bitmap_index",
         "//kernel/src/utils/pretty",
+        "//kernel/src/utils/tar",
         "//shared/syscalls",
         "@bootloader",
         "@smoltcp",

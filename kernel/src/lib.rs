@@ -17,6 +17,29 @@
 //! should only perform actions that the kernel must
 //! always take. In particular, it does not set up
 //! device drivers.
+//!
+//! # Kernel subsystems
+//!
+//! Several parts of kernel functionality are provided
+//! in separate crates. These are:
+//!
+//! - [cpuid](::cpuid)
+//! - [drivers/pci](::pci)
+//! - [drivers/serial](::serial)
+//! - [filesystem](::filesystem)
+//! - [interrupts](::interrupts)
+//! - [memory/memlayout](::memlayout)
+//! - [memory/mmio](::mmio)
+//! - [memory/physmem](::physmem)
+//! - [memory/virtmem](::virtmem)
+//! - [random](::random)
+//! - [segmentation](::segmentation)
+//! - [storage](::storage)
+//! - [time](::time)
+//! - [utils/align](::align)
+//! - [utils/bitmap_index](::bitmap_index)
+//! - [utils/pretty](::pretty)
+//! - [utils/tar](::tar)
 
 #![no_std]
 #![cfg_attr(test, no_main)]
