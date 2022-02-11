@@ -47,10 +47,7 @@
 #![feature(asm)]
 #![feature(binary_heap_retain)]
 #![feature(const_btree_new)]
-#![feature(custom_test_frameworks)]
 #![feature(global_asm)]
-#![test_runner(crate::test_runner)]
-#![reexport_test_harness_main = "test_main"]
 
 extern crate alloc;
 
@@ -63,13 +60,10 @@ pub mod syscalls;
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler;
 use bootloader::BootInfo;
-use core::panic::PanicInfo;
 use core::pin::Pin;
 use interrupts::{register_irq, Irq};
 use memlayout::KERNEL_STACK_0;
 use segmentation::SegmentData;
-use serial::{print, println};
-use x86_64::instructions::port::Port;
 use x86_64::structures::idt::InterruptStackFrame;
 
 /// Initialise the kernel and its core components.
@@ -154,74 +148,6 @@ pub fn halt_loop() -> ! {
     }
 }
 
-// Test helpers.
-
-/// Testable represents a test function.
-///
-#[doc(hidden)]
-pub trait Testable {
-    fn run(&self);
-}
-
-/// Wrap tests with debug statements.
-///
-impl<T> Testable for T
-where
-    T: Fn(),
-{
-    fn run(&self) {
-        print!("{}...\t", core::any::type_name::<T>());
-        self();
-        println!("[ok]");
-    }
-}
-
-/// Entry point for the set of unit
-/// tests.
-///
-#[doc(hidden)]
-pub fn test_runner(tests: &[&dyn Testable]) {
-    println!("Running {} tests", tests.len());
-    for test in tests {
-        test.run();
-    }
-
-    exit_qemu(QemuExitCode::Success);
-}
-
-/// Panic handler for tests.
-///
-#[doc(hidden)]
-pub fn test_panic_handler(info: &PanicInfo) -> ! {
-    println!("[failed]\n");
-    println!("Error: {}\n", info);
-    exit_qemu(QemuExitCode::Failed);
-    halt_loop();
-}
-
-/// QemuExitCode represents the two valid
-/// values for exiting QEMU.
-///
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u32)]
-#[doc(hidden)]
-pub enum QemuExitCode {
-    Success = 0x10,
-    Failed = 0x11,
-}
-
-/// exit_qemu uses the 0xf4 I/O port to
-/// instruct QEMU to exit with the given
-/// exit code.
-///
-#[doc(hidden)]
-pub fn exit_qemu(exit_code: QemuExitCode) {
-    unsafe {
-        let mut port = Port::new(0xf4);
-        port.write(exit_code as u32);
-    }
-}
-
 /// shutdown_qemu uses the 0x604 I/O port
 /// to instruct QEMU to shut down successfully.
 ///
@@ -237,25 +163,4 @@ pub fn shutdown_qemu() -> ! {
     for _ in 0..10000 {}
 
     unreachable!("instruction to exit QEMU returned somehow");
-}
-
-#[cfg(test)]
-use bootloader::entry_point;
-
-#[cfg(test)]
-entry_point!(test_kernel_main);
-
-/// test_kernel_main is the entry point for `cargo xtest`.
-///
-#[cfg(test)]
-fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
-    init(boot_info);
-    test_main();
-    halt_loop();
-}
-
-#[cfg(test)]
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    test_panic_handler(info)
 }

@@ -10,20 +10,17 @@
 
 #![no_std]
 #![no_main]
-#![feature(abi_x86_interrupt)]
-#![feature(custom_test_frameworks)]
-#![test_runner(kernel::test_runner)]
-#![reexport_test_harness_main = "test_main"]
 
 extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use kernel::memory;
+use kernel::multitasking::thread::{scheduler, Thread};
+use kernel::{drivers, network};
 use serial::println;
 
 /// This function is called on panic.
-#[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
@@ -43,20 +40,12 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     println!("Kernel booting...");
     kernel::init(boot_info);
 
-    #[cfg(test)]
-    test_main();
-
-    #[cfg(not(test))]
     kmain();
 
     kernel::halt_loop();
 }
 
-#[cfg(not(test))]
 fn kmain() {
-    use kernel::multitasking::thread::{scheduler, Thread};
-    use kernel::{drivers, network};
-
     println!("Kernel ready!");
     println!("Kernel booted at {}.", time::boot_time());
     cpuid::print_branding();
@@ -81,7 +70,6 @@ fn kmain() {
     scheduler::start();
 }
 
-#[allow(dead_code)]
 fn initial_workload() -> ! {
     println!("Starting initial workload.");
 
@@ -105,14 +93,4 @@ fn debug() {
     // Physical memory.
     physmem::debug();
     println!();
-}
-
-// Testing framework.
-
-/// This function is called on panic
-/// when running tests.
-#[cfg(test)]
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    kernel::test_panic_handler(info)
 }
