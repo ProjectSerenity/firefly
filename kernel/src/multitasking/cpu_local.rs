@@ -22,7 +22,6 @@
 //!
 //! [here]: https://github.com/rust-osdev/x86_64/pull/257#issuecomment-849514649
 
-use crate::memory::kernel_pml4;
 use crate::multitasking::thread::Thread;
 use align::align_up_u64;
 use alloc::sync::Arc;
@@ -35,7 +34,7 @@ use segmentation::SegmentData;
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::registers::model_specific::GsBase;
 use x86_64::structures::paging::{
-    FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
+    FrameAllocator, Mapper, OffsetPageTable, Page, PageSize, PageTableFlags, Size4KiB,
 };
 use x86_64::VirtAddr;
 
@@ -91,6 +90,7 @@ struct CpuData {
 ///
 pub fn init(
     cpu_id: CpuId,
+    mapper: &mut OffsetPageTable,
     stack_space: &VirtAddrRange,
     current_segment_data: Pin<&mut SegmentData>,
 ) {
@@ -107,7 +107,6 @@ pub fn init(
     let end_page = Page::from_start_address(end).expect("bad end address");
 
     // Map our per-CPU address space.
-    let mut mapper = unsafe { kernel_pml4() };
     let mut frame_allocator = physmem::ALLOCATOR.lock();
     for page in Page::range(start_page, end_page) {
         let frame = frame_allocator

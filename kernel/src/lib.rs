@@ -57,6 +57,7 @@ pub mod multitasking;
 pub mod network;
 pub mod syscalls;
 
+use crate::memory::kernel_pml4;
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler;
 use bootloader::BootInfo;
@@ -96,7 +97,13 @@ pub fn init(boot_info: &'static BootInfo) {
 
     // Set up the heap allocator.
     unsafe { memory::init(boot_info) };
-    cpu_local::init(cpu_local::CpuId::new(), &KERNEL_STACK_0, segment_data);
+    let mut mapper = unsafe { kernel_pml4() };
+    cpu_local::init(
+        cpu_local::CpuId::new(),
+        &mut mapper,
+        &KERNEL_STACK_0,
+        segment_data,
+    );
     syscalls::init(&cpu_local::segment_data());
 }
 
