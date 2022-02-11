@@ -40,10 +40,9 @@
 //! ## Integration with smoltcp
 //!
 //! We use [smoltcp](https://docs.rs/crate/smoltcp) as the foundation
-//! for our network stack. As a result, [`Driver`] is wrapped by
-//! [`Device`] and its companion types to implement the [`smoltcp::phy::Device`]
-//! trait. We then use this to create a [`smoltcp::iface::Interface`],
-//! which we register with the network stack.
+//! for our network stack. However, the network subsystem abstracts
+//! away most of the smoltcp-specific aspects. Instead, we implement
+//! [`network::Device`].
 //!
 //! When not being used directly by a separate socket, there are two
 //! ways in which an interface built on a VirtIO network card is driven.
@@ -56,19 +55,20 @@ use crate::drivers::virtio::features::{Network, Reserved};
 use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::{scheduler, Thread, ThreadId};
+use crate::network;
 use crate::network::{add_interface, InterfaceHandle};
+use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
-use core::{mem, slice};
+use core::mem;
 use interrupts::{register_irq, Irq};
 use memlayout::phys_to_virt_addr;
 use pci;
 use physmem::{allocate_frame, deallocate_frame};
 use serial::println;
-use smoltcp::phy::{DeviceCapabilities, Medium, RxToken, TxToken};
-use smoltcp::time::Instant;
+use smoltcp::phy::{DeviceCapabilities, Medium};
 use smoltcp::wire::EthernetAddress;
 use spin::Mutex;
 use x86_64::instructions::interrupts::without_interrupts;
@@ -259,49 +259,60 @@ impl Drop for Driver {
     }
 }
 
-/// A `RecvBuffer` contains a buffer to which a
-/// packet has been written.
+/// A `Device` contains a reference to a
+/// [`Driver`], which can send/receive packets.
 ///
-/// `RecvBuffer` is returned to the interface by our
-/// driver when we receive a packet for it to
-/// process. The buffer is a recv buffer we just
-/// received from the device. The buffer can only
-/// be used once (enforced by the fact it's a method
-/// on `self`, not `&self`).
+/// `Device` wraps a driver so we can manage access to
+/// the driver, creating additional references for
+/// use by `RecvBuffer` and `SendBuffer`.
 ///
-/// Once the buffer has been consumed, it is sent
-/// back to the device so it can receive a subsequent
-/// packet.
-///
-pub struct RecvBuffer {
-    addr: PhysAddr,
-    len: usize,
+pub struct Device {
     driver: Arc<Mutex<Driver>>,
 }
 
-impl<'a> RxToken for RecvBuffer {
-    fn consume<R, F>(self, _timestamp: Instant, f: F) -> smoltcp::Result<R>
-    where
-        F: FnOnce(&mut [u8]) -> smoltcp::Result<R>,
-    {
-        // Process and strip the virtio network header.
-        // We don't use any advanced features yet, so
-        // the virtio network header fields can be ignored.
-        let offset = mem::size_of::<Header>();
+impl network::Device for Device {
+    /// Called to check whether the device has received any
+    /// packets. If so, the next available packet buffer is
+    /// returned as a pair of physical address and buffer
+    /// length. If not, `None` is returned instead.
+    ///
+    fn recv_packet(&mut self) -> Option<(PhysAddr, usize)> {
+        without_interrupts(|| {
+            let mut dev = self.driver.lock();
+            match dev.driver.recv(RECV_VIRTQUEUE) {
+                None => None,
+                Some(buf) => {
+                    debug_assert!(buf.buffers.len() == 1);
+                    let len = buf.written;
+                    let recv_addr = match buf.buffers[0] {
+                        Buffer::DeviceCanWrite { addr, .. } => addr,
+                        _ => panic!("invalid buffer type returned by device"),
+                    };
 
-        // Pass our buffer to the callback to
-        // process the packet.
-        let virt_addr = phys_to_virt_addr(self.addr) + offset;
-        let len = self.len - offset;
-        let buf = unsafe { slice::from_raw_parts_mut(virt_addr.as_mut_ptr(), len) };
-        let ret = f(buf);
+                    // Process and strip the VirtIO network
+                    // header. We don't use any advanced
+                    // features yet, so we just ignore the
+                    // header for now.
+                    let offset = mem::size_of::<Header>();
+                    let addr = recv_addr + offset;
+                    let len = len - offset;
 
+                    Some((addr, len))
+                }
+            }
+        })
+    }
+
+    /// After a device returns a packet buffer from `recv_packet`,
+    /// the buffer is returned to the device by calling
+    /// `reclaim_recv_buffer`.
+    ///
+    fn reclaim_recv_buffer(&mut self, addr: PhysAddr, _len: usize) {
         // Return the used buffer to the device
         // so it can use it to receive a future
         // packet.
         without_interrupts(|| {
             let mut dev = self.driver.lock();
-            let addr = self.addr;
             let len = PACKET_LEN_MAX;
 
             dev.driver
@@ -309,34 +320,12 @@ impl<'a> RxToken for RecvBuffer {
                 .expect("failed to return receive buffer to device");
             dev.driver.notify(RECV_VIRTQUEUE);
         });
-
-        ret
     }
-}
 
-/// A `SendBuffer` contains a reference to a
-/// [`Driver`], which can be used to send a packet.
-///
-/// `SendBuffer` is returned to the interface by our
-/// driver when the interface wants to send a
-/// packet. The buffer can only be used once
-/// (enforced by the fact it's a method on `self`,
-/// not `&self`).
-///
-/// When the buffer is consumed, a send buffer is
-/// retrieved from the driver and passed to the
-/// callback. If the callback returns a non-error
-/// result, we use the driver to send the packet.
-///
-pub struct SendBuffer {
-    driver: Arc<Mutex<Driver>>,
-}
-
-impl<'a> TxToken for SendBuffer {
-    fn consume<R, F>(self, _timestamp: Instant, len: usize, f: F) -> smoltcp::Result<R>
-    where
-        F: FnOnce(&mut [u8]) -> smoltcp::Result<R>,
-    {
+    /// Called when the interface wishes to send a packet of the
+    /// given length.
+    ///
+    fn get_send_buffer(&mut self, len: usize) -> Result<PhysAddr, smoltcp::Error> {
         // Check that the buffer will have
         // enough space for the requested length,
         // plus the virtio network header.
@@ -354,6 +343,19 @@ impl<'a> TxToken for SendBuffer {
             }
         };
 
+        // Leave space at the front for the virtio
+        // network header.
+        Ok(addr + offset)
+    }
+
+    /// Called to send a packet buffer that was returned by a call
+    /// to `get_send_buffer`.
+    ///
+    fn send_packet(&mut self, addr: PhysAddr, len: usize) -> Result<(), smoltcp::Error> {
+        // Go back to where the header starts,
+        // before the packet contents.
+        let offset = mem::size_of::<Header>();
+        let addr = addr - offset;
         let virt_addr = phys_to_virt_addr(addr);
 
         // Prepend the buffer with the virtio
@@ -369,10 +371,6 @@ impl<'a> TxToken for SendBuffer {
         header.checksum_offset = 0u16.to_le();
         header.num_buffers = 0u16.to_le();
 
-        let virt_addr = virt_addr + offset;
-        let buf = unsafe { slice::from_raw_parts_mut(virt_addr.as_mut_ptr(), len) };
-        let ret = f(buf)?;
-
         // Send the packet.
         without_interrupts(|| {
             let mut dev = self.driver.lock();
@@ -384,68 +382,10 @@ impl<'a> TxToken for SendBuffer {
             dev.driver.notify(SEND_VIRTQUEUE);
         });
 
-        Ok(ret)
-    }
-}
-
-/// A `Device` contains a reference to a
-/// [`Driver`], which can send/receive packets.
-///
-/// `Device` wraps a driver so we can manage access to
-/// the driver, creating additional references for
-/// use by `RecvBuffer` and `SendBuffer`.
-///
-pub struct Device {
-    driver: Arc<Mutex<Driver>>,
-}
-
-impl<'a> smoltcp::phy::Device<'a> for Device {
-    type RxToken = RecvBuffer;
-    type TxToken = SendBuffer;
-
-    /// receive is called by the interface to check
-    /// whether we have any packets to receive. We
-    /// pop off the next packet from the receive
-    /// queue and return it, or return None if not.
-    ///
-    fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
-        without_interrupts(|| {
-            let mut dev = self.driver.lock();
-            match dev.driver.recv(RECV_VIRTQUEUE) {
-                None => None,
-                Some(buf) => {
-                    debug_assert!(buf.buffers.len() == 1);
-                    let len = buf.written;
-                    let recv_addr = match buf.buffers[0] {
-                        Buffer::DeviceCanWrite { addr, .. } => addr,
-                        _ => panic!("invalid buffer type returned by device"),
-                    };
-
-                    Some((
-                        RecvBuffer {
-                            addr: recv_addr,
-                            len,
-                            driver: self.driver.clone(),
-                        },
-                        SendBuffer {
-                            driver: self.driver.clone(),
-                        },
-                    ))
-                }
-            }
-        })
+        Ok(())
     }
 
-    /// transmit is called by the interface when
-    /// it wants to send a packet.
-    fn transmit(&'a mut self) -> Option<Self::TxToken> {
-        Some(SendBuffer {
-            driver: self.driver.clone(),
-        })
-    }
-
-    /// capabilities describes this deivce's
-    /// capabilities.
+    /// Describes this device's capabilities.
     ///
     fn capabilities(&self) -> DeviceCapabilities {
         without_interrupts(|| {
@@ -630,7 +570,7 @@ pub fn install_pci_device(device: pci::Device, mapper: &mut OffsetPageTable) {
 
     // Pass the device to the network stack
     // and set up its interrupts.
-    let handle = add_interface(device, mac);
+    let handle = add_interface(Box::new(device), mac);
     let iface_handle = InterfaceDriver { driver, handle };
 
     without_interrupts(|| {

@@ -14,28 +14,31 @@
 //! This allows us to ensure that the network will be available when
 //! the initial workload starts.
 
-// TODO: Make the smoltcp Interface generic over devices, rather than specialising to drivers::virtio::network::Device.
-
 pub mod tcp;
 pub mod udp;
 
-use crate::drivers::virtio::network;
 use crate::multitasking::thread::ThreadId;
+use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::string::String;
+use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
+use core::slice;
 use managed::ManagedSlice;
+use memlayout::phys_to_virt_addr;
 use serial::println;
 use smoltcp;
 use smoltcp::iface::{InterfaceBuilder, NeighborCache, Routes, SocketHandle, SocketStorage};
+use smoltcp::phy::{DeviceCapabilities, RxToken, TxToken};
 use smoltcp::socket::{Dhcpv4Config, Dhcpv4Event, Dhcpv4Socket};
 use smoltcp::time::Instant;
 use smoltcp::wire::{EthernetAddress, HardwareAddress, IpCidr, Ipv4Address, Ipv4Cidr};
 use spin::Mutex;
 use time::{now, Duration};
 use x86_64::instructions::interrupts::without_interrupts;
+use x86_64::PhysAddr;
 
 /// INITIAL_WORKLOADS can be a set of thread ids that
 /// should be resumed once we have a DHCP configuration.
@@ -70,7 +73,7 @@ pub struct Interface {
     name: String,
 
     // iface is the underlying Smoltcp Interface.
-    iface: smoltcp::iface::Interface<'static, network::Device>,
+    iface: smoltcp::iface::Interface<'static, WrappedDevice>,
 
     // dhcp is the socket handle to the DHCP socket.
     dhcp: SocketHandle,
@@ -82,7 +85,7 @@ pub struct Interface {
 impl Interface {
     fn new(
         name: String,
-        iface: smoltcp::iface::Interface<'static, network::Device>,
+        iface: smoltcp::iface::Interface<'static, WrappedDevice>,
         dhcp: SocketHandle,
     ) -> Self {
         let config = None;
@@ -247,17 +250,199 @@ impl InterfaceHandle {
     }
 }
 
+/// Represents a network device, which can send and receive
+/// packets.
+///
+pub trait Device: Send {
+    /// Called to check whether the device has received any
+    /// packets. If so, the next available packet buffer is
+    /// returned as a pair of physical address and buffer
+    /// length. If not, `None` is returned instead.
+    ///
+    fn recv_packet(&mut self) -> Option<(PhysAddr, usize)>;
+
+    /// After a device returns a packet buffer from `recv_packet`,
+    /// the buffer is returned to the device by calling
+    /// `reclaim_recv_buffer`.
+    ///
+    fn reclaim_recv_buffer(&mut self, addr: PhysAddr, len: usize);
+
+    /// Called when the interface wishes to send a packet of the
+    /// given length.
+    ///
+    fn get_send_buffer(&mut self, len: usize) -> Result<PhysAddr, smoltcp::Error>;
+
+    /// Called to send a packet buffer that was returned by a call
+    /// to `get_send_buffer`.
+    ///
+    fn send_packet(&mut self, addr: PhysAddr, len: usize) -> Result<(), smoltcp::Error>;
+
+    /// Describes this device's capabilities.
+    ///
+    fn capabilities(&self) -> DeviceCapabilities;
+}
+
+/// This is our device wrapper which we use to ensure all
+/// our network interfaces are generic over the same type
+/// (this one). If we instead allow our device drivers to
+/// provide their own type, then we can't have a heterogeneous
+/// container for them all.
+///
+struct WrappedDevice {
+    dev: Arc<Mutex<Box<dyn Device>>>,
+}
+
+impl WrappedDevice {
+    /// Wrap the given device.
+    ///
+    fn new(dev: Box<dyn Device>) -> Self {
+        WrappedDevice {
+            dev: Arc::new(Mutex::new(dev)),
+        }
+    }
+}
+
+impl<'a> smoltcp::phy::Device<'a> for WrappedDevice {
+    type RxToken = RecvToken;
+    type TxToken = SendToken;
+
+    /// receive is called by the interface to check
+    /// whether we have any packets to receive. We
+    /// pop off the next packet from the receive
+    /// queue and return it, or return None if not.
+    ///
+    fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
+        without_interrupts(|| {
+            let mut dev = self.dev.lock();
+            if let Some((addr, len)) = dev.recv_packet() {
+                let recv = RecvToken {
+                    addr,
+                    len,
+                    dev: self.dev.clone(),
+                };
+                let send = SendToken {
+                    dev: self.dev.clone(),
+                };
+
+                Some((recv, send))
+            } else {
+                None
+            }
+        })
+    }
+
+    /// transmit is called by the interface when
+    /// it wants to send a packet.
+    fn transmit(&'a mut self) -> Option<Self::TxToken> {
+        Some(SendToken {
+            dev: self.dev.clone(),
+        })
+    }
+
+    /// capabilities describes this deivce's
+    /// capabilities.
+    ///
+    fn capabilities(&self) -> DeviceCapabilities {
+        without_interrupts(|| {
+            let dev = self.dev.lock();
+            dev.capabilities()
+        })
+    }
+}
+
+/// Implements RxToken for DeviceWrapper.
+///
+/// The DeviceWrapper returns a RecvToken when a packet
+/// has been received and can be processed by the device.
+///
+/// This token contains the packet buffer, which we pass
+/// to the interface and then return to the device.
+///
+struct RecvToken {
+    addr: PhysAddr,
+    len: usize,
+    dev: Arc<Mutex<Box<dyn Device>>>,
+}
+
+impl<'a> RxToken for RecvToken {
+    fn consume<R, F>(self, _timestamp: Instant, f: F) -> smoltcp::Result<R>
+    where
+        F: FnOnce(&mut [u8]) -> smoltcp::Result<R>,
+    {
+        // Pass our buffer to the callback to
+        // process the packet.
+        let virt_addr = phys_to_virt_addr(self.addr);
+        let buf = unsafe { slice::from_raw_parts_mut(virt_addr.as_mut_ptr(), self.len) };
+        let ret = f(buf);
+
+        // Return the used buffer to the device
+        // so it can be used to receive future
+        // packets.
+        without_interrupts(|| {
+            let mut dev = self.dev.lock();
+            dev.reclaim_recv_buffer(self.addr, self.len);
+        });
+
+        ret
+    }
+}
+
+/// Implements TxToken for DeviceWrapper.
+///
+/// The DeviceWrapper returns a SendToken when the
+/// interface wishes to send a packet.
+///
+/// The token contains only a handle to the device,
+/// which is then used to send the packet.
+///
+struct SendToken {
+    dev: Arc<Mutex<Box<dyn Device>>>,
+}
+
+impl<'a> TxToken for SendToken {
+    fn consume<R, F>(self, _timestamp: Instant, len: usize, f: F) -> smoltcp::Result<R>
+    where
+        F: FnOnce(&mut [u8]) -> smoltcp::Result<R>,
+    {
+        // Start by getting a send buffer from
+        // the device.
+        let phys = without_interrupts(|| {
+            //
+            let mut dev = self.dev.lock();
+            dev.get_send_buffer(len)
+        })?;
+
+        // Pass our buffer to the callback to
+        // receive the packet data.
+        let virt_addr = phys_to_virt_addr(phys);
+        let buf = unsafe { slice::from_raw_parts_mut(virt_addr.as_mut_ptr(), len) };
+        let ret = f(buf)?;
+
+        // Send the packet.
+        without_interrupts(|| {
+            let mut dev = self.dev.lock();
+            dev.send_packet(phys, len)
+        })?;
+
+        Ok(ret)
+    }
+}
+
 /// Registers a new network interface, returning a unique
 /// interface handle.
 ///
-pub fn add_interface(device: network::Device, mac: EthernetAddress) -> InterfaceHandle {
+pub fn add_interface(device: Box<dyn Device>, mac: EthernetAddress) -> InterfaceHandle {
+    // Wrap the device so we can use it
+    // in a homogeneous container.
+    let wrapped = WrappedDevice::new(device);
+
     // Create the interface.
     // TODO: Add a random seed.
     let ip_addrs = vec![IpCidr::Ipv4(Ipv4Cidr::new(Ipv4Address::UNSPECIFIED, 0))];
     let routes = Routes::new(BTreeMap::new());
     let neighbours = NeighborCache::new(BTreeMap::new());
     let sockets = Vec::<SocketStorage>::new();
-    let mut iface = InterfaceBuilder::new(device, sockets)
+    let mut iface = InterfaceBuilder::new(wrapped, sockets)
         .hardware_addr(HardwareAddress::Ethernet(mac))
         .neighbor_cache(neighbours)
         .ip_addrs(ip_addrs)
