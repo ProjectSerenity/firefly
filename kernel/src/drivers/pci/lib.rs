@@ -32,6 +32,18 @@ const VENDOR_ID: u8 = 0x00; // u16
 const COMMAND: u8 = 0x04; // u16
 const HEADER_TYPE: u8 = 0x0e; // u8
 
+/// Represents a device driver that can take ownership
+/// of a PCI device.
+///
+pub type Driver = fn(device: Device);
+
+/// Checks whether a device driver supports the given
+/// device. If it does, it will return some [`Driver`]
+/// implementation which should be called to install
+/// the device. Otherwise, it will return `None`.
+///
+pub type DriverSupportCheck = fn(device: &Device) -> Option<Driver>;
+
 /// Scans the PCI buses for devices, returning the set of
 /// discovered devices.
 ///

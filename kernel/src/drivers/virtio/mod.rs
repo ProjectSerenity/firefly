@@ -51,7 +51,6 @@ pub mod network;
 pub mod transports;
 pub mod virtqueues;
 
-use crate::drivers;
 use crate::drivers::virtio::virtqueues::split;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
@@ -84,7 +83,7 @@ const MAX_DEVICE_ID: u16 = 0x107f;
 /// pci_device_supported returns a PCI DeviceDriver if the
 /// given device is a supported virtio device.
 ///
-pub fn pci_device_check(device: &pci::Device) -> Option<drivers::PciDriver> {
+pub fn pci_device_check(device: &pci::Device) -> Option<pci::Driver> {
     if device.vendor != VENDOR_ID {
         return None;
     }

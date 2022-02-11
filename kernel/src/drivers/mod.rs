@@ -8,7 +8,7 @@
 //! ## PCI devices
 //!
 //! PCI [`Device`](pci::Device)s can be used to access the resources and data of a
-//! PCI device. A device driver can be implemented by adding a [`PciDriverCheck`]
+//! PCI device. A device driver can be implemented by adding a [`DriverSupportCheck`](pci::DriverSupportCheck)
 //! to [`PCI_DRIVERS`], then iteratively installing supported devices:
 //!
 //! ```
@@ -33,19 +33,6 @@ pub mod virtio;
 
 use pci;
 
-/// A PciDriver takes ownership of a PCI device.
-///
-pub type PciDriver = fn(device: pci::Device);
-
-/// This check determines whether a PCI
-/// device driver supports the given device.
-///
-/// If a driver returns some device driver,
-/// that driver is called to take ownership
-/// of the device.
-///
-pub type PciDriverCheck = fn(device: &pci::Device) -> Option<PciDriver>;
-
 /// This is the set of configured PCI device drivers.
 ///
 /// For each PCI device discovered, each callback listed
@@ -53,4 +40,4 @@ pub type PciDriverCheck = fn(device: &pci::Device) -> Option<PciDriver>;
 /// supports the device. The first device that returns a
 /// driver will then take ownership of the device.
 ///
-pub const PCI_DRIVERS: &[PciDriverCheck] = &[virtio::pci_device_check];
+pub const PCI_DRIVERS: &[pci::DriverSupportCheck] = &[virtio::pci_device_check];
