@@ -64,7 +64,7 @@ rust_library(
         crate("spin"),
         crate("volatile"),
         crate("x86_64"),
-        "//kernel/src/cpuid",
+        "//kernel/src/cpu",
         "//kernel/src/drivers/pci",
         "//kernel/src/drivers/serial",
         "//kernel/src/filesystem",
@@ -109,7 +109,7 @@ rust_binary(
     deps = [
         crate("x86_64"),
         ":libkernel",
-        "//kernel/src/cpuid",
+        "//kernel/src/cpu",
         "//kernel/src/drivers/pci",
         "//kernel/src/drivers/serial",
         "//kernel/src/memory/physmem",

@@ -4,13 +4,13 @@
 # license that can be found in the LICENSE file.
 
 [package]
-name = "cpuid"
+name = "cpu"
 version = "0.1.0"
 authors = ["Jamie Hall <the.sly.marbo@googlemail.com>"]
 edition = "2018"
 
 [lib]
-name = "cpuid"
+name = "cpu"
 path = "lib.rs"
 
 [dependencies]

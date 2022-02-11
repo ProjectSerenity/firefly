@@ -48,7 +48,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 fn kmain() {
     println!("Kernel ready!");
     println!("Kernel booted at {}.", time::boot_time());
-    cpuid::print_branding();
+    cpu::print_branding();
 
     // Set up our initial workload for when
     // we get a DHCP configuration.

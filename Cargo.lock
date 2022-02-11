@@ -74,20 +74,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "cpu"
+version = "0.1.0"
+dependencies = [
+ "raw-cpuid",
+ "serial",
+]
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95059428f66df56b63431fdb4e1947ed2190586af5c5a8a8b71122bdf5a7f469"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "cpuid"
-version = "0.1.0"
-dependencies = [
- "raw-cpuid",
- "serial",
 ]
 
 [[package]]
@@ -153,7 +153,7 @@ dependencies = [
  "bitflags",
  "bitmap_index",
  "bootloader",
- "cpuid",
+ "cpu",
  "filesystem",
  "interrupts",
  "lazy_static",

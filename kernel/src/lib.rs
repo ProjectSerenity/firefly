@@ -23,7 +23,7 @@
 //! Several parts of kernel functionality are provided
 //! in separate crates. These are:
 //!
-//! - [cpuid](::cpuid)
+//! - [cpu](::cpu)
 //! - [drivers/pci](::pci)
 //! - [drivers/serial](::serial)
 //! - [filesystem](::filesystem)
@@ -81,7 +81,7 @@ use x86_64::structures::idt::InterruptStackFrame;
 /// - Initialise the [scheduler](multitasking/thread).
 ///
 pub fn init(boot_info: &'static BootInfo) {
-    cpuid::check_features();
+    cpu::check_features();
 
     // Make sure we shadow the initial segment
     // data so we can't circumvent the pin later.

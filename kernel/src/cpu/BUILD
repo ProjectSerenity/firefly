@@ -7,9 +7,9 @@ load("@crates//:defs.bzl", "crate")
 load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library")
 
 rust_library(
-    name = "cpuid",
+    name = "cpu",
     srcs = ["lib.rs"],
-    crate_name = "cpuid",
+    crate_name = "cpu",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         crate("raw-cpuid"),
@@ -19,10 +19,10 @@ rust_library(
 
 rust_clippy(
     name = "clippy",
-    deps = [":cpuid"],
+    deps = [":cpu"],
 )
 
 rust_doc(
     name = "docs",
-    crate = ":cpuid",
+    crate = ":cpu",
 )
