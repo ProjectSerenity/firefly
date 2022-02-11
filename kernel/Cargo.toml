@@ -58,11 +58,3 @@ boot-info-address = "0xffff800040000000"
 kernel-stack-address = "0xffff80005554f000"
 kernel-stack-size = 128
 physical-memory-offset = "0xffff800080000000"
-
-[[test]]
-name = "should_panic"
-harness = false
-
-[[test]]
-name = "stack_overflow"
-harness = false
