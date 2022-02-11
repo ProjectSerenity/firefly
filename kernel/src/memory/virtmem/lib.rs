@@ -45,19 +45,20 @@ mod fixed_size_block;
 mod linked_list;
 mod mapping;
 
-use alloc::vec;
 use alloc::vec::Vec;
 use mapping::PagePurpose;
-use memlayout::KERNEL_HEAP;
+use memlayout::{phys_to_virt_addr, KERNEL_HEAP, PHYSICAL_MEMORY_OFFSET};
 use serial::println;
 use spin::{Mutex, MutexGuard};
-use x86_64::registers::control::{Cr4, Cr4Flags};
+use x86_64::instructions::interrupts::without_interrupts;
+use x86_64::registers::control::{Cr3, Cr4, Cr4Flags};
 use x86_64::registers::model_specific::{Efer, EferFlags};
 use x86_64::structures::paging::mapper::{
     MapToError, MappedFrame, MapperFlushAll, TranslateResult,
 };
 use x86_64::structures::paging::{
-    FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, Size4KiB, Translate,
+    FrameAllocator, Mapper, OffsetPageTable, Page, PageSize, PageTable, PageTableFlags, Size4KiB,
+    Translate,
 };
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -67,6 +68,7 @@ pub use bump::BumpAllocator;
 pub use fixed_size_block::FixedSizeBlockAllocator;
 pub use linked_list::LinkedListAllocator;
 
+#[cfg(not(test))]
 #[global_allocator]
 static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
 
@@ -100,6 +102,7 @@ pub fn init(
         unsafe { mapper.map_to(page, frame, flags, frame_allocator)?.flush() };
     }
 
+    #[cfg(not(test))]
     unsafe {
         ALLOCATOR.lock().init(
             KERNEL_HEAP.start().as_u64() as usize,
@@ -225,8 +228,43 @@ pub struct PhysBuffer {
 /// If any part of the virtual memory region is not mapped
 /// in the given page table, then None is returned.
 ///
-pub fn virt_to_phys_addrs<T: Translate>(
+pub fn virt_to_phys_addrs(addr: VirtAddr, len: usize) -> Option<Vec<PhysBuffer>> {
+    // Get the current page table.
+    // This is similar to the code in kernel_pml4,
+    // but will use whatever is the current page
+    // table.
+    //
+    // This is safe, even though we use unsafe, as
+    // we disable interrupts while the page tables
+    // are in use and we only read, not write them.
+    // This means they can't change underneath us
+    // and there's no thread-safety risk.
+    //
+    // We also pre-allocate the vector we pass in,
+    // so no allocations should need to happen.
+    let (level_4_table_frame, _) = Cr3::read();
+    let phys = level_4_table_frame.start_address();
+    let virt = phys_to_virt_addr(phys);
+    let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
+    let page_table = unsafe { &mut *page_table_ptr };
+    let pml4 = unsafe { OffsetPageTable::new(page_table, PHYSICAL_MEMORY_OFFSET) };
+
+    // Work out the max number of buffers we could
+    // get back, which is the situation where we
+    // straddle a page boundary.
+    let max_pages = (len / (Size4KiB::SIZE as usize)) + 1;
+    let buf = Vec::with_capacity(max_pages);
+
+    without_interrupts(|| _virt_to_phys_addrs(&pml4, buf, addr, len))
+}
+
+/// This is the underlyign implementation for mapping
+/// virtual addresses to physical buffers. We abstract
+/// away the translator type to make testing easier.
+///
+fn _virt_to_phys_addrs<T: Translate>(
     page_table: &T,
+    mut bufs: Vec<PhysBuffer>,
     addr: VirtAddr,
     len: usize,
 ) -> Option<Vec<PhysBuffer>> {
@@ -235,13 +273,15 @@ pub fn virt_to_phys_addrs<T: Translate>(
     if len == 0 {
         match page_table.translate_addr(addr) {
             None => return None,
-            Some(addr) => return Some(vec![PhysBuffer { addr, len }]),
+            Some(addr) => {
+                bufs.push(PhysBuffer { addr, len });
+                return Some(bufs);
+            }
         }
     }
 
     // Now we pass through the buffer until we
     // have translated all of it.
-    let mut bufs = Vec::new();
     let mut addr = addr;
     let mut len = len;
     while len > 0 {
@@ -281,6 +321,7 @@ struct Locked<A> {
 }
 
 impl<A> Locked<A> {
+    #[allow(dead_code)]
     pub const fn new(inner: A) -> Self {
         Locked {
             inner: Mutex::new(inner),
@@ -294,9 +335,11 @@ impl<A> Locked<A> {
 
 #[cfg(test)]
 mod test {
+    extern crate std;
     use super::*;
     use align::align_down_u64;
     use alloc::collections::BTreeMap;
+    use alloc::vec;
     use x86_64::structures::paging::PhysFrame;
 
     /// DebugPageTable is a helper type for testing code that
@@ -386,8 +429,9 @@ mod test {
         page_table.map(page3, phys_frame(frame2));
 
         // Simple example: single address.
+        let buf = Vec::with_capacity(5);
         assert_eq!(
-            virt_to_phys_addrs(&page_table, page1, 0),
+            _virt_to_phys_addrs(&page_table, buf, page1, 0),
             Some(vec![PhysBuffer {
                 addr: frame3,
                 len: 0
@@ -395,8 +439,9 @@ mod test {
         );
 
         // Simple example: within a single page.
+        let buf = Vec::with_capacity(5);
         assert_eq!(
-            virt_to_phys_addrs(&page_table, page1 + 2u64, 2),
+            _virt_to_phys_addrs(&page_table, buf.to_vec(), page1 + 2u64, 2),
             Some(vec![PhysBuffer {
                 addr: frame3 + 2u64,
                 len: 2
@@ -404,8 +449,9 @@ mod test {
         );
 
         // Crossing a split page boundary.
+        let buf = Vec::with_capacity(5);
         assert_eq!(
-            virt_to_phys_addrs(&page_table, page1 + 4090u64, 12),
+            _virt_to_phys_addrs(&page_table, buf.to_vec(), page1 + 4090u64, 12),
             Some(vec![
                 PhysBuffer {
                     addr: frame3 + 4090u64,
@@ -420,8 +466,9 @@ mod test {
 
         // Crossing a contiguous page boundary.
         // TODO: merge contiguous regions to reduce the number of buffers we return.
+        let buf = Vec::with_capacity(5);
         assert_eq!(
-            virt_to_phys_addrs(&page_table, page2 + 4090u64, 12),
+            _virt_to_phys_addrs(&page_table, buf.to_vec(), page2 + 4090u64, 12),
             Some(vec![
                 PhysBuffer {
                     addr: frame1 + 4090u64,

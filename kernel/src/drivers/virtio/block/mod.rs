@@ -15,7 +15,6 @@ mod cache;
 use crate::drivers::virtio;
 use crate::drivers::virtio::features::{Block, Reserved};
 use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
-use crate::memory::kernel_pml4;
 use crate::multitasking::thread::ThreadId;
 use crate::multitasking::{cpu_local, thread};
 use alloc::boxed::Box;
@@ -203,8 +202,7 @@ impl Driver {
 
             vec![Buffer::DeviceCanWrite { addr, len }]
         } else {
-            let pml4 = unsafe { kernel_pml4() };
-            let bufs = match virt_to_phys_addrs(&pml4, virt_addr, buf.len()) {
+            let bufs = match virt_to_phys_addrs(virt_addr, buf.len()) {
                 None => panic!("failed to resolve physical memory region"),
                 Some(bufs) => bufs,
             };

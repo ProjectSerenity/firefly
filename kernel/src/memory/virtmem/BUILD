@@ -4,7 +4,7 @@
 # license that can be found in the LICENSE file.
 
 load("@crates//:defs.bzl", "crate")
-load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library")
+load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rust_test")
 
 rust_library(
     name = "virtmem",
@@ -35,5 +35,11 @@ rust_clippy(
 
 rust_doc(
     name = "docs",
+    crate = ":virtmem",
+)
+
+rust_test(
+    name = "virtmem_test",
+    size = "small",
     crate = ":virtmem",
 )
