@@ -25,11 +25,13 @@
 //! thread.
 
 pub mod scheduler;
+mod stacks;
 mod switch;
 
-use crate::memory::{free_kernel_stack, kernel_pml4, new_kernel_stack, StackBounds};
+use crate::memory::kernel_pml4;
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler::{timers, Scheduler};
+use crate::multitasking::thread::stacks::{free_kernel_stack, new_kernel_stack, StackBounds};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::task::Wake;
