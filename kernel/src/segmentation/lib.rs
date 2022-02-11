@@ -264,7 +264,7 @@ impl SegmentData {
     /// Returns the kernel's 64-bit code and data segment
     /// selectors.
     ///
-    pub fn kernel_selectors(self: Pin<&mut Self>) -> (SegmentSelector, SegmentSelector) {
+    pub fn kernel_selectors(self: &Pin<&mut Self>) -> (SegmentSelector, SegmentSelector) {
         (self.kernel_code_64, self.kernel_data)
     }
 
@@ -272,7 +272,7 @@ impl SegmentData {
     /// segment selectors.
     ///
     pub fn user_selectors(
-        self: Pin<&mut Self>,
+        self: &Pin<&mut Self>,
     ) -> (SegmentSelector, SegmentSelector, SegmentSelector) {
         (self.user_code_32, self.user_data, self.user_code_64)
     }
