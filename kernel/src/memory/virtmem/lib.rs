@@ -45,16 +45,21 @@ mod fixed_size_block;
 mod linked_list;
 mod mapping;
 
+use alloc::vec;
+use alloc::vec::Vec;
 use mapping::PagePurpose;
 use memlayout::KERNEL_HEAP;
 use serial::println;
 use spin::{Mutex, MutexGuard};
 use x86_64::registers::control::{Cr4, Cr4Flags};
 use x86_64::registers::model_specific::{Efer, EferFlags};
-use x86_64::structures::paging::mapper::{MapToError, MapperFlushAll};
-use x86_64::structures::paging::{
-    FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, Size4KiB,
+use x86_64::structures::paging::mapper::{
+    MapToError, MappedFrame, MapperFlushAll, TranslateResult,
 };
+use x86_64::structures::paging::{
+    FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, Size4KiB, Translate,
+};
+use x86_64::{PhysAddr, VirtAddr};
 
 // Re-export the heap allocators. We don't need to do this, but it's useful
 // to expose their documentation to aid future development.
@@ -206,6 +211,68 @@ pub unsafe fn debug(pml4: &PageTable) {
     }
 }
 
+/// Describes a single contiguous physical memory region.
+///
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+pub struct PhysBuffer {
+    pub addr: PhysAddr,
+    pub len: usize,
+}
+
+/// Translates a contiguous virtual memory region into one
+/// or more contiguous physical memory regions.
+///
+/// If any part of the virtual memory region is not mapped
+/// in the given page table, then None is returned.
+///
+pub fn virt_to_phys_addrs<T: Translate>(
+    page_table: &T,
+    addr: VirtAddr,
+    len: usize,
+) -> Option<Vec<PhysBuffer>> {
+    // We will allow an address with length zero
+    // as a special case for a single address.
+    if len == 0 {
+        match page_table.translate_addr(addr) {
+            None => return None,
+            Some(addr) => return Some(vec![PhysBuffer { addr, len }]),
+        }
+    }
+
+    // Now we pass through the buffer until we
+    // have translated all of it.
+    let mut bufs = Vec::new();
+    let mut addr = addr;
+    let mut len = len;
+    while len > 0 {
+        match page_table.translate(addr) {
+            TranslateResult::NotMapped => return None,
+            TranslateResult::InvalidFrameAddress(_) => return None,
+            TranslateResult::Mapped { frame, offset, .. } => {
+                // Advance the buffer by the amount of
+                // physical memory we just found.
+                let found = (frame.size() - offset) as usize;
+                let phys_addr = match frame {
+                    MappedFrame::Size4KiB(frame) => frame.start_address() + offset,
+                    MappedFrame::Size2MiB(frame) => frame.start_address() + offset,
+                    MappedFrame::Size1GiB(frame) => frame.start_address() + offset,
+                };
+
+                bufs.push(PhysBuffer {
+                    addr: phys_addr,
+                    len: core::cmp::min(len, found),
+                });
+                addr += found;
+                len = len.saturating_sub(found);
+            }
+        }
+    }
+
+    // TODO(#10): Merge contiguous regions to reduce the number of buffers we return.
+
+    Some(bufs)
+}
+
 /// Wrap a type in a [`spin::Mutex`] so we can
 /// implement traits on a locked type.
 ///
@@ -222,5 +289,149 @@ impl<A> Locked<A> {
 
     pub fn lock(&self) -> MutexGuard<A> {
         self.inner.lock()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use align::align_down_u64;
+    use alloc::collections::BTreeMap;
+    use x86_64::structures::paging::PhysFrame;
+
+    /// DebugPageTable is a helper type for testing code that
+    /// uses page tables. It emulates the behaviour for a level
+    /// 4 page table using heap memory, without modifying the
+    /// system page tables.
+    ///
+    pub struct DebugPageTable {
+        mappings: BTreeMap<VirtAddr, PhysFrame>,
+    }
+
+    impl DebugPageTable {
+        pub fn new() -> Self {
+            DebugPageTable {
+                mappings: BTreeMap::new(),
+            }
+        }
+
+        pub fn map(&mut self, addr: VirtAddr, frame: PhysFrame) {
+            // Check the virtual address is at a page boundary,
+            // to simplify things.
+            assert_eq!(addr.as_u64(), align_down_u64(addr.as_u64(), Size4KiB::SIZE));
+
+            self.mappings.insert(addr, frame);
+        }
+    }
+
+    impl Translate for DebugPageTable {
+        fn translate(&self, addr: VirtAddr) -> TranslateResult {
+            let truncated = VirtAddr::new(align_down_u64(addr.as_u64(), Size4KiB::SIZE));
+            match self.mappings.get(&truncated) {
+                None => return TranslateResult::NotMapped,
+                Some(frame) => TranslateResult::Mapped {
+                    frame: MappedFrame::Size4KiB(*frame),
+                    offset: addr - truncated,
+                    flags: PageTableFlags::PRESENT,
+                },
+            }
+        }
+    }
+
+    #[test]
+    fn debug_page_table() {
+        // Check that the debug page table works
+        // correctly.
+        let mut page_table = DebugPageTable::new();
+        fn phys_frame(addr: u64) -> PhysFrame {
+            let addr = PhysAddr::new(addr);
+            let frame = PhysFrame::from_start_address(addr);
+            frame.unwrap()
+        }
+
+        assert_eq!(page_table.translate_addr(VirtAddr::new(4096)), None);
+        page_table.map(VirtAddr::new(4096), phys_frame(4096));
+        assert_eq!(
+            page_table.translate_addr(VirtAddr::new(4096)),
+            Some(PhysAddr::new(4096))
+        );
+        assert_eq!(
+            page_table.translate_addr(VirtAddr::new(4097)),
+            Some(PhysAddr::new(4097))
+        );
+    }
+
+    #[test]
+    fn virt_to_phys_addrs() {
+        // Start by making some mappings we can use.
+        // We map as follows:
+        // - page 1 => frame 3
+        // - page 2 => frame 1
+        // - page 3 => frame 2
+        let page1 = VirtAddr::new(1 * Size4KiB::SIZE);
+        let page2 = VirtAddr::new(2 * Size4KiB::SIZE);
+        let page3 = VirtAddr::new(3 * Size4KiB::SIZE);
+        let frame1 = PhysAddr::new(1 * Size4KiB::SIZE);
+        let frame2 = PhysAddr::new(2 * Size4KiB::SIZE);
+        let frame3 = PhysAddr::new(3 * Size4KiB::SIZE);
+
+        let mut page_table = DebugPageTable::new();
+        fn phys_frame(addr: PhysAddr) -> PhysFrame {
+            let frame = PhysFrame::from_start_address(addr);
+            frame.unwrap()
+        }
+
+        page_table.map(page1, phys_frame(frame3));
+        page_table.map(page2, phys_frame(frame1));
+        page_table.map(page3, phys_frame(frame2));
+
+        // Simple example: single address.
+        assert_eq!(
+            virt_to_phys_addrs(&page_table, page1, 0),
+            Some(vec![PhysBuffer {
+                addr: frame3,
+                len: 0
+            }])
+        );
+
+        // Simple example: within a single page.
+        assert_eq!(
+            virt_to_phys_addrs(&page_table, page1 + 2u64, 2),
+            Some(vec![PhysBuffer {
+                addr: frame3 + 2u64,
+                len: 2
+            }])
+        );
+
+        // Crossing a split page boundary.
+        assert_eq!(
+            virt_to_phys_addrs(&page_table, page1 + 4090u64, 12),
+            Some(vec![
+                PhysBuffer {
+                    addr: frame3 + 4090u64,
+                    len: 6
+                },
+                PhysBuffer {
+                    addr: frame1,
+                    len: 6
+                }
+            ])
+        );
+
+        // Crossing a contiguous page boundary.
+        // TODO: merge contiguous regions to reduce the number of buffers we return.
+        assert_eq!(
+            virt_to_phys_addrs(&page_table, page2 + 4090u64, 12),
+            Some(vec![
+                PhysBuffer {
+                    addr: frame1 + 4090u64,
+                    len: 6
+                },
+                PhysBuffer {
+                    addr: frame2,
+                    len: 6
+                }
+            ])
+        );
     }
 }
