@@ -32,6 +32,7 @@ use storage::block::{add_device, Device, Error, Operations};
 use virtmem::virt_to_phys_addrs;
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::idt::InterruptStackFrame;
+use x86_64::structures::paging::OffsetPageTable;
 use x86_64::{PhysAddr, VirtAddr};
 
 /// REQUEST_VIRTQUEUE is the sole virtqueue used
@@ -426,8 +427,8 @@ struct Config {
 /// Takes ownership of the given PCI device to reset and configure
 /// a virtio entropy device.
 ///
-pub fn install_pci_device(device: pci::Device) {
-    let transport = match transports::pci::Transport::new(device) {
+pub fn install_pci_device(device: pci::Device, mapper: &mut OffsetPageTable) {
+    let transport = match transports::pci::Transport::new(device, mapper) {
         Err(err) => {
             println!("Ignoring invalid device: {:?}.", err);
             return;
@@ -437,7 +438,7 @@ pub fn install_pci_device(device: pci::Device) {
 
     let must_features = Reserved::VERSION_1.bits();
     let like_features = Reserved::RING_EVENT_IDX.bits() | (Block::RO | Block::FLUSH).bits();
-    let driver = match virtio::Driver::new(transport, must_features, like_features, 1) {
+    let driver = match virtio::Driver::new(transport, mapper, must_features, like_features, 1) {
         Ok(driver) => driver,
         Err(err) => {
             println!("Failed to initialise block device: {:?}.", err);

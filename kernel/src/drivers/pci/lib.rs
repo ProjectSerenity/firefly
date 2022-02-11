@@ -20,6 +20,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 use core::fmt;
 use x86_64::instructions::port::Port;
+use x86_64::structures::paging::OffsetPageTable;
 use x86_64::PhysAddr;
 
 const CONFIG_ADDRESS: u16 = 0xcf8;
@@ -35,7 +36,9 @@ const HEADER_TYPE: u8 = 0x0e; // u8
 /// Represents a device driver that can take ownership
 /// of a PCI device.
 ///
-pub type Driver = fn(device: Device);
+/// The mapper may be necessary to set up MMIO.
+///
+pub type Driver = fn(device: Device, mapper: &mut OffsetPageTable);
 
 /// Checks whether a device driver supports the given
 /// device. If it does, it will return some [`Driver`]

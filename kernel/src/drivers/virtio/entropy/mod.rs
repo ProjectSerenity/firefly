@@ -38,6 +38,7 @@ use pci;
 use random::{register_entropy_source, EntropySource};
 use serial::println;
 use virtmem::virt_to_phys_addrs;
+use x86_64::structures::paging::OffsetPageTable;
 use x86_64::{PhysAddr, VirtAddr};
 
 /// REQUEST_VIRTQUEUE is the sole virtqueue used
@@ -146,8 +147,8 @@ impl EntropySource for Driver {
 /// Takes ownership of the given PCI device to reset and configure
 /// a virtio entropy device.
 ///
-pub fn install_pci_device(device: pci::Device) {
-    let transport = match transports::pci::Transport::new(device) {
+pub fn install_pci_device(device: pci::Device, mapper: &mut OffsetPageTable) {
+    let transport = match transports::pci::Transport::new(device, mapper) {
         Err(err) => {
             println!("Ignoring invalid device: {:?}.", err);
             return;
@@ -157,7 +158,7 @@ pub fn install_pci_device(device: pci::Device) {
 
     let must_features = Reserved::VERSION_1.bits();
     let like_features = 0u64;
-    let mut driver = match virtio::Driver::new(transport, must_features, like_features, 1) {
+    let mut driver = match virtio::Driver::new(transport, mapper, must_features, like_features, 1) {
         Ok(driver) => driver,
         Err(err) => {
             println!("Failed to initialise entropy device: {:?}.", err);

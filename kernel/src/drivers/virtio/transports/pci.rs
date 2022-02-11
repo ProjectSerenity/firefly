@@ -19,11 +19,11 @@
 
 use crate::drivers::virtio;
 use crate::drivers::virtio::{DeviceStatus, InterruptStatus};
-use crate::memory::kernel_pml4;
 use interrupts::Irq;
 use mmio::{read_volatile, write_volatile};
 use pci;
 use x86_64::structures::paging::frame::{PhysFrame, PhysFrameRange};
+use x86_64::structures::paging::OffsetPageTable;
 use x86_64::PhysAddr;
 
 /// CAPABILITY_ID_VENDOR is the unique identifier
@@ -223,7 +223,7 @@ impl Transport {
     /// parsing the virtio-related structures and returning
     /// them.
     ///
-    pub fn new(device: pci::Device) -> Result<Self, ConfigError> {
+    pub fn new(device: pci::Device, mapper: &mut OffsetPageTable) -> Result<Self, ConfigError> {
         let mut common: Option<PhysFrameRange> = None;
         let mut notify: Option<PhysFrameRange> = None;
         let mut notify_off_multiplier: Option<u64> = None;
@@ -312,15 +312,14 @@ impl Transport {
                 Some(device_spec),
             ) => {
                 device.enable_bus_master();
-                let mut mapper = unsafe { kernel_pml4() };
                 unsafe {
                     Ok(Transport {
                         pci: device,
-                        common: mmio::Region::map(&mut mapper, common),
-                        notify: mmio::Region::map(&mut mapper, notify),
+                        common: mmio::Region::map(mapper, common),
+                        notify: mmio::Region::map(mapper, notify),
                         notify_offset_multiplier: notify_off_multiplier,
-                        interrupt: mmio::Region::map(&mut mapper, interrupt),
-                        device: mmio::Region::map(&mut mapper, device_spec),
+                        interrupt: mmio::Region::map(mapper, interrupt),
+                        device: mmio::Region::map(mapper, device_spec),
                     })
                 }
             }

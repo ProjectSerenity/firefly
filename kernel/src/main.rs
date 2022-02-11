@@ -15,7 +15,7 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use kernel::memory;
+use kernel::memory::kernel_pml4;
 use kernel::multitasking::thread::{scheduler, Thread};
 use kernel::{drivers, network};
 use serial::println;
@@ -54,14 +54,16 @@ fn kmain() {
     // we get a DHCP configuration.
     network::register_workload(Thread::create_kernel_thread(initial_workload));
 
+    let mut mapper = unsafe { kernel_pml4() };
     for device in pci::scan().into_iter() {
         for check in drivers::PCI_DRIVERS.iter() {
             if let Some(install) = check(&device) {
-                install(device);
+                install(device, &mut mapper);
                 break;
             }
         }
     }
+    drop(mapper);
 
     random::init();
     Thread::start_kernel_thread(kernel::entropy_reseed_helper);
@@ -87,7 +89,7 @@ fn debug() {
 
     // Virtual memory.
     println!("Virtual memory manager:");
-    unsafe { virtmem::debug(memory::kernel_pml4().level_4_table()) };
+    unsafe { virtmem::debug(kernel_pml4().level_4_table()) };
     println!();
 
     // Physical memory.
