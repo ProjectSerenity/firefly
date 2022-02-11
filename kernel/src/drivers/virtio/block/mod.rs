@@ -12,9 +12,9 @@
 
 mod cache;
 
+use crate::drivers::virtio;
 use crate::drivers::virtio::features::{Block, Reserved};
 use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
-use crate::drivers::{pci, virtio};
 use crate::memory::kernel_pml4;
 use crate::multitasking::thread::ThreadId;
 use crate::multitasking::{cpu_local, thread};
@@ -25,6 +25,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use interrupts::{register_irq, Irq};
 use memlayout::{PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
+use pci;
 use serial::println;
 use spin::Mutex;
 use storage::block::{add_device, Device, Error, Operations};

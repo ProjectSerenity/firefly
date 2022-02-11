@@ -51,9 +51,9 @@
 //! 1. Interrupts from the device advance the network stack, processing any received packets.
 //! 2. A companion kernel thread advances the network stack periodically, following the interface's interval recommendations.
 
+use crate::drivers::virtio;
 use crate::drivers::virtio::features::{Network, Reserved};
 use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
-use crate::drivers::{pci, virtio};
 use crate::multitasking::cpu_local;
 use crate::multitasking::thread::{scheduler, Thread, ThreadId};
 use crate::network::{add_interface, InterfaceHandle};
@@ -64,6 +64,7 @@ use bitflags::bitflags;
 use core::{mem, slice};
 use interrupts::{register_irq, Irq};
 use memlayout::phys_to_virt_addr;
+use pci;
 use physmem::{allocate_frame, deallocate_frame};
 use serial::println;
 use smoltcp::phy::{DeviceCapabilities, Medium, RxToken, TxToken};
