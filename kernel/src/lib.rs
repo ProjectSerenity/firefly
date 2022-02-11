@@ -103,7 +103,7 @@ pub fn init(boot_info: &'static BootInfo) {
     // Set up the heap allocator.
     unsafe { memory::init(boot_info) };
     cpu_local::init(cpu_local::CpuId::new(), &KERNEL_STACK_0, segment_data);
-    syscalls::init();
+    syscalls::init(&cpu_local::segment_data());
 }
 
 /// The PIT's interrupt handler.

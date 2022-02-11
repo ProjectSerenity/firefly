@@ -34,7 +34,6 @@ use physmem;
 use segmentation::SegmentData;
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::registers::model_specific::GsBase;
-use x86_64::structures::gdt::SegmentSelector;
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
 };
@@ -180,9 +179,13 @@ unsafe fn cpu_data() -> &'static mut CpuData {
     &mut *(ptr.as_mut_ptr() as *mut CpuData)
 }
 
-/// Fetches a static reference to our TSS.
+/// Returns a static reference to our segment data.
 ///
-fn segment_data() -> Pin<&'static mut SegmentData> {
+/// Note that it's safe to return a static reference,
+/// as the segment data doesn't change once CPU-local
+/// data is set up.
+///
+pub fn segment_data() -> Pin<&'static mut SegmentData> {
     Pin::new(unsafe { &mut cpu_data().segment_data })
 }
 
@@ -196,20 +199,6 @@ pub fn cpu_id() -> CpuId {
 ///
 pub fn idle_thread() -> Arc<Thread> {
     unsafe { cpu_data() }.idle_thread.clone()
-}
-
-/// Returns the code and stack segment selectors
-/// for the kernel in this CPU.
-///
-pub fn kernel_selectors() -> (SegmentSelector, SegmentSelector) {
-    segment_data().kernel_selectors()
-}
-
-/// Returns the code and stack segment selectors
-/// for 32-bit user code in this CPU.
-///
-pub fn user_selectors() -> (SegmentSelector, SegmentSelector, SegmentSelector) {
-    segment_data().user_selectors()
 }
 
 /// Returns the currently executing thread.
