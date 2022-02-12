@@ -176,6 +176,7 @@ dependencies = [
  "storage",
  "syscalls",
  "tar",
+ "thread",
  "time",
  "uart_16550",
  "virtmem",
@@ -387,6 +388,23 @@ dependencies = [
  "serial",
  "sha2",
  "storage",
+]
+
+[[package]]
+name = "thread"
+version = "0.1.0"
+dependencies = [
+ "cpu",
+ "lazy_static",
+ "memlayout",
+ "physmem",
+ "pretty",
+ "segmentation",
+ "serial",
+ "spin 0.9.2",
+ "time",
+ "virtmem",
+ "x86_64",
 ]
 
 [[package]]

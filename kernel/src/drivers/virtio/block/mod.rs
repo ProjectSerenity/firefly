@@ -15,9 +15,6 @@ mod cache;
 use crate::drivers::virtio;
 use crate::drivers::virtio::features::{Block, Reserved};
 use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
-use crate::multitasking::thread::{
-    current_global_thread_id, prevent_next_sleep, suspend, ThreadId,
-};
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -29,6 +26,7 @@ use pci;
 use serial::println;
 use spin::Mutex;
 use storage::block::{add_device, Device, Error, Operations};
+use thread::{current_global_thread_id, prevent_next_sleep, suspend, ThreadId};
 use virtmem::virt_to_phys_addrs;
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::idt::InterruptStackFrame;

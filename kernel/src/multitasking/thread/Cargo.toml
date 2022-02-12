@@ -1,0 +1,27 @@
+# Copyright 2022 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+[package]
+name = "thread"
+version = "0.1.0"
+authors = ["Jamie Hall <the.sly.marbo@googlemail.com>"]
+edition = "2018"
+
+[lib]
+name = "thread"
+path = "lib.rs"
+
+[dependencies]
+cpu = {path = "../../cpu"}
+spin = "=0.9.2"
+lazy_static = {version = "=1.4.0", features = ["spin_no_std"]}
+memlayout = {path = "../../memory/memlayout"}
+physmem = {path = "../../memory/physmem"}
+pretty = {path = "../../utils/pretty"}
+segmentation = {path = "../../segmentation"}
+serial = {path = "../../drivers/serial"}
+time = {path = "../../time"}
+virtmem = {path = "../../memory/virtmem"}
+x86_64 = "=0.14.7"

@@ -30,6 +30,7 @@ spin = "=0.9.2"
 storage = {path = "src/storage"}
 syscalls = {path = "../shared/syscalls"}
 tar = {path = "src/utils/tar"}
+thread = {path = "src/multitasking/thread"}
 time = {path = "src/time"}
 uart_16550 = "=0.2.15"
 virtmem = {path = "src/memory/virtmem"}

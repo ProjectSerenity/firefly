@@ -24,12 +24,20 @@
 //! Calling [`debug`] (or [`Thread::debug`]) will print debug info about the
 //! thread.
 
+#![no_std]
+#![feature(asm)]
+#![feature(binary_heap_retain)]
+#![feature(const_btree_new)]
+#![feature(global_asm)]
+
+extern crate alloc;
+
 pub mod scheduler;
 mod stacks;
 mod switch;
 
-use crate::multitasking::thread::scheduler::{timers, Scheduler};
-use crate::multitasking::thread::stacks::{free_kernel_stack, new_kernel_stack, StackBounds};
+use crate::scheduler::{timers, Scheduler};
+use crate::stacks::{free_kernel_stack, new_kernel_stack, StackBounds};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::task::Wake;
@@ -39,7 +47,6 @@ use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::Waker;
 use lazy_static::lazy_static;
 use memlayout::{VirtAddrRange, KERNEL_STACK, KERNEL_STACK_GUARD, USERSPACE};
-use physmem;
 use pretty::Bytes;
 use segmentation::with_segment_data;
 use serial::println;
@@ -489,7 +496,7 @@ impl Thread {
     /// Creates a new kernel thread, to which we fall
     /// back if no other threads are runnable.
     ///
-    pub(super) fn new_idle_thread(stack_space: &VirtAddrRange) -> Arc<Thread> {
+    fn new_idle_thread(stack_space: &VirtAddrRange) -> Arc<Thread> {
         // The idle thread always has thread id 0, which
         // is otherwise invalid.
         let global_id = ThreadId::IDLE;

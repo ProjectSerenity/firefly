@@ -32,6 +32,7 @@
 //! - [memory/mmio](::mmio)
 //! - [memory/physmem](::physmem)
 //! - [memory/virtmem](::virtmem)
+//! - [multitasking/thread](::thread)
 //! - [random](::random)
 //! - [segmentation](::segmentation)
 //! - [storage](::storage)
@@ -43,22 +44,18 @@
 
 #![no_std]
 #![feature(alloc_error_handler)]
-#![feature(asm)]
-#![feature(binary_heap_retain)]
 #![feature(const_btree_new)]
 #![feature(global_asm)]
 
 extern crate alloc;
 
 pub mod drivers;
-pub mod multitasking;
 pub mod network;
 pub mod syscalls;
 
-use crate::multitasking::thread;
-use crate::multitasking::thread::scheduler;
 use bootloader::BootInfo;
 use interrupts::{register_irq, Irq};
+use thread::scheduler;
 use x86_64::structures::idt::InterruptStackFrame;
 
 /// Initialise the kernel and its core components.

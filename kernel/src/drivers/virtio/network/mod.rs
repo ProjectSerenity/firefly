@@ -53,7 +53,6 @@
 use crate::drivers::virtio;
 use crate::drivers::virtio::features::{Network, Reserved};
 use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
-use crate::multitasking::thread::{current_global_thread_id, scheduler, Thread, ThreadId};
 use crate::network;
 use crate::network::{add_interface, InterfaceHandle};
 use alloc::boxed::Box;
@@ -70,6 +69,7 @@ use serial::println;
 use smoltcp::phy::{DeviceCapabilities, Medium};
 use smoltcp::wire::EthernetAddress;
 use spin::Mutex;
+use thread::{current_global_thread_id, scheduler, Thread, ThreadId};
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::structures::paging::frame::PhysFrame;
