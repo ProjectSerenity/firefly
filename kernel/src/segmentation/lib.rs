@@ -89,10 +89,13 @@ pub fn per_cpu_init() {
 
 /// Invoke a callback acting on the segment data.
 ///
-pub fn with_segment_data<F: FnOnce(&mut Pin<&mut SegmentData>)>(f: F) {
+pub fn with_segment_data<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut Pin<&mut SegmentData>) -> R,
+{
     let mut per_cpu = PER_CPU.lock();
     if let Some(segment_data) = per_cpu.get_mut(cpu::id()) {
-        f(segment_data);
+        f(segment_data)
     } else {
         panic!("segmentation::with_segment_data() called before being initialised.");
     }
