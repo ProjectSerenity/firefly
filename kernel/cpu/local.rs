@@ -25,7 +25,7 @@
 //!
 //! ## Initialisation
 //!
-//! The initial CPU must call [`init`] to setup the CPU-local
+//! The initial CPU must call [`global_init`] to setup the CPU-local
 //! memory region. This will identify the maximum number of
 //! logical cores so the right sized region can be allocated.
 //!
@@ -95,9 +95,9 @@ const PER_CPU_REGION_SIZE: usize = 8 + 8 + 8;
 ///
 /// # Panics
 ///
-/// Calling `init` more than once will result in a panic.
+/// Calling `global_init` more than once will result in a panic.
 ///
-pub fn init() {
+pub fn global_init() {
     static INITIALISED: AtomicBool = AtomicBool::new(false);
     let prev = INITIALISED.fetch_or(true, Ordering::SeqCst);
     if prev {
@@ -176,8 +176,8 @@ pub fn per_cpu_init() {
 /// # Panics
 ///
 /// Calling `id` will panic if this CPU has not yet called
-/// [`init`], or if the GS segment selector has been changed
-/// since `init` was called.
+/// [`global_init`], or if the GS segment selector has been
+/// changed since `global_init` was called.
 ///
 #[inline(always)]
 pub fn id() -> usize {

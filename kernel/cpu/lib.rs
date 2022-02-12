@@ -17,7 +17,7 @@ use raw_cpuid::CpuId;
 use serial::println;
 
 pub use local::{
-    id, init, per_cpu_init, set_syscall_stack_pointer, set_user_stack_pointer,
+    global_init, id, per_cpu_init, set_syscall_stack_pointer, set_user_stack_pointer,
     syscall_stack_pointer, user_stack_pointer,
 };
 
