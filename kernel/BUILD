@@ -30,9 +30,6 @@ rust_library(
     ],
     crate_name = "kernel",
     edition = "2018",
-    rustc_flags = [
-        "-Cpanic=abort",
-    ],
     visibility = ["//visibility:private"],
     deps = [
         crate("lazy_static"),
