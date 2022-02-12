@@ -28,24 +28,13 @@ fn panic(info: &PanicInfo) -> ! {
     kernel::halt_loop();
 }
 
-entry_point!(kernel_main);
+entry_point!(kmain);
 
-// kernel_main is the entry point for the kernel,
-// so it starts the kernel's initialisation and
-// then either starts the tests by calling test_main,
-// or starts the kernel's real work by calling kmain.
-//
-#[allow(unused_variables)]
-fn kernel_main(boot_info: &'static BootInfo) -> ! {
+fn kmain(boot_info: &'static BootInfo) -> ! {
     println!("Kernel booting...");
+
     kernel::init(boot_info);
 
-    kmain();
-
-    kernel::halt_loop();
-}
-
-fn kmain() {
     println!("Kernel ready!");
     println!("Kernel booted at {}.", time::boot_time());
     cpu::print_branding();
