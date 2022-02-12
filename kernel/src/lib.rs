@@ -176,7 +176,12 @@ pub fn shutdown_qemu() -> ! {
     // Sometimes there's a delay before QEMU fully
     // exits, so to avoid the below panic triggering
     // unnecessarily, we loop briefly.
-    for _ in 0..10000 {}
+    let stop = time::after(time::Duration::from_secs(2));
+    while stop.after(time::now()) {
+        for _ in 0..1000 {
+            core::hint::spin_loop();
+        }
+    }
 
     unreachable!("instruction to exit QEMU returned somehow");
 }
