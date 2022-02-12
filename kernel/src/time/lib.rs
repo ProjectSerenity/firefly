@@ -87,6 +87,20 @@ impl Instant {
         (self.0 * ticker::NANOSECONDS_PER_TICK) / 1000
     }
 
+    /// Returns whether this instant occurred after the
+    /// other.
+    ///
+    pub fn after(self, other: Self) -> bool {
+        self.0 > other.0
+    }
+
+    /// Returns whether this instant occurred before the
+    /// other.
+    ///
+    pub fn before(self, other: Self) -> bool {
+        self.0 < other.0
+    }
+
     /// Returns a `Duration` describing the amount of time
     /// that passed between the two `Instant`s.
     ///
