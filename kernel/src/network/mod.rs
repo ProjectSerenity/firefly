@@ -17,7 +17,6 @@
 pub mod tcp;
 pub mod udp;
 
-use crate::multitasking::thread::ThreadId;
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::format;
@@ -26,6 +25,7 @@ use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::slice;
+use core::task::Waker;
 use managed::ManagedSlice;
 use memlayout::phys_to_virt_addr;
 use serial::println;
@@ -47,17 +47,15 @@ use x86_64::PhysAddr;
 /// is iterated through, wich each thread resumed and
 /// then removed from INITIAL_WORKLOADS.
 ///
-static INITIAL_WORKLOADS: Mutex<Vec<ThreadId>> = Mutex::new(Vec::new());
+static INITIAL_WORKLOADS: Mutex<Vec<Waker>> = Mutex::new(Vec::new());
 
-/// Ensures that `thread_id` will be [resumed](crate::multitasking::thread::scheduler::resume)
-/// when a DHCP configuration is next negotiated.
+/// Ensures that `waker` will be awoken when a DHCP
+/// configuration is next negotiated.
 ///
-/// `thread_id` will be resumed at most once.
-///
-pub fn register_workload(thread_id: ThreadId) {
+pub fn register_workload(waker: Waker) {
     without_interrupts(|| {
         let mut workloads = INITIAL_WORKLOADS.lock();
-        workloads.push(thread_id);
+        workloads.push(waker);
     });
 }
 
@@ -161,11 +159,9 @@ impl Interface {
 
                     // Resume any initial workloads.
                     let mut workloads = INITIAL_WORKLOADS.lock();
-                    for thread_id in workloads.iter() {
-                        thread_id.resume();
+                    for waker in workloads.drain(..) {
+                        waker.wake();
                     }
-
-                    workloads.clear();
                 }
                 Some(Dhcpv4Event::Deconfigured) => {
                     if self.config.is_some() {

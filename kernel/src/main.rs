@@ -52,7 +52,8 @@ fn kmain() {
 
     // Set up our initial workload for when
     // we get a DHCP configuration.
-    network::register_workload(Thread::create_kernel_thread(initial_workload));
+    let workload = Thread::create_kernel_thread(initial_workload);
+    network::register_workload(workload.waker());
 
     let mut mapper = unsafe { kernel_pml4() };
     for device in pci::scan().into_iter() {
