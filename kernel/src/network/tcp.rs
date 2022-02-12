@@ -71,7 +71,7 @@
 //! ```
 
 use super::{Error, InterfaceHandle, INTERFACES};
-use crate::multitasking::thread::{current_thread_waker, suspend};
+use crate::multitasking::thread::{current_thread_waker, prevent_next_sleep, suspend};
 use alloc::collections::BTreeSet;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -378,6 +378,7 @@ impl Listener {
                         //
                         // We use a single waker so hopefully we're
                         // only awoken once.
+                        prevent_next_sleep();
                         for conn in self.backlog.iter() {
                             let socket = iface.iface.get_socket::<TcpSocket>(conn.socket);
                             socket.register_recv_waker(&waker);
@@ -607,6 +608,7 @@ impl DialConfig {
             }
 
             // Set our waker.
+            prevent_next_sleep();
             socket.register_send_waker(&waker);
 
             // Drop our hold on the interface so we can
@@ -643,6 +645,7 @@ impl DialConfig {
                 }
 
                 // Set our waker.
+                prevent_next_sleep();
                 socket.register_send_waker(&waker);
             }
         })
@@ -729,6 +732,7 @@ impl Connection {
                         return Err(Error::NotReady);
                     }
 
+                    prevent_next_sleep();
                     socket.register_send_waker(&waker);
 
                     // Drop our handles to avoid a deadlock.
@@ -779,6 +783,7 @@ impl Connection {
                         return Err(Error::NotReady);
                     }
 
+                    prevent_next_sleep();
                     socket.register_recv_waker(&waker);
 
                     // Drop our handles to avoid a deadlock.

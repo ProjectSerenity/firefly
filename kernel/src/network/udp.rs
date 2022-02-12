@@ -49,7 +49,7 @@
 //! ```
 
 use super::{Error, InterfaceHandle, INTERFACES};
-use crate::multitasking::thread::{current_thread_waker, suspend};
+use crate::multitasking::thread::{current_thread_waker, prevent_next_sleep, suspend};
 use alloc::collections::BTreeSet;
 use alloc::vec;
 use smoltcp::iface::SocketHandle;
@@ -345,6 +345,7 @@ impl Port {
                         return Err(Error::NotReady);
                     }
 
+                    prevent_next_sleep();
                     socket.register_send_waker(&waker);
 
                     // Drop our handles to avoid a deadlock.
@@ -397,6 +398,7 @@ impl Port {
                         return Err(Error::NotReady);
                     }
 
+                    prevent_next_sleep();
                     socket.register_recv_waker(&waker);
 
                     // Drop our handles to avoid a deadlock.

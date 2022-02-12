@@ -15,7 +15,9 @@ mod cache;
 use crate::drivers::virtio;
 use crate::drivers::virtio::features::{Block, Reserved};
 use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
-use crate::multitasking::thread::{current_global_thread_id, suspend, ThreadId};
+use crate::multitasking::thread::{
+    current_global_thread_id, prevent_next_sleep, suspend, ThreadId,
+};
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -223,6 +225,7 @@ impl Driver {
         // us when the request is returned.
         let thread_id = current_global_thread_id();
         without_interrupts(|| {
+            prevent_next_sleep();
             REQUESTS.lock().insert(first_addr, thread_id);
 
             // Send the buffer to be filled and suspend
@@ -333,6 +336,7 @@ impl Device for Driver {
         // us when the request is returned.
         let thread_id = current_global_thread_id();
         without_interrupts(|| {
+            prevent_next_sleep();
             REQUESTS.lock().insert(first_addr, thread_id);
 
             // Send the buffer to be filled and suspend

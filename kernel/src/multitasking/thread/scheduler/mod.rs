@@ -142,6 +142,13 @@ pub fn sleep(duration: Duration) {
     let stop = after(duration);
     let current = current_thread();
 
+    // Check we haven't already been prevented
+    // from sleeping.
+    if current.thread_state() == ThreadState::Insomniac {
+        current.set_state(ThreadState::Runnable);
+        return;
+    }
+
     // Create a timer to wake us up.
     timers::add(current.global_thread_id(), stop);
 
@@ -263,6 +270,11 @@ pub fn resume(thread_id: ThreadId) -> bool {
                 true
             }
             ThreadState::Runnable => true,
+            ThreadState::Drowsy => {
+                thread.set_state(ThreadState::Insomniac);
+                true
+            }
+            ThreadState::Insomniac => true,
             ThreadState::Sleeping => {
                 thread.set_state(ThreadState::Runnable);
                 SCHEDULER.lock().add(thread_id);

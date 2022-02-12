@@ -180,6 +180,39 @@ fn idle_thread() -> Arc<Thread> {
 ///
 const DEFAULT_RFLAGS: u64 = 0x2;
 
+/// Prevents the current thread from sleeping on
+/// its next attempt to do so.
+///
+/// This is designed for cases where a thread is
+/// planning to suspend until an event will resume
+/// it, but it's possible to lose the race and be
+/// resumed before it can suspend.
+///
+/// Normally, such an event would result in the
+/// resumption being ignored and the suspend lasting
+/// for much longer than intended.
+///
+/// A thread in this situation should call `prevent_next_sleep`
+/// first, configure the resumption, then call
+/// [`suspend`] or [`sleep`](scheduler::sleep),
+/// as appropriate.
+///
+pub fn prevent_next_sleep() {
+    let current = current_thread();
+    match current.thread_state() {
+        ThreadState::BeingCreated => {
+            panic!("thread::prevent_next_sleep() called on un-started thread")
+        }
+        ThreadState::Runnable => current.set_state(ThreadState::Drowsy),
+        ThreadState::Drowsy => {}
+        ThreadState::Insomniac => {}
+        ThreadState::Sleeping => {
+            panic!("thread::prevent_next_sleep() called while already asleep!")
+        }
+        ThreadState::Exiting => panic!("thread::prevent_next_sleep() called while exiting"),
+    }
+}
+
 /// Puts the current thread to sleep indefinitely
 /// and switches to the next runnable thread. The
 /// thread can be awoken later by calling [`scheduler::resume`]
@@ -199,6 +232,13 @@ pub fn suspend() {
 
     // This is just like scheduler::sleep, but we
     // don't create a waking timer.
+
+    // Check we haven't already been prevented
+    // from sleeping.
+    if current.thread_state() == ThreadState::Insomniac {
+        current.set_state(ThreadState::Runnable);
+        return;
+    }
 
     // Put ourselves to sleep.
     current.set_state(ThreadState::Sleeping);
@@ -344,6 +384,16 @@ pub enum ThreadState {
 
     /// The thread is runnable.
     Runnable,
+
+    /// The thread is planning to sleep
+    /// shortly and should be prevented
+    /// from doing so if resumed first.
+    Drowsy,
+
+    /// The thread was resumed while
+    /// drowsy so will be prevented from
+    /// its next attempt to suspend.
+    Insomniac,
 
     /// The thread is sleeping.
     Sleeping,
@@ -694,6 +744,8 @@ impl Thread {
         match new_state {
             ThreadState::BeingCreated => panic!("thread state set to BeingCreated"),
             ThreadState::Runnable => {}
+            ThreadState::Drowsy => {}
+            ThreadState::Insomniac => {}
             ThreadState::Sleeping => scheduler.remove(self.global_id),
             ThreadState::Exiting => scheduler.remove(self.global_id),
         }
