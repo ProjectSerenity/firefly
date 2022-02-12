@@ -51,16 +51,15 @@
 extern crate alloc;
 
 pub mod drivers;
-pub mod memory;
 pub mod multitasking;
 pub mod network;
 pub mod syscalls;
 
-use crate::memory::kernel_pml4;
 use crate::multitasking::thread;
 use crate::multitasking::thread::scheduler;
 use bootloader::BootInfo;
 use interrupts::{register_irq, Irq};
+use virtmem::kernel_pml4;
 use x86_64::structures::idt::InterruptStackFrame;
 
 /// Initialise the kernel and its core components.
@@ -72,7 +71,7 @@ use x86_64::structures::idt::InterruptStackFrame;
 /// - Initialise the [Programmable Interrupt Controller](interrupts).
 /// - Initialise the [Real-time clock and Programmable Interval Timer](time)
 /// - Enables system interrupts.
-/// - Initialise the [memory managers and kernel heap](memory).
+/// - Initialise the [memory managers and kernel heap](virtmem).
 /// - Initialise the [CPU-local data](cpu).
 /// - Initialise the [scheduler](multitasking/thread).
 ///
@@ -99,7 +98,7 @@ pub fn init(boot_info: &'static BootInfo) {
     x86_64::instructions::interrupts::enable();
 
     // Set up the heap allocator.
-    unsafe { memory::init(boot_info) };
+    unsafe { virtmem::init(boot_info) };
 
     // Now we have a working heap, we can set
     // up the global memory region for CPU-local

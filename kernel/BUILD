@@ -34,7 +34,6 @@ rust_library(
         "src/drivers/virtio/virtqueues/mod.rs",
         "src/drivers/virtio/virtqueues/split.rs",
         "src/lib.rs",
-        "src/memory/mod.rs",
         "src/multitasking/mod.rs",
         "src/multitasking/thread/mod.rs",
         "src/multitasking/thread/scheduler/mod.rs",

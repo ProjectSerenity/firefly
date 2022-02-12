@@ -23,8 +23,10 @@ rust_library(
         crate("x86_64"),
         "//kernel/src/drivers/serial",
         "//kernel/src/memory/memlayout",
+        "//kernel/src/memory/physmem",
         "//kernel/src/utils/align",
         "//kernel/src/utils/pretty",
+        "@bootloader",
     ],
 )
 

@@ -15,10 +15,10 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use kernel::memory::kernel_pml4;
 use kernel::multitasking::thread::{scheduler, Thread};
 use kernel::{drivers, network};
 use serial::println;
+use virtmem::kernel_pml4;
 
 /// This function is called on panic.
 #[panic_handler]

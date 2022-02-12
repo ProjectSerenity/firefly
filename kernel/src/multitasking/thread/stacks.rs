@@ -14,11 +14,11 @@
 //! [`free_kernel_stack`]. De-allocated stacks are reused and can be
 //! returned by subsequent calls to [`new_kernel_stack`].
 
-use crate::memory::kernel_pml4;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 use memlayout::{VirtAddrRange, KERNEL_STACK, KERNEL_STACK_1_START};
 use spin::Mutex;
+use virtmem::kernel_pml4;
 use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::page::PageRangeInclusive;
 use x86_64::structures::paging::{

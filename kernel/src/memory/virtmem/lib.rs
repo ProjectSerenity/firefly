@@ -46,6 +46,7 @@ mod linked_list;
 mod mapping;
 
 use alloc::vec::Vec;
+use bootloader::BootInfo;
 use mapping::PagePurpose;
 use memlayout::{phys_to_virt_addr, KERNEL_HEAP, PHYSICAL_MEMORY_OFFSET};
 use serial::println;
@@ -61,6 +62,62 @@ use x86_64::structures::paging::{
     Translate,
 };
 use x86_64::{PhysAddr, VirtAddr};
+
+// PML4 functionality.
+
+/// KERNEL_PML4_ADDRESS contains the virtual address of the kernel's
+/// level 4 page table. This enables the kernel_pml4 function to
+/// construct the structured data.
+///
+static KERNEL_PML4_ADDRESS: Mutex<VirtAddr> = Mutex::new(VirtAddr::zero());
+
+/// Initialise the kernel's memory, including setting up the
+/// heap.
+///
+/// - The bootstrap physical memory manager is initialised using the memory map included in the boot info we are passed by the bootloader.
+/// - The bootstrap allocator is used to initialise the virtual memory management (including for allocating page tables).
+/// - The global heap allocator is initialised to set up the kernel's heap.
+/// - The heap and the bootstrap physical memory manager are used to initialse the second stage physical memory manager.
+///
+/// # Safety
+///
+/// This function is unsafe because the caller must guarantee
+/// that the complete physical memory is mapped to virtual memory
+/// at [`PHYSICAL_MEMORY_OFFSET`].
+///
+/// `init` must be called only once to avoid aliasing &mut
+/// references (which is undefined behavior).
+///
+pub unsafe fn init(boot_info: &'static BootInfo) {
+    // Prepare the kernel's PML4.
+    let (level_4_table_frame, _) = Cr3::read();
+    let phys = level_4_table_frame.start_address();
+    *KERNEL_PML4_ADDRESS.lock() = phys_to_virt_addr(phys);
+
+    let mut page_table = kernel_pml4();
+    let mut frame_allocator = physmem::bootstrap(&boot_info.memory_map);
+
+    init_heap(&mut page_table, &mut frame_allocator).expect("heap initialization failed");
+
+    // Switch over to a more sophisticated physical memory manager.
+    physmem::init(frame_allocator);
+}
+
+/// Returns a mutable reference to the kernel's level 4 page
+/// table.
+///
+/// # Safety
+///
+/// The returned page tables must only be used to translate
+/// addresses when it is the active level 4 page table.
+///
+pub unsafe fn kernel_pml4() -> OffsetPageTable<'static> {
+    let virt = KERNEL_PML4_ADDRESS.lock();
+    let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
+
+    let page_table = &mut *page_table_ptr; // unsafe
+    OffsetPageTable::new(page_table, PHYSICAL_MEMORY_OFFSET)
+}
 
 // Re-export the heap allocators. We don't need to do this, but it's useful
 // to expose their documentation to aid future development.
@@ -83,7 +140,7 @@ static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAl
 /// have the correct flags. For example, the kernel stack is mapped with the
 /// no-execute permission bit set.
 ///
-pub fn init(
+fn init_heap(
     mapper: &mut OffsetPageTable,
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
 ) -> Result<(), MapToError<Size4KiB>> {

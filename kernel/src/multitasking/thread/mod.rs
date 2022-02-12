@@ -28,7 +28,6 @@ pub mod scheduler;
 mod stacks;
 mod switch;
 
-use crate::memory::kernel_pml4;
 use crate::multitasking::thread::scheduler::{timers, Scheduler};
 use crate::multitasking::thread::stacks::{free_kernel_stack, new_kernel_stack, StackBounds};
 use alloc::collections::BTreeMap;
@@ -46,6 +45,7 @@ use segmentation::with_segment_data;
 use serial::println;
 use spin::Mutex;
 use time::{Duration, TimeSlice};
+use virtmem::kernel_pml4;
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
