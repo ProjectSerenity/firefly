@@ -42,7 +42,6 @@
 //! - [utils/tar](::tar)
 
 #![no_std]
-#![cfg_attr(test, no_main)]
 #![feature(alloc_error_handler)]
 #![feature(asm)]
 #![feature(binary_heap_retain)]
