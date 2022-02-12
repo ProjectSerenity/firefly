@@ -12,9 +12,8 @@
 
 mod cache;
 
-use crate::drivers::virtio;
-use crate::drivers::virtio::features::{Block, Reserved};
-use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
+use crate::features::{Block, Reserved};
+use crate::{transports, Buffer, InterruptStatus};
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -22,7 +21,6 @@ use alloc::vec;
 use alloc::vec::Vec;
 use interrupts::{register_irq, Irq};
 use memlayout::{PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
-use pci;
 use serial::println;
 use spin::Mutex;
 use storage::block::{add_device, Device, Error, Operations};
@@ -42,8 +40,8 @@ const REQUEST_VIRTQUEUE: u16 = 0;
 /// When we receive interrupts, we receive requests
 /// from the corresponding drivers.
 ///
-static DRIVERS: Mutex<[Option<Arc<Mutex<virtio::Driver>>>; 16]> = {
-    const NONE: Option<Arc<Mutex<virtio::Driver>>> = Option::None;
+static DRIVERS: Mutex<[Option<Arc<Mutex<crate::Driver>>>; 16]> = {
+    const NONE: Option<Arc<Mutex<crate::Driver>>> = Option::None;
     Mutex::new([NONE; 16])
 };
 
@@ -148,7 +146,7 @@ const BYTES_PER_SEGMENT: usize = 512;
 ///
 pub struct Driver {
     // The underlying virtio generic driver.
-    driver: Arc<Mutex<virtio::Driver>>,
+    driver: Arc<Mutex<crate::Driver>>,
 
     // Which operations are supported by the device.
     operations: Operations,
@@ -165,7 +163,7 @@ impl Driver {
     /// VirtIO driver.
     ///
     pub fn new(
-        driver: Arc<Mutex<virtio::Driver>>,
+        driver: Arc<Mutex<crate::Driver>>,
         operations: Operations,
         capacity: usize,
         cache: cache::Allocator,
@@ -436,7 +434,7 @@ pub fn install_pci_device(device: pci::Device) {
 
     let must_features = Reserved::VERSION_1.bits();
     let like_features = Reserved::RING_EVENT_IDX.bits() | (Block::RO | Block::FLUSH).bits();
-    let driver = match virtio::Driver::new(transport, must_features, like_features, 1) {
+    let driver = match crate::Driver::new(transport, must_features, like_features, 1) {
         Ok(driver) => driver,
         Err(err) => {
             println!("Failed to initialise block device: {:?}.", err);

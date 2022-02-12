@@ -26,6 +26,7 @@
 //! - [cpu](::cpu)
 //! - [drivers/pci](::pci)
 //! - [drivers/serial](::serial)
+//! - [drivers/virtio](::virtio)
 //! - [filesystem](::filesystem)
 //! - [interrupts](::interrupts)
 //! - [memory/memlayout](::memlayout)
@@ -50,7 +51,6 @@
 
 extern crate alloc;
 
-pub mod drivers;
 pub mod syscalls;
 
 use bootloader::BootInfo;
@@ -110,6 +110,15 @@ pub fn init(boot_info: &'static BootInfo) {
     thread::per_cpu_init();
     syscalls::per_cpu_init();
 }
+
+/// This is the set of configured PCI device drivers.
+///
+/// For each PCI device discovered, each callback listed
+/// here will be checked to determine whether the driver
+/// supports the device. The first device that returns a
+/// driver will then take ownership of the device.
+///
+pub const PCI_DRIVERS: &[pci::DriverSupportCheck] = &[virtio::pci_device_check];
 
 /// The PIT's interrupt handler.
 ///

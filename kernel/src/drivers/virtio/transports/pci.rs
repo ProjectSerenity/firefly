@@ -17,11 +17,9 @@
 //! }
 //! ```
 
-use crate::drivers::virtio;
-use crate::drivers::virtio::{DeviceStatus, InterruptStatus};
+use crate::{DeviceStatus, InterruptStatus};
 use interrupts::Irq;
 use mmio::{read_volatile, write_volatile};
-use pci;
 use x86_64::structures::paging::frame::{PhysFrame, PhysFrameRange};
 use x86_64::PhysAddr;
 
@@ -333,7 +331,7 @@ impl Transport {
     }
 }
 
-impl virtio::Transport for Transport {
+impl crate::Transport for Transport {
     /// read_device_config_u8 returns the device-specific
     /// configuration byte at the given offset.
     ///

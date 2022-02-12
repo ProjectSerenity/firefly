@@ -25,15 +25,13 @@
 //! let _random_data = buf[..written];
 //! ```
 
-use crate::drivers::virtio;
-use crate::drivers::virtio::features::Reserved;
-use crate::drivers::virtio::{transports, Buffer};
+use crate::features::Reserved;
+use crate::{transports, Buffer};
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
 use memlayout::{PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
-use pci;
 use random::{register_entropy_source, EntropySource};
 use serial::println;
 use virtmem::virt_to_phys_addrs;
@@ -49,14 +47,14 @@ const REQUEST_VIRTQUEUE: u16 = 0;
 ///
 pub struct Driver {
     // driver is the underlying virtio generic driver.
-    driver: virtio::Driver,
+    driver: crate::Driver,
 }
 
 impl Driver {
     /// Returns an entropy source built using the given
     /// VirtIO driver.
     ///
-    pub fn new(driver: virtio::Driver) -> Self {
+    pub fn new(driver: crate::Driver) -> Self {
         Driver { driver }
     }
 
@@ -155,7 +153,7 @@ pub fn install_pci_device(device: pci::Device) {
 
     let must_features = Reserved::VERSION_1.bits();
     let like_features = 0u64;
-    let mut driver = match virtio::Driver::new(transport, must_features, like_features, 1) {
+    let mut driver = match crate::Driver::new(transport, must_features, like_features, 1) {
         Ok(driver) => driver,
         Err(err) => {
             println!("Failed to initialise entropy device: {:?}.", err);

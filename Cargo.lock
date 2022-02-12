@@ -180,6 +180,7 @@ dependencies = [
  "thread",
  "time",
  "uart_16550",
+ "virtio",
  "virtmem",
  "volatile",
  "x86_64",
@@ -453,6 +454,29 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+
+[[package]]
+name = "virtio"
+version = "0.1.0"
+dependencies = [
+ "align",
+ "bitflags",
+ "bitmap_index",
+ "interrupts",
+ "memlayout",
+ "mmio",
+ "network",
+ "pci",
+ "physmem",
+ "random",
+ "serial",
+ "smoltcp",
+ "spin 0.9.2",
+ "storage",
+ "thread",
+ "virtmem",
+ "x86_64",
+]
 
 [[package]]
 name = "virtmem"

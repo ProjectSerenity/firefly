@@ -34,6 +34,7 @@ tar = {path = "src/utils/tar"}
 thread = {path = "src/multitasking/thread"}
 time = {path = "src/time"}
 uart_16550 = "=0.2.15"
+virtio = {path = "src/drivers/virtio"}
 virtmem = {path = "src/memory/virtmem"}
 volatile = "=0.4.4"
 x86_64 = "=0.14.7"

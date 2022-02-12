@@ -22,17 +22,6 @@ exports_files(
 rust_library(
     name = "libkernel",
     srcs = [
-        "src/drivers/mod.rs",
-        "src/drivers/virtio/block/cache.rs",
-        "src/drivers/virtio/block/mod.rs",
-        "src/drivers/virtio/entropy/mod.rs",
-        "src/drivers/virtio/features.rs",
-        "src/drivers/virtio/mod.rs",
-        "src/drivers/virtio/network/mod.rs",
-        "src/drivers/virtio/transports/mod.rs",
-        "src/drivers/virtio/transports/pci.rs",
-        "src/drivers/virtio/virtqueues/mod.rs",
-        "src/drivers/virtio/virtqueues/split.rs",
         "src/lib.rs",
         "src/syscalls/mod.rs",
     ],
@@ -46,7 +35,6 @@ rust_library(
     ],
     visibility = ["//visibility:private"],
     deps = [
-        crate("bitflags"),
         crate("lazy_static"),
         crate("managed"),
         crate("spin"),
@@ -55,6 +43,7 @@ rust_library(
         "//kernel/src/cpu",
         "//kernel/src/drivers/pci",
         "//kernel/src/drivers/serial",
+        "//kernel/src/drivers/virtio",
         "//kernel/src/filesystem",
         "//kernel/src/interrupts",
         "//kernel/src/memory/memlayout",

@@ -51,7 +51,7 @@
 //! worry about polluting the kernel memory space at runtime if we
 //! end up needing to allocate another frame.
 
-use crate::drivers::virtio::Buffer;
+use crate::Buffer;
 use alloc::vec;
 use alloc::vec::Vec;
 use bitmap_index::Bitmap;

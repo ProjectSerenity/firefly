@@ -15,7 +15,7 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use kernel::drivers;
+use kernel::PCI_DRIVERS;
 use serial::println;
 use thread::{scheduler, Thread};
 use virtmem::with_page_tables;
@@ -56,7 +56,7 @@ fn kmain() {
     network::register_workload(workload.waker());
 
     for device in pci::scan().into_iter() {
-        for check in drivers::PCI_DRIVERS.iter() {
+        for check in PCI_DRIVERS.iter() {
             if let Some(install) = check(&device) {
                 install(device);
                 break;

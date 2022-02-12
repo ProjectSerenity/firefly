@@ -7,12 +7,11 @@
 //!
 //! A split [`Virtqueue`] can be used to exchange buffers with a VirtIO device. A `Virtqueue`
 //! is initialised by calling its [`new`](Virtqueue::new) function, which allocates the memory
-//! backing the Virtqueue, then uses the passed [`Transport`](crate::drivers::virtio::Transport)
-//! to configure the device to use the Virtqueue.
+//! backing the Virtqueue, then uses the passed [`Transport`](crate::Transport) to configure
+//! the device to use the Virtqueue.
 
-use crate::drivers::virtio;
-use crate::drivers::virtio::features::Reserved;
-use crate::drivers::virtio::{Buffer, Transport, UsedBuffers, VirtqueueError, MAX_DESCRIPTORS};
+use crate::features::Reserved;
+use crate::{Buffer, Transport, UsedBuffers, VirtqueueError, MAX_DESCRIPTORS};
 use align::align_up_u64;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -21,7 +20,6 @@ use bitmap_index::Bitmap;
 use core::mem::size_of;
 use core::slice;
 use core::sync::atomic::{fence, Ordering};
-use mmio;
 use physmem::allocate_n_frames;
 use x86_64::structures::paging::{PageSize, Size4KiB};
 use x86_64::PhysAddr;
@@ -357,7 +355,7 @@ impl<'a> Virtqueue<'a> {
     }
 }
 
-impl<'a> virtio::Virtqueue for Virtqueue<'a> {
+impl<'a> crate::Virtqueue for Virtqueue<'a> {
     /// send enqueues a request to the device. A request consists of
     /// a sequence of buffers. The sequence of buffers should place
     /// device-writable buffers after all device-readable buffers.

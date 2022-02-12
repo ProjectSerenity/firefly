@@ -44,6 +44,11 @@
 //! The transport can then be used to reset and initialise the device, negotiating
 //! features and preparing virtqueues.
 
+#![no_std]
+#![feature(const_btree_new)]
+
+extern crate alloc;
+
 pub mod block;
 pub mod entropy;
 pub mod features;
@@ -51,13 +56,12 @@ pub mod network;
 pub mod transports;
 pub mod virtqueues;
 
-use crate::drivers::virtio::virtqueues::split;
+use crate::virtqueues::split;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
 use interrupts::Irq;
-use pci;
 use serial::println;
 use x86_64::PhysAddr;
 

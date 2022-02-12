@@ -50,9 +50,8 @@
 //! 1. Interrupts from the device advance the network stack, processing any received packets.
 //! 2. A companion kernel thread advances the network stack periodically, following the interface's interval recommendations.
 
-use crate::drivers::virtio;
-use crate::drivers::virtio::features::{Network, Reserved};
-use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
+use crate::features::{Network, Reserved};
+use crate::{transports, Buffer, InterruptStatus};
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -62,7 +61,6 @@ use core::mem;
 use interrupts::{register_irq, Irq};
 use memlayout::phys_to_virt_addr;
 use network::{add_interface, InterfaceHandle};
-use pci;
 use physmem::{allocate_frame, deallocate_frame};
 use serial::println;
 use smoltcp::phy::{DeviceCapabilities, Medium};
@@ -172,7 +170,7 @@ fn network_entry_point() -> ! {
 ///
 pub struct Driver {
     // driver is the underlying virtio generic driver.
-    driver: virtio::Driver,
+    driver: crate::Driver,
 
     // mac is the device's MAC address.
     mac: EthernetAddress,
@@ -485,7 +483,7 @@ pub fn install_pci_device(device: pci::Device) {
 
     let must_features = Reserved::VERSION_1.bits() | Network::MAC.bits();
     let like_features = Reserved::RING_EVENT_IDX.bits();
-    let mut driver = match virtio::Driver::new(transport, must_features, like_features, 2) {
+    let mut driver = match crate::Driver::new(transport, must_features, like_features, 2) {
         Ok(driver) => driver,
         Err(err) => {
             println!("Failed to initialise network card: {:?}.", err);
