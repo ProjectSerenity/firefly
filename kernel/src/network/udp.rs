@@ -49,7 +49,7 @@
 //! ```
 
 use super::{Error, InterfaceHandle, INTERFACES};
-use crate::multitasking::thread::{current_global_thread_id, suspend};
+use crate::multitasking::thread::{current_thread_waker, suspend};
 use alloc::collections::BTreeSet;
 use alloc::vec;
 use smoltcp::iface::SocketHandle;
@@ -325,7 +325,7 @@ impl Port {
     pub fn send_to<T: Into<IpEndpoint>>(&self, buf: &[u8], peer: T) -> Result<usize, Error> {
         // Realise the peer's address.
         let peer = peer.into();
-        let global_thread_id = current_global_thread_id();
+        let waker = current_thread_waker();
 
         without_interrupts(|| {
             // Wait until we're able to send.
@@ -345,7 +345,7 @@ impl Port {
                         return Err(Error::NotReady);
                     }
 
-                    socket.register_send_waker(&global_thread_id.waker());
+                    socket.register_send_waker(&waker);
 
                     // Drop our handles to avoid a deadlock.
                     drop(ifaces);
@@ -377,7 +377,7 @@ impl Port {
     /// [`Error::NotReady`](super::Error::NotReady).
     ///
     pub fn recv_from(&self, buf: &mut [u8]) -> Result<(usize, IpEndpoint), Error> {
-        let global_thread_id = current_global_thread_id();
+        let waker = current_thread_waker();
 
         without_interrupts(|| {
             // Wait until we're able to receive.
@@ -397,7 +397,7 @@ impl Port {
                         return Err(Error::NotReady);
                     }
 
-                    socket.register_recv_waker(&global_thread_id.waker());
+                    socket.register_recv_waker(&waker);
 
                     // Drop our handles to avoid a deadlock.
                     drop(ifaces);

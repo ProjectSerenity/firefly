@@ -71,7 +71,7 @@
 //! ```
 
 use super::{Error, InterfaceHandle, INTERFACES};
-use crate::multitasking::thread::{current_global_thread_id, suspend};
+use crate::multitasking::thread::{current_thread_waker, suspend};
 use alloc::collections::BTreeSet;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -346,7 +346,7 @@ impl Listener {
             return Err(Error::ListenerClosed);
         }
 
-        let global_thread_id = current_global_thread_id();
+        let waker = current_thread_waker();
 
         without_interrupts(|| {
             // Loop until we find a pending connection.
@@ -378,7 +378,6 @@ impl Listener {
                         //
                         // We use a single waker so hopefully we're
                         // only awoken once.
-                        let waker = global_thread_id.waker();
                         for conn in self.backlog.iter() {
                             let socket = iface.iface.get_socket::<TcpSocket>(conn.socket);
                             socket.register_recv_waker(&waker);
@@ -566,7 +565,7 @@ impl DialConfig {
         let send_buffer = TcpSocketBuffer::new(vec![0u8; self.send_buffer_size]);
         let socket = TcpSocket::new(recv_buffer, send_buffer);
         let iface_handle = InterfaceHandle::new(0); // TODO: get this properly.
-        let global_thread_id = current_global_thread_id();
+        let waker = current_thread_waker();
 
         without_interrupts(|| {
             let mut ifaces = INTERFACES.lock();
@@ -608,7 +607,7 @@ impl DialConfig {
             }
 
             // Set our waker.
-            socket.register_send_waker(&global_thread_id.waker());
+            socket.register_send_waker(&waker);
 
             // Drop our hold on the interface so we can
             // suspend ourself without causing a deadlock.
@@ -644,7 +643,7 @@ impl DialConfig {
                 }
 
                 // Set our waker.
-                socket.register_send_waker(&global_thread_id.waker());
+                socket.register_send_waker(&waker);
             }
         })
     }
@@ -710,7 +709,7 @@ impl Connection {
     ///
     pub fn send(&self, buf: &[u8]) -> Result<usize, Error> {
         let mut bytes_sent = 0;
-        let global_thread_id = current_global_thread_id();
+        let waker = current_thread_waker();
 
         without_interrupts(|| {
             // Wait until we're able to send.
@@ -730,7 +729,7 @@ impl Connection {
                         return Err(Error::NotReady);
                     }
 
-                    socket.register_send_waker(&global_thread_id.waker());
+                    socket.register_send_waker(&waker);
 
                     // Drop our handles to avoid a deadlock.
                     drop(ifaces);
@@ -760,7 +759,7 @@ impl Connection {
     /// non-zero.
     ///
     pub fn recv(&self, buf: &mut [u8]) -> Result<usize, Error> {
-        let global_thread_id = current_global_thread_id();
+        let waker = current_thread_waker();
 
         without_interrupts(|| {
             // Wait until we're able to receive.
@@ -780,7 +779,7 @@ impl Connection {
                         return Err(Error::NotReady);
                     }
 
-                    socket.register_recv_waker(&global_thread_id.waker());
+                    socket.register_recv_waker(&waker);
 
                     // Drop our handles to avoid a deadlock.
                     drop(ifaces);

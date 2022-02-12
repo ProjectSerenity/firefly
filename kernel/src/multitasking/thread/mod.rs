@@ -144,6 +144,13 @@ pub fn current_global_thread_id() -> ThreadId {
     CURRENT_THREADS.lock()[cpu::id()].global_thread_id()
 }
 
+/// Returns a Waker that will resume the current
+/// thread.
+///
+pub fn current_thread_waker() -> Waker {
+    current_global_thread_id().waker()
+}
+
 /// Set the currently executing thread.
 ///
 fn set_current_thread(thread: Arc<Thread>) {
