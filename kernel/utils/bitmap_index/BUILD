@@ -13,7 +13,7 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         crate("x86_64"),
-        "//kernel/src/utils/align",
+        "//kernel/utils/align",
     ],
 )
 
@@ -33,6 +33,6 @@ rust_test(
     crate = ":bitmap_index",
     deps = [
         crate("x86_64"),
-        "//kernel/src/utils/align",
+        "//kernel/utils/align",
     ],
 )

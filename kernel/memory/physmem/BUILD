@@ -4,32 +4,40 @@
 # license that can be found in the LICENSE file.
 
 load("@crates//:defs.bzl", "crate")
-load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library")
+load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rust_test")
 
 rust_library(
-    name = "interrupts",
+    name = "physmem",
     srcs = [
-        "irq.rs",
+        "bitmap.rs",
+        "boot_info.rs",
         "lib.rs",
     ],
-    crate_name = "interrupts",
+    crate_name = "physmem",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         crate("lazy_static"),
-        crate("pic8259"),
         crate("spin"),
         crate("x86_64"),
-        "//kernel/src/drivers/serial",
-        "//kernel/src/segmentation",
+        "//kernel/drivers/serial",
+        "//kernel/utils/bitmap_index",
+        "//kernel/utils/pretty",
+        "@bootloader",
     ],
 )
 
 rust_clippy(
     name = "clippy",
-    deps = [":interrupts"],
+    deps = [":physmem"],
 )
 
 rust_doc(
     name = "docs",
-    crate = ":interrupts",
+    crate = ":physmem",
+)
+
+rust_test(
+    name = "physmem_test",
+    size = "small",
+    crate = ":physmem",
 )

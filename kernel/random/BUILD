@@ -20,7 +20,7 @@ rust_library(
         crate("sha2"),
         crate("spin"),
         crate("x86_64"),
-        "//kernel/src/time",
+        "//kernel/time",
     ],
 )
 

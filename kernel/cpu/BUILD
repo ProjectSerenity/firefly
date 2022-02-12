@@ -7,25 +7,30 @@ load("@crates//:defs.bzl", "crate")
 load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library")
 
 rust_library(
-    name = "mmio",
-    srcs = ["lib.rs"],
-    crate_name = "mmio",
+    name = "cpu",
+    srcs = [
+        "lib.rs",
+        "local.rs",
+    ],
+    crate_name = "cpu",
     visibility = ["//kernel:__subpackages__"],
     deps = [
-        crate("spin"),
+        crate("lazy_static"),
+        crate("raw-cpuid"),
         crate("x86_64"),
-        "//kernel/src/memory/memlayout",
-        "//kernel/src/memory/physmem",
-        "//kernel/src/memory/virtmem",
+        "//kernel/drivers/serial",
+        "//kernel/memory/memlayout",
+        "//kernel/memory/physmem",
+        "//kernel/memory/virtmem",
     ],
 )
 
 rust_clippy(
     name = "clippy",
-    deps = [":mmio"],
+    deps = [":cpu"],
 )
 
 rust_doc(
     name = "docs",
-    crate = ":mmio",
+    crate = ":cpu",
 )

@@ -7,37 +7,40 @@ load("@crates//:defs.bzl", "crate")
 load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rust_test")
 
 rust_library(
-    name = "physmem",
+    name = "tar",
     srcs = [
-        "bitmap.rs",
-        "boot_info.rs",
         "lib.rs",
+        "parse_utils.rs",
     ],
-    crate_name = "physmem",
+    crate_name = "tar",
     visibility = ["//kernel:__subpackages__"],
     deps = [
-        crate("lazy_static"),
-        crate("spin"),
-        crate("x86_64"),
-        "//kernel/src/drivers/serial",
-        "//kernel/src/utils/bitmap_index",
-        "//kernel/src/utils/pretty",
-        "@bootloader",
+        "//kernel/drivers/serial",
+        "//kernel/filesystem",
+        "//kernel/storage",
+        "//kernel/utils/align",
     ],
 )
 
 rust_clippy(
     name = "clippy",
-    deps = [":physmem"],
+    deps = [":tar"],
 )
 
 rust_doc(
     name = "docs",
-    crate = ":physmem",
+    crate = ":tar",
 )
 
 rust_test(
-    name = "physmem_test",
+    name = "tar_test",
     size = "small",
-    crate = ":physmem",
+    compile_data = glob(["testdata/*.tar"]),
+    crate = ":tar",
+    proc_macro_deps = [
+        crate("hex-literal"),
+    ],
+    deps = [
+        crate("sha2"),
+    ],
 )

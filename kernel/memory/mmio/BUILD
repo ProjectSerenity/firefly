@@ -7,24 +7,25 @@ load("@crates//:defs.bzl", "crate")
 load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library")
 
 rust_library(
-    name = "segmentation",
+    name = "mmio",
     srcs = ["lib.rs"],
-    crate_name = "segmentation",
+    crate_name = "mmio",
     visibility = ["//kernel:__subpackages__"],
     deps = [
-        crate("lazy_static"),
         crate("spin"),
         crate("x86_64"),
-        "//kernel/src/cpu",
+        "//kernel/memory/memlayout",
+        "//kernel/memory/physmem",
+        "//kernel/memory/virtmem",
     ],
 )
 
 rust_clippy(
     name = "clippy",
-    deps = [":segmentation"],
+    deps = [":mmio"],
 )
 
 rust_doc(
     name = "docs",
-    crate = ":segmentation",
+    crate = ":mmio",
 )
