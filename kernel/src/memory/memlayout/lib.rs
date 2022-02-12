@@ -24,33 +24,26 @@
 //!
 //! - [`KERNEL_STACK_1_START`]: The bottom of the second kernel stack.
 //! - [`PHYSICAL_MEMORY_OFFSET`]: The offset at which all physical memory is mapped.
+//!
+//! The memory layout is summarised below:
+//!
+//! | Region                 |           Start address |            Last address |                 Pages |      Size |
+//! | ---------------------- | ----------------------: | ----------------------: | --------------------: | --------: |
+//! | [`NULL_PAGE`]          |                   `0x0` |             `0x1f_ffff` |            not mapped |     2 MiB |
+//! | [`USERSPACE`]          |             `0x20_0000` |      `0x7fff_ffff_ffff` |        rest of memory | < 128 TiB |
+//! | [`KERNEL_BINARY`]      | `0xffff_8000_0000_0000` | `0xffff_8000_3fff_ffff` | up to 512x 2 MiB page |     1 GiB |
+//! | [`BOOT_INFO`]          | `0xffff_8000_4000_0000` | `0xffff_8000_4000_0fff` |         1x 4 KiB page |     4 KiB |
+//! | [`KERNEL_HEAP`]        | `0xffff_8000_4444_0000` | `0xffff_8000_444b_ffff` |       128x 4 KiB page |   512 KiB |
+//! | [`KERNEL_STACK_GUARD`] | `0xffff_8000_5554_f000` | `0xffff_8000_5554_ffff` |            not mapped |     4 KiB |
+//! | [`KERNEL_STACK_0`]     | `0xffff_8000_5555_0000` | `0xffff_8000_555c_ffff` |       128x 4 KiB page |   512 KiB |
+//! | [`KERNEL_STACK`]       | `0xffff_8000_5555_0000` | `0xffff_8000_5d5c_ffff` |    32,896x 4 KiB page | 128.5 MiB |
+//! | [`MMIO_SPACE`]         | `0xffff_8000_6666_0000` | `0xffff_8000_6675_ffff` |       256x 4 KiB page |     1 MiB |
+//! | [`CPU_LOCAL`]          | `0xffff_8000_7777_0000` | `0xffff_8000_7f76_ffff` |    32,768x 4 KiB page |   128 MiB |
+//! | [`PHYSICAL_MEMORY`]    | `0xffff_8000_8000_0000` | `0xffff_ffff_ffff_ffff` |        rest of memory | < 128 TiB |
 
 #![no_std]
 
 use x86_64::{PhysAddr, VirtAddr};
-
-// Important addresses.
-//
-// Make sure the constants below keep in sync with
-// the [package.metadata.bootloader] section of
-// Cargo.toml.
-//
-// Reminder of the memory layout (documented in more
-// detail in README.md):
-//
-// | Region               |         Start address |          Last address |
-// | -------------------- | --------------------- | --------------------- |
-// | NULL page            |                   0x0 |             0x1f_ffff |
-// | Userspace            |             0x20_0000 |      0x7fff_ffff_ffff |
-// | Kernel binary        | 0xffff_8000_0000_0000 | 0xffff_8000_3fff_ffff |
-// | Bootloader info      | 0xffff_8000_4000_0000 | 0xffff_8000_4000_0fff |
-// | Kernel heap          | 0xffff_8000_4444_0000 | 0xffff_8000_444b_ffff |
-// | Kernel stack 0 guard | 0xffff_8000_5554_f000 | 0xffff_8000_5554_ffff |
-// | Kernel stack 0       | 0xffff_8000_5555_0000 | 0xffff_8000_555c_ffff |
-// | Kernel stacks 1+     | 0xffff_8000_555d_0000 | 0xffff_8000_5d5c_ffff |
-// | MMIO address space   | 0xffff_8000_6666_0000 | 0xffff_8000_6675_ffff |
-// | CPU-local storage    | 0xffff_8000_7777_0000 | 0xffff_8000_7f76_ffff |
-// | Physical memory map  | 0xffff_8000_8000_0000 | 0xffff_ffff_ffff_ffff |
 
 /// The first virtual page, which is reserved to ensure null pointer dereferences cause a page fault.
 ///
