@@ -45,9 +45,9 @@
 use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use memlayout::CPU_LOCAL;
 use physmem::ALLOCATOR;
-use virtmem::with_page_tables;
+use virtmem::map_pages;
 use x86_64::registers::model_specific::GsBase;
-use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags};
+use x86_64::structures::paging::{Page, PageTableFlags};
 use x86_64::VirtAddr;
 
 /// The offset into the per-CPU data at which the 8-byte
@@ -114,26 +114,14 @@ pub fn init() {
     let start_page = Page::from_start_address(start).expect("bad start address");
     let last_page = Page::containing_address(end);
 
-    // Map our per-CPU address space.
-    with_page_tables(|mapper| {
-        let mut frame_allocator = ALLOCATOR.lock();
-        for page in Page::range_inclusive(start_page, last_page) {
-            let frame = frame_allocator
-                .allocate_frame()
-                .expect("failed to allocate for per-CPU data");
+    let pages = Page::range_inclusive(start_page, last_page);
+    let flags = PageTableFlags::PRESENT
+        | PageTableFlags::GLOBAL
+        | PageTableFlags::WRITABLE
+        | PageTableFlags::NO_EXECUTE;
 
-            let flags = PageTableFlags::PRESENT
-                | PageTableFlags::GLOBAL
-                | PageTableFlags::WRITABLE
-                | PageTableFlags::NO_EXECUTE;
-            unsafe {
-                mapper
-                    .map_to(page, frame, flags, &mut *frame_allocator)
-                    .expect("failed to map per-CPU data")
-                    .flush()
-            };
-        }
-    });
+    // Map our per-CPU address space.
+    map_pages(pages, &mut *ALLOCATOR.lock(), flags).expect("failed to map per-CPU data");
 
     // We don't need to actually initialise the region,
     // as it's easier to do in each CPU and avoids us

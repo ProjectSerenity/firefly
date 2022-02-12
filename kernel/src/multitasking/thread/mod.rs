@@ -45,11 +45,9 @@ use segmentation::with_segment_data;
 use serial::println;
 use spin::Mutex;
 use time::{Duration, TimeSlice};
-use virtmem::with_page_tables;
+use virtmem::map_pages;
 use x86_64::instructions::interrupts::without_interrupts;
-use x86_64::structures::paging::{
-    FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
-};
+use x86_64::structures::paging::{Page, PageSize, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
 
 /// The amount of CPU time given to threads when they are scheduled.
@@ -627,25 +625,13 @@ impl Thread {
 
         // Map the stack.
         let pages = Page::range_inclusive(stack_bottom_page, stack_top_page);
-        with_page_tables(|mapper| {
-            let mut frame_allocator = physmem::ALLOCATOR.lock();
-            for page in pages {
-                let frame = frame_allocator
-                    .allocate_frame()
-                    .expect("failed to allocate stack for user thread");
+        let flags = PageTableFlags::PRESENT
+            | PageTableFlags::USER_ACCESSIBLE
+            | PageTableFlags::WRITABLE
+            | PageTableFlags::NO_EXECUTE;
 
-                let flags = PageTableFlags::PRESENT
-                    | PageTableFlags::USER_ACCESSIBLE
-                    | PageTableFlags::WRITABLE
-                    | PageTableFlags::NO_EXECUTE;
-                unsafe {
-                    mapper
-                        .map_to(page, frame, flags, &mut *frame_allocator)
-                        .expect("failed to map stack for user thread")
-                        .flush()
-                };
-            }
-        });
+        map_pages(pages, &mut *physmem::ALLOCATOR.lock(), flags)
+            .expect("failed to allocate stack for user thread");
 
         let stack = StackBounds::from_page_range(pages);
         let int_stack = new_kernel_stack(KERNEL_STACK_PAGES as u64)

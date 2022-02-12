@@ -18,12 +18,10 @@ use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 use memlayout::{VirtAddrRange, KERNEL_STACK, KERNEL_STACK_1_START};
 use spin::Mutex;
-use virtmem::with_page_tables;
+use virtmem::map_pages;
 use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::page::PageRangeInclusive;
-use x86_64::structures::paging::{
-    FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
-};
+use x86_64::structures::paging::{Page, PageSize, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
 
 /// Describes the address space used for a kernel stack region.
@@ -147,26 +145,14 @@ pub fn new_kernel_stack(num_pages: u64) -> Result<StackBounds, MapToError<Size4K
     let stack_start = guard_page + 1;
     let stack_end = stack_start + num_pages;
 
-    with_page_tables(|mapper| {
-        let mut frame_allocator = physmem::ALLOCATOR.lock();
-        for page in Page::range(stack_start, stack_end) {
-            let frame = frame_allocator
-                .allocate_frame()
-                .ok_or(MapToError::FrameAllocationFailed)?;
+    let pages = Page::range(stack_start, stack_end);
+    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
 
-            let flags =
-                PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
-            unsafe {
-                mapper
-                    .map_to(page, frame, flags, &mut *frame_allocator)?
-                    .flush()
-            };
-        }
+    map_pages(pages, &mut *physmem::ALLOCATOR.lock(), flags)?;
 
-        Ok(StackBounds {
-            start: stack_start.start_address(),
-            end: stack_end.start_address() - 1u64,
-        })
+    Ok(StackBounds {
+        start: stack_start.start_address(),
+        end: stack_end.start_address() - 1u64,
     })
 }
 

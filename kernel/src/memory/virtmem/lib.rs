@@ -106,6 +106,10 @@ pub unsafe fn init(boot_info: &'static BootInfo) {
 /// without multiple mutable references existing
 /// at the same time.
 ///
+/// If just mapping a set of memory pages, prefer
+/// [`map_pages`] instead, which provides additional
+/// checks on the memory being mapped.
+///
 pub fn with_page_tables<F, R>(f: F) -> R
 where
     F: FnOnce(&mut OffsetPageTable) -> R,
@@ -119,6 +123,31 @@ where
     let mut mapper = unsafe { OffsetPageTable::new(page_table, PHYSICAL_MEMORY_OFFSET) };
 
     f(&mut mapper)
+}
+
+/// Map the given page range, which can be inclusive or exclusive.
+///
+pub fn map_pages<R, A>(
+    range: R,
+    allocator: &mut A,
+    flags: PageTableFlags,
+) -> Result<(), MapToError<Size4KiB>>
+where
+    R: Iterator<Item = Page>,
+    A: FrameAllocator<Size4KiB> + ?Sized,
+{
+    with_page_tables(|mapper| {
+        for page in range {
+            let frame = allocator
+                .allocate_frame()
+                .ok_or(MapToError::FrameAllocationFailed)?;
+            unsafe {
+                mapper.map_to(page, frame, flags, allocator)?.flush();
+            }
+        }
+
+        Ok(())
+    })
 }
 
 // Re-export the heap allocators. We don't need to do this, but it's useful
@@ -152,22 +181,9 @@ fn init_heap(
         Page::range_inclusive(heap_start_page, heap_end_page)
     };
 
-    with_page_tables(|mapper| {
-        for page in page_range {
-            let frame = frame_allocator
-                .allocate_frame()
-                .ok_or(MapToError::<Size4KiB>::FrameAllocationFailed)
-                .expect("failed to allocate physical frame for page tables");
-            let flags =
-                PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
-            unsafe {
-                mapper
-                    .map_to(page, frame, flags, frame_allocator)
-                    .expect("failed to map kernel heap page")
-                    .flush()
-            };
-        }
-    });
+    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+
+    map_pages(page_range, frame_allocator, flags).expect("failed to map kernel heap");
 
     #[cfg(not(test))]
     unsafe {

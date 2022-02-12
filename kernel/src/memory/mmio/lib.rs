@@ -156,6 +156,9 @@ impl Region {
 
         let start_address = reserve_space(size);
         let mut next_address = start_address;
+
+        // We can't use map_pages, as we need to specify
+        // the exact physical frames being mapped.
         with_page_tables(|mapper| {
             let mut frame_allocator = ALLOCATOR.lock();
             for frame in range {
