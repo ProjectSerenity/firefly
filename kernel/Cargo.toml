@@ -19,6 +19,7 @@ lazy_static = {version = "=1.4.0", features = ["spin_no_std"]}
 managed = {version = "=0.8", default-features = false, features = ["map"]}
 memlayout = {path = "src/memory/memlayout"}
 mmio = {path = "src/memory/mmio"}
+network = {path = "src/network"}
 pci = {path = "src/drivers/pci"}
 physmem = {path = "src/memory/physmem"}
 pretty = {path = "src/utils/pretty"}

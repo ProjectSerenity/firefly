@@ -33,6 +33,7 @@
 //! - [memory/physmem](::physmem)
 //! - [memory/virtmem](::virtmem)
 //! - [multitasking/thread](::thread)
+//! - [network](::network)
 //! - [random](::random)
 //! - [segmentation](::segmentation)
 //! - [storage](::storage)
@@ -50,7 +51,6 @@
 extern crate alloc;
 
 pub mod drivers;
-pub mod network;
 pub mod syscalls;
 
 use bootloader::BootInfo;

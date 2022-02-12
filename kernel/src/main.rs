@@ -15,7 +15,7 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use kernel::{drivers, network};
+use kernel::drivers;
 use serial::println;
 use thread::{scheduler, Thread};
 use virtmem::with_page_tables;

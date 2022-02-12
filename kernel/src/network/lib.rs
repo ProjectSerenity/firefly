@@ -14,6 +14,11 @@
 //! This allows us to ensure that the network will be available when
 //! the initial workload starts.
 
+#![no_std]
+#![feature(const_btree_new)]
+
+extern crate alloc;
+
 pub mod tcp;
 pub mod udp;
 
@@ -29,7 +34,6 @@ use core::task::Waker;
 use managed::ManagedSlice;
 use memlayout::phys_to_virt_addr;
 use serial::println;
-use smoltcp;
 use smoltcp::iface::{InterfaceBuilder, NeighborCache, Routes, SocketHandle, SocketStorage};
 use smoltcp::phy::{DeviceCapabilities, RxToken, TxToken};
 use smoltcp::socket::{Dhcpv4Config, Dhcpv4Event, Dhcpv4Socket};

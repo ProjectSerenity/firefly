@@ -11,6 +11,7 @@ members = [
     "kernel/src/memory/physmem",
     "kernel/src/memory/virtmem",
     "kernel/src/multitasking/thread",
+    "kernel/src/network",
     "kernel/src/random",
     "kernel/src/segmentation",
     "kernel/src/storage",

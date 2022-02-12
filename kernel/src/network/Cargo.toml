@@ -1,0 +1,26 @@
+# Copyright 2022 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+[package]
+name = "network"
+version = "0.1.0"
+authors = ["Jamie Hall <the.sly.marbo@googlemail.com>"]
+edition = "2018"
+
+[lib]
+name = "network"
+path = "lib.rs"
+
+[dependencies]
+managed = {version = "=0.8", default-features = false, features = ["map"]}
+memlayout = {path = "../memory/memlayout"}
+random = {path = "../random"}
+serial = {path = "../drivers/serial"}
+smoltcp = {version = "=0.8.0", default-features = false, features = ["alloc", "async", "medium-ethernet", "proto-dhcpv4", "proto-ipv4", "socket", "socket-dhcpv4", "socket-raw", "socket-udp", "socket-tcp"]}
+spin = "=0.9.2"
+lazy_static = {version = "=1.4.0", features = ["spin_no_std"]}
+thread = {path = "../multitasking/thread"}
+time = {path = "../time"}
+x86_64 = "=0.14.7"

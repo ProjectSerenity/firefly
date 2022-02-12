@@ -53,8 +53,6 @@
 use crate::drivers::virtio;
 use crate::drivers::virtio::features::{Network, Reserved};
 use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
-use crate::network;
-use crate::network::{add_interface, InterfaceHandle};
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -63,6 +61,7 @@ use bitflags::bitflags;
 use core::mem;
 use interrupts::{register_irq, Irq};
 use memlayout::phys_to_virt_addr;
+use network::{add_interface, InterfaceHandle};
 use pci;
 use physmem::{allocate_frame, deallocate_frame};
 use serial::println;

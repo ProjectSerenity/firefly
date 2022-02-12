@@ -165,6 +165,7 @@ dependencies = [
  "managed",
  "memlayout",
  "mmio",
+ "network",
  "pci",
  "physmem",
  "pretty",
@@ -238,6 +239,22 @@ dependencies = [
  "physmem",
  "spin 0.9.2",
  "virtmem",
+ "x86_64",
+]
+
+[[package]]
+name = "network"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+ "managed",
+ "memlayout",
+ "random",
+ "serial",
+ "smoltcp",
+ "spin 0.9.2",
+ "thread",
+ "time",
  "x86_64",
 ]
 
