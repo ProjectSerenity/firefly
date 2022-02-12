@@ -49,7 +49,7 @@
 //! ```
 
 use super::{Error, InterfaceHandle, INTERFACES};
-use crate::multitasking::{cpu_local, thread};
+use crate::multitasking::thread;
 use alloc::collections::BTreeSet;
 use alloc::vec;
 use smoltcp::iface::SocketHandle;
@@ -325,7 +325,7 @@ impl Port {
     pub fn send_to<T: Into<IpEndpoint>>(&self, buf: &[u8], peer: T) -> Result<usize, Error> {
         // Realise the peer's address.
         let peer = peer.into();
-        let global_thread_id = cpu_local::current_thread().global_thread_id();
+        let global_thread_id = thread::current_global_thread_id();
 
         without_interrupts(|| {
             // Wait until we're able to send.
@@ -377,7 +377,7 @@ impl Port {
     /// [`Error::NotReady`](super::Error::NotReady).
     ///
     pub fn recv_from(&self, buf: &mut [u8]) -> Result<(usize, IpEndpoint), Error> {
-        let global_thread_id = cpu_local::current_thread().global_thread_id();
+        let global_thread_id = thread::current_global_thread_id();
 
         without_interrupts(|| {
             // Wait until we're able to receive.

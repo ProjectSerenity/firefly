@@ -58,13 +58,10 @@ pub mod network;
 pub mod syscalls;
 
 use crate::memory::kernel_pml4;
-use crate::multitasking::cpu_local;
+use crate::multitasking::thread;
 use crate::multitasking::thread::scheduler;
 use bootloader::BootInfo;
-use core::pin::Pin;
 use interrupts::{register_irq, Irq};
-use memlayout::KERNEL_STACK_0;
-use segmentation::SegmentData;
 use x86_64::structures::idt::InterruptStackFrame;
 
 /// Initialise the kernel and its core components.
@@ -77,19 +74,26 @@ use x86_64::structures::idt::InterruptStackFrame;
 /// - Initialise the [Real-time clock and Programmable Interval Timer](time)
 /// - Enables system interrupts.
 /// - Initialise the [memory managers and kernel heap](memory).
-/// - Initialise the [CPU-local data](multitasking/cpu_local).
+/// - Initialise the [CPU-local data](cpu).
 /// - Initialise the [scheduler](multitasking/thread).
 ///
 pub fn init(boot_info: &'static BootInfo) {
+    // Check the CPU has the features we need.
+    // This doesn't need any extra resources
+    // and there's no point going any further
+    // if we dont' have the bare minimum.
     cpu::check_features();
 
-    // Make sure we shadow the initial segment
-    // data so we can't circumvent the pin later.
-    let mut segment_data = SegmentData::new_uninitialised();
-    let mut segment_data = unsafe { Pin::new_unchecked(&mut segment_data) };
-    segment_data.init();
-    segment_data.activate();
+    // Set up our bootstrap segment data. This
+    // is a single global set of segment data
+    // for the entire system. When we can, we
+    // switch to a per-CPU set to allow each
+    // core to run a different thread.
+    segmentation::bootstrap();
 
+    // Set up our interrupt handlers, including
+    // the system ticker. We can then enable
+    // interrupts safely.
     interrupts::init();
     time::init();
     register_irq(Irq::PID, timer_interrupt_handler);
@@ -97,14 +101,20 @@ pub fn init(boot_info: &'static BootInfo) {
 
     // Set up the heap allocator.
     unsafe { memory::init(boot_info) };
-    let mut mapper = unsafe { kernel_pml4() };
-    cpu_local::init(
-        cpu_local::CpuId::new(),
-        &mut mapper,
-        &KERNEL_STACK_0,
-        segment_data,
-    );
-    syscalls::init(&cpu_local::segment_data());
+
+    // Now we have a working heap, we can set
+    // up the global memory region for CPU-local
+    // data. With that in place, we can initialise
+    // the part of the region for this CPU.
+    cpu::init(unsafe { &mut kernel_pml4() });
+    cpu::per_cpu_init();
+
+    // Now we have per-CPU data set up, we can
+    // set up the other per-CPU data in other
+    // kernel subsystems.
+    segmentation::per_cpu_init();
+    thread::per_cpu_init();
+    syscalls::per_cpu_init();
 }
 
 /// The PIT's interrupt handler.
@@ -114,7 +124,7 @@ fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
 
     irq.acknowledge();
 
-    if !cpu_local::ready() || !scheduler::ready() {
+    if !scheduler::ready() {
         return;
     }
 

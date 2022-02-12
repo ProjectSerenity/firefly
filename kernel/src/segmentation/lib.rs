@@ -22,7 +22,13 @@
 
 #![no_std]
 
+extern crate alloc;
+
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use core::pin::Pin;
+use lazy_static::lazy_static;
+use spin::Mutex;
 use x86_64::instructions::segmentation::{Segment, CS, SS};
 use x86_64::instructions::tables::load_tss;
 use x86_64::structures::gdt::{
@@ -30,6 +36,67 @@ use x86_64::structures::gdt::{
 };
 use x86_64::structures::tss::TaskStateSegment;
 use x86_64::{PrivilegeLevel, VirtAddr};
+
+/// This is used as the bootstrap segment data until the
+/// kernel heap is up and running.
+///
+/// Although this is a mutable static, it's safe in practice,
+/// as it's initialised once and then used once. We check
+/// that this is the sequence of events. We don't expose
+/// the bootstrap data outside this module.
+///
+static mut BOOTSTRAP_SEGMENT_DATA: SegmentData = SegmentData::new_uninitialised();
+
+/// Bootstrap the segment data with an initial
+/// global set. This should be used until the
+/// kernel heap can be set up and the per-CPU
+/// segment data can be initialised with [`per_cpu_init`].
+///
+pub fn bootstrap() {
+    let mut pinned = unsafe { Pin::new(&mut BOOTSTRAP_SEGMENT_DATA) };
+    pinned.init();
+    pinned.activate();
+}
+
+lazy_static! {
+    /// The segment data for each CPU.
+    ///
+    static ref PER_CPU: Mutex<Vec<Pin<&'static mut SegmentData>>> = Mutex::new(Vec::new());
+}
+
+/// Initialise the per-CPU segment data, which
+/// is used for the rest of the kernel's
+/// lifetime.
+///
+pub fn per_cpu_init() {
+    // Make sure the PER_CPU vector has enough entries
+    // for our CPU id.
+    let mut per_cpu = PER_CPU.lock();
+    let cpu_id = cpu::id();
+    while per_cpu.len() <= cpu_id {
+        // We allocate and initialise but don't activate
+        // the entries so they're only activated once by
+        // their owning CPU.
+        let segment_data = Box::new(SegmentData::new_uninitialised()); // Allocate on the heap.
+        let segment_data = Box::leak(segment_data); // Leak as a &'static mut.
+        let mut segment_data = Pin::new(segment_data); // Pin so it can't move.
+        segment_data.init();
+        per_cpu.push(segment_data);
+    }
+
+    unsafe { per_cpu[cpu_id].swap(Pin::new(&mut BOOTSTRAP_SEGMENT_DATA)) };
+}
+
+/// Invoke a callback acting on the segment data.
+///
+pub fn with_segment_data<F: FnOnce(&mut Pin<&mut SegmentData>)>(f: F) {
+    let mut per_cpu = PER_CPU.lock();
+    if let Some(segment_data) = per_cpu.get_mut(cpu::id()) {
+        f(segment_data);
+    } else {
+        panic!("segmentation::with_segment_data() called before being initialised.");
+    }
+}
 
 /// Index into each TSS where the double fault
 /// handler stack is stored.
@@ -116,7 +183,7 @@ impl SegmentData {
     /// separate steps so that the initialisation takes place
     /// on the final address.
     ///
-    pub fn new_uninitialised() -> Self {
+    const fn new_uninitialised() -> Self {
         SegmentData {
             gdt: GlobalDescriptorTable::new(),
             tss: TaskStateSegment::new(),
@@ -162,7 +229,7 @@ impl SegmentData {
     ///
     /// `init` will panic if the data has already been initialised.
     ///
-    pub fn init(self: &mut Pin<&mut Self>) {
+    fn init(self: &mut Pin<&mut Self>) {
         if self.is_initialised {
             panic!("SegmentData is being initialised a second time");
         }
@@ -203,7 +270,7 @@ impl SegmentData {
     /// `activate` is used to swap, rather than [`swap`](Self::swap),
     /// the other segment data will panic when it drops.
     ///
-    pub fn activate(self: &mut Pin<&mut Self>) {
+    fn activate(self: &mut Pin<&mut Self>) {
         if !self.is_initialised {
             panic!("SegmentData is being activated before being initialised");
         }
@@ -239,7 +306,7 @@ impl SegmentData {
     /// `swap` will panic if the data has already been
     /// activated, or if `previous` is not currently loaded.
     ///
-    pub fn swap(self: &mut Pin<&mut Self>, mut previous: Pin<&mut Self>) {
+    fn swap(self: &mut Pin<&mut Self>, mut previous: Pin<&mut Self>) {
         if !previous.is_active {
             panic!("previous SegmentData is not currently active");
         }
@@ -257,7 +324,7 @@ impl SegmentData {
     /// The passed address should be the address of the top
     /// of the stack, or zero.
     ///
-    pub fn set_interrupt_stack(mut self: Pin<&mut Self>, stack_top: VirtAddr) {
+    pub fn set_interrupt_stack(self: &mut Pin<&mut Self>, stack_top: VirtAddr) {
         self.tss.privilege_stack_table[INTERRUPT_KERNEL_STACK_INDEX] = stack_top;
     }
 

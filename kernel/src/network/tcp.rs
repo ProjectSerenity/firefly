@@ -71,7 +71,7 @@
 //! ```
 
 use super::{Error, InterfaceHandle, INTERFACES};
-use crate::multitasking::{cpu_local, thread};
+use crate::multitasking::thread;
 use alloc::collections::BTreeSet;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -346,7 +346,7 @@ impl Listener {
             return Err(Error::ListenerClosed);
         }
 
-        let global_thread_id = cpu_local::current_thread().global_thread_id();
+        let global_thread_id = thread::current_global_thread_id();
 
         without_interrupts(|| {
             // Loop until we find a pending connection.
@@ -566,7 +566,7 @@ impl DialConfig {
         let send_buffer = TcpSocketBuffer::new(vec![0u8; self.send_buffer_size]);
         let socket = TcpSocket::new(recv_buffer, send_buffer);
         let iface_handle = InterfaceHandle::new(0); // TODO: get this properly.
-        let global_thread_id = cpu_local::current_thread().global_thread_id();
+        let global_thread_id = thread::current_global_thread_id();
 
         without_interrupts(|| {
             let mut ifaces = INTERFACES.lock();
@@ -710,7 +710,7 @@ impl Connection {
     ///
     pub fn send(&self, buf: &[u8]) -> Result<usize, Error> {
         let mut bytes_sent = 0;
-        let global_thread_id = cpu_local::current_thread().global_thread_id();
+        let global_thread_id = thread::current_global_thread_id();
 
         without_interrupts(|| {
             // Wait until we're able to send.
@@ -760,7 +760,7 @@ impl Connection {
     /// non-zero.
     ///
     pub fn recv(&self, buf: &mut [u8]) -> Result<usize, Error> {
-        let global_thread_id = cpu_local::current_thread().global_thread_id();
+        let global_thread_id = thread::current_global_thread_id();
 
         without_interrupts(|| {
             // Wait until we're able to receive.

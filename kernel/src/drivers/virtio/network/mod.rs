@@ -53,8 +53,7 @@
 use crate::drivers::virtio;
 use crate::drivers::virtio::features::{Network, Reserved};
 use crate::drivers::virtio::{transports, Buffer, InterruptStatus};
-use crate::multitasking::cpu_local;
-use crate::multitasking::thread::{scheduler, Thread, ThreadId};
+use crate::multitasking::thread::{current_global_thread_id, scheduler, Thread, ThreadId};
 use crate::network;
 use crate::network::{add_interface, InterfaceHandle};
 use alloc::boxed::Box;
@@ -161,7 +160,7 @@ static INTERFACE_HANDLES: Mutex<BTreeMap<ThreadId, InterfaceHandle>> = Mutex::ne
 /// continues to process network events.
 ///
 fn network_entry_point() -> ! {
-    let global_thread_id = cpu_local::current_thread().global_thread_id();
+    let global_thread_id = current_global_thread_id();
     let iface_handle = &INTERFACE_HANDLES.lock()[&global_thread_id];
     loop {
         let wait = without_interrupts(|| iface_handle.poll());

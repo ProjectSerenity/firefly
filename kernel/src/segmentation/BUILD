@@ -12,7 +12,10 @@ rust_library(
     crate_name = "segmentation",
     visibility = ["//kernel:__subpackages__"],
     deps = [
+        crate("lazy_static"),
+        crate("spin"),
         crate("x86_64"),
+        "//kernel/src/cpu",
     ],
 )
 

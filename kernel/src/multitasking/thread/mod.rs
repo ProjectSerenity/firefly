@@ -29,29 +29,46 @@ mod stacks;
 mod switch;
 
 use crate::memory::kernel_pml4;
-use crate::multitasking::cpu_local;
 use crate::multitasking::thread::scheduler::{timers, Scheduler};
 use crate::multitasking::thread::stacks::{free_kernel_stack, new_kernel_stack, StackBounds};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::task::Wake;
+use alloc::vec::Vec;
 use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::Waker;
 use lazy_static::lazy_static;
-use memlayout::{VirtAddrRange, KERNEL_STACK, USERSPACE};
+use memlayout::{VirtAddrRange, KERNEL_STACK, KERNEL_STACK_GUARD, USERSPACE};
 use physmem;
 use pretty::Bytes;
+use segmentation::with_segment_data;
 use serial::println;
 use spin::Mutex;
 use time::{Duration, TimeSlice};
 use x86_64::instructions::interrupts::without_interrupts;
-use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
+use x86_64::structures::paging::{
+    FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
+};
 use x86_64::VirtAddr;
 
 /// The amount of CPU time given to threads when they are scheduled.
 ///
 const DEFAULT_TIME_SLICE: TimeSlice = TimeSlice::from_duration(&Duration::from_millis(100));
+
+/// The number of pages in each kernel stack.
+///
+/// This does not include the extra page for the stack
+/// guard.
+///
+const KERNEL_STACK_PAGES: usize = 128;
+
+/// The number of bytes in each kernel stack.
+///
+/// This does not include the extra page for the stack
+/// guard.
+///
+const KERNEL_STACK_SIZE: usize = (Size4KiB::SIZE as usize) * KERNEL_STACK_PAGES; // 512 KiB.
 
 type ThreadTable = BTreeMap<ThreadId, Arc<Thread>>;
 
@@ -66,6 +83,85 @@ lazy_static! {
     /// SCHEDULER is the thread scheduler.
     ///
     static ref SCHEDULER: Mutex<Scheduler> = Mutex::new(Scheduler::new());
+}
+
+lazy_static! {
+    /// The currently executing thread for each CPU.
+    ///
+    static ref CURRENT_THREADS: Mutex<Vec<Arc<Thread>>> = Mutex::new(Vec::with_capacity(cpu::max_cores()));
+
+    /// The idle thread for each CPU.
+    ///
+    static ref IDLE_THREADS: Mutex<Vec<Arc<Thread>>> = Mutex::new(Vec::with_capacity(cpu::max_cores()));
+}
+
+/// Sets up the thread data for this CPU.
+///
+pub fn per_cpu_init() {
+    // Start by identifying our stack space.
+    let id = cpu::id();
+    let offset = id * KERNEL_STACK_SIZE + Size4KiB::SIZE as usize; // Include stack guard.
+    let stack_start = KERNEL_STACK_GUARD.start() + offset;
+    let stack_end = stack_start + KERNEL_STACK_SIZE;
+    let stack_space = VirtAddrRange::new(stack_start, stack_end);
+
+    // Create our idle thread.
+    let idle = Thread::new_idle_thread(&stack_space);
+    let mut idle_threads = IDLE_THREADS.lock();
+    if idle_threads.len() != id {
+        panic!(
+            "thread::init() called for CPU {} with {} CPUs activated",
+            id,
+            idle_threads.len()
+        );
+    }
+
+    idle_threads.push(idle.clone());
+    drop(idle_threads);
+
+    let mut current_threads = CURRENT_THREADS.lock();
+    if current_threads.len() != id {
+        panic!(
+            "thread::init() called for CPU {} with {} CPUs activated",
+            id,
+            current_threads.len()
+        );
+    }
+
+    current_threads.push(idle);
+}
+
+/// Returns a copy of the currently executing thread.
+///
+pub fn current_thread() -> Arc<Thread> {
+    CURRENT_THREADS.lock()[cpu::id()].clone()
+}
+
+/// Returns the global thread id of the currently
+/// executing thread.
+///
+pub fn current_global_thread_id() -> ThreadId {
+    CURRENT_THREADS.lock()[cpu::id()].global_thread_id()
+}
+
+/// Set the currently executing thread.
+///
+fn set_current_thread(thread: Arc<Thread>) {
+    // Save the current thread's user stack pointer into the current thread.
+    current_thread().set_user_stack(cpu::user_stack_pointer());
+
+    // Overwrite the state from the new thread.
+    let interrupt_stack = thread.interrupt_stack();
+    with_segment_data(|data| data.set_interrupt_stack(interrupt_stack));
+    cpu::set_syscall_stack_pointer(thread.syscall_stack());
+    cpu::set_user_stack_pointer(thread.user_stack());
+    CURRENT_THREADS.lock()[cpu::id()] = thread;
+}
+
+/// Returns a copy of the idle thread for this CPU.
+///
+fn idle_thread() -> Arc<Thread> {
+    IDLE_THREADS.lock()[cpu::id()].clone()
 }
 
 /// DEFAULT_RFLAGS contains the reserved bits of the
@@ -89,7 +185,7 @@ const DEFAULT_RFLAGS: u64 = 0x2;
 /// CPU.
 ///
 pub fn suspend() {
-    let current = cpu_local::current_thread();
+    let current = current_thread();
     if current.global_id == ThreadId::IDLE {
         panic!("idle thread tried to suspend");
     }
@@ -115,7 +211,7 @@ pub fn suspend() {
 /// CPU.
 ///
 pub fn exit() -> ! {
-    let current = cpu_local::current_thread();
+    let current = current_thread();
     if current.global_id == ThreadId::IDLE {
         panic!("idle thread tried to exit");
     }
@@ -163,7 +259,7 @@ pub fn debug() {
     }
 
     // Update the current stack pointer.
-    let current = cpu_local::current_thread();
+    let current = current_thread();
     unsafe { current.stack_pointer.get().write(rsp) };
 
     // Debug as normal.
@@ -330,11 +426,6 @@ unsafe impl Sync for Thread {}
 
 impl Thread {
     /// The number of pages that will be allocated
-    /// for new kernel threads' stack.
-    ///
-    const DEFAULT_KERNEL_STACK_PAGES: u64 = 128; // 128 4-KiB pages = 512 KiB.
-
-    /// The number of pages that will be allocated
     /// for new user threads' stack. Unlike kernel
     /// stacks, these can grow at runtime.
     ///
@@ -389,7 +480,7 @@ impl Thread {
     ///
     pub fn create_kernel_thread(entry_point: fn() -> !) -> ThreadId {
         // Allocate and prepare the stack pointer.
-        let stack = new_kernel_stack(Thread::DEFAULT_KERNEL_STACK_PAGES)
+        let stack = new_kernel_stack(KERNEL_STACK_PAGES as u64)
             .expect("failed to allocate stack for new kernel thread");
 
         let rsp = unsafe {
@@ -502,9 +593,9 @@ impl Thread {
         drop(frame_allocator);
 
         let stack = StackBounds::from_page_range(pages);
-        let int_stack = new_kernel_stack(Thread::DEFAULT_KERNEL_STACK_PAGES)
+        let int_stack = new_kernel_stack(KERNEL_STACK_PAGES as u64)
             .expect("failed to allocate interrupt stack for new user thread");
-        let sys_stack = new_kernel_stack(Thread::DEFAULT_KERNEL_STACK_PAGES)
+        let sys_stack = new_kernel_stack(KERNEL_STACK_PAGES as u64)
             .expect("failed to allocate syscall stack for new user thread");
 
         let rsp = unsafe {

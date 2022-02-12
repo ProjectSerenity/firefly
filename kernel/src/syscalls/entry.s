@@ -4,8 +4,8 @@
 //; which is offset from the GS register. If these
 //; offsets change in the CPU-local data, we need
 //; to update them here too.
-.set SYSCALL_STACK, 0  //; syscall_stack_pointer
-.set USER_STACK, 8     //; user_stack_pointer
+.set SYSCALL_STACK, 8  //; syscall_stack_pointer
+.set USER_STACK, 16    //; user_stack_pointer
 
 //; This is the entry point, which is called when a user process
 //; uses the SYSCALL instruction.

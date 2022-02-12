@@ -18,8 +18,10 @@
 
 pub mod timers;
 
-use crate::multitasking::thread::{ThreadId, ThreadState, SCHEDULER, THREADS};
-use crate::multitasking::{cpu_local, thread};
+use crate::multitasking::thread::switch::switch_stack;
+use crate::multitasking::thread::{
+    current_thread, idle_thread, set_current_thread, ThreadId, ThreadState, SCHEDULER, THREADS,
+};
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicBool, Ordering};
@@ -117,13 +119,13 @@ pub fn ready() -> bool {
 ///
 pub fn preempt() {
     // Time to pre-empt the current thread.
-    let current_thread = cpu_local::current_thread();
+    let current_thread = current_thread();
     if !current_thread.tick() {
         return;
     }
 
     let global_thread_id = current_thread.global_thread_id();
-    if global_thread_id != thread::ThreadId::IDLE {
+    if global_thread_id != ThreadId::IDLE {
         current_thread.reset_time_slice();
     }
 
@@ -138,7 +140,7 @@ pub fn preempt() {
 ///
 pub fn sleep(duration: Duration) {
     let stop = after(duration);
-    let current = cpu_local::current_thread();
+    let current = current_thread();
 
     // Create a timer to wake us up.
     timers::add(current.global_thread_id(), stop);
@@ -161,7 +163,7 @@ pub fn sleep(duration: Duration) {
 pub fn switch() {
     let restart_interrupts = interrupts::are_enabled();
     interrupts::disable();
-    let current = cpu_local::current_thread();
+    let current = current_thread();
     let next = {
         let scheduler = SCHEDULER.lock();
 
@@ -175,7 +177,7 @@ pub fn switch() {
 
         match scheduler.next() {
             Some(thread) => THREADS.lock().get(&thread).unwrap().clone(),
-            None => cpu_local::idle_thread(),
+            None => idle_thread(),
         }
     };
 
@@ -197,7 +199,7 @@ pub fn switch() {
     let new_stack_pointer = next.stack_pointer.get();
 
     // Switch into the next thread and re-enable interrupts.
-    cpu_local::set_current_thread(next);
+    set_current_thread(next);
 
     // Note that once we have multiple CPUs, there will be
     // an unsafe gap between when we schedule the current
@@ -241,7 +243,7 @@ pub fn switch() {
         }
     } else {
         drop(current);
-        unsafe { thread::switch::switch_stack(current_stack_pointer, new_stack_pointer) };
+        unsafe { switch_stack(current_stack_pointer, new_stack_pointer) };
     }
 }
 

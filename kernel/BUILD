@@ -35,7 +35,6 @@ rust_library(
         "src/drivers/virtio/virtqueues/split.rs",
         "src/lib.rs",
         "src/memory/mod.rs",
-        "src/multitasking/cpu_local.rs",
         "src/multitasking/mod.rs",
         "src/multitasking/thread/mod.rs",
         "src/multitasking/thread/scheduler/mod.rs",
@@ -107,7 +106,6 @@ rust_binary(
     ],
     tags = ["manual"],
     deps = [
-        crate("x86_64"),
         ":libkernel",
         "//kernel/src/cpu",
         "//kernel/src/drivers/pci",

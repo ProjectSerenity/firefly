@@ -6,8 +6,7 @@
 //! Implements the kernel's syscalls, allowing user processes to access kernel functionality.
 
 use crate::multitasking::thread;
-use core::pin::Pin;
-use segmentation::SegmentData;
+use segmentation::with_segment_data;
 use serial::println;
 use syscalls::{Error, Syscall};
 use x86_64::registers::model_specific::{Efer, EferFlags, LStar, SFMask, Star};
@@ -99,14 +98,16 @@ extern "sysv64" fn syscall_handler(
     }
 }
 
-/// Sets up sycall handling for user processes.
+/// Sets up sycall handling for this CPU.
 ///
-pub fn init(segment_data: &Pin<&mut SegmentData>) {
+pub fn per_cpu_init() {
     // Set the segment selectors for the kernel
     // and userspace.
-    let (kernel_code_64, kernel_data) = segment_data.kernel_selectors();
-    let (_, user_data, user_code_64) = segment_data.user_selectors();
-    Star::write(user_code_64, user_data, kernel_code_64, kernel_data).unwrap();
+    with_segment_data(|segment_data| {
+        let (kernel_code_64, kernel_data) = segment_data.kernel_selectors();
+        let (_, user_data, user_code_64) = segment_data.user_selectors();
+        Star::write(user_code_64, user_data, kernel_code_64, kernel_data).unwrap();
+    });
 
     // Set the kernel's entry point when SYSCALL
     // is invoked.

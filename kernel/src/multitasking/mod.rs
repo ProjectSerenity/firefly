@@ -12,12 +12,5 @@
 //! can be used to switch from one thread to another, and for a thread to
 //! sleep and be resumed. Combined with the Programmable Interval Timer
 //! handler, this will pre-empt threads to allow fair sharing of the CPU.
-//!
-//! ## CPU-local data
-//!
-//! The [`cpu_local`] module allocates a memory region for each active CPU,
-//! storing the address for the region in the GS register. This allows the
-//! CPU to have an independent copy of its own data.
 
-pub mod cpu_local;
 pub mod thread;

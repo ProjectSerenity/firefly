@@ -6,9 +6,39 @@
 //! Analyses the CPU for supported features and branding.
 
 #![no_std]
+#![feature(asm)]
+#![feature(asm_const)]
 
+mod local;
+
+use core::sync::atomic::{AtomicUsize, Ordering};
+use lazy_static::lazy_static;
 use raw_cpuid::CpuId;
 use serial::println;
+
+pub use local::{
+    id, init, per_cpu_init, set_syscall_stack_pointer, set_user_stack_pointer,
+    syscall_stack_pointer, user_stack_pointer,
+};
+
+lazy_static! {
+    /// This stores the maximum number of logical cores.
+    ///
+    /// The value is not modified once initialised.
+    ///
+    static ref MAX_CORES: AtomicUsize = AtomicUsize::new(1); // TODO: Implement functionality to determine this.
+}
+
+/// Returns the maximum number of logical cores on this
+/// machine.
+///
+/// This value should be used to ensure data local to
+/// each CPU has sufficient entries for all values returned
+/// by [`id`].
+///
+pub fn max_cores() -> usize {
+    MAX_CORES.load(Ordering::Relaxed)
+}
 
 /// Checks that the CPU supports all the features we need.
 ///
