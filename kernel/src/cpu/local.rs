@@ -45,8 +45,9 @@
 use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use memlayout::CPU_LOCAL;
 use physmem::ALLOCATOR;
+use virtmem::with_page_tables;
 use x86_64::registers::model_specific::GsBase;
-use x86_64::structures::paging::{FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags};
+use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags};
 use x86_64::VirtAddr;
 
 /// The offset into the per-CPU data at which the 8-byte
@@ -96,7 +97,7 @@ const PER_CPU_REGION_SIZE: usize = 8 + 8 + 8;
 ///
 /// Calling `init` more than once will result in a panic.
 ///
-pub fn init(mapper: &mut OffsetPageTable) {
+pub fn init() {
     static INITIALISED: AtomicBool = AtomicBool::new(false);
     let prev = INITIALISED.fetch_or(true, Ordering::SeqCst);
     if prev {
@@ -114,23 +115,25 @@ pub fn init(mapper: &mut OffsetPageTable) {
     let last_page = Page::containing_address(end);
 
     // Map our per-CPU address space.
-    let mut frame_allocator = ALLOCATOR.lock();
-    for page in Page::range_inclusive(start_page, last_page) {
-        let frame = frame_allocator
-            .allocate_frame()
-            .expect("failed to allocate for per-CPU data");
+    with_page_tables(|mapper| {
+        let mut frame_allocator = ALLOCATOR.lock();
+        for page in Page::range_inclusive(start_page, last_page) {
+            let frame = frame_allocator
+                .allocate_frame()
+                .expect("failed to allocate for per-CPU data");
 
-        let flags = PageTableFlags::PRESENT
-            | PageTableFlags::GLOBAL
-            | PageTableFlags::WRITABLE
-            | PageTableFlags::NO_EXECUTE;
-        unsafe {
-            mapper
-                .map_to(page, frame, flags, &mut *frame_allocator)
-                .expect("failed to map per-CPU data")
-                .flush()
-        };
-    }
+            let flags = PageTableFlags::PRESENT
+                | PageTableFlags::GLOBAL
+                | PageTableFlags::WRITABLE
+                | PageTableFlags::NO_EXECUTE;
+            unsafe {
+                mapper
+                    .map_to(page, frame, flags, &mut *frame_allocator)
+                    .expect("failed to map per-CPU data")
+                    .flush()
+            };
+        }
+    });
 
     // We don't need to actually initialise the region,
     // as it's easier to do in each CPU and avoids us

@@ -21,6 +21,7 @@ rust_library(
         "//kernel/src/drivers/serial",
         "//kernel/src/memory/memlayout",
         "//kernel/src/memory/physmem",
+        "//kernel/src/memory/virtmem",
     ],
 )
 

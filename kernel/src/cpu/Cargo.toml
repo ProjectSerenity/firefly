@@ -19,4 +19,5 @@ memlayout = {path = "../memory/memlayout"}
 physmem = {path = "../memory/physmem"}
 raw-cpuid = {version = "=10.2.0", default-features = false}
 serial = {path = "../drivers/serial"}
+virtmem = {path = "../memory/virtmem"}
 x86_64 = "=0.14.7"

@@ -45,7 +45,7 @@ use segmentation::with_segment_data;
 use serial::println;
 use spin::Mutex;
 use time::{Duration, TimeSlice};
-use virtmem::kernel_pml4;
+use virtmem::with_page_tables;
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, Page, PageSize, PageTableFlags, Size4KiB,
@@ -626,28 +626,26 @@ impl Thread {
         let stack_bottom_page = Page::from_start_address(stack_bottom).unwrap();
 
         // Map the stack.
-        let mut mapper = unsafe { kernel_pml4() };
-        let mut frame_allocator = physmem::ALLOCATOR.lock();
         let pages = Page::range_inclusive(stack_bottom_page, stack_top_page);
-        for page in pages {
-            let frame = frame_allocator
-                .allocate_frame()
-                .expect("failed to allocate stack for user thread");
+        with_page_tables(|mapper| {
+            let mut frame_allocator = physmem::ALLOCATOR.lock();
+            for page in pages {
+                let frame = frame_allocator
+                    .allocate_frame()
+                    .expect("failed to allocate stack for user thread");
 
-            let flags = PageTableFlags::PRESENT
-                | PageTableFlags::USER_ACCESSIBLE
-                | PageTableFlags::WRITABLE
-                | PageTableFlags::NO_EXECUTE;
-            unsafe {
-                mapper
-                    .map_to(page, frame, flags, &mut *frame_allocator)
-                    .expect("failed to map stack for user thread")
-                    .flush()
-            };
-        }
-
-        drop(mapper);
-        drop(frame_allocator);
+                let flags = PageTableFlags::PRESENT
+                    | PageTableFlags::USER_ACCESSIBLE
+                    | PageTableFlags::WRITABLE
+                    | PageTableFlags::NO_EXECUTE;
+                unsafe {
+                    mapper
+                        .map_to(page, frame, flags, &mut *frame_allocator)
+                        .expect("failed to map stack for user thread")
+                        .flush()
+                };
+            }
+        });
 
         let stack = StackBounds::from_page_range(pages);
         let int_stack = new_kernel_stack(KERNEL_STACK_PAGES as u64)

@@ -59,7 +59,6 @@ use bitflags::bitflags;
 use interrupts::Irq;
 use pci;
 use serial::println;
-use x86_64::structures::paging::OffsetPageTable;
 use x86_64::PhysAddr;
 
 /// MAX_DESCRIPTORS is the maximum number of
@@ -433,7 +432,6 @@ impl Driver {
     ///
     pub fn new(
         transport: Arc<dyn Transport>,
-        mapper: &mut OffsetPageTable,
         must_features: u64,
         like_features: u64,
         num_queues: u16,
@@ -477,12 +475,10 @@ impl Driver {
         // Prepare our virtqueues.
         let mut virtqueues = Vec::new();
         for i in 0..num_queues {
-            virtqueues.push(Box::new(split::Virtqueue::new(
-                i,
-                transport.clone(),
-                mapper,
-                features,
-            )) as Box<dyn Virtqueue + Send>);
+            virtqueues.push(
+                Box::new(split::Virtqueue::new(i, transport.clone(), features))
+                    as Box<dyn Virtqueue + Send>,
+            );
         }
 
         // Finish initialisation.

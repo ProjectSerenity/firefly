@@ -23,7 +23,7 @@ use core::slice;
 use core::sync::atomic::{fence, Ordering};
 use mmio;
 use physmem::allocate_n_frames;
-use x86_64::structures::paging::{OffsetPageTable, PageSize, Size4KiB};
+use x86_64::structures::paging::{PageSize, Size4KiB};
 use x86_64::PhysAddr;
 
 bitflags! {
@@ -252,12 +252,7 @@ impl<'a> Virtqueue<'a> {
     /// that have been negotiated with the
     /// device.
     ///
-    pub fn new(
-        queue_index: u16,
-        transport: Arc<dyn Transport>,
-        mapper: &mut OffsetPageTable,
-        features: u64,
-    ) -> Self {
+    pub fn new(queue_index: u16, transport: Arc<dyn Transport>, features: u64) -> Self {
         transport.select_queue(queue_index);
 
         let num_descriptors = core::cmp::min(transport.queue_size(), MAX_DESCRIPTORS);
@@ -296,7 +291,7 @@ impl<'a> Virtqueue<'a> {
         let num_frames = align_up_u64(device_end, Size4KiB::SIZE) / Size4KiB::SIZE;
         let frame_range = allocate_n_frames(num_frames as usize)
             .expect("failed to allocate physical memory for virtqueue");
-        let mmio_region = unsafe { mmio::Region::map(mapper, frame_range) };
+        let mmio_region = mmio::Region::map(frame_range);
         let start_phys = frame_range.start.start_address();
         let start_virt = mmio_region.as_mut::<u8>(0).unwrap() as *mut u8;
         let descriptors_phys = start_phys + descriptors_offset;

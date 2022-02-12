@@ -94,29 +94,31 @@ pub unsafe fn init(boot_info: &'static BootInfo) {
     let phys = level_4_table_frame.start_address();
     *KERNEL_PML4_ADDRESS.lock() = phys_to_virt_addr(phys);
 
-    let mut page_table = kernel_pml4();
     let mut frame_allocator = physmem::bootstrap(&boot_info.memory_map);
 
-    init_heap(&mut page_table, &mut frame_allocator).expect("heap initialization failed");
+    init_heap(&mut frame_allocator).expect("heap initialization failed");
 
     // Switch over to a more sophisticated physical memory manager.
     physmem::init(frame_allocator);
 }
 
-/// Returns a mutable reference to the kernel's level 4 page
-/// table.
+/// Allows the caller to modify the page mappings
+/// without multiple mutable references existing
+/// at the same time.
 ///
-/// # Safety
-///
-/// The returned page tables must only be used to translate
-/// addresses when it is the active level 4 page table.
-///
-pub unsafe fn kernel_pml4() -> OffsetPageTable<'static> {
+pub fn with_page_tables<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut OffsetPageTable) -> R,
+{
     let virt = KERNEL_PML4_ADDRESS.lock();
     let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
 
-    let page_table = &mut *page_table_ptr; // unsafe
-    OffsetPageTable::new(page_table, PHYSICAL_MEMORY_OFFSET)
+    // This bit is unsafe if we're not using
+    // the currently-active page tables.
+    let page_table = unsafe { &mut *page_table_ptr };
+    let mut mapper = unsafe { OffsetPageTable::new(page_table, PHYSICAL_MEMORY_OFFSET) };
+
+    f(&mut mapper)
 }
 
 // Re-export the heap allocators. We don't need to do this, but it's useful
@@ -141,7 +143,6 @@ static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAl
 /// no-execute permission bit set.
 ///
 fn init_heap(
-    mapper: &mut OffsetPageTable,
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
 ) -> Result<(), MapToError<Size4KiB>> {
     let page_range = {
@@ -151,13 +152,22 @@ fn init_heap(
         Page::range_inclusive(heap_start_page, heap_end_page)
     };
 
-    for page in page_range {
-        let frame = frame_allocator
-            .allocate_frame()
-            .ok_or(MapToError::FrameAllocationFailed)?;
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
-        unsafe { mapper.map_to(page, frame, flags, frame_allocator)?.flush() };
-    }
+    with_page_tables(|mapper| {
+        for page in page_range {
+            let frame = frame_allocator
+                .allocate_frame()
+                .ok_or(MapToError::<Size4KiB>::FrameAllocationFailed)
+                .expect("failed to allocate physical frame for page tables");
+            let flags =
+                PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+            unsafe {
+                mapper
+                    .map_to(page, frame, flags, frame_allocator)
+                    .expect("failed to map kernel heap page")
+                    .flush()
+            };
+        }
+    });
 
     #[cfg(not(test))]
     unsafe {
@@ -180,7 +190,7 @@ fn init_heap(
     unsafe { Efer::write(flags) };
 
     // Remap the kernel, now that the heap is set up.
-    unsafe { remap_kernel(mapper) };
+    with_page_tables(|mapper| unsafe { remap_kernel(mapper) });
 
     Ok(())
 }

@@ -59,7 +59,6 @@ use crate::multitasking::thread;
 use crate::multitasking::thread::scheduler;
 use bootloader::BootInfo;
 use interrupts::{register_irq, Irq};
-use virtmem::kernel_pml4;
 use x86_64::structures::idt::InterruptStackFrame;
 
 /// Initialise the kernel and its core components.
@@ -104,7 +103,7 @@ pub fn init(boot_info: &'static BootInfo) {
     // up the global memory region for CPU-local
     // data. With that in place, we can initialise
     // the part of the region for this CPU.
-    cpu::init(unsafe { &mut kernel_pml4() });
+    cpu::init();
     cpu::per_cpu_init();
 
     // Now we have per-CPU data set up, we can

@@ -59,10 +59,11 @@ use core::sync::atomic;
 use memlayout::MMIO_SPACE;
 use physmem::ALLOCATOR;
 use spin::Mutex;
+use virtmem::with_page_tables;
 use x86_64::structures::paging::frame::PhysFrameRange;
 use x86_64::structures::paging::page::Page;
 use x86_64::structures::paging::page_table::PageTableFlags;
-use x86_64::structures::paging::{Mapper, OffsetPageTable};
+use x86_64::structures::paging::Mapper;
 use x86_64::VirtAddr;
 
 /// MMIO_START_ADDRESS is the address where the next MMIO mapping
@@ -148,34 +149,32 @@ impl Region {
     /// space, returning a range through which the region can be
     /// accessed safely.
     ///
-    /// # Safety
-    ///
-    /// This function is unsafe because the caller must guarantee that the
-    /// given physical memory region is not being used already for other
-    /// purposes.
-    ///
-    pub unsafe fn map(mapper: &mut OffsetPageTable, range: PhysFrameRange) -> Self {
+    pub fn map(range: PhysFrameRange) -> Self {
         let first_addr = range.start.start_address();
         let last_addr = range.end.start_address();
         let size = last_addr - first_addr;
 
-        let mut frame_allocator = ALLOCATOR.lock();
         let start_address = reserve_space(size);
         let mut next_address = start_address;
-        for frame in range {
-            let flags = PageTableFlags::PRESENT
-                | PageTableFlags::WRITABLE
-                | PageTableFlags::WRITE_THROUGH
-                | PageTableFlags::NO_CACHE
-                | PageTableFlags::GLOBAL
-                | PageTableFlags::NO_EXECUTE;
-            let page = Page::from_start_address(next_address).expect("bad start address");
-            next_address += page.size();
-            mapper
-                .map_to(page, frame, flags, &mut *frame_allocator)
-                .expect("failed to map MMIO page")
-                .flush();
-        }
+        with_page_tables(|mapper| {
+            let mut frame_allocator = ALLOCATOR.lock();
+            for frame in range {
+                let flags = PageTableFlags::PRESENT
+                    | PageTableFlags::WRITABLE
+                    | PageTableFlags::WRITE_THROUGH
+                    | PageTableFlags::NO_CACHE
+                    | PageTableFlags::GLOBAL
+                    | PageTableFlags::NO_EXECUTE;
+                let page = Page::from_start_address(next_address).expect("bad start address");
+                next_address += page.size();
+                unsafe {
+                    mapper
+                        .map_to(page, frame, flags, &mut *frame_allocator)
+                        .expect("failed to map MMIO page")
+                        .flush();
+                }
+            }
+        });
 
         Region {
             start: start_address,

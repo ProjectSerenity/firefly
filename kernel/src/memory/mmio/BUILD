@@ -16,6 +16,7 @@ rust_library(
         crate("x86_64"),
         "//kernel/src/memory/memlayout",
         "//kernel/src/memory/physmem",
+        "//kernel/src/memory/virtmem",
     ],
 )
 
