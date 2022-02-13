@@ -43,6 +43,9 @@
 
 #![no_std]
 
+mod addr_range;
+
+pub use crate::addr_range::VirtAddrRange;
 use x86_64::{PhysAddr, VirtAddr};
 
 /// The first virtual page, which is reserved to ensure null pointer dereferences cause a page fault.
@@ -140,73 +143,6 @@ const VIRTUAL_MEMORY_END: VirtAddr = const_virt_addr(0xffff_ffff_ffff_ffff_u64);
 ///
 pub fn phys_to_virt_addr(phys: PhysAddr) -> VirtAddr {
     PHYSICAL_MEMORY_OFFSET + phys.as_u64()
-}
-
-/// Represents a contiguous sequence of virtual addresses.
-///
-pub struct VirtAddrRange {
-    first: VirtAddr,
-    last: VirtAddr,
-}
-
-impl VirtAddrRange {
-    /// Returns a new range, from `start` to `end`.
-    ///
-    /// # Panics
-    ///
-    /// `new` will panic if `start` is not smaller than `end`.
-    ///
-    pub const fn new(start: VirtAddr, end: VirtAddr) -> Self {
-        if start.as_u64() >= end.as_u64() {
-            panic!("invalid virtual address range: start is not smaller than end");
-        }
-
-        VirtAddrRange {
-            first: start,
-            last: end,
-        }
-    }
-
-    /// Returns the first address in the range.
-    ///
-    pub const fn start(&self) -> VirtAddr {
-        self.first
-    }
-
-    /// Returns the last address in the range.
-    ///
-    pub const fn end(&self) -> VirtAddr {
-        self.last
-    }
-
-    /// Returns the number of addresses in the range.
-    ///
-    pub const fn size(&self) -> u64 {
-        (self.last.as_u64() + 1u64) - self.first.as_u64()
-    }
-
-    /// Returns whether the given address range exists
-    /// entirely within (or is equal to) this range.
-    ///
-    pub const fn contains(&self, other: &VirtAddrRange) -> bool {
-        self.first.as_u64() <= other.first.as_u64() && other.last.as_u64() <= self.last.as_u64()
-    }
-
-    /// Returns whether the given address exists in this
-    /// range.
-    ///
-    pub const fn contains_addr(&self, other: VirtAddr) -> bool {
-        self.first.as_u64() <= other.as_u64() && other.as_u64() <= self.last.as_u64()
-    }
-
-    /// Returns whether the given `start` and `end`
-    /// addresses both exist within this range.
-    ///
-    pub const fn contains_range(&self, other_start: VirtAddr, other_end: VirtAddr) -> bool {
-        other_start.as_u64() < other_end.as_u64()
-            && self.contains_addr(other_start)
-            && self.contains_addr(other_end)
-    }
 }
 
 /// A `const fn` that returns the given virtual address.

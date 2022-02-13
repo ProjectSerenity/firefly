@@ -4,11 +4,14 @@
 # license that can be found in the LICENSE file.
 
 load("@crates//:defs.bzl", "crate")
-load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library")
+load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rust_test")
 
 rust_library(
     name = "memlayout",
-    srcs = ["lib.rs"],
+    srcs = [
+        "addr_range.rs",
+        "lib.rs",
+    ],
     crate_name = "memlayout",
     visibility = ["//kernel:__subpackages__"],
     deps = [
@@ -23,5 +26,11 @@ rust_clippy(
 
 rust_doc(
     name = "docs",
+    crate = ":memlayout",
+)
+
+rust_test(
+    name = "memlayout_test",
+    size = "small",
     crate = ":memlayout",
 )
