@@ -159,3 +159,67 @@ const fn const_virt_addr(addr: u64) -> VirtAddr {
         _ => panic!("invalid virtual address"),     // Invalid address.
     }
 }
+
+#[test]
+fn check_memory_layout() {
+    use x86_64::addr::VirtAddrNotValid;
+
+    // This is the set of major memory regions.
+    // There must be no overlap between regions.
+    let regions = [
+        (NULL_PAGE, "null page"),
+        (USERSPACE, "userspace"),
+        (KERNEL_BINARY, "kernel binary"),
+        (BOOT_INFO, "boot info"),
+        (KERNEL_HEAP, "kernel heap"),
+        (KERNEL_STACK_GUARD, "kernel stack guard"),
+        (KERNEL_STACK, "kernel stack"),
+        (MMIO_SPACE, "MMIO space"),
+        (CPU_LOCAL, "CPU-local"),
+        (PHYSICAL_MEMORY, "physical memory"),
+    ];
+
+    // We don't need to do a quadratic search,
+    // but n is small and it gives extra peace
+    // of mind.
+    for (i, r1) in regions.iter().enumerate() {
+        for (j, r2) in regions.iter().enumerate() {
+            if i == j {
+                continue;
+            }
+
+            assert!(
+                !r1.0.contains_addr(r2.0.start()),
+                "{} overlaps with {}",
+                r1.1,
+                r2.1
+            );
+            assert!(
+                !r1.0.contains_addr(r2.0.end()),
+                "{} overlaps with {}",
+                r1.1,
+                r2.1
+            );
+        }
+    }
+
+    // Check that the null page starts at address
+    // zero, or it's pointless.
+    assert_eq!(
+        NULL_PAGE.start(),
+        const_virt_addr(0),
+        "the null page does not start at 0"
+    );
+
+    // Check that userspace ends at the bottom of
+    // the lower half of memory. We verify this by
+    // checking that the next address is invalid.
+    // If so, passing it to VirtAddr::try_new will
+    // either return an error or will sign-extend
+    // the address, resulting in a different numerical
+    // value.
+    let next_addr = USERSPACE.end().as_u64() + 1;
+    assert!(
+        VirtAddr::try_new(next_addr).is_err() || VirtAddr::new(next_addr).as_u64() != next_addr
+    );
+}
