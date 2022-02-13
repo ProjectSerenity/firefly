@@ -162,8 +162,6 @@ const fn const_virt_addr(addr: u64) -> VirtAddr {
 
 #[test]
 fn check_memory_layout() {
-    use x86_64::addr::VirtAddrNotValid;
-
     // This is the set of major memory regions.
     // There must be no overlap between regions.
     let regions = [
