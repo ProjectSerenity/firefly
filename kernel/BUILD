@@ -7,12 +7,6 @@ load("@crates//:defs.bzl", "crate")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_doc", "rust_library")
 load("//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_binary")
 
-# Make the target configuration available to //bazel/cross-compiling.
-exports_files(
-    ["x86_64-firefly.json"],
-    visibility = ["//:__subpackages__"],
-)
-
 # Expose the manifest to the bootloader and bootimage.
 exports_files(
     ["Cargo.toml"],
@@ -105,6 +99,5 @@ rust_binary(
 x86_64_bare_metal_rust_binary(
     name = "kernel",
     rust_binary = ":binary",
-    rust_toolchain = "//bazel/cross-compiling:x86_64_rust_toolchain",
     visibility = ["//visibility:public"],
 )

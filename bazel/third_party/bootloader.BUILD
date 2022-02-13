@@ -12,12 +12,6 @@ licenses([
     "notice",  # MIT from expression "MIT OR Apache-2.0"
 ])
 
-# Make the target configuration available to //bazel/cross-compiling.
-exports_files(
-    ["x86_64-bootloader.json"],
-    visibility = ["@//:__subpackages__"],
-)
-
 # The bootloader package is a little unusual, as we use
 # both its library crate and main binary crate, plus we
 # depend on its build.rs script.
@@ -274,6 +268,5 @@ rust_binary(
 x86_64_bare_metal_rust_binary(
     name = "binary",
     rust_binary = ":bootloader_bin",
-    rust_toolchain = "@//bazel/cross-compiling:x86_64_rust_bootloader_toolchain",
     visibility = ["//visibility:public"],
 )

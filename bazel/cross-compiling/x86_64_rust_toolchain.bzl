@@ -12,7 +12,7 @@ load("@rules_rust//rust:toolchain.bzl", "rust_toolchain")
 # a LLVM target description. This is used
 # to customise the toolchain.
 
-def x86_64_rust_toolchain(name, target_json, stdlib_filegroup):
+def x86_64_rust_toolchain(name, target_triple, stdlib_filegroup):
     rust_toolchain_name = "%s_rust_toolchain" % name
     rust_toolchain(
         name = rust_toolchain_name,
@@ -36,7 +36,7 @@ def x86_64_rust_toolchain(name, target_json, stdlib_filegroup):
         rustfmt = "@rust_linux_x86_64//:rustfmt_bin",
         staticlib_ext = ".a",
         stdlib_linkflags = [],
-        target_json = target_json,
+        target_triple = target_triple,
         visibility = ["//visibility:public"],
     )
 

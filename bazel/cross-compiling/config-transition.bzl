@@ -11,13 +11,12 @@
 # specifying the binary to configure.
 
 def _bare_metal_impl(settings, attr):
-    rust_toolchain = str(attr.rust_toolchain)
     return {
         "//command_line_option:cpu": "x86_64",
         "//command_line_option:crosstool_top": "//bazel/cross-compiling:x86_64_cc_toolchain_suite",
         "//command_line_option:extra_toolchains": [
             "//bazel/cross-compiling:x86_64_cc_toolchain",
-            rust_toolchain,
+            "//bazel/cross-compiling:x86_64_rust_toolchain",
         ],
         "//command_line_option:host_crosstool_top": "@bazel_tools//tools/cpp:toolchain",
         "//command_line_option:platforms": "//bazel/cross-compiling:x86_64_bare_metal",
@@ -57,17 +56,15 @@ _transition_rule = rule(
     attrs = {
         # Outgoing edge transition
         "rust_binary": attr.label(cfg = _x86_64_bare_metal_platform_transition),
-        "rust_toolchain": attr.label(cfg = _x86_64_bare_metal_platform_transition),
         "_allowlist_function_transition": attr.label(
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
         ),
     },
 )
 
-def x86_64_bare_metal_rust_binary(name, rust_binary, rust_toolchain, visibility):
+def x86_64_bare_metal_rust_binary(name, rust_binary, visibility):
     _transition_rule(
         name = name,
         rust_binary = rust_binary,
-        rust_toolchain = rust_toolchain,
         visibility = visibility,
     )

@@ -47,14 +47,13 @@ find_librust_entrypoint = rule(
 # rather than the target toolchain (as that will depend
 # on this).
 
-def rust_no_std(name, target_json, rustc, rustc_srcs, libcore_entry, liballoc_entry):
+def rust_no_std(name, target, rustc, rustc_srcs, libcore_entry, liballoc_entry):
     libcore_name = "%s_libcore" % name
     libcore_rlib = "libcore_%s.rlib" % name
     native.genrule(
         name = libcore_name,
         srcs = [
             libcore_entry,
-            target_json,
             rustc_srcs,
         ],
         outs = [libcore_rlib],
@@ -62,14 +61,14 @@ def rust_no_std(name, target_json, rustc, rustc_srcs, libcore_entry, liballoc_en
                     --edition=2018 \
                     --crate-type=lib \
                     --crate-name=core \
-                    --target $(location {target_json}) \
+                    --target {target} \
                     --remap-path-prefix=$${PWD}=. \
                     -C opt-level=2 \
                     -o $@ \
                     $(locations {libcore_entry})""".format(
             rustc = rustc,
             libcore_entry = libcore_entry,
-            target_json = target_json,
+            target = target,
             PWD = "PWD",
         ),
         message = "Building x86_64 libcore",
@@ -87,7 +86,6 @@ def rust_no_std(name, target_json, rustc, rustc_srcs, libcore_entry, liballoc_en
         name = libcompiler_builtins_name,
         srcs = [
             libcore_rlib,
-            target_json,
             "@compiler_builtins//:srcs",
             "@compiler_builtins//:lib",
         ],
@@ -102,7 +100,7 @@ def rust_no_std(name, target_json, rustc, rustc_srcs, libcore_entry, liballoc_en
                     -Z force-unstable-if-unmarked \
                     --crate-type=lib \
                     --crate-name=compiler_builtins \
-                    --target $(location {target_json}) \
+                    --target {target} \
                     --extern core=$(location {libcore_rlib}) \
                     --allow unstable_name_collisions \
                     --remap-path-prefix=$${PWD}=. \
@@ -111,7 +109,7 @@ def rust_no_std(name, target_json, rustc, rustc_srcs, libcore_entry, liballoc_en
                     $(locations @compiler_builtins//:lib)""".format(
             rustc = rustc,
             libcore_rlib = libcore_rlib,
-            target_json = target_json,
+            target = target,
             PWD = "PWD",
         ),
         message = "Building x86_64 libcompiler_builtins",
@@ -131,7 +129,6 @@ def rust_no_std(name, target_json, rustc, rustc_srcs, libcore_entry, liballoc_en
             liballoc_entry,
             libcore_rlib,
             libcompiler_builtins_rlib,
-            target_json,
             rustc_srcs,
         ],
         outs = [liballoc_rlib],
@@ -141,7 +138,7 @@ def rust_no_std(name, target_json, rustc, rustc_srcs, libcore_entry, liballoc_en
                     --edition=2018 \
                     --crate-type=lib \
                     --crate-name=alloc \
-                    --target $(location {target_json}) \
+                    --target {target} \
                     --extern core=$(location {libcore_rlib}) \
                     --extern compiler_builtins=$(location {libcompiler_builtins_rlib}) \
                     --remap-path-prefix=$${PWD}=. \
@@ -152,7 +149,7 @@ def rust_no_std(name, target_json, rustc, rustc_srcs, libcore_entry, liballoc_en
             liballoc_entry = liballoc_entry,
             libcore_rlib = libcore_rlib,
             libcompiler_builtins_rlib = libcompiler_builtins_rlib,
-            target_json = target_json,
+            target = target,
             PWD = "PWD",
         ),
         message = "Building x86_64 liballoc",

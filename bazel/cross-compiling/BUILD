@@ -38,21 +38,12 @@ find_librust_entrypoint(
 # and alloc crates.
 
 rust_no_std(
-    name = "firefly_base",
+    name = "bare_metal_base",
     liballoc_entry = ":liballoc_entry",
     libcore_entry = ":libcore_entry",
     rustc = "@rust_linux_x86_64//:rustc",
     rustc_srcs = "@rust_linux_x86_64//lib/rustlib/src:rustc_srcs",
-    target_json = "//kernel:x86_64-firefly.json",
-)
-
-rust_no_std(
-    name = "bootloader_base",
-    liballoc_entry = ":liballoc_entry",
-    libcore_entry = ":libcore_entry",
-    rustc = "@rust_linux_x86_64//:rustc",
-    rustc_srcs = "@rust_linux_x86_64//lib/rustlib/src:rustc_srcs",
-    target_json = "@bootloader//:x86_64-bootloader.json",
+    target = "x86_64-unknown-none",
 )
 
 # Set up our toolchains now that we have
@@ -69,14 +60,8 @@ platform(
 
 x86_64_rust_toolchain(
     name = "x86_64_rust_toolchain",
-    stdlib_filegroup = ":firefly_base",
-    target_json = "//kernel:x86_64-firefly.json",
-)
-
-x86_64_rust_toolchain(
-    name = "x86_64_rust_bootloader_toolchain",
-    stdlib_filegroup = ":bootloader_base",
-    target_json = "@bootloader//:x86_64-bootloader.json",
+    stdlib_filegroup = ":bare_metal_base",
+    target_triple = "x86_64-unknown-none",
 )
 
 x86_64_cc_toolchain(
