@@ -12,13 +12,6 @@
 
 def _bare_metal_impl(settings, attr):
     return {
-        "//command_line_option:cpu": "x86_64",
-        "//command_line_option:crosstool_top": "//bazel/cross-compiling:x86_64_cc_toolchain_suite",
-        "//command_line_option:extra_toolchains": [
-            "//bazel/cross-compiling:x86_64_cc_toolchain",
-            "//bazel/cross-compiling:x86_64_rust_toolchain",
-        ],
-        "//command_line_option:host_crosstool_top": "@bazel_tools//tools/cpp:toolchain",
         "//command_line_option:platforms": "//bazel/cross-compiling:x86_64_bare_metal",
     }
 
@@ -26,10 +19,6 @@ _x86_64_bare_metal_platform_transition = transition(
     implementation = _bare_metal_impl,
     inputs = [],
     outputs = [
-        "//command_line_option:cpu",
-        "//command_line_option:crosstool_top",
-        "//command_line_option:extra_toolchains",
-        "//command_line_option:host_crosstool_top",
         "//command_line_option:platforms",
     ],
 )

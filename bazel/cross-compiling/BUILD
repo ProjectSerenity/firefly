@@ -14,7 +14,6 @@
 # command line option implicitly, rather than the
 # user needing to specify it explicitly.
 
-load("@rules_cc//cc:defs.bzl", "cc_toolchain_suite")
 load("//bazel/cross-compiling:librust.bzl", "find_librust_entrypoint", "rust_no_std")
 load("//bazel/cross-compiling:x86_64_cc_toolchain.bzl", "x86_64_cc_toolchain")
 load("//bazel/cross-compiling:x86_64_rust_toolchain.bzl", "x86_64_rust_toolchain")
@@ -66,12 +65,4 @@ x86_64_rust_toolchain(
 
 x86_64_cc_toolchain(
     name = "x86_64_cc_toolchain",
-)
-
-cc_toolchain_suite(
-    name = "x86_64_cc_toolchain_suite",
-    tags = ["manual"],
-    toolchains = {
-        "x86_64": ":x86_64_cc_toolchain_cc_toolchain",
-    },
 )

@@ -338,3 +338,9 @@ crate_universe(
 load("@crates//:defs.bzl", "pinned_rust_install")
 
 pinned_rust_install()
+
+# Register our cross-compiling toolchains.
+register_toolchains(
+    "//bazel/cross-compiling:x86_64_cc_toolchain",
+    "//bazel/cross-compiling:x86_64_rust_toolchain",
+)
