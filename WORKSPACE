@@ -7,7 +7,7 @@ workspace(name = "firefly")
 
 RUST_VERSION = "nightly"
 
-RUST_ISO_DATE = "2021-12-12"
+RUST_ISO_DATE = "2022-02-01"
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
@@ -194,11 +194,11 @@ rust_register_toolchains(
     rustfmt_version = RUST_VERSION,
     sha256s = {
         # Update these from https://static.rust-lang.org/dist/YYYY-MM-DD/channel-rust-nightly.toml.
-        "2021-12-12/llvm-tools-nightly-x86_64-unknown-linux-gnu": "b59434917226dc9c6b91311d0bad485c216575522336669107ecd689cad4ce9e",
-        "2021-12-12/rust-nightly-x86_64-unknown-linux-gnu": "162fefb3d5b9f103d219ac937289c48b15e4cc2b1df744991c3dbcaf63868892",
-        "2021-12-12/rust-src-nightly": "03954b83850cb28df3203577629bd2d33d41628a83020e986c37adb50c1a6d22",
-        "2021-12-12/rust-std-nightly-x86_64-unknown-linux-gnu": "fefaa696829afabbc613d7afe395cd8f6560f9651e6a1cbc69e4b864fcf85133",
-        "2021-12-12/rustfmt-nightly-x86_64-unknown-linux-gnu": "059bb8d1d4698de3a2b978194aa263e9b654be7ded868e9469ded3410207346d",
+        RUST_ISO_DATE + "/llvm-tools-nightly-x86_64-unknown-linux-gnu": "3eeba27c46ac7f2fd9092ed5baf8616c04021ac359f136a484b5942229e590fc",
+        RUST_ISO_DATE + "/rust-nightly-x86_64-unknown-linux-gnu": "fe928a3f280355a1b87eb414ac9ab1333a38a3e5e6be1f1d6fa3e990527aec80",
+        RUST_ISO_DATE + "/rust-src-nightly": "6177a62bd2c56dfeda4552d64d9f840ce3bbdef7206b9bcd7047c0b5af56f4a8",
+        RUST_ISO_DATE + "/rust-std-nightly-x86_64-unknown-linux-gnu": "882f458492f7efa8a9af5e5ffc8b70183107447fe4604a8c47a120b4f319e72e",
+        RUST_ISO_DATE + "/rustfmt-nightly-x86_64-unknown-linux-gnu": "6cd904d0413a858a6073f1a553d2aa46e32124574da996dcd0d8aaeb706bd035",
     },
     version = RUST_VERSION,
 )

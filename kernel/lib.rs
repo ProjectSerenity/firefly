@@ -47,7 +47,6 @@
 #![no_std]
 #![feature(alloc_error_handler)]
 #![feature(const_btree_new)]
-#![feature(global_asm)]
 
 extern crate alloc;
 

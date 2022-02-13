@@ -25,10 +25,8 @@
 //! thread.
 
 #![no_std]
-#![feature(asm)]
 #![feature(binary_heap_retain)]
 #![feature(const_btree_new)]
-#![feature(global_asm)]
 
 extern crate alloc;
 
@@ -42,6 +40,7 @@ use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::task::Wake;
 use alloc::vec::Vec;
+use core::arch::asm;
 use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::Waker;

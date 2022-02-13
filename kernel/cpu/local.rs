@@ -42,6 +42,7 @@
 //! can be used to initialise a vector containing separate
 //! data for each CPU, which can be indexed by calling `id`.
 
+use core::arch::asm;
 use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use memlayout::CPU_LOCAL;
 use physmem::ALLOCATOR;

@@ -5,6 +5,8 @@
 
 //! switch contains the functionality to switch between threads.
 
+use core::arch::global_asm;
+
 global_asm!(include_str!("switch.s"));
 
 // The following functions are implemented in switch.s.

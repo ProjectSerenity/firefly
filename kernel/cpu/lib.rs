@@ -6,7 +6,6 @@
 //! Analyses the CPU for supported features and branding.
 
 #![no_std]
-#![feature(asm)]
 #![feature(asm_const)]
 
 mod local;

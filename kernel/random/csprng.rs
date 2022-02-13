@@ -72,8 +72,8 @@ impl Csprng {
     ///
     pub fn add_entropy(&mut self, entropy: &[u8]) {
         let mut sha256 = Sha256::new();
-        sha256.update(entropy.to_vec());
-        sha256.update(self.entropy.to_vec());
+        sha256.update(entropy);
+        sha256.update(self.entropy);
         sha256.finalize_into(GenericArray::from_mut_slice(&mut self.entropy[..]));
     }
 

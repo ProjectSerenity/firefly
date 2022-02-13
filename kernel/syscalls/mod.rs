@@ -5,6 +5,7 @@
 
 //! Implements the kernel's syscalls, allowing user processes to access kernel functionality.
 
+use core::arch::global_asm;
 use segmentation::with_segment_data;
 use serial::println;
 use syscalls::{Error, Syscall};
