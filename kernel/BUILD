@@ -9,7 +9,7 @@ load("//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_bi
 
 # Expose the manifest to the bootloader and bootimage.
 exports_files(
-    ["Cargo.toml"],
+    ["ograC.toml"],
     visibility = ["//visibility:public"],
 )
 

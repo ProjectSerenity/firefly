@@ -125,7 +125,7 @@ genrule(
     name = "package_kernel",
     srcs = [
         "@//kernel:kernel",
-        "@//kernel:Cargo.toml",
+        "@//kernel:ograC.toml",
         "x86_64-bootloader.json",
     ],
     outs = [
@@ -135,7 +135,7 @@ genrule(
     cmd = """
         export TARGET="$(location x86_64-bootloader.json)"
         export KERNEL="$(location @//kernel:kernel)"
-        export KERNEL_MANIFEST="$(location @//kernel:Cargo.toml)"
+        export KERNEL_MANIFEST="$(location @//kernel:ograC.toml)"
         export OUT_DIR="$$(realpath $(@D))"
         $(location :build_script) > /dev/null""",
     message = "Packaging the kernel binary",
