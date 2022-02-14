@@ -1,1 +1,27 @@
-{}
+{
+	"composites": {
+		"exclude_files": {
+			"(external|vendor)/.*": "Only enforce composite literal check on first-party code."
+		}
+	},
+	"copylocks": {
+		"exclude_files": {
+			"(external|vendor)/.*": "Only reject bad copies in first-party code."
+		}
+	},
+	"deprecated": {
+		"exclude_files": {
+			"(external|vendor)/.*": "Only reject deprecated APIs in first-party code."
+		}
+	},
+	"importunsafe": {
+		"exclude_files": {
+			"(external|vendor)/.*": "Only reject package unsafe in first-party code."
+		}
+	},
+	"unsafeptr": {
+		"exclude_files": {
+			"(external|vendor)/.*": "Only reject package unsafe in first-party code."
+		}
+	}
+}
