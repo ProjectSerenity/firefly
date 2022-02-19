@@ -85,19 +85,7 @@ load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 
 protobuf_deps()
 
-load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
-load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
-
-go_rules_dependencies()
-
-go_register_toolchains(
-    nogo = "@//:nogo",
-    version = "1.17.7",
-)
-
-gazelle_dependencies()
-
-load("//bazel/deps:defs.bzl", "rust_deps")
+load("//bazel/deps:defs.bzl", "go_deps", "rust_deps")
 
 rust_deps()
 
@@ -105,17 +93,10 @@ load("@crates//:defs.bzl", "pinned_rust_install")
 
 pinned_rust_install()
 
+go_deps()
+
 # Register our cross-compiling toolchains.
 register_toolchains(
     "//bazel/cross-compiling:x86_64_cc_toolchain",
     "//bazel/cross-compiling:x86_64_rust_toolchain",
-)
-
-# Fetch our Go dependencies for tools.
-
-go_repository(
-    name = "com_github_BurntSushi_toml",
-    importpath = "github.com/BurntSushi/toml",
-    sum = "h1:dtDWrepsVPfW9H/4y7dDgFc2MBUSeJhlaDtK13CxFlU=",
-    version = "v1.0.0",
 )
