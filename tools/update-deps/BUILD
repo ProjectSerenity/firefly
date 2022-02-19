@@ -9,6 +9,7 @@ go_library(
     name = "update-deps_lib",
     srcs = [
         "main.go",
+        "rules.go",
         "rust.go",
     ],
     importpath = "github.com/ProjectSerenity/firefly/tools/update-deps",
@@ -16,6 +17,7 @@ go_library(
     deps = [
         "@com_github_BurntSushi_toml//:toml",
         "@com_github_bazelbuild_buildtools//build:go_default_library",
+        "@org_golang_x_mod//semver:go_default_library",
     ],
 )
 
