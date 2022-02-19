@@ -22,11 +22,10 @@ below.
 Next, we define a macro to instantiate a cross-compiling Rust toolchain so
 we can compile the kernel for the bare metal platform. This is defined in
 [`x86_64_rust_toolchain.bzl`](./x86_64_rust_toolchain.bzl) and instantiated
-for both the kernel and the bootloader (separately) in [`BUILD`](./BUILD).
-It's mostly a copy of the standard Rust toolchain. There are three things
-of note though:
+in [`BUILD`](./BUILD). It's mostly a copy of the standard Rust toolchain.
+There are three things of note though:
 
-1. We specify a custom LLVM target configuration file.
+1. We specify a the `x86_64-unknown-none` LLVM target configuration triple.
 2. We provide a filegroup for the standard libraries we use (alloc, compiler-builtins, core).
 3. The toolchain currently only runs on Linux. In future this should be expanded.
 
@@ -68,18 +67,15 @@ a normal rust_binary by setting the following command line options:
 
 ```
 $ bazel build \
-     --cpu=x86_64 \
-     --crosstool_top=//bazel/cross-compiling:x86_64_cc_toolchain_suite \
-     --extra_toolchains=//bazel/cross-compiling:x86_64_cc_toolchain \
-     --extra_toolchains=//bazel/cross-compiling:x86_64_rust_toolchain \
-     --host_crosstool_top=@bazel_tools//tools/cpp:toolchain \
+     --incompatible_enable_cc_toolchain_resolution \
      --platforms=//bazel/cross-compiling:x86_64_bare_metal \
      //kernel:binary
 ```
 
 This is fine, and it works, but it's tedious. To make it less so, we add a new
 build target that performs an outbound config transition before invoking the
-kernel build to enable the flags specified above.
+kernel build to enable the platforms flags specified above. We also use [`.bazelrc`](/.bazelrc)
+to set the C++ toolchain resolution mode.
 
 We create the x86_64_bare_metal_rust_binary rule, which simply copies its
 input to its output, applying a transition in the process. That transition
