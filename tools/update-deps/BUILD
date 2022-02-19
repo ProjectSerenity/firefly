@@ -8,6 +8,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 go_library(
     name = "update-deps_lib",
     srcs = [
+        "go.go",
         "main.go",
         "rules.go",
         "rust.go",
@@ -17,7 +18,9 @@ go_library(
     deps = [
         "@com_github_BurntSushi_toml//:toml",
         "@com_github_bazelbuild_buildtools//build:go_default_library",
+        "@org_golang_x_mod//module:go_default_library",
         "@org_golang_x_mod//semver:go_default_library",
+        "@org_golang_x_mod//sumdb:go_default_library",
     ],
 )
 
