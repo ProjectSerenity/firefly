@@ -15,6 +15,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -28,10 +29,9 @@ func init() {
 func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 	const (
 		dateFormat       = "2006-01-02"
-		workspace        = "WORKSPACE"
+		rustBzl          = "rust.bzl"
 		rustDate         = "RUST_ISO_DATE"
-		toolchains       = "rust_register_toolchains"
-		sha256s          = "sha256s"
+		rustChecksums    = "RUST_TOOLS_CHECKSUMS"
 		manifestTemplate = "https://static.rust-lang.org/dist/%s/channel-rust-nightly.toml"
 		toolTemplate     = "https://static.rust-lang.org/dist/%s%s.tar.gz"
 		manifestVersion  = "2"
@@ -70,85 +70,73 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 
 	want := date.Format(dateFormat)
 
-	// Find and parse the workspace file to see
+	// Find and parse the rust.bzl file to see
 	// what version we've got currently.
-	data, err := os.ReadFile(workspace)
+	bzlPath := filepath.Join("bazel", "deps", rustBzl)
+	data, err := os.ReadFile(bzlPath)
 	if err != nil {
-		return fmt.Errorf("Failed to open %s: %v", workspace, err)
+		return fmt.Errorf("Failed to open %s: %v", bzlPath, err)
 	}
 
-	f, err := build.ParseWorkspace(workspace, data)
+	f, err := build.ParseBzl(bzlPath, data)
 	if err != nil {
-		return fmt.Errorf("Failed to parse %s: %v", workspace, err)
+		return fmt.Errorf("Failed to parse %s: %v", rustBzl, err)
 	}
 
 	var currentVersion string
 	var resourcePaths []string
-	var rhsElement *build.StringExpr
+	var versionExpr *build.StringExpr
 	resourceMap := make(map[string]*build.StringExpr)
 	for _, stmt := range f.Stmt {
 		if stmt == nil {
 			continue
 		}
 
-		switch stmt := stmt.(type) {
-		case *build.AssignExpr:
-			lhs, ok := stmt.LHS.(*build.Ident)
-			if !ok || lhs.Name != rustDate {
-				continue
-			}
-
-			rhsElement, ok = stmt.RHS.(*build.StringExpr)
-			if !ok {
-				return fmt.Errorf("Failed to parse %s: found %s with non-string value %#v", workspace, rustDate, stmt.RHS)
-			}
-
-			currentVersion = rhsElement.Value
-
+		assign, ok := stmt.(*build.AssignExpr)
+		if !ok {
 			continue
-		case *build.CallExpr:
-			name, ok := stmt.X.(*build.Ident)
-			if !ok || name.Name != toolchains {
-				continue
+		}
+
+		lhs, ok := assign.LHS.(*build.Ident)
+		if !ok {
+			continue
+		}
+
+		switch lhs.Name {
+		case rustDate:
+			rhs, ok := assign.RHS.(*build.StringExpr)
+			if !ok {
+				return fmt.Errorf("Failed to parse %s: found %s with non-string value %#v", rustBzl, rustDate, assign.RHS)
 			}
 
-			for _, arg := range stmt.List {
-				assign, ok := arg.(*build.AssignExpr)
+			versionExpr = rhs
+			currentVersion = rhs.Value
+		case rustChecksums:
+			rhs, ok := assign.RHS.(*build.DictExpr)
+			if !ok {
+				return fmt.Errorf("Failed to parse %s: found %s with non-dict value %#v", rustBzl, rustChecksums, assign.RHS)
+			}
+
+			for _, entry := range rhs.List {
+				key, ok := entry.Key.(*build.BinaryExpr)
 				if !ok {
-					continue
+					return fmt.Errorf("Failed to parse %s: %s has bad key %T", rustBzl, rustChecksums, entry.Key)
 				}
 
-				lhs, ok := assign.LHS.(*build.Ident)
-				if !ok || lhs.Name != sha256s {
-					continue
-				}
-
-				rhs, ok := assign.RHS.(*build.DictExpr)
+				// X is the date variable. Y is the URL path.
+				path, ok := key.Y.(*build.StringExpr)
 				if !ok {
-					return fmt.Errorf("Failed to parse %s: %s.%s had unexpected type %T", workspace, toolchains, sha256s, assign.RHS)
+					return fmt.Errorf("Failed to parse %s: %s has bad key %T", rustBzl, rustChecksums, key.Y)
 				}
 
-				for _, entry := range rhs.List {
-					key, ok := entry.Key.(*build.BinaryExpr)
-					if !ok {
-						return fmt.Errorf("Failed to parse %s: %s.%s has bad key %T", workspace, toolchains, sha256s, entry.Key)
-					}
-
-					// X is the date variable. Y is the URL path.
-					path, ok := key.Y.(*build.StringExpr)
-					if !ok {
-						return fmt.Errorf("Failed to parse %s: %s.%s has bad key %T", workspace, toolchains, sha256s, key.Y)
-					}
-
-					val, ok := entry.Value.(*build.StringExpr)
-					if !ok {
-						return fmt.Errorf("Failed to parse %s: %s.%s has bad hash %T", workspace, toolchains, sha256s, entry.Value)
-					}
-
-					pathFragment := path.Value
-					resourcePaths = append(resourcePaths, pathFragment)
-					resourceMap[pathFragment] = val
+				val, ok := entry.Value.(*build.StringExpr)
+				if !ok {
+					return fmt.Errorf("Failed to parse %s: %s has bad hash %T", rustBzl, rustChecksums, entry.Value)
 				}
+
+				pathFragment := path.Value
+				resourcePaths = append(resourcePaths, pathFragment)
+				resourceMap[pathFragment] = val
 			}
 		}
 	}
@@ -245,13 +233,13 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 
 	}
 
-	rhsElement.Value = want
+	versionExpr.Value = want
 
 	// Pretty-print the updated workspace.
 	pretty := build.Format(f)
-	err = os.WriteFile(workspace, pretty, 0644)
+	err = os.WriteFile(bzlPath, pretty, 0644)
 	if err != nil {
-		return fmt.Errorf("Failed to write updated %s: %v", workspace, err)
+		return fmt.Errorf("Failed to write updated %s: %v", bzlPath, err)
 	}
 
 	if currentDate.After(date) {
