@@ -9,8 +9,8 @@ RULES_BUILDTOOLS = struct(
     name = "com_github_bazelbuild_buildtools",
     repo = "bazelbuild/buildtools",
     archive = "https://github.com/bazelbuild/buildtools/archive/{v}.zip",
-    version = "4.0.1",
-    sha256 = "932160d5694e688cb7a05ac38efba4b9a90470c75f39716d85fb1d2f95eec96d",
+    version = "5.0.1",
+    sha256 = "518b2ce90b1f8ad7c9a319ca84fd7de9a0979dd91e6d21648906ea68faa4f37a",
 )
 
 RULES_CC = struct(
@@ -41,8 +41,8 @@ RULES_PROTOBUF = struct(
     name = "com_google_protobuf",
     repo = "protocolbuffers/protobuf",
     archive = "https://github.com/protocolbuffers/protobuf/archive/v{v}.zip",
-    version = "3.15.5",
-    sha256 = "f94faa42d49c0450226d1e9700ab5f5c3d8e5b757df41bc741bd304fd353eb63",
+    version = "3.19.4",
+    sha256 = "25680843adf0c3302648d35f744e38cc3b6b05a6c77a927de5aea3e1c2e36106",
 )
 
 RULES_RUST = struct(
@@ -57,8 +57,8 @@ RULES_SKYLIB = struct(
     name = "bazel_skylib",
     repo = "bazelbuild/bazel-skylib",
     archive = "https://github.com/bazelbuild/bazel-skylib/releases/download/{v}/bazel-skylib-{v}.tar.gz",
-    version = "1.1.1",
-    sha256 = "c6966ec828da198c5d9adbaa94c05e3a1c7f21bd012a0b29ba8ddbccb2c93b0d",
+    version = "1.2.0",
+    sha256 = "af87959afe497dc8dfd4c6cb66e1279cb98ccc84284619ebfec27d9c09a903de",
 )
 
 def rules_deps():
