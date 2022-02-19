@@ -35,6 +35,8 @@ load("@crates//:defs.bzl", "pinned_rust_install")
 
 pinned_rust_install()
 
+# gazelle:repository go_repository name=org_golang_x_sys importpath=golang.org/x/sys
+
 go_deps()
 
 # Register our cross-compiling toolchains.
