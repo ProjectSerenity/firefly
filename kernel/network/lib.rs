@@ -59,6 +59,18 @@ static INITIAL_WORKLOADS: Mutex<Vec<Waker>> = Mutex::new(Vec::new());
 pub fn register_workload(waker: Waker) {
     without_interrupts(|| {
         let mut workloads = INITIAL_WORKLOADS.lock();
+
+        // If we already have a configuration, we
+        // can just fire the waker now. We still
+        // lock INITIAL_WORKLOADS first to avoid
+        // a race condition.
+        for iface in INTERFACES.lock().iter() {
+            if iface.config.is_some() {
+                waker.wake();
+                return;
+            }
+        }
+
         workloads.push(waker);
     });
 }
