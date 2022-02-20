@@ -54,6 +54,7 @@ use spin::{Mutex, MutexGuard};
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::registers::control::{Cr3, Cr4, Cr4Flags};
 use x86_64::registers::model_specific::{Efer, EferFlags};
+use x86_64::structures::paging::frame::PhysFrame;
 use x86_64::structures::paging::mapper::{
     MapToError, MappedFrame, MapperFlushAll, TranslateResult,
 };
@@ -128,7 +129,7 @@ where
 /// Map the given page range, which can be inclusive or exclusive.
 ///
 pub fn map_pages<R, A>(
-    range: R,
+    page_range: R,
     allocator: &mut A,
     flags: PageTableFlags,
 ) -> Result<(), MapToError<Size4KiB>>
@@ -137,9 +138,37 @@ where
     A: FrameAllocator<Size4KiB> + ?Sized,
 {
     with_page_tables(|mapper| {
-        for page in range {
+        for page in page_range {
             let frame = allocator
                 .allocate_frame()
+                .ok_or(MapToError::FrameAllocationFailed)?;
+            unsafe {
+                mapper.map_to(page, frame, flags, allocator)?.flush();
+            }
+        }
+
+        Ok(())
+    })
+}
+
+/// Map the given frame range to the page range, either of which
+/// can be inclusive or exclusive.
+///
+pub fn map_frames_to_pages<F, P, A>(
+    mut frame_range: F,
+    page_range: P,
+    allocator: &mut A,
+    flags: PageTableFlags,
+) -> Result<(), MapToError<Size4KiB>>
+where
+    F: Iterator<Item = PhysFrame>,
+    P: Iterator<Item = Page>,
+    A: FrameAllocator<Size4KiB> + ?Sized,
+{
+    with_page_tables(|mapper| {
+        for page in page_range {
+            let frame = frame_range
+                .next()
                 .ok_or(MapToError::FrameAllocationFailed)?;
             unsafe {
                 mapper.map_to(page, frame, flags, allocator)?.flush();

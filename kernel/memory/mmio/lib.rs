@@ -59,11 +59,10 @@ use core::sync::atomic;
 use memlayout::MMIO_SPACE;
 use physmem::ALLOCATOR;
 use spin::Mutex;
-use virtmem::with_page_tables;
+use virtmem::map_frames_to_pages;
 use x86_64::structures::paging::frame::PhysFrameRange;
-use x86_64::structures::paging::page::Page;
+use x86_64::structures::paging::page::{Page, PageRange};
 use x86_64::structures::paging::page_table::PageTableFlags;
-use x86_64::structures::paging::Mapper;
 use x86_64::VirtAddr;
 
 /// MMIO_START_ADDRESS is the address where the next MMIO mapping
@@ -82,18 +81,23 @@ pub fn access_barrier() {
 /// reserve_space reserves the given amount of MMIO address space,
 /// returning the virtual address where the reservation begins.
 ///
-fn reserve_space(size: u64) -> VirtAddr {
+fn reserve_space(size: u64) -> PageRange {
     let mut start_address = MMIO_START_ADDRESS.lock();
-    let out = *start_address;
+    let start = *start_address;
 
     // Check we haven't gone outside the bounds
     // of the reserved MMIO address space.
-    if !MMIO_SPACE.contains_addr(out + size) {
+    if !MMIO_SPACE.contains_addr(start + size) {
         panic!("exceeded MMIO address space");
     }
 
-    *start_address = out + size;
-    out
+    let end = start + size;
+    *start_address = end;
+
+    let start_page = Page::from_start_address(start).expect("bad MMIO region start virt address");
+    let end_page = Page::from_start_address(end).expect("bad MMIO region end virt address");
+
+    Page::range(start_page, end_page)
 }
 
 /// Returns the referenced field in a way that will not be removed
@@ -149,39 +153,25 @@ impl Region {
     /// space, returning a range through which the region can be
     /// accessed safely.
     ///
-    pub fn map(range: PhysFrameRange) -> Self {
-        let first_addr = range.start.start_address();
-        let last_addr = range.end.start_address();
+    pub fn map(frame_range: PhysFrameRange) -> Self {
+        let first_addr = frame_range.start.start_address();
+        let last_addr = frame_range.end.start_address();
         let size = last_addr - first_addr;
 
-        let start_address = reserve_space(size);
-        let mut next_address = start_address;
+        let page_range = reserve_space(size);
+        let flags = PageTableFlags::PRESENT
+            | PageTableFlags::WRITABLE
+            | PageTableFlags::WRITE_THROUGH
+            | PageTableFlags::NO_CACHE
+            | PageTableFlags::GLOBAL
+            | PageTableFlags::NO_EXECUTE;
 
-        // We can't use map_pages, as we need to specify
-        // the exact physical frames being mapped.
-        with_page_tables(|mapper| {
-            let mut frame_allocator = ALLOCATOR.lock();
-            for frame in range {
-                let flags = PageTableFlags::PRESENT
-                    | PageTableFlags::WRITABLE
-                    | PageTableFlags::WRITE_THROUGH
-                    | PageTableFlags::NO_CACHE
-                    | PageTableFlags::GLOBAL
-                    | PageTableFlags::NO_EXECUTE;
-                let page = Page::from_start_address(next_address).expect("bad start address");
-                next_address += page.size();
-                unsafe {
-                    mapper
-                        .map_to(page, frame, flags, &mut *frame_allocator)
-                        .expect("failed to map MMIO page")
-                        .flush();
-                }
-            }
-        });
+        map_frames_to_pages(frame_range, page_range, &mut *ALLOCATOR.lock(), flags)
+            .expect("failed to map MMIO region");
 
         Region {
-            start: start_address,
-            end: next_address - 1u64,
+            start: page_range.start.start_address(),
+            end: page_range.end.start_address() - 1u64,
         }
     }
 
