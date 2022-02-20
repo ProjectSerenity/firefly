@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 
 go_library(
     name = "update-deps_lib",
@@ -28,4 +28,17 @@ go_binary(
     name = "update-deps",
     embed = [":update-deps_lib"],
     visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "update-deps_test",
+    size = "small",
+    srcs = [
+        "fields_test.go",
+        "go_test.go",
+        "rules_test.go",
+        "rust_test.go",
+    ],
+    data = glob(["testdata/*"]),
+    embed = [":update-deps_lib"],
 )
