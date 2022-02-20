@@ -79,7 +79,6 @@ rust_binary(
     deps = [
         ":libkernel",
         "//kernel/cpu",
-        "//kernel/drivers/pci",
         "//kernel/drivers/serial",
         "//kernel/memory/physmem",
         "//kernel/memory/virtmem",

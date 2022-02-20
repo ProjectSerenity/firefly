@@ -13,10 +13,8 @@
 //! or with an error from QEMU to aid the testing
 //! process.
 //!
-//! [`init`] is called when the kernel starts, so it
-//! should only perform actions that the kernel must
-//! always take. In particular, it does not set up
-//! device drivers.
+//! [`init`] is called when the kernel starts, setting
+//! up all kernel subsystems.
 //!
 //! # Kernel subsystems
 //!
@@ -54,7 +52,7 @@ pub mod syscalls;
 
 use bootloader::BootInfo;
 use interrupts::{register_irq, Irq};
-use thread::scheduler;
+use thread::{scheduler, Thread};
 use x86_64::structures::idt::InterruptStackFrame;
 
 /// Initialise the kernel and its core components.
@@ -69,6 +67,8 @@ use x86_64::structures::idt::InterruptStackFrame;
 /// - Initialise the [memory managers and kernel heap](virtmem).
 /// - Initialise the [CPU-local data](cpu).
 /// - Initialise the [scheduler](multitasking/thread).
+/// - Scan for and initialise the [PCI](drivers/pci) device drivers.
+/// - Initialise the [CSPRNG](random).
 ///
 pub fn init(boot_info: &'static BootInfo) {
     // Check the CPU has the features we need.
@@ -108,6 +108,23 @@ pub fn init(boot_info: &'static BootInfo) {
     segmentation::per_cpu_init();
     thread::per_cpu_init();
     syscalls::per_cpu_init();
+
+    // Set up our device drivers.
+    for device in pci::scan().into_iter() {
+        for check in PCI_DRIVERS.iter() {
+            if let Some(install) = check(&device) {
+                install(device);
+                break;
+            }
+        }
+    }
+
+    // Either we have a source of random by now,
+    // or we never will. We also want to start
+    // the random subsystem's helper thread to
+    // keep the entropy pool fresh.
+    random::init();
+    Thread::start_kernel_thread(entropy_reseed_helper);
 }
 
 /// This is the set of configured PCI device drivers.
@@ -117,7 +134,7 @@ pub fn init(boot_info: &'static BootInfo) {
 /// supports the device. The first device that returns a
 /// driver will then take ownership of the device.
 ///
-pub const PCI_DRIVERS: &[pci::DriverSupportCheck] = &[virtio::pci_device_check];
+const PCI_DRIVERS: &[pci::DriverSupportCheck] = &[virtio::pci_device_check];
 
 /// The PIT's interrupt handler.
 ///
@@ -141,7 +158,7 @@ fn timer_interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
 /// entropy management thread to ensure the CSPRNG
 /// continues to receive entropy over time.
 ///
-pub fn entropy_reseed_helper() -> ! {
+fn entropy_reseed_helper() -> ! {
     loop {
         scheduler::sleep(random::RESEED_INTERVAL);
 

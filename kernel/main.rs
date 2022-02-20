@@ -15,7 +15,6 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use kernel::PCI_DRIVERS;
 use serial::println;
 use thread::{scheduler, Thread};
 use virtmem::with_page_tables;
@@ -43,18 +42,6 @@ fn kmain(boot_info: &'static BootInfo) -> ! {
     // we get a DHCP configuration.
     let workload = Thread::create_kernel_thread(initial_workload);
     network::register_workload(workload.waker());
-
-    for device in pci::scan().into_iter() {
-        for check in PCI_DRIVERS.iter() {
-            if let Some(install) = check(&device) {
-                install(device);
-                break;
-            }
-        }
-    }
-
-    random::init();
-    Thread::start_kernel_thread(kernel::entropy_reseed_helper);
 
     // Hand over to the scheduler.
     scheduler::start();
