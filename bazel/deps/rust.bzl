@@ -12,14 +12,30 @@ RUST_VERSION = "nightly"
 
 RUST_ISO_DATE = "2022-02-01"
 
-RUST_TOOLS_CHECKSUMS = {
-    # Update these from https://static.rust-lang.org/dist/YYYY-MM-DD/channel-rust-nightly.toml.
-    RUST_ISO_DATE + "/llvm-tools-nightly-x86_64-unknown-linux-gnu": "3eeba27c46ac7f2fd9092ed5baf8616c04021ac359f136a484b5942229e590fc",
-    RUST_ISO_DATE + "/rust-nightly-x86_64-unknown-linux-gnu": "fe928a3f280355a1b87eb414ac9ab1333a38a3e5e6be1f1d6fa3e990527aec80",
-    RUST_ISO_DATE + "/rust-src-nightly": "6177a62bd2c56dfeda4552d64d9f840ce3bbdef7206b9bcd7047c0b5af56f4a8",
-    RUST_ISO_DATE + "/rust-std-nightly-x86_64-unknown-linux-gnu": "882f458492f7efa8a9af5e5ffc8b70183107447fe4604a8c47a120b4f319e72e",
-    RUST_ISO_DATE + "/rustfmt-nightly-x86_64-unknown-linux-gnu": "6cd904d0413a858a6073f1a553d2aa46e32124574da996dcd0d8aaeb706bd035",
-}
+LLVM_TOOLS = struct(
+    name = "llvm-tools-nightly-x86_64-unknown-linux-gnu",
+    sum = "3eeba27c46ac7f2fd9092ed5baf8616c04021ac359f136a484b5942229e590fc",
+)
+
+RUST = struct(
+    name = "rust-nightly-x86_64-unknown-linux-gnu",
+    sum = "fe928a3f280355a1b87eb414ac9ab1333a38a3e5e6be1f1d6fa3e990527aec80",
+)
+
+RUST_SRC = struct(
+    name = "rust-src-nightly",
+    sum = "6177a62bd2c56dfeda4552d64d9f840ce3bbdef7206b9bcd7047c0b5af56f4a8",
+)
+
+RUST_STD = struct(
+    name = "rust-std-nightly-x86_64-unknown-linux-gnu",
+    sum = "882f458492f7efa8a9af5e5ffc8b70183107447fe4604a8c47a120b4f319e72e",
+)
+
+RUST_RUSTFMT = struct(
+    name = "rustfmt-nightly-x86_64-unknown-linux-gnu",
+    sum = "6cd904d0413a858a6073f1a553d2aa46e32124574da996dcd0d8aaeb706bd035",
+)
 
 RUST_CRATE_OVERRIDES = {
     "byteorder": crate.override(
@@ -245,7 +261,13 @@ def rust_deps():
         include_rustc_srcs = True,
         iso_date = RUST_ISO_DATE,
         rustfmt_version = RUST_VERSION,
-        sha256s = RUST_TOOLS_CHECKSUMS,
+        sha256s = {
+            RUST_ISO_DATE + "/" + LLVM_TOOLS.name: LLVM_TOOLS.sum,
+            RUST_ISO_DATE + "/" + RUST.name: RUST.sum,
+            RUST_ISO_DATE + "/" + RUST_SRC.name: RUST_SRC.sum,
+            RUST_ISO_DATE + "/" + RUST_STD.name: RUST_STD.sum,
+            RUST_ISO_DATE + "/" + RUST_RUSTFMT.name: RUST_RUSTFMT.sum,
+        },
         version = RUST_VERSION,
     )
 

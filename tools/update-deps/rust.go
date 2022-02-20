@@ -26,14 +26,118 @@ func init() {
 	RegisterCommand("rust", "Update the Rust nightly version and its tooling.", cmdRust)
 }
 
+// RustToolData contains the data representing
+// a Rust tool's data specified in a struct in
+// //bazel/deps/rust.bzl.
+//
+type RustToolData struct {
+	Name StringField `bzl:"name"`
+	Sum  StringField `bzl:"sum"`
+}
+
+// Parse a rust.bzl, returning the Rust Nightly
+// release date and the set of tools, plus the
+// *build.File containing the Starlark file's AST.
+//
+func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*RustToolData, err error) {
+	const rustDate = "RUST_ISO_DATE"
+	var allTools = []string{
+		"LLVM_TOOLS",
+		"RUST",
+		"RUST_SRC",
+		"RUST_STD",
+		"RUST_RUSTFMT",
+	}
+
+	data, err := os.ReadFile(name)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("Failed to open %s: %v", name, err)
+	}
+
+	f, err := build.ParseBzl(name, data)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("Failed to parse %s: %v", name, err)
+	}
+
+	toolsMap := make(map[string]bool)
+	for _, stmt := range f.Stmt {
+		assign, ok := stmt.(*build.AssignExpr)
+		if !ok {
+			continue
+		}
+
+		lhs, ok := assign.LHS.(*build.Ident)
+		if !ok {
+			continue
+		}
+
+		if lhs.Name == rustDate {
+			rhs, ok := assign.RHS.(*build.StringExpr)
+			if !ok {
+				return nil, nil, nil, fmt.Errorf("Failed to parse %s: %s has non-string value %#v", name, lhs.Name, assign.RHS)
+			}
+
+			if date != nil {
+				return nil, nil, nil, fmt.Errorf("Failed to parse %s: %s assigned for the second time", name, lhs.Name)
+			}
+
+			date = &StringField{
+				Value: rhs.Value,
+				Ptr:   &rhs.Value,
+			}
+
+			continue
+		}
+
+		// Find which tool this is.
+		for _, tool := range allTools {
+			if lhs.Name != tool {
+				continue
+			}
+
+			call, ok := assign.RHS.(*build.CallExpr)
+			if !ok {
+				return nil, nil, nil, fmt.Errorf("Failed to parse %s: found %s with non-call value %#v", name, tool, assign.RHS)
+			}
+
+			if fun, ok := call.X.(*build.Ident); !ok || fun.Name != "struct" {
+				return nil, nil, nil, fmt.Errorf("Failed to parse %s: found %s with non-struct value %#v", name, tool, call.X)
+			}
+
+			var data RustToolData
+			err = UnmarshalFields(call, &data)
+			if err != nil {
+				return nil, nil, nil, fmt.Errorf("Failed to parse %s: invalid data for %s: %v", name, tool, err)
+			}
+
+			if toolsMap[tool] {
+				return nil, nil, nil, fmt.Errorf("Failed to parse %s: %s assigned for the second time", name, tool)
+			}
+
+			toolsMap[tool] = true
+			tools = append(tools, &data)
+		}
+	}
+
+	if date == nil {
+		return nil, nil, nil, fmt.Errorf("Failed to parse %s: no data found for %s", name, rustDate)
+	}
+
+	for _, tool := range allTools {
+		if !toolsMap[tool] {
+			return nil, nil, nil, fmt.Errorf("Failed to parse %s: no data found for %s", name, tool)
+		}
+	}
+
+	return f, date, tools, nil
+}
+
 func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 	const (
 		dateFormat       = "2006-01-02"
 		rustBzl          = "rust.bzl"
-		rustDate         = "RUST_ISO_DATE"
-		rustChecksums    = "RUST_TOOLS_CHECKSUMS"
 		manifestTemplate = "https://static.rust-lang.org/dist/%s/channel-rust-nightly.toml"
-		toolTemplate     = "https://static.rust-lang.org/dist/%s%s.tar.gz"
+		toolTemplate     = "https://static.rust-lang.org/dist/%s/%s.tar.gz"
 		manifestVersion  = "2"
 	)
 
@@ -73,85 +177,18 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 	// Find and parse the rust.bzl file to see
 	// what version we've got currently.
 	bzlPath := filepath.Join("bazel", "deps", rustBzl)
-	data, err := os.ReadFile(bzlPath)
+	f, dateField, tools, err := ParseRustBzl(bzlPath)
 	if err != nil {
-		return fmt.Errorf("Failed to open %s: %v", bzlPath, err)
+		return err
 	}
 
-	f, err := build.ParseBzl(bzlPath, data)
+	currentDate, err := time.Parse(dateFormat, dateField.Value)
 	if err != nil {
-		return fmt.Errorf("Failed to parse %s: %v", rustBzl, err)
+		return fmt.Errorf("Invalid current Rust nightly version %s: %v", dateField.Value, err)
 	}
 
-	var currentVersion string
-	var resourcePaths []string
-	var versionExpr *build.StringExpr
-	resourceMap := make(map[string]*build.StringExpr)
-	for _, stmt := range f.Stmt {
-		if stmt == nil {
-			continue
-		}
-
-		assign, ok := stmt.(*build.AssignExpr)
-		if !ok {
-			continue
-		}
-
-		lhs, ok := assign.LHS.(*build.Ident)
-		if !ok {
-			continue
-		}
-
-		switch lhs.Name {
-		case rustDate:
-			rhs, ok := assign.RHS.(*build.StringExpr)
-			if !ok {
-				return fmt.Errorf("Failed to parse %s: found %s with non-string value %#v", rustBzl, rustDate, assign.RHS)
-			}
-
-			versionExpr = rhs
-			currentVersion = rhs.Value
-		case rustChecksums:
-			rhs, ok := assign.RHS.(*build.DictExpr)
-			if !ok {
-				return fmt.Errorf("Failed to parse %s: found %s with non-dict value %#v", rustBzl, rustChecksums, assign.RHS)
-			}
-
-			for _, entry := range rhs.List {
-				key, ok := entry.Key.(*build.BinaryExpr)
-				if !ok {
-					return fmt.Errorf("Failed to parse %s: %s has bad key %T", rustBzl, rustChecksums, entry.Key)
-				}
-
-				// X is the date variable. Y is the URL path.
-				path, ok := key.Y.(*build.StringExpr)
-				if !ok {
-					return fmt.Errorf("Failed to parse %s: %s has bad key %T", rustBzl, rustChecksums, key.Y)
-				}
-
-				val, ok := entry.Value.(*build.StringExpr)
-				if !ok {
-					return fmt.Errorf("Failed to parse %s: %s has bad hash %T", rustBzl, rustChecksums, entry.Value)
-				}
-
-				pathFragment := path.Value
-				resourcePaths = append(resourcePaths, pathFragment)
-				resourceMap[pathFragment] = val
-			}
-		}
-	}
-
-	if len(resourcePaths) < 4 {
-		log.Printf("Warning: Only found %d resources to update.", len(resourcePaths))
-	}
-
-	currentDate, err := time.Parse(dateFormat, currentVersion)
-	if err != nil {
-		return fmt.Errorf("Invalid current Rust nightly version %s: %v", currentVersion, err)
-	}
-
-	if currentVersion == want {
-		fmt.Fprintf(w, "Rust already up-to-date at nightly %s.\n", currentVersion)
+	if dateField.Value == want {
+		fmt.Fprintf(w, "Rust already up-to-date at nightly %s.\n", dateField.Value)
 		return nil
 	}
 
@@ -166,7 +203,7 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 		log.Printf("Warning: Server returned HTTP status code %d: %s.", res.StatusCode, res.Status)
 	}
 
-	data, err = io.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	res.Body.Close()
 	if err != nil {
 		return fmt.Errorf("Failed to fetch manifest for %s: %v", want, err)
@@ -186,12 +223,12 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("Manifest for %s has date %q", manifest.Date, want)
 	}
 
-	wantURLs := make([]string, 0, len(resourcePaths))
+	wantURLs := make([]string, 0, len(tools))
 	wantURLMap := make(map[string]string)
-	for _, path := range resourcePaths {
-		url := fmt.Sprintf(toolTemplate, want, path)
+	for _, tool := range tools {
+		url := fmt.Sprintf(toolTemplate, want, tool.Name.Value)
 		wantURLs = append(wantURLs, url)
-		wantURLMap[url] = path
+		wantURLMap[url] = tool.Name.Value
 	}
 
 	foundHashes := make(map[string]string)
@@ -201,39 +238,39 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 				continue
 			}
 
-			path, ok := wantURLMap[release.URL]
+			name, ok := wantURLMap[release.URL]
 			if !ok {
 				continue
 			}
 
-			foundHashes[path] = release.Hash
+			foundHashes[name] = release.Hash
 			break
 		}
 	}
 
 	// Check we've got hashes for all the targets
 	// we want.
-	for _, path := range resourcePaths {
-		hash := foundHashes[path]
+	for _, tool := range tools {
+		hash := foundHashes[tool.Name.Value]
 		if hash == "" {
-			return fmt.Errorf("Manifest for %s had no hash for %s", want, path)
+			return fmt.Errorf("Manifest for %s had no hash for %s", want, tool.Name.Value)
 		}
 
 		hashBytes, err := hex.DecodeString(hash)
 		if err != nil {
-			return fmt.Errorf("Manifest for %s had invalid hash for %s: %v", want, path, err)
+			return fmt.Errorf("Manifest for %s had invalid hash for %s: %v", want, tool.Name.Value, err)
 		}
 
 		if len(hashBytes) != sha256.Size {
-			return fmt.Errorf("Manifest for %s had invalid hash for %s: got %d bytes, want %d", want, path, len(hashBytes), sha256.Size)
+			return fmt.Errorf("Manifest for %s had invalid hash for %s: got %d bytes, want %d", want, tool.Name.Value, len(hashBytes), sha256.Size)
 		}
 
 		// Update the hash value in the AST.
-		resourceMap[path].Value = hash
+		*tool.Sum.Ptr = hash
 
 	}
 
-	versionExpr.Value = want
+	*dateField.Ptr = want
 
 	// Pretty-print the updated workspace.
 	pretty := build.Format(f)
@@ -243,9 +280,9 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	if currentDate.After(date) {
-		fmt.Fprintf(w, "Warning: Downgraded Rust from nightly %s to %s.\n", currentVersion, want)
+		fmt.Fprintf(w, "Warning: Downgraded Rust from nightly %s to %s.\n", dateField.Value, want)
 	} else {
-		fmt.Fprintf(w, "Updated Rust from nightly %s to %s.\n", currentVersion, want)
+		fmt.Fprintf(w, "Updated Rust from nightly %s to %s.\n", dateField.Value, want)
 	}
 
 	return nil

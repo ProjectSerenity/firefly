@@ -28,46 +28,35 @@ func init() {
 	RegisterCommand("go", "Update the Go modules used.", cmdGo)
 }
 
-func cmdGo(ctx context.Context, w io.Writer, args []string) error {
-	const (
-		goBzl          = "go.bzl"
-		goRepo         = "go_repository"
-		updateTemplate = "https://proxy.golang.org"
+// GoModuleData contains the data representing
+// a Go module imported using a go_repository
+// in //bazel/deps/go.bzl.
+//
+type GoModuleData struct {
+	Name    StringField `bzl:"name"`
+	Path    StringField `bzl:"importpath"`
+	Sum     StringField `bzl:"sum"`
+	Version StringField `bzl:"version"`
+}
 
-		// Public key for sum.golang.org. See go/src/cmd/go/internal/modfetch/key.go
-		checksumHost = "sum.golang.org"
-		checksumKey  = "sum.golang.org+033de0ae+Ac4zctda0e5eza+HJyk9SxEdh+s3Ux18htTTAD8OuAn8"
-	)
+// Parse go.bzl, returning the set of imported
+// Go modules and the *build.File containing
+// the Starlark file's AST.
+//
+func ParseGoBzl(name string) (file *build.File, modules []*GoModuleData, err error) {
+	const goRepo = "go_repository"
 
-	const modulesFields = 4
-	type ModuleData struct {
-		Name        string
-		Path        string
-		Sum         string
-		SumExpr     *build.StringExpr
-		Version     string
-		VersionExpr *build.StringExpr
-	}
-
-	// Find and parse the go.bzl file to see
-	// what versions we've got currently.
-	bzlPath := filepath.Join("bazel", "deps", goBzl)
-	data, err := os.ReadFile(bzlPath)
+	data, err := os.ReadFile(name)
 	if err != nil {
-		return fmt.Errorf("Failed to open %s: %v", bzlPath, err)
+		return nil, nil, fmt.Errorf("Failed to open %s: %v", name, err)
 	}
 
-	f, err := build.ParseBzl(bzlPath, data)
+	f, err := build.ParseBzl(name, data)
 	if err != nil {
-		return fmt.Errorf("Failed to parse %s: %v", goBzl, err)
+		return nil, nil, fmt.Errorf("Failed to parse %s: %v", name, err)
 	}
 
-	var modulesData []*ModuleData
 	for _, stmt := range f.Stmt {
-		if stmt == nil {
-			continue
-		}
-
 		fun, ok := stmt.(*build.DefStmt)
 		if !ok {
 			continue
@@ -88,57 +77,38 @@ func cmdGo(ctx context.Context, w io.Writer, args []string) error {
 				continue
 			}
 
-			// Pull out the fields.
-			stringField := func(field *string, expr **build.StringExpr, name string, value build.Expr) {
-				if err != nil {
-					// Don't override the first error we see.
-					return
-				}
-
-				assign, ok := value.(*build.AssignExpr)
-				if !ok {
-					err = fmt.Errorf("field %q has non-assign value %#v", name, value)
-					return
-				}
-
-				lhs, ok := assign.LHS.(*build.Ident)
-				if !ok {
-					err = fmt.Errorf("field %q has non-ident name %#v", name, assign.LHS)
-					return
-				}
-
-				if lhs.Name != name {
-					err = fmt.Errorf("got field %q, want %q", lhs.Name, name)
-					return
-				}
-
-				rhs, ok := assign.RHS.(*build.StringExpr)
-				if !ok {
-					err = fmt.Errorf("field %q has non-string value %#v", name, assign.RHS)
-					return
-				}
-
-				*field = rhs.Value
-				if expr != nil {
-					*expr = rhs
-				}
-			}
-
-			var data ModuleData
-			if len(call.List) != modulesFields {
-				return fmt.Errorf("Failed to parse %s: found %s with %d fields, want %d", goBzl, goRepo, len(call.List), modulesFields)
-			}
-
-			stringField(&data.Name, nil, "name", call.List[0])
-			stringField(&data.Path, nil, "importpath", call.List[1])
-			stringField(&data.Sum, &data.SumExpr, "sum", call.List[2])
-			stringField(&data.Version, &data.VersionExpr, "version", call.List[3])
+			var data GoModuleData
+			err = UnmarshalFields(call, &data)
 			if err != nil {
-				return fmt.Errorf("Failed to parse %s: %v", goBzl, err)
+				return nil, nil, fmt.Errorf("Failed to parse %s: %v", name.Name, err)
 			}
 
-			modulesData = append(modulesData, &data)
+			modules = append(modules, &data)
 		}
+	}
+
+	return f, modules, nil
+}
+
+func cmdGo(ctx context.Context, w io.Writer, args []string) error {
+	const (
+		goBzl          = "go.bzl"
+		goRepo         = "go_repository"
+		updateTemplate = "https://proxy.golang.org"
+
+		// Public key for sum.golang.org. See go/src/cmd/go/internal/modfetch/key.go
+		checksumHost = "sum.golang.org"
+		checksumKey  = "sum.golang.org+033de0ae+Ac4zctda0e5eza+HJyk9SxEdh+s3Ux18htTTAD8OuAn8"
+	)
+
+	const modulesFields = 4
+
+	// Find and parse the go.bzl file to see
+	// what versions we've got currently.
+	bzlPath := filepath.Join("bazel", "deps", goBzl)
+	f, modulesData, err := ParseGoBzl(bzlPath)
+	if err != nil {
+		return err
 	}
 
 	// See https://go.dev/ref/mod#goproxy-protocol.
@@ -156,7 +126,7 @@ func cmdGo(ctx context.Context, w io.Writer, args []string) error {
 	updated := make([]string, 0, len(modulesData))
 	for _, data := range modulesData {
 		// Work out the latest version.
-		escaped, err := module.EscapePath(data.Path)
+		escaped, err := module.EscapePath(data.Path.Value)
 		if err != nil {
 			return fmt.Errorf("Failed to check %s for updates: invalid module path: %v", data.Path, err)
 		}
@@ -188,7 +158,7 @@ func cmdGo(ctx context.Context, w io.Writer, args []string) error {
 
 		// Check whether it's newer than the version
 		// we're already using.
-		if !semver.IsValid(data.Version) {
+		if !semver.IsValid(data.Version.Value) {
 			return fmt.Errorf("Failed to check %s for update: current version %q is invalid", data.Path, data.Version)
 		}
 
@@ -196,7 +166,7 @@ func cmdGo(ctx context.Context, w io.Writer, args []string) error {
 			return fmt.Errorf("Failed to check %s for update: latest version %q is invalid", data.Path, latest.Version)
 		}
 
-		switch semver.Compare(data.Version, latest.Version) {
+		switch semver.Compare(data.Version.Value, latest.Version) {
 		case 0:
 			// Current is latest.
 			continue
@@ -208,7 +178,7 @@ func cmdGo(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		// Get the checksum.
-		lines, err := client.Lookup(data.Path, latest.Version)
+		lines, err := client.Lookup(data.Path.Value, latest.Version)
 		if err != nil {
 			return fmt.Errorf("Failed to get checksum for %s@%s: %v", data.Path, latest.Version, err)
 		}
@@ -217,7 +187,7 @@ func cmdGo(ctx context.Context, w io.Writer, args []string) error {
 		var checksum string
 		for _, line := range lines {
 			parts := strings.Fields(line)
-			if len(parts) == 3 && parts[0] == data.Path && parts[1] == latest.Version {
+			if len(parts) == 3 && parts[0] == data.Path.Value && parts[1] == latest.Version {
 				checksum = parts[2]
 				break
 			}
@@ -228,8 +198,8 @@ func cmdGo(ctx context.Context, w io.Writer, args []string) error {
 			return fmt.Errorf("Failed to get checksum for %s@%s: no checksum in response:\n  %s", data.Path, latest.Version, content)
 		}
 
-		data.VersionExpr.Value = latest.Version
-		data.SumExpr.Value = checksum
+		*data.Version.Ptr = latest.Version
+		*data.Sum.Ptr = checksum
 		updated = append(updated, fmt.Sprintf("%s from %s to %s", data.Path, data.Version, latest.Version))
 	}
 

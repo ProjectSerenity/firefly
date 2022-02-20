@@ -26,54 +26,45 @@ func init() {
 	RegisterCommand("rules", "Update the Bazel rules used.", cmdRules)
 }
 
-func cmdRules(ctx context.Context, w io.Writer, args []string) error {
-	const (
-		rulesBzl       = "rules.bzl"
-		updateTemplate = "https://api.github.com/repos/%s/releases/latest"
-	)
+// BazelRuleData contains the data representing
+// a Bazel rule's data specified in a struct in
+// //bazel/deps/rules.bzl.
+//
+type BazelRuleData struct {
+	Name    StringField `bzl:"name"`
+	Repo    StringField `bzl:"repo"`
+	Archive StringField `bzl:"archive"`
+	Version StringField `bzl:"version"`
+	SHA256  StringField `bzl:"sha256"`
+}
 
-	var (
-		allRules = []string{
-			"RULES_BUILDTOOLS",
-			"RULES_CC",
-			"RULES_GAZELLE",
-			"RULES_GO",
-			"RULES_PROTOBUF",
-			"RULES_RUST",
-			"RULES_SKYLIB",
-		}
-	)
-
-	const rulesFields = 5
-	type RuleData struct {
-		Name        string
-		Repo        string
-		Archive     string
-		Version     string
-		VersionExpr *build.StringExpr
-		SHA256      string
-		SHA256Expr  *build.StringExpr
+// Parse a rules.bzl, returning the set of imported
+// Bazel rules and the *build.File containing the
+// Starlark file's AST.
+//
+func ParseRulesBzl(name string) (file *build.File, rules []*BazelRuleData, err error) {
+	var allRules = []string{
+		"RULES_BUILDTOOLS",
+		"RULES_CC",
+		"RULES_GAZELLE",
+		"RULES_GO",
+		"RULES_PROTOBUF",
+		"RULES_RUST",
+		"RULES_SKYLIB",
 	}
 
-	// Find and parse the rules.bzl file to see
-	// what versions we've got currently.
-	bzlPath := filepath.Join("bazel", "deps", rulesBzl)
-	data, err := os.ReadFile(bzlPath)
+	data, err := os.ReadFile(name)
 	if err != nil {
-		return fmt.Errorf("Failed to open %s: %v", bzlPath, err)
+		return nil, nil, fmt.Errorf("Failed to open %s: %v", name, err)
 	}
 
-	f, err := build.ParseBzl(bzlPath, data)
+	f, err := build.ParseBzl(name, data)
 	if err != nil {
-		return fmt.Errorf("Failed to parse %s: %v", rulesBzl, err)
+		return nil, nil, fmt.Errorf("Failed to parse %s: %v", name, err)
 	}
 
-	rulesData := make(map[string]*RuleData)
+	rulesMap := make(map[string]bool)
 	for _, stmt := range f.Stmt {
-		if stmt == nil {
-			continue
-		}
-
 		assign, ok := stmt.(*build.AssignExpr)
 		if !ok {
 			continue
@@ -92,65 +83,49 @@ func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 
 			call, ok := assign.RHS.(*build.CallExpr)
 			if !ok {
-				return fmt.Errorf("Failed to parse %s: found %s with non-call value %#v", rulesBzl, rule, assign.RHS)
+				return nil, nil, fmt.Errorf("Failed to parse %s: found %s with non-call value %#v", name, rule, assign.RHS)
 			}
 
 			if fun, ok := call.X.(*build.Ident); !ok || fun.Name != "struct" {
-				return fmt.Errorf("Failed to parse %s: found %s with non-struct value %#v", rulesBzl, rule, call.X)
+				return nil, nil, fmt.Errorf("Failed to parse %s: found %s with non-struct value %#v", name, rule, call.X)
 			}
 
-			// Pull out the fields.
-			stringField := func(field *string, expr **build.StringExpr, name string, value build.Expr) {
-				if err != nil {
-					// Don't override the first error we see.
-					return
-				}
-
-				assign, ok := value.(*build.AssignExpr)
-				if !ok {
-					err = fmt.Errorf("field %q has non-assign value %#v", name, value)
-					return
-				}
-
-				lhs, ok := assign.LHS.(*build.Ident)
-				if !ok {
-					err = fmt.Errorf("field %q has non-ident name %#v", name, assign.LHS)
-					return
-				}
-
-				if lhs.Name != name {
-					err = fmt.Errorf("got field %q, want %q", lhs.Name, name)
-					return
-				}
-
-				rhs, ok := assign.RHS.(*build.StringExpr)
-				if !ok {
-					err = fmt.Errorf("field %q has non-string value %#v", name, assign.RHS)
-					return
-				}
-
-				*field = rhs.Value
-				if expr != nil {
-					*expr = rhs
-				}
-			}
-
-			var data RuleData
-			if len(call.List) != rulesFields {
-				return fmt.Errorf("Failed to parse %s: found %s with %d fields, want %d", rulesBzl, rule, len(call.List), rulesFields)
-			}
-
-			stringField(&data.Name, nil, "name", call.List[0])
-			stringField(&data.Repo, nil, "repo", call.List[1])
-			stringField(&data.Archive, nil, "archive", call.List[2])
-			stringField(&data.Version, &data.VersionExpr, "version", call.List[3])
-			stringField(&data.SHA256, &data.SHA256Expr, "sha256", call.List[4])
+			var data BazelRuleData
+			err = UnmarshalFields(call, &data)
 			if err != nil {
-				return fmt.Errorf("Failed to parse %s: %v", rulesBzl, err)
+				return nil, nil, fmt.Errorf("Failed to parse %s: invalid data for %s: %v", name, rule, err)
 			}
 
-			rulesData[rule] = &data
+			if rulesMap[rule] {
+				return nil, nil, fmt.Errorf("Failed to parse %s: %s assigned for the second time", name, rule)
+			}
+
+			rulesMap[rule] = true
+			rules = append(rules, &data)
 		}
+	}
+
+	for _, rule := range allRules {
+		if !rulesMap[rule] {
+			return nil, nil, fmt.Errorf("Failed to parse %s: no data found for %s", name, rule)
+		}
+	}
+
+	return f, rules, nil
+}
+
+func cmdRules(ctx context.Context, w io.Writer, args []string) error {
+	const (
+		rulesBzl       = "rules.bzl"
+		updateTemplate = "https://api.github.com/repos/%s/releases/latest"
+	)
+
+	// Find and parse the rules.bzl file to see
+	// what versions we've got currently.
+	bzlPath := filepath.Join("bazel", "deps", rulesBzl)
+	f, rulesData, err := ParseRulesBzl(bzlPath)
+	if err != nil {
+		return err
 	}
 
 	type ReleaseData struct {
@@ -158,20 +133,15 @@ func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 		// We don't care about the other fields.
 	}
 
-	updated := make([]string, 0, len(allRules))
-	for _, rule := range allRules {
-		data := rulesData[rule]
-		if data == nil {
-			return fmt.Errorf("Failed to parse %s: found no data for %s", rulesBzl, rule)
-		}
-
+	updated := make([]string, 0, len(rulesData))
+	for _, data := range rulesData {
 		// Rules Rust doesn't do releases yet.
-		if data.Name == "rules_rust" {
+		if data.Name.Value == "rules_rust" {
 			continue
 		}
 
 		// Check for updates.
-		updateURL := fmt.Sprintf(updateTemplate, data.Repo)
+		updateURL := fmt.Sprintf(updateTemplate, data.Repo.Value)
 		res, err := http.Get(updateURL)
 		if err != nil {
 			return fmt.Errorf("Failed to check %s for updates: fetching release: %v", data.Name, err)
@@ -199,7 +169,7 @@ func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 
 		// Check whether it's newer than the version
 		// we're already using.
-		current := "v" + data.Version
+		current := "v" + data.Version.Value
 		latest := "v" + version
 		if !semver.IsValid(current) {
 			return fmt.Errorf("Failed to check %s for update: current version %q is invalid", data.Name, data.Version)
@@ -221,7 +191,7 @@ func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		// Calculate the new checksum.
-		archiveURL := strings.ReplaceAll(data.Archive, "{v}", version)
+		archiveURL := strings.ReplaceAll(data.Archive.Value, "{v}", version)
 
 		checksum := sha256.New()
 		res, err = http.Get(archiveURL)
@@ -238,8 +208,8 @@ func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 			return fmt.Errorf("Failed to update %s: closing archive: %v", data.Name, err)
 		}
 
-		data.VersionExpr.Value = version
-		data.SHA256Expr.Value = hex.EncodeToString(checksum.Sum(nil))
+		*data.Version.Ptr = version
+		*data.SHA256.Ptr = hex.EncodeToString(checksum.Sum(nil))
 		updated = append(updated, fmt.Sprintf("%s from %s to %s", data.Name, data.Version, version))
 	}
 
