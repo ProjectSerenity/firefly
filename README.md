@@ -24,9 +24,11 @@ While Bazel manages most of the build, some tools are currently used from the ho
 
 Once Bazel and the above host tools are prepared, the following commands are common:
 
-- `bazel build //kernel`: Build the kernel binary.
-- `bazel build //:image`: Build a bootable Firefly disk image.
-- `bazel run //:qemu`:    Build a bootable disk image and run it in Qemu.
+- `bazel build //kernel`:     Build the kernel binary.
+- `bazel build //:image`:     Build a bootable Firefly disk image.
+- `bazel test //...`:         Run all tests.
+- `bazel run //:update-deps`: Update managed dependencies.
+- `bazel run //:qemu`:        Build a bootable disk image and run it in Qemu.
 
 ## FAQ
 
