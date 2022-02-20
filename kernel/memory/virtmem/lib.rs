@@ -47,8 +47,9 @@ mod mapping;
 
 use alloc::vec::Vec;
 use bootloader::BootInfo;
+use core::sync::atomic::{AtomicBool, Ordering};
 use mapping::PagePurpose;
-use memlayout::{phys_to_virt_addr, KERNEL_HEAP, PHYSICAL_MEMORY_OFFSET};
+use memlayout::{phys_to_virt_addr, KERNEL_HEAP, PHYSICAL_MEMORY_OFFSET, USERSPACE};
 use serial::println;
 use spin::{Mutex, MutexGuard};
 use x86_64::instructions::interrupts::without_interrupts;
@@ -103,6 +104,63 @@ pub unsafe fn init(boot_info: &'static BootInfo) {
     physmem::init(frame_allocator);
 }
 
+/// Indicates whether the kernel page mappings have
+/// been frozen because the kernel's initialisation
+/// is complete.
+///
+/// Once the page mappings are frozen, any attempts
+/// to map memory in kernel space where the level 4
+/// page entry is not already mapped will result in
+/// an error. This is because we may have multiple
+/// sets of page tables, so a change to the level 4
+/// page table for kernel space could lead to
+/// inconsistencies.
+///
+static KERNEL_MAPPINGS_FROZEN: AtomicBool = AtomicBool::new(false);
+
+/// Freeze the kernel page mappings at the top-most
+/// level.
+///
+/// Once the page mappings are frozen, any attempts
+/// to map memory in kernel space where the level 4
+/// page entry is not already mapped will result in
+/// a panic. This is because we may have multiple
+/// sets of page tables, so a change to the level 4
+/// page table for kernel space could lead to
+/// inconsistencies.
+///
+pub fn freeze_kernel_mappings() {
+    let prev = KERNEL_MAPPINGS_FROZEN.fetch_or(true, Ordering::SeqCst);
+    if prev {
+        panic!("virtmem::freeze_kernel_mappings() called more than once");
+    }
+}
+
+/// Check that the kernel mappings are not yet frozen,
+/// the proposed mapping is in user space, or the
+/// proposed mappings would not modify the level 4
+/// page table.
+///
+fn check_mapping(mapper: &mut OffsetPageTable, page: Page) {
+    if !KERNEL_MAPPINGS_FROZEN.load(Ordering::Relaxed) {
+        return;
+    }
+
+    let start_addr = page.start_address();
+    if USERSPACE.contains_addr(start_addr) {
+        return;
+    }
+
+    let pml4_index = 511 & ((start_addr.as_u64() as usize) >> 39);
+    let pml4_entry = &mapper.level_4_table()[pml4_index];
+    if !pml4_entry.flags().contains(PageTableFlags::PRESENT) {
+        panic!(
+            "cannot map page {:p}: kernel mappings frozen and page entry unmapped",
+            start_addr
+        );
+    }
+}
+
 /// Allows the caller to modify the page mappings
 /// without multiple mutable references existing
 /// at the same time.
@@ -139,6 +197,7 @@ where
 {
     with_page_tables(|mapper| {
         for page in page_range {
+            check_mapping(mapper, page);
             let frame = allocator
                 .allocate_frame()
                 .ok_or(MapToError::FrameAllocationFailed)?;
@@ -167,6 +226,7 @@ where
 {
     with_page_tables(|mapper| {
         for page in page_range {
+            check_mapping(mapper, page);
             let frame = frame_range
                 .next()
                 .ok_or(MapToError::FrameAllocationFailed)?;

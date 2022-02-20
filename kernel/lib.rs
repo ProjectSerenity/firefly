@@ -125,6 +125,13 @@ pub fn init(boot_info: &'static BootInfo) {
     // keep the entropy pool fresh.
     random::init();
     Thread::start_kernel_thread(entropy_reseed_helper);
+
+    // The kernel is now fully initialised, so we
+    // freeze the kernel page mappings. This means
+    // we can start making other page mappings for
+    // user processes, without risking divergence
+    // between the views of kernel space.
+    virtmem::freeze_kernel_mappings();
 }
 
 /// This is the set of configured PCI device drivers.
