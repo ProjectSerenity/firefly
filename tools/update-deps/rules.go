@@ -214,7 +214,7 @@ func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	if len(updated) == 0 {
-		fmt.Fprintln(w, "All Bazel rules up to date.")
+		fmt.Fprintln(w, "All Bazel rules are up to date.")
 		return nil
 	}
 
