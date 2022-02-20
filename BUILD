@@ -77,3 +77,9 @@ qemu(
     ],
     qemu = "qemu-system-x86_64",
 )
+
+# Allow our dependencies to be updated with `bazel run //:update-deps`.
+alias(
+    name = "update-deps",
+    actual = "//tools/update-deps",
+)
