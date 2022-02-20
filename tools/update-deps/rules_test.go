@@ -7,6 +7,9 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"path"
 	"path/filepath"
 	"testing"
 )
@@ -94,5 +97,34 @@ func TestParseRulesBzl(t *testing.T) {
 		checkField(t, context, "archive", got.Archive, want.Archive)
 		checkField(t, context, "version", got.Version, want.Version)
 		checkField(t, context, "sha256", got.SHA256, want.SHA256)
+	}
+}
+
+func TestCheckLatestRule(t *testing.T) {
+	// Start an HTTP server, serving a
+	// captured copy of an actual response.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/bazelbuild/buildtools.json" {
+			http.ServeFile(w, r, path.Join("testdata", "buildtools.json"))
+		} else {
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	data := BazelRuleData{
+		Name: StringField{Value: "com_github_bazelbuild_buildtools"},
+		Repo: StringField{Value: "bazelbuild/buildtools"},
+	}
+
+	updateTemplate := fmt.Sprintf("%s/%%s.json", srv.URL)
+	got, err := CheckLatestRule(updateTemplate, &data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := "5.0.1"
+	if got != want {
+		t.Fatalf("Got unexpected latest version %q, want %q", got, want)
 	}
 }

@@ -114,6 +114,44 @@ func ParseRulesBzl(name string) (file *build.File, rules []*BazelRuleData, err e
 	return f, rules, nil
 }
 
+// CheckLatestRule identifies the latest version of
+// the given rule, returning the version string.
+//
+func CheckLatestRule(updateTemplate string, data *BazelRuleData) (version string, err error) {
+	type ReleaseData struct {
+		TagName string `json:"tag_name"`
+		// We don't care about the other fields.
+	}
+
+	updateURL := fmt.Sprintf(updateTemplate, data.Repo.Value)
+	res, err := http.Get(updateURL)
+	if err != nil {
+		return "", fmt.Errorf("Failed to check %s for updates: fetching release: %v", data.Name, err)
+	}
+
+	jsonData, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", fmt.Errorf("Failed to check %s for updates: reading release: %v", data.Name, err)
+	}
+
+	if err = res.Body.Close(); err != nil {
+		return "", fmt.Errorf("Failed to check %s for updates: closing release: %v", data.Name, err)
+	}
+
+	var release ReleaseData
+	err = json.Unmarshal(jsonData, &release)
+	if err != nil {
+		return "", fmt.Errorf("Failed to check %s for update: parsing release: %v", data.Name, err)
+	}
+
+	version = strings.TrimPrefix(release.TagName, "v")
+	if version == "" {
+		return "", fmt.Errorf("Failed to check %s for update: failed to find latest version", data.Name)
+	}
+
+	return version, nil
+}
+
 func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 	const (
 		rulesBzl       = "rules.bzl"
@@ -128,11 +166,6 @@ func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 		return err
 	}
 
-	type ReleaseData struct {
-		TagName string `json:"tag_name"`
-		// We don't care about the other fields.
-	}
-
 	updated := make([]string, 0, len(rulesData))
 	for _, data := range rulesData {
 		// Rules Rust doesn't do releases yet.
@@ -141,30 +174,9 @@ func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		// Check for updates.
-		updateURL := fmt.Sprintf(updateTemplate, data.Repo.Value)
-		res, err := http.Get(updateURL)
+		version, err := CheckLatestRule(updateTemplate, data)
 		if err != nil {
-			return fmt.Errorf("Failed to check %s for updates: fetching release: %v", data.Name, err)
-		}
-
-		jsonData, err := io.ReadAll(res.Body)
-		if err != nil {
-			return fmt.Errorf("Failed to check %s for updates: reading release: %v", data.Name, err)
-		}
-
-		if err = res.Body.Close(); err != nil {
-			return fmt.Errorf("Failed to check %s for updates: closing release: %v", data.Name, err)
-		}
-
-		var release ReleaseData
-		err = json.Unmarshal(jsonData, &release)
-		if err != nil {
-			return fmt.Errorf("Failed to check %s for update: parsing release: %v", data.Name, err)
-		}
-
-		version := strings.TrimPrefix(release.TagName, "v")
-		if version == "" {
-			return fmt.Errorf("Failed to check %s for update: failed to find latest version", data.Name)
+			return err
 		}
 
 		// Check whether it's newer than the version
@@ -194,7 +206,7 @@ func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 		archiveURL := strings.ReplaceAll(data.Archive.Value, "{v}", version)
 
 		checksum := sha256.New()
-		res, err = http.Get(archiveURL)
+		res, err := http.Get(archiveURL)
 		if err != nil {
 			return fmt.Errorf("Failed to update %s: fetching archive: %v", data.Name, err)
 		}
