@@ -129,11 +129,23 @@ static KERNEL_MAPPINGS_FROZEN: AtomicBool = AtomicBool::new(false);
 /// page table for kernel space could lead to
 /// inconsistencies.
 ///
+/// The page mappings cannot be unfrozen once frozen.
+///
 pub fn freeze_kernel_mappings() {
     let prev = KERNEL_MAPPINGS_FROZEN.fetch_or(true, Ordering::SeqCst);
     if prev {
         panic!("virtmem::freeze_kernel_mappings() called more than once");
     }
+}
+
+/// Returns whether the kernel page mappings have
+/// been frozen.
+///
+/// See [`freeze_kernel_mappings`] for more details.
+///
+#[inline(always)]
+pub fn kernel_mappings_frozen() -> bool {
+    KERNEL_MAPPINGS_FROZEN.load(Ordering::Relaxed)
 }
 
 /// Check that the kernel mappings are not yet frozen,
@@ -142,7 +154,7 @@ pub fn freeze_kernel_mappings() {
 /// page table.
 ///
 fn check_mapping(mapper: &mut OffsetPageTable, page: Page) {
-    if !KERNEL_MAPPINGS_FROZEN.load(Ordering::Relaxed) {
+    if !kernel_mappings_frozen() {
         return;
     }
 
