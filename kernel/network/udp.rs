@@ -51,11 +51,11 @@
 use super::{Error, InterfaceHandle, INTERFACES};
 use alloc::collections::BTreeSet;
 use alloc::vec;
+use multitasking::thread::{current_thread_waker, prevent_next_sleep, suspend};
 use smoltcp::iface::SocketHandle;
 use smoltcp::socket::{UdpPacketMetadata, UdpSocket, UdpSocketBuffer};
 use smoltcp::wire::IpEndpoint;
 use spin::Mutex;
-use thread::{current_thread_waker, prevent_next_sleep, suspend};
 use x86_64::instructions::interrupts::without_interrupts;
 
 /// Used as the number of packets in each port's receive

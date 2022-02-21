@@ -31,7 +31,7 @@
 //! - [memory/mmio](::mmio)
 //! - [memory/physmem](::physmem)
 //! - [memory/virtmem](::virtmem)
-//! - [multitasking/thread](::thread)
+//! - [multitasking/thread](::multitasking::thread)
 //! - [network](::network)
 //! - [random](::random)
 //! - [segmentation](::segmentation)
@@ -52,7 +52,8 @@ pub mod syscalls;
 
 use bootloader::BootInfo;
 use interrupts::{register_irq, Irq};
-use thread::{scheduler, Thread};
+use multitasking::thread;
+use multitasking::thread::{scheduler, Thread};
 use x86_64::structures::idt::InterruptStackFrame;
 
 /// Initialise the kernel and its core components.
@@ -66,7 +67,7 @@ use x86_64::structures::idt::InterruptStackFrame;
 /// - Enables system interrupts.
 /// - Initialise the [memory managers and kernel heap](virtmem).
 /// - Initialise the [CPU-local data](cpu).
-/// - Initialise the [scheduler](multitasking/thread).
+/// - Initialise the [scheduler](thread).
 /// - Scan for and initialise the [PCI](drivers/pci) device drivers.
 /// - Initialise the [CSPRNG](random).
 ///

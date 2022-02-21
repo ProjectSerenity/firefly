@@ -21,7 +21,7 @@ rust_library(
         crate("x86_64"),
         "//kernel/drivers/serial",
         "//kernel/memory/memlayout",
-        "//kernel/multitasking/thread",
+        "//kernel/multitasking",
         "//kernel/random",
         "//kernel/time",
         "@smoltcp",

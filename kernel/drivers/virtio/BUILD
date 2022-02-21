@@ -33,7 +33,7 @@ rust_library(
         "//kernel/memory/mmio",
         "//kernel/memory/physmem",
         "//kernel/memory/virtmem",
-        "//kernel/multitasking/thread",
+        "//kernel/multitasking",
         "//kernel/network",
         "//kernel/random",
         "//kernel/storage",

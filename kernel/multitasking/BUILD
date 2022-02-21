@@ -7,18 +7,19 @@ load("@crates//:defs.bzl", "crate")
 load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library")
 
 rust_library(
-    name = "thread",
+    name = "multitasking",
     srcs = [
         "lib.rs",
-        "scheduler/mod.rs",
-        "scheduler/timers.rs",
-        "stacks.rs",
-        "switch.rs",
+        "thread/mod.rs",
+        "thread/scheduler/mod.rs",
+        "thread/scheduler/timers.rs",
+        "thread/stacks.rs",
+        "thread/switch.rs",
     ],
     compile_data = [
-        "switch.s",
+        "thread/switch.s",
     ],
-    crate_name = "thread",
+    crate_name = "multitasking",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         crate("lazy_static"),
@@ -37,10 +38,10 @@ rust_library(
 
 rust_clippy(
     name = "clippy",
-    deps = [":thread"],
+    deps = [":multitasking"],
 )
 
 rust_doc(
     name = "docs",
-    crate = ":thread",
+    crate = ":multitasking",
 )

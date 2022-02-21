@@ -7,9 +7,9 @@
 //!
 //! This is a fairly simple design to get us started. Each timer consists of
 //! the [`Instant`](time::Instant) at which the timer will fire, and the
-//! [`ThreadId`](crate::ThreadId) of the thread we should resume.
+//! [`ThreadId`](crate::thread::ThreadId) of the thread we should resume.
 
-use crate::ThreadId;
+use crate::thread::ThreadId;
 use alloc::collections::binary_heap::BinaryHeap;
 use core::cmp::{Ordering, PartialEq, PartialOrd};
 use lazy_static::lazy_static;

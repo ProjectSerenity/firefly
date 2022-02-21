@@ -24,18 +24,12 @@
 //! Calling [`debug`] (or [`Thread::debug`]) will print debug info about the
 //! thread.
 
-#![no_std]
-#![feature(binary_heap_retain)]
-#![feature(const_btree_new)]
-
-extern crate alloc;
-
 pub mod scheduler;
 mod stacks;
 mod switch;
 
-use crate::scheduler::{timers, Scheduler};
-use crate::stacks::{free_kernel_stack, new_kernel_stack, StackBounds};
+use crate::thread::scheduler::{timers, Scheduler};
+use crate::thread::stacks::{free_kernel_stack, new_kernel_stack, StackBounds};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::task::Wake;

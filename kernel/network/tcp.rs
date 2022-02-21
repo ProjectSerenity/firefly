@@ -75,11 +75,11 @@ use alloc::collections::BTreeSet;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::cmp::min;
+use multitasking::thread::{current_thread_waker, prevent_next_sleep, suspend};
 use smoltcp::iface::SocketHandle;
 use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::wire::IpEndpoint;
 use spin::Mutex;
-use thread::{current_thread_waker, prevent_next_sleep, suspend};
 use x86_64::instructions::interrupts::without_interrupts;
 
 /// Used as the number of bytes in each connection's receive
