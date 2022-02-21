@@ -25,10 +25,9 @@
 //! thread.
 
 mod stacks;
-mod switch;
 
-pub(crate) use self::switch::switch_stack;
 use crate::scheduler::timers;
+use crate::switch::{start_kernel_thread, start_user_thread};
 use crate::thread::stacks::{free_kernel_stack, new_kernel_stack, StackBounds};
 use crate::{scheduler, CURRENT_THREADS, IDLE_THREADS, SCHEDULER, THREADS};
 use alloc::sync::Arc;
@@ -507,7 +506,7 @@ impl Thread {
 
             // Push start_kernel_thread and the initial
             // registers to be loaded by switch_stack.
-            rsp = push_stack(rsp, switch::start_kernel_thread as *const u8 as u64); // RIP.
+            rsp = push_stack(rsp, start_kernel_thread as *const u8 as u64); // RIP.
             rsp = push_stack(rsp, 0); // Initial RBP.
             rsp = push_stack(rsp, 0); // Initial RBX.
             rsp = push_stack(rsp, 0); // Initial R12.
@@ -605,7 +604,7 @@ impl Thread {
 
             // Push start_user_thread and the initial
             // registers to be loaded by switch_stack.
-            rsp = push_stack(rsp, switch::start_user_thread as *const u8 as u64); // RIP.
+            rsp = push_stack(rsp, start_user_thread as *const u8 as u64); // RIP.
             rsp = push_stack(rsp, 0); // Initial RBP.
             rsp = push_stack(rsp, 0); // Initial RBX.
             rsp = push_stack(rsp, 0); // Initial R12.

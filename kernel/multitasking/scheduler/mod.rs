@@ -18,7 +18,8 @@
 
 pub mod timers;
 
-use crate::thread::{current_thread, switch_stack, Thread, ThreadId, ThreadState};
+use crate::switch::switch_stack;
+use crate::thread::{current_thread, Thread, ThreadId, ThreadState};
 use crate::{CURRENT_THREADS, IDLE_THREADS, SCHEDULER, THREADS};
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;

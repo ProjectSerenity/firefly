@@ -27,6 +27,7 @@
 extern crate alloc;
 
 pub mod scheduler;
+mod switch;
 pub mod thread;
 
 use crate::scheduler::Scheduler;
