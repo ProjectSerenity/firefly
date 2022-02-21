@@ -153,11 +153,12 @@ pub fn kernel_mappings_frozen() -> bool {
 /// proposed mappings would not modify the level 4
 /// page table.
 ///
+/// Note that for performance reasons, this function
+/// does not check whether the page tables are frozen.
+/// The caller should do so and skip calling `check_mapping`
+/// if the page tables are not frozen.
+///
 fn check_mapping(mapper: &mut OffsetPageTable, page: Page) {
-    if !kernel_mappings_frozen() {
-        return;
-    }
-
     let start_addr = page.start_address();
     if USERSPACE.contains_addr(start_addr) {
         return;
@@ -207,9 +208,13 @@ where
     R: Iterator<Item = Page>,
     A: FrameAllocator<Size4KiB> + ?Sized,
 {
+    let frozen = kernel_mappings_frozen();
     with_page_tables(|mapper| {
         for page in page_range {
-            check_mapping(mapper, page);
+            if frozen {
+                check_mapping(mapper, page);
+            }
+
             let frame = allocator
                 .allocate_frame()
                 .ok_or(MapToError::FrameAllocationFailed)?;
@@ -236,9 +241,13 @@ where
     P: Iterator<Item = Page>,
     A: FrameAllocator<Size4KiB> + ?Sized,
 {
+    let frozen = kernel_mappings_frozen();
     with_page_tables(|mapper| {
         for page in page_range {
-            check_mapping(mapper, page);
+            if frozen {
+                check_mapping(mapper, page);
+            }
+
             let frame = frame_range
                 .next()
                 .ok_or(MapToError::FrameAllocationFailed)?;
