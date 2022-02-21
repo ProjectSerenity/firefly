@@ -10,9 +10,9 @@ rust_library(
     name = "multitasking",
     srcs = [
         "lib.rs",
+        "scheduler/mod.rs",
+        "scheduler/timers.rs",
         "thread/mod.rs",
-        "thread/scheduler/mod.rs",
-        "thread/scheduler/timers.rs",
         "thread/stacks.rs",
         "thread/switch.rs",
     ],

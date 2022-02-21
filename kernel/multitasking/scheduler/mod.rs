@@ -18,14 +18,13 @@
 
 pub mod timers;
 
-use crate::thread::switch::switch_stack;
-use crate::thread::{
-    current_thread, idle_thread, set_current_thread, ThreadId, ThreadState, SCHEDULER, THREADS,
-};
+use crate::thread::{current_thread, switch_stack, Thread, ThreadId, ThreadState};
+use crate::{CURRENT_THREADS, IDLE_THREADS, SCHEDULER, THREADS};
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use core::arch::asm;
 use core::sync::atomic::{AtomicBool, Ordering};
+use segmentation::with_segment_data;
 use spin::Mutex;
 use time::{after, Duration};
 use x86_64::instructions::interrupts;
@@ -161,6 +160,26 @@ pub fn sleep(duration: Duration) {
     switch();
 }
 
+/// Set the currently executing thread.
+///
+fn set_current_thread(thread: Arc<Thread>) {
+    // Save the current thread's user stack pointer into the current thread.
+    current_thread().set_user_stack(cpu::user_stack_pointer());
+
+    // Overwrite the state from the new thread.
+    let interrupt_stack = thread.interrupt_stack();
+    with_segment_data(|data| data.set_interrupt_stack(interrupt_stack));
+    cpu::set_syscall_stack_pointer(thread.syscall_stack());
+    cpu::set_user_stack_pointer(thread.user_stack());
+    CURRENT_THREADS.lock()[cpu::id()] = thread;
+}
+
+/// Returns a copy of the idle thread for this CPU.
+///
+fn idle_thread() -> Arc<Thread> {
+    IDLE_THREADS.lock()[cpu::id()].clone()
+}
+
 /// Schedules out the current thread and switches to the next
 /// runnable thread.
 ///
@@ -179,8 +198,9 @@ pub fn switch() {
         // queue, unless it's the idle thread, which
         // always has thread id 0 (which is otherwise
         // invalid).
-        if current.global_id != ThreadId::IDLE && current.thread_state() == ThreadState::Runnable {
-            scheduler.add(current.global_id);
+        let current_thread_id = current.global_thread_id();
+        if current_thread_id != ThreadId::IDLE && current.thread_state() == ThreadState::Runnable {
+            scheduler.add(current_thread_id);
         }
 
         match scheduler.next() {
@@ -203,8 +223,8 @@ pub fn switch() {
     // Retrieve a pointer to each stack pointer. These point
     // to the value in the Thread structure, where we keep a
     // copy of the current stack pointer.
-    let current_stack_pointer = current.stack_pointer.get();
-    let new_stack_pointer = next.stack_pointer.get();
+    let current_stack_pointer = current.stack_pointer();
+    let new_stack_pointer = next.stack_pointer();
 
     // Switch into the next thread and re-enable interrupts.
     set_current_thread(next);

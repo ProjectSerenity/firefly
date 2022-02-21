@@ -52,8 +52,8 @@ pub mod syscalls;
 
 use bootloader::BootInfo;
 use interrupts::{register_irq, Irq};
-use multitasking::thread;
-use multitasking::thread::{scheduler, Thread};
+use multitasking::thread::Thread;
+use multitasking::{scheduler, thread};
 use x86_64::structures::idt::InterruptStackFrame;
 
 /// Initialise the kernel and its core components.

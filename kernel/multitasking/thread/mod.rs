@@ -18,32 +18,28 @@
 //!
 //! A running thread may terminate its execution by calling [`exit`], or pause
 //! its execution by calling [`scheduler::sleep`]. A sleeping
-//! thread can be resumed early by calling [`scheduler::resume`] (or [`ThreadId.resume`](ThreadId::resume),
+//! thread can be resumed early by calling [`crate::scheduler::resume`] (or [`ThreadId.resume`](ThreadId::resume),
 //! but this will not cancel the timer that would have awoken it.
 //!
 //! Calling [`debug`] (or [`Thread::debug`]) will print debug info about the
 //! thread.
 
-pub mod scheduler;
 mod stacks;
 mod switch;
 
-use crate::thread::scheduler::{timers, Scheduler};
+pub(crate) use self::switch::switch_stack;
+use crate::scheduler::timers;
 use crate::thread::stacks::{free_kernel_stack, new_kernel_stack, StackBounds};
-use alloc::collections::BTreeMap;
+use crate::{scheduler, CURRENT_THREADS, IDLE_THREADS, SCHEDULER, THREADS};
 use alloc::sync::Arc;
 use alloc::task::Wake;
-use alloc::vec::Vec;
 use core::arch::asm;
 use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::Waker;
-use lazy_static::lazy_static;
 use memlayout::{VirtAddrRange, KERNEL_STACK, KERNEL_STACK_GUARD, USERSPACE};
 use pretty::Bytes;
-use segmentation::with_segment_data;
 use serial::println;
-use spin::Mutex;
 use time::{Duration, TimeSlice};
 use virtmem::map_pages;
 use x86_64::instructions::interrupts::without_interrupts;
@@ -67,31 +63,6 @@ const KERNEL_STACK_PAGES: usize = 128;
 /// guard.
 ///
 const KERNEL_STACK_SIZE: usize = (Size4KiB::SIZE as usize) * KERNEL_STACK_PAGES; // 512 KiB.
-
-type ThreadTable = BTreeMap<ThreadId, Arc<Thread>>;
-
-/// THREADS stores all living threads, referencing them by
-/// their thread id. Note that THREADS does not contain
-/// the idle thread, as there will be a separate instance
-/// for each CPU, but a single shared THREADS structure.
-///
-static THREADS: Mutex<ThreadTable> = Mutex::new(BTreeMap::new());
-
-lazy_static! {
-    /// SCHEDULER is the thread scheduler.
-    ///
-    static ref SCHEDULER: Mutex<Scheduler> = Mutex::new(Scheduler::new());
-}
-
-lazy_static! {
-    /// The currently executing thread for each CPU.
-    ///
-    static ref CURRENT_THREADS: Mutex<Vec<Arc<Thread>>> = Mutex::new(Vec::with_capacity(cpu::max_cores()));
-
-    /// The idle thread for each CPU.
-    ///
-    static ref IDLE_THREADS: Mutex<Vec<Arc<Thread>>> = Mutex::new(Vec::with_capacity(cpu::max_cores()));
-}
 
 /// Sets up the thread data for this CPU.
 ///
@@ -147,26 +118,6 @@ pub fn current_global_thread_id() -> ThreadId {
 ///
 pub fn current_thread_waker() -> Waker {
     current_global_thread_id().waker()
-}
-
-/// Set the currently executing thread.
-///
-fn set_current_thread(thread: Arc<Thread>) {
-    // Save the current thread's user stack pointer into the current thread.
-    current_thread().set_user_stack(cpu::user_stack_pointer());
-
-    // Overwrite the state from the new thread.
-    let interrupt_stack = thread.interrupt_stack();
-    with_segment_data(|data| data.set_interrupt_stack(interrupt_stack));
-    cpu::set_syscall_stack_pointer(thread.syscall_stack());
-    cpu::set_user_stack_pointer(thread.user_stack());
-    CURRENT_THREADS.lock()[cpu::id()] = thread;
-}
-
-/// Returns a copy of the idle thread for this CPU.
-///
-fn idle_thread() -> Arc<Thread> {
-    IDLE_THREADS.lock()[cpu::id()].clone()
 }
 
 /// DEFAULT_RFLAGS contains the reserved bits of the
@@ -713,6 +664,12 @@ impl Thread {
         unsafe { self.state.get().read() }
     }
 
+    /// Returns the thread's stack pointer.
+    ///
+    pub(crate) fn stack_pointer(&self) -> *mut u64 {
+        self.stack_pointer.get()
+    }
+
     /// Updates the thread's scheduling state.
     ///
     /// If this changes the thread's state to `Sleeping`
@@ -785,7 +742,7 @@ impl Thread {
     /// tick, returning `true` if the time slice is now
     /// zero.
     ///
-    fn tick(&self) -> bool {
+    pub(crate) fn tick(&self) -> bool {
         let time_slice = unsafe { &mut *self.time_slice.get() };
         time_slice.tick()
     }
