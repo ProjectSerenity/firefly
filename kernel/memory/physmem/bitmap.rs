@@ -40,14 +40,14 @@ struct BitmapPool {
     // num_frames is the number of 4 kiB frames in
     // this pool.
     //
-    pub num_frames: u64,
+    pub num_frames: usize,
 
     // free_frames is the number of 4 kiB frames in
     // this pool that have not been allocated. There
     // is no guarantee that the free frames will be
     // consecutive.
     //
-    pub free_frames: u64,
+    pub free_frames: usize,
 
     // bitmap is a compact representation of the frames
     // in this pool and whether each is free. For frame
@@ -75,8 +75,8 @@ impl BitmapPool {
         BitmapPool {
             start_address: PhysAddr::new(region.range.start_addr()),
             last_address: PhysAddr::new(region.range.end_addr() - 1),
-            num_frames,
-            free_frames: num_frames,
+            num_frames: num_frames as usize,
+            free_frames: num_frames as usize,
             bitmap: Bitmap::new_set(num_frames as usize),
         }
     }
@@ -144,7 +144,7 @@ impl BitmapPool {
                     self.bitmap.unset(index + i);
                 }
 
-                self.free_frames -= n as u64;
+                self.free_frames -= n;
                 let start = self.frame_at(index);
                 let end = self.frame_at(index + n);
                 Some(PhysFrame::range(start, end))
@@ -237,14 +237,14 @@ pub struct BitmapFrameAllocator {
     // num_frames is the number of 4 kiB frames in
     // this pool.
     //
-    pub num_frames: u64,
+    pub num_frames: usize,
 
     // free_frames is the number of 4 kiB frames in
     // this pool that have not been allocated. There
     // is no guarantee that the free frames will be
     // consecutive.
     //
-    pub free_frames: u64,
+    pub free_frames: usize,
 
     // pools contains the bitmap data for each pool
     // of contiguous frames.
@@ -280,8 +280,8 @@ impl BitmapFrameAllocator {
         });
 
         let pools: Vec<BitmapPool> = usable_regions.map(BitmapPool::new).collect();
-        let mut num_frames = 0u64;
-        let mut free_frames = 0u64;
+        let mut num_frames = 0;
+        let mut free_frames = 0;
         for pool in pools.iter() {
             num_frames += pool.num_frames;
             free_frames += pool.free_frames;
@@ -332,7 +332,7 @@ impl BitmapFrameAllocator {
     pub fn allocate_n_frames(&mut self, n: usize) -> Option<PhysFrameRange> {
         for pool in self.pools.iter_mut() {
             if let Some(range) = pool.allocate_n_frames(n) {
-                self.free_frames -= n as u64;
+                self.free_frames -= n;
                 return Some(range);
             }
         }
@@ -380,9 +380,9 @@ impl BitmapFrameAllocator {
         );
         println!(
             "{} used, {} free, {} total",
-            Bytes::from_u64((self.num_frames - self.free_frames) * 4096),
-            Bytes::from_u64(self.free_frames * 4096),
-            Bytes::from_u64(self.num_frames * 4096)
+            Bytes::from_usize((self.num_frames - self.free_frames) * 4096),
+            Bytes::from_usize(self.free_frames * 4096),
+            Bytes::from_usize(self.num_frames * 4096)
         );
         for pool in self.pools.iter() {
             println!(
@@ -390,10 +390,10 @@ impl BitmapFrameAllocator {
                 pool.start_address,
                 pool.last_address,
                 pool.num_frames,
-                Bytes::from_u64(4096),
-                Bytes::from_u64(4096 * pool.num_frames),
+                Bytes::from_usize(4096),
+                Bytes::from_usize(4096 * pool.num_frames),
                 pool.free_frames,
-                Bytes::from_u64(pool.free_frames * 4096)
+                Bytes::from_usize(pool.free_frames * 4096)
             );
         }
     }
@@ -451,12 +451,12 @@ pub struct BitmapFrameTracker {
     // num_frames is the number of 4 kiB frames in
     // this pool.
     //
-    pub num_frames: u64,
+    pub num_frames: usize,
 
     // allocated_frames is the number of 4 kiB frames in
     // this arena that have been allocated.
     //
-    pub allocated_frames: u64,
+    pub allocated_frames: usize,
 
     // pools contains the bitmap data for each pool
     // of contiguous frames.
@@ -643,8 +643,8 @@ fn bitmap_frame_allocator() {
     ];
 
     let mut alloc = unsafe { BitmapFrameAllocator::new(regions.iter()) };
-    assert_eq!(alloc.num_frames, 6u64);
-    assert_eq!(alloc.free_frames, 6u64);
+    assert_eq!(alloc.num_frames, 6);
+    assert_eq!(alloc.free_frames, 6);
 
     // Helper function to speed up making frames.
     fn frame_for(addr: u64) -> PhysFrame {
@@ -655,34 +655,34 @@ fn bitmap_frame_allocator() {
 
     // Do some allocations.
     assert_eq!(alloc.allocate_frame(), Some(frame_for(0x4000)));
-    assert_eq!(alloc.num_frames, 6u64);
-    assert_eq!(alloc.free_frames, 5u64);
+    assert_eq!(alloc.num_frames, 6);
+    assert_eq!(alloc.free_frames, 5);
     assert_eq!(alloc.allocate_frame(), Some(frame_for(0x5000)));
-    assert_eq!(alloc.num_frames, 6u64);
-    assert_eq!(alloc.free_frames, 4u64);
+    assert_eq!(alloc.num_frames, 6);
+    assert_eq!(alloc.free_frames, 4);
 
     // Do a free.
     unsafe { alloc.deallocate_frame(frame_for(0x4000)) };
-    assert_eq!(alloc.num_frames, 6u64);
-    assert_eq!(alloc.free_frames, 5u64);
+    assert_eq!(alloc.num_frames, 6);
+    assert_eq!(alloc.free_frames, 5);
 
     // Next allocation should return the address we just freed.
     assert_eq!(alloc.allocate_frame(), Some(frame_for(0x4000)));
-    assert_eq!(alloc.num_frames, 6u64);
-    assert_eq!(alloc.free_frames, 4u64);
+    assert_eq!(alloc.num_frames, 6);
+    assert_eq!(alloc.free_frames, 4);
 
     // Check that all remaining allocations are as we expect.
     assert_eq!(alloc.allocate_frame(), Some(frame_for(0x6000)));
     assert_eq!(alloc.allocate_frame(), Some(frame_for(0x7000)));
     assert_eq!(alloc.allocate_frame(), Some(frame_for(0xc000)));
     assert_eq!(alloc.allocate_frame(), Some(frame_for(0xd000)));
-    assert_eq!(alloc.num_frames, 6u64);
-    assert_eq!(alloc.free_frames, 0u64);
+    assert_eq!(alloc.num_frames, 6);
+    assert_eq!(alloc.free_frames, 0);
 
     // Check that we get nothing once we run out of frames.
     assert_eq!(alloc.allocate_frame(), None);
-    assert_eq!(alloc.num_frames, 6u64);
-    assert_eq!(alloc.free_frames, 0u64);
+    assert_eq!(alloc.num_frames, 6);
+    assert_eq!(alloc.free_frames, 0);
 
     // Check that sequential allocations work correctly.
 
@@ -704,8 +704,8 @@ fn bitmap_frame_allocator() {
     );
 
     // Check that we get nothing once we run out of frames.
-    assert_eq!(alloc.num_frames, 6u64);
-    assert_eq!(alloc.free_frames, 0u64);
+    assert_eq!(alloc.num_frames, 6);
+    assert_eq!(alloc.free_frames, 0);
 }
 
 #[test]
@@ -753,8 +753,8 @@ fn arena_frame_allocator() {
     ];
 
     let mut alloc = unsafe { BitmapFrameAllocator::new(regions.iter()) };
-    assert_eq!(alloc.num_frames, 6u64);
-    assert_eq!(alloc.free_frames, 6u64);
+    assert_eq!(alloc.num_frames, 6);
+    assert_eq!(alloc.free_frames, 6);
 
     // Helper function to speed up making frames.
     fn frame_for(addr: u64) -> PhysFrame {
@@ -765,18 +765,18 @@ fn arena_frame_allocator() {
 
     // Do some allocations.
     assert_eq!(alloc.allocate_frame(), Some(frame_for(0x4000)));
-    assert_eq!(alloc.num_frames, 6u64);
-    assert_eq!(alloc.free_frames, 5u64);
+    assert_eq!(alloc.num_frames, 6);
+    assert_eq!(alloc.free_frames, 5);
     assert_eq!(alloc.allocate_frame(), Some(frame_for(0x5000)));
-    assert_eq!(alloc.num_frames, 6u64);
-    assert_eq!(alloc.free_frames, 4u64);
+    assert_eq!(alloc.num_frames, 6);
+    assert_eq!(alloc.free_frames, 4);
 
     // Create a tracker, which should start out
     // empty, even though we've already done some
     // allocations.
     let mut tracker = alloc.new_tracker();
-    assert_eq!(tracker.num_frames, 6u64);
-    assert_eq!(tracker.allocated_frames, 0u64);
+    assert_eq!(tracker.num_frames, 6);
+    assert_eq!(tracker.allocated_frames, 0);
 
     // Create an arena allocator using the tracker
     // we just created and the underlying allocator,
@@ -786,33 +786,33 @@ fn arena_frame_allocator() {
     // Perform some allocations and confirm they
     // are tracked correctly.
     assert_eq!(arena.allocate_frame(), Some(frame_for(0x6000)));
-    assert_eq!(arena.tracker.num_frames, 6u64);
-    assert_eq!(arena.tracker.allocated_frames, 1u64);
+    assert_eq!(arena.tracker.num_frames, 6);
+    assert_eq!(arena.tracker.allocated_frames, 1);
     assert!(arena.tracker.is_allocated(frame_for(0x6000)));
 
     // Do a free.
     unsafe { arena.deallocate_frame(frame_for(0x6000)) };
-    assert_eq!(arena.tracker.num_frames, 6u64);
-    assert_eq!(arena.tracker.allocated_frames, 0u64);
+    assert_eq!(arena.tracker.num_frames, 6);
+    assert_eq!(arena.tracker.allocated_frames, 0);
     assert!(!arena.tracker.is_allocated(frame_for(0x6000)));
 
     // Next allocation should return the address we just freed.
     assert_eq!(arena.allocate_frame(), Some(frame_for(0x6000)));
-    assert_eq!(arena.tracker.num_frames, 6u64);
-    assert_eq!(arena.tracker.allocated_frames, 1u64);
+    assert_eq!(arena.tracker.num_frames, 6);
+    assert_eq!(arena.tracker.allocated_frames, 1);
     assert!(arena.tracker.is_allocated(frame_for(0x6000)));
 
     // Check that all remaining allocations are as we expect.
     assert_eq!(arena.allocate_frame(), Some(frame_for(0x7000)));
     assert_eq!(arena.allocate_frame(), Some(frame_for(0xc000)));
     assert_eq!(arena.allocate_frame(), Some(frame_for(0xd000)));
-    assert_eq!(arena.tracker.num_frames, 6u64);
-    assert_eq!(arena.tracker.allocated_frames, 4u64);
+    assert_eq!(arena.tracker.num_frames, 6);
+    assert_eq!(arena.tracker.allocated_frames, 4);
 
     // Check that we get nothing once we run out of frames.
     assert_eq!(arena.allocate_frame(), None);
-    assert_eq!(arena.tracker.num_frames, 6u64);
-    assert_eq!(arena.tracker.allocated_frames, 4u64);
+    assert_eq!(arena.tracker.num_frames, 6);
+    assert_eq!(arena.tracker.allocated_frames, 4);
 
     // Check that deallocating everything empties the tracker
     // and is reflected in the allocator.
@@ -820,16 +820,16 @@ fn arena_frame_allocator() {
     // Deallocate everything and check the tracker.
     unsafe { arena.deallocate_all_frames() };
     drop(arena);
-    assert_eq!(tracker.num_frames, 6u64);
-    assert_eq!(tracker.allocated_frames, 0u64);
+    assert_eq!(tracker.num_frames, 6);
+    assert_eq!(tracker.allocated_frames, 0);
     assert!(!tracker.is_allocated(frame_for(0x6000)));
     assert!(!tracker.is_allocated(frame_for(0x7000)));
     assert!(!tracker.is_allocated(frame_for(0xc000)));
     assert!(!tracker.is_allocated(frame_for(0xd000)));
 
     // Check that the allocator agrees.
-    assert_eq!(alloc.num_frames, 6u64);
-    assert_eq!(alloc.free_frames, 4u64);
+    assert_eq!(alloc.num_frames, 6);
+    assert_eq!(alloc.free_frames, 4);
     assert_eq!(alloc.allocate_frame(), Some(frame_for(0x6000)));
     assert_eq!(alloc.allocate_frame(), Some(frame_for(0x7000)));
     assert_eq!(alloc.allocate_frame(), Some(frame_for(0xc000)));
