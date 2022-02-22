@@ -46,6 +46,7 @@ mod linked_list;
 mod mapping;
 
 use alloc::vec::Vec;
+use core::slice;
 use bootloader::BootInfo;
 use core::sync::atomic::{AtomicBool, Ordering};
 use mapping::PagePurpose;
@@ -146,6 +147,31 @@ pub fn freeze_kernel_mappings() {
 #[inline(always)]
 pub fn kernel_mappings_frozen() -> bool {
     KERNEL_MAPPINGS_FROZEN.load(Ordering::Relaxed)
+}
+
+/// Creates a new level-4 page table, mirroring the
+/// kernel's.
+///
+/// # Panics
+///
+/// This will panic if the kernel page mappings have
+/// not yet been frozen.
+///
+pub fn new_page_table() -> PhysFrame<Size4KiB> {
+    if !kernel_mappings_frozen() {
+        panic!("new_page_table() called without having frozen the kernel page mappings.");
+    }
+
+    // Allocate the frame, then copy from the
+    // kernel mapping.
+    let frame = physmem::allocate_frame().expect("failed to allocate new page table");
+    let new_virt = phys_to_virt_addr(frame.start_address());
+    let old_virt = KERNEL_PML4_ADDRESS.lock();
+    let new_buf: &mut [u8] = unsafe { slice::from_raw_parts_mut(new_virt.as_mut_ptr(), frame.size() as usize)};
+    let old_buf: &[u8] = unsafe { slice::from_raw_parts(old_virt.as_mut_ptr(), frame.size() as usize)};
+    new_buf.copy_from_slice(old_buf);
+
+    frame
 }
 
 /// Check that the kernel mappings are not yet frozen,
