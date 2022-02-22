@@ -54,7 +54,7 @@ extern crate alloc;
 mod bitmap;
 mod boot_info;
 
-pub use crate::bitmap::BitmapFrameAllocator;
+pub use crate::bitmap::{ArenaFrameAllocator, BitmapFrameAllocator, BitmapFrameTracker};
 pub use crate::boot_info::BootInfoFrameAllocator;
 use bootloader::bootinfo::MemoryMap;
 use lazy_static::lazy_static;

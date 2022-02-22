@@ -173,6 +173,17 @@ impl BitmapPool {
         }
     }
 
+    /// Returns whether the given frame is marked as
+    /// allocated in the pool.
+    ///
+    pub fn is_allocated(&self, frame: PhysFrame<Size4KiB>) -> bool {
+        let start_addr = frame.start_address();
+        match self.index_for(start_addr) {
+            None => panic!("frame at {:p} not tracked", start_addr),
+            Some(i) => !self.bitmap.get(i),
+        }
+    }
+
     /// deallocate_frame marks the given frame as free
     /// for use.
     ///
@@ -193,6 +204,25 @@ impl BitmapPool {
 
                 self.bitmap.set(i);
                 self.free_frames += 1;
+            }
+        }
+    }
+
+    /// deallocate_next_frame returns the next frame
+    /// marked as allocated and marks it free, or it
+    /// returns None.
+    ///
+    pub fn deallocate_next_frame(&mut self) -> Option<PhysFrame> {
+        if self.free_frames == self.num_frames {
+            return None;
+        }
+
+        match self.bitmap.next_unset() {
+            None => None,
+            Some(index) => {
+                self.bitmap.set(index);
+                self.free_frames += 1;
+                Some(self.frame_at(index))
             }
         }
     }
@@ -260,6 +290,35 @@ impl BitmapFrameAllocator {
         BitmapFrameAllocator {
             num_frames,
             free_frames,
+            pools,
+        }
+    }
+
+    /// Creates an allocation tracker for the same set of physical frames
+    /// as managed by the allocator. All of these frames are initially
+    /// marked as free in the returned tracker, so that it will only track
+    /// specific allocations chosen by the caller.
+    ///
+    pub fn new_tracker(&self) -> BitmapFrameTracker {
+        let mut pools = Vec::with_capacity(self.pools.len());
+        for pool in self.pools.iter() {
+            pools.push(BitmapPool {
+                start_address: pool.start_address,
+                last_address: pool.last_address,
+                num_frames: pool.num_frames,
+
+                // All frames start out free.
+                free_frames: pool.num_frames,
+                bitmap: Bitmap::new_set(pool.num_frames as usize),
+            });
+        }
+
+        let num_frames = self.num_frames;
+        let allocated_frames = 0;
+
+        BitmapFrameTracker {
+            num_frames,
+            allocated_frames,
             pools,
         }
     }
@@ -380,6 +439,168 @@ impl FrameDeallocator<Size4KiB> for BitmapFrameAllocator {
     }
 }
 
+/// A helper for tracking the allocations for a single
+/// purpose. This is used alongside a normal allocator,
+/// which performs the actual allocations.
+///
+/// The idea is that in combination with an [`ArenaFrameAllocator`],
+/// it becomes easy to deallocate all memory allocated
+/// by a single arena, such as a single process.
+///
+pub struct BitmapFrameTracker {
+    // num_frames is the number of 4 kiB frames in
+    // this pool.
+    //
+    pub num_frames: u64,
+
+    // allocated_frames is the number of 4 kiB frames in
+    // this arena that have been allocated.
+    //
+    pub allocated_frames: u64,
+
+    // pools contains the bitmap data for each pool
+    // of contiguous frames.
+    //
+    pools: Vec<BitmapPool>,
+}
+
+impl BitmapFrameTracker {
+    /// Returns whether the given frame is tracked in this
+    /// arena.
+    ///
+    pub fn is_allocated(&self, frame: PhysFrame<Size4KiB>) -> bool {
+        for pool in self.pools.iter() {
+            if pool.contains_frame(frame) {
+                return pool.is_allocated(frame);
+            }
+        }
+
+        false
+    }
+
+    /// Mark the given frame as allocated in this arena.
+    ///
+    pub fn allocate_frame(&mut self, frame: PhysFrame<Size4KiB>) {
+        for pool in self.pools.iter_mut() {
+            if pool.contains_frame(frame) {
+                pool.mark_frame_allocated(frame);
+                self.allocated_frames += 1;
+                return;
+            }
+        }
+
+        let start_addr = frame.start_address();
+        panic!("cannot mark frame at {:p}: frame not tracked", start_addr);
+    }
+
+    /// Mark the given frame as not allocated in this
+    /// arena.
+    ///
+    pub fn deallocate_frame(&mut self, frame: PhysFrame<Size4KiB>) {
+        for pool in self.pools.iter_mut() {
+            if pool.contains_frame(frame) {
+                pool.deallocate_frame(frame);
+                self.allocated_frames -= 1;
+                return;
+            }
+        }
+
+        let start_addr = frame.start_address();
+        panic!(
+            "cannot dallocate frame at {:p}: frame not tracked",
+            start_addr
+        );
+    }
+
+    /// Returns the first allocated frame and marks
+    /// it as not allocated. This is designed to be
+    /// used in a loop to deallocate all memory in
+    /// the arena
+    ///
+    unsafe fn deallocate_next_frame(&mut self) -> Option<PhysFrame> {
+        for pool in self.pools.iter_mut() {
+            if let Some(frame) = pool.deallocate_next_frame() {
+                self.allocated_frames -= 1;
+                return Some(frame);
+            }
+        }
+
+        None
+    }
+}
+
+/// A helper for tracking allocations for a single
+/// purpose. This combines a normal allocator with
+/// an allocation tracker to perform allocations,
+/// keeping a record of those allocations. This can
+/// then be used to deallocate all memory used in
+/// the arena.
+///
+pub struct ArenaFrameAllocator<'a, 't, A: FrameAllocator<Size4KiB> + FrameDeallocator<Size4KiB>> {
+    tracker: &'t mut BitmapFrameTracker,
+    allocator: &'a mut A,
+}
+
+impl<'a, 't, A: FrameAllocator<Size4KiB> + FrameDeallocator<Size4KiB>>
+    ArenaFrameAllocator<'a, 't, A>
+{
+    /// Returns a new frame allocator, which will
+    /// defer to allocator for `allocations`, then
+    /// record them in `tracker`.
+    ///
+    pub fn new(allocator: &'a mut A, tracker: &'t mut BitmapFrameTracker) -> Self {
+        ArenaFrameAllocator { tracker, allocator }
+    }
+
+    /// Deallocate all memory allocated for this
+    /// arena.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `frame` is unused.
+    ///
+    pub unsafe fn deallocate_all_frames(&mut self) {
+        loop {
+            if let Some(frame) = self.tracker.deallocate_next_frame() {
+                self.allocator.deallocate_frame(frame);
+            } else {
+                return;
+            }
+        }
+    }
+}
+
+unsafe impl<'a, 't, A: FrameAllocator<Size4KiB> + FrameDeallocator<Size4KiB>>
+    FrameAllocator<Size4KiB> for ArenaFrameAllocator<'a, 't, A>
+{
+    /// Returns the next available physical frame, or `None`.
+    ///
+    fn allocate_frame(&mut self) -> Option<PhysFrame> {
+        if let Some(frame) = self.allocator.allocate_frame() {
+            self.tracker.allocate_frame(frame);
+            Some(frame)
+        } else {
+            None
+        }
+    }
+}
+
+impl<'a, 't, A: FrameAllocator<Size4KiB> + FrameDeallocator<Size4KiB>> FrameDeallocator<Size4KiB>
+    for ArenaFrameAllocator<'a, 't, A>
+{
+    /// Marks the given physical memory frame as unused and returns it to the
+    /// list of free frames for later use.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `frame` is unused.
+    ///
+    unsafe fn deallocate_frame(&mut self, frame: PhysFrame<Size4KiB>) {
+        self.tracker.deallocate_frame(frame);
+        self.allocator.deallocate_frame(frame);
+    }
+}
+
 #[test]
 fn bitmap_frame_allocator() {
     use bootloader::bootinfo::FrameRange;
@@ -485,4 +706,132 @@ fn bitmap_frame_allocator() {
     // Check that we get nothing once we run out of frames.
     assert_eq!(alloc.num_frames, 6u64);
     assert_eq!(alloc.free_frames, 0u64);
+}
+
+#[test]
+fn arena_frame_allocator() {
+    // Construct an arena, confirm that it's empty to
+    // start with, then perform some allocations and
+    // make sure they match up with the allcoator.
+    use bootloader::bootinfo::FrameRange;
+    let regions = [
+        MemoryRegion {
+            range: FrameRange {
+                start_frame_number: 0u64,
+                end_frame_number: 1u64,
+            },
+            region_type: MemoryRegionType::FrameZero,
+        },
+        MemoryRegion {
+            range: FrameRange {
+                start_frame_number: 1u64,
+                end_frame_number: 4u64,
+            },
+            region_type: MemoryRegionType::Reserved,
+        },
+        MemoryRegion {
+            range: FrameRange {
+                start_frame_number: 4u64,
+                end_frame_number: 8u64,
+            },
+            region_type: MemoryRegionType::Usable,
+        },
+        MemoryRegion {
+            range: FrameRange {
+                start_frame_number: 8u64,
+                end_frame_number: 12u64,
+            },
+            region_type: MemoryRegionType::Reserved,
+        },
+        MemoryRegion {
+            range: FrameRange {
+                start_frame_number: 12u64,
+                end_frame_number: 14u64,
+            },
+            region_type: MemoryRegionType::Usable,
+        },
+    ];
+
+    let mut alloc = unsafe { BitmapFrameAllocator::new(regions.iter()) };
+    assert_eq!(alloc.num_frames, 6u64);
+    assert_eq!(alloc.free_frames, 6u64);
+
+    // Helper function to speed up making frames.
+    fn frame_for(addr: u64) -> PhysFrame {
+        let start_addr = PhysAddr::new(addr);
+        let frame = PhysFrame::from_start_address(start_addr).unwrap();
+        frame
+    }
+
+    // Do some allocations.
+    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x4000)));
+    assert_eq!(alloc.num_frames, 6u64);
+    assert_eq!(alloc.free_frames, 5u64);
+    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x5000)));
+    assert_eq!(alloc.num_frames, 6u64);
+    assert_eq!(alloc.free_frames, 4u64);
+
+    // Create a tracker, which should start out
+    // empty, even though we've already done some
+    // allocations.
+    let mut tracker = alloc.new_tracker();
+    assert_eq!(tracker.num_frames, 6u64);
+    assert_eq!(tracker.allocated_frames, 0u64);
+
+    // Create an arena allocator using the tracker
+    // we just created and the underlying allocator,
+    // allowing us to track the allocations.
+    let mut arena = ArenaFrameAllocator::new(&mut alloc, &mut tracker);
+
+    // Perform some allocations and confirm they
+    // are tracked correctly.
+    assert_eq!(arena.allocate_frame(), Some(frame_for(0x6000)));
+    assert_eq!(arena.tracker.num_frames, 6u64);
+    assert_eq!(arena.tracker.allocated_frames, 1u64);
+    assert!(arena.tracker.is_allocated(frame_for(0x6000)));
+
+    // Do a free.
+    unsafe { arena.deallocate_frame(frame_for(0x6000)) };
+    assert_eq!(arena.tracker.num_frames, 6u64);
+    assert_eq!(arena.tracker.allocated_frames, 0u64);
+    assert!(!arena.tracker.is_allocated(frame_for(0x6000)));
+
+    // Next allocation should return the address we just freed.
+    assert_eq!(arena.allocate_frame(), Some(frame_for(0x6000)));
+    assert_eq!(arena.tracker.num_frames, 6u64);
+    assert_eq!(arena.tracker.allocated_frames, 1u64);
+    assert!(arena.tracker.is_allocated(frame_for(0x6000)));
+
+    // Check that all remaining allocations are as we expect.
+    assert_eq!(arena.allocate_frame(), Some(frame_for(0x7000)));
+    assert_eq!(arena.allocate_frame(), Some(frame_for(0xc000)));
+    assert_eq!(arena.allocate_frame(), Some(frame_for(0xd000)));
+    assert_eq!(arena.tracker.num_frames, 6u64);
+    assert_eq!(arena.tracker.allocated_frames, 4u64);
+
+    // Check that we get nothing once we run out of frames.
+    assert_eq!(arena.allocate_frame(), None);
+    assert_eq!(arena.tracker.num_frames, 6u64);
+    assert_eq!(arena.tracker.allocated_frames, 4u64);
+
+    // Check that deallocating everything empties the tracker
+    // and is reflected in the allocator.
+
+    // Deallocate everything and check the tracker.
+    unsafe { arena.deallocate_all_frames() };
+    drop(arena);
+    assert_eq!(tracker.num_frames, 6u64);
+    assert_eq!(tracker.allocated_frames, 0u64);
+    assert!(!tracker.is_allocated(frame_for(0x6000)));
+    assert!(!tracker.is_allocated(frame_for(0x7000)));
+    assert!(!tracker.is_allocated(frame_for(0xc000)));
+    assert!(!tracker.is_allocated(frame_for(0xd000)));
+
+    // Check that the allocator agrees.
+    assert_eq!(alloc.num_frames, 6u64);
+    assert_eq!(alloc.free_frames, 4u64);
+    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x6000)));
+    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x7000)));
+    assert_eq!(alloc.allocate_frame(), Some(frame_for(0xc000)));
+    assert_eq!(alloc.allocate_frame(), Some(frame_for(0xd000)));
 }
