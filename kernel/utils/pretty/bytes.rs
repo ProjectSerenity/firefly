@@ -16,12 +16,18 @@ use core::fmt;
 
 /// Contains a number of bytes.
 ///
-pub struct Bytes(u64);
+pub struct Bytes(usize);
 
 impl Bytes {
     /// Wraps a number of bytes.
     ///
     pub fn from_u64(n: u64) -> Self {
+        Bytes(n as usize)
+    }
+
+    /// Wraps a number of bytes.
+    ///
+    pub fn from_usize(n: usize) -> Self {
         Bytes(n)
     }
 }
