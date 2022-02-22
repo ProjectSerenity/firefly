@@ -212,7 +212,9 @@ pub fn with_page_tables<F, R>(f: F) -> R
 where
     F: FnOnce(&mut OffsetPageTable) -> R,
 {
-    let virt = KERNEL_PML4_ADDRESS.lock();
+    let (level_4_table_frame, _) = Cr3::read();
+    let phys = level_4_table_frame.start_address();
+    let virt = phys_to_virt_addr(phys);
     let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
 
     // This bit is unsafe if we're not using
