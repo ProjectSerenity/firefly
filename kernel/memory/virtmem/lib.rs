@@ -50,7 +50,7 @@ use bootloader::BootInfo;
 use core::slice;
 use core::sync::atomic::{AtomicBool, Ordering};
 use mapping::PagePurpose;
-use memlayout::{phys_to_virt_addr, KERNEL_HEAP, PHYSICAL_MEMORY_OFFSET, USERSPACE};
+use memlayout::{phys_to_virt_addr, KERNELSPACE, KERNEL_HEAP, PHYSICAL_MEMORY_OFFSET};
 use serial::println;
 use spin::{Mutex, MutexGuard};
 use x86_64::instructions::interrupts::without_interrupts;
@@ -188,7 +188,7 @@ pub fn new_page_table() -> PhysFrame<Size4KiB> {
 ///
 fn check_mapping(mapper: &mut OffsetPageTable, page: Page) {
     let start_addr = page.start_address();
-    if USERSPACE.contains_addr(start_addr) {
+    if !KERNELSPACE.contains_addr(start_addr) {
         return;
     }
 
