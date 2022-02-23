@@ -40,11 +40,13 @@
 
 extern crate alloc;
 
+mod bitmap;
 mod bump;
 mod fixed_size_block;
 mod linked_list;
 mod mapping;
 
+use self::bitmap::BitmapLevel4KernelMappings;
 use alloc::vec::Vec;
 use bootloader::BootInfo;
 use core::slice;
@@ -119,6 +121,24 @@ pub unsafe fn init(boot_info: &'static BootInfo) {
 ///
 static KERNEL_MAPPINGS_FROZEN: AtomicBool = AtomicBool::new(false);
 
+/// Stores the set of level 4 page mappings for
+/// kernelspace for once the kernel mappings have
+/// been frozen.
+///
+/// When the page mappings are frozen, we store a
+/// bitmap of which level 4 mappings in kernelspace
+/// are present. Any future mappings that would
+/// affect the level 4 mappings for kernelspace
+/// must already be mapped. See [`bitmap`] for more
+/// details.
+///
+/// This is a mutable static, so we have to use
+/// unsafe to access it, but it's safe in practice,
+/// as we only modify it once, when the page mappings
+/// are frozen.
+///
+static mut KERNEL_MAPPINGS: BitmapLevel4KernelMappings = BitmapLevel4KernelMappings::new();
+
 /// Freeze the kernel page mappings at the top-most
 /// level.
 ///
@@ -137,6 +157,22 @@ pub fn freeze_kernel_mappings() {
     if prev {
         panic!("virtmem::freeze_kernel_mappings() called more than once");
     }
+
+    // Set the page mappings.
+    with_page_tables(|mapper| {
+        let pml4 = mapper.level_4_table();
+
+        // Skip the lower half (userspace) mappings.
+        for (idx, entry) in pml4.iter().skip(256).enumerate() {
+            if entry.flags().contains(PageTableFlags::PRESENT) {
+                let half_idx = 256 + idx as u64; // Bring back to higher half.
+                let pml4_idx = half_idx << 39; // Bring back to an address.
+                let start_addr = VirtAddr::new(pml4_idx);
+                let page = Page::from_start_address(start_addr).unwrap();
+                unsafe { KERNEL_MAPPINGS.map(&page) };
+            }
+        }
+    });
 }
 
 /// Returns whether the kernel page mappings have
@@ -186,15 +222,13 @@ pub fn new_page_table() -> PhysFrame<Size4KiB> {
 /// The caller should do so and skip calling `check_mapping`
 /// if the page tables are not frozen.
 ///
-fn check_mapping(mapper: &mut OffsetPageTable, page: Page) {
+fn check_mapping(page: Page) {
     let start_addr = page.start_address();
     if !KERNELSPACE.contains_addr(start_addr) {
         return;
     }
 
-    let pml4_index = 511 & ((start_addr.as_u64() as usize) >> 39);
-    let pml4_entry = &mapper.level_4_table()[pml4_index];
-    if !pml4_entry.flags().contains(PageTableFlags::PRESENT) {
+    if unsafe { !KERNEL_MAPPINGS.mapped(&page) } {
         panic!(
             "cannot map page {:p}: kernel mappings frozen and page entry unmapped",
             start_addr
@@ -242,7 +276,7 @@ where
     with_page_tables(|mapper| {
         for page in page_range {
             if frozen {
-                check_mapping(mapper, page);
+                check_mapping(page);
             }
 
             let frame = allocator
@@ -275,7 +309,7 @@ where
     with_page_tables(|mapper| {
         for page in page_range {
             if frozen {
-                check_mapping(mapper, page);
+                check_mapping(page);
             }
 
             let frame = frame_range

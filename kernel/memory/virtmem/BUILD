@@ -9,6 +9,7 @@ load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "r
 rust_library(
     name = "virtmem",
     srcs = [
+        "bitmap.rs",
         "bump.rs",
         "fixed_size_block.rs",
         "lib.rs",
