@@ -31,6 +31,7 @@
 //! | ---------------------- | ----------------------: | ----------------------: | --------------------: | --------: |
 //! | [`NULL_PAGE`]          |                   `0x0` |             `0x1f_ffff` |            not mapped |     2 MiB |
 //! | [`USERSPACE`]          |             `0x20_0000` |      `0x7fff_ffff_ffff` |        rest of memory | < 128 TiB |
+//! | [`KERNELSPACE`]        | `0xffff_8000_0000_0000` | `0xffff_ffff_ffff_ffff` | higher half of memory |   128 TiB |
 //! | [`KERNEL_BINARY`]      | `0xffff_8000_0000_0000` | `0xffff_8000_3fff_ffff` | up to 512x 2 MiB page |     1 GiB |
 //! | [`BOOT_INFO`]          | `0xffff_8000_4000_0000` | `0xffff_8000_4000_0fff` |         1x 4 KiB page |     4 KiB |
 //! | [`KERNEL_HEAP`]        | `0xffff_8000_4444_0000` | `0xffff_8000_444b_ffff` |       128x 4 KiB page |   512 KiB |
@@ -59,6 +60,12 @@ const NULL_PAGE_END: VirtAddr = const_virt_addr(0x1f_ffff_u64);
 pub const USERSPACE: VirtAddrRange = VirtAddrRange::new(USERSPACE_START, USERSPACE_END);
 const USERSPACE_START: VirtAddr = const_virt_addr(0x20_0000_u64);
 const USERSPACE_END: VirtAddr = const_virt_addr(0x7fff_ffff_ffff_u64);
+
+/// The higher half of virtual memory, which is used by the kernel.
+///
+pub const KERNELSPACE: VirtAddrRange = VirtAddrRange::new(KERNELSPACE_START, KERNELSPACE_END);
+const KERNELSPACE_START: VirtAddr = const_virt_addr(0xffff_8000_0000_0000_u64);
+const KERNELSPACE_END: VirtAddr = const_virt_addr(0xffff_ffff_ffff_ffff_u64);
 
 /// The kernel binary is mapped within this range.
 ///
@@ -220,4 +227,20 @@ fn check_memory_layout() {
     assert!(
         VirtAddr::try_new(next_addr).is_err() || VirtAddr::new(next_addr).as_u64() != next_addr
     );
+
+    // Likewise, we check that kernelspace begins
+    // with the first valid higher half address,
+    // by checking that the address before it is
+    // either invalid or is coerced to a different,
+    // valid, value.
+    let prev_addr = KERNELSPACE.start().as_u64() - 1;
+    assert!(
+        VirtAddr::try_new(prev_addr).is_err() || VirtAddr::new(prev_addr).as_u64() != prev_addr
+    );
+
+    // We also check That it ends with the last
+    // value by checking that incrementing the
+    // last address overflows.
+    let next_addr = KERNELSPACE.end().as_u64().overflowing_add(1);
+    assert!(next_addr.0 == 0u64 && next_addr.1);
 }
