@@ -46,8 +46,8 @@ mod linked_list;
 mod mapping;
 
 use alloc::vec::Vec;
-use core::slice;
 use bootloader::BootInfo;
+use core::slice;
 use core::sync::atomic::{AtomicBool, Ordering};
 use mapping::PagePurpose;
 use memlayout::{phys_to_virt_addr, KERNEL_HEAP, PHYSICAL_MEMORY_OFFSET, USERSPACE};
@@ -167,8 +167,10 @@ pub fn new_page_table() -> PhysFrame<Size4KiB> {
     let frame = physmem::allocate_frame().expect("failed to allocate new page table");
     let new_virt = phys_to_virt_addr(frame.start_address());
     let old_virt = KERNEL_PML4_ADDRESS.lock();
-    let new_buf: &mut [u8] = unsafe { slice::from_raw_parts_mut(new_virt.as_mut_ptr(), frame.size() as usize)};
-    let old_buf: &[u8] = unsafe { slice::from_raw_parts(old_virt.as_mut_ptr(), frame.size() as usize)};
+    let new_buf: &mut [u8] =
+        unsafe { slice::from_raw_parts_mut(new_virt.as_mut_ptr(), frame.size() as usize) };
+    let old_buf: &[u8] =
+        unsafe { slice::from_raw_parts(old_virt.as_mut_ptr(), frame.size() as usize) };
     new_buf.copy_from_slice(old_buf);
 
     frame
