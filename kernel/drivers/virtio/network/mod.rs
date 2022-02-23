@@ -61,7 +61,7 @@ use core::mem;
 use interrupts::{register_irq, Irq};
 use memlayout::phys_to_virt_addr;
 use multitasking::scheduler;
-use multitasking::thread::{current_global_thread_id, Thread, ThreadId};
+use multitasking::thread::{current_kernel_thread_id, Thread, ThreadId};
 use network::{add_interface, InterfaceHandle};
 use physmem::{allocate_frame, deallocate_frame};
 use serial::println;
@@ -158,8 +158,8 @@ static INTERFACE_HANDLES: Mutex<BTreeMap<ThreadId, InterfaceHandle>> = Mutex::ne
 /// continues to process network events.
 ///
 fn network_entry_point() -> ! {
-    let global_thread_id = current_global_thread_id();
-    let iface_handle = &INTERFACE_HANDLES.lock()[&global_thread_id];
+    let kernel_thread_id = current_kernel_thread_id();
+    let iface_handle = &INTERFACE_HANDLES.lock()[&kernel_thread_id];
     loop {
         let wait = without_interrupts(|| iface_handle.poll());
         scheduler::sleep(wait);

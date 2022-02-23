@@ -21,7 +21,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use interrupts::{register_irq, Irq};
 use memlayout::{PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
-use multitasking::thread::{current_global_thread_id, prevent_next_sleep, suspend, ThreadId};
+use multitasking::thread::{current_kernel_thread_id, prevent_next_sleep, suspend, ThreadId};
 use serial::println;
 use spin::Mutex;
 use storage::block::{add_device, Device, Error, Operations};
@@ -218,7 +218,7 @@ impl Driver {
 
         // Ensure the interrupt handler will resume
         // us when the request is returned.
-        let thread_id = current_global_thread_id();
+        let thread_id = current_kernel_thread_id();
         without_interrupts(|| {
             prevent_next_sleep();
             REQUESTS.lock().insert(first_addr, thread_id);
@@ -329,7 +329,7 @@ impl Device for Driver {
 
         // Ensure the interrupt handler will resume
         // us when the request is returned.
-        let thread_id = current_global_thread_id();
+        let thread_id = current_kernel_thread_id();
         without_interrupts(|| {
             prevent_next_sleep();
             REQUESTS.lock().insert(first_addr, thread_id);

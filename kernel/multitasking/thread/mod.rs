@@ -105,18 +105,18 @@ pub fn current_thread() -> Arc<Thread> {
     CURRENT_THREADS.lock()[cpu::id()].clone()
 }
 
-/// Returns the global thread id of the currently
+/// Returns the kernel thread id of the currently
 /// executing thread.
 ///
-pub fn current_global_thread_id() -> ThreadId {
-    CURRENT_THREADS.lock()[cpu::id()].global_thread_id()
+pub fn current_kernel_thread_id() -> ThreadId {
+    CURRENT_THREADS.lock()[cpu::id()].kernel_thread_id()
 }
 
 /// Returns a Waker that will resume the current
 /// thread.
 ///
 pub fn current_thread_waker() -> Waker {
-    current_global_thread_id().waker()
+    current_kernel_thread_id().waker()
 }
 
 /// DEFAULT_RFLAGS contains the reserved bits of the
@@ -174,7 +174,7 @@ pub fn prevent_next_sleep() {
 ///
 pub fn suspend() {
     let current = current_thread();
-    if current.global_id == ThreadId::IDLE {
+    if current.kernel_id == ThreadId::IDLE {
         panic!("idle thread tried to suspend");
     }
 
@@ -207,7 +207,7 @@ pub fn suspend() {
 ///
 pub fn exit() -> ! {
     let current = current_thread();
-    if current.global_id == ThreadId::IDLE {
+    if current.kernel_id == ThreadId::IDLE {
         panic!("idle thread tried to exit");
     }
 
@@ -227,7 +227,7 @@ pub fn exit() -> ! {
     // to exit.
     without_interrupts(|| {
         current.set_state(ThreadState::Exiting);
-        THREADS.lock().remove(&current.global_id);
+        THREADS.lock().remove(&current.kernel_id);
 
         // We need to drop our handle on the current
         // thread now, as we'll never return from
@@ -360,7 +360,7 @@ pub struct Thread {
     // is the idle thread, where one instance exists
     // on each CPU. Every idle thread has the thread
     // id 0.
-    global_id: ThreadId,
+    kernel_id: ThreadId,
 
     // The thread's current state.
     state: UnsafeCell<ThreadState>,
@@ -442,7 +442,7 @@ impl Thread {
     fn new_idle_thread(stack_space: &VirtAddrRange) -> Arc<Thread> {
         // The idle thread always has thread id 0, which
         // is otherwise invalid.
-        let global_id = ThreadId::IDLE;
+        let kernel_id = ThreadId::IDLE;
 
         // The initial stack pointer is 0, as the idle
         // thread inherits the kernel's initial stack.
@@ -463,7 +463,7 @@ impl Thread {
         // last resort.
 
         Arc::new(Thread {
-            global_id,
+            kernel_id,
             state: UnsafeCell::new(ThreadState::Runnable),
             time_slice: UnsafeCell::new(TimeSlice::ZERO),
             interrupt_stack: None,
@@ -518,9 +518,9 @@ impl Thread {
             rsp
         };
 
-        let global_id = ThreadId::new();
+        let kernel_id = ThreadId::new();
         let thread = Arc::new(Thread {
-            global_id,
+            kernel_id,
             state: UnsafeCell::new(ThreadState::BeingCreated),
             time_slice: UnsafeCell::new(DEFAULT_TIME_SLICE),
             interrupt_stack: None,
@@ -531,10 +531,10 @@ impl Thread {
         });
 
         without_interrupts(|| {
-            THREADS.lock().insert(global_id, thread);
+            THREADS.lock().insert(kernel_id, thread);
         });
 
-        global_id
+        kernel_id
     }
 
     /// Creates a new kernel thread, allocating a stack,
@@ -544,10 +544,10 @@ impl Thread {
     /// interrupts and calling `entry_point`.
     ///
     pub fn start_kernel_thread(entry_point: fn() -> !) -> ThreadId {
-        let global_id = Thread::create_kernel_thread(entry_point);
-        global_id.resume();
+        let kernel_id = Thread::create_kernel_thread(entry_point);
+        kernel_id.resume();
 
-        global_id
+        kernel_id
     }
 
     /// Creates a new user thread, allocating a stack, and
@@ -616,9 +616,9 @@ impl Thread {
             rsp
         };
 
-        let global_id = ThreadId::new();
+        let kernel_id = ThreadId::new();
         let thread = Arc::new(Thread {
-            global_id,
+            kernel_id,
             state: UnsafeCell::new(ThreadState::BeingCreated),
             time_slice: UnsafeCell::new(DEFAULT_TIME_SLICE),
             interrupt_stack: Some(int_stack),
@@ -629,10 +629,10 @@ impl Thread {
         });
 
         without_interrupts(|| {
-            THREADS.lock().insert(global_id, thread);
+            THREADS.lock().insert(kernel_id, thread);
         });
 
-        global_id
+        kernel_id
     }
 
     /// Creates a new user thread, allocating a stack,
@@ -642,10 +642,10 @@ impl Thread {
     /// interrupts and calling `entry_point`.
     ///
     pub fn start_user_thread(entry_point: VirtAddr) -> ThreadId {
-        let global_id = Thread::create_user_thread(entry_point);
-        global_id.resume();
+        let kernel_id = Thread::create_user_thread(entry_point);
+        kernel_id.resume();
 
-        global_id
+        kernel_id
     }
 
     /// Returns the thread's unique ThreadId.
@@ -653,8 +653,8 @@ impl Thread {
     /// This ThreadId represents the unique identifier
     /// for this thread throughout the kernel.
     ///
-    pub fn global_thread_id(&self) -> ThreadId {
-        self.global_id
+    pub fn kernel_thread_id(&self) -> ThreadId {
+        self.kernel_id
     }
 
     /// Returns the thread's current scheduling state.
@@ -686,8 +686,8 @@ impl Thread {
             ThreadState::Runnable => {}
             ThreadState::Drowsy => {}
             ThreadState::Insomniac => {}
-            ThreadState::Sleeping => scheduler.remove(self.global_id),
-            ThreadState::Exiting => scheduler.remove(self.global_id),
+            ThreadState::Sleeping => scheduler.remove(self.kernel_id),
+            ThreadState::Exiting => scheduler.remove(self.kernel_id),
         }
     }
 
@@ -772,7 +772,7 @@ impl Thread {
         let stack_bounds = match self.stack_bounds {
             Some(bounds) => bounds,
             None => {
-                println!("thread {:?} has no stack", self.global_id.0);
+                println!("thread {:?} has no stack", self.kernel_id.0);
                 return;
             }
         };
@@ -781,7 +781,7 @@ impl Thread {
         if !stack_bounds.contains(stack_pointer) {
             panic!(
                 "thread {:?}: current stack pointer {:p} is not in stack bounds {:p}-{:p}",
-                self.global_id.0,
+                self.kernel_id.0,
                 stack_pointer,
                 stack_bounds.start(),
                 stack_bounds.end()
@@ -796,7 +796,7 @@ impl Thread {
         let percent = (100 * used_stack) / total_stack;
         println!(
             "thread {:?}: {} ({}%) of stack used, {} / {} remaining.",
-            self.global_id.0,
+            self.kernel_id.0,
             Bytes::from_u64(used_stack),
             percent,
             Bytes::from_u64(free_stack),
@@ -807,7 +807,7 @@ impl Thread {
 
 impl Drop for Thread {
     fn drop(&mut self) {
-        if self.global_id == ThreadId::IDLE {
+        if self.kernel_id == ThreadId::IDLE {
             println!("WARNING: idle thread being dropped");
         }
 

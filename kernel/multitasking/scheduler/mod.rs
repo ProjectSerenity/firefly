@@ -125,8 +125,8 @@ pub fn preempt() {
         return;
     }
 
-    let global_thread_id = current_thread.global_thread_id();
-    if global_thread_id != ThreadId::IDLE {
+    let kernel_thread_id = current_thread.kernel_thread_id();
+    if kernel_thread_id != ThreadId::IDLE {
         current_thread.reset_time_slice();
     }
 
@@ -151,7 +151,7 @@ pub fn sleep(duration: Duration) {
     }
 
     // Create a timer to wake us up.
-    timers::add(current.global_thread_id(), stop);
+    timers::add(current.kernel_thread_id(), stop);
 
     // Put ourselves to sleep.
     current.set_state(ThreadState::Sleeping);
@@ -199,7 +199,7 @@ pub fn switch() {
         // queue, unless it's the idle thread, which
         // always has thread id 0 (which is otherwise
         // invalid).
-        let current_thread_id = current.global_thread_id();
+        let current_thread_id = current.kernel_thread_id();
         if current_thread_id != ThreadId::IDLE && current.thread_state() == ThreadState::Runnable {
             scheduler.add(current_thread_id);
         }
