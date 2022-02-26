@@ -73,6 +73,13 @@ impl VirtAddrRange {
             && self.contains_addr(other_start)
             && self.contains_addr(other_end)
     }
+
+    /// Returns whether the given address range has any
+    /// overlap with this range.
+    ///
+    pub const fn overlaps_with(&self, other: &VirtAddrRange) -> bool {
+        self.contains_addr(other.first) || self.contains_addr(other.last) || other.contains(self)
+    }
 }
 
 #[test]
@@ -102,4 +109,13 @@ fn test_virt_addr_range() {
     assert!(!range.contains(&overlap_start));
     assert!(!range.contains(&overlap_end));
     assert!(!range.contains(&superset));
+
+    // Check whether overlap works properly.
+    assert!(range.overlaps_with(&range));
+    assert!(range.overlaps_with(&subset_start));
+    assert!(range.overlaps_with(&subset_middle));
+    assert!(range.overlaps_with(&subset_end));
+    assert!(range.overlaps_with(&overlap_start));
+    assert!(range.overlaps_with(&overlap_end));
+    assert!(range.overlaps_with(&superset));
 }
