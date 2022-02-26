@@ -680,15 +680,14 @@ impl Thread {
     /// `set_state` panics if changed to `BeingCreated`.
     ///
     pub fn set_state(&self, new_state: ThreadState) {
-        let scheduler = lock!(SCHEDULER);
         unsafe { self.state.get().write(new_state) };
         match new_state {
             ThreadState::BeingCreated => panic!("thread state set to BeingCreated"),
             ThreadState::Runnable => {}
             ThreadState::Drowsy => {}
             ThreadState::Insomniac => {}
-            ThreadState::Sleeping => scheduler.remove(self.kernel_id),
-            ThreadState::Exiting => scheduler.remove(self.kernel_id),
+            ThreadState::Sleeping => lock!(SCHEDULER).remove(self.kernel_id),
+            ThreadState::Exiting => lock!(SCHEDULER).remove(self.kernel_id),
         }
     }
 
