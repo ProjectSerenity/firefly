@@ -31,7 +31,7 @@ mod switch;
 pub mod thread;
 
 use crate::scheduler::Scheduler;
-use crate::thread::{Thread, ThreadId};
+use crate::thread::{KernelThreadId, Thread};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -46,7 +46,7 @@ lazy_static! {
     static ref SCHEDULER: Mutex<Scheduler> = Mutex::new(Scheduler::new());
 }
 
-type ThreadTable = BTreeMap<ThreadId, Arc<Thread>>;
+type ThreadTable = BTreeMap<KernelThreadId, Arc<Thread>>;
 
 /// THREADS stores all living threads, referencing them by
 /// their thread id. Note that THREADS does not contain

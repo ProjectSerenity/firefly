@@ -18,7 +18,7 @@
 //!
 //! A running thread may terminate its execution by calling [`exit`], or pause
 //! its execution by calling [`scheduler::sleep`]. A sleeping
-//! thread can be resumed early by calling [`crate::scheduler::resume`] (or [`ThreadId.resume`](ThreadId::resume),
+//! thread can be resumed early by calling [`crate::scheduler::resume`] (or [`KernelThreadId.resume`](KernelThreadId::resume),
 //! but this will not cancel the timer that would have awoken it.
 //!
 //! Calling [`debug`] (or [`Thread::debug`]) will print debug info about the
@@ -109,7 +109,7 @@ pub fn current_thread() -> Arc<Thread> {
 /// Returns the kernel thread id of the currently
 /// executing thread.
 ///
-pub fn current_kernel_thread_id() -> ThreadId {
+pub fn current_kernel_thread_id() -> KernelThreadId {
     lock!(CURRENT_THREADS)[cpu::id()].kernel_thread_id()
 }
 
@@ -165,7 +165,7 @@ pub fn prevent_next_sleep() {
 /// Puts the current thread to sleep indefinitely
 /// and switches to the next runnable thread. The
 /// thread can be awoken later by calling [`scheduler::resume`]
-/// or by calling its [`ThreadId.resume`](ThreadId::resume).
+/// or by calling its [`ThreadId.resume`](KernelThreadId::resume).
 ///
 /// # Panics
 ///
@@ -175,7 +175,7 @@ pub fn prevent_next_sleep() {
 ///
 pub fn suspend() {
     let current = current_thread();
-    if current.kernel_id == ThreadId::IDLE {
+    if current.kernel_id == KernelThreadId::IDLE {
         panic!("idle thread tried to suspend");
     }
 
@@ -208,7 +208,7 @@ pub fn suspend() {
 ///
 pub fn exit() -> ! {
     let current = current_thread();
-    if current.kernel_id == ThreadId::IDLE {
+    if current.kernel_id == KernelThreadId::IDLE {
         panic!("idle thread tried to exit");
     }
 
@@ -262,21 +262,22 @@ pub fn debug() {
     current.debug();
 }
 
-/// Uniquely identifies a thread.
+/// Uniquely identifies a thread throughout
+/// the kernel.
 ///
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ThreadId(u64);
+pub struct KernelThreadId(u64);
 
-impl ThreadId {
+impl KernelThreadId {
     /// IDLE is the unique thread id for the idle thread.
     ///
-    pub const IDLE: Self = ThreadId(0);
+    pub const IDLE: Self = KernelThreadId(0);
 
-    /// Allocates and returns the next available ThreadId.
+    /// Allocates and returns the next available KernelThreadId.
     ///
     fn new() -> Self {
         static NEXT_THREAD_ID: AtomicU64 = AtomicU64::new(1);
-        ThreadId(NEXT_THREAD_ID.fetch_add(1, Ordering::Relaxed))
+        KernelThreadId(NEXT_THREAD_ID.fetch_add(1, Ordering::Relaxed))
     }
 
     /// Returns a numerical representation for the thread
@@ -309,14 +310,14 @@ impl ThreadId {
     }
 }
 
-impl Wake for ThreadId {
-    /// Wake the thread, using [`resume`](ThreadId::resume).
+impl Wake for KernelThreadId {
+    /// Wake the thread, using [`resume`](KernelThreadId::resume).
     ///
     fn wake(self: Arc<Self>) {
         self.resume();
     }
 
-    /// Wake the thread, using [`resume`](ThreadId::resume).
+    /// Wake the thread, using [`resume`](KernelThreadId::resume).
     ///
     fn wake_by_ref(self: &Arc<Self>) {
         self.resume();
@@ -361,7 +362,7 @@ pub struct Thread {
     // is the idle thread, where one instance exists
     // on each CPU. Every idle thread has the thread
     // id 0.
-    kernel_id: ThreadId,
+    kernel_id: KernelThreadId,
 
     // The thread's current state.
     state: UnsafeCell<ThreadState>,
@@ -443,7 +444,7 @@ impl Thread {
     fn new_idle_thread(stack_space: &VirtAddrRange) -> Arc<Thread> {
         // The idle thread always has thread id 0, which
         // is otherwise invalid.
-        let kernel_id = ThreadId::IDLE;
+        let kernel_id = KernelThreadId::IDLE;
 
         // The initial stack pointer is 0, as the idle
         // thread inherits the kernel's initial stack.
@@ -484,7 +485,7 @@ impl Thread {
     /// When the thread runs, it will start by enabling
     /// interrupts and calling `entry_point`.
     ///
-    pub fn create_kernel_thread(entry_point: fn() -> !) -> ThreadId {
+    pub fn create_kernel_thread(entry_point: fn() -> !) -> KernelThreadId {
         // Allocate and prepare the stack pointer.
         let stack = new_kernel_stack(KERNEL_STACK_PAGES as u64)
             .expect("failed to allocate stack for new kernel thread");
@@ -519,7 +520,7 @@ impl Thread {
             rsp
         };
 
-        let kernel_id = ThreadId::new();
+        let kernel_id = KernelThreadId::new();
         let thread = Arc::new(Thread {
             kernel_id,
             state: UnsafeCell::new(ThreadState::BeingCreated),
@@ -544,7 +545,7 @@ impl Thread {
     /// When the thread runs, it will start by enabling
     /// interrupts and calling `entry_point`.
     ///
-    pub fn start_kernel_thread(entry_point: fn() -> !) -> ThreadId {
+    pub fn start_kernel_thread(entry_point: fn() -> !) -> KernelThreadId {
         let kernel_id = Thread::create_kernel_thread(entry_point);
         kernel_id.resume();
 
@@ -560,7 +561,7 @@ impl Thread {
     /// When the thread runs, it will start by enabling
     /// interrupts and calling `entry_point`.
     ///
-    pub fn create_user_thread(entry_point: VirtAddr) -> ThreadId {
+    pub fn create_user_thread(entry_point: VirtAddr) -> KernelThreadId {
         // Allocate and prepare the stack pointer.
         // We place the stack at the end of userspace, growing
         // downwards. We need to be careful not to add 1 to the
@@ -617,7 +618,7 @@ impl Thread {
             rsp
         };
 
-        let kernel_id = ThreadId::new();
+        let kernel_id = KernelThreadId::new();
         let thread = Arc::new(Thread {
             kernel_id,
             state: UnsafeCell::new(ThreadState::BeingCreated),
@@ -636,25 +637,12 @@ impl Thread {
         kernel_id
     }
 
-    /// Creates a new user thread, allocating a stack,
-    /// and adding it to the scheduler.
+    /// Returns the thread's unique `KernelThreadId`.
     ///
-    /// When the thread runs, it will start by enabling
-    /// interrupts and calling `entry_point`.
-    ///
-    pub fn start_user_thread(entry_point: VirtAddr) -> ThreadId {
-        let kernel_id = Thread::create_user_thread(entry_point);
-        kernel_id.resume();
-
-        kernel_id
-    }
-
-    /// Returns the thread's unique ThreadId.
-    ///
-    /// This ThreadId represents the unique identifier
+    /// This `KernelThreadId` represents the unique identifier
     /// for this thread throughout the kernel.
     ///
-    pub fn kernel_thread_id(&self) -> ThreadId {
+    pub fn kernel_thread_id(&self) -> KernelThreadId {
         self.kernel_id
     }
 
@@ -807,7 +795,7 @@ impl Thread {
 
 impl Drop for Thread {
     fn drop(&mut self) {
-        if self.kernel_id == ThreadId::IDLE {
+        if self.kernel_id == KernelThreadId::IDLE {
             println!("WARNING: idle thread being dropped");
         }
 

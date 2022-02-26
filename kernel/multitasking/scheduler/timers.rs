@@ -7,9 +7,9 @@
 //!
 //! This is a fairly simple design to get us started. Each timer consists of
 //! the [`Instant`](time::Instant) at which the timer will fire, and the
-//! [`ThreadId`](crate::thread::ThreadId) of the thread we should resume.
+//! [`KernelThreadId`](crate::thread::KernelThreadId) of the thread we should resume.
 
-use crate::thread::ThreadId;
+use crate::thread::KernelThreadId;
 use alloc::collections::binary_heap::BinaryHeap;
 use core::cmp::{Ordering, PartialEq, PartialOrd};
 use lazy_static::lazy_static;
@@ -29,7 +29,7 @@ lazy_static! {
 /// The given thread will be resumed once wakeup is
 /// no longer in the future.
 ///
-pub fn add(thread_id: ThreadId, wakeup: Instant) -> Timer {
+pub fn add(thread_id: KernelThreadId, wakeup: Instant) -> Timer {
     let timer = Timer::new(thread_id, wakeup);
     without_interrupts(|| lock!(TIMERS).push(timer));
 
@@ -41,7 +41,7 @@ pub fn add(thread_id: ThreadId, wakeup: Instant) -> Timer {
 /// Returns whether any timers were cancelled without
 /// having fired.
 ///
-pub fn cancel_all_for_thread(thread_id: ThreadId) -> bool {
+pub fn cancel_all_for_thread(thread_id: KernelThreadId) -> bool {
     let mut timers = lock!(TIMERS);
     let len1 = timers.len();
     timers.retain(|x| x.thread_id != thread_id);
@@ -82,14 +82,14 @@ pub fn process() {
 #[derive(Clone, Copy, Eq)]
 pub struct Timer {
     wakeup: Instant,
-    thread_id: ThreadId,
+    thread_id: KernelThreadId,
 }
 
 impl Timer {
     /// new creates a timer that will wake the
     /// given thread at or after the given time.
     ///
-    fn new(thread_id: ThreadId, wakeup: Instant) -> Self {
+    fn new(thread_id: KernelThreadId, wakeup: Instant) -> Self {
         Timer { wakeup, thread_id }
     }
 

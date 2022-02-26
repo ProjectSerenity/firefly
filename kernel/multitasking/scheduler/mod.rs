@@ -19,7 +19,7 @@
 pub mod timers;
 
 use crate::switch::switch_stack;
-use crate::thread::{current_thread, Thread, ThreadId, ThreadState};
+use crate::thread::{current_thread, KernelThreadId, Thread, ThreadState};
 use crate::{CURRENT_THREADS, IDLE_THREADS, SCHEDULER, THREADS};
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
@@ -35,7 +35,7 @@ use x86_64::instructions::interrupts;
 /// Currently, it implements a round-robin algorithm.
 ///
 pub(super) struct Scheduler {
-    runnable: Mutex<VecDeque<ThreadId>>,
+    runnable: Mutex<VecDeque<KernelThreadId>>,
 }
 
 impl Scheduler {
@@ -47,7 +47,7 @@ impl Scheduler {
 
     /// add queues a thread onto the runnable queue.
     ///
-    pub fn add(&self, thread: ThreadId) {
+    pub fn add(&self, thread: KernelThreadId) {
         lock!(self.runnable).push_back(thread);
     }
 
@@ -57,13 +57,13 @@ impl Scheduler {
     /// so it must be added again afterwards if still
     /// able to run.
     ///
-    pub fn next(&self) -> Option<ThreadId> {
+    pub fn next(&self) -> Option<KernelThreadId> {
         lock!(self.runnable).pop_front()
     }
 
     /// remove removes the thread from the queue.
     ///
-    pub fn remove(&self, thread: ThreadId) {
+    pub fn remove(&self, thread: KernelThreadId) {
         lock!(self.runnable).retain(|id| *id != thread);
     }
 }
@@ -126,7 +126,7 @@ pub fn preempt() {
     }
 
     let kernel_thread_id = current_thread.kernel_thread_id();
-    if kernel_thread_id != ThreadId::IDLE {
+    if kernel_thread_id != KernelThreadId::IDLE {
         current_thread.reset_time_slice();
     }
 
@@ -200,7 +200,9 @@ pub fn switch() {
         // always has thread id 0 (which is otherwise
         // invalid).
         let current_thread_id = current.kernel_thread_id();
-        if current_thread_id != ThreadId::IDLE && current.thread_state() == ThreadState::Runnable {
+        if current_thread_id != KernelThreadId::IDLE
+            && current.thread_state() == ThreadState::Runnable
+        {
             scheduler.add(current_thread_id);
         }
 
@@ -282,7 +284,7 @@ pub fn switch() {
 /// `resume` returns whether the thread still exists and
 /// is now runnable.
 ///
-pub fn resume(thread_id: ThreadId) -> bool {
+pub fn resume(thread_id: KernelThreadId) -> bool {
     match lock!(THREADS).get(&thread_id) {
         None => false,
         Some(thread) => match thread.thread_state() {

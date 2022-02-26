@@ -21,7 +21,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use interrupts::{register_irq, Irq};
 use memlayout::{PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
-use multitasking::thread::{current_kernel_thread_id, prevent_next_sleep, suspend, ThreadId};
+use multitasking::thread::{current_kernel_thread_id, prevent_next_sleep, suspend, KernelThreadId};
 use serial::println;
 use spin::{lock, Mutex};
 use storage::block::{add_device, Device, Error, Operations};
@@ -53,7 +53,7 @@ static DRIVERS: Mutex<[Option<Arc<Mutex<crate::Driver>>>; 16]> = {
 /// thread that made the request, and resume it, removing
 /// the entry from the map.
 ///
-static REQUESTS: Mutex<BTreeMap<PhysAddr, ThreadId>> = Mutex::new(BTreeMap::new());
+static REQUESTS: Mutex<BTreeMap<PhysAddr, KernelThreadId>> = Mutex::new(BTreeMap::new());
 
 /// Receives interrupts for block devices and resumes
 /// the corresponding thread.

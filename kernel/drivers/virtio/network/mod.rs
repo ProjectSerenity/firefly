@@ -61,7 +61,7 @@ use core::mem;
 use interrupts::{register_irq, Irq};
 use memlayout::phys_to_virt_addr;
 use multitasking::scheduler;
-use multitasking::thread::{current_kernel_thread_id, Thread, ThreadId};
+use multitasking::thread::{current_kernel_thread_id, KernelThreadId, Thread};
 use network::{add_interface, InterfaceHandle};
 use physmem::{allocate_frame, deallocate_frame};
 use serial::println;
@@ -151,7 +151,8 @@ fn interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
 /// interface handles they use to perform background
 /// network management.
 ///
-static INTERFACE_HANDLES: Mutex<BTreeMap<ThreadId, InterfaceHandle>> = Mutex::new(BTreeMap::new());
+static INTERFACE_HANDLES: Mutex<BTreeMap<KernelThreadId, InterfaceHandle>> =
+    Mutex::new(BTreeMap::new());
 
 /// network_entry_point is an entry point used by a
 /// network management thread to ensure an interface
