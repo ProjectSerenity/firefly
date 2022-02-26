@@ -135,7 +135,10 @@ pub fn register_irq(irq: Irq, handler: IrqHandler) {
 
 #[inline]
 fn irq_handler_generic(frame: InterruptStackFrame, irq: Irq) {
-    if let Some(handler) = lock!(IRQS)[irq.as_usize()] {
+    let irqs = lock!(IRQS);
+    if let Some(handler) = irqs[irq.as_usize()] {
+        // Drop our lock to reduce contention.
+        drop(irqs);
         handler(frame, irq);
     }
 }
