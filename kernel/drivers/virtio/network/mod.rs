@@ -67,7 +67,7 @@ use physmem::{allocate_frame, deallocate_frame};
 use serial::println;
 use smoltcp::phy::{DeviceCapabilities, Medium};
 use smoltcp::wire::EthernetAddress;
-use spin::Mutex;
+use spin::{lock, Mutex};
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::idt::InterruptStackFrame;
 use x86_64::structures::paging::frame::PhysFrame;
@@ -118,9 +118,9 @@ static INTERFACES: Mutex<[Option<InterfaceDriver>; 16]> = {
 /// PCI virtio devices.
 ///
 fn interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
-    let int = INTERFACES.lock();
+    let int = lock!(INTERFACES);
     if let Some(iface_driver) = &int[irq.as_u8() as usize] {
-        let mut dev = iface_driver.driver.lock();
+        let mut dev = lock!(iface_driver.driver);
         if !dev
             .driver
             .interrupt_status()
@@ -159,7 +159,7 @@ static INTERFACE_HANDLES: Mutex<BTreeMap<ThreadId, InterfaceHandle>> = Mutex::ne
 ///
 fn network_entry_point() -> ! {
     let kernel_thread_id = current_kernel_thread_id();
-    let iface_handle = &INTERFACE_HANDLES.lock()[&kernel_thread_id];
+    let iface_handle = &lock!(INTERFACE_HANDLES)[&kernel_thread_id];
     loop {
         let wait = without_interrupts(|| iface_handle.poll());
         scheduler::sleep(wait);
@@ -275,7 +275,7 @@ impl network::Device for Device {
     ///
     fn recv_packet(&mut self) -> Option<(PhysAddr, usize)> {
         without_interrupts(|| {
-            let mut dev = self.driver.lock();
+            let mut dev = lock!(self.driver);
             match dev.driver.recv(RECV_VIRTQUEUE) {
                 None => None,
                 Some(buf) => {
@@ -309,7 +309,7 @@ impl network::Device for Device {
         // so it can use it to receive a future
         // packet.
         without_interrupts(|| {
-            let mut dev = self.driver.lock();
+            let mut dev = lock!(self.driver);
             let len = PACKET_LEN_MAX;
 
             dev.driver
@@ -332,7 +332,7 @@ impl network::Device for Device {
         }
 
         // Retrieve our send buffer.
-        let addr = match self.driver.lock().send_buffers.pop() {
+        let addr = match lock!(self.driver).send_buffers.pop() {
             Some(addr) => addr,
             None => {
                 println!("warn: network out of send buffers on send.");
@@ -370,7 +370,7 @@ impl network::Device for Device {
 
         // Send the packet.
         without_interrupts(|| {
-            let mut dev = self.driver.lock();
+            let mut dev = lock!(self.driver);
             let len = len + offset;
 
             dev.driver
@@ -386,7 +386,7 @@ impl network::Device for Device {
     ///
     fn capabilities(&self) -> DeviceCapabilities {
         without_interrupts(|| {
-            let dev = self.driver.lock();
+            let dev = lock!(self.driver);
             let mut caps = DeviceCapabilities::default();
             caps.medium = Medium::Ethernet;
             caps.max_transmission_unit = dev.mtu as usize;
@@ -571,7 +571,7 @@ pub fn install_pci_device(device: pci::Device) {
     let iface_handle = InterfaceDriver { driver, handle };
 
     without_interrupts(|| {
-        let mut int = INTERFACES.lock();
+        let mut int = lock!(INTERFACES);
         int[irq.as_usize()] = Some(iface_handle);
     });
 
@@ -580,6 +580,6 @@ pub fn install_pci_device(device: pci::Device) {
     // Create the background thread that performs
     // network activity.
     let thread_id = Thread::create_kernel_thread(network_entry_point);
-    INTERFACE_HANDLES.lock().insert(thread_id, handle);
+    lock!(INTERFACE_HANDLES).insert(thread_id, handle);
     scheduler::resume(thread_id);
 }

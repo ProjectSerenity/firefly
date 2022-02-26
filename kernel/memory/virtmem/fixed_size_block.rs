@@ -10,6 +10,7 @@ use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr::NonNull;
 use core::{mem, ptr};
 use linked_list_allocator::Heap;
+use spin::lock;
 
 /// BLOCK_SIZES contains the block sizes used.
 ///
@@ -98,7 +99,7 @@ unsafe impl GlobalAlloc for Locked<FixedSizeBlockAllocator> {
     /// pointer if the heap has been exhausted.
     ///
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        let mut allocator = self.lock();
+        let mut allocator = lock!(self.lock);
 
         // Find the block size index for this allocation.
         match list_index(&layout) {
@@ -143,7 +144,7 @@ unsafe impl GlobalAlloc for Locked<FixedSizeBlockAllocator> {
     /// later re-use.
     ///
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        let mut allocator = self.lock();
+        let mut allocator = lock!(self.lock);
 
         // Find the block size index for this allocation.
         match list_index(&layout) {

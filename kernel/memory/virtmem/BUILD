@@ -20,13 +20,13 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         crate("linked_list_allocator"),
-        crate("spin"),
         crate("x86_64"),
         "//kernel/drivers/serial",
         "//kernel/memory/memlayout",
         "//kernel/memory/physmem",
         "//kernel/utils/align",
         "//kernel/utils/pretty",
+        "//kernel/utils/spin",
         "@bootloader",
     ],
 )

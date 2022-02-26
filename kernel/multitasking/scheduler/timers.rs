@@ -13,7 +13,7 @@ use crate::thread::ThreadId;
 use alloc::collections::binary_heap::BinaryHeap;
 use core::cmp::{Ordering, PartialEq, PartialOrd};
 use lazy_static::lazy_static;
-use spin::Mutex;
+use spin::{lock, Mutex};
 use time::{now, Instant};
 use x86_64::instructions::interrupts::without_interrupts;
 
@@ -31,7 +31,7 @@ lazy_static! {
 ///
 pub fn add(thread_id: ThreadId, wakeup: Instant) -> Timer {
     let timer = Timer::new(thread_id, wakeup);
-    without_interrupts(|| TIMERS.lock().push(timer));
+    without_interrupts(|| lock!(TIMERS).push(timer));
 
     timer
 }
@@ -42,7 +42,7 @@ pub fn add(thread_id: ThreadId, wakeup: Instant) -> Timer {
 /// having fired.
 ///
 pub fn cancel_all_for_thread(thread_id: ThreadId) -> bool {
-    let mut timers = TIMERS.lock();
+    let mut timers = lock!(TIMERS);
     let len1 = timers.len();
     timers.retain(|x| x.thread_id != thread_id);
     let len2 = timers.len();
@@ -59,7 +59,7 @@ pub fn cancel_all_for_thread(thread_id: ThreadId) -> bool {
 ///
 pub fn process() {
     let now = now();
-    let mut timers = TIMERS.lock();
+    let mut timers = lock!(TIMERS);
     loop {
         if let Some(next) = timers.peek() {
             if next.wakeup > now {
@@ -101,7 +101,7 @@ impl Timer {
     ///
     pub fn cancel(self) -> bool {
         let expired = self.wakeup <= now();
-        let mut timers = TIMERS.lock();
+        let mut timers = lock!(TIMERS);
         timers.retain(|x| *x != self);
 
         expired

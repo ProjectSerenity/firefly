@@ -23,7 +23,6 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         crate("lazy_static"),
-        crate("spin"),
         crate("x86_64"),
         "//kernel/cpu",
         "//kernel/drivers/serial",
@@ -33,6 +32,7 @@ rust_library(
         "//kernel/segmentation",
         "//kernel/time",
         "//kernel/utils/pretty",
+        "//kernel/utils/spin",
     ],
 )
 

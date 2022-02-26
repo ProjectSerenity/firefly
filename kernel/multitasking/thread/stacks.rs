@@ -17,7 +17,7 @@
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU64, Ordering};
 use memlayout::{VirtAddrRange, KERNEL_STACK, KERNEL_STACK_1_START};
-use spin::Mutex;
+use spin::{lock, Mutex};
 use virtmem::map_pages;
 use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::page::PageRangeInclusive;
@@ -130,7 +130,7 @@ pub fn new_kernel_stack(num_pages: u64) -> Result<StackBounds, MapToError<Size4K
     // We use an extra scope so we don't hold the lock
     // on DEAD_STACKS for unnecessarily long.
     {
-        let mut stacks = DEAD_STACKS.lock();
+        let mut stacks = lock!(DEAD_STACKS);
         let stack = stacks.pop();
         if let Some(stack) = stack {
             if stack.num_pages() >= num_pages {
@@ -148,7 +148,7 @@ pub fn new_kernel_stack(num_pages: u64) -> Result<StackBounds, MapToError<Size4K
     let pages = Page::range(stack_start, stack_end);
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
 
-    map_pages(pages, &mut *physmem::ALLOCATOR.lock(), flags)?;
+    map_pages(pages, &mut *lock!(physmem::ALLOCATOR), flags)?;
 
     Ok(StackBounds {
         start: stack_start.start_address(),
@@ -160,5 +160,5 @@ pub fn new_kernel_stack(num_pages: u64) -> Result<StackBounds, MapToError<Size4K
 /// can be reused later.
 ///
 pub fn free_kernel_stack(stack_bounds: StackBounds) {
-    DEAD_STACKS.lock().push(stack_bounds);
+    lock!(DEAD_STACKS).push(stack_bounds);
 }

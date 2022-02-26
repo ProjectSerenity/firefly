@@ -28,7 +28,7 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::pin::Pin;
 use lazy_static::lazy_static;
-use spin::Mutex;
+use spin::{lock, Mutex};
 use x86_64::instructions::segmentation::{Segment, CS, SS};
 use x86_64::instructions::tables::load_tss;
 use x86_64::structures::gdt::{
@@ -71,7 +71,7 @@ lazy_static! {
 pub fn per_cpu_init() {
     // Make sure the PER_CPU vector has enough entries
     // for our CPU id.
-    let mut per_cpu = PER_CPU.lock();
+    let mut per_cpu = lock!(PER_CPU);
     let cpu_id = cpu::id();
     while per_cpu.len() <= cpu_id {
         // We allocate and initialise but don't activate
@@ -93,7 +93,7 @@ pub fn with_segment_data<F, R>(f: F) -> R
 where
     F: FnOnce(&mut Pin<&mut SegmentData>) -> R,
 {
-    let mut per_cpu = PER_CPU.lock();
+    let mut per_cpu = lock!(PER_CPU);
     if let Some(segment_data) = per_cpu.get_mut(cpu::id()) {
         f(segment_data)
     } else {

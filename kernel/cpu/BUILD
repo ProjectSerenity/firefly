@@ -22,6 +22,7 @@ rust_library(
         "//kernel/memory/memlayout",
         "//kernel/memory/physmem",
         "//kernel/memory/virtmem",
+        "//kernel/utils/spin",
     ],
 )
 

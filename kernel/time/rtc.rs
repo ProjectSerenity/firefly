@@ -12,7 +12,7 @@
 //! the time when the kernel booted.
 
 use core::fmt;
-use spin::Mutex;
+use spin::{lock, Mutex};
 use x86_64::instructions::port::Port;
 
 // Store the wall clock value for the boot time, protected
@@ -23,14 +23,14 @@ static BOOT_TIME: Mutex<Time> = Mutex::new(Time::new());
 /// Returns the clock time when the kernel booted.
 ///
 pub fn boot_time() -> Time {
-    *BOOT_TIME.lock()
+    *lock!(BOOT_TIME)
 }
 
 /// Sets the boot time by reading the RTC.
 ///
 pub(super) fn init() {
     let time = read_cmos();
-    let mut boot = BOOT_TIME.lock();
+    let mut boot = lock!(BOOT_TIME);
     boot.year = time.year;
     boot.month = time.month;
     boot.day = time.day;

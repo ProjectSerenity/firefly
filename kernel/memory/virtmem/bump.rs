@@ -9,6 +9,7 @@ use crate::Locked;
 use align::align_up_usize;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr;
+use spin::lock;
 
 /// A simple virtual memory allocator, tracking the next free
 /// address.
@@ -67,7 +68,7 @@ unsafe impl GlobalAlloc for Locked<BumpAllocator> {
     /// pointer if the heap has been exhausted.
     ///
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        let mut bump = self.lock(); // get a mutable reference
+        let mut bump = lock!(self.lock); // get a mutable reference
 
         let alloc_start = align_up_usize(bump.next, layout.align());
         let alloc_end = match alloc_start.checked_add(layout.size()) {
@@ -88,7 +89,7 @@ unsafe impl GlobalAlloc for Locked<BumpAllocator> {
     /// later re-use.
     ///
     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
-        let mut bump = self.lock(); // get a mutable reference
+        let mut bump = lock!(self.lock); // get a mutable reference
 
         bump.allocations -= 1;
         if bump.allocations == 0 {

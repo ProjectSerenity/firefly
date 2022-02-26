@@ -58,7 +58,7 @@ pub use crate::bitmap::{ArenaFrameAllocator, BitmapFrameAllocator, BitmapFrameTr
 pub use crate::boot_info::BootInfoFrameAllocator;
 use bootloader::bootinfo::MemoryMap;
 use lazy_static::lazy_static;
-use spin::Mutex;
+use spin::{lock, Mutex};
 use x86_64::structures::paging::frame::PhysFrameRange;
 use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame, Size4KiB};
 
@@ -86,7 +86,7 @@ pub unsafe fn init(bootstrap: BootInfoFrameAllocator) {
     let mut alloc = BitmapFrameAllocator::new(bootstrap.underlying_map());
     alloc.repossess(bootstrap);
 
-    *ALLOCATOR.lock() = alloc;
+    *lock!(ALLOCATOR) = alloc;
 }
 
 /// Returns the next available physical frame, or `None`.
@@ -94,7 +94,7 @@ pub unsafe fn init(bootstrap: BootInfoFrameAllocator) {
 /// If `allocate_frame` is called before [`init`], it will return `None`.
 ///
 pub fn allocate_frame() -> Option<PhysFrame> {
-    let mut allocator = ALLOCATOR.lock();
+    let mut allocator = lock!(ALLOCATOR);
     allocator.allocate_frame()
 }
 
@@ -107,7 +107,7 @@ pub fn allocate_frame() -> Option<PhysFrame> {
 /// If `allocate_n_frames` is called before [`init`], it will return `None`.
 ///
 pub fn allocate_n_frames(n: usize) -> Option<PhysFrameRange> {
-    let mut allocator = ALLOCATOR.lock();
+    let mut allocator = lock!(ALLOCATOR);
     allocator.allocate_n_frames(n)
 }
 
@@ -119,14 +119,14 @@ pub fn allocate_n_frames(n: usize) -> Option<PhysFrameRange> {
 /// The caller must ensure that `frame` is unused.
 ///
 pub unsafe fn deallocate_frame(frame: PhysFrame<Size4KiB>) {
-    let mut allocator = ALLOCATOR.lock();
+    let mut allocator = lock!(ALLOCATOR);
     allocator.deallocate_frame(frame);
 }
 
 /// Prints debug information about the physical memory manager.
 ///
 pub fn debug() {
-    let mm = ALLOCATOR.lock();
+    let mm = lock!(ALLOCATOR);
     mm.debug();
 }
 

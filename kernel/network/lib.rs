@@ -39,7 +39,7 @@ use smoltcp::phy::{DeviceCapabilities, RxToken, TxToken};
 use smoltcp::socket::{Dhcpv4Config, Dhcpv4Event, Dhcpv4Socket};
 use smoltcp::time::Instant;
 use smoltcp::wire::{EthernetAddress, HardwareAddress, IpCidr, Ipv4Address, Ipv4Cidr};
-use spin::Mutex;
+use spin::{lock, Mutex};
 use time::{now, Duration};
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::PhysAddr;
@@ -58,13 +58,13 @@ static INITIAL_WORKLOADS: Mutex<Vec<Waker>> = Mutex::new(Vec::new());
 ///
 pub fn register_workload(waker: Waker) {
     without_interrupts(|| {
-        let mut workloads = INITIAL_WORKLOADS.lock();
+        let mut workloads = lock!(INITIAL_WORKLOADS);
 
         // If we already have a configuration, we
         // can just fire the waker now. We still
         // lock INITIAL_WORKLOADS first to avoid
         // a race condition.
-        for iface in INTERFACES.lock().iter() {
+        for iface in lock!(INTERFACES).iter() {
             if iface.config.is_some() {
                 waker.wake();
                 return;
@@ -174,7 +174,7 @@ impl Interface {
                     self.config = Some(config);
 
                     // Resume any initial workloads.
-                    let mut workloads = INITIAL_WORKLOADS.lock();
+                    let mut workloads = lock!(INITIAL_WORKLOADS);
                     for waker in workloads.drain(..) {
                         waker.wake();
                     }
@@ -230,7 +230,7 @@ impl InterfaceHandle {
     ///
     pub fn name(&self) -> String {
         without_interrupts(|| {
-            let ifaces = INTERFACES.lock();
+            let ifaces = lock!(INTERFACES);
             let iface = ifaces.get(self.0).expect("invalid interface handle");
             iface.name.clone()
         })
@@ -241,7 +241,7 @@ impl InterfaceHandle {
     ///
     pub fn dhcp_config(&self) -> Option<Dhcpv4Config> {
         without_interrupts(|| {
-            let ifaces = INTERFACES.lock();
+            let ifaces = lock!(INTERFACES);
             let iface = ifaces.get(self.0).expect("invalid interface handle");
             iface.config
         })
@@ -255,7 +255,7 @@ impl InterfaceHandle {
     ///
     pub fn poll(&self) -> Duration {
         without_interrupts(|| {
-            let mut ifaces = INTERFACES.lock();
+            let mut ifaces = lock!(INTERFACES);
             let iface = ifaces.get_mut(self.0).expect("invalid interface handle");
             iface.poll()
         })
@@ -325,7 +325,7 @@ impl<'a> smoltcp::phy::Device<'a> for WrappedDevice {
     ///
     fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
         without_interrupts(|| {
-            let mut dev = self.dev.lock();
+            let mut dev = lock!(self.dev);
             if let Some((addr, len)) = dev.recv_packet() {
                 let recv = RecvToken {
                     addr,
@@ -356,7 +356,7 @@ impl<'a> smoltcp::phy::Device<'a> for WrappedDevice {
     ///
     fn capabilities(&self) -> DeviceCapabilities {
         without_interrupts(|| {
-            let dev = self.dev.lock();
+            let dev = lock!(self.dev);
             dev.capabilities()
         })
     }
@@ -391,7 +391,7 @@ impl<'a> RxToken for RecvToken {
         // so it can be used to receive future
         // packets.
         without_interrupts(|| {
-            let mut dev = self.dev.lock();
+            let mut dev = lock!(self.dev);
             dev.reclaim_recv_buffer(self.addr, self.len);
         });
 
@@ -420,7 +420,7 @@ impl<'a> TxToken for SendToken {
         // the device.
         let phys = without_interrupts(|| {
             //
-            let mut dev = self.dev.lock();
+            let mut dev = lock!(self.dev);
             dev.get_send_buffer(len)
         })?;
 
@@ -432,7 +432,7 @@ impl<'a> TxToken for SendToken {
 
         // Send the packet.
         without_interrupts(|| {
-            let mut dev = self.dev.lock();
+            let mut dev = lock!(self.dev);
             dev.send_packet(phys, len)
         })?;
 
@@ -466,7 +466,7 @@ pub fn add_interface(device: Box<dyn Device>, mac: EthernetAddress) -> Interface
     let dhcp = iface.add_socket(socket);
 
     without_interrupts(|| {
-        let mut ifaces = INTERFACES.lock();
+        let mut ifaces = lock!(INTERFACES);
         let name = format!("ethernet{}", ifaces.len());
         let handle = InterfaceHandle::new(ifaces.len());
         println!("New interface {} with MAC address {}.", &name, mac);

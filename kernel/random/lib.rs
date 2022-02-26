@@ -55,7 +55,7 @@ mod rdrand;
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-use spin::Mutex;
+use spin::{lock, Mutex};
 use time::Duration;
 
 /// CSPRNG is the kernel's cryptographically secure pseudo-random number generator.
@@ -78,7 +78,7 @@ static CSPRNG: Mutex<csprng::Csprng> = Mutex::new(csprng::Csprng::new());
 /// entropy source, then calling [`init`].
 ///
 pub fn read(buf: &mut [u8]) {
-    CSPRNG.lock().read(buf);
+    lock!(CSPRNG).read(buf);
 }
 
 /// EntropySource is a trait we use to simplify the process of collecting sources
@@ -103,7 +103,7 @@ static ENTROPY_SOURCES: Mutex<Vec<Box<dyn EntropySource>>> = Mutex::new(Vec::new
 /// of the CSPRNG.
 ///
 pub fn register_entropy_source(src: Box<dyn EntropySource>) {
-    ENTROPY_SOURCES.lock().push(src);
+    lock!(ENTROPY_SOURCES).push(src);
 }
 
 /// Initialise the CSPNRG using the entropy sources that have been registered.
@@ -115,8 +115,8 @@ pub fn init() {
     // Detect RDRAND support before we lock ENTROPY_SOURCES.
     rdrand::init();
 
-    let mut csprng = CSPRNG.lock();
-    let mut sources = ENTROPY_SOURCES.lock();
+    let mut csprng = lock!(CSPRNG);
+    let mut sources = lock!(ENTROPY_SOURCES);
     if sources.is_empty() {
         panic!("random::init called without any entropy sources registered");
     }
@@ -138,8 +138,8 @@ pub const RESEED_INTERVAL: Duration = Duration::from_secs(30);
 ///
 pub fn reseed() {
     let mut buf = [0u8; 32];
-    let mut csprng = CSPRNG.lock();
-    let mut sources = ENTROPY_SOURCES.lock();
+    let mut csprng = lock!(CSPRNG);
+    let mut sources = lock!(ENTROPY_SOURCES);
     if sources.is_empty() {
         panic!("all entropy sources removed");
     }

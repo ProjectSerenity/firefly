@@ -79,7 +79,7 @@ use multitasking::thread::{current_thread_waker, prevent_next_sleep, suspend};
 use smoltcp::iface::SocketHandle;
 use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::wire::IpEndpoint;
-use spin::Mutex;
+use spin::{lock, Mutex};
 use x86_64::instructions::interrupts::without_interrupts;
 
 /// Used as the number of bytes in each connection's receive
@@ -112,7 +112,7 @@ static ACTIVE_PORTS: Mutex<BTreeSet<u16>> = Mutex::new(BTreeSet::new());
 /// The returned port is guaranteed not to be in active use yet.
 ///
 pub fn ephemeral_port() -> u16 {
-    let mut active = ACTIVE_PORTS.lock();
+    let mut active = lock!(ACTIVE_PORTS);
     let mut buf = [0u8; 16];
 
     // Loop until we find a port we're happy to use.
@@ -250,7 +250,7 @@ impl ListenConfig {
         if local.port == 0 {
             local.port = ephemeral_port();
         } else {
-            let mut active = ACTIVE_PORTS.lock();
+            let mut active = lock!(ACTIVE_PORTS);
             if active.contains(&local.port) {
                 return Err(Error::PortInUse);
             }
@@ -265,7 +265,7 @@ impl ListenConfig {
         let iface_handle = InterfaceHandle::new(0); // TODO: get this properly.
 
         without_interrupts(|| {
-            let mut ifaces = INTERFACES.lock();
+            let mut ifaces = lock!(INTERFACES);
             let iface = ifaces
                 .get_mut(iface_handle.0)
                 .expect("invalid interface handle");
@@ -351,7 +351,7 @@ impl Listener {
         without_interrupts(|| {
             // Loop until we find a pending connection.
             loop {
-                let mut ifaces = INTERFACES.lock();
+                let mut ifaces = lock!(INTERFACES);
                 let iface = ifaces
                     .get_mut(self.iface.0)
                     .expect("invalid interface handle");
@@ -551,7 +551,7 @@ impl DialConfig {
                 ..self.local
             }
         } else {
-            let mut active = ACTIVE_PORTS.lock();
+            let mut active = lock!(ACTIVE_PORTS);
             if active.contains(&self.local.port) {
                 return Err(Error::PortInUse);
             }
@@ -569,7 +569,7 @@ impl DialConfig {
         let waker = current_thread_waker();
 
         without_interrupts(|| {
-            let mut ifaces = INTERFACES.lock();
+            let mut ifaces = lock!(INTERFACES);
             let iface = ifaces
                 .get_mut(iface_handle.0)
                 .expect("invalid interface handle");
@@ -622,7 +622,7 @@ impl DialConfig {
                 // necessarily mean we're ready to send
                 // yet. We need to regain our access to
                 // the socket so we can check its state.
-                let mut ifaces = INTERFACES.lock();
+                let mut ifaces = lock!(INTERFACES);
                 let iface = ifaces
                     .get_mut(iface_handle.0)
                     .expect("invalid interface handle");
@@ -679,7 +679,7 @@ impl Connection {
     ///
     pub fn close(&self) {
         without_interrupts(|| {
-            let mut ifaces = INTERFACES.lock();
+            let mut ifaces = lock!(INTERFACES);
             let iface = ifaces
                 .get_mut(self.iface.0)
                 .expect("invalid interface handle");
@@ -717,7 +717,7 @@ impl Connection {
         without_interrupts(|| {
             // Wait until we're able to send.
             loop {
-                let mut ifaces = INTERFACES.lock();
+                let mut ifaces = lock!(INTERFACES);
                 let iface = ifaces
                     .get_mut(self.iface.0)
                     .expect("invalid interface handle");
@@ -768,7 +768,7 @@ impl Connection {
         without_interrupts(|| {
             // Wait until we're able to receive.
             loop {
-                let mut ifaces = INTERFACES.lock();
+                let mut ifaces = lock!(INTERFACES);
                 let iface = ifaces
                     .get_mut(self.iface.0)
                     .expect("invalid interface handle");
@@ -817,7 +817,7 @@ impl Connection {
 impl Drop for Connection {
     fn drop(&mut self) {
         without_interrupts(|| {
-            let mut ifaces = INTERFACES.lock();
+            let mut ifaces = lock!(INTERFACES);
             let iface = ifaces
                 .get_mut(self.iface.0)
                 .expect("invalid interface handle");

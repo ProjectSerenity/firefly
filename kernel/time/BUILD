@@ -17,8 +17,8 @@ rust_library(
     crate_name = "time",
     visibility = ["//kernel:__subpackages__"],
     deps = [
-        crate("spin"),
         crate("x86_64"),
+        "//kernel/utils/spin",
     ],
 )
 

@@ -9,6 +9,7 @@ use crate::Locked;
 use align::align_up_usize;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::{mem, ptr};
+use spin::lock;
 
 /// Represents a region of memory with the given
 /// `size` and an optional pointer to the `next`
@@ -173,7 +174,7 @@ unsafe impl GlobalAlloc for Locked<LinkedListAllocator> {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         // Perform layout adjustments.
         let (size, align) = size_align(layout);
-        let mut allocator = self.lock();
+        let mut allocator = lock!(self.lock);
 
         if let Some((region, alloc_start)) = allocator.find_region(size, align) {
             let alloc_end = alloc_start.checked_add(size).expect("overflow");
@@ -195,6 +196,6 @@ unsafe impl GlobalAlloc for Locked<LinkedListAllocator> {
         // Perform layout adjustments.
         let (size, _) = size_align(layout);
 
-        self.lock().add_free_region(ptr as usize, size)
+        lock!(self.lock).add_free_region(ptr as usize, size)
     }
 }

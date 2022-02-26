@@ -8,7 +8,7 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use bitflags::bitflags;
-use spin::Mutex;
+use spin::{lock, Mutex};
 use x86_64::instructions::interrupts::without_interrupts;
 
 /// The list of block storage devices.
@@ -19,7 +19,7 @@ static DEVICES: Mutex<Vec<Box<dyn Device + Send>>> = Mutex::new(Vec::new());
 ///
 pub fn add_device(device: Box<dyn Device + Send>) {
     without_interrupts(|| {
-        let mut devices = DEVICES.lock();
+        let mut devices = lock!(DEVICES);
         devices.push(device);
     });
 }
@@ -31,7 +31,7 @@ pub fn iter<F>(f: F)
 where
     F: FnOnce(&mut Box<dyn Device + Send>) + Copy,
 {
-    let mut devices = without_interrupts(|| DEVICES.lock());
+    let mut devices = without_interrupts(|| lock!(DEVICES));
     for dev in devices.iter_mut() {
         f(dev);
     }

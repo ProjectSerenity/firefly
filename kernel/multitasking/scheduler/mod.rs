@@ -26,7 +26,7 @@ use alloc::sync::Arc;
 use core::arch::asm;
 use core::sync::atomic::{AtomicBool, Ordering};
 use segmentation::with_segment_data;
-use spin::Mutex;
+use spin::{lock, Mutex};
 use time::{after, Duration};
 use x86_64::instructions::interrupts;
 
@@ -48,7 +48,7 @@ impl Scheduler {
     /// add queues a thread onto the runnable queue.
     ///
     pub fn add(&self, thread: ThreadId) {
-        self.runnable.lock().push_back(thread);
+        lock!(self.runnable).push_back(thread);
     }
 
     /// next returns the next thread able to run.
@@ -58,13 +58,13 @@ impl Scheduler {
     /// able to run.
     ///
     pub fn next(&self) -> Option<ThreadId> {
-        self.runnable.lock().pop_front()
+        lock!(self.runnable).pop_front()
     }
 
     /// remove removes the thread from the queue.
     ///
     pub fn remove(&self, thread: ThreadId) {
-        self.runnable.lock().retain(|id| *id != thread);
+        lock!(self.runnable).retain(|id| *id != thread);
     }
 }
 
@@ -172,13 +172,13 @@ fn set_current_thread(thread: Arc<Thread>) {
     with_segment_data(|data| data.set_interrupt_stack(interrupt_stack));
     cpu::set_syscall_stack_pointer(thread.syscall_stack());
     cpu::set_user_stack_pointer(thread.user_stack());
-    CURRENT_THREADS.lock()[cpu::id()] = thread;
+    lock!(CURRENT_THREADS)[cpu::id()] = thread;
 }
 
 /// Returns a copy of the idle thread for this CPU.
 ///
 fn idle_thread() -> Arc<Thread> {
-    IDLE_THREADS.lock()[cpu::id()].clone()
+    lock!(IDLE_THREADS)[cpu::id()].clone()
 }
 
 /// Schedules out the current thread and switches to the next
@@ -193,7 +193,7 @@ pub fn switch() {
     interrupts::disable();
     let current = current_thread();
     let next = {
-        let scheduler = SCHEDULER.lock();
+        let scheduler = lock!(SCHEDULER);
 
         // Add the current thread to the runnable
         // queue, unless it's the idle thread, which
@@ -205,7 +205,7 @@ pub fn switch() {
         }
 
         match scheduler.next() {
-            Some(thread) => THREADS.lock().get(&thread).unwrap().clone(),
+            Some(thread) => lock!(THREADS).get(&thread).unwrap().clone(),
             None => idle_thread(),
         }
     };
@@ -283,12 +283,12 @@ pub fn switch() {
 /// is now runnable.
 ///
 pub fn resume(thread_id: ThreadId) -> bool {
-    match THREADS.lock().get(&thread_id) {
+    match lock!(THREADS).get(&thread_id) {
         None => false,
         Some(thread) => match thread.thread_state() {
             ThreadState::BeingCreated => {
                 thread.set_state(ThreadState::Runnable);
-                SCHEDULER.lock().add(thread_id);
+                lock!(SCHEDULER).add(thread_id);
                 true
             }
             ThreadState::Runnable => true,
@@ -299,7 +299,7 @@ pub fn resume(thread_id: ThreadId) -> bool {
             ThreadState::Insomniac => true,
             ThreadState::Sleeping => {
                 thread.set_state(ThreadState::Runnable);
-                SCHEDULER.lock().add(thread_id);
+                lock!(SCHEDULER).add(thread_id);
                 true
             }
             ThreadState::Exiting => false,

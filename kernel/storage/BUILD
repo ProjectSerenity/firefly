@@ -16,8 +16,8 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         crate("bitflags"),
-        crate("spin"),
         crate("x86_64"),
+        "//kernel/utils/spin",
     ],
 )
 

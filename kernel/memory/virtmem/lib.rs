@@ -54,7 +54,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use mapping::PagePurpose;
 use memlayout::{phys_to_virt_addr, KERNELSPACE, KERNEL_HEAP, PHYSICAL_MEMORY_OFFSET};
 use serial::println;
-use spin::{Mutex, MutexGuard};
+use spin::{lock, Mutex};
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::registers::control::{Cr3, Cr4, Cr4Flags};
 use x86_64::registers::model_specific::{Efer, EferFlags};
@@ -97,7 +97,7 @@ pub unsafe fn init(boot_info: &'static BootInfo) {
     // Prepare the kernel's PML4.
     let (level_4_table_frame, _) = Cr3::read();
     let phys = level_4_table_frame.start_address();
-    *KERNEL_PML4_ADDRESS.lock() = phys_to_virt_addr(phys);
+    *lock!(KERNEL_PML4_ADDRESS) = phys_to_virt_addr(phys);
 
     let mut frame_allocator = physmem::bootstrap(&boot_info.memory_map);
 
@@ -202,7 +202,7 @@ pub fn new_page_table() -> PhysFrame<Size4KiB> {
     // kernel mapping.
     let frame = physmem::allocate_frame().expect("failed to allocate new page table");
     let new_virt = phys_to_virt_addr(frame.start_address());
-    let old_virt = KERNEL_PML4_ADDRESS.lock();
+    let old_virt = lock!(KERNEL_PML4_ADDRESS);
     let new_buf: &mut [u8] =
         unsafe { slice::from_raw_parts_mut(new_virt.as_mut_ptr(), frame.size() as usize) };
     let old_buf: &[u8] =
@@ -361,7 +361,7 @@ fn init_heap(
 
     #[cfg(not(test))]
     unsafe {
-        ALLOCATOR.lock().init(
+        lock!(ALLOCATOR.lock).init(
             KERNEL_HEAP.start().as_u64() as usize,
             KERNEL_HEAP.size() as usize,
         );
@@ -574,19 +574,15 @@ fn _virt_to_phys_addrs<T: Translate>(
 /// implement traits on a locked type.
 ///
 struct Locked<A> {
-    inner: Mutex<A>,
+    lock: Mutex<A>,
 }
 
 impl<A> Locked<A> {
     #[allow(dead_code)]
     pub const fn new(inner: A) -> Self {
         Locked {
-            inner: Mutex::new(inner),
+            lock: Mutex::new(inner),
         }
-    }
-
-    pub fn lock(&self) -> MutexGuard<A> {
-        self.inner.lock()
     }
 }
 

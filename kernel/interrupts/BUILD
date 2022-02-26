@@ -17,10 +17,10 @@ rust_library(
     deps = [
         crate("lazy_static"),
         crate("pic8259"),
-        crate("spin"),
         crate("x86_64"),
         "//kernel/drivers/serial",
         "//kernel/segmentation",
+        "//kernel/utils/spin",
     ],
 )
 

@@ -17,13 +17,13 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         crate("managed"),
-        crate("spin"),
         crate("x86_64"),
         "//kernel/drivers/serial",
         "//kernel/memory/memlayout",
         "//kernel/multitasking",
         "//kernel/random",
         "//kernel/time",
+        "//kernel/utils/spin",
         "@smoltcp",
     ],
 )

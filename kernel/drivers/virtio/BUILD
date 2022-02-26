@@ -24,7 +24,6 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         crate("bitflags"),
-        crate("spin"),
         crate("x86_64"),
         "//kernel/drivers/pci",
         "//kernel/drivers/serial",
@@ -39,6 +38,7 @@ rust_library(
         "//kernel/storage",
         "//kernel/utils/align",
         "//kernel/utils/bitmap_index",
+        "//kernel/utils/spin",
         "@smoltcp",
     ],
 )

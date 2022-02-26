@@ -74,7 +74,7 @@ use lazy_static::lazy_static;
 use pic8259::ChainedPics;
 use segmentation::DOUBLE_FAULT_IST_INDEX;
 use serial::println;
-use spin::Mutex;
+use spin::{lock, Mutex};
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
 
@@ -91,7 +91,7 @@ pub use irq::{register_irq, Irq};
 pub fn init() {
     IDT.load();
     unsafe {
-        let mut pics = PICS.lock();
+        let mut pics = lock!(PICS);
         pics.initialize();
         pics.disable(); // We disable all PIC lines by default.
     }

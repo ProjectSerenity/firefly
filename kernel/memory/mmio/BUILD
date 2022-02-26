@@ -12,11 +12,11 @@ rust_library(
     crate_name = "mmio",
     visibility = ["//kernel:__subpackages__"],
     deps = [
-        crate("spin"),
         crate("x86_64"),
         "//kernel/memory/memlayout",
         "//kernel/memory/physmem",
         "//kernel/memory/virtmem",
+        "//kernel/utils/spin",
     ],
 )
 

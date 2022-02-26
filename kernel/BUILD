@@ -28,7 +28,6 @@ rust_library(
     deps = [
         crate("lazy_static"),
         crate("managed"),
-        crate("spin"),
         crate("volatile"),
         crate("x86_64"),
         "//kernel/cpu",
@@ -50,6 +49,7 @@ rust_library(
         "//kernel/utils/align",
         "//kernel/utils/bitmap_index",
         "//kernel/utils/pretty",
+        "//kernel/utils/spin",
         "//kernel/utils/tar",
         "//shared/syscalls",
         "@bootloader",

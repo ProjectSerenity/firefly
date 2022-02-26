@@ -39,6 +39,7 @@ use core::task::Waker;
 use memlayout::{VirtAddrRange, KERNEL_STACK, KERNEL_STACK_GUARD, USERSPACE};
 use pretty::Bytes;
 use serial::println;
+use spin::lock;
 use time::{Duration, TimeSlice};
 use virtmem::map_pages;
 use x86_64::instructions::interrupts::without_interrupts;
@@ -75,7 +76,7 @@ pub fn per_cpu_init() {
 
     // Create our idle thread.
     let idle = Thread::new_idle_thread(&stack_space);
-    let mut idle_threads = IDLE_THREADS.lock();
+    let mut idle_threads = lock!(IDLE_THREADS);
     if idle_threads.len() != id {
         panic!(
             "thread::init() called for CPU {} with {} CPUs activated",
@@ -87,7 +88,7 @@ pub fn per_cpu_init() {
     idle_threads.push(idle.clone());
     drop(idle_threads);
 
-    let mut current_threads = CURRENT_THREADS.lock();
+    let mut current_threads = lock!(CURRENT_THREADS);
     if current_threads.len() != id {
         panic!(
             "thread::init() called for CPU {} with {} CPUs activated",
@@ -102,14 +103,14 @@ pub fn per_cpu_init() {
 /// Returns a copy of the currently executing thread.
 ///
 pub fn current_thread() -> Arc<Thread> {
-    CURRENT_THREADS.lock()[cpu::id()].clone()
+    lock!(CURRENT_THREADS)[cpu::id()].clone()
 }
 
 /// Returns the kernel thread id of the currently
 /// executing thread.
 ///
 pub fn current_kernel_thread_id() -> ThreadId {
-    CURRENT_THREADS.lock()[cpu::id()].kernel_thread_id()
+    lock!(CURRENT_THREADS)[cpu::id()].kernel_thread_id()
 }
 
 /// Returns a Waker that will resume the current
@@ -227,7 +228,7 @@ pub fn exit() -> ! {
     // to exit.
     without_interrupts(|| {
         current.set_state(ThreadState::Exiting);
-        THREADS.lock().remove(&current.kernel_id);
+        lock!(THREADS).remove(&current.kernel_id);
 
         // We need to drop our handle on the current
         // thread now, as we'll never return from
@@ -531,7 +532,7 @@ impl Thread {
         });
 
         without_interrupts(|| {
-            THREADS.lock().insert(kernel_id, thread);
+            lock!(THREADS).insert(kernel_id, thread);
         });
 
         kernel_id
@@ -580,7 +581,7 @@ impl Thread {
             | PageTableFlags::WRITABLE
             | PageTableFlags::NO_EXECUTE;
 
-        map_pages(pages, &mut *physmem::ALLOCATOR.lock(), flags)
+        map_pages(pages, &mut *lock!(physmem::ALLOCATOR), flags)
             .expect("failed to allocate stack for user thread");
 
         let stack = StackBounds::from_page_range(pages);
@@ -629,7 +630,7 @@ impl Thread {
         });
 
         without_interrupts(|| {
-            THREADS.lock().insert(kernel_id, thread);
+            lock!(THREADS).insert(kernel_id, thread);
         });
 
         kernel_id
@@ -679,7 +680,7 @@ impl Thread {
     /// `set_state` panics if changed to `BeingCreated`.
     ///
     pub fn set_state(&self, new_state: ThreadState) {
-        let scheduler = SCHEDULER.lock();
+        let scheduler = lock!(SCHEDULER);
         unsafe { self.state.get().write(new_state) };
         match new_state {
             ThreadState::BeingCreated => panic!("thread state set to BeingCreated"),

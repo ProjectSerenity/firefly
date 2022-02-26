@@ -17,11 +17,11 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         crate("lazy_static"),
-        crate("spin"),
         crate("x86_64"),
         "//kernel/drivers/serial",
         "//kernel/utils/bitmap_index",
         "//kernel/utils/pretty",
+        "//kernel/utils/spin",
         "@bootloader",
     ],
 )

@@ -58,7 +58,7 @@
 use core::sync::atomic;
 use memlayout::MMIO_SPACE;
 use physmem::ALLOCATOR;
-use spin::Mutex;
+use spin::{lock, Mutex};
 use virtmem::map_frames_to_pages;
 use x86_64::structures::paging::frame::PhysFrameRange;
 use x86_64::structures::paging::page::{Page, PageRange};
@@ -82,7 +82,7 @@ pub fn access_barrier() {
 /// returning the virtual address where the reservation begins.
 ///
 fn reserve_space(size: u64) -> PageRange {
-    let mut start_address = MMIO_START_ADDRESS.lock();
+    let mut start_address = lock!(MMIO_START_ADDRESS);
     let start = *start_address;
 
     // Check we haven't gone outside the bounds
@@ -166,7 +166,7 @@ impl Region {
             | PageTableFlags::GLOBAL
             | PageTableFlags::NO_EXECUTE;
 
-        map_frames_to_pages(frame_range, page_range, &mut *ALLOCATOR.lock(), flags)
+        map_frames_to_pages(frame_range, page_range, &mut *lock!(ALLOCATOR), flags)
             .expect("failed to map MMIO region");
 
         Region {

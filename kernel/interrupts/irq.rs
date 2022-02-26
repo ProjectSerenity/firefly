@@ -17,7 +17,7 @@
 //! method.
 
 use super::{PICS, PIC_1_OFFSET};
-use spin::Mutex;
+use spin::{lock, Mutex};
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::idt::{HandlerFunc, InterruptStackFrame};
 
@@ -78,7 +78,7 @@ impl Irq {
     ///
     pub fn acknowledge(&self) {
         unsafe {
-            PICS.lock().notify_end_of_interrupt(self.interrupt_id());
+            lock!(PICS).notify_end_of_interrupt(self.interrupt_id());
         }
     }
 }
@@ -103,7 +103,7 @@ static IRQS: Mutex<[Option<IrqHandler>; 16]> = Mutex::new([None; 16]);
 pub fn register_irq(irq: Irq, handler: IrqHandler) {
     without_interrupts(|| {
         // Register the handler.
-        let mut irqs = IRQS.lock();
+        let mut irqs = lock!(IRQS);
         if irqs[irq.as_usize()].is_some() {
             panic!("IRQ {:?} has already been registered", irq);
         }
@@ -111,7 +111,7 @@ pub fn register_irq(irq: Irq, handler: IrqHandler) {
         irqs[irq.as_usize()] = Some(handler);
 
         // Enable the PIC line.
-        let mut pics = PICS.lock();
+        let mut pics = lock!(PICS);
         let mut masks = unsafe { pics.read_masks() };
         let (pic, line) = if irq.as_u8() < 8 {
             (0, irq.as_u8())
@@ -135,7 +135,7 @@ pub fn register_irq(irq: Irq, handler: IrqHandler) {
 
 #[inline]
 fn irq_handler_generic(frame: InterruptStackFrame, irq: Irq) {
-    if let Some(handler) = IRQS.lock()[irq.as_usize()] {
+    if let Some(handler) = lock!(IRQS)[irq.as_usize()] {
         handler(frame, irq);
     }
 }

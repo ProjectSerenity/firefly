@@ -23,7 +23,7 @@ use interrupts::{register_irq, Irq};
 use memlayout::{PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
 use multitasking::thread::{current_kernel_thread_id, prevent_next_sleep, suspend, ThreadId};
 use serial::println;
-use spin::Mutex;
+use spin::{lock, Mutex};
 use storage::block::{add_device, Device, Error, Operations};
 use virtmem::virt_to_phys_addrs;
 use x86_64::instructions::interrupts::without_interrupts;
@@ -59,9 +59,9 @@ static REQUESTS: Mutex<BTreeMap<PhysAddr, ThreadId>> = Mutex::new(BTreeMap::new(
 /// the corresponding thread.
 ///
 fn interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
-    let drivers = DRIVERS.lock();
+    let drivers = lock!(DRIVERS);
     if let Some(driver) = &drivers[irq.as_u8() as usize] {
-        let mut dev = driver.lock();
+        let mut dev = lock!(driver);
         if !dev
             .interrupt_status()
             .contains(InterruptStatus::QUEUE_INTERRUPT)
@@ -71,7 +71,7 @@ fn interrupt_handler(_stack_frame: InterruptStackFrame, irq: Irq) {
             return;
         }
 
-        let mut requests = REQUESTS.lock();
+        let mut requests = lock!(REQUESTS);
         loop {
             match dev.recv(REQUEST_VIRTQUEUE) {
                 None => {
@@ -221,11 +221,11 @@ impl Driver {
         let thread_id = current_kernel_thread_id();
         without_interrupts(|| {
             prevent_next_sleep();
-            REQUESTS.lock().insert(first_addr, thread_id);
+            lock!(REQUESTS).insert(first_addr, thread_id);
 
             // Send the buffer to be filled and suspend
             // until the request has been processed.
-            let mut driver = self.driver.lock();
+            let mut driver = lock!(self.driver);
             driver.send(REQUEST_VIRTQUEUE, &buffers[..]).unwrap();
             driver.notify(REQUEST_VIRTQUEUE);
             drop(driver);
@@ -332,11 +332,11 @@ impl Device for Driver {
         let thread_id = current_kernel_thread_id();
         without_interrupts(|| {
             prevent_next_sleep();
-            REQUESTS.lock().insert(first_addr, thread_id);
+            lock!(REQUESTS).insert(first_addr, thread_id);
 
             // Send the buffer to be filled and suspend
             // until the request has been processed.
-            let mut driver = self.driver.lock();
+            let mut driver = lock!(self.driver);
             driver.send(REQUEST_VIRTQUEUE, &[header, trailer]).unwrap();
             driver.notify(REQUEST_VIRTQUEUE);
             drop(driver);
@@ -473,7 +473,7 @@ pub fn install_pci_device(device: pci::Device) {
     let handle = Arc::new(Mutex::new(driver));
     let driver = Driver::new(handle.clone(), operations, capacity as usize, cache);
     without_interrupts(|| {
-        let mut dev = DRIVERS.lock();
+        let mut dev = lock!(DRIVERS);
         dev[irq.as_usize()] = Some(handle);
     });
 

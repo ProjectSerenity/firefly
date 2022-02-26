@@ -18,9 +18,9 @@ rust_library(
     deps = [
         crate("chacha20"),
         crate("sha2"),
-        crate("spin"),
         crate("x86_64"),
         "//kernel/time",
+        "//kernel/utils/spin",
     ],
 )
 

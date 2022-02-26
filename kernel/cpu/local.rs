@@ -46,6 +46,7 @@ use core::arch::asm;
 use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use memlayout::CPU_LOCAL;
 use physmem::ALLOCATOR;
+use spin::lock;
 use virtmem::map_pages;
 use x86_64::registers::model_specific::GsBase;
 use x86_64::structures::paging::{Page, PageTableFlags};
@@ -122,7 +123,7 @@ pub fn global_init() {
         | PageTableFlags::NO_EXECUTE;
 
     // Map our per-CPU address space.
-    map_pages(pages, &mut *ALLOCATOR.lock(), flags).expect("failed to map per-CPU data");
+    map_pages(pages, &mut *lock!(ALLOCATOR), flags).expect("failed to map per-CPU data");
 
     // We don't need to actually initialise the region,
     // as it's easier to do in each CPU and avoids us

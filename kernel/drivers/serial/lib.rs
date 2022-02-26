@@ -27,7 +27,7 @@
 #![no_std]
 
 use core::fmt::Write;
-use spin::Mutex;
+use spin::{lock, Mutex};
 use uart_16550::SerialPort;
 use x86_64::instructions::interrupts::without_interrupts;
 
@@ -53,7 +53,7 @@ pub static COM4: Mutex<SerialPort> = unsafe { Mutex::new(SerialPort::new(0x2e8))
 #[doc(hidden)]
 pub fn _print(args: ::core::fmt::Arguments) {
     without_interrupts(|| {
-        COM1.lock()
+        lock!(COM1)
             .write_fmt(args)
             .expect("Printing to COM1 failed");
     });
