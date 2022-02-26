@@ -22,7 +22,7 @@ extern crate alloc;
 
 mod parse_utils;
 
-use align::align_up_usize;
+use align::{align_down_usize, align_up_usize};
 use alloc::boxed::Box;
 use alloc::string::String;
 use core::cmp::min;
@@ -124,7 +124,7 @@ impl<'a> Reader<'a> {
         // Work out how many complete segments we
         // can read first.
         let total = min(file.size, buf.len());
-        let complete = total & !BLOCK_SIZE; // Align down to block size.
+        let complete = align_down_usize(total, BLOCK_SIZE); // Align down to block size.
         let complete_segments = complete / BLOCK_SIZE;
         if complete_segments > 0 {
             if self.device.read(file.offset, &mut buf[..complete])? != complete {
