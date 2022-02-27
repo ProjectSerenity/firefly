@@ -23,7 +23,7 @@ use core::{fmt, hint};
 /// so large that there will be an unnecessary delay between
 /// a deadlock occurring and being identified.
 ///
-pub const MAX_LOCK_ATTEMPTS: usize = 200_000_000;
+pub const MAX_LOCK_ATTEMPTS: usize = 500_000_000;
 
 /// A spinlock providing mutually-exclusive access to data.
 ///
