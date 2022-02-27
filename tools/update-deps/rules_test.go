@@ -57,6 +57,13 @@ func TestParseRulesBzl(t *testing.T) {
 			SHA256:  "d6b2513456fe2229811da7eb67a444be7785f5323c6708b38d851d2b51e54d83",
 		},
 		{
+			Name:    "rules_pkg",
+			Repo:    "bazelbuild/rules_pkg",
+			Archive: "https://github.com/bazelbuild/rules_pkg/releases/download/{v}/rules_pkg-{v}.tar.gz",
+			Version: "0.4.0",
+			SHA256:  "038f1caa773a7e35b3663865ffb003169c6a71dc995e39bf4815792f385d837d",
+		},
+		{
 			Name:    "com_google_protobuf",
 			Repo:    "protocolbuffers/protobuf",
 			Archive: "https://github.com/protocolbuffers/protobuf/archive/v{v}.zip",

@@ -37,6 +37,14 @@ RULES_GO = struct(
     sha256 = "d6b2513456fe2229811da7eb67a444be7785f5323c6708b38d851d2b51e54d83",
 )
 
+RULES_PKG = struct(
+    name = "rules_pkg",
+    repo = "bazelbuild/rules_pkg",
+    archive = "https://github.com/bazelbuild/rules_pkg/releases/download/{v}/rules_pkg-{v}.tar.gz",
+    version = "0.4.0",
+    sha256 = "038f1caa773a7e35b3663865ffb003169c6a71dc995e39bf4815792f385d837d",
+)
+
 RULES_PROTOBUF = struct(
     name = "com_google_protobuf",
     repo = "protocolbuffers/protobuf",
@@ -111,4 +119,10 @@ def rules_deps():
         sha256 = RULES_RUST.sha256,
         strip_prefix = "rules_rust-{v}".format(v = RULES_RUST.version),
         urls = [RULES_RUST.archive.format(v = RULES_RUST.version)],
+    )
+
+    http_archive(
+        name = RULES_PKG.name,
+        sha256 = RULES_PKG.sha256,
+        urls = [RULES_PKG.archive.format(v = RULES_PKG.version)],
     )
