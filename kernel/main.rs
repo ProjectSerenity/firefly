@@ -13,11 +13,15 @@
 
 extern crate alloc;
 
+use alloc::{format, vec};
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use multitasking::scheduler;
+use filesystem::{FileType, Permissions};
+use multitasking::process::Process;
 use multitasking::thread::Thread;
+use multitasking::{scheduler, with_processes};
 use serial::println;
+use storage::block;
 use virtmem::with_page_tables;
 
 /// This function is called on panic.
@@ -51,12 +55,48 @@ fn kmain(boot_info: &'static BootInfo) -> ! {
 fn initial_workload() -> ! {
     println!("Starting initial workload.");
 
-    let mut buf = [0u8; 16];
-    println!("RNG before: {:02x?}", buf.to_vec());
-    random::read(&mut buf[..]);
-    println!("RNG after:  {:02x?}", buf.to_vec());
+    block::iter(|dev| {
+        let mut reader = tar::Reader::new(dev);
+        let initial_workload = (&mut reader)
+            .filter(|f| {
+                let info = f.info();
+                info.size > 0
+                    && info.file_type == FileType::RegularFile
+                    && info.permissions.contains(Permissions::EXECUTE)
+                    && info.name == "./initial-workload"
+            })
+            .next()
+            .expect("initial workload not found");
 
-    kernel::shutdown_qemu();
+        let info = initial_workload.info();
+        let mut data = vec![0u8; info.size];
+        let n = reader
+            .read(&initial_workload, &mut data[..])
+            .expect(format!("failed to read {}", info.name).as_str());
+        if n != info.size {
+            panic!(
+                "failed to read {}: got {} bytes, want {}",
+                info.name, n, info.size
+            );
+        }
+
+        match Process::create_user_process(&data[..]) {
+            Ok((_, thread_id)) => {
+                thread_id.resume();
+            }
+            Err(s) => panic!("failed to start process: {:?}", s),
+        }
+    });
+
+    // Hand off to the scheduler, until all
+    // processes have exited.
+    loop {
+        scheduler::switch();
+        if with_processes(|p| p.len()) == 0 {
+            println!("All user processes have exited. Shutting down.");
+            kernel::shutdown_qemu();
+        }
+    }
 }
 
 #[allow(dead_code)]
