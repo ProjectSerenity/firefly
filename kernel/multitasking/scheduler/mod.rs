@@ -20,7 +20,7 @@ pub mod timers;
 
 use crate::switch::switch_stack;
 use crate::thread::{current_thread, KernelThreadId, Thread, ThreadState};
-use crate::{CURRENT_THREADS, IDLE_THREADS, SCHEDULER, THREADS};
+use crate::{CURRENT_THREADS, IDLE_THREADS, PROCESSES, SCHEDULER, THREADS};
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use core::arch::asm;
@@ -28,7 +28,9 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use segmentation::with_segment_data;
 use spin::{lock, Mutex};
 use time::{after, Duration};
+use virtmem::kernel_level4_page_table;
 use x86_64::instructions::interrupts;
+use x86_64::registers::control::{Cr3, Cr3Flags};
 
 /// Scheduler is a basic thread scheduler.
 ///
@@ -172,6 +174,16 @@ fn set_current_thread(thread: Arc<Thread>) {
     with_segment_data(|data| data.set_interrupt_stack(interrupt_stack));
     cpu::set_syscall_stack_pointer(thread.syscall_stack());
     cpu::set_user_stack_pointer(thread.user_stack());
+
+    // Switch level 4 page table.
+    let page_table = if let Some(page_table) = thread.page_table() {
+        page_table
+    } else {
+        kernel_level4_page_table()
+    };
+
+    unsafe { Cr3::write(page_table, Cr3Flags::empty()) };
+
     lock!(CURRENT_THREADS)[cpu::id()] = thread;
 }
 
@@ -262,6 +274,24 @@ pub fn switch() {
     // be given our stack. As a result, we use a jump, rather
     // than a function call, to avoid using our stack.
     if current.thread_state() == ThreadState::Exiting {
+        // Drop the current process if the last thread is
+        // exiting.
+        if let Some(kernel_process_id) = current.kernel_process_id() {
+            let process_thread_id = current.process_thread_id().unwrap();
+            let mut processes = lock!(PROCESSES);
+            let process = processes
+                .get_mut(&kernel_process_id)
+                .expect("invalid process owning exiting thread");
+            process.remove_thread(process_thread_id);
+
+            // Determine whether to exit the process too.
+            let exiting_process = process.thread_iter().len() == 0;
+            if exiting_process {
+                processes.remove(&kernel_process_id);
+            }
+        }
+
+        // Drop the thread.
         debug_assert!(Arc::strong_count(&current) == 1);
         drop(current);
         unsafe {

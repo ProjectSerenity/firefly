@@ -10,6 +10,7 @@ rust_library(
     name = "multitasking",
     srcs = [
         "lib.rs",
+        "process/mod.rs",
         "scheduler/mod.rs",
         "scheduler/timers.rs",
         "switch.rs",
@@ -24,6 +25,7 @@ rust_library(
     deps = [
         crate("lazy_static"),
         crate("x86_64"),
+        crate("xmas-elf"),
         "//kernel/cpu",
         "//kernel/drivers/serial",
         "//kernel/memory/memlayout",

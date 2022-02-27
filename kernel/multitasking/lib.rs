@@ -26,17 +26,20 @@
 
 extern crate alloc;
 
+pub mod process;
 pub mod scheduler;
 mod switch;
 pub mod thread;
 
+use crate::process::{KernelProcessId, Process};
 use crate::scheduler::Scheduler;
 use crate::thread::{KernelThreadId, Thread};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use lazy_static::lazy_static;
-use spin::Mutex;
+use spin::{lock, Mutex};
+use x86_64::instructions::interrupts::without_interrupts;
 
 // State shared throughout the crate.
 
@@ -44,6 +47,23 @@ lazy_static! {
     /// SCHEDULER is the thread scheduler.
     ///
     static ref SCHEDULER: Mutex<Scheduler> = Mutex::new(Scheduler::new());
+}
+
+type ProcessTable = BTreeMap<KernelProcessId, Process>;
+
+/// PROCESSES stores all living processes, referencing them
+/// by their process id.
+///
+static PROCESSES: Mutex<ProcessTable> = Mutex::new(BTreeMap::new());
+
+/// Provides access to the set of all processes.
+///
+pub fn with_processes<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut BTreeMap<KernelProcessId, Process>) -> R,
+{
+    let mut processes = without_interrupts(|| lock!(PROCESSES));
+    f(&mut *processes)
 }
 
 type ThreadTable = BTreeMap<KernelThreadId, Arc<Thread>>;

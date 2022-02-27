@@ -26,6 +26,7 @@
 
 mod stacks;
 
+use crate::process::{KernelProcessId, Process, ProcessThreadId};
 use crate::scheduler::timers;
 use crate::switch::{start_kernel_thread, start_user_thread};
 use crate::thread::stacks::{free_kernel_stack, new_kernel_stack, StackBounds};
@@ -34,16 +35,17 @@ use alloc::sync::Arc;
 use alloc::task::Wake;
 use core::arch::asm;
 use core::cell::UnsafeCell;
+use core::ptr::write_bytes;
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::Waker;
-use memlayout::{VirtAddrRange, KERNEL_STACK, KERNEL_STACK_GUARD, USERSPACE};
+use memlayout::{phys_to_virt_addr, VirtAddrRange, KERNEL_STACK, KERNEL_STACK_GUARD, USERSPACE};
+use physmem::ALLOCATOR;
 use pretty::Bytes;
 use serial::println;
 use spin::lock;
 use time::{Duration, TimeSlice};
-use virtmem::map_pages;
 use x86_64::instructions::interrupts::without_interrupts;
-use x86_64::structures::paging::{Page, PageSize, PageTableFlags, Size4KiB};
+use x86_64::structures::paging::{Page, PageSize, PageTableFlags, PhysFrame, Size4KiB};
 use x86_64::VirtAddr;
 
 /// The amount of CPU time given to threads when they are scheduled.
@@ -364,6 +366,20 @@ pub struct Thread {
     // id 0.
     kernel_id: KernelThreadId,
 
+    // This thread's unique id according to the process
+    // that owns it. Kernel threads have no process
+    // thread id.
+    process_id: Option<ProcessThreadId>,
+
+    // The process that owns this thread. Kernel threads
+    // have no owning process.
+    process: Option<KernelProcessId>,
+
+    // The level 4 page table for this thread's owning
+    // process, or `None` for kernel threads (which can
+    // use any page table).
+    page_table: Option<PhysFrame<Size4KiB>>,
+
     // The thread's current state.
     state: UnsafeCell<ThreadState>,
 
@@ -445,6 +461,9 @@ impl Thread {
         // The idle thread always has thread id 0, which
         // is otherwise invalid.
         let kernel_id = KernelThreadId::IDLE;
+        let process_id = None;
+        let process = None;
+        let page_table = None;
 
         // The initial stack pointer is 0, as the idle
         // thread inherits the kernel's initial stack.
@@ -466,6 +485,9 @@ impl Thread {
 
         Arc::new(Thread {
             kernel_id,
+            process_id,
+            process,
+            page_table,
             state: UnsafeCell::new(ThreadState::Runnable),
             time_slice: UnsafeCell::new(TimeSlice::ZERO),
             interrupt_stack: None,
@@ -521,8 +543,14 @@ impl Thread {
         };
 
         let kernel_id = KernelThreadId::new();
+        let process_id = None;
+        let process = None;
+        let page_table = None;
         let thread = Arc::new(Thread {
             kernel_id,
+            process_id,
+            process,
+            page_table,
             state: UnsafeCell::new(ThreadState::BeingCreated),
             time_slice: UnsafeCell::new(DEFAULT_TIME_SLICE),
             interrupt_stack: None,
@@ -561,7 +589,11 @@ impl Thread {
     /// When the thread runs, it will start by enabling
     /// interrupts and calling `entry_point`.
     ///
-    pub fn create_user_thread(entry_point: VirtAddr) -> KernelThreadId {
+    pub(crate) fn create_user_thread(
+        entry_point: VirtAddr,
+        process: &mut Process,
+        process_id: ProcessThreadId,
+    ) -> KernelThreadId {
         // Allocate and prepare the stack pointer.
         // We place the stack at the end of userspace, growing
         // downwards. We need to be careful not to add 1 to the
@@ -582,8 +614,11 @@ impl Thread {
             | PageTableFlags::WRITABLE
             | PageTableFlags::NO_EXECUTE;
 
-        map_pages(pages, &mut *lock!(physmem::ALLOCATOR), flags)
+        let mut allocator = lock!(ALLOCATOR);
+        let stack_frames = process
+            .map_pages(pages, &mut *allocator, flags)
             .expect("failed to allocate stack for user thread");
+        drop(allocator);
 
         let stack = StackBounds::from_page_range(pages);
         let int_stack = new_kernel_stack(KERNEL_STACK_PAGES as u64)
@@ -591,8 +626,18 @@ impl Thread {
         let sys_stack = new_kernel_stack(KERNEL_STACK_PAGES as u64)
             .expect("failed to allocate syscall stack for new user thread");
 
+        // Zero the stack so we don't leak stale memory.
+        for frame in stack_frames.iter() {
+            let virt = phys_to_virt_addr(frame.start_address());
+            unsafe { write_bytes(virt.as_mut_ptr::<u8>(), 0x00, frame.size() as usize) };
+        }
+
         let rsp = unsafe {
-            let mut rsp: *mut u64 = stack.end().as_mut_ptr();
+            // Get a virtual address for the end of the
+            // last physical frame.
+            let frame = stack_frames[stack_frames.len() - 1];
+            let virt = phys_to_virt_addr(frame.start_address() + (frame.size() - 1));
+            let mut rsp: *mut u64 = virt.as_mut_ptr();
 
             // The stack pointer starts out pointing to
             // the last address in range, which is not
@@ -615,18 +660,25 @@ impl Thread {
             rsp = push_stack(rsp, 0); // Initial R15.
             rsp = push_stack(rsp, DEFAULT_RFLAGS); // RFLAGS (interrupts disabled).
 
-            rsp
+            // Work out the virtual address by taking
+            // the difference between rsp and virt,
+            // then subtracting that from stack_top.
+            let stack_offset = (virt - VirtAddr::from_ptr(rsp)) - 7;
+            stack_top - stack_offset
         };
 
         let kernel_id = KernelThreadId::new();
         let thread = Arc::new(Thread {
             kernel_id,
+            process_id: Some(process_id),
+            process: Some(process.kernel_process_id()),
+            page_table: Some(process.page_table()),
             state: UnsafeCell::new(ThreadState::BeingCreated),
             time_slice: UnsafeCell::new(DEFAULT_TIME_SLICE),
             interrupt_stack: Some(int_stack),
             syscall_stack: Some(sys_stack),
             user_stack_pointer: UnsafeCell::new(VirtAddr::zero()),
-            stack_pointer: UnsafeCell::new(rsp as u64),
+            stack_pointer: UnsafeCell::new(rsp.as_u64()),
             stack_bounds: Some(stack),
         });
 
@@ -644,6 +696,31 @@ impl Thread {
     ///
     pub fn kernel_thread_id(&self) -> KernelThreadId {
         self.kernel_id
+    }
+
+    /// Returns the thread's unique `ProcessThreadId`,
+    /// or `None` for a kernel thread.
+    ///
+    /// This `ProcessThreadId` represents the unique identifier
+    /// for this thread within its owning process.
+    ///
+    pub fn process_thread_id(&self) -> Option<ProcessThreadId> {
+        self.process_id
+    }
+
+    /// Returns the [`KernelProcessId`] for the process that
+    /// owns this thread, or `None` for kernel threads.
+    ///
+    pub fn kernel_process_id(&self) -> Option<KernelProcessId> {
+        self.process
+    }
+
+    /// Returns this thread's level 4 page table, or
+    /// `None` for kernel threads (which can use any
+    /// page table).
+    ///
+    pub(crate) fn page_table(&self) -> Option<PhysFrame<Size4KiB>> {
+        self.page_table
     }
 
     /// Returns the thread's current scheduling state.
