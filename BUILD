@@ -58,6 +58,7 @@ alias(
 # Allow the image to be run in Qemu with `bazel run //:qemu`.
 qemu(
     name = "qemu",
+    drive = "//user/initial-workload:tar",
     image = "//bootimage:image.bin",
     options = [
         "-drive",
