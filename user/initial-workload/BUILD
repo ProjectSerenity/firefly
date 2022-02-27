@@ -4,6 +4,7 @@
 # license that can be found in the LICENSE file.
 
 load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_pkg//:pkg.bzl", "pkg_tar")
 load("//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_binary")
 
 cc_binary(
@@ -18,5 +19,13 @@ cc_binary(
 x86_64_bare_metal_rust_binary(
     name = "initial-workload",
     rust_binary = ":binary",
+    visibility = ["//visibility:public"],
+)
+
+pkg_tar(
+    name = "tar",
+    files = {
+        ":initial-workload": "initial-workload",
+    },
     visibility = ["//visibility:public"],
 )
