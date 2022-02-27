@@ -285,11 +285,13 @@ pub fn switch() {
 /// is now runnable.
 ///
 pub fn resume(thread_id: KernelThreadId) -> bool {
-    match lock!(THREADS).get(&thread_id) {
+    let threads = lock!(THREADS);
+    match threads.get(&thread_id) {
         None => false,
         Some(thread) => match thread.thread_state() {
             ThreadState::BeingCreated => {
                 thread.set_state(ThreadState::Runnable);
+                drop(threads);
                 lock!(SCHEDULER).add(thread_id);
                 true
             }
@@ -301,6 +303,7 @@ pub fn resume(thread_id: KernelThreadId) -> bool {
             ThreadState::Insomniac => true,
             ThreadState::Sleeping => {
                 thread.set_state(ThreadState::Runnable);
+                drop(threads);
                 lock!(SCHEDULER).add(thread_id);
                 true
             }
