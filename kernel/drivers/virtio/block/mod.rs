@@ -111,6 +111,7 @@ enum Type {
 
 /// Describes the result of a request to the device.
 ///
+#[derive(Debug)]
 enum Status {
     // The operation was successful.
     Ok = 0,
