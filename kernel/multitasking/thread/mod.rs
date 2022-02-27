@@ -671,11 +671,8 @@ impl Thread {
         unsafe { self.state.get().write(new_state) };
         match new_state {
             ThreadState::BeingCreated => panic!("thread state set to BeingCreated"),
-            ThreadState::Runnable => {}
-            ThreadState::Drowsy => {}
-            ThreadState::Insomniac => {}
-            ThreadState::Sleeping => lock!(SCHEDULER).remove(self.kernel_id),
-            ThreadState::Exiting => lock!(SCHEDULER).remove(self.kernel_id),
+            ThreadState::Runnable | ThreadState::Drowsy | ThreadState::Insomniac => {}
+            ThreadState::Sleeping | ThreadState::Exiting => lock!(SCHEDULER).remove(self.kernel_id),
         }
     }
 
