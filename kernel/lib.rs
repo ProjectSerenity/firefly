@@ -31,7 +31,7 @@
 //! - [memory/mmio](::mmio)
 //! - [memory/physmem](::physmem)
 //! - [memory/virtmem](::virtmem)
-//! - [multitasking/thread](::multitasking::thread)
+//! - [multitasking](::multitasking)
 //! - [network](::network)
 //! - [random](::random)
 //! - [segmentation](::segmentation)
@@ -40,6 +40,7 @@
 //! - [utils/align](::align)
 //! - [utils/bitmap_index](::bitmap_index)
 //! - [utils/pretty](::pretty)
+//! - [utils/spin](::spin)
 //! - [utils/tar](::tar)
 
 #![no_std]
