@@ -6,7 +6,7 @@
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 
-GO_VERSION = "1.17.7"
+GO_VERSION = "1.17.8"
 
 def go_deps():
     go_rules_dependencies()
