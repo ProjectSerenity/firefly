@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"path"
 	"path/filepath"
 	"testing"
 )
@@ -112,7 +111,7 @@ func TestCheckLatestRule(t *testing.T) {
 	// captured copy of an actual response.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/bazelbuild/buildtools.json" {
-			http.ServeFile(w, r, path.Join("testdata", "buildtools.json"))
+			http.ServeFile(w, r, filepath.Join("testdata", "buildtools.json"))
 		} else {
 			http.NotFound(w, r)
 		}
