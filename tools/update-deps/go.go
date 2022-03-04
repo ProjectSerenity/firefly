@@ -215,7 +215,7 @@ func cmdGo(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("Failed to write updated %s: %v", bzlPath, err)
 	}
 
-	if len(updated) == 0 {
+	if len(updated) == 1 {
 		fmt.Fprintf(w, "Updated %s.\n", updated[0])
 	} else {
 		fmt.Fprintf(w, "Updated:\n  %s\n", strings.Join(updated, "\n  "))
