@@ -25,7 +25,7 @@ rust_library(
     name = "uart_16550",
     deps = [
         "@crates__bitflags__1_3_2//:bitflags",
-        "@crates__x86_64__0_14_7//:x86_64",
+        "@crates__x86_64__0_14_8//:x86_64",
     ],
     srcs = glob(["**/*.rs"]),
     crate_root = "src/lib.rs",

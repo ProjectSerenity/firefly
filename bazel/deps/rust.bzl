@@ -99,11 +99,11 @@ RUST_CRATES = [
     ),
     crate.spec(
         name = "libc",
-        semver = "=0.2.117",
+        semver = "=0.2.119",
     ),
     crate.spec(
         name = "linked_list_allocator",
-        semver = "=0.9.0",
+        semver = "=0.9.1",
     ),
     crate.spec(
         name = "llvm-tools",
@@ -119,7 +119,7 @@ RUST_CRATES = [
     ),
     crate.spec(
         name = "pic8259",
-        semver = "=0.10.1",
+        semver = "=0.10.2",
     ),
     crate.spec(
         name = "raw-cpuid",
@@ -131,12 +131,12 @@ RUST_CRATES = [
     ),
     crate.spec(
         name = "serde",
-        semver = "=1.0.116",
+        semver = "=1.0.136",
         features = ["alloc"],
     ),
     crate.spec(
         name = "sha2",
-        semver = "=0.10.1",
+        semver = "=0.10.2",
         features = ["force-soft"],
     ),
     crate.spec(
@@ -145,11 +145,11 @@ RUST_CRATES = [
     ),
     crate.spec(
         name = "thiserror",
-        semver = "=1.0.16",
+        semver = "=1.0.30",
     ),
     crate.spec(
         name = "toml",
-        semver = "=0.5.6",
+        semver = "=0.5.8",
     ),
     crate.spec(
         name = "usize_conversions",
@@ -161,11 +161,11 @@ RUST_CRATES = [
     ),
     crate.spec(
         name = "x86_64",
-        semver = "=0.14.7",
+        semver = "=0.14.8",
     ),
     crate.spec(
         name = "xmas-elf",
-        semver = "=0.6.2",
+        semver = "=0.8.0",
     ),
     crate.spec(
         name = "zero",

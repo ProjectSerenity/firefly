@@ -38,7 +38,7 @@ rust_library(
     deps = [
         "@crates__bitflags__1_3_2//:bitflags",
         "@crates__byteorder__1_4_3//:byteorder",
-        "@crates__libc__0_2_117//:libc",
+        "@crates__libc__0_2_119//:libc",
         "@crates__managed__0_8_0//:managed",
         "@rand_core",
     ],
