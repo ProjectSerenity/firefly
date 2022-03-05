@@ -41,8 +41,8 @@ RULES_PKG = struct(
     name = "rules_pkg",
     repo = "bazelbuild/rules_pkg",
     archive = "https://github.com/bazelbuild/rules_pkg/releases/download/{v}/rules_pkg-{v}.tar.gz",
-    version = "0.4.0",
-    sha256 = "038f1caa773a7e35b3663865ffb003169c6a71dc995e39bf4815792f385d837d",
+    version = "0.6.0",
+    sha256 = "62eeb544ff1ef41d786e329e1536c1d541bb9bcad27ae984d57f18f314018e66",
 )
 
 RULES_PROTOBUF = struct(
