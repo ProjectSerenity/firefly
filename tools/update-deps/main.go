@@ -149,6 +149,7 @@ func UnmarshalFields(call *build.CallExpr, v interface{}) error {
 	type FieldData struct {
 		Name     string
 		Optional bool
+		Ignore   bool
 		Value    *string
 		Ptr      **string
 	}
@@ -167,9 +168,13 @@ func UnmarshalFields(call *build.CallExpr, v interface{}) error {
 
 		name, ok := typeField.Tag.Lookup("bzl")
 		optional := false
+		ignore := false
 		if strings.HasSuffix(name, ",optional") {
 			optional = true
 			name = strings.TrimSuffix(name, ",optional")
+		} else if strings.HasSuffix(name, ",ignore") {
+			ignore = true
+			name = strings.TrimSuffix(name, ",ignore")
 		}
 
 		if !ok {
@@ -187,6 +192,7 @@ func UnmarshalFields(call *build.CallExpr, v interface{}) error {
 		field := &FieldData{
 			Name:     name,
 			Optional: optional,
+			Ignore:   ignore,
 			Value:    valPtr,
 			Ptr:      ptrPtr,
 		}
@@ -218,6 +224,10 @@ func UnmarshalFields(call *build.CallExpr, v interface{}) error {
 			return fmt.Errorf("field %d in the call has unexpected field %q", i, lhs.Name)
 		}
 
+		if field.Ignore {
+			continue
+		}
+
 		if *field.Ptr != nil {
 			return fmt.Errorf("field %d in the call assigns to %s for the second time", i, lhs.Name)
 		}
@@ -234,7 +244,7 @@ func UnmarshalFields(call *build.CallExpr, v interface{}) error {
 	// Check we've got values for all required
 	// fields.
 	for _, field := range fields {
-		if field.Optional {
+		if field.Optional || field.Ignore {
 			continue
 		}
 
