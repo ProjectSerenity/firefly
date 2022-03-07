@@ -31,9 +31,9 @@ load("//bazel/deps:defs.bzl", "go_deps", "rust_deps")
 
 rust_deps()
 
-load("@crates//:defs.bzl", "pinned_rust_install")
+load("@crates//:defs.bzl", "crate_repositories")
 
-pinned_rust_install()
+crate_repositories()
 
 # gazelle:repository go_repository name=org_golang_x_sys importpath=golang.org/x/sys
 

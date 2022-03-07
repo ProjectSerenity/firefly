@@ -3,7 +3,6 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@crates//:defs.bzl", "crate")
 load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rust_test")
 
 rust_library(
@@ -16,11 +15,11 @@ rust_library(
     crate_name = "random",
     visibility = ["//kernel:__subpackages__"],
     deps = [
-        crate("chacha20"),
-        crate("sha2"),
-        crate("x86_64"),
         "//kernel/time",
         "//kernel/utils/spin",
+        "@crates//:chacha20",
+        "@crates//:sha2",
+        "@crates//:x86_64",
     ],
 )
 
@@ -39,6 +38,6 @@ rust_test(
     size = "small",
     crate = ":random",
     proc_macro_deps = [
-        crate("hex-literal"),
+        "@crates//:hex-literal",
     ],
 )

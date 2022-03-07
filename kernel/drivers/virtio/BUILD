@@ -3,7 +3,6 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@crates//:defs.bzl", "crate")
 load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library")
 
 rust_library(
@@ -23,8 +22,6 @@ rust_library(
     crate_name = "virtio",
     visibility = ["//kernel:__subpackages__"],
     deps = [
-        crate("bitflags"),
-        crate("x86_64"),
         "//kernel/drivers/pci",
         "//kernel/drivers/serial",
         "//kernel/interrupts",
@@ -39,7 +36,9 @@ rust_library(
         "//kernel/utils/align",
         "//kernel/utils/bitmap_index",
         "//kernel/utils/spin",
-        "@smoltcp",
+        "@crates//:bitflags",
+        "@crates//:smoltcp",
+        "@crates//:x86_64",
     ],
 )
 

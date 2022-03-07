@@ -30,6 +30,8 @@ Once Bazel and the above host tools are prepared, the following commands are com
 - `bazel run //:update-deps`: Update managed dependencies.
 - `bazel run //:qemu`:        Build a bootable disk image and run it in Qemu.
 
+When the set of external Rust crates changes, such as by updating crates, or updating rules_rust, the lockfile for external crates needs to be updated using: `CARGO_BAZEL_REPIN=true bazel build @crates//...`.
+
 ## FAQ
 
 ### Why make a new OS?

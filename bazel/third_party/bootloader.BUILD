@@ -4,7 +4,6 @@
 # license that can be found in the LICENSE file.
 
 load("@//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_binary")
-load("@crates//:defs.bzl", "crate")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
 
@@ -112,8 +111,8 @@ rust_binary(
     edition = "2018",
     visibility = ["//visibility:private"],
     deps = [
-        crate("toml"),
-        crate("llvm-tools"),
+        "@crates//:llvm-tools",
+        "@crates//:toml",
     ],
 )
 
@@ -184,8 +183,8 @@ cargo_build_script(
     version = "0.9.21",
     visibility = ["//visibility:private"],
     deps = [
-        crate("toml"),
-        crate("llvm-tools"),
+        "@crates//:llvm-tools",
+        "@crates//:toml",
     ],
 )
 
@@ -249,14 +248,14 @@ rust_binary(
     version = "0.9.21",
     visibility = ["//visibility:public"],
     deps = [
-        crate("bit_field"),
-        crate("fixedvec"),
-        crate("rlibc"),
-        crate("usize_conversions"),
-        crate("x86_64"),
-        crate("xmas-elf"),
         ":bootloader",
         ":bootloader_build_script",
+        "@crates//:bit_field",
+        "@crates//:fixedvec",
+        "@crates//:rlibc",
+        "@crates//:usize_conversions",
+        "@crates//:x86_64",
+        "@crates//:xmas-elf",
     ],
 )
 

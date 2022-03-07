@@ -3,7 +3,6 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@crates//:defs.bzl", "crate")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_doc", "rust_library")
 load("//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_binary")
 
@@ -26,10 +25,6 @@ rust_library(
     edition = "2018",
     visibility = ["//visibility:private"],
     deps = [
-        crate("lazy_static"),
-        crate("managed"),
-        crate("volatile"),
-        crate("x86_64"),
         "//kernel/cpu",
         "//kernel/drivers/pci",
         "//kernel/drivers/serial",
@@ -53,7 +48,11 @@ rust_library(
         "//kernel/utils/tar",
         "//shared/syscalls",
         "@bootloader",
-        "@smoltcp",
+        "@crates//:lazy_static",
+        "@crates//:managed",
+        "@crates//:smoltcp",
+        "@crates//:volatile",
+        "@crates//:x86_64",
     ],
 )
 

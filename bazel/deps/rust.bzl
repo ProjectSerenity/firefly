@@ -4,8 +4,8 @@
 # license that can be found in the LICENSE file.
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-load("@rules_rust//crate_universe:bootstrap.bzl", "crate_universe_bootstrap")
-load("@rules_rust//crate_universe:defs.bzl", "crate", "crate_universe")
+load("@rules_rust//crate_universe:crates.bzl", "crate_deps_repository")
+load("@rules_rust//crate_universe:defs.bzl", "crate", "crates_repository")
 load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_register_toolchains")
 
 RUST_VERSION = "nightly"
@@ -37,141 +37,133 @@ RUST_RUSTFMT = struct(
     sum = "6cd904d0413a858a6073f1a553d2aa46e32124574da996dcd0d8aaeb706bd035",
 )
 
-RUST_CRATE_OVERRIDES = {
-    "byteorder": crate.override(
-        features_to_remove = ["std"],
-    ),
-    "crypto-common": crate.override(
-        features_to_remove = ["std"],
-    ),
-    "digest": crate.override(
-        features_to_remove = ["std"],
-    ),
-    "managed": crate.override(
-        features_to_remove = ["std"],
-    ),
-    "rand": crate.override(
-        features_to_remove = [
-            "std",
-            "std_rng",
-        ],
-    ),
-    "serde": crate.override(
-        features_to_remove = ["std"],
-    ),
-    "sha2": crate.override(
-        features_to_remove = ["std"],
-    ),
-    "toml": crate.override(
-        features_to_remove = ["indexmap"],
-    ),
+RUST_CRATE_ANNOTATIONS = {
+    "chacha20": [crate.annotation(
+        deps = ["@crates//:cpufeatures"],
+    )],
+    "uart_16550": [crate.annotation(
+        deps = ["@crates//:x86_64"],
+    )],
 }
 
-RUST_CRATES = [
-    crate.spec(
-        name = "bitflags",
-        semver = "=1.3.2",
+# After chaning any of these, the next build will
+# need to be run with CARGO_BAZEL_REPIN=true.
+RUST_CRATES = {
+    "bit_field": crate.spec(
+        version = "=0.10.1",
     ),
-    crate.spec(
-        name = "bit_field",
-        semver = "=0.10.1",
+    "bitflags": crate.spec(
+        version = "=1.3.2",
     ),
-    crate.spec(
-        name = "byteorder",
-        semver = "=1.4.3",
+    "byteorder": crate.spec(
+        default_features = False,
+        version = "=1.4.3",
     ),
-    crate.spec(
-        name = "chacha20",
-        semver = "=0.8.1",
+    "chacha20": crate.spec(
+        version = "=0.9.0",
     ),
-    crate.spec(
-        name = "fixedvec",
-        semver = "=0.2.4",
+    "cpufeatures": crate.spec(
+        version = "=0.2.1",
     ),
-    crate.spec(
-        name = "hex-literal",
-        semver = "=0.3.4",
+    "digest": crate.spec(
+        #default_features = False,
+        version = "=0.10.3",
     ),
-    crate.spec(
-        name = "lazy_static",
-        semver = "=1.4.0",
+    "fixedvec": crate.spec(
+        version = "=0.2.4",
+    ),
+    "hex-literal": crate.spec(
+        version = "=0.3.4",
+    ),
+    "lazy_static": crate.spec(
         features = ["spin_no_std"],
+        version = "=1.4.0",
     ),
-    crate.spec(
-        name = "libc",
-        semver = "=0.2.119",
+    "libc": crate.spec(
+        version = "=0.2.119",
     ),
-    crate.spec(
-        name = "linked_list_allocator",
-        semver = "=0.9.1",
+    "linked_list_allocator": crate.spec(
+        version = "=0.9.1",
     ),
-    crate.spec(
-        name = "llvm-tools",
-        semver = "=0.1.1",
+    "llvm-tools": crate.spec(
+        version = "=0.1.1",
     ),
-    crate.spec(
-        name = "managed",
-        semver = "=0.8",
+    "managed": crate.spec(
+        default_features = False,
         features = [
             "alloc",
             "map",
         ],
+        version = "=0.8",
     ),
-    crate.spec(
-        name = "pic8259",
-        semver = "=0.10.2",
+    "pic8259": crate.spec(
+        version = "=0.10.2",
     ),
-    crate.spec(
-        name = "raw-cpuid",
-        semver = "=10.2.0",
+    "rand": crate.spec(
+        default_features = False,
+        version = "=0.8.5",
     ),
-    crate.spec(
-        name = "rlibc",
-        semver = "=1.0.0",
+    "raw-cpuid": crate.spec(
+        version = "=10.2.0",
     ),
-    crate.spec(
-        name = "serde",
-        semver = "=1.0.136",
+    "rlibc": crate.spec(
+        version = "=1.0.0",
+    ),
+    "serde": crate.spec(
+        default_features = False,
         features = ["alloc"],
+        version = "=1.0.136",
     ),
-    crate.spec(
-        name = "sha2",
-        semver = "=0.10.2",
+    "sha2": crate.spec(
+        default_features = False,
         features = ["force-soft"],
+        version = "=0.10.2",
     ),
-    crate.spec(
-        name = "spin",
-        semver = "=0.9.2",
+    "smoltcp": crate.spec(
+        default_features = False,
+        features = [
+            "alloc",
+            "async",
+            "libc",
+            "medium-ethernet",
+            "proto-dhcpv4",
+            "proto-ipv4",
+            "socket",
+            "socket-dhcpv4",
+            "socket-raw",
+            "socket-tcp",
+            "socket-udp",
+        ],
+        version = "=0.8.0",
     ),
-    crate.spec(
-        name = "thiserror",
-        semver = "=1.0.30",
+    "spin": crate.spec(
+        version = "=0.9.2",
     ),
-    crate.spec(
-        name = "toml",
-        semver = "=0.5.8",
+    "thiserror": crate.spec(
+        version = "=1.0.30",
     ),
-    crate.spec(
-        name = "usize_conversions",
-        semver = "=0.2.0",
+    "toml": crate.spec(
+        version = "=0.5.8",
     ),
-    crate.spec(
-        name = "volatile",
-        semver = "=0.4.4",
+    "uart_16550": crate.spec(
+        version = "=0.2.16",
     ),
-    crate.spec(
-        name = "x86_64",
-        semver = "=0.14.8",
+    "usize_conversions": crate.spec(
+        version = "=0.2.0",
     ),
-    crate.spec(
-        name = "xmas-elf",
-        semver = "=0.8.0",
+    "volatile": crate.spec(
+        version = "=0.4.4",
     ),
-    crate.spec(
-        name = "zero",
-        semver = "=0.1.2",
+    "x86_64": crate.spec(
+        version = "=0.14.8",
     ),
-]
+    "xmas-elf": crate.spec(
+        version = "=0.8.0",
+    ),
+    "zero": crate.spec(
+        version = "=0.1.2",
+    ),
+}
 
 def rust_deps():
     # Rust crates where we use a custom BUILD file.
@@ -201,43 +193,6 @@ def rust_deps():
         type = "tgz",
         urls = [
             "https://static.crates.io/crates/compiler_builtins/compiler_builtins-0.1.67.crate",
-        ],
-    )
-
-    # Patch out the optional dependency on getrandom.
-    http_archive(
-        name = "rand_core",
-        build_file = "//bazel/third_party:rand_core.BUILD",
-        sha256 = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7",
-        strip_prefix = "rand_core-0.6.3",
-        type = "tgz",
-        urls = [
-            "https://static.crates.io/crates/rand_core/rand_core-0.6.3.crate",
-        ],
-    )
-
-    # Switch from @crates__rand_core__0_6_3 to @rand_core and
-    # patch out optional dependency on log.
-    http_archive(
-        name = "smoltcp",
-        build_file = "//bazel/third_party:smoltcp.BUILD",
-        sha256 = "d2308a1657c8db1f5b4993bab4e620bdbe5623bd81f254cf60326767bb243237",
-        strip_prefix = "smoltcp-0.8.0",
-        type = "tgz",
-        urls = [
-            "https://static.crates.io/crates/smoltcp/smoltcp-0.8.0.crate",
-        ],
-    )
-
-    # Patch in unconditional dependency on x86_64.
-    http_archive(
-        name = "uart_16550",
-        build_file = "//bazel/third_party:uart_16550.BUILD",
-        sha256 = "65ad019480ef5ff8ffe66d6f6a259cd87cf317649481394981db1739d844f374",
-        strip_prefix = "uart_16550-0.2.15",
-        type = "tgz",
-        urls = [
-            "https://static.crates.io/crates/uart_16550/uart_16550-0.2.15.crate",
         ],
     )
 
@@ -271,18 +226,20 @@ def rust_deps():
         version = RUST_VERSION,
     )
 
-    crate_universe_bootstrap()
-
     # Specify and configure the crates we use.
 
-    crate_universe(
+    crate_deps_repository(
+        bootstrap = True,
+    )
+
+    crates_repository(
         name = "crates",
-        iso_date = RUST_ISO_DATE,
-        overrides = RUST_CRATE_OVERRIDES,
+        rust_version = RUST_VERSION + "-" + RUST_ISO_DATE,
+        annotations = RUST_CRATE_ANNOTATIONS,
+        generator = "@cargo_bazel_bootstrap//:cargo-bazel",
+        lockfile = "//bazel/deps:Cargo.Bazel.lock",
         packages = RUST_CRATES,
-        resolver = "@rules_rust_crate_universe_bootstrap//:crate_universe_resolver",
-        supported_targets = [
+        supported_platform_triples = [
             "x86_64-unknown-linux-gnu",
         ],
-        version = RUST_VERSION,
     )

@@ -3,7 +3,6 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@crates//:defs.bzl", "crate")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy")
 
 rust_binary(
@@ -13,8 +12,8 @@ rust_binary(
     edition = "2018",
     visibility = ["//visibility:private"],
     deps = [
-        crate("llvm-tools"),
-        crate("thiserror"),
+        "@crates//:llvm-tools",
+        "@crates//:thiserror",
     ],
 )
 

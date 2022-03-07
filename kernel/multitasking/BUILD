@@ -3,7 +3,6 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@crates//:defs.bzl", "crate")
 load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library")
 
 rust_library(
@@ -23,9 +22,6 @@ rust_library(
     crate_name = "multitasking",
     visibility = ["//kernel:__subpackages__"],
     deps = [
-        crate("lazy_static"),
-        crate("x86_64"),
-        crate("xmas-elf"),
         "//kernel/cpu",
         "//kernel/drivers/serial",
         "//kernel/memory/memlayout",
@@ -35,6 +31,9 @@ rust_library(
         "//kernel/time",
         "//kernel/utils/pretty",
         "//kernel/utils/spin",
+        "@crates//:lazy_static",
+        "@crates//:x86_64",
+        "@crates//:xmas-elf",
     ],
 )
 

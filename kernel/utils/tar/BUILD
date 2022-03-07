@@ -3,7 +3,6 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@crates//:defs.bzl", "crate")
 load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rust_test")
 
 rust_library(
@@ -38,9 +37,9 @@ rust_test(
     compile_data = glob(["testdata/*.tar"]),
     crate = ":tar",
     proc_macro_deps = [
-        crate("hex-literal"),
+        "@crates//:hex-literal",
     ],
     deps = [
-        crate("sha2"),
+        "@crates//:sha2",
     ],
 )

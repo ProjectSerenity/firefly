@@ -45,9 +45,8 @@ type RustToolData struct {
 // //bazel/deps/rust.bzl.
 //
 type RustCrateData struct {
-	Name     StringField `bzl:"name"`
-	Semver   StringField `bzl:"semver"`
-	Features StringField `bzl:"features,ignore"`
+	Name    string
+	Version StringField `bzl:"semver"`
 }
 
 // Parse a rust.bzl, returning the Rust Nightly
@@ -109,7 +108,7 @@ func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*Ru
 		}
 
 		if lhs.Name == rustCrates {
-			rhs, ok := assign.RHS.(*build.ListExpr)
+			rhs, ok := assign.RHS.(*build.DictExpr)
 			if !ok {
 				return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s has non-list value %#v", name, lhs.Name, assign.RHS)
 			}
@@ -119,9 +118,16 @@ func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*Ru
 			}
 
 			for _, expr := range rhs.List {
-				call, ok := expr.(*build.CallExpr)
+				crateName, ok := expr.Key.(*build.StringExpr)
 				if !ok {
-					return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s has non-call crate value %#v", name, lhs.Name, expr)
+					return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: found non-string %#v, expected crate name", name, expr.Key)
+				}
+
+				crate := crateName.Value
+
+				call, ok := expr.Value.(*build.CallExpr)
+				if !ok {
+					return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s has non-call crate value %#v", name, lhs.Name, expr.Value)
 				}
 
 				lhs, ok := call.X.(*build.DotExpr)
@@ -130,13 +136,50 @@ func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*Ru
 				}
 
 				if fun, ok := lhs.X.(*build.Ident); !ok || fun.Name != "crate" || lhs.Name != "spec" {
-					return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: found crate with non-crate.spec value %#v.%s", name, lhs.X, lhs.Name)
+					err = fmt.Errorf("Failed to parse %s: found crate with non-crate.spec value %#v.%s", name, lhs.X, lhs.Name)
+					return nil, nil, nil, nil, err
 				}
 
-				var data RustCrateData
-				err = UnmarshalFields(call, &data)
-				if err != nil {
-					return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: invalid data for crate: %v", name, err)
+				var version string
+				var versionPtr *string
+				for i, expr := range call.List {
+					assign, ok := expr.(*build.AssignExpr)
+					if !ok {
+						err = fmt.Errorf("Failed to parse %s: bad crate %q: field %d is not an assignment", name, crate, i)
+						return nil, nil, nil, nil, err
+					}
+
+					lhs, ok := assign.LHS.(*build.Ident)
+					if !ok {
+						err = fmt.Errorf("Failed to parse %s: bad crate %q: field %d assigns to a non-identifier value %#v", name, crate, i, assign.LHS)
+						return nil, nil, nil, nil, err
+					}
+
+					if lhs.Name != "version" {
+						continue
+					}
+
+					rhs, ok := assign.RHS.(*build.StringExpr)
+					if !ok {
+						err = fmt.Errorf("Failed to parse %s: bad crate %q: %q has non-string value %#v", name, crate, lhs.Name, assign.RHS)
+						return nil, nil, nil, nil, err
+					}
+
+					version = rhs.Value
+					versionPtr = &rhs.Value
+					break
+				}
+
+				if versionPtr == nil {
+					return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: bad crate %q: no version found", name, crate)
+				}
+
+				data := RustCrateData{
+					Name: crate,
+					Version: StringField{
+						Value: version,
+						Ptr:   versionPtr,
+					},
 				}
 
 				crates = append(crates, &data)
@@ -393,8 +436,8 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 	// Start by checking for updates for the crates.
 crates:
 	for _, crate := range crates {
-		name := crate.Name.Value
-		current := crate.Semver.Value
+		name := crate.Name
+		current := crate.Version.Value
 		if !strings.HasPrefix(current, "=") {
 			return fmt.Errorf("Rust crate %q is specified with non-exact version %q", name, current)
 		}
@@ -461,7 +504,7 @@ crates:
 					fmt.Fprintf(w, "Warning: Rust crate %q using %q, but %q is latest.\n", name, version.Number, data.Crate.MaxVersion)
 				}
 
-				*crate.Semver.Ptr = "=" + version.Number
+				*crate.Version.Ptr = "=" + version.Number
 				fmt.Fprintf(w, "Warning: Downgraded Rust crate %s from %s to %s.\n", name, current, version.Number)
 				continue crates
 			}
@@ -472,7 +515,7 @@ crates:
 				fmt.Fprintf(w, "Warning: Rust crate %q using %q, but %q is latest.\n", name, version.Number, data.Crate.MaxVersion)
 			}
 
-			*crate.Semver.Ptr = "=" + version.Number
+			*crate.Version.Ptr = "=" + version.Number
 			fmt.Fprintf(w, "Updated Rust crate %s from %s to %s.\n", name, current, version.Number)
 			continue crates
 		}

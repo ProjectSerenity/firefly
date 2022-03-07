@@ -24,7 +24,7 @@
 // To make the CSPRNG usable, seed must be called at least once before read is called.
 // seed is a specialised version of add_entropy, which requires exactly 256 bits of entropy.
 
-use chacha20::cipher::{NewCipher, StreamCipher};
+use chacha20::cipher::{KeyIvInit, StreamCipher};
 use chacha20::{ChaCha20, Key, Nonce};
 use sha2::digest::generic_array::GenericArray;
 use sha2::{Digest, Sha256};

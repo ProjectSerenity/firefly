@@ -52,104 +52,120 @@ func TestParseRustBzl(t *testing.T) {
 	}
 
 	wantCrates := []struct {
-		Name   string
-		Semver string
+		Name    string
+		Version string
 	}{
 		{
-			Name:   "bitflags",
-			Semver: "=1.3.2",
+			Name:    "bit_field",
+			Version: "=0.10.1",
 		},
 		{
-			Name:   "bit_field",
-			Semver: "=0.10.1",
+			Name:    "bitflags",
+			Version: "=1.3.2",
 		},
 		{
-			Name:   "byteorder",
-			Semver: "=1.4.3",
+			Name:    "byteorder",
+			Version: "=1.4.3",
 		},
 		{
-			Name:   "chacha20",
-			Semver: "=0.8.1",
+			Name:    "chacha20",
+			Version: "=0.8.1",
 		},
 		{
-			Name:   "fixedvec",
-			Semver: "=0.2.4",
+			Name:    "digest",
+			Version: "=0.10.3",
 		},
 		{
-			Name:   "hex-literal",
-			Semver: "=0.3.4",
+			Name:    "fixedvec",
+			Version: "=0.2.4",
 		},
 		{
-			Name:   "lazy_static",
-			Semver: "=1.4.0",
+			Name:    "hex-literal",
+			Version: "=0.3.4",
 		},
 		{
-			Name:   "libc",
-			Semver: "=0.2.117",
+			Name:    "lazy_static",
+			Version: "=1.4.0",
 		},
 		{
-			Name:   "linked_list_allocator",
-			Semver: "=0.9.0",
+			Name:    "libc",
+			Version: "=0.2.119",
 		},
 		{
-			Name:   "llvm-tools",
-			Semver: "=0.1.1",
+			Name:    "linked_list_allocator",
+			Version: "=0.9.1",
 		},
 		{
-			Name:   "managed",
-			Semver: "=0.8",
+			Name:    "llvm-tools",
+			Version: "=0.1.1",
 		},
 		{
-			Name:   "pic8259",
-			Semver: "=0.10.1",
+			Name:    "managed",
+			Version: "=0.8",
 		},
 		{
-			Name:   "raw-cpuid",
-			Semver: "=10.2.0",
+			Name:    "pic8259",
+			Version: "=0.10.2",
 		},
 		{
-			Name:   "rlibc",
-			Semver: "=1.0.0",
+			Name:    "rand",
+			Version: "=0.8.5",
 		},
 		{
-			Name:   "serde",
-			Semver: "=1.0.116",
+			Name:    "raw-cpuid",
+			Version: "=10.2.0",
 		},
 		{
-			Name:   "sha2",
-			Semver: "=0.10.1",
+			Name:    "rlibc",
+			Version: "=1.0.0",
 		},
 		{
-			Name:   "spin",
-			Semver: "=0.9.2",
+			Name:    "serde",
+			Version: "=1.0.136",
 		},
 		{
-			Name:   "thiserror",
-			Semver: "=1.0.16",
+			Name:    "sha2",
+			Version: "=0.10.2",
 		},
 		{
-			Name:   "toml",
-			Semver: "=0.5.6",
+			Name:    "smoltcp",
+			Version: "=0.8.0",
 		},
 		{
-			Name:   "usize_conversions",
-			Semver: "=0.2.0",
+			Name:    "spin",
+			Version: "=0.9.2",
 		},
 		{
-			Name:   "volatile",
-			Semver: "=0.4.4",
+			Name:    "thiserror",
+			Version: "=1.0.30",
 		},
 		{
-			Name:   "x86_64",
-			Semver: "=0.14.7",
+			Name:    "toml",
+			Version: "=0.5.8",
 		},
 		{
-			Name:   "xmas-elf",
-			Semver: "=0.6.2",
+			Name:    "uart_16550",
+			Version: "=0.2.15",
 		},
 		{
-			Name:   "zero",
-			Semver: "=0.1.2",
+			Name:    "usize_conversions",
+			Version: "=0.2.0",
+		},
+		{
+			Name:    "volatile",
+			Version: "=0.4.4",
+		},
+		{
+			Name:    "x86_64",
+			Version: "=0.14.8",
+		},
+		{
+			Name:    "xmas-elf",
+			Version: "=0.8.0",
+		},
+		{
+			Name:    "zero",
+			Version: "=0.1.2",
 		},
 	}
 
@@ -173,7 +189,7 @@ func TestParseRustBzl(t *testing.T) {
 	if len(crates) != len(wantCrates) {
 		t.Errorf("found %d crates, want %d:", len(crates), len(wantCrates))
 		for _, crate := range crates {
-			t.Logf("{%q, %q}", crate.Name, crate.Semver)
+			t.Logf("{%q, %q}", crate.Name, crate.Version)
 		}
 
 		return
@@ -183,8 +199,12 @@ func TestParseRustBzl(t *testing.T) {
 		got := crates[i]
 		want := wantCrates[i]
 		context := fmt.Sprintf("crate %d", i)
-		checkField(t, context, "name", got.Name, want.Name)
-		checkField(t, context, "sum", got.Semver, want.Semver)
+		if got.Name != want.Name {
+			t.Errorf("%s has name %q, want %q", context, got.Name, want.Name)
+		}
+
+		context = fmt.Sprintf("crate %s", got.Name)
+		checkField(t, context, "version", got.Version, want.Version)
 	}
 }
 
