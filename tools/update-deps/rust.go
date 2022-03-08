@@ -420,7 +420,9 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 		flags.Usage()
 	}
 
+	defaultDate := false
 	if date.IsZero() {
+		defaultDate = true
 		now := time.Now().UTC()
 		date = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	}
@@ -531,6 +533,11 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	if dateField.Value == want {
+		fmt.Fprintf(w, "Rust already up-to-date at nightly %s.\n", dateField.Value)
+		return nil
+	}
+
+	if defaultDate && currentDate.After(date) {
 		fmt.Fprintf(w, "Rust already up-to-date at nightly %s.\n", dateField.Value)
 		return nil
 	}
