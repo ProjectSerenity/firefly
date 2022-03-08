@@ -23,6 +23,7 @@ func TestParseRulesBzl(t *testing.T) {
 	want := []struct {
 		Name    string
 		Repo    string
+		Branch  string
 		Archive string
 		Version string
 		SHA256  string
@@ -72,6 +73,7 @@ func TestParseRulesBzl(t *testing.T) {
 		{
 			Name:    "rules_rust",
 			Repo:    "bazelbuild/rules_rust",
+			Branch:  "main",
 			Archive: "https://github.com/bazelbuild/rules_rust/archive/{v}.tar.gz",
 			Version: "f569827113d0f1058f33da4a449ddd34be35a011",
 			SHA256:  "391d6a7f34c89d475e03e02f71957663c9aff6dbd8b8c974945e604828eebe11",
@@ -100,6 +102,7 @@ func TestParseRulesBzl(t *testing.T) {
 		context := fmt.Sprintf("rule %d", i)
 		checkField(t, context, "name", got.Name, want.Name)
 		checkField(t, context, "repo", got.Repo, want.Repo)
+		checkField(t, context, "branch", got.Branch, want.Branch)
 		checkField(t, context, "archive", got.Archive, want.Archive)
 		checkField(t, context, "version", got.Version, want.Version)
 		checkField(t, context, "sha256", got.SHA256, want.SHA256)

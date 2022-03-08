@@ -35,6 +35,7 @@ func init() {
 type BazelRuleData struct {
 	Name    StringField `bzl:"name"`
 	Repo    StringField `bzl:"repo"`
+	Branch  StringField `bzl:"branch,optional"`
 	Archive StringField `bzl:"archive"`
 	Version StringField `bzl:"version"`
 	SHA256  StringField `bzl:"sha256"`
@@ -215,42 +216,53 @@ func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 
 	updated := make([]string, 0, len(rulesData))
 	for _, data := range rulesData {
-		// Rules Rust doesn't do releases yet.
-		if data.Name.Value == "rules_rust" {
-			continue
-		}
+		// Handle repos that don't use releases separately.
+		var newVersion string
+		if data.Branch.Value != "" {
+			commit, err := LatestGitCommit(githubAPI, data.Repo.Value, data.Branch.Value)
+			if err != nil {
+				return err
+			}
 
-		// Check for updates.
-		version, err := LatestGitRelease(githubAPI, data.Repo.Value)
-		if err != nil {
-			return err
-		}
+			if commit == data.Version.Value {
+				// We're already on the latest commit.
+				continue
+			}
 
-		// Check whether it's newer than the version
-		// we're already using.
-		current := "v" + data.Version.Value
-		latest := "v" + version
-		if !semver.IsValid(current) {
-			return fmt.Errorf("Failed to check %s for update: current version %q is invalid", data.Name, data.Version)
-		}
+			newVersion = commit
+		} else {
+			version, err := LatestGitRelease(githubAPI, data.Repo.Value)
+			if err != nil {
+				return err
+			}
 
-		if !semver.IsValid(latest) {
-			return fmt.Errorf("Failed to check %s for update: latest version %q is invalid", data.Name, version)
-		}
+			// Check whether it's newer than the version
+			// we're already using.
+			current := "v" + data.Version.Value
+			latest := "v" + version
+			if !semver.IsValid(current) {
+				return fmt.Errorf("Failed to check %s for update: current version %q is invalid", data.Name, data.Version)
+			}
 
-		switch semver.Compare(current, latest) {
-		case 0:
-			// Current is latest.
-			continue
-		case -1:
-			//  Update to do.
-		case +1:
-			log.Printf("Warning: %s has current version %s, newer than latest version %s", data.Name, data.Version, version)
-			continue
+			if !semver.IsValid(latest) {
+				return fmt.Errorf("Failed to check %s for update: latest version %q is invalid", data.Name, version)
+			}
+
+			switch semver.Compare(current, latest) {
+			case 0:
+				// Current is latest.
+				continue
+			case -1:
+				//  Update to do.
+				newVersion = version
+			case +1:
+				log.Printf("Warning: %s has current version %s, newer than latest version %s", data.Name, data.Version, version)
+				continue
+			}
 		}
 
 		// Calculate the new checksum.
-		archiveURL := strings.ReplaceAll(data.Archive.Value, "{v}", version)
+		archiveURL := strings.ReplaceAll(data.Archive.Value, "{v}", newVersion)
 
 		checksum := sha256.New()
 		res, err := http.Get(archiveURL)
@@ -267,9 +279,9 @@ func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 			return fmt.Errorf("Failed to update %s: closing archive: %v", data.Name, err)
 		}
 
-		*data.Version.Ptr = version
+		*data.Version.Ptr = newVersion
 		*data.SHA256.Ptr = hex.EncodeToString(checksum.Sum(nil))
-		updated = append(updated, fmt.Sprintf("%s from %s to %s", data.Name, data.Version, version))
+		updated = append(updated, fmt.Sprintf("%s from %s to %s", data.Name, data.Version, newVersion))
 	}
 
 	if len(updated) == 0 {

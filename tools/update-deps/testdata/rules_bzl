@@ -56,6 +56,7 @@ RULES_PROTOBUF = struct(
 RULES_RUST = struct(
     name = "rules_rust",
     repo = "bazelbuild/rules_rust",
+    branch = "main",
     archive = "https://github.com/bazelbuild/rules_rust/archive/{v}.tar.gz",
     version = "f569827113d0f1058f33da4a449ddd34be35a011",
     sha256 = "391d6a7f34c89d475e03e02f71957663c9aff6dbd8b8c974945e604828eebe11",
