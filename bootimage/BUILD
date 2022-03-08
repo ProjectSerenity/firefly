@@ -9,7 +9,7 @@ rust_binary(
     name = "binary",
     srcs = ["main.rs"],
     crate_root = "main.rs",
-    edition = "2018",
+    edition = "2021",
     visibility = ["//visibility:private"],
     deps = [
         "@crates//:llvm-tools",

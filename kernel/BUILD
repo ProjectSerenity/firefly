@@ -22,7 +22,7 @@ rust_library(
         "syscalls/entry.s",
     ],
     crate_name = "kernel",
-    edition = "2018",
+    edition = "2021",
     visibility = ["//visibility:private"],
     deps = [
         "//kernel/cpu",

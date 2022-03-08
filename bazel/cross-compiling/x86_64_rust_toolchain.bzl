@@ -19,7 +19,7 @@ def x86_64_rust_toolchain(name, target_triple, stdlib_filegroup):
         binary_ext = "",
         cargo = "@rust_linux_x86_64//:cargo",
         clippy_driver = "@rust_linux_x86_64//:clippy_driver_bin",
-        default_edition = "2018",
+        default_edition = "2021",
         dylib_ext = ".so",
         exec_triple = "x86_64-unknown-linux-gnu",
         opt_level = {

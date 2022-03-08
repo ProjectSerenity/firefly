@@ -20,7 +20,7 @@ rust_library(
         "virtqueues/split.rs",
     ],
     crate_name = "virtio",
-    edition = "2018",
+    edition = "2021",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/drivers/pci",

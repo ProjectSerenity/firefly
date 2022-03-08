@@ -9,7 +9,7 @@ rust_library(
     name = "align",
     srcs = ["lib.rs"],
     crate_name = "align",
-    edition = "2018",
+    edition = "2021",
     visibility = ["//kernel:__subpackages__"],
 )
 

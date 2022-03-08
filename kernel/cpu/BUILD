@@ -12,7 +12,7 @@ rust_library(
         "local.rs",
     ],
     crate_name = "cpu",
-    edition = "2018",
+    edition = "2021",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/drivers/serial",

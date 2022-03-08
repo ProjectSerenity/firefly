@@ -212,7 +212,7 @@ def rust_deps():
     rules_rust_dependencies()
 
     rust_register_toolchains(
-        edition = "2018",
+        edition = "2021",
         include_rustc_srcs = True,
         iso_date = RUST_ISO_DATE,
         rustfmt_version = RUST_VERSION,

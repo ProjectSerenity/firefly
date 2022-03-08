@@ -58,7 +58,7 @@ def rust_no_std(name, target, rustc, rustc_srcs, libcore_entry, liballoc_entry):
         ],
         outs = [libcore_rlib],
         cmd = """$(location {rustc}) \
-                    --edition=2018 \
+                    --edition=2021 \
                     --crate-type=lib \
                     --crate-name=core \
                     --target {target} \
@@ -136,7 +136,7 @@ def rust_no_std(name, target, rustc, rustc_srcs, libcore_entry, liballoc_entry):
         cmd = """$(location {rustc}) \
                     --cfg 'feature="compiler-builtins-mem"' \
                     -Z force-unstable-if-unmarked \
-                    --edition=2018 \
+                    --edition=2021 \
                     --crate-type=lib \
                     --crate-name=alloc \
                     --target {target} \

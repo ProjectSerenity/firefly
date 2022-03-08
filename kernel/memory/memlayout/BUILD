@@ -12,7 +12,7 @@ rust_library(
         "lib.rs",
     ],
     crate_name = "memlayout",
-    edition = "2018",
+    edition = "2021",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "@crates//:x86_64",

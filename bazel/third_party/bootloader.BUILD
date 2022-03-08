@@ -76,7 +76,7 @@ rust_library(
             "WORKSPACE",
         ],
     ),
-    edition = "2018",
+    edition = "2021",
     rustc_flags = [
         "--cap-lints=allow",
     ],
@@ -108,7 +108,7 @@ rust_binary(
         "xmas-elf",
     ],
     crate_root = "build.rs",
-    edition = "2018",
+    edition = "2021",
     visibility = ["//visibility:private"],
     deps = [
         "@crates//:llvm-tools",
@@ -172,7 +172,7 @@ cargo_build_script(
             "WORKSPACE",
         ],
     ),
-    edition = "2018",
+    edition = "2021",
     rustc_flags = [
         "--cap-lints=allow",
     ],
@@ -225,7 +225,7 @@ rust_binary(
             "WORKSPACE",
         ],
     ),
-    edition = "2018",
+    edition = "2021",
     linker_script = "linker.ld",
     rustc_env = {
         # This should be OUT_DIR, but while we can get the

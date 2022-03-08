@@ -9,7 +9,7 @@ rust_library(
     name = "segmentation",
     srcs = ["lib.rs"],
     crate_name = "segmentation",
-    edition = "2018",
+    edition = "2021",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/cpu",

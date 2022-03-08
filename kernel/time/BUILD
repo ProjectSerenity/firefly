@@ -14,7 +14,7 @@ rust_library(
         "ticker.rs",
     ],
     crate_name = "time",
-    edition = "2018",
+    edition = "2021",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/utils/spin",

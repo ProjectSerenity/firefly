@@ -9,7 +9,7 @@ rust_library(
     name = "bitmap_index",
     srcs = ["lib.rs"],
     crate_name = "bitmap_index",
-    edition = "2018",
+    edition = "2021",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/utils/align",

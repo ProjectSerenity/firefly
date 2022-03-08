@@ -9,7 +9,7 @@ rust_library(
     name = "mmio",
     srcs = ["lib.rs"],
     crate_name = "mmio",
-    edition = "2018",
+    edition = "2021",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/memory/memlayout",
