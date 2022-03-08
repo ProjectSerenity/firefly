@@ -106,11 +106,11 @@ func TestParseRulesBzl(t *testing.T) {
 	}
 }
 
-func TestCheckLatestRule(t *testing.T) {
+func TestLatestGitRelease(t *testing.T) {
 	// Start an HTTP server, serving a
 	// captured copy of an actual response.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/bazelbuild/buildtools.json" {
+		if r.URL.Path == "/repos/bazelbuild/buildtools/releases/latest" {
 			http.ServeFile(w, r, filepath.Join("testdata", "buildtools.json"))
 		} else {
 			http.NotFound(w, r)
@@ -118,13 +118,7 @@ func TestCheckLatestRule(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	data := BazelRuleData{
-		Name: StringField{Value: "com_github_bazelbuild_buildtools"},
-		Repo: StringField{Value: "bazelbuild/buildtools"},
-	}
-
-	updateTemplate := fmt.Sprintf("%s/%%s.json", srv.URL)
-	got, err := CheckLatestRule(updateTemplate, &data)
+	got, err := LatestGitRelease(srv.URL, "bazelbuild/buildtools")
 	if err != nil {
 		t.Fatal(err)
 	}

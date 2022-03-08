@@ -14,7 +14,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -115,39 +117,46 @@ func ParseRulesBzl(name string) (file *build.File, rules []*BazelRuleData, err e
 	return f, rules, nil
 }
 
-// CheckLatestRule identifies the latest version of
+// LatestGitRelease identifies the latest release of
 // the given rule, returning the version string.
 //
-func CheckLatestRule(updateTemplate string, data *BazelRuleData) (version string, err error) {
+func LatestGitRelease(baseAPI, repository string) (version string, err error) {
 	type ReleaseData struct {
 		TagName string `json:"tag_name"`
 		// We don't care about the other fields.
 	}
 
-	updateURL := fmt.Sprintf(updateTemplate, data.Repo.Value)
-	res, err := http.Get(updateURL)
+	u, err := url.Parse(baseAPI)
 	if err != nil {
-		return "", fmt.Errorf("Failed to check %s for updates: fetching release: %v", data.Name, err)
+		return "", fmt.Errorf("Failed to check %s for latest release: invalid API URL: %w", repository, err)
+	}
+
+	u.Path = path.Join("/", u.Path, "repos", repository, "releases", "latest")
+	uri := u.String()
+
+	res, err := http.Get(uri)
+	if err != nil {
+		return "", fmt.Errorf("Failed to check %s for latest release: fetching release: %v", repository, err)
 	}
 
 	jsonData, err := io.ReadAll(res.Body)
 	if err != nil {
-		return "", fmt.Errorf("Failed to check %s for updates: reading release: %v", data.Name, err)
+		return "", fmt.Errorf("Failed to check %s for latest release: reading release: %v", repository, err)
 	}
 
 	if err = res.Body.Close(); err != nil {
-		return "", fmt.Errorf("Failed to check %s for updates: closing release: %v", data.Name, err)
+		return "", fmt.Errorf("Failed to check %s for latest release: closing release: %v", repository, err)
 	}
 
 	var release ReleaseData
 	err = json.Unmarshal(jsonData, &release)
 	if err != nil {
-		return "", fmt.Errorf("Failed to check %s for update: parsing release: %v", data.Name, err)
+		return "", fmt.Errorf("Failed to check %s for latest release: parsing release: %v", repository, err)
 	}
 
 	version = strings.TrimPrefix(release.TagName, "v")
 	if version == "" {
-		return "", fmt.Errorf("Failed to check %s for update: failed to find latest version", data.Name)
+		return "", fmt.Errorf("Failed to check %s for latest release: failed to find latest version", repository)
 	}
 
 	return version, nil
@@ -155,8 +164,8 @@ func CheckLatestRule(updateTemplate string, data *BazelRuleData) (version string
 
 func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 	const (
-		rulesBzl       = "rules.bzl"
-		updateTemplate = "https://api.github.com/repos/%s/releases/latest"
+		rulesBzl  = "rules.bzl"
+		githubAPI = "https://api.github.com"
 	)
 
 	// Find and parse the rules.bzl file to see
@@ -175,7 +184,7 @@ func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		// Check for updates.
-		version, err := CheckLatestRule(updateTemplate, data)
+		version, err := LatestGitRelease(githubAPI, data.Repo.Value)
 		if err != nil {
 			return err
 		}
