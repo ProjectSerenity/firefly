@@ -91,6 +91,7 @@ def rust_no_std(name, target, rustc, rustc_srcs, libcore_entry, liballoc_entry):
         ],
         outs = [libcompiler_builtins_rlib],
         cmd = """$(location {rustc}) \
+                    --edition=2015 \
                     --cfg 'feature="compiler-builtins"' \
                     --cfg 'feature="core"' \
                     --cfg 'feature="default"' \
