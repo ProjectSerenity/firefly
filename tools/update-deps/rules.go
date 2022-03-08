@@ -200,10 +200,83 @@ func LatestGitCommit(baseAPI, repository, branch string) (commit string, err err
 	return commit, nil
 }
 
+// UpdateRepo checks a Git repository (fetched using http_archive)
+// for updates, returning the new version and its checksum if it's
+// updated.
+//
+func UpdateRepo(data *BazelRuleData) (newVersion, checksum string, err error) {
+	const githubAPI = "https://api.github.com"
+
+	// Handle repos that don't use releases separately.
+	if data.Branch.Value != "" {
+		commit, err := LatestGitCommit(githubAPI, data.Repo.Value, data.Branch.Value)
+		if err != nil {
+			return "", "", err
+		}
+
+		if commit == data.Version.Value {
+			// We're already on the latest commit.
+			return "", "", nil
+		}
+
+		newVersion = commit
+	} else {
+		version, err := LatestGitRelease(githubAPI, data.Repo.Value)
+		if err != nil {
+			return "", "", err
+		}
+
+		// Check whether it's newer than the version
+		// we're already using.
+		current := "v" + data.Version.Value
+		latest := "v" + version
+		if !semver.IsValid(current) {
+			return "", "", fmt.Errorf("Failed to check %s for update: current version %q is invalid", data.Name, data.Version)
+		}
+
+		if !semver.IsValid(latest) {
+			return "", "", fmt.Errorf("Failed to check %s for update: latest version %q is invalid", data.Name, version)
+		}
+
+		switch semver.Compare(current, latest) {
+		case 0:
+			// Current is latest.
+			return "", "", nil
+		case -1:
+			//  Update to do.
+			newVersion = version
+		case +1:
+			log.Printf("Warning: %s has current version %s, newer than latest version %s", data.Name, data.Version, version)
+			return "", "", nil
+		}
+	}
+
+	// Calculate the new checksum.
+	archiveURL := strings.ReplaceAll(data.Archive.Value, "{v}", newVersion)
+
+	hash := sha256.New()
+	res, err := http.Get(archiveURL)
+	if err != nil {
+		return "", "", fmt.Errorf("Failed to update %s: fetching archive: %v", data.Name, err)
+	}
+
+	_, err = io.Copy(hash, res.Body)
+	if err != nil {
+		return "", "", fmt.Errorf("Failed to update %s: hashing archive: %v", data.Name, err)
+	}
+
+	if err = res.Body.Close(); err != nil {
+		return "", "", fmt.Errorf("Failed to update %s: closing archive: %v", data.Name, err)
+	}
+
+	checksum = hex.EncodeToString(hash.Sum(nil))
+
+	return newVersion, checksum, nil
+}
+
 func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 	const (
-		rulesBzl  = "rules.bzl"
-		githubAPI = "https://api.github.com"
+		rulesBzl = "rules.bzl"
 	)
 
 	// Find and parse the rules.bzl file to see
@@ -216,71 +289,18 @@ func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 
 	updated := make([]string, 0, len(rulesData))
 	for _, data := range rulesData {
-		// Handle repos that don't use releases separately.
-		var newVersion string
-		if data.Branch.Value != "" {
-			commit, err := LatestGitCommit(githubAPI, data.Repo.Value, data.Branch.Value)
-			if err != nil {
-				return err
-			}
-
-			if commit == data.Version.Value {
-				// We're already on the latest commit.
-				continue
-			}
-
-			newVersion = commit
-		} else {
-			version, err := LatestGitRelease(githubAPI, data.Repo.Value)
-			if err != nil {
-				return err
-			}
-
-			// Check whether it's newer than the version
-			// we're already using.
-			current := "v" + data.Version.Value
-			latest := "v" + version
-			if !semver.IsValid(current) {
-				return fmt.Errorf("Failed to check %s for update: current version %q is invalid", data.Name, data.Version)
-			}
-
-			if !semver.IsValid(latest) {
-				return fmt.Errorf("Failed to check %s for update: latest version %q is invalid", data.Name, version)
-			}
-
-			switch semver.Compare(current, latest) {
-			case 0:
-				// Current is latest.
-				continue
-			case -1:
-				//  Update to do.
-				newVersion = version
-			case +1:
-				log.Printf("Warning: %s has current version %s, newer than latest version %s", data.Name, data.Version, version)
-				continue
-			}
-		}
-
-		// Calculate the new checksum.
-		archiveURL := strings.ReplaceAll(data.Archive.Value, "{v}", newVersion)
-
-		checksum := sha256.New()
-		res, err := http.Get(archiveURL)
+		newVersion, checksum, err := UpdateRepo(data)
 		if err != nil {
-			return fmt.Errorf("Failed to update %s: fetching archive: %v", data.Name, err)
+			return err
 		}
 
-		_, err = io.Copy(checksum, res.Body)
-		if err != nil {
-			return fmt.Errorf("Failed to update %s: hashing archive: %v", data.Name, err)
-		}
-
-		if err = res.Body.Close(); err != nil {
-			return fmt.Errorf("Failed to update %s: closing archive: %v", data.Name, err)
+		if newVersion == "" {
+			// Nothing to do.
+			continue
 		}
 
 		*data.Version.Ptr = newVersion
-		*data.SHA256.Ptr = hex.EncodeToString(checksum.Sum(nil))
+		*data.SHA256.Ptr = checksum
 		updated = append(updated, fmt.Sprintf("%s from %s to %s", data.Name, data.Version, newVersion))
 	}
 
