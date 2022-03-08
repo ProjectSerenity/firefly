@@ -393,7 +393,8 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 	)
 
 	var (
-		date time.Time
+		date       time.Time
+		skipCrates bool
 	)
 
 	flags := flag.NewFlagSet("rust", flag.ExitOnError)
@@ -406,6 +407,7 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 
 		return nil
 	})
+	flags.BoolVar(&skipCrates, "skip-crates", false, "Skip checking for crate updates")
 
 	flags.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage:\n  %s %s [OPTIONS]\n\n", program, flags.Name())
@@ -434,90 +436,92 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	// Start by checking for updates for the crates.
-crates:
-	for _, crate := range crates {
-		name := crate.Name
-		current := crate.Version.Value
-		if !strings.HasPrefix(current, "=") {
-			return fmt.Errorf("Rust crate %q is specified with non-exact version %q", name, current)
-		}
-
-		current = current[1:]
-		currentSemver := semver.Canonical("v" + current)
-		if current == "" {
-			return fmt.Errorf("Rust crate %q is specified with invalid version %q", name, current)
-		}
-
-		data, err := FetchCrate(ctx, cratesIO, name)
-		if err != nil {
-			return err
-		}
-
-		if data.Crate.Name != name {
-			return fmt.Errorf("Query for Rust crate %q returned data for %q", name, data.Crate.Name)
-		}
-
-		yanked := false
-		for _, version := range data.Versions {
-			// Check that the version is canonical.
-			// If not, we log it and continue. We
-			// could return an error, but that feels
-			// likely to be more annoying than helpful.
-			thisSemver := semver.Canonical("v" + version.Number)
-			if thisSemver == "" {
-				fmt.Fprintf(w, "Warning: Rust crate %q returned invalid version %q\n", name, version.Number)
-				continue
+	if !skipCrates {
+	crates:
+		for _, crate := range crates {
+			name := crate.Name
+			current := crate.Version.Value
+			if !strings.HasPrefix(current, "=") {
+				return fmt.Errorf("Rust crate %q is specified with non-exact version %q", name, current)
 			}
 
-			// Compare this with the current version.
-			cmp := semver.Compare(currentSemver, thisSemver)
+			current = current[1:]
+			currentSemver := semver.Canonical("v" + current)
+			if current == "" {
+				return fmt.Errorf("Rust crate %q is specified with invalid version %q", name, current)
+			}
 
-			// If we see the current version, we're
-			// either already up to date or our version
-			// has been yanked and we need to downgrade.
-			if cmp == 0 {
-				if version.Yanked {
-					yanked = true
+			data, err := FetchCrate(ctx, cratesIO, name)
+			if err != nil {
+				return err
+			}
+
+			if data.Crate.Name != name {
+				return fmt.Errorf("Query for Rust crate %q returned data for %q", name, data.Crate.Name)
+			}
+
+			yanked := false
+			for _, version := range data.Versions {
+				// Check that the version is canonical.
+				// If not, we log it and continue. We
+				// could return an error, but that feels
+				// likely to be more annoying than helpful.
+				thisSemver := semver.Canonical("v" + version.Number)
+				if thisSemver == "" {
+					fmt.Fprintf(w, "Warning: Rust crate %q returned invalid version %q\n", name, version.Number)
 					continue
 				}
 
-				// This crate is already up to date.
-				continue crates
-			}
+				// Compare this with the current version.
+				cmp := semver.Compare(currentSemver, thisSemver)
 
-			// We can just ignore a yanked version
-			// that isn't the version we're already
-			// using.
-			if version.Yanked {
-				continue
-			}
+				// If we see the current version, we're
+				// either already up to date or our version
+				// has been yanked and we need to downgrade.
+				if cmp == 0 {
+					if version.Yanked {
+						yanked = true
+						continue
+					}
 
-			// If we see an older version and our
-			// version has been yanked, we must
-			// downgrade.
-			if cmp == +1 {
-				if !yanked {
-					return fmt.Errorf("Rust crate %q is missing version data for current version %q", name, current)
+					// This crate is already up to date.
+					continue crates
 				}
 
+				// We can just ignore a yanked version
+				// that isn't the version we're already
+				// using.
+				if version.Yanked {
+					continue
+				}
+
+				// If we see an older version and our
+				// version has been yanked, we must
+				// downgrade.
+				if cmp == +1 {
+					if !yanked {
+						return fmt.Errorf("Rust crate %q is missing version data for current version %q", name, current)
+					}
+
+					if version.Number != data.Crate.MaxVersion {
+						fmt.Fprintf(w, "Warning: Rust crate %q using %q, but %q is latest.\n", name, version.Number, data.Crate.MaxVersion)
+					}
+
+					*crate.Version.Ptr = "=" + version.Number
+					fmt.Fprintf(w, "Warning: Downgraded Rust crate %s from %s to %s.\n", name, current, version.Number)
+					continue crates
+				}
+
+				// We've found a newer version than
+				// our current, so we upgrade.
 				if version.Number != data.Crate.MaxVersion {
 					fmt.Fprintf(w, "Warning: Rust crate %q using %q, but %q is latest.\n", name, version.Number, data.Crate.MaxVersion)
 				}
 
 				*crate.Version.Ptr = "=" + version.Number
-				fmt.Fprintf(w, "Warning: Downgraded Rust crate %s from %s to %s.\n", name, current, version.Number)
+				fmt.Fprintf(w, "Updated Rust crate %s from %s to %s.\n", name, current, version.Number)
 				continue crates
 			}
-
-			// We've found a newer version than
-			// our current, so we upgrade.
-			if version.Number != data.Crate.MaxVersion {
-				fmt.Fprintf(w, "Warning: Rust crate %q using %q, but %q is latest.\n", name, version.Number, data.Crate.MaxVersion)
-			}
-
-			*crate.Version.Ptr = "=" + version.Number
-			fmt.Fprintf(w, "Updated Rust crate %s from %s to %s.\n", name, current, version.Number)
-			continue crates
 		}
 	}
 
