@@ -106,25 +106,42 @@ func TestParseRulesBzl(t *testing.T) {
 	}
 }
 
-func TestLatestGitRelease(t *testing.T) {
+func TestGitHubAPI(t *testing.T) {
 	// Start an HTTP server, serving a
 	// captured copy of an actual response.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/repos/bazelbuild/buildtools/releases/latest" {
+		switch r.URL.Path {
+		case "/repos/bazelbuild/buildtools/releases/latest":
 			http.ServeFile(w, r, filepath.Join("testdata", "buildtools.json"))
-		} else {
+		case "/repos/bazelbuild/rules_rust/branches/main":
+			http.ServeFile(w, r, filepath.Join("testdata", "rules_rust.json"))
+		default:
 			http.NotFound(w, r)
 		}
 	}))
 	defer srv.Close()
 
-	got, err := LatestGitRelease(srv.URL, "bazelbuild/buildtools")
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Run("release", func(t *testing.T) {
+		got, err := LatestGitRelease(srv.URL, "bazelbuild/buildtools")
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	want := "5.0.1"
-	if got != want {
-		t.Fatalf("Got unexpected latest version %q, want %q", got, want)
-	}
+		want := "5.0.1"
+		if got != want {
+			t.Fatalf("Got unexpected latest version %q, want %q", got, want)
+		}
+	})
+
+	t.Run("commit", func(t *testing.T) {
+		got, err := LatestGitCommit(srv.URL, "bazelbuild/rules_rust", "main")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		want := "b9469a0a22fe36eecf85820fafba7e901662f900"
+		if got != want {
+			t.Fatalf("Got unexpected latest commit %q, want %q", got, want)
+		}
+	})
 }

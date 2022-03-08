@@ -174,6 +174,31 @@ func LatestGitRelease(baseAPI, repository string) (version string, err error) {
 	return version, nil
 }
 
+// LatestGitCommit identifies the latest commit hash
+// on the given branch.
+//
+func LatestGitCommit(baseAPI, repository, branch string) (commit string, err error) {
+	type BranchData struct {
+		Commit struct {
+			SHA string `json:"sha"`
+		} `json:"commit"`
+		// We don't care about the other fields.
+	}
+
+	var data BranchData
+	err = githubAPI(&data, baseAPI, "repos", repository, "branches", branch)
+	if err != nil {
+		return "", fmt.Errorf("Failed to check %s@%s for latest commit: %v", repository, branch, err)
+	}
+
+	commit = data.Commit.SHA
+	if commit == "" {
+		return "", fmt.Errorf("Failed to check %s@%s for latest commit: failed to find latest commit", repository, branch)
+	}
+
+	return commit, nil
+}
+
 func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 	const (
 		rulesBzl  = "rules.bzl"
