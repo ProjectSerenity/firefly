@@ -117,6 +117,40 @@ func ParseRulesBzl(name string) (file *build.File, rules []*BazelRuleData, err e
 	return f, rules, nil
 }
 
+// githubAPI calls the requested GitHub API, decoding
+// the response into dst.
+//
+func githubAPI(v interface{}, baseAPI string, args ...string) error {
+	u, err := url.Parse(baseAPI)
+	if err != nil {
+		return fmt.Errorf("invalid GitHub API URL: %w", err)
+	}
+
+	u.Path = path.Join(args...)
+	uri := u.String()
+
+	res, err := http.Get(uri)
+	if err != nil {
+		return fmt.Errorf("failed to call API: %v", err)
+	}
+
+	jsonData, err := io.ReadAll(res.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read API data: %v", err)
+	}
+
+	if err = res.Body.Close(); err != nil {
+		return fmt.Errorf("failed to close API data: %v", err)
+	}
+
+	err = json.Unmarshal(jsonData, v)
+	if err != nil {
+		return fmt.Errorf("failed to parse API data: %v", err)
+	}
+
+	return nil
+}
+
 // LatestGitRelease identifies the latest release of
 // the given rule, returning the version string.
 //
@@ -126,32 +160,10 @@ func LatestGitRelease(baseAPI, repository string) (version string, err error) {
 		// We don't care about the other fields.
 	}
 
-	u, err := url.Parse(baseAPI)
-	if err != nil {
-		return "", fmt.Errorf("Failed to check %s for latest release: invalid API URL: %w", repository, err)
-	}
-
-	u.Path = path.Join("/", u.Path, "repos", repository, "releases", "latest")
-	uri := u.String()
-
-	res, err := http.Get(uri)
-	if err != nil {
-		return "", fmt.Errorf("Failed to check %s for latest release: fetching release: %v", repository, err)
-	}
-
-	jsonData, err := io.ReadAll(res.Body)
-	if err != nil {
-		return "", fmt.Errorf("Failed to check %s for latest release: reading release: %v", repository, err)
-	}
-
-	if err = res.Body.Close(); err != nil {
-		return "", fmt.Errorf("Failed to check %s for latest release: closing release: %v", repository, err)
-	}
-
 	var release ReleaseData
-	err = json.Unmarshal(jsonData, &release)
+	err = githubAPI(&release, baseAPI, "repos", repository, "releases", "latest")
 	if err != nil {
-		return "", fmt.Errorf("Failed to check %s for latest release: parsing release: %v", repository, err)
+		return "", fmt.Errorf("Failed to check %s for latest release: %v", repository, err)
 	}
 
 	version = strings.TrimPrefix(release.TagName, "v")
