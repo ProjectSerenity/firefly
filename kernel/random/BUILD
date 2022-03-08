@@ -13,6 +13,7 @@ rust_library(
         "rdrand.rs",
     ],
     crate_name = "random",
+    edition = "2018",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/time",

@@ -12,6 +12,7 @@ rust_library(
         "lib.rs",
     ],
     crate_name = "pretty",
+    edition = "2018",
     visibility = ["//kernel:__subpackages__"],
 )
 

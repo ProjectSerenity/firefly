@@ -20,6 +20,7 @@ rust_library(
         "switch.s",
     ],
     crate_name = "multitasking",
+    edition = "2018",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/cpu",

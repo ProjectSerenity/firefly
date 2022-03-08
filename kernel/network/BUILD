@@ -13,6 +13,7 @@ rust_library(
         "udp.rs",
     ],
     crate_name = "network",
+    edition = "2018",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/drivers/serial",

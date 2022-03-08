@@ -16,6 +16,7 @@ rust_library(
         "mapping.rs",
     ],
     crate_name = "virtmem",
+    edition = "2018",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/drivers/serial",

@@ -12,6 +12,7 @@ rust_library(
         "parse_utils.rs",
     ],
     crate_name = "tar",
+    edition = "2018",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/drivers/serial",

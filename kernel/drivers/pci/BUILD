@@ -9,6 +9,7 @@ rust_library(
     name = "pci",
     srcs = ["lib.rs"],
     crate_name = "pci",
+    edition = "2018",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "@crates//:x86_64",

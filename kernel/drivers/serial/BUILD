@@ -9,6 +9,7 @@ rust_library(
     name = "serial",
     srcs = ["lib.rs"],
     crate_name = "serial",
+    edition = "2018",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/utils/spin",

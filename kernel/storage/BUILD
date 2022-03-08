@@ -12,6 +12,7 @@ rust_library(
         "lib.rs",
     ],
     crate_name = "storage",
+    edition = "2018",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/utils/spin",

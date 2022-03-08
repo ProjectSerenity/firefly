@@ -9,6 +9,7 @@ rust_library(
     name = "syscalls",
     srcs = ["lib.rs"],
     crate_name = "syscalls",
+    edition = "2018",
     visibility = ["//visibility:public"],
 )
 

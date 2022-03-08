@@ -11,6 +11,7 @@ rust_library(
         "lib.rs",
     ],
     crate_name = "spin",
+    edition = "2018",
     visibility = ["//kernel:__subpackages__"],
 )
 

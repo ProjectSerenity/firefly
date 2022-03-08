@@ -12,6 +12,7 @@ rust_library(
         "lib.rs",
     ],
     crate_name = "interrupts",
+    edition = "2018",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/drivers/serial",

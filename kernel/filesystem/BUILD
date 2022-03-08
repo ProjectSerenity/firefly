@@ -9,6 +9,7 @@ rust_library(
     name = "filesystem",
     srcs = ["lib.rs"],
     crate_name = "filesystem",
+    edition = "2018",
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "@crates//:bitflags",
