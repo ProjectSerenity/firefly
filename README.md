@@ -7,8 +7,10 @@ Note that Firefly is an early prototype and is not yet ready for use.
 This repository consists of:
 
 - the Firefly kernel in [`kernel`](/kernel)
+- user code that runs on Firefly in [`user`](/user)
 - code shared between the kernel and userspace in [`shared`](/shared)
 - code to manage the Bazel build system in [`bazel`](/bazel)
+- tools to manage the repository in [`tools`](/tools)
 
 Firefly is intended for executing cloud-native containerised server software. As a result, there are no plans to add a graphical user interface, device drivers, or a concept of users. Instead, the priority is to support userland applications on a virtual machine, with strong separation between processes. Firefly will provide a highly stable ABI, with syscalls providing the sole interface between userland processes and the kernel.
 
@@ -26,6 +28,7 @@ Once Bazel and the above host tools are prepared, the following commands are com
 
 - `bazel build //kernel`:     Build the kernel binary.
 - `bazel build //:image`:     Build a bootable Firefly disk image.
+- `bazel build //...`:        Build all code, documentation, and lints.
 - `bazel test //...`:         Run all tests.
 - `bazel run //:update-deps`: Update managed dependencies.
 - `bazel run //:qemu`:        Build a bootable disk image and run it in Qemu.
