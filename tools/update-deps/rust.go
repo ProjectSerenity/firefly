@@ -358,7 +358,7 @@ func FetchCrate(ctx context.Context, api, crate string) (*Crate, error) {
 		return nil, fmt.Errorf("Failed to prepare API request for crate %q: %v", crate, err)
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	res, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make API request for crate %q: %v", crate, err)
 	}
@@ -544,7 +544,7 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 
 	// Fetch the data.
 	tomlURL := fmt.Sprintf(manifestTemplate, want)
-	res, err := http.Get(tomlURL)
+	res, err := httpClient.Get(tomlURL)
 	if err != nil {
 		return fmt.Errorf("Failed to fetch manifest for %s: %v", want, err)
 	}

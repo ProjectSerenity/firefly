@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -132,7 +131,7 @@ func cmdGo(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		updateURL := fmt.Sprintf("%s/%s/@latest", updateTemplate, escaped)
-		res, err := http.Get(updateURL)
+		res, err := httpClient.Get(updateURL)
 		if err != nil {
 			return fmt.Errorf("Failed to check %s for updates: fetching @latest: %v", data.Path, err)
 		}
@@ -231,7 +230,7 @@ type GoChecksumDatabaseClient struct {
 
 func (c *GoChecksumDatabaseClient) ReadRemote(path string) ([]byte, error) {
 	fullURL := "https://" + c.Host + path
-	res, err := http.Get(fullURL)
+	res, err := httpClient.Get(fullURL)
 	if err != nil {
 		return nil, err
 	}

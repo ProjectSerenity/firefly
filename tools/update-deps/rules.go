@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -130,7 +129,7 @@ func githubAPI(v interface{}, baseAPI string, args ...string) error {
 	u.Path = path.Join(args...)
 	uri := u.String()
 
-	res, err := http.Get(uri)
+	res, err := httpClient.Get(uri)
 	if err != nil {
 		return fmt.Errorf("failed to call API: %v", err)
 	}
@@ -255,7 +254,7 @@ func UpdateRepo(data *BazelRuleData) (newVersion, checksum string, err error) {
 	archiveURL := strings.ReplaceAll(data.Archive.Value, "{v}", newVersion)
 
 	hash := sha256.New()
-	res, err := http.Get(archiveURL)
+	res, err := httpClient.Get(archiveURL)
 	if err != nil {
 		return "", "", fmt.Errorf("Failed to update %s: fetching archive: %v", data.Name, err)
 	}
