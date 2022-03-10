@@ -137,9 +137,7 @@ func cmdGo(ctx context.Context, w io.Writer, args []string) error {
 			return fmt.Errorf("Failed to request updates for %s: %v", data.Path, err)
 		}
 
-		req.Header.Set("User-Agent", userAgent)
-
-		res, err := httpClient.Do(req)
+		res, err := httpRequest(req)
 		if err != nil {
 			return fmt.Errorf("Failed to check %s for updates: fetching @latest: %v", data.Path, err)
 		}
@@ -243,9 +241,7 @@ func (c *GoChecksumDatabaseClient) ReadRemote(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	req.Header.Set("User-Agent", userAgent)
-
-	res, err := httpClient.Do(req)
+	res, err := httpRequest(req)
 	if err != nil {
 		return nil, err
 	}

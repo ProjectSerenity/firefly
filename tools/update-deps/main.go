@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/bazelbuild/buildtools/build"
+	"golang.org/x/time/rate"
 )
 
 func init() {
@@ -73,6 +74,21 @@ var httpClient = &http.Client{
 }
 
 const userAgent = "Firefly-dependency-updates/1 (github.com/ProjectSerenity/firefly)"
+
+var rateLimit = rate.NewLimiter(rate.Every(time.Second), 1) // 1 request per second.
+
+func httpRequest(req *http.Request) (*http.Response, error) {
+	// Make sure we always use our User-Agent.
+	req.Header.Set("User-Agent", userAgent)
+
+	// Apply our rate limeter, waiting if necessary.
+	err := rateLimit.Wait(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	return httpClient.Do(req)
+}
 
 func main() {
 	sort.Strings(commandsNames)

@@ -358,9 +358,7 @@ func FetchCrate(ctx context.Context, api, crate string) (*Crate, error) {
 		return nil, fmt.Errorf("Failed to prepare API request for crate %q: %v", crate, err)
 	}
 
-	req.Header.Set("User-Agent", userAgent)
-
-	res, err := httpClient.Do(req)
+	res, err := httpRequest(req)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make API request for crate %q: %v", crate, err)
 	}
@@ -551,9 +549,7 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("Failed to request manifest for %s: %v", want, err)
 	}
 
-	req.Header.Set("User-Agent", userAgent)
-
-	res, err := httpClient.Do(req)
+	res, err := httpRequest(req)
 	if err != nil {
 		return fmt.Errorf("Failed to fetch manifest for %s: %v", want, err)
 	}

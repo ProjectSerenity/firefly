@@ -134,9 +134,7 @@ func githubAPI(v interface{}, baseAPI string, args ...string) error {
 		return fmt.Errorf("Failed to request API %v", err)
 	}
 
-	req.Header.Set("User-Agent", userAgent)
-
-	res, err := httpClient.Do(req)
+	res, err := httpRequest(req)
 	if err != nil {
 		return fmt.Errorf("failed to call API: %v", err)
 	}
@@ -266,9 +264,7 @@ func UpdateRepo(data *BazelRuleData) (newVersion, checksum string, err error) {
 		return "", "", fmt.Errorf("Failed to request archive for %s: %v", data.Name, err)
 	}
 
-	req.Header.Set("User-Agent", userAgent)
-
-	res, err := httpClient.Do(req)
+	res, err := httpRequest(req)
 	if err != nil {
 		return "", "", fmt.Errorf("Failed to update %s: fetching archive: %v", data.Name, err)
 	}

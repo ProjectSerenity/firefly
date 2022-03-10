@@ -11,6 +11,9 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
+	"time"
+
+	"golang.org/x/time/rate"
 )
 
 func TestParseRulesBzl(t *testing.T) {
@@ -110,6 +113,10 @@ func TestParseRulesBzl(t *testing.T) {
 }
 
 func TestGitHubAPI(t *testing.T) {
+	// Allow 1000 requests per second as we
+	// don't need to rate-limit tests.
+	rateLimit.SetLimit(rate.Every(time.Millisecond))
+
 	// Start an HTTP server, serving a
 	// captured copy of an actual response.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

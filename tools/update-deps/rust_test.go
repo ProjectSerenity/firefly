@@ -14,6 +14,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 func TestParseRustBzl(t *testing.T) {
@@ -209,6 +211,10 @@ func TestParseRustBzl(t *testing.T) {
 }
 
 func TestFetchCrate(t *testing.T) {
+	// Allow 1000 requests per second as we
+	// don't need to rate-limit tests.
+	rateLimit.SetLimit(rate.Every(time.Millisecond))
+
 	// Start an HTTP server, serving a
 	// captured copy of an actual response.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

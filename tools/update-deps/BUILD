@@ -21,6 +21,7 @@ go_library(
         "@org_golang_x_mod//module:go_default_library",
         "@org_golang_x_mod//semver:go_default_library",
         "@org_golang_x_mod//sumdb:go_default_library",
+        "@org_golang_x_time//rate:go_default_library",
     ],
 )
 

@@ -33,3 +33,10 @@ def go_deps():
         sum = "h1:OJxoQ/rynoF0dcCdI7cLPktw/hR2cueqYfjm43oqK38=",
         version = "v0.5.1",
     )
+
+    go_repository(
+        name = "org_golang_x_time",
+        importpath = "golang.org/x/time",
+        sum = "h1:M73Iuj3xbbb9Uk1DYhzydthsj6oOd6l9bpuFcNoUvTs=",
+        version = "v0.0.0-20220224211638-0e9765cccd65",
+    )
