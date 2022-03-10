@@ -72,6 +72,8 @@ var httpClient = &http.Client{
 	},
 }
 
+const userAgent = "Firefly-dependency-updates/1 (github.com/ProjectSerenity/firefly)"
+
 func main() {
 	sort.Strings(commandsNames)
 

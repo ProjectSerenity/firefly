@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -128,8 +129,14 @@ func githubAPI(v interface{}, baseAPI string, args ...string) error {
 
 	u.Path = path.Join(args...)
 	uri := u.String()
+	req, err := http.NewRequest(http.MethodGet, uri, nil)
+	if err != nil {
+		return fmt.Errorf("Failed to request API %v", err)
+	}
 
-	res, err := httpClient.Get(uri)
+	req.Header.Set("User-Agent", userAgent)
+
+	res, err := httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to call API: %v", err)
 	}
@@ -254,7 +261,14 @@ func UpdateRepo(data *BazelRuleData) (newVersion, checksum string, err error) {
 	archiveURL := strings.ReplaceAll(data.Archive.Value, "{v}", newVersion)
 
 	hash := sha256.New()
-	res, err := httpClient.Get(archiveURL)
+	req, err := http.NewRequest(http.MethodGet, archiveURL, nil)
+	if err != nil {
+		return "", "", fmt.Errorf("Failed to request archive for %s: %v", data.Name, err)
+	}
+
+	req.Header.Set("User-Agent", userAgent)
+
+	res, err := httpClient.Do(req)
 	if err != nil {
 		return "", "", fmt.Errorf("Failed to update %s: fetching archive: %v", data.Name, err)
 	}

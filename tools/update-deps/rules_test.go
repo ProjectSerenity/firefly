@@ -113,6 +113,10 @@ func TestGitHubAPI(t *testing.T) {
 	// Start an HTTP server, serving a
 	// captured copy of an actual response.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("User-Agent"); got != userAgent {
+			t.Errorf("Got request with User-Agent %q, want %q", got, userAgent)
+		}
+
 		switch r.URL.Path {
 		case "/repos/bazelbuild/buildtools/releases/latest":
 			http.ServeFile(w, r, filepath.Join("testdata", "buildtools.json"))

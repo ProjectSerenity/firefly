@@ -212,6 +212,10 @@ func TestFetchCrate(t *testing.T) {
 	// Start an HTTP server, serving a
 	// captured copy of an actual response.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("User-Agent"); got != userAgent {
+			t.Errorf("Got request with User-Agent %q, want %q", got, userAgent)
+		}
+
 		if r.URL.Path == "/crates/x86_64" {
 			http.ServeFile(w, r, filepath.Join("testdata", "crates-io-x86_64.json"))
 		} else {
