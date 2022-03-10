@@ -61,8 +61,6 @@ qemu(
     drive = "//user/initial-workload:tar",
     image = "//tools/bootimage:image.bin",
     options = [
-        "-drive",
-        "format=raw,file=image.bin",
         "-device",
         "virtio-net,netdev=net0,disable-legacy=on,disable-modern=off",
         "-netdev",

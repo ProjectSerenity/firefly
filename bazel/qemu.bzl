@@ -16,9 +16,9 @@ set -e
 # with other parts of the build). However, Qemu will
 # not boot an image marked as writable for some reason,
 # so we make a local copy and make it writable.
-rm -f image.bin  # Clean up any previous version.
-cp {image} image.bin
-chmod +w image.bin
+rm -f _image.bin  # Clean up any previous version.
+cp {image} _image.bin
+chmod +w _image.bin
 {drivecpy}
 
 # Start Qemu.
@@ -28,7 +28,11 @@ echo {qemu} {args}
 
 def _qemu_impl(ctx):
     # Construct the script.
-    args = []
+    args = [
+        "-drive",
+        "format=raw,file=_image.bin",
+    ]
+
     args.extend(ctx.attr.options)
     drivecpy = ""
     if ctx.attr.drive:
