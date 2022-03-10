@@ -177,22 +177,22 @@ def rust_deps():
         patches = [
             "//bazel/third_party:bootloader.patch",
         ],
-        sha256 = "a62c8f6168cd106687ee36a2b71a46c4144d73399f72814104d33094b8092fd2",
-        strip_prefix = "bootloader-0.9.21",
+        sha256 = "de78decc37247c7cfac5dbf3495c7298c6ac97cb355161caa7e15969c6648e6c",
+        strip_prefix = "bootloader-0.9.22",
         type = "tgz",
         urls = [
-            "https://static.crates.io/crates/bootloader/bootloader-0.9.21.crate",
+            "https://static.crates.io/crates/bootloader/bootloader-0.9.22.crate",
         ],
     )
 
     http_archive(
         name = "compiler_builtins",
         build_file = "//bazel/third_party:compiler_builtins.BUILD",
-        sha256 = "a68c69e9451f1df4b215c9588c621670c12286b53e60fb5ec4b59aaa1138d18e",
-        strip_prefix = "compiler_builtins-0.1.67",
+        sha256 = "80873f979f0a344a4ade87c2f70d9ccf5720b83b10c97ec7cd745895d021e85a",
+        strip_prefix = "compiler_builtins-0.1.70",
         type = "tgz",
         urls = [
-            "https://static.crates.io/crates/compiler_builtins/compiler_builtins-0.1.67.crate",
+            "https://static.crates.io/crates/compiler_builtins/compiler_builtins-0.1.70.crate",
         ],
     )
 
