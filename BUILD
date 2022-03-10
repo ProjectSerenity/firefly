@@ -52,14 +52,14 @@ buildifier(
 # Allow the bootable image to be built with `bazel build //:image`.
 alias(
     name = "image",
-    actual = "//bootimage:bootimage",
+    actual = "//tools/bootimage:bootimage",
 )
 
 # Allow the image to be run in Qemu with `bazel run //:qemu`.
 qemu(
     name = "qemu",
     drive = "//user/initial-workload:tar",
-    image = "//bootimage:image.bin",
+    image = "//tools/bootimage:image.bin",
     options = [
         "-drive",
         "format=raw,file=image.bin",
