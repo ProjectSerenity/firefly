@@ -37,6 +37,8 @@ nogo(
 
 # gazelle:prefix github.com/ProjectSerenity/firefly
 # gazelle:build_file_name BUILD,BUILD.bazel
+# gazelle:go_naming_convention import
+# gazelle:go_naming_convention_external import
 
 # Allow Gazelle to be run with `bazel run //:gazelle`.
 gazelle(name = "gazelle")
