@@ -16,12 +16,12 @@ go_library(
     importpath = "github.com/ProjectSerenity/firefly/tools/update-deps",
     visibility = ["//visibility:private"],
     deps = [
-        "@com_github_BurntSushi_toml//:toml",
         "@com_github_bazelbuild_buildtools//build:go_default_library",
-        "@org_golang_x_mod//module:go_default_library",
-        "@org_golang_x_mod//semver:go_default_library",
-        "@org_golang_x_mod//sumdb:go_default_library",
-        "@org_golang_x_time//rate:go_default_library",
+        "@com_github_burntsushi_toml//:toml",
+        "@org_golang_x_mod//module",
+        "@org_golang_x_mod//semver",
+        "@org_golang_x_mod//sumdb",
+        "@org_golang_x_time//rate",
     ],
 )
 
@@ -42,4 +42,8 @@ go_test(
     ],
     data = glob(["testdata/*"]),
     embed = [":update-deps_lib"],
+    deps = [
+        "@com_github_bazelbuild_buildtools//build:go_default_library",
+        "@org_golang_x_time//rate",
+    ],
 )
