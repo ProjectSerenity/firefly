@@ -178,7 +178,7 @@ def rust_deps():
             "//bazel/third_party:bootloader.patch",
         ],
         sha256 = "de78decc37247c7cfac5dbf3495c7298c6ac97cb355161caa7e15969c6648e6c",
-        strip_prefix = "bootloader-0.9.22",
+        strip_prefix = "bootloader-0.9.22",  # Keep this in sync with its BUILD file.
         type = "tgz",
         urls = [
             "https://static.crates.io/crates/bootloader/bootloader-0.9.22.crate",

@@ -11,6 +11,8 @@ licenses([
     "notice",  # MIT from expression "MIT OR Apache-2.0"
 ])
 
+BOOTLOADER_VERSION = "0.9.22"
+
 # The bootloader package is a little unusual, as we use
 # both its library crate and main binary crate, plus we
 # depend on its build.rs script.
@@ -84,7 +86,7 @@ rust_library(
         "cargo-raze",
         "manual",
     ],
-    version = "0.9.21",
+    version = BOOTLOADER_VERSION,
     visibility = ["//visibility:public"],
 )
 
@@ -180,7 +182,7 @@ cargo_build_script(
         "cargo-raze",
         "manual",
     ],
-    version = "0.9.21",
+    version = BOOTLOADER_VERSION,
     visibility = ["//visibility:private"],
     deps = [
         "@crates//:llvm-tools",
@@ -245,7 +247,7 @@ rust_binary(
         "-lstatic=kernel_bin-kernel",
     ],
     tags = ["manual"],
-    version = "0.9.21",
+    version = BOOTLOADER_VERSION,
     visibility = ["//visibility:public"],
     deps = [
         ":bootloader",
