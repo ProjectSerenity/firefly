@@ -127,6 +127,7 @@ genrule(
     srcs = [
         "@//kernel:kernel",
         "@//kernel:ograC.toml",
+        "@rust_linux_x86_64//:rustc",
         "x86_64-bootloader.json",
     ],
     outs = [
@@ -138,6 +139,7 @@ genrule(
         export KERNEL="$(location @//kernel:kernel)"
         export KERNEL_MANIFEST="$(location @//kernel:ograC.toml)"
         export OUT_DIR="$$(realpath $(@D))"
+        export PATH="$$(dirname $(location @rust_linux_x86_64//:rustc)):$$PATH"
         $(location :build_script) > /dev/null""",
     message = "Packaging the kernel binary",
     tools = [
@@ -153,7 +155,9 @@ genrule(
 cargo_build_script(
     name = "bootloader_build_script",
     srcs = ["build.rs"],
-    build_script_env = {},
+    build_script_env = {
+        "PATH": "$$(dirname $(location @rust_linux_x86_64//:rustc)):$$PATH",
+    },
     crate_features = [
         "default",
         "map_physical_memory",
@@ -173,7 +177,9 @@ cargo_build_script(
             "WORKSPACE.bazel",
             "WORKSPACE",
         ],
-    ),
+    ) + [
+        "@rust_linux_x86_64//:rustc",
+    ],
     edition = "2021",
     rustc_flags = [
         "--cap-lints=allow",

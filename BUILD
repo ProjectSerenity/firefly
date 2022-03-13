@@ -55,12 +55,16 @@ buildifier(
 # Allow the bootable image to be built with `bazel build //:image`.
 genrule(
     name = "image",
-    srcs = ["@bootloader//:binary"],
+    srcs = [
+        "@bootloader//:binary",
+        "@rust_linux_x86_64//:rustc",
+    ],
     outs = ["image.bin"],
     cmd = """
         bootimage="$(location //tools/bootimage)"
         input="$(location @bootloader//:binary)"
         output="$$(realpath $(location image.bin))"
+        rustc_path="$$(dirname $(location @rust_linux_x86_64//:rustc))"
 
         # Check whether the stage two bootloader is
         # small enough to be loaded.
@@ -79,7 +83,7 @@ genrule(
 
         # Repackage the bootable image to a raw binary.
         rm -f $$output
-        $$bootimage $$input $$output""",
+        PATH=$$rustc_path:$$PATH $$bootimage $$input $$output""",
     message = "Making bootable image",
     tools = ["//tools/bootimage"],
     visibility = ["//visibility:public"],
