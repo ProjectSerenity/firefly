@@ -167,7 +167,7 @@ func main() {
 // fields were unset, or if any additional fields were
 // found in the AST.
 //
-func UnmarshalFields(call *build.CallExpr, v interface{}) error {
+func UnmarshalFields(call *build.CallExpr, v any) error {
 	val := reflect.ValueOf(v)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()

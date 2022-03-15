@@ -103,7 +103,7 @@ func TestUnmarshalFieldsError(t *testing.T) {
 	tests := []struct {
 		Name     string
 		Starlark string
-		Data     interface{}
+		Data     any
 		Error    string
 	}{
 		{

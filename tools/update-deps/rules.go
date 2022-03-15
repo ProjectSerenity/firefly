@@ -121,7 +121,7 @@ func ParseRulesBzl(name string) (file *build.File, rules []*BazelRuleData, err e
 // githubAPI calls the requested GitHub API, decoding
 // the response into dst.
 //
-func githubAPI(v interface{}, baseAPI string, args ...string) error {
+func githubAPI(v any, baseAPI string, args ...string) error {
 	u, err := url.Parse(baseAPI)
 	if err != nil {
 		return fmt.Errorf("invalid GitHub API URL: %w", err)
