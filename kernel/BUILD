@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_doc", "rust_library")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_doc", "rust_library", "rustfmt_test")
 load("//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_binary")
 
 # Expose the manifest to the bootloader and bootimage.
@@ -64,6 +64,12 @@ rust_clippy(
 rust_doc(
     name = "docs",
     crate = ":libkernel",
+)
+
+rustfmt_test(
+    name = "fmt_test",
+    size = "small",
+    targets = [":libkernel"],
 )
 
 rust_binary(

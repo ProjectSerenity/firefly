@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rust_test")
+load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rust_test", "rustfmt_test")
 
 rust_library(
     name = "physmem",
@@ -34,6 +34,12 @@ rust_clippy(
 rust_doc(
     name = "docs",
     crate = ":physmem",
+)
+
+rustfmt_test(
+    name = "fmt_test",
+    size = "small",
+    targets = [":physmem"],
 )
 
 rust_test(
