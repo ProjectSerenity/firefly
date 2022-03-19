@@ -4,6 +4,7 @@
 # license that can be found in the LICENSE file.
 
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+load("//bazel/gofmt:gofmt.bzl", "gofmt")
 
 go_library(
     name = "update-deps_lib",
@@ -23,6 +24,11 @@ go_library(
         "@org_golang_x_mod//sumdb",
         "@org_golang_x_time//rate",
     ],
+)
+
+gofmt(
+    name = "gofmt",
+    embed = [":update-deps_lib"],
 )
 
 go_binary(
