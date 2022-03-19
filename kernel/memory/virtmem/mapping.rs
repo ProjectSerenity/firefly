@@ -446,3 +446,30 @@ impl fmt::Display for Mapping {
         )
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use alloc::format;
+
+    #[test]
+    fn test_display_mapping() {
+        let offset = VirtAddr::new(0x123451000);
+        let phys_start = PhysAddr::new(0x8000);
+        let virt_start = offset + phys_start.as_u64();
+        let page_size = PageBytesSize::Size2MiB;
+        let flags = PageTableFlags::NO_EXECUTE;
+        let map = Mapping::new(virt_start, phys_start, page_size, flags);
+        let map = Mapping::with_purpose(map, PagePurpose::Mmio);
+        assert_eq!(format!("{}", map), "0x123459000-0x123658fff -> 0x000008000-0x000207fff     1 x 2 MiB page =   2 MiB ----- (MMIO)");
+
+        let offset = VirtAddr::new(0x1000);
+        let phys_start = PhysAddr::new(0x2000);
+        let virt_start = offset + phys_start.as_u64();
+        let page_size = PageBytesSize::Size4KiB;
+        let flags = PageTableFlags::all() - PageTableFlags::NO_EXECUTE;
+        let map = Mapping::new(virt_start, phys_start, page_size, flags);
+        let map = Mapping::with_purpose(map, PagePurpose::Userspace);
+        assert_eq!(format!("{}", map), "0x3000-0x3fff -> 0x000002000-0x000002fff     1 x 4 KiB page =   4 KiB gurwx (userspace)");
+    }
+}
