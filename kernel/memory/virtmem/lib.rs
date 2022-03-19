@@ -8,11 +8,27 @@
 //! This module provides the functionality to allocate heap memory. This is
 //! primarily used by Rust's runtime to allocate heap memory for the kernel.
 //!
-//! Most of the module's functionality is internal. The two external APIs
-//! are:
+//! The two basic APIs are:
 //!
 //! 1. [`init`]: Use a page table and physical memory allocator to initialise the kernel heap.
 //! 2. [`debug`]: Print debug info about the page tables and the virtual address spaces in use.
+//!
+//! It also keeps track of the kernel's page tables, along with functionality
+//! to create new page tables safely shared with the kernel. This set of APIs
+//! consists of:
+//!
+//! - [`freeze_kernel_mappings`]: Mark the kernel's top-level page tables as finished.
+//! - [`kernel_mappings_frozen`]: Check whether the kernel's top-level page tables are frozen.
+//! - [`kernel_level4_page_table`]: Returns the kernel's level 4 page table.
+//! - [`new_page_table`]: Creates a new set of page tables for a user process.
+//!
+//! Finally, the crate provides functionality to modify the current page
+//! tables, such as to map virtual to physical memory:
+//!
+//! - [`map_pages`]: Map virtual pages to arbitrary physical memory.
+//! - [`map_frames_to_pages`]: Map virtual pages to chosen physical memory.
+//! - [`with_page_tables`]: Allows access to the current page tables.
+//! - [`virt_to_phys_addrs`]: Translate a virtual memory region to the underlying physical memory region(s).
 //!
 //! ## Heap initialisation
 //!
