@@ -138,3 +138,67 @@ unsafe impl GlobalAlloc for Locked<BumpAllocator> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_bump_allocator() {
+        let mut heap = BumpAllocator::new();
+        unsafe { heap.init(VirtAddr::new(0x1000), 0x1000) };
+
+        // Check that we can make a few successive aligned allocations.
+        assert_eq!(heap.allocate(8, 8), Some(VirtAddr::new(0x1000)));
+        assert_eq!(heap.next, VirtAddr::new(0x1008));
+        assert_eq!(heap.allocate(8, 8), Some(VirtAddr::new(0x1008)));
+        assert_eq!(heap.next, VirtAddr::new(0x1010));
+        assert_eq!(heap.allocate(8, 8), Some(VirtAddr::new(0x1010)));
+        assert_eq!(heap.next, VirtAddr::new(0x1018));
+
+        // Check that we handle alignment correctly.
+        assert_eq!(heap.allocate(16, 8), Some(VirtAddr::new(0x1020)));
+        assert_eq!(heap.next, VirtAddr::new(0x1028));
+        assert_eq!(heap.allocate(16, 8), Some(VirtAddr::new(0x1030)));
+        assert_eq!(heap.next, VirtAddr::new(0x1038));
+
+        // Check that deallocating some of the memory doesn't wipe
+        // out everything (as that's a defining feature of bump
+        // allocators).
+        assert_eq!(heap.deallocate(VirtAddr::new(0x1020), 8), Ok(()));
+        assert_eq!(heap.next, VirtAddr::new(0x1038));
+        assert_eq!(heap.allocations, 4);
+
+        // Check that deallocating all of the memory resets our state.
+        assert_eq!(heap.deallocate(VirtAddr::new(0x1000), 8), Ok(()));
+        assert_eq!(heap.next, VirtAddr::new(0x1038));
+        assert_eq!(heap.allocations, 3);
+        assert_eq!(heap.deallocate(VirtAddr::new(0x1008), 8), Ok(()));
+        assert_eq!(heap.next, VirtAddr::new(0x1038));
+        assert_eq!(heap.allocations, 2);
+        assert_eq!(heap.deallocate(VirtAddr::new(0x1010), 8), Ok(()));
+        assert_eq!(heap.next, VirtAddr::new(0x1038));
+        assert_eq!(heap.allocations, 1);
+        assert_eq!(heap.deallocate(VirtAddr::new(0x1030), 8), Ok(()));
+        assert_eq!(heap.next, VirtAddr::new(0x1000));
+        assert_eq!(heap.allocations, 0);
+
+        // Check that we reject deallocating memory outside our heap.
+        assert_eq!(
+            heap.deallocate(VirtAddr::new(0x8000), 8),
+            Err("deallocated region was not allocated by this heap")
+        );
+
+        // Check that we reject deallocating invalid memory regions.
+        // End address overflows.
+        assert_eq!(
+            heap.deallocate(VirtAddr::new(0x1000), 0xffff_ffff_ffff_ffff),
+            Err("deallocated region is invalid")
+        );
+        // End address is non-canonical.
+        assert_eq!(
+            heap.deallocate(VirtAddr::new(0x1000), 0x1234_8000_0000_0000),
+            Err("deallocated region is invalid")
+        );
+    }
+}
