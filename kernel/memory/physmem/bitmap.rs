@@ -601,237 +601,242 @@ impl<'a, 't, A: FrameAllocator<Size4KiB> + FrameDeallocator<Size4KiB>> FrameDeal
     }
 }
 
-#[test]
-fn bitmap_frame_allocator() {
-    use bootloader::bootinfo::FrameRange;
-    let regions = [
-        MemoryRegion {
-            range: FrameRange {
-                start_frame_number: 0u64,
-                end_frame_number: 1u64,
-            },
-            region_type: MemoryRegionType::FrameZero,
-        },
-        MemoryRegion {
-            range: FrameRange {
-                start_frame_number: 1u64,
-                end_frame_number: 4u64,
-            },
-            region_type: MemoryRegionType::Reserved,
-        },
-        MemoryRegion {
-            range: FrameRange {
-                start_frame_number: 4u64,
-                end_frame_number: 8u64,
-            },
-            region_type: MemoryRegionType::Usable,
-        },
-        MemoryRegion {
-            range: FrameRange {
-                start_frame_number: 8u64,
-                end_frame_number: 12u64,
-            },
-            region_type: MemoryRegionType::Reserved,
-        },
-        MemoryRegion {
-            range: FrameRange {
-                start_frame_number: 12u64,
-                end_frame_number: 14u64,
-            },
-            region_type: MemoryRegionType::Usable,
-        },
-    ];
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let mut alloc = unsafe { BitmapFrameAllocator::new(regions.iter()) };
-    assert_eq!(alloc.num_frames, 6);
-    assert_eq!(alloc.free_frames, 6);
+    #[test]
+    fn test_bitmap_frame_allocator() {
+        use bootloader::bootinfo::FrameRange;
+        let regions = [
+            MemoryRegion {
+                range: FrameRange {
+                    start_frame_number: 0u64,
+                    end_frame_number: 1u64,
+                },
+                region_type: MemoryRegionType::FrameZero,
+            },
+            MemoryRegion {
+                range: FrameRange {
+                    start_frame_number: 1u64,
+                    end_frame_number: 4u64,
+                },
+                region_type: MemoryRegionType::Reserved,
+            },
+            MemoryRegion {
+                range: FrameRange {
+                    start_frame_number: 4u64,
+                    end_frame_number: 8u64,
+                },
+                region_type: MemoryRegionType::Usable,
+            },
+            MemoryRegion {
+                range: FrameRange {
+                    start_frame_number: 8u64,
+                    end_frame_number: 12u64,
+                },
+                region_type: MemoryRegionType::Reserved,
+            },
+            MemoryRegion {
+                range: FrameRange {
+                    start_frame_number: 12u64,
+                    end_frame_number: 14u64,
+                },
+                region_type: MemoryRegionType::Usable,
+            },
+        ];
 
-    // Helper function to speed up making frames.
-    fn frame_for(addr: u64) -> PhysFrame {
-        let start_addr = PhysAddr::new(addr);
-        let frame = PhysFrame::from_start_address(start_addr).unwrap();
-        frame
+        let mut alloc = unsafe { BitmapFrameAllocator::new(regions.iter()) };
+        assert_eq!(alloc.num_frames, 6);
+        assert_eq!(alloc.free_frames, 6);
+
+        // Helper function to speed up making frames.
+        fn frame_for(addr: u64) -> PhysFrame {
+            let start_addr = PhysAddr::new(addr);
+            let frame = PhysFrame::from_start_address(start_addr).unwrap();
+            frame
+        }
+
+        // Do some allocations.
+        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x4000)));
+        assert_eq!(alloc.num_frames, 6);
+        assert_eq!(alloc.free_frames, 5);
+        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x5000)));
+        assert_eq!(alloc.num_frames, 6);
+        assert_eq!(alloc.free_frames, 4);
+
+        // Do a free.
+        unsafe { alloc.deallocate_frame(frame_for(0x4000)) };
+        assert_eq!(alloc.num_frames, 6);
+        assert_eq!(alloc.free_frames, 5);
+
+        // Next allocation should return the address we just freed.
+        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x4000)));
+        assert_eq!(alloc.num_frames, 6);
+        assert_eq!(alloc.free_frames, 4);
+
+        // Check that all remaining allocations are as we expect.
+        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x6000)));
+        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x7000)));
+        assert_eq!(alloc.allocate_frame(), Some(frame_for(0xc000)));
+        assert_eq!(alloc.allocate_frame(), Some(frame_for(0xd000)));
+        assert_eq!(alloc.num_frames, 6);
+        assert_eq!(alloc.free_frames, 0);
+
+        // Check that we get nothing once we run out of frames.
+        assert_eq!(alloc.allocate_frame(), None);
+        assert_eq!(alloc.num_frames, 6);
+        assert_eq!(alloc.free_frames, 0);
+
+        // Check that sequential allocations work correctly.
+
+        // Deallocate 2 non-sequential frames, expect None.
+        unsafe { alloc.deallocate_frame(frame_for(0x5000)) };
+        unsafe { alloc.deallocate_frame(frame_for(0x7000)) };
+        assert_eq!(alloc.allocate_n_frames(2), None);
+
+        // Leave 2 sequential frames, check we get the right pair.
+        // Note: we use PhysFrameRange, not PhysFrameRangeInclusive.
+        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x5000)));
+        unsafe { alloc.deallocate_frame(frame_for(0x6000)) };
+        assert_eq!(
+            alloc.allocate_n_frames(2),
+            Some(PhysFrameRange {
+                start: frame_for(0x6000),
+                end: frame_for(0x8000) // exclusive
+            })
+        );
+
+        // Check that we get nothing once we run out of frames.
+        assert_eq!(alloc.num_frames, 6);
+        assert_eq!(alloc.free_frames, 0);
     }
 
-    // Do some allocations.
-    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x4000)));
-    assert_eq!(alloc.num_frames, 6);
-    assert_eq!(alloc.free_frames, 5);
-    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x5000)));
-    assert_eq!(alloc.num_frames, 6);
-    assert_eq!(alloc.free_frames, 4);
-
-    // Do a free.
-    unsafe { alloc.deallocate_frame(frame_for(0x4000)) };
-    assert_eq!(alloc.num_frames, 6);
-    assert_eq!(alloc.free_frames, 5);
-
-    // Next allocation should return the address we just freed.
-    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x4000)));
-    assert_eq!(alloc.num_frames, 6);
-    assert_eq!(alloc.free_frames, 4);
-
-    // Check that all remaining allocations are as we expect.
-    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x6000)));
-    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x7000)));
-    assert_eq!(alloc.allocate_frame(), Some(frame_for(0xc000)));
-    assert_eq!(alloc.allocate_frame(), Some(frame_for(0xd000)));
-    assert_eq!(alloc.num_frames, 6);
-    assert_eq!(alloc.free_frames, 0);
-
-    // Check that we get nothing once we run out of frames.
-    assert_eq!(alloc.allocate_frame(), None);
-    assert_eq!(alloc.num_frames, 6);
-    assert_eq!(alloc.free_frames, 0);
-
-    // Check that sequential allocations work correctly.
-
-    // Deallocate 2 non-sequential frames, expect None.
-    unsafe { alloc.deallocate_frame(frame_for(0x5000)) };
-    unsafe { alloc.deallocate_frame(frame_for(0x7000)) };
-    assert_eq!(alloc.allocate_n_frames(2), None);
-
-    // Leave 2 sequential frames, check we get the right pair.
-    // Note: we use PhysFrameRange, not PhysFrameRangeInclusive.
-    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x5000)));
-    unsafe { alloc.deallocate_frame(frame_for(0x6000)) };
-    assert_eq!(
-        alloc.allocate_n_frames(2),
-        Some(PhysFrameRange {
-            start: frame_for(0x6000),
-            end: frame_for(0x8000) // exclusive
-        })
-    );
-
-    // Check that we get nothing once we run out of frames.
-    assert_eq!(alloc.num_frames, 6);
-    assert_eq!(alloc.free_frames, 0);
-}
-
-#[test]
-fn arena_frame_allocator() {
-    // Construct an arena, confirm that it's empty to
-    // start with, then perform some allocations and
-    // make sure they match up with the allcoator.
-    use bootloader::bootinfo::FrameRange;
-    let regions = [
-        MemoryRegion {
-            range: FrameRange {
-                start_frame_number: 0u64,
-                end_frame_number: 1u64,
+    #[test]
+    fn test_arena_frame_allocator() {
+        // Construct an arena, confirm that it's empty to
+        // start with, then perform some allocations and
+        // make sure they match up with the allcoator.
+        use bootloader::bootinfo::FrameRange;
+        let regions = [
+            MemoryRegion {
+                range: FrameRange {
+                    start_frame_number: 0u64,
+                    end_frame_number: 1u64,
+                },
+                region_type: MemoryRegionType::FrameZero,
             },
-            region_type: MemoryRegionType::FrameZero,
-        },
-        MemoryRegion {
-            range: FrameRange {
-                start_frame_number: 1u64,
-                end_frame_number: 4u64,
+            MemoryRegion {
+                range: FrameRange {
+                    start_frame_number: 1u64,
+                    end_frame_number: 4u64,
+                },
+                region_type: MemoryRegionType::Reserved,
             },
-            region_type: MemoryRegionType::Reserved,
-        },
-        MemoryRegion {
-            range: FrameRange {
-                start_frame_number: 4u64,
-                end_frame_number: 8u64,
+            MemoryRegion {
+                range: FrameRange {
+                    start_frame_number: 4u64,
+                    end_frame_number: 8u64,
+                },
+                region_type: MemoryRegionType::Usable,
             },
-            region_type: MemoryRegionType::Usable,
-        },
-        MemoryRegion {
-            range: FrameRange {
-                start_frame_number: 8u64,
-                end_frame_number: 12u64,
+            MemoryRegion {
+                range: FrameRange {
+                    start_frame_number: 8u64,
+                    end_frame_number: 12u64,
+                },
+                region_type: MemoryRegionType::Reserved,
             },
-            region_type: MemoryRegionType::Reserved,
-        },
-        MemoryRegion {
-            range: FrameRange {
-                start_frame_number: 12u64,
-                end_frame_number: 14u64,
+            MemoryRegion {
+                range: FrameRange {
+                    start_frame_number: 12u64,
+                    end_frame_number: 14u64,
+                },
+                region_type: MemoryRegionType::Usable,
             },
-            region_type: MemoryRegionType::Usable,
-        },
-    ];
+        ];
 
-    let mut alloc = unsafe { BitmapFrameAllocator::new(regions.iter()) };
-    assert_eq!(alloc.num_frames, 6);
-    assert_eq!(alloc.free_frames, 6);
+        let mut alloc = unsafe { BitmapFrameAllocator::new(regions.iter()) };
+        assert_eq!(alloc.num_frames, 6);
+        assert_eq!(alloc.free_frames, 6);
 
-    // Helper function to speed up making frames.
-    fn frame_for(addr: u64) -> PhysFrame {
-        let start_addr = PhysAddr::new(addr);
-        let frame = PhysFrame::from_start_address(start_addr).unwrap();
-        frame
+        // Helper function to speed up making frames.
+        fn frame_for(addr: u64) -> PhysFrame {
+            let start_addr = PhysAddr::new(addr);
+            let frame = PhysFrame::from_start_address(start_addr).unwrap();
+            frame
+        }
+
+        // Do some allocations.
+        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x4000)));
+        assert_eq!(alloc.num_frames, 6);
+        assert_eq!(alloc.free_frames, 5);
+        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x5000)));
+        assert_eq!(alloc.num_frames, 6);
+        assert_eq!(alloc.free_frames, 4);
+
+        // Create a tracker, which should start out
+        // empty, even though we've already done some
+        // allocations.
+        let mut tracker = alloc.new_tracker();
+        assert_eq!(tracker.num_frames, 6);
+        assert_eq!(tracker.allocated_frames, 0);
+
+        // Create an arena allocator using the tracker
+        // we just created and the underlying allocator,
+        // allowing us to track the allocations.
+        let mut arena = ArenaFrameAllocator::new(&mut alloc, &mut tracker);
+
+        // Perform some allocations and confirm they
+        // are tracked correctly.
+        assert_eq!(arena.allocate_frame(), Some(frame_for(0x6000)));
+        assert_eq!(arena.tracker.num_frames, 6);
+        assert_eq!(arena.tracker.allocated_frames, 1);
+        assert!(arena.tracker.is_allocated(frame_for(0x6000)));
+
+        // Do a free.
+        unsafe { arena.deallocate_frame(frame_for(0x6000)) };
+        assert_eq!(arena.tracker.num_frames, 6);
+        assert_eq!(arena.tracker.allocated_frames, 0);
+        assert!(!arena.tracker.is_allocated(frame_for(0x6000)));
+
+        // Next allocation should return the address we just freed.
+        assert_eq!(arena.allocate_frame(), Some(frame_for(0x6000)));
+        assert_eq!(arena.tracker.num_frames, 6);
+        assert_eq!(arena.tracker.allocated_frames, 1);
+        assert!(arena.tracker.is_allocated(frame_for(0x6000)));
+
+        // Check that all remaining allocations are as we expect.
+        assert_eq!(arena.allocate_frame(), Some(frame_for(0x7000)));
+        assert_eq!(arena.allocate_frame(), Some(frame_for(0xc000)));
+        assert_eq!(arena.allocate_frame(), Some(frame_for(0xd000)));
+        assert_eq!(arena.tracker.num_frames, 6);
+        assert_eq!(arena.tracker.allocated_frames, 4);
+
+        // Check that we get nothing once we run out of frames.
+        assert_eq!(arena.allocate_frame(), None);
+        assert_eq!(arena.tracker.num_frames, 6);
+        assert_eq!(arena.tracker.allocated_frames, 4);
+
+        // Check that deallocating everything empties the tracker
+        // and is reflected in the allocator.
+
+        // Deallocate everything and check the tracker.
+        unsafe { arena.deallocate_all_frames() };
+        drop(arena);
+        assert_eq!(tracker.num_frames, 6);
+        assert_eq!(tracker.allocated_frames, 0);
+        assert!(!tracker.is_allocated(frame_for(0x6000)));
+        assert!(!tracker.is_allocated(frame_for(0x7000)));
+        assert!(!tracker.is_allocated(frame_for(0xc000)));
+        assert!(!tracker.is_allocated(frame_for(0xd000)));
+
+        // Check that the allocator agrees.
+        assert_eq!(alloc.num_frames, 6);
+        assert_eq!(alloc.free_frames, 4);
+        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x6000)));
+        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x7000)));
+        assert_eq!(alloc.allocate_frame(), Some(frame_for(0xc000)));
+        assert_eq!(alloc.allocate_frame(), Some(frame_for(0xd000)));
     }
-
-    // Do some allocations.
-    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x4000)));
-    assert_eq!(alloc.num_frames, 6);
-    assert_eq!(alloc.free_frames, 5);
-    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x5000)));
-    assert_eq!(alloc.num_frames, 6);
-    assert_eq!(alloc.free_frames, 4);
-
-    // Create a tracker, which should start out
-    // empty, even though we've already done some
-    // allocations.
-    let mut tracker = alloc.new_tracker();
-    assert_eq!(tracker.num_frames, 6);
-    assert_eq!(tracker.allocated_frames, 0);
-
-    // Create an arena allocator using the tracker
-    // we just created and the underlying allocator,
-    // allowing us to track the allocations.
-    let mut arena = ArenaFrameAllocator::new(&mut alloc, &mut tracker);
-
-    // Perform some allocations and confirm they
-    // are tracked correctly.
-    assert_eq!(arena.allocate_frame(), Some(frame_for(0x6000)));
-    assert_eq!(arena.tracker.num_frames, 6);
-    assert_eq!(arena.tracker.allocated_frames, 1);
-    assert!(arena.tracker.is_allocated(frame_for(0x6000)));
-
-    // Do a free.
-    unsafe { arena.deallocate_frame(frame_for(0x6000)) };
-    assert_eq!(arena.tracker.num_frames, 6);
-    assert_eq!(arena.tracker.allocated_frames, 0);
-    assert!(!arena.tracker.is_allocated(frame_for(0x6000)));
-
-    // Next allocation should return the address we just freed.
-    assert_eq!(arena.allocate_frame(), Some(frame_for(0x6000)));
-    assert_eq!(arena.tracker.num_frames, 6);
-    assert_eq!(arena.tracker.allocated_frames, 1);
-    assert!(arena.tracker.is_allocated(frame_for(0x6000)));
-
-    // Check that all remaining allocations are as we expect.
-    assert_eq!(arena.allocate_frame(), Some(frame_for(0x7000)));
-    assert_eq!(arena.allocate_frame(), Some(frame_for(0xc000)));
-    assert_eq!(arena.allocate_frame(), Some(frame_for(0xd000)));
-    assert_eq!(arena.tracker.num_frames, 6);
-    assert_eq!(arena.tracker.allocated_frames, 4);
-
-    // Check that we get nothing once we run out of frames.
-    assert_eq!(arena.allocate_frame(), None);
-    assert_eq!(arena.tracker.num_frames, 6);
-    assert_eq!(arena.tracker.allocated_frames, 4);
-
-    // Check that deallocating everything empties the tracker
-    // and is reflected in the allocator.
-
-    // Deallocate everything and check the tracker.
-    unsafe { arena.deallocate_all_frames() };
-    drop(arena);
-    assert_eq!(tracker.num_frames, 6);
-    assert_eq!(tracker.allocated_frames, 0);
-    assert!(!tracker.is_allocated(frame_for(0x6000)));
-    assert!(!tracker.is_allocated(frame_for(0x7000)));
-    assert!(!tracker.is_allocated(frame_for(0xc000)));
-    assert!(!tracker.is_allocated(frame_for(0xd000)));
-
-    // Check that the allocator agrees.
-    assert_eq!(alloc.num_frames, 6);
-    assert_eq!(alloc.free_frames, 4);
-    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x6000)));
-    assert_eq!(alloc.allocate_frame(), Some(frame_for(0x7000)));
-    assert_eq!(alloc.allocate_frame(), Some(frame_for(0xc000)));
-    assert_eq!(alloc.allocate_frame(), Some(frame_for(0xd000)));
 }

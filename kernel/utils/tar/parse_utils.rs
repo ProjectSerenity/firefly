@@ -178,90 +178,95 @@ pub fn parse_checksum(buf: &[u8]) -> (isize, isize) {
     (signed, unsigned)
 }
 
-#[test]
-fn test_trim_spaces_and_nulls() {
-    assert_eq!(trim_spaces_and_nulls(&[]), &[]);
-    assert_eq!(trim_spaces_and_nulls(&[1u8]), &[1u8]);
-    assert_eq!(trim_spaces_and_nulls(&[0u8, 0u8, 1u8, 0u8, 0u8]), &[1u8]);
-    assert_eq!(
-        trim_spaces_and_nulls(&[' ' as u8, 0u8, 1u8, 0u8, ' ' as u8]),
-        &[1u8]
-    );
-    assert_eq!(
-        trim_spaces_and_nulls(&[0u8, ' ' as u8, 1u8, ' ' as u8, 0u8]),
-        &[1u8]
-    );
-    assert_eq!(
-        trim_spaces_and_nulls(&[' ' as u8, ' ' as u8, 1u8, ' ' as u8, ' ' as u8]),
-        &[1u8]
-    );
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn test_parse_octal() {
-    assert_eq!(parse_number(b""), Some(0));
-    assert_eq!(parse_number(b"777"), Some(0o777));
-    assert_eq!(parse_number(&[0u8, 0u8, '3' as u8, 0u8, 0u8]), Some(3));
+    #[test]
+    fn test_trim_spaces_and_nulls() {
+        assert_eq!(trim_spaces_and_nulls(&[]), &[]);
+        assert_eq!(trim_spaces_and_nulls(&[1u8]), &[1u8]);
+        assert_eq!(trim_spaces_and_nulls(&[0u8, 0u8, 1u8, 0u8, 0u8]), &[1u8]);
+        assert_eq!(
+            trim_spaces_and_nulls(&[' ' as u8, 0u8, 1u8, 0u8, ' ' as u8]),
+            &[1u8]
+        );
+        assert_eq!(
+            trim_spaces_and_nulls(&[0u8, ' ' as u8, 1u8, ' ' as u8, 0u8]),
+            &[1u8]
+        );
+        assert_eq!(
+            trim_spaces_and_nulls(&[' ' as u8, ' ' as u8, 1u8, ' ' as u8, ' ' as u8]),
+            &[1u8]
+        );
+    }
 
-    // Additional test cases copied from Go's "archive/tar".
-    assert_eq!(parse_number(b"0000000\x00"), Some(0));
-    assert_eq!(parse_number(b" \x0000000\x00"), Some(0));
-    assert_eq!(parse_number(b" \x0000003\x00"), Some(3));
-    assert_eq!(parse_number(b"00000000227\x00"), Some(0o227));
-    assert_eq!(parse_number(b"032033\x00 "), Some(0o32033));
-    assert_eq!(parse_number(b"320330\x00 "), Some(0o320330));
-    assert_eq!(parse_number(b"0000660\x00 "), Some(0o660));
-    assert_eq!(parse_number(b"\x00 0000660\x00 "), Some(0o660));
-    assert_eq!(parse_number(b"0123456789abcdef"), None);
-    assert_eq!(parse_number(b"0123456789\x00abcdef"), None);
-    assert_eq!(parse_number(b"01234567\x0089abcdef"), Some(342391));
-    assert_eq!(parse_number(b"0123\x7e\x5f\x264123"), None);
-}
+    #[test]
+    fn test_parse_octal() {
+        assert_eq!(parse_number(b""), Some(0));
+        assert_eq!(parse_number(b"777"), Some(0o777));
+        assert_eq!(parse_number(&[0u8, 0u8, '3' as u8, 0u8, 0u8]), Some(3));
 
-#[test]
-fn test_parse_base256() {
-    // Test cases copied from Go's "archive/tar".
-    assert_eq!(parse_number(b""), Some(0));
-    assert_eq!(parse_number(b"\x80"), Some(0));
-    assert_eq!(parse_number(b"\x80\x00"), Some(0));
-    assert_eq!(parse_number(b"\x80\x00\x00"), Some(0));
-    assert_eq!(parse_number(b"\xbf"), Some((1 << 6) - 1));
-    assert_eq!(parse_number(b"\xbf\xff"), Some((1 << 14) - 1));
-    assert_eq!(parse_number(b"\xbf\xff\xff"), Some((1 << 22) - 1));
-    assert_eq!(parse_number(b"\xff"), Some(-1));
-    assert_eq!(parse_number(b"\xff\xff"), Some(-1));
-    assert_eq!(parse_number(b"\xff\xff\xff"), Some(-1));
-    assert_eq!(parse_number(b"\xc0"), Some(-1 * (1 << 6)));
-    assert_eq!(parse_number(b"\xc0\x00"), Some(-1 * (1 << 14)));
-    assert_eq!(parse_number(b"\xc0\x00\x00"), Some(-1 * (1 << 22)));
-    assert_eq!(
-        parse_number(b"\x87\x76\xa2\x22\xeb\x8a\x72\x61"),
-        Some(537795476381659745)
-    );
-    assert_eq!(
-        parse_number(b"\x80\x00\x00\x00\x07\x76\xa2\x22\xeb\x8a\x72\x61"),
-        Some(537795476381659745)
-    );
-    assert_eq!(
-        parse_number(b"\xf7\x76\xa2\x22\xeb\x8a\x72\x61"),
-        Some(-615126028225187231)
-    );
-    assert_eq!(
-        parse_number(b"\xff\xff\xff\xff\xf7\x76\xa2\x22\xeb\x8a\x72\x61"),
-        Some(-615126028225187231)
-    );
-    assert_eq!(
-        parse_number(b"\x80\x7f\xff\xff\xff\xff\xff\xff\xff"),
-        Some(i64::MAX as isize)
-    );
-    assert_eq!(parse_number(b"\x80\x80\x00\x00\x00\x00\x00\x00\x00"), None);
-    assert_eq!(
-        parse_number(b"\xff\x80\x00\x00\x00\x00\x00\x00\x00"),
-        Some(i64::MIN as isize)
-    );
-    assert_eq!(parse_number(b"\xff\x7f\xff\xff\xff\xff\xff\xff\xff"), None);
-    assert_eq!(
-        parse_number(b"\xf5\xec\xd1\xc7\x7e\x5f\x26\x48\x81\x9f\x8f\x9b"),
-        None
-    );
+        // Additional test cases copied from Go's "archive/tar".
+        assert_eq!(parse_number(b"0000000\x00"), Some(0));
+        assert_eq!(parse_number(b" \x0000000\x00"), Some(0));
+        assert_eq!(parse_number(b" \x0000003\x00"), Some(3));
+        assert_eq!(parse_number(b"00000000227\x00"), Some(0o227));
+        assert_eq!(parse_number(b"032033\x00 "), Some(0o32033));
+        assert_eq!(parse_number(b"320330\x00 "), Some(0o320330));
+        assert_eq!(parse_number(b"0000660\x00 "), Some(0o660));
+        assert_eq!(parse_number(b"\x00 0000660\x00 "), Some(0o660));
+        assert_eq!(parse_number(b"0123456789abcdef"), None);
+        assert_eq!(parse_number(b"0123456789\x00abcdef"), None);
+        assert_eq!(parse_number(b"01234567\x0089abcdef"), Some(342391));
+        assert_eq!(parse_number(b"0123\x7e\x5f\x264123"), None);
+    }
+
+    #[test]
+    fn test_parse_base256() {
+        // Test cases copied from Go's "archive/tar".
+        assert_eq!(parse_number(b""), Some(0));
+        assert_eq!(parse_number(b"\x80"), Some(0));
+        assert_eq!(parse_number(b"\x80\x00"), Some(0));
+        assert_eq!(parse_number(b"\x80\x00\x00"), Some(0));
+        assert_eq!(parse_number(b"\xbf"), Some((1 << 6) - 1));
+        assert_eq!(parse_number(b"\xbf\xff"), Some((1 << 14) - 1));
+        assert_eq!(parse_number(b"\xbf\xff\xff"), Some((1 << 22) - 1));
+        assert_eq!(parse_number(b"\xff"), Some(-1));
+        assert_eq!(parse_number(b"\xff\xff"), Some(-1));
+        assert_eq!(parse_number(b"\xff\xff\xff"), Some(-1));
+        assert_eq!(parse_number(b"\xc0"), Some(-1 * (1 << 6)));
+        assert_eq!(parse_number(b"\xc0\x00"), Some(-1 * (1 << 14)));
+        assert_eq!(parse_number(b"\xc0\x00\x00"), Some(-1 * (1 << 22)));
+        assert_eq!(
+            parse_number(b"\x87\x76\xa2\x22\xeb\x8a\x72\x61"),
+            Some(537795476381659745)
+        );
+        assert_eq!(
+            parse_number(b"\x80\x00\x00\x00\x07\x76\xa2\x22\xeb\x8a\x72\x61"),
+            Some(537795476381659745)
+        );
+        assert_eq!(
+            parse_number(b"\xf7\x76\xa2\x22\xeb\x8a\x72\x61"),
+            Some(-615126028225187231)
+        );
+        assert_eq!(
+            parse_number(b"\xff\xff\xff\xff\xf7\x76\xa2\x22\xeb\x8a\x72\x61"),
+            Some(-615126028225187231)
+        );
+        assert_eq!(
+            parse_number(b"\x80\x7f\xff\xff\xff\xff\xff\xff\xff"),
+            Some(i64::MAX as isize)
+        );
+        assert_eq!(parse_number(b"\x80\x80\x00\x00\x00\x00\x00\x00\x00"), None);
+        assert_eq!(
+            parse_number(b"\xff\x80\x00\x00\x00\x00\x00\x00\x00"),
+            Some(i64::MIN as isize)
+        );
+        assert_eq!(parse_number(b"\xff\x7f\xff\xff\xff\xff\xff\xff\xff"), None);
+        assert_eq!(
+            parse_number(b"\xf5\xec\xd1\xc7\x7e\x5f\x26\x48\x81\x9f\x8f\x9b"),
+            None
+        );
+    }
 }

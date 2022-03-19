@@ -218,135 +218,140 @@ impl Bitmap {
     }
 }
 
-#[test]
-fn bitmap() {
-    let mut bitmap = Bitmap::new_unset(7);
-    for i in 0..7 {
-        // Check it's false by default.
-        assert_eq!(bitmap.get(i), false);
-        assert_eq!(bitmap.next_set(), None);
-        assert_eq!(bitmap.num_set(), 0);
-        assert_eq!(bitmap.num_unset(), 7);
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        // Check set.
-        bitmap.set(i);
-        assert_eq!(bitmap.get(i), true);
-        assert_eq!(bitmap.next_set(), Some(i));
-        assert_eq!(bitmap.num_set(), 1);
-        assert_eq!(bitmap.num_unset(), 6);
+    #[test]
+    fn bitmap() {
+        let mut bitmap = Bitmap::new_unset(7);
+        for i in 0..7 {
+            // Check it's false by default.
+            assert_eq!(bitmap.get(i), false);
+            assert_eq!(bitmap.next_set(), None);
+            assert_eq!(bitmap.num_set(), 0);
+            assert_eq!(bitmap.num_unset(), 7);
 
-        // Check unset.
-        bitmap.unset(i);
-        assert_eq!(bitmap.get(i), false);
-        assert_eq!(bitmap.num_set(), 0);
-        assert_eq!(bitmap.num_unset(), 7);
-    }
+            // Check set.
+            bitmap.set(i);
+            assert_eq!(bitmap.get(i), true);
+            assert_eq!(bitmap.next_set(), Some(i));
+            assert_eq!(bitmap.num_set(), 1);
+            assert_eq!(bitmap.num_unset(), 6);
 
-    bitmap = Bitmap::new_unset(67);
-    for i in 0..67 {
-        // Check it's false by default.
-        assert_eq!(bitmap.get(i), false);
-        assert_eq!(bitmap.next_set(), None);
-        assert_eq!(bitmap.num_set(), 0);
-        assert_eq!(bitmap.num_unset(), 67);
+            // Check unset.
+            bitmap.unset(i);
+            assert_eq!(bitmap.get(i), false);
+            assert_eq!(bitmap.num_set(), 0);
+            assert_eq!(bitmap.num_unset(), 7);
+        }
 
-        // Check set.
-        bitmap.set(i);
-        assert_eq!(bitmap.get(i), true);
-        assert_eq!(bitmap.next_set(), Some(i));
-        assert_eq!(bitmap.num_set(), 1);
-        assert_eq!(bitmap.num_unset(), 66);
+        bitmap = Bitmap::new_unset(67);
+        for i in 0..67 {
+            // Check it's false by default.
+            assert_eq!(bitmap.get(i), false);
+            assert_eq!(bitmap.next_set(), None);
+            assert_eq!(bitmap.num_set(), 0);
+            assert_eq!(bitmap.num_unset(), 67);
 
-        // Check unset.
-        bitmap.unset(i);
-        assert_eq!(bitmap.get(i), false);
-        assert_eq!(bitmap.num_set(), 0);
-        assert_eq!(bitmap.num_unset(), 67);
-    }
+            // Check set.
+            bitmap.set(i);
+            assert_eq!(bitmap.get(i), true);
+            assert_eq!(bitmap.next_set(), Some(i));
+            assert_eq!(bitmap.num_set(), 1);
+            assert_eq!(bitmap.num_unset(), 66);
 
-    bitmap = Bitmap::new_set(7);
-    for i in 0..7 {
-        // Check it's true by default.
-        assert_eq!(bitmap.get(i), true);
-        assert_eq!(bitmap.num_set(), 7);
-        assert_eq!(bitmap.num_unset(), 0);
+            // Check unset.
+            bitmap.unset(i);
+            assert_eq!(bitmap.get(i), false);
+            assert_eq!(bitmap.num_set(), 0);
+            assert_eq!(bitmap.num_unset(), 67);
+        }
 
-        // Check unset.
-        bitmap.unset(i);
-        assert_eq!(bitmap.get(i), false);
-        assert_eq!(bitmap.next_unset(), Some(i));
-        assert_eq!(bitmap.num_set(), 6);
-        assert_eq!(bitmap.num_unset(), 1);
+        bitmap = Bitmap::new_set(7);
+        for i in 0..7 {
+            // Check it's true by default.
+            assert_eq!(bitmap.get(i), true);
+            assert_eq!(bitmap.num_set(), 7);
+            assert_eq!(bitmap.num_unset(), 0);
 
-        // Check set.
-        bitmap.set(i);
-        assert_eq!(bitmap.get(i), true);
-        assert_eq!(bitmap.num_set(), 7);
-        assert_eq!(bitmap.num_unset(), 0);
-    }
+            // Check unset.
+            bitmap.unset(i);
+            assert_eq!(bitmap.get(i), false);
+            assert_eq!(bitmap.next_unset(), Some(i));
+            assert_eq!(bitmap.num_set(), 6);
+            assert_eq!(bitmap.num_unset(), 1);
 
-    bitmap = Bitmap::new_set(67);
-    for i in 0..67 {
-        // Check it's true by default.
-        assert_eq!(bitmap.get(i), true);
-        assert_eq!(bitmap.num_set(), 67);
-        assert_eq!(bitmap.num_unset(), 0);
+            // Check set.
+            bitmap.set(i);
+            assert_eq!(bitmap.get(i), true);
+            assert_eq!(bitmap.num_set(), 7);
+            assert_eq!(bitmap.num_unset(), 0);
+        }
 
-        // Check unset.
-        bitmap.unset(i);
-        assert_eq!(bitmap.get(i), false);
-        assert_eq!(bitmap.next_unset(), Some(i));
-        assert_eq!(bitmap.num_set(), 66);
-        assert_eq!(bitmap.num_unset(), 1);
+        bitmap = Bitmap::new_set(67);
+        for i in 0..67 {
+            // Check it's true by default.
+            assert_eq!(bitmap.get(i), true);
+            assert_eq!(bitmap.num_set(), 67);
+            assert_eq!(bitmap.num_unset(), 0);
 
-        // Check set.
-        bitmap.set(i);
-        assert_eq!(bitmap.get(i), true);
-        assert_eq!(bitmap.num_set(), 67);
-        assert_eq!(bitmap.num_unset(), 0);
-    }
+            // Check unset.
+            bitmap.unset(i);
+            assert_eq!(bitmap.get(i), false);
+            assert_eq!(bitmap.next_unset(), Some(i));
+            assert_eq!(bitmap.num_set(), 66);
+            assert_eq!(bitmap.num_unset(), 1);
 
-    // Increase the size and continue.
-    bitmap.add_set(3);
-    for i in 0..70 {
-        // Check it's true by default.
-        assert_eq!(bitmap.get(i), true);
-        assert_eq!(bitmap.num_set(), 70);
-        assert_eq!(bitmap.num_unset(), 0);
+            // Check set.
+            bitmap.set(i);
+            assert_eq!(bitmap.get(i), true);
+            assert_eq!(bitmap.num_set(), 67);
+            assert_eq!(bitmap.num_unset(), 0);
+        }
 
-        // Check unset.
-        bitmap.unset(i);
-        assert_eq!(bitmap.get(i), false);
-        assert_eq!(bitmap.next_unset(), Some(i));
-        assert_eq!(bitmap.num_set(), 69);
-        assert_eq!(bitmap.num_unset(), 1);
+        // Increase the size and continue.
+        bitmap.add_set(3);
+        for i in 0..70 {
+            // Check it's true by default.
+            assert_eq!(bitmap.get(i), true);
+            assert_eq!(bitmap.num_set(), 70);
+            assert_eq!(bitmap.num_unset(), 0);
 
-        // Check set.
-        bitmap.set(i);
-        assert_eq!(bitmap.get(i), true);
-        assert_eq!(bitmap.num_set(), 70);
-        assert_eq!(bitmap.num_unset(), 0);
-    }
+            // Check unset.
+            bitmap.unset(i);
+            assert_eq!(bitmap.get(i), false);
+            assert_eq!(bitmap.next_unset(), Some(i));
+            assert_eq!(bitmap.num_set(), 69);
+            assert_eq!(bitmap.num_unset(), 1);
 
-    // Increase the size and continue.
-    bitmap.add_set(60);
-    for i in 0..130 {
-        // Check it's true by default.
-        assert_eq!(bitmap.get(i), true);
-        assert_eq!(bitmap.num_set(), 130);
-        assert_eq!(bitmap.num_unset(), 0);
+            // Check set.
+            bitmap.set(i);
+            assert_eq!(bitmap.get(i), true);
+            assert_eq!(bitmap.num_set(), 70);
+            assert_eq!(bitmap.num_unset(), 0);
+        }
 
-        // Check unset.
-        bitmap.unset(i);
-        assert_eq!(bitmap.get(i), false);
-        assert_eq!(bitmap.next_unset(), Some(i));
-        assert_eq!(bitmap.num_set(), 129);
-        assert_eq!(bitmap.num_unset(), 1);
+        // Increase the size and continue.
+        bitmap.add_set(60);
+        for i in 0..130 {
+            // Check it's true by default.
+            assert_eq!(bitmap.get(i), true);
+            assert_eq!(bitmap.num_set(), 130);
+            assert_eq!(bitmap.num_unset(), 0);
 
-        // Check set.
-        bitmap.set(i);
-        assert_eq!(bitmap.get(i), true);
-        assert_eq!(bitmap.num_set(), 130);
-        assert_eq!(bitmap.num_unset(), 0);
+            // Check unset.
+            bitmap.unset(i);
+            assert_eq!(bitmap.get(i), false);
+            assert_eq!(bitmap.next_unset(), Some(i));
+            assert_eq!(bitmap.num_set(), 129);
+            assert_eq!(bitmap.num_unset(), 1);
+
+            // Check set.
+            bitmap.set(i);
+            assert_eq!(bitmap.get(i), true);
+            assert_eq!(bitmap.num_set(), 130);
+            assert_eq!(bitmap.num_unset(), 0);
+        }
     }
 }

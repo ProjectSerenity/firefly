@@ -57,217 +57,222 @@ align_up_and_down! {   u64,   align_up_u64,   align_down_u64 }
 align_up_and_down! {  u128,  align_up_u128,  align_down_u128 }
 align_up_and_down! { usize, align_up_usize, align_down_usize }
 
-#[test]
-fn test_align() {
-    assert_eq!(align_up_u8(0, 1), 0);
-    assert_eq!(align_up_u16(0, 1), 0);
-    assert_eq!(align_up_u32(0, 1), 0);
-    assert_eq!(align_up_u64(0, 1), 0);
-    assert_eq!(align_up_u128(0, 1), 0);
-    assert_eq!(align_up_usize(0, 1), 0);
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    assert_eq!(align_up_u8(1, 1), 1);
-    assert_eq!(align_up_u16(1, 1), 1);
-    assert_eq!(align_up_u32(1, 1), 1);
-    assert_eq!(align_up_u64(1, 1), 1);
-    assert_eq!(align_up_u128(1, 1), 1);
-    assert_eq!(align_up_usize(1, 1), 1);
+    #[test]
+    fn test_align() {
+        assert_eq!(align_up_u8(0, 1), 0);
+        assert_eq!(align_up_u16(0, 1), 0);
+        assert_eq!(align_up_u32(0, 1), 0);
+        assert_eq!(align_up_u64(0, 1), 0);
+        assert_eq!(align_up_u128(0, 1), 0);
+        assert_eq!(align_up_usize(0, 1), 0);
 
-    assert_eq!(align_up_u8(2, 1), 2);
-    assert_eq!(align_up_u16(2, 1), 2);
-    assert_eq!(align_up_u32(2, 1), 2);
-    assert_eq!(align_up_u64(2, 1), 2);
-    assert_eq!(align_up_u128(2, 1), 2);
-    assert_eq!(align_up_usize(2, 1), 2);
+        assert_eq!(align_up_u8(1, 1), 1);
+        assert_eq!(align_up_u16(1, 1), 1);
+        assert_eq!(align_up_u32(1, 1), 1);
+        assert_eq!(align_up_u64(1, 1), 1);
+        assert_eq!(align_up_u128(1, 1), 1);
+        assert_eq!(align_up_usize(1, 1), 1);
 
-    assert_eq!(align_up_u8(3, 1), 3);
-    assert_eq!(align_up_u16(3, 1), 3);
-    assert_eq!(align_up_u32(3, 1), 3);
-    assert_eq!(align_up_u64(3, 1), 3);
-    assert_eq!(align_up_u128(3, 1), 3);
-    assert_eq!(align_up_usize(3, 1), 3);
+        assert_eq!(align_up_u8(2, 1), 2);
+        assert_eq!(align_up_u16(2, 1), 2);
+        assert_eq!(align_up_u32(2, 1), 2);
+        assert_eq!(align_up_u64(2, 1), 2);
+        assert_eq!(align_up_u128(2, 1), 2);
+        assert_eq!(align_up_usize(2, 1), 2);
 
-    assert_eq!(align_up_u8(1, 2), 2);
-    assert_eq!(align_up_u16(1, 2), 2);
-    assert_eq!(align_up_u32(1, 2), 2);
-    assert_eq!(align_up_u64(1, 2), 2);
-    assert_eq!(align_up_u128(1, 2), 2);
-    assert_eq!(align_up_usize(1, 2), 2);
+        assert_eq!(align_up_u8(3, 1), 3);
+        assert_eq!(align_up_u16(3, 1), 3);
+        assert_eq!(align_up_u32(3, 1), 3);
+        assert_eq!(align_up_u64(3, 1), 3);
+        assert_eq!(align_up_u128(3, 1), 3);
+        assert_eq!(align_up_usize(3, 1), 3);
 
-    assert_eq!(align_up_u8(2, 2), 2);
-    assert_eq!(align_up_u16(2, 2), 2);
-    assert_eq!(align_up_u32(2, 2), 2);
-    assert_eq!(align_up_u64(2, 2), 2);
-    assert_eq!(align_up_u128(2, 2), 2);
-    assert_eq!(align_up_usize(2, 2), 2);
+        assert_eq!(align_up_u8(1, 2), 2);
+        assert_eq!(align_up_u16(1, 2), 2);
+        assert_eq!(align_up_u32(1, 2), 2);
+        assert_eq!(align_up_u64(1, 2), 2);
+        assert_eq!(align_up_u128(1, 2), 2);
+        assert_eq!(align_up_usize(1, 2), 2);
 
-    assert_eq!(align_up_u8(3, 2), 4);
-    assert_eq!(align_up_u16(3, 2), 4);
-    assert_eq!(align_up_u32(3, 2), 4);
-    assert_eq!(align_up_u64(3, 2), 4);
-    assert_eq!(align_up_u128(3, 2), 4);
-    assert_eq!(align_up_usize(3, 2), 4);
+        assert_eq!(align_up_u8(2, 2), 2);
+        assert_eq!(align_up_u16(2, 2), 2);
+        assert_eq!(align_up_u32(2, 2), 2);
+        assert_eq!(align_up_u64(2, 2), 2);
+        assert_eq!(align_up_u128(2, 2), 2);
+        assert_eq!(align_up_usize(2, 2), 2);
 
-    assert_eq!(align_up_u8(4, 2), 4);
-    assert_eq!(align_up_u16(4, 2), 4);
-    assert_eq!(align_up_u32(4, 2), 4);
-    assert_eq!(align_up_u64(4, 2), 4);
-    assert_eq!(align_up_u128(4, 2), 4);
-    assert_eq!(align_up_usize(4, 2), 4);
+        assert_eq!(align_up_u8(3, 2), 4);
+        assert_eq!(align_up_u16(3, 2), 4);
+        assert_eq!(align_up_u32(3, 2), 4);
+        assert_eq!(align_up_u64(3, 2), 4);
+        assert_eq!(align_up_u128(3, 2), 4);
+        assert_eq!(align_up_usize(3, 2), 4);
 
-    assert_eq!(align_up_u8(2, 4), 4);
-    assert_eq!(align_up_u16(2, 4), 4);
-    assert_eq!(align_up_u32(2, 4), 4);
-    assert_eq!(align_up_u64(2, 4), 4);
-    assert_eq!(align_up_u128(2, 4), 4);
-    assert_eq!(align_up_usize(2, 4), 4);
+        assert_eq!(align_up_u8(4, 2), 4);
+        assert_eq!(align_up_u16(4, 2), 4);
+        assert_eq!(align_up_u32(4, 2), 4);
+        assert_eq!(align_up_u64(4, 2), 4);
+        assert_eq!(align_up_u128(4, 2), 4);
+        assert_eq!(align_up_usize(4, 2), 4);
 
-    assert_eq!(align_up_u8(4, 4), 4);
-    assert_eq!(align_up_u16(4, 4), 4);
-    assert_eq!(align_up_u32(4, 4), 4);
-    assert_eq!(align_up_u64(4, 4), 4);
-    assert_eq!(align_up_u128(4, 4), 4);
-    assert_eq!(align_up_usize(4, 4), 4);
+        assert_eq!(align_up_u8(2, 4), 4);
+        assert_eq!(align_up_u16(2, 4), 4);
+        assert_eq!(align_up_u32(2, 4), 4);
+        assert_eq!(align_up_u64(2, 4), 4);
+        assert_eq!(align_up_u128(2, 4), 4);
+        assert_eq!(align_up_usize(2, 4), 4);
 
-    assert_eq!(align_up_u8(5, 4), 8);
-    assert_eq!(align_up_u16(5, 4), 8);
-    assert_eq!(align_up_u32(5, 4), 8);
-    assert_eq!(align_up_u64(5, 4), 8);
-    assert_eq!(align_up_u128(5, 4), 8);
-    assert_eq!(align_up_usize(5, 4), 8);
+        assert_eq!(align_up_u8(4, 4), 4);
+        assert_eq!(align_up_u16(4, 4), 4);
+        assert_eq!(align_up_u32(4, 4), 4);
+        assert_eq!(align_up_u64(4, 4), 4);
+        assert_eq!(align_up_u128(4, 4), 4);
+        assert_eq!(align_up_usize(4, 4), 4);
 
-    assert_eq!(align_up_u8(2, 128), 128);
-    assert_eq!(align_up_u16(2, 128), 128);
-    assert_eq!(align_up_u32(2, 128), 128);
-    assert_eq!(align_up_u64(2, 128), 128);
-    assert_eq!(align_up_u128(2, 128), 128);
-    assert_eq!(align_up_usize(2, 128), 128);
+        assert_eq!(align_up_u8(5, 4), 8);
+        assert_eq!(align_up_u16(5, 4), 8);
+        assert_eq!(align_up_u32(5, 4), 8);
+        assert_eq!(align_up_u64(5, 4), 8);
+        assert_eq!(align_up_u128(5, 4), 8);
+        assert_eq!(align_up_usize(5, 4), 8);
 
-    assert_eq!(align_up_u16(2, 512), 512);
-    assert_eq!(align_up_u32(2, 512), 512);
-    assert_eq!(align_up_u64(2, 512), 512);
-    assert_eq!(align_up_u128(2, 512), 512);
-    assert_eq!(align_up_usize(2, 512), 512);
+        assert_eq!(align_up_u8(2, 128), 128);
+        assert_eq!(align_up_u16(2, 128), 128);
+        assert_eq!(align_up_u32(2, 128), 128);
+        assert_eq!(align_up_u64(2, 128), 128);
+        assert_eq!(align_up_u128(2, 128), 128);
+        assert_eq!(align_up_usize(2, 128), 128);
 
-    assert_eq!(align_up_u16(512, 512), 512);
-    assert_eq!(align_up_u32(512, 512), 512);
-    assert_eq!(align_up_u64(512, 512), 512);
-    assert_eq!(align_up_u128(512, 512), 512);
-    assert_eq!(align_up_usize(512, 512), 512);
+        assert_eq!(align_up_u16(2, 512), 512);
+        assert_eq!(align_up_u32(2, 512), 512);
+        assert_eq!(align_up_u64(2, 512), 512);
+        assert_eq!(align_up_u128(2, 512), 512);
+        assert_eq!(align_up_usize(2, 512), 512);
 
-    assert_eq!(align_up_u16(513, 512), 1024);
-    assert_eq!(align_up_u32(513, 512), 1024);
-    assert_eq!(align_up_u64(513, 512), 1024);
-    assert_eq!(align_up_u128(513, 512), 1024);
-    assert_eq!(align_up_usize(513, 512), 1024);
+        assert_eq!(align_up_u16(512, 512), 512);
+        assert_eq!(align_up_u32(512, 512), 512);
+        assert_eq!(align_up_u64(512, 512), 512);
+        assert_eq!(align_up_u128(512, 512), 512);
+        assert_eq!(align_up_usize(512, 512), 512);
 
-    assert_eq!(align_up_u64(2, 0x8000_0000_0000), 0x8000_0000_0000);
-    assert_eq!(align_up_u128(2, 0x8000_0000_0000), 0x8000_0000_0000);
-    assert_eq!(align_up_usize(2, 0x8000_0000_0000), 0x8000_0000_0000);
+        assert_eq!(align_up_u16(513, 512), 1024);
+        assert_eq!(align_up_u32(513, 512), 1024);
+        assert_eq!(align_up_u64(513, 512), 1024);
+        assert_eq!(align_up_u128(513, 512), 1024);
+        assert_eq!(align_up_usize(513, 512), 1024);
 
-    assert_eq!(align_down_u8(0, 1), 0);
-    assert_eq!(align_down_u16(0, 1), 0);
-    assert_eq!(align_down_u32(0, 1), 0);
-    assert_eq!(align_down_u64(0, 1), 0);
-    assert_eq!(align_down_u128(0, 1), 0);
-    assert_eq!(align_down_usize(0, 1), 0);
+        assert_eq!(align_up_u64(2, 0x8000_0000_0000), 0x8000_0000_0000);
+        assert_eq!(align_up_u128(2, 0x8000_0000_0000), 0x8000_0000_0000);
+        assert_eq!(align_up_usize(2, 0x8000_0000_0000), 0x8000_0000_0000);
 
-    assert_eq!(align_down_u8(1, 1), 1);
-    assert_eq!(align_down_u16(1, 1), 1);
-    assert_eq!(align_down_u32(1, 1), 1);
-    assert_eq!(align_down_u64(1, 1), 1);
-    assert_eq!(align_down_u128(1, 1), 1);
-    assert_eq!(align_down_usize(1, 1), 1);
+        assert_eq!(align_down_u8(0, 1), 0);
+        assert_eq!(align_down_u16(0, 1), 0);
+        assert_eq!(align_down_u32(0, 1), 0);
+        assert_eq!(align_down_u64(0, 1), 0);
+        assert_eq!(align_down_u128(0, 1), 0);
+        assert_eq!(align_down_usize(0, 1), 0);
 
-    assert_eq!(align_down_u8(2, 1), 2);
-    assert_eq!(align_down_u16(2, 1), 2);
-    assert_eq!(align_down_u32(2, 1), 2);
-    assert_eq!(align_down_u64(2, 1), 2);
-    assert_eq!(align_down_u128(2, 1), 2);
-    assert_eq!(align_down_usize(2, 1), 2);
+        assert_eq!(align_down_u8(1, 1), 1);
+        assert_eq!(align_down_u16(1, 1), 1);
+        assert_eq!(align_down_u32(1, 1), 1);
+        assert_eq!(align_down_u64(1, 1), 1);
+        assert_eq!(align_down_u128(1, 1), 1);
+        assert_eq!(align_down_usize(1, 1), 1);
 
-    assert_eq!(align_down_u8(3, 1), 3);
-    assert_eq!(align_down_u16(3, 1), 3);
-    assert_eq!(align_down_u32(3, 1), 3);
-    assert_eq!(align_down_u64(3, 1), 3);
-    assert_eq!(align_down_u128(3, 1), 3);
-    assert_eq!(align_down_usize(3, 1), 3);
+        assert_eq!(align_down_u8(2, 1), 2);
+        assert_eq!(align_down_u16(2, 1), 2);
+        assert_eq!(align_down_u32(2, 1), 2);
+        assert_eq!(align_down_u64(2, 1), 2);
+        assert_eq!(align_down_u128(2, 1), 2);
+        assert_eq!(align_down_usize(2, 1), 2);
 
-    assert_eq!(align_down_u8(1, 2), 0);
-    assert_eq!(align_down_u16(1, 2), 0);
-    assert_eq!(align_down_u32(1, 2), 0);
-    assert_eq!(align_down_u64(1, 2), 0);
-    assert_eq!(align_down_u128(1, 2), 0);
-    assert_eq!(align_down_usize(1, 2), 0);
+        assert_eq!(align_down_u8(3, 1), 3);
+        assert_eq!(align_down_u16(3, 1), 3);
+        assert_eq!(align_down_u32(3, 1), 3);
+        assert_eq!(align_down_u64(3, 1), 3);
+        assert_eq!(align_down_u128(3, 1), 3);
+        assert_eq!(align_down_usize(3, 1), 3);
 
-    assert_eq!(align_down_u8(2, 2), 2);
-    assert_eq!(align_down_u16(2, 2), 2);
-    assert_eq!(align_down_u32(2, 2), 2);
-    assert_eq!(align_down_u64(2, 2), 2);
-    assert_eq!(align_down_u128(2, 2), 2);
-    assert_eq!(align_down_usize(2, 2), 2);
+        assert_eq!(align_down_u8(1, 2), 0);
+        assert_eq!(align_down_u16(1, 2), 0);
+        assert_eq!(align_down_u32(1, 2), 0);
+        assert_eq!(align_down_u64(1, 2), 0);
+        assert_eq!(align_down_u128(1, 2), 0);
+        assert_eq!(align_down_usize(1, 2), 0);
 
-    assert_eq!(align_down_u8(3, 2), 2);
-    assert_eq!(align_down_u16(3, 2), 2);
-    assert_eq!(align_down_u32(3, 2), 2);
-    assert_eq!(align_down_u64(3, 2), 2);
-    assert_eq!(align_down_u128(3, 2), 2);
-    assert_eq!(align_down_usize(3, 2), 2);
+        assert_eq!(align_down_u8(2, 2), 2);
+        assert_eq!(align_down_u16(2, 2), 2);
+        assert_eq!(align_down_u32(2, 2), 2);
+        assert_eq!(align_down_u64(2, 2), 2);
+        assert_eq!(align_down_u128(2, 2), 2);
+        assert_eq!(align_down_usize(2, 2), 2);
 
-    assert_eq!(align_down_u8(4, 2), 4);
-    assert_eq!(align_down_u16(4, 2), 4);
-    assert_eq!(align_down_u32(4, 2), 4);
-    assert_eq!(align_down_u64(4, 2), 4);
-    assert_eq!(align_down_u128(4, 2), 4);
-    assert_eq!(align_down_usize(4, 2), 4);
+        assert_eq!(align_down_u8(3, 2), 2);
+        assert_eq!(align_down_u16(3, 2), 2);
+        assert_eq!(align_down_u32(3, 2), 2);
+        assert_eq!(align_down_u64(3, 2), 2);
+        assert_eq!(align_down_u128(3, 2), 2);
+        assert_eq!(align_down_usize(3, 2), 2);
 
-    assert_eq!(align_down_u8(2, 4), 0);
-    assert_eq!(align_down_u16(2, 4), 0);
-    assert_eq!(align_down_u32(2, 4), 0);
-    assert_eq!(align_down_u64(2, 4), 0);
-    assert_eq!(align_down_u128(2, 4), 0);
-    assert_eq!(align_down_usize(2, 4), 0);
+        assert_eq!(align_down_u8(4, 2), 4);
+        assert_eq!(align_down_u16(4, 2), 4);
+        assert_eq!(align_down_u32(4, 2), 4);
+        assert_eq!(align_down_u64(4, 2), 4);
+        assert_eq!(align_down_u128(4, 2), 4);
+        assert_eq!(align_down_usize(4, 2), 4);
 
-    assert_eq!(align_down_u8(4, 4), 4);
-    assert_eq!(align_down_u16(4, 4), 4);
-    assert_eq!(align_down_u32(4, 4), 4);
-    assert_eq!(align_down_u64(4, 4), 4);
-    assert_eq!(align_down_u128(4, 4), 4);
-    assert_eq!(align_down_usize(4, 4), 4);
+        assert_eq!(align_down_u8(2, 4), 0);
+        assert_eq!(align_down_u16(2, 4), 0);
+        assert_eq!(align_down_u32(2, 4), 0);
+        assert_eq!(align_down_u64(2, 4), 0);
+        assert_eq!(align_down_u128(2, 4), 0);
+        assert_eq!(align_down_usize(2, 4), 0);
 
-    assert_eq!(align_down_u8(5, 4), 4);
-    assert_eq!(align_down_u16(5, 4), 4);
-    assert_eq!(align_down_u32(5, 4), 4);
-    assert_eq!(align_down_u64(5, 4), 4);
-    assert_eq!(align_down_u128(5, 4), 4);
-    assert_eq!(align_down_usize(5, 4), 4);
+        assert_eq!(align_down_u8(4, 4), 4);
+        assert_eq!(align_down_u16(4, 4), 4);
+        assert_eq!(align_down_u32(4, 4), 4);
+        assert_eq!(align_down_u64(4, 4), 4);
+        assert_eq!(align_down_u128(4, 4), 4);
+        assert_eq!(align_down_usize(4, 4), 4);
 
-    assert_eq!(align_down_u8(2, 128), 0);
-    assert_eq!(align_down_u16(2, 128), 0);
-    assert_eq!(align_down_u32(2, 128), 0);
-    assert_eq!(align_down_u64(2, 128), 0);
-    assert_eq!(align_down_u128(2, 128), 0);
-    assert_eq!(align_down_usize(2, 128), 0);
+        assert_eq!(align_down_u8(5, 4), 4);
+        assert_eq!(align_down_u16(5, 4), 4);
+        assert_eq!(align_down_u32(5, 4), 4);
+        assert_eq!(align_down_u64(5, 4), 4);
+        assert_eq!(align_down_u128(5, 4), 4);
+        assert_eq!(align_down_usize(5, 4), 4);
 
-    assert_eq!(align_down_u16(2, 512), 0);
-    assert_eq!(align_down_u32(2, 512), 0);
-    assert_eq!(align_down_u64(2, 512), 0);
-    assert_eq!(align_down_u128(2, 512), 0);
-    assert_eq!(align_down_usize(2, 512), 0);
+        assert_eq!(align_down_u8(2, 128), 0);
+        assert_eq!(align_down_u16(2, 128), 0);
+        assert_eq!(align_down_u32(2, 128), 0);
+        assert_eq!(align_down_u64(2, 128), 0);
+        assert_eq!(align_down_u128(2, 128), 0);
+        assert_eq!(align_down_usize(2, 128), 0);
 
-    assert_eq!(align_down_u16(512, 512), 512);
-    assert_eq!(align_down_u32(512, 512), 512);
-    assert_eq!(align_down_u64(512, 512), 512);
-    assert_eq!(align_down_u128(512, 512), 512);
-    assert_eq!(align_down_usize(512, 512), 512);
+        assert_eq!(align_down_u16(2, 512), 0);
+        assert_eq!(align_down_u32(2, 512), 0);
+        assert_eq!(align_down_u64(2, 512), 0);
+        assert_eq!(align_down_u128(2, 512), 0);
+        assert_eq!(align_down_usize(2, 512), 0);
 
-    assert_eq!(align_down_u16(513, 512), 512);
-    assert_eq!(align_down_u32(513, 512), 512);
-    assert_eq!(align_down_u64(513, 512), 512);
-    assert_eq!(align_down_u128(513, 512), 512);
-    assert_eq!(align_down_usize(513, 512), 512);
+        assert_eq!(align_down_u16(512, 512), 512);
+        assert_eq!(align_down_u32(512, 512), 512);
+        assert_eq!(align_down_u64(512, 512), 512);
+        assert_eq!(align_down_u128(512, 512), 512);
+        assert_eq!(align_down_usize(512, 512), 512);
 
-    assert_eq!(align_down_u64(2, 0x8000_0000_0000), 0);
-    assert_eq!(align_down_u128(2, 0x8000_0000_0000), 0);
-    assert_eq!(align_down_usize(2, 0x8000_0000_0000), 0);
+        assert_eq!(align_down_u16(513, 512), 512);
+        assert_eq!(align_down_u32(513, 512), 512);
+        assert_eq!(align_down_u64(513, 512), 512);
+        assert_eq!(align_down_u128(513, 512), 512);
+        assert_eq!(align_down_usize(513, 512), 512);
+
+        assert_eq!(align_down_u64(2, 0x8000_0000_0000), 0);
+        assert_eq!(align_down_u128(2, 0x8000_0000_0000), 0);
+        assert_eq!(align_down_usize(2, 0x8000_0000_0000), 0);
+    }
 }

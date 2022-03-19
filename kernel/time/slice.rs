@@ -81,15 +81,20 @@ impl Sub<TimeSlice> for TimeSlice {
     }
 }
 
-#[test]
-fn time_slice() {
-    // We want to have 3 ticks, no matter what the
-    // current tick frequency is.
-    let nanos = NANOSECONDS_PER_TICK * 3;
-    let duration = Duration::from_nanos(nanos);
-    let mut slice = TimeSlice::from_duration(&duration);
-    assert_eq!(slice.tick(), false);
-    assert_eq!(slice.tick(), false);
-    assert_eq!(slice.tick(), true);
-    assert_eq!(slice.tick(), true);
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn time_slice() {
+        // We want to have 3 ticks, no matter what the
+        // current tick frequency is.
+        let nanos = NANOSECONDS_PER_TICK * 3;
+        let duration = Duration::from_nanos(nanos);
+        let mut slice = TimeSlice::from_duration(&duration);
+        assert_eq!(slice.tick(), false);
+        assert_eq!(slice.tick(), false);
+        assert_eq!(slice.tick(), true);
+        assert_eq!(slice.tick(), true);
+    }
 }

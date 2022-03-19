@@ -82,40 +82,45 @@ impl VirtAddrRange {
     }
 }
 
-#[test]
-fn test_virt_addr_range() {
-    use super::const_virt_addr;
-    let start = const_virt_addr(12);
-    let end = const_virt_addr(15);
-    let range = VirtAddrRange::new(start, end);
-    let subset_start = VirtAddrRange::new(start, end - 1u64);
-    let subset_middle = VirtAddrRange::new(start + 1u64, end - 1u64);
-    let subset_end = VirtAddrRange::new(start + 1u64, end);
-    let overlap_start = VirtAddrRange::new(start - 1u64, end);
-    let overlap_end = VirtAddrRange::new(start, end + 1u64);
-    let superset = VirtAddrRange::new(start - 1u64, end + 1u64);
+#[cfg(test)]
+mod tests {
+    use super::super::const_virt_addr;
+    use super::*;
 
-    // Check the range contains the values
-    // we expect.
-    assert_eq!(range.start(), start);
-    assert_eq!(range.end(), end);
-    assert_eq!(range.size(), 4u64); // VirtAddrRange is inclusive.
+    #[test]
+    fn test_virt_addr_range() {
+        let start = const_virt_addr(12);
+        let end = const_virt_addr(15);
+        let range = VirtAddrRange::new(start, end);
+        let subset_start = VirtAddrRange::new(start, end - 1u64);
+        let subset_middle = VirtAddrRange::new(start + 1u64, end - 1u64);
+        let subset_end = VirtAddrRange::new(start + 1u64, end);
+        let overlap_start = VirtAddrRange::new(start - 1u64, end);
+        let overlap_end = VirtAddrRange::new(start, end + 1u64);
+        let superset = VirtAddrRange::new(start - 1u64, end + 1u64);
 
-    // Check range union works properly.
-    assert!(range.contains(&range));
-    assert!(range.contains(&subset_start));
-    assert!(range.contains(&subset_middle));
-    assert!(range.contains(&subset_end));
-    assert!(!range.contains(&overlap_start));
-    assert!(!range.contains(&overlap_end));
-    assert!(!range.contains(&superset));
+        // Check the range contains the values
+        // we expect.
+        assert_eq!(range.start(), start);
+        assert_eq!(range.end(), end);
+        assert_eq!(range.size(), 4u64); // VirtAddrRange is inclusive.
 
-    // Check whether overlap works properly.
-    assert!(range.overlaps_with(&range));
-    assert!(range.overlaps_with(&subset_start));
-    assert!(range.overlaps_with(&subset_middle));
-    assert!(range.overlaps_with(&subset_end));
-    assert!(range.overlaps_with(&overlap_start));
-    assert!(range.overlaps_with(&overlap_end));
-    assert!(range.overlaps_with(&superset));
+        // Check range union works properly.
+        assert!(range.contains(&range));
+        assert!(range.contains(&subset_start));
+        assert!(range.contains(&subset_middle));
+        assert!(range.contains(&subset_end));
+        assert!(!range.contains(&overlap_start));
+        assert!(!range.contains(&overlap_end));
+        assert!(!range.contains(&superset));
+
+        // Check whether overlap works properly.
+        assert!(range.overlaps_with(&range));
+        assert!(range.overlaps_with(&subset_start));
+        assert!(range.overlaps_with(&subset_middle));
+        assert!(range.overlaps_with(&subset_end));
+        assert!(range.overlaps_with(&overlap_start));
+        assert!(range.overlaps_with(&overlap_end));
+        assert!(range.overlaps_with(&superset));
+    }
 }

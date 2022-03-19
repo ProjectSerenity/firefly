@@ -133,74 +133,79 @@ impl Csprng {
     }
 }
 
-#[test]
-fn csprng() {
-    use hex_literal::hex;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let mut csprng = Csprng::new();
-    let mut mixin = hex!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
-    let entropy = hex!("5576ce645abbf23973c63a02b3cdb0efc8ed3c9bd7dac3845f6b9ad6820b4bde");
-    let random1 = hex!("5064209e4d5aabe42c7deb96ed27955b29dbb87e69b4c083ebe45935a0325150");
-    let random2 = hex!("fa0b31ee61c5a7ff2fdbe3d85586e262ac9e69c6f84702c9bea1cb73df836bda");
+    #[test]
+    fn csprng() {
+        use hex_literal::hex;
 
-    // Check seed works correctly.
-    csprng.seed(&mixin);
-    assert_eq!(csprng.entropy, entropy);
+        let mut csprng = Csprng::new();
+        let mut mixin = hex!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f");
+        let entropy = hex!("5576ce645abbf23973c63a02b3cdb0efc8ed3c9bd7dac3845f6b9ad6820b4bde");
+        let random1 = hex!("5064209e4d5aabe42c7deb96ed27955b29dbb87e69b4c083ebe45935a0325150");
+        let random2 = hex!("fa0b31ee61c5a7ff2fdbe3d85586e262ac9e69c6f84702c9bea1cb73df836bda");
 
-    // Check read works correctly.
-    let mut buf = &mut mixin[..];
-    csprng.read(&mut buf);
-    assert_eq!(buf, random1);
+        // Check seed works correctly.
+        csprng.seed(&mixin);
+        assert_eq!(csprng.entropy, entropy);
 
-    csprng.read(&mut buf);
-    assert_eq!(buf, random2);
+        // Check read works correctly.
+        let mut buf = &mut mixin[..];
+        csprng.read(&mut buf);
+        assert_eq!(buf, random1);
 
-    // The test vectors above were generated
-    // by running the following Go program:
-    //
-    //     package main
-    //
-    //     import (
-    //         "crypto/sha256"
-    //         "fmt"
-    //
-    //         "golang.org/x/crypto/chacha20"
-    //     )
-    //
-    //     var mixin = [32]byte{
-    //         0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-    //         0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-    //         0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-    //         0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
-    //     }
-    //
-    //     func random(key, nonce, buf []byte) {
-    //         cipher, err := chacha20.NewUnauthenticatedCipher(key, nonce)
-    //         if err != nil {
-    //             panic(err.Error())
-    //         }
-    //
-    //         cipher.XORKeyStream(buf, buf)
-    //     }
-    //
-    //     func main() {
-    //         entropy := make([]byte, sha256.Size)
-    //         hash := sha256.New()
-    //         hash.Write(mixin[:])
-    //         hash.Write(entropy)
-    //         entropy = hash.Sum(entropy[:0])
-    //         fmt.Printf("Entropy:  %x\n", entropy)
-    //
-    //         key := entropy
-    //         nonce := make([]byte, 96/8)
-    //         buf := mixin[:]
-    //
-    //         nonce[0] = 1
-    //         random(key, nonce, buf)
-    //         fmt.Printf("Random 1: %x\n", buf)
-    //
-    //         nonce[0] = 2
-    //         random(key, nonce, buf)
-    //         fmt.Printf("Random 2: %x\n", buf)
-    //     }
+        csprng.read(&mut buf);
+        assert_eq!(buf, random2);
+
+        // The test vectors above were generated
+        // by running the following Go program:
+        //
+        //     package main
+        //
+        //     import (
+        //         "crypto/sha256"
+        //         "fmt"
+        //
+        //         "golang.org/x/crypto/chacha20"
+        //     )
+        //
+        //     var mixin = [32]byte{
+        //         0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+        //         0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+        //         0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+        //         0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
+        //     }
+        //
+        //     func random(key, nonce, buf []byte) {
+        //         cipher, err := chacha20.NewUnauthenticatedCipher(key, nonce)
+        //         if err != nil {
+        //             panic(err.Error())
+        //         }
+        //
+        //         cipher.XORKeyStream(buf, buf)
+        //     }
+        //
+        //     func main() {
+        //         entropy := make([]byte, sha256.Size)
+        //         hash := sha256.New()
+        //         hash.Write(mixin[:])
+        //         hash.Write(entropy)
+        //         entropy = hash.Sum(entropy[:0])
+        //         fmt.Printf("Entropy:  %x\n", entropy)
+        //
+        //         key := entropy
+        //         nonce := make([]byte, 96/8)
+        //         buf := mixin[:]
+        //
+        //         nonce[0] = 1
+        //         random(key, nonce, buf)
+        //         fmt.Printf("Random 1: %x\n", buf)
+        //
+        //         nonce[0] = 2
+        //         random(key, nonce, buf)
+        //         fmt.Printf("Random 2: %x\n", buf)
+        //     }
+    }
 }

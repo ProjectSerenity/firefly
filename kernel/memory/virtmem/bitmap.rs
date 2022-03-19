@@ -118,34 +118,39 @@ impl BitmapLevel4KernelMappings {
     }
 }
 
-#[test]
-fn bitmap_level4_kernel_mappings() {
-    // Helper function to speed up making pages.
-    fn page_for(addr: u64) -> Page {
-        let start_addr = VirtAddr::new(addr);
-        Page::from_start_address(start_addr).unwrap()
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bitmap_level4_kernel_mappings() {
+        // Helper function to speed up making pages.
+        fn page_for(addr: u64) -> Page {
+            let start_addr = VirtAddr::new(addr);
+            Page::from_start_address(start_addr).unwrap()
+        }
+
+        const NUL_PAGE: u64 = 0x0000_0000_0000_0000_u64;
+        const LOW_PAGE: u64 = 0x0000_0000_0000_4000_u64;
+        const HALF_PAGE: u64 = 0xffff_8000_0000_0000_u64;
+        const NEXT_PAGE: u64 = 0xffff_8080_0000_0000_u64;
+        const LAST_PAGE: u64 = 0xffff_ffff_ffff_f000_u64;
+
+        // First, check that `get_index` works correctly.
+        assert_eq!(get_index(&page_for(NUL_PAGE)), Err(VirtAddr::new(NUL_PAGE)));
+        assert_eq!(get_index(&page_for(LOW_PAGE)), Err(VirtAddr::new(LOW_PAGE)));
+        assert_eq!(get_index(&page_for(HALF_PAGE)), Ok((0, 1)));
+        assert_eq!(get_index(&page_for(NEXT_PAGE)), Ok((0, 2)));
+        assert_eq!(get_index(&page_for(LAST_PAGE)), Ok((NUM_U64S - 1, 1 << 63)));
+
+        // Next, check that `map` and `mapped` agree.
+        let mut bitmap = BitmapLevel4KernelMappings::new();
+        assert!(!bitmap.mapped(&page_for(HALF_PAGE)));
+        bitmap.map(&page_for(HALF_PAGE));
+        assert!(bitmap.mapped(&page_for(HALF_PAGE)));
+
+        assert!(!bitmap.mapped(&page_for(LAST_PAGE)));
+        bitmap.map(&page_for(LAST_PAGE));
+        assert!(bitmap.mapped(&page_for(LAST_PAGE)));
     }
-
-    const NUL_PAGE: u64 = 0x0000_0000_0000_0000_u64;
-    const LOW_PAGE: u64 = 0x0000_0000_0000_4000_u64;
-    const HALF_PAGE: u64 = 0xffff_8000_0000_0000_u64;
-    const NEXT_PAGE: u64 = 0xffff_8080_0000_0000_u64;
-    const LAST_PAGE: u64 = 0xffff_ffff_ffff_f000_u64;
-
-    // First, check that `get_index` works correctly.
-    assert_eq!(get_index(&page_for(NUL_PAGE)), Err(VirtAddr::new(NUL_PAGE)));
-    assert_eq!(get_index(&page_for(LOW_PAGE)), Err(VirtAddr::new(LOW_PAGE)));
-    assert_eq!(get_index(&page_for(HALF_PAGE)), Ok((0, 1)));
-    assert_eq!(get_index(&page_for(NEXT_PAGE)), Ok((0, 2)));
-    assert_eq!(get_index(&page_for(LAST_PAGE)), Ok((NUM_U64S - 1, 1 << 63)));
-
-    // Next, check that `map` and `mapped` agree.
-    let mut bitmap = BitmapLevel4KernelMappings::new();
-    assert!(!bitmap.mapped(&page_for(HALF_PAGE)));
-    bitmap.map(&page_for(HALF_PAGE));
-    assert!(bitmap.mapped(&page_for(HALF_PAGE)));
-
-    assert!(!bitmap.mapped(&page_for(LAST_PAGE)));
-    bitmap.map(&page_for(LAST_PAGE));
-    assert!(bitmap.mapped(&page_for(LAST_PAGE)));
 }

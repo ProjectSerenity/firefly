@@ -125,10 +125,15 @@ impl Instant {
     }
 }
 
-#[test]
-fn instant() {
-    let a = Instant::new(4 * ticker::TICKS_PER_SECOND);
-    let b = Instant::new(6 * ticker::TICKS_PER_SECOND);
-    assert_eq!(a < b, true);
-    assert_eq!(b.duration_since(a), Duration::from_secs(2));
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn instant() {
+        let a = Instant::new(4 * ticker::TICKS_PER_SECOND);
+        let b = Instant::new(6 * ticker::TICKS_PER_SECOND);
+        assert_eq!(a < b, true);
+        assert_eq!(b.duration_since(a), Duration::from_secs(2));
+    }
 }
