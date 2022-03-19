@@ -14,6 +14,7 @@ rust_library(
         "lib.rs",
         "linked_list.rs",
         "mapping.rs",
+        "translate.rs",
     ],
     crate_name = "virtmem",
     edition = "2021",
