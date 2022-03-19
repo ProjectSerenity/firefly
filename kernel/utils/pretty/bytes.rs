@@ -61,3 +61,22 @@ impl fmt::Display for Bytes {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use alloc::format;
+
+    #[test]
+    fn test_bytes() {
+        assert_eq!(format!("{}", Bytes::from_usize(1)), "1 B");
+        assert_eq!(format!("{}", Bytes::from_usize(2)), "2 B");
+        assert_eq!(format!("{}", Bytes::from_usize(1000)), "1000 B");
+        assert_eq!(format!("{}", Bytes::from_usize(1023)), "1023 B");
+        assert_eq!(format!("{}", Bytes::from_usize(1024)), "1 KiB");
+        assert_eq!(format!("{}", Bytes::from_usize(2 * 1024)), "2 KiB");
+        assert_eq!(format!("{}", Bytes::from_usize(1000 * 1024)), "1000 KiB");
+        assert_eq!(format!("{}", Bytes::from_usize(1023 * 1024)), "1023 KiB");
+        assert_eq!(format!("{}", Bytes::from_usize(1024 * 1024)), "1 MiB");
+    }
+}
