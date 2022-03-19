@@ -13,7 +13,8 @@ use core::cmp::min;
 use core::ptr::write_bytes;
 use core::slice;
 use core::sync::atomic::{AtomicU64, Ordering};
-use memlayout::{phys_to_virt_addr, VirtAddrRange, PHYSICAL_MEMORY_OFFSET, USERSPACE};
+use executable::Binary;
+use memlayout::{phys_to_virt_addr, PHYSICAL_MEMORY_OFFSET, USERSPACE};
 use physmem::{ArenaFrameAllocator, BitmapFrameTracker, ALLOCATOR};
 use serial::println;
 use spin::lock;
@@ -26,9 +27,6 @@ use x86_64::structures::paging::{
     PhysFrame, Size4KiB,
 };
 use x86_64::VirtAddr;
-use xmas_elf::header::{sanity_check, Class, Data, Machine, Version};
-use xmas_elf::program::{ProgramHeader, Type};
-use xmas_elf::ElfFile;
 
 /// Uniquely identifies a thread within a process.
 ///
@@ -114,113 +112,7 @@ impl Process {
     /// memory space.
     ///
     pub fn create_user_process(binary: &[u8]) -> Result<(KernelProcessId, KernelThreadId), Error> {
-        const GNU_STACK: Type = Type::OsSpecific(1685382481); // GNU stack segment.
-
-        let elf = ElfFile::new(binary).map_err(Error::BadBinary)?;
-        sanity_check(&elf).map_err(Error::BadBinary)?;
-
-        match elf.header.pt1.class() {
-            Class::SixtyFour => {}
-            Class::ThirtyTwo => return Err(Error::BadBinary("32-bit binaries are not supported")),
-            _ => return Err(Error::BadBinary("unknown binary class")),
-        }
-
-        match elf.header.pt1.data() {
-            Data::LittleEndian => {}
-            Data::BigEndian => {
-                return Err(Error::BadBinary("big endian binaries are not supported"))
-            }
-            _ => return Err(Error::BadBinary("unknown binary data")),
-        }
-
-        match elf.header.pt1.version() {
-            Version::Current => {}
-            _ => return Err(Error::BadBinary("unknown binary version")),
-        }
-
-        // We ignore the OS ABI.
-
-        match elf.header.pt2.machine().as_machine() {
-            Machine::X86_64 => {}
-            _ => return Err(Error::BadBinary("unsupported instruction set architecture")),
-        }
-
-        let entry_point = VirtAddr::try_new(elf.header.pt2.entry_point())
-            .map_err(|_| Error::BadBinary("invalid entry point virtual address"))?;
-        if !USERSPACE.contains_addr(entry_point) {
-            return Err(Error::BadBinary("invalid entry point outside userspace"));
-        }
-
-        // Collect the program segments, checking everything
-        // is correct. We want to ensure that once we allocate
-        // and switch to a new page table, we won't encounter
-        // any errors and have to switch back. We also check
-        // that none of the segments overlap.
-        let mut regions = Vec::new();
-        let mut segments = Vec::new();
-        for prog in elf.program_iter() {
-            match prog {
-                ProgramHeader::Ph64(header) => {
-                    let typ = header.get_type().map_err(Error::BadBinary)?;
-                    match typ {
-                        Type::Load => {
-                            if header.mem_size < header.file_size {
-                                return Err(Error::BadBinary(
-                                    "program segment is larger on disk than in memory",
-                                ));
-                            }
-
-                            // Check the segment doesn't overlap with
-                            // any of the others and that the entire
-                            // virtual memory space is valid.
-                            let start = VirtAddr::try_new(header.virtual_addr).map_err(|_| {
-                                Error::BadBinary("invalid virtual address in program segment")
-                            })?;
-                            let end = VirtAddr::try_new(header.virtual_addr + header.mem_size)
-                                .map_err(|_| {
-                                    Error::BadBinary("invalid memory size in program segment")
-                                })?;
-                            let range = VirtAddrRange::new(start, end);
-                            for other in regions.iter() {
-                                if range.overlaps_with(other) {
-                                    return Err(Error::BadBinary("program segments overlap"));
-                                }
-                            }
-
-                            if !USERSPACE.contains(&range) {
-                                return Err(Error::BadBinary(
-                                    "program segment is outside userspace",
-                                ));
-                            }
-
-                            regions.push(range);
-                            segments.push(header);
-                        }
-                        Type::Tls => {
-                            return Err(Error::BadBinary(
-                                "thread-local storage is not yet supported",
-                            ));
-                        }
-                        Type::Interp => {
-                            return Err(Error::BadBinary(
-                                "interpreted binaries are not yet supported",
-                            ));
-                        }
-                        GNU_STACK => {
-                            if header.flags.is_execute() {
-                                return Err(Error::BadBinary(
-                                    "executable stacks are not supported",
-                                ));
-                            }
-                        }
-                        _ => {} // Ignore for now.
-                    }
-                }
-                ProgramHeader::Ph32(_) => {
-                    return Err(Error::BadBinary("32-bit binaries are not supported"))
-                }
-            }
-        }
+        let bin = Binary::parse_elf(binary).map_err(Error::BadBinary)?;
 
         let kernel_process_id = KernelProcessId::new();
         let mut process = Process {
@@ -238,24 +130,12 @@ impl Process {
         // allocation so we can copy the data in later.
         let mut allocations = Vec::new();
         let mut allocator = lock!(ALLOCATOR);
-        for segment in segments.into_iter() {
-            // We've already checked the virtual address and
-            // both the file and memory size, so we can use
-            // VirtAddr::new safely.
-            let page_start = Page::containing_address(VirtAddr::new(segment.virtual_addr));
-            let page_end =
-                Page::containing_address(VirtAddr::new(segment.virtual_addr + segment.mem_size));
+        for segment in bin.iter_segments() {
+            let page_start = Page::containing_address(segment.start);
+            let page_end = Page::containing_address(segment.end);
             let page_range = Page::range_inclusive(page_start, page_end);
 
-            let mut flags = PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE;
-            if !segment.flags.is_execute() {
-                flags |= PageTableFlags::NO_EXECUTE;
-            }
-            if segment.flags.is_write() {
-                flags |= PageTableFlags::WRITABLE;
-            }
-
-            match process.map_pages(page_range, &mut *allocator, flags) {
+            match process.map_pages(page_range, &mut *allocator, segment.flags) {
                 Ok(frames) => allocations.push((segment, frames)),
                 Err(err) => {
                     // Drop the process to clean up any
@@ -289,25 +169,23 @@ impl Process {
             // Next, we need to check whether
             // the segment is offset into the
             // page.
-            let start_addr = VirtAddr::new(segment.virtual_addr);
-            let page = Page::<Size4KiB>::containing_address(start_addr);
-            let offset = start_addr - page.start_address();
+            let page = Page::<Size4KiB>::containing_address(segment.start);
+            let offset = segment.start - page.start_address();
 
             // Next, we copy the file data into
             // memory.
-            let data = segment.raw_data(&elf);
             let mut idx = 0;
             for (i, frame) in frames.iter().enumerate() {
                 // Work out where we copy to.
                 let start = if i == 0 { offset as usize } else { 0 };
 
-                let len = min(data.len() - idx, frame.size() as usize - start);
+                let len = min(segment.data.len() - idx, frame.size() as usize - start);
                 let virt = phys_to_virt_addr(frame.start_address()) + start;
                 let dst = unsafe { slice::from_raw_parts_mut(virt.as_mut_ptr::<u8>(), len) };
-                dst.copy_from_slice(&data[idx..(idx + len)]);
+                dst.copy_from_slice(&segment.data[idx..(idx + len)]);
 
                 idx += len;
-                if idx >= data.len() {
+                if idx >= segment.data.len() {
                     break;
                 }
             }
@@ -323,7 +201,7 @@ impl Process {
             // do anything more.
         }
 
-        let kernel_thread_id = process.create_user_thread(entry_point);
+        let kernel_thread_id = process.create_user_thread(bin.entry_point());
 
         without_interrupts(|| {
             lock!(PROCESSES).insert(kernel_process_id, process);

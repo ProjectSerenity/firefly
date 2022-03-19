@@ -30,6 +30,7 @@ rust_library(
         "//kernel/memory/virtmem",
         "//kernel/segmentation",
         "//kernel/time",
+        "//kernel/utils/executable",
         "//kernel/utils/pretty",
         "//kernel/utils/spin",
         "@crates//:lazy_static",
