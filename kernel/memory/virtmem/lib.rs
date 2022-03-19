@@ -64,6 +64,12 @@ use x86_64::structures::paging::{
 };
 use x86_64::{PhysAddr, VirtAddr};
 
+// Re-export the heap allocators. We don't need to do this, but it's useful
+// to expose their documentation to aid future development.
+pub use bump::BumpAllocator;
+pub use fixed_size_block::FixedSizeBlockAllocator;
+pub use linked_list::LinkedListAllocator;
+
 // PML4 functionality.
 
 /// KERNEL_LEVEL4_PAGE_TABLE contains the physical frame where the kernel's
@@ -330,12 +336,6 @@ where
         Ok(())
     })
 }
-
-// Re-export the heap allocators. We don't need to do this, but it's useful
-// to expose their documentation to aid future development.
-pub use bump::BumpAllocator;
-pub use fixed_size_block::FixedSizeBlockAllocator;
-pub use linked_list::LinkedListAllocator;
 
 #[cfg(not(test))]
 #[global_allocator]
