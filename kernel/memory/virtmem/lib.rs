@@ -48,17 +48,17 @@ mod mapping;
 mod translate;
 
 use self::bitmap::BitmapLevel4KernelMappings;
+use self::mapping::remap_kernel;
 pub use self::translate::{virt_to_phys_addrs, PhysBuffer};
 use bootloader::BootInfo;
 use core::slice;
 use core::sync::atomic::{AtomicBool, Ordering};
-use mapping::PagePurpose;
 use memlayout::{phys_to_virt_addr, KERNELSPACE, KERNEL_HEAP, PHYSICAL_MEMORY_OFFSET};
 use serial::println;
 use spin::Mutex;
 use x86_64::registers::control::{Cr3, Cr4, Cr4Flags};
 use x86_64::registers::model_specific::{Efer, EferFlags};
-use x86_64::structures::paging::mapper::{MapToError, MapperFlushAll};
+use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, PhysFrame, Size4KiB,
 };
@@ -391,76 +391,6 @@ fn init_heap(
     with_page_tables(|mapper| unsafe { remap_kernel(mapper) });
 
     Ok(())
-}
-
-// remap_kernel remaps all existing mappings for
-// the kernel's stack as non-executable, plus unmaps
-// any unknown mappings left over by the bootloader.
-//
-unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
-    // Analyse and iterate through the page mappings
-    // in the PML4.
-    //
-    // Rather than constantly flushing the TLB as we
-    // go along, we do one big flush at the end.
-    let mappings = mapping::level_4_table(mapper.level_4_table());
-    for mapping in mappings.iter() {
-        match mapping.purpose {
-            // Unmap pages we no longer need.
-            PagePurpose::Unknown
-            | PagePurpose::NullPage
-            | PagePurpose::Userspace
-            | PagePurpose::KernelStackGuard => {
-                mapping.unmap(mapper).expect("failed to unmap page");
-            }
-            // Global and read-write (kernel stack, heap, data, physical memory).
-            PagePurpose::KernelStack
-            | PagePurpose::KernelHeap
-            | PagePurpose::KernelStatics
-            | PagePurpose::AllPhysicalMemory => {
-                let flags = PageTableFlags::GLOBAL
-                    | PageTableFlags::PRESENT
-                    | PageTableFlags::WRITABLE
-                    | PageTableFlags::NO_EXECUTE;
-                mapping
-                    .update_flags(mapper, flags)
-                    .expect("failed to update page flags");
-            }
-            // Global read only (kernel constants, boot info).
-            PagePurpose::KernelConstants | PagePurpose::KernelStrings | PagePurpose::BootInfo => {
-                let flags =
-                    PageTableFlags::GLOBAL | PageTableFlags::PRESENT | PageTableFlags::NO_EXECUTE;
-                mapping
-                    .update_flags(mapper, flags)
-                    .expect("failed to update page flags");
-            }
-            // Global read execute (kernel code).
-            PagePurpose::KernelCode => {
-                let flags = PageTableFlags::GLOBAL | PageTableFlags::PRESENT;
-                mapping
-                    .update_flags(mapper, flags)
-                    .expect("failed to update page flags");
-            }
-            // This means a segment spans multiple pages
-            // and the page we got in our constants was
-            // not in this one, so we don't know which
-            // segment this is.
-            PagePurpose::KernelBinaryUnknown => {
-                // Leave with the default flags. They might have more
-                // permissions than we'd like, but removing permissions
-                // could easily break things.
-            }
-            // MMIO and CPU-local data won't have been
-            // mapped yet, so this shouldn't happen,
-            // but if it does, we just leave it as is.
-            PagePurpose::Mmio | PagePurpose::CpuLocal => {
-                // Nothing to do.
-            }
-        }
-    }
-
-    // Flush the TLB.
-    MapperFlushAll::new().flush_all();
 }
 
 /// Prints debug info about the passed level 4 page table, including
