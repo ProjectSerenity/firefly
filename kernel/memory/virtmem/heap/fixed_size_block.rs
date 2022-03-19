@@ -5,7 +5,7 @@
 
 //! Provides a fixed-size block allocator, which can be used to allocate heap memory.
 
-use crate::Locked;
+use super::Locked;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr::NonNull;
 use core::{mem, ptr};
@@ -51,7 +51,7 @@ struct ListNode {
 /// When memory is de-allocated, we find the block size again and
 /// add the block to the corresponding free list.
 ///
-/// This is similar in behaviour to the [`LinkedListAllocator`](super::LinkedListAllocator),
+/// This is similar in behaviour to the [`LinkedListAllocator`](crate::LinkedListAllocator),
 /// but has more predictable performance when performing allocations
 /// and de-allocations. However, most blocks will include wasted
 /// memory, resulting in worse space efficiency.

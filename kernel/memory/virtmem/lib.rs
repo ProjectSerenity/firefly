@@ -41,23 +41,18 @@
 extern crate alloc;
 
 mod bitmap;
-mod bump;
-mod fixed_size_block;
-mod linked_list;
+mod heap;
 mod mapping;
 mod translate;
 
 use self::bitmap::BitmapLevel4KernelMappings;
-use self::mapping::remap_kernel;
 pub use self::translate::{virt_to_phys_addrs, PhysBuffer};
 use bootloader::BootInfo;
 use core::slice;
 use core::sync::atomic::{AtomicBool, Ordering};
-use memlayout::{phys_to_virt_addr, KERNELSPACE, KERNEL_HEAP, PHYSICAL_MEMORY_OFFSET};
+use memlayout::{phys_to_virt_addr, KERNELSPACE, PHYSICAL_MEMORY_OFFSET};
 use serial::println;
-use spin::Mutex;
-use x86_64::registers::control::{Cr3, Cr4, Cr4Flags};
-use x86_64::registers::model_specific::{Efer, EferFlags};
+use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::{
     FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, PhysFrame, Size4KiB,
@@ -66,9 +61,9 @@ use x86_64::{PhysAddr, VirtAddr};
 
 // Re-export the heap allocators. We don't need to do this, but it's useful
 // to expose their documentation to aid future development.
-pub use bump::BumpAllocator;
-pub use fixed_size_block::FixedSizeBlockAllocator;
-pub use linked_list::LinkedListAllocator;
+pub use heap::bump::BumpAllocator;
+pub use heap::fixed_size_block::FixedSizeBlockAllocator;
+pub use heap::linked_list::LinkedListAllocator;
 
 // PML4 functionality.
 
@@ -113,7 +108,7 @@ pub unsafe fn init(boot_info: &'static BootInfo) {
 
     let mut frame_allocator = physmem::bootstrap(&boot_info.memory_map);
 
-    init_heap(&mut frame_allocator).expect("heap initialization failed");
+    heap::init(&mut frame_allocator).expect("heap initialization failed");
 
     // Switch over to a more sophisticated physical memory manager.
     physmem::init(frame_allocator);
@@ -337,62 +332,6 @@ where
     })
 }
 
-#[cfg(not(test))]
-#[global_allocator]
-static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
-
-/// Initialise the static global allocator, enabling the kernel heap.
-///
-/// The given page mapper and physical memory frame allocator are used to
-/// map the entirety of the kernel heap address space ([`KERNEL_HEAP`](memlayout::KERNEL_HEAP)).
-///
-/// With the heap initialised, `init` enables global page mappings and the
-/// no-execute permission bit and then remaps virtual memory. This ensures
-/// that unexpected page mappings are removed and the remaining page mappings
-/// have the correct flags. For example, the kernel stack is mapped with the
-/// no-execute permission bit set.
-///
-fn init_heap(
-    frame_allocator: &mut impl FrameAllocator<Size4KiB>,
-) -> Result<(), MapToError<Size4KiB>> {
-    let page_range = {
-        let heap_end = KERNEL_HEAP.end();
-        let heap_start_page = Page::containing_address(KERNEL_HEAP.start());
-        let heap_end_page = Page::containing_address(heap_end);
-        Page::range_inclusive(heap_start_page, heap_end_page)
-    };
-
-    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
-
-    map_pages(page_range, frame_allocator, flags).expect("failed to map kernel heap");
-
-    #[cfg(not(test))]
-    unsafe {
-        use spin::lock;
-        lock!(ALLOCATOR.lock).init(
-            KERNEL_HEAP.start().as_u64() as usize,
-            KERNEL_HEAP.size() as usize,
-        );
-    }
-
-    // Set the CR4 fields, so we can then use the global
-    // page flag when we remap the kernel.
-    let mut flags = Cr4::read();
-    flags |= Cr4Flags::PAGE_GLOBAL; // Enable the global flag in page tables.
-    unsafe { Cr4::write(flags) };
-
-    // Set the EFER fields, so we can use the no-execute
-    // page flag when we remap the kernel.
-    let mut flags = Efer::read();
-    flags |= EferFlags::NO_EXECUTE_ENABLE; // Enable the no-execute flag in page tables.
-    unsafe { Efer::write(flags) };
-
-    // Remap the kernel, now that the heap is set up.
-    with_page_tables(|mapper| unsafe { remap_kernel(mapper) });
-
-    Ok(())
-}
-
 /// Prints debug info about the passed level 4 page table, including
 /// its mappings.
 ///
@@ -406,21 +345,5 @@ pub unsafe fn debug(pml4: &PageTable) {
     let mappings = mapping::level_4_table(pml4);
     for mapping in mappings.iter() {
         println!("{}", mapping);
-    }
-}
-
-/// Wrap a type in a [`spin::Mutex`] so we can
-/// implement traits on a locked type.
-///
-struct Locked<A> {
-    lock: Mutex<A>,
-}
-
-impl<A> Locked<A> {
-    #[allow(dead_code)]
-    pub const fn new(inner: A) -> Self {
-        Locked {
-            lock: Mutex::new(inner),
-        }
     }
 }
