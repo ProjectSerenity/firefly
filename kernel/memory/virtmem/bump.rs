@@ -6,10 +6,10 @@
 //! Provides a bump allocator, which can be used to allocate heap memory.
 
 use crate::Locked;
-use align::align_up_usize;
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr;
 use spin::lock;
+use x86_64::VirtAddr;
 
 /// A simple virtual memory allocator, tracking the next free
 /// address.
@@ -31,9 +31,9 @@ use spin::lock;
 /// is very simple.
 ///
 pub struct BumpAllocator {
-    heap_start: usize,
-    heap_end: usize,
-    next: usize,
+    heap_start: VirtAddr,
+    heap_end: VirtAddr,
+    next: VirtAddr,
     allocations: usize,
 }
 
@@ -42,9 +42,9 @@ impl BumpAllocator {
     ///
     pub const fn new() -> Self {
         BumpAllocator {
-            heap_start: 0,
-            heap_end: 0,
-            next: 0,
+            heap_start: VirtAddr::zero(),
+            heap_end: VirtAddr::zero(),
+            next: VirtAddr::zero(),
             allocations: 0,
         }
     }
@@ -56,10 +56,60 @@ impl BumpAllocator {
     /// This method is unsafe because the caller must ensure that the given
     /// memory range is unused. Also, this method must be called only once.
     ///
-    pub unsafe fn init(&mut self, heap_start: usize, heap_size: usize) {
+    pub unsafe fn init(&mut self, heap_start: VirtAddr, heap_size: usize) {
         self.heap_start = heap_start;
-        self.heap_end = heap_start.saturating_add(heap_size);
+        self.heap_end = heap_start + heap_size;
         self.next = heap_start;
+    }
+
+    /// Returns the next available memory region with the given
+    /// alignment and size requirements.
+    ///
+    fn allocate(&mut self, align: usize, size: usize) -> Option<VirtAddr> {
+        let alloc_start = self.next.align_up(align as u64);
+        let alloc_end = match alloc_start.as_u64().checked_add(size as u64) {
+            Some(end) => match VirtAddr::try_new(end) {
+                Ok(end) => end,
+                Err(_) => return None,
+            },
+            None => return None,
+        };
+
+        if alloc_end > self.heap_end {
+            None
+        } else {
+            self.next = alloc_end;
+            self.allocations += 1;
+            Some(alloc_start)
+        }
+    }
+
+    /// Deallocates the given region, marking it as unused and
+    /// free for later use.
+    ///
+    fn deallocate(&mut self, addr: VirtAddr, size: usize) -> Result<(), &'static str> {
+        if addr < self.heap_start || self.heap_end <= addr {
+            return Err("deallocated region was not allocated by this heap");
+        }
+
+        let end = match addr.as_u64().checked_add(size as u64) {
+            Some(end) => match VirtAddr::try_new(end) {
+                Ok(end) => end,
+                Err(_) => return Err("deallocated region is invalid"),
+            },
+            None => return Err("deallocated region is invalid"),
+        };
+
+        if self.heap_end < end {
+            Err("deallocated region was not allocated by this heap")
+        } else {
+            self.allocations -= 1;
+            if self.allocations == 0 {
+                self.next = self.heap_start;
+            }
+
+            Ok(())
+        }
     }
 }
 
@@ -70,30 +120,21 @@ unsafe impl GlobalAlloc for Locked<BumpAllocator> {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let mut bump = lock!(self.lock); // get a mutable reference
 
-        let alloc_start = align_up_usize(bump.next, layout.align());
-        let alloc_end = match alloc_start.checked_add(layout.size()) {
-            Some(end) => end,
-            None => return ptr::null_mut(),
-        };
-
-        if alloc_end > bump.heap_end {
-            ptr::null_mut() // out of memory
-        } else {
-            bump.next = alloc_end;
-            bump.allocations += 1;
-            alloc_start as *mut u8
+        match bump.allocate(layout.align(), layout.size()) {
+            Some(addr) => addr.as_mut_ptr(),
+            None => ptr::null_mut(),
         }
     }
 
     /// Marks the given pointer as unused and free for
     /// later re-use.
     ///
-    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         let mut bump = lock!(self.lock); // get a mutable reference
 
-        bump.allocations -= 1;
-        if bump.allocations == 0 {
-            bump.next = bump.heap_start;
+        match bump.deallocate(VirtAddr::from_ptr(ptr), layout.size()) {
+            Ok(_) => {}
+            Err(err) => panic!("{}", err),
         }
     }
 }
