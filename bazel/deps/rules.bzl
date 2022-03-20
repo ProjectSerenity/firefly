@@ -58,16 +58,16 @@ RULES_RUST = struct(
     repo = "bazelbuild/rules_rust",
     branch = "main",
     archive = "https://github.com/bazelbuild/rules_rust/archive/{v}.tar.gz",
-    version = "1b1f21ac5c1b188bf658cb408afdb58f1668baef",
-    sha256 = "ad2afc415f96b558ad6f928e9e74796d8b76e0d353a5f8230b70077532a9e0c7",
+    version = "7c865ffeb1472c6ff2541c221169ba706ea0d839",
+    sha256 = "4bc9124b7ac63ccca8e5eb1a09d57d00dc5e442a9c7fef16cc6f7958ae95c05a",
 )
 
 RULES_SKYLIB = struct(
     name = "bazel_skylib",
     repo = "bazelbuild/bazel-skylib",
     archive = "https://github.com/bazelbuild/bazel-skylib/releases/download/{v}/bazel-skylib-{v}.tar.gz",
-    version = "1.2.0",
-    sha256 = "af87959afe497dc8dfd4c6cb66e1279cb98ccc84284619ebfec27d9c09a903de",
+    version = "1.2.1",
+    sha256 = "f7be3474d42aae265405a592bb7da8e171919d74c16f082a5457840f06054728",
 )
 
 def rules_deps():

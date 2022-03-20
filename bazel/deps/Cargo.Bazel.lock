@@ -1,5 +1,5 @@
 {
-  "checksum": "2256f0732925b9a22806c0e878ba01a821a148ba3132dc694e49b2c241ab7f55",
+  "checksum": "14c845d163370d468cd89ba24e64a1a6bfed2ff69ad41fa835b7e2b0c3667007",
   "crates": {
     "bit_field 0.10.1": {
       "name": "bit_field",
@@ -220,7 +220,7 @@
           "selects": {
             "cfg(any(target_arch = \"x86_64\", target_arch = \"x86\"))": [
               {
-                "id": "cpufeatures 0.2.1",
+                "id": "cpufeatures 0.2.2",
                 "target": "cpufeatures"
               }
             ]
@@ -280,13 +280,13 @@
       },
       "license": "MIT OR Apache-2.0"
     },
-    "cpufeatures 0.2.1": {
+    "cpufeatures 0.2.2": {
       "name": "cpufeatures",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "repository": {
         "Http": {
-          "url": "https://crates.io/api/v1/crates/cpufeatures/0.2.1/download",
-          "sha256": "95059428f66df56b63431fdb4e1947ed2190586af5c5a8a8b71122bdf5a7f469"
+          "url": "https://crates.io/api/v1/crates/cpufeatures/0.2.2/download",
+          "sha256": "59a6001667ab124aebae2a495118e11d30984c3a653e99d86d58971708cf5e4b"
         }
       },
       "targets": [
@@ -313,20 +313,26 @@
           "selects": {
             "aarch64-apple-darwin": [
               {
-                "id": "libc 0.2.119",
+                "id": "libc 0.2.121",
+                "target": "libc"
+              }
+            ],
+            "aarch64-linux-android": [
+              {
+                "id": "libc 0.2.121",
                 "target": "libc"
               }
             ],
             "cfg(all(target_arch = \"aarch64\", target_os = \"linux\"))": [
               {
-                "id": "libc 0.2.119",
+                "id": "libc 0.2.121",
                 "target": "libc"
               }
             ]
           }
         },
         "edition": "2018",
-        "version": "0.2.1"
+        "version": "0.2.2"
       },
       "license": "MIT OR Apache-2.0"
     },
@@ -469,7 +475,7 @@
               "target": "chacha20"
             },
             {
-              "id": "cpufeatures 0.2.1",
+              "id": "cpufeatures 0.2.2",
               "target": "cpufeatures"
             },
             {
@@ -485,7 +491,7 @@
               "target": "lazy_static"
             },
             {
-              "id": "libc 0.2.119",
+              "id": "libc 0.2.121",
               "target": "libc"
             },
             {
@@ -509,7 +515,7 @@
               "target": "rand"
             },
             {
-              "id": "raw-cpuid 10.2.0",
+              "id": "raw-cpuid 10.3.0",
               "target": "raw_cpuid"
             },
             {
@@ -810,13 +816,13 @@
       },
       "license": "MIT/Apache-2.0"
     },
-    "libc 0.2.119": {
+    "libc 0.2.121": {
       "name": "libc",
-      "version": "0.2.119",
+      "version": "0.2.121",
       "repository": {
         "Http": {
-          "url": "https://crates.io/api/v1/crates/libc/0.2.119/download",
-          "sha256": "1bf2e165bb3457c8e098ea76f3e3bc9db55f87aa90d52d0e6be741470916aaa4"
+          "url": "https://crates.io/api/v1/crates/libc/0.2.121/download",
+          "sha256": "efaa7b300f3b5fe8eb6bf21ce3895e1751d9665086af2d64b42f19701015ff4f"
         }
       },
       "targets": [
@@ -857,14 +863,14 @@
         "deps": {
           "common": [
             {
-              "id": "libc 0.2.119",
+              "id": "libc 0.2.121",
               "target": "build_script_build"
             }
           ],
           "selects": {}
         },
         "edition": "2015",
-        "version": "0.2.119"
+        "version": "0.2.121"
       },
       "build_script_attrs": {
         "data_glob": [
@@ -1150,13 +1156,13 @@
       },
       "license": "MIT OR Apache-2.0"
     },
-    "quote 1.0.15": {
+    "quote 1.0.16": {
       "name": "quote",
-      "version": "1.0.15",
+      "version": "1.0.16",
       "repository": {
         "Http": {
-          "url": "https://crates.io/api/v1/crates/quote/1.0.15/download",
-          "sha256": "864d3e96a899863136fc6e99f3d7cae289dafe43bf2c5ac19b70df7210c0a145"
+          "url": "https://crates.io/api/v1/crates/quote/1.0.16/download",
+          "sha256": "b4af2ec4714533fcdf07e886f17025ace8b997b9ce51204ee69b6da831c3da57"
         }
       },
       "targets": [
@@ -1192,7 +1198,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "1.0.15"
+        "version": "1.0.16"
       },
       "license": "MIT OR Apache-2.0"
     },
@@ -1271,13 +1277,13 @@
       },
       "license": "MIT OR Apache-2.0"
     },
-    "raw-cpuid 10.2.0": {
+    "raw-cpuid 10.3.0": {
       "name": "raw-cpuid",
-      "version": "10.2.0",
+      "version": "10.3.0",
       "repository": {
         "Http": {
-          "url": "https://crates.io/api/v1/crates/raw-cpuid/10.2.0/download",
-          "sha256": "929f54e29691d4e6a9cc558479de70db7aa3d98cd6fe7ab86d7507aa2886b9d2"
+          "url": "https://crates.io/api/v1/crates/raw-cpuid/10.3.0/download",
+          "sha256": "738bc47119e3eeccc7e94c4a506901aea5e7b4944ecd0829cbebf4af04ceda12"
         }
       },
       "targets": [
@@ -1321,7 +1327,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "10.2.0"
+        "version": "10.3.0"
       },
       "license": "MIT"
     },
@@ -1500,7 +1506,7 @@
           "selects": {
             "cfg(any(target_arch = \"aarch64\", target_arch = \"x86_64\", target_arch = \"x86\"))": [
               {
-                "id": "cpufeatures 0.2.1",
+                "id": "cpufeatures 0.2.2",
                 "target": "cpufeatures"
               }
             ]
@@ -1563,7 +1569,7 @@
               "target": "byteorder"
             },
             {
-              "id": "libc 0.2.119",
+              "id": "libc 0.2.121",
               "target": "libc"
             },
             {
@@ -1710,13 +1716,13 @@
       },
       "license": "MIT/Apache-2.0"
     },
-    "syn 1.0.86": {
+    "syn 1.0.89": {
       "name": "syn",
-      "version": "1.0.86",
+      "version": "1.0.89",
       "repository": {
         "Http": {
-          "url": "https://crates.io/api/v1/crates/syn/1.0.86/download",
-          "sha256": "8a65b3f4ffa0092e9887669db0eae07941f023991ab58ea44da8fe8e2d511c6b"
+          "url": "https://crates.io/api/v1/crates/syn/1.0.89/download",
+          "sha256": "ea297be220d52398dcc07ce15a209fce436d361735ac1db700cab3b6cdfb9f54"
         }
       },
       "targets": [
@@ -1766,11 +1772,11 @@
               "target": "proc_macro2"
             },
             {
-              "id": "quote 1.0.15",
+              "id": "quote 1.0.16",
               "target": "quote"
             },
             {
-              "id": "syn 1.0.86",
+              "id": "syn 1.0.89",
               "target": "build_script_build"
             },
             {
@@ -1781,7 +1787,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "1.0.86"
+        "version": "1.0.89"
       },
       "build_script_attrs": {
         "data_glob": [
@@ -1867,11 +1873,11 @@
               "target": "proc_macro2"
             },
             {
-              "id": "quote 1.0.15",
+              "id": "quote 1.0.16",
               "target": "quote"
             },
             {
-              "id": "syn 1.0.86",
+              "id": "syn 1.0.89",
               "target": "syn"
             }
           ],
@@ -2346,7 +2352,7 @@
     }
   },
   "binary_crates": [
-    "raw-cpuid 10.2.0",
+    "raw-cpuid 10.3.0",
     "xmas-elf 0.8.0"
   ],
   "workspace_members": {
@@ -2354,6 +2360,7 @@
   },
   "conditions": {
     "aarch64-apple-darwin": [],
+    "aarch64-linux-android": [],
     "cfg(all(target_arch = \"aarch64\", target_os = \"linux\"))": [],
     "cfg(any(target_arch = \"aarch64\", target_arch = \"x86_64\", target_arch = \"x86\"))": [
       "x86_64-unknown-linux-gnu"

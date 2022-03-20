@@ -63,7 +63,7 @@ RUST_CRATES = {
         version = "=0.9.0",
     ),
     "cpufeatures": crate.spec(
-        version = "=0.2.1",
+        version = "=0.2.2",
     ),
     "digest": crate.spec(
         #default_features = False,
@@ -80,7 +80,7 @@ RUST_CRATES = {
         version = "=1.4.0",
     ),
     "libc": crate.spec(
-        version = "=0.2.119",
+        version = "=0.2.121",
     ),
     "linked_list_allocator": crate.spec(
         version = "=0.9.1",
@@ -104,7 +104,7 @@ RUST_CRATES = {
         version = "=0.8.5",
     ),
     "raw-cpuid": crate.spec(
-        version = "=10.2.0",
+        version = "=10.3.0",
     ),
     "rlibc": crate.spec(
         version = "=1.0.0",
