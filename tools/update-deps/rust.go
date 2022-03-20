@@ -438,6 +438,7 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	// Start by checking for updates for the crates.
+	cratesUpdated := false
 	if !skipCrates {
 	crates:
 		for _, crate := range crates {
@@ -520,6 +521,7 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 					fmt.Fprintf(w, "Warning: Rust crate %q using %q, but %q is latest.\n", name, version.Number, data.Crate.MaxVersion)
 				}
 
+				cratesUpdated = true
 				*crate.Version.Ptr = "=" + version.Number
 				fmt.Fprintf(w, "Updated Rust crate %s from %s to %s.\n", name, current, version.Number)
 				continue crates
@@ -534,11 +536,27 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 
 	if dateField.Value == want {
 		fmt.Fprintf(w, "Rust already up-to-date at nightly %s.\n", dateField.Value)
+		if cratesUpdated {
+			pretty := build.Format(f)
+			err = os.WriteFile(bzlPath, pretty, 0644)
+			if err != nil {
+				return fmt.Errorf("Failed to write updated %s: %v", bzlPath, err)
+			}
+		}
+
 		return nil
 	}
 
 	if defaultDate && currentDate.After(date) {
 		fmt.Fprintf(w, "Rust already up-to-date at nightly %s.\n", dateField.Value)
+		if cratesUpdated {
+			pretty := build.Format(f)
+			err = os.WriteFile(bzlPath, pretty, 0644)
+			if err != nil {
+				return fmt.Errorf("Failed to write updated %s: %v", bzlPath, err)
+			}
+		}
+
 		return nil
 	}
 
