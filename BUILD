@@ -11,7 +11,7 @@ load("//bazel:qemu.bzl", "qemu")
 # Configure nogo.
 nogo(
     name = "nogo",
-    config = "nogo-config.json",
+    config = "//bazel:nogo-config.json",
     visibility = ["//visibility:public"],
     deps = [
         # Run by default in `go test`. See https://pkg.go.dev/cmd/go#hdr-Test_packages
