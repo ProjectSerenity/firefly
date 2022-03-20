@@ -5,8 +5,8 @@
 
 .intel_syntax noprefix
 
-.global main
-main:
+.global _start
+_start:
 	//; Call exit_thread (syscall 0).
 	xor rax, rax
 	syscall
