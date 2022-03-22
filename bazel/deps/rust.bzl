@@ -99,10 +99,6 @@ RUST_CRATES = {
     "pic8259": crate.spec(
         version = "=0.10.2",
     ),
-    "rand": crate.spec(
-        default_features = False,
-        version = "=0.8.5",
-    ),
     "raw-cpuid": crate.spec(
         version = "=10.3.0",
     ),
@@ -124,7 +120,6 @@ RUST_CRATES = {
         features = [
             "alloc",
             "async",
-            "libc",
             "medium-ethernet",
             "proto-dhcpv4",
             "proto-ipv4",
@@ -135,9 +130,6 @@ RUST_CRATES = {
             "socket-udp",
         ],
         version = "=0.8.0",
-    ),
-    "spin": crate.spec(
-        version = "=0.9.2",
     ),
     "thiserror": crate.spec(
         version = "=1.0.30",

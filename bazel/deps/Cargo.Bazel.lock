@@ -1,5 +1,5 @@
 {
-  "checksum": "14c845d163370d468cd89ba24e64a1a6bfed2ff69ad41fa835b7e2b0c3667007",
+  "checksum": "2a05c3eb1c8a51a9cfff3073f5299944ffa853dce4e153c4f0bb8dc593caa2a6",
   "crates": {
     "bit_field 0.10.1": {
       "name": "bit_field",
@@ -511,10 +511,6 @@
               "target": "pic8259"
             },
             {
-              "id": "rand 0.8.5",
-              "target": "rand"
-            },
-            {
               "id": "raw-cpuid 10.3.0",
               "target": "raw_cpuid"
             },
@@ -533,10 +529,6 @@
             {
               "id": "smoltcp 0.8.0",
               "target": "smoltcp"
-            },
-            {
-              "id": "spin 0.9.2",
-              "target": "spin"
             },
             {
               "id": "thiserror 1.0.30",
@@ -1202,81 +1194,6 @@
       },
       "license": "MIT OR Apache-2.0"
     },
-    "rand 0.8.5": {
-      "name": "rand",
-      "version": "0.8.5",
-      "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/rand/0.8.5/download",
-          "sha256": "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "rand",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "include": [
-                "**/*.rs"
-              ],
-              "exclude": []
-            }
-          }
-        }
-      ],
-      "library_target_name": "rand",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "rand_core 0.6.3",
-              "target": "rand_core"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2018",
-        "version": "0.8.5"
-      },
-      "license": "MIT OR Apache-2.0"
-    },
-    "rand_core 0.6.3": {
-      "name": "rand_core",
-      "version": "0.6.3",
-      "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/rand_core/0.6.3/download",
-          "sha256": "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "rand_core",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "include": [
-                "**/*.rs"
-              ],
-              "exclude": []
-            }
-          }
-        }
-      ],
-      "library_target_name": "rand_core",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2018",
-        "version": "0.6.3"
-      },
-      "license": "MIT OR Apache-2.0"
-    },
     "raw-cpuid 10.3.0": {
       "name": "raw-cpuid",
       "version": "10.3.0",
@@ -1548,7 +1465,6 @@
         "crate_features": [
           "alloc",
           "async",
-          "libc",
           "medium-ethernet",
           "proto-dhcpv4",
           "proto-ipv4",
@@ -1567,10 +1483,6 @@
             {
               "id": "byteorder 1.4.3",
               "target": "byteorder"
-            },
-            {
-              "id": "libc 0.2.121",
-              "target": "libc"
             },
             {
               "id": "managed 0.8.0",
@@ -1614,60 +1526,6 @@
         ],
         "edition": "2015",
         "version": "0.5.2"
-      },
-      "license": "MIT"
-    },
-    "spin 0.9.2": {
-      "name": "spin",
-      "version": "0.9.2",
-      "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/spin/0.9.2/download",
-          "sha256": "511254be0c5bcf062b019a6c89c01a664aa359ded62f78aa72c6fc137c0590e5"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "spin",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "include": [
-                "**/*.rs"
-              ],
-              "exclude": []
-            }
-          }
-        }
-      ],
-      "library_target_name": "spin",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "crate_features": [
-          "barrier",
-          "default",
-          "lazy",
-          "lock_api",
-          "lock_api_crate",
-          "mutex",
-          "once",
-          "rwlock",
-          "spin_mutex"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "lock_api 0.4.6",
-              "target": "lock_api",
-              "alias": "lock_api_crate"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2015",
-        "version": "0.9.2"
       },
       "license": "MIT"
     },
