@@ -47,6 +47,6 @@ rust_test(
         "@crates//:hex-literal",
     ],
     deps = [
-        "@crates//:sha2",
+        "//shared/crypto/sha256",
     ],
 )

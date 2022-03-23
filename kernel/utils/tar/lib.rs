@@ -407,16 +407,14 @@ mod test {
     use alloc::vec;
     use alloc::vec::Vec;
     use hex_literal::hex;
-    use sha2::digest::generic_array::GenericArray;
-    use sha2::{Digest, Sha256};
+    use sha256::{Sha256, SIZE};
     use storage::block::{Device, Error, Operations};
 
     const SEGMENT_SIZE: usize = 512;
-    const CHECKSUM_SIZE: usize = 256 / 8;
 
     struct TestFile {
         info: FileInfo,
-        sha256: Option<[u8; CHECKSUM_SIZE]>,
+        sha256: Option<[u8; SIZE]>,
     }
 
     struct TestCase {
@@ -644,7 +642,7 @@ mod test {
         ];
 
         let mut hasher = Sha256::new();
-        let mut sha256 = [0u8; CHECKSUM_SIZE];
+        let mut sha256 = [0u8; SIZE];
         for test_case in cases.iter() {
             let device = BytesBlockDevice::new(test_case.data);
             let mut boxed = Box::new(device) as Box<dyn Device + Send>;
@@ -703,10 +701,9 @@ mod test {
                             }
 
                             // Calculate the checksum.
-                            hasher.update(contents);
-                            hasher.finalize_into_reset(&mut GenericArray::from_mut_slice(
-                                &mut sha256[..],
-                            ));
+                            hasher.update(&contents);
+                            hasher.sum(&mut sha256);
+                            hasher.reset();
                             assert_eq!(sha256, want_sha256, "file {} for {}", i, test_case.name);
                         }
                     }

@@ -18,8 +18,8 @@ rust_library(
     deps = [
         "//kernel/time",
         "//kernel/utils/spin",
-        "@crates//:chacha20",
-        "@crates//:sha2",
+        "//shared/crypto/chacha20",
+        "//shared/crypto/sha256",
         "@crates//:x86_64",
     ],
 )

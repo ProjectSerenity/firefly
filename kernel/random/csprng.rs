@@ -24,10 +24,8 @@
 // To make the CSPRNG usable, seed must be called at least once before read is called.
 // seed is a specialised version of add_entropy, which requires exactly 256 bits of entropy.
 
-use chacha20::cipher::{KeyIvInit, StreamCipher};
-use chacha20::{ChaCha20, Key, Nonce};
-use sha2::digest::generic_array::GenericArray;
-use sha2::{Digest, Sha256};
+use chacha20::ChaCha20;
+use sha256::Sha256;
 
 /// ENTROPY_BITS is the number of bits in the entropy pool.
 ///
@@ -73,8 +71,8 @@ impl Csprng {
     pub fn add_entropy(&mut self, entropy: &[u8]) {
         let mut sha256 = Sha256::new();
         sha256.update(entropy);
-        sha256.update(self.entropy);
-        sha256.finalize_into(GenericArray::from_mut_slice(&mut self.entropy[..]));
+        sha256.update(&self.entropy);
+        sha256.sum(&mut self.entropy);
     }
 
     /// seed is a specialised version of add_entropy, which
@@ -109,7 +107,6 @@ impl Csprng {
         }
 
         // Encrypt the input buffer.
-        let key = Key::from_slice(&self.entropy[..]);
         // nonce is the first 96 bits of nonce, in
         // little-endian format.
         let nonce = [
@@ -126,10 +123,11 @@ impl Csprng {
             (self.counter >> 80) as u8,
             (self.counter >> 88) as u8,
         ];
-        let nonce = Nonce::from_slice(&nonce[..]);
 
-        let mut cipher = ChaCha20::new(key, nonce);
-        cipher.apply_keystream(buf);
+        let mut cipher = ChaCha20::new(&self.entropy, 0, &nonce);
+        cipher
+            .xor_key_stream(buf)
+            .expect("failed to generate random data");
     }
 }
 

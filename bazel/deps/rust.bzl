@@ -38,9 +38,6 @@ RUST_RUSTFMT = struct(
 )
 
 RUST_CRATE_ANNOTATIONS = {
-    "chacha20": [crate.annotation(
-        deps = ["@crates//:cpufeatures"],
-    )],
     "uart_16550": [crate.annotation(
         deps = ["@crates//:x86_64"],
     )],
@@ -59,16 +56,6 @@ RUST_CRATES = {
         default_features = False,
         version = "=1.4.3",
     ),
-    "chacha20": crate.spec(
-        version = "=0.9.0",
-    ),
-    "cpufeatures": crate.spec(
-        version = "=0.2.2",
-    ),
-    "digest": crate.spec(
-        #default_features = False,
-        version = "=0.10.3",
-    ),
     "fixedvec": crate.spec(
         version = "=0.2.4",
     ),
@@ -78,9 +65,6 @@ RUST_CRATES = {
     "lazy_static": crate.spec(
         features = ["spin_no_std"],
         version = "=1.4.0",
-    ),
-    "libc": crate.spec(
-        version = "=0.2.121",
     ),
     "linked_list_allocator": crate.spec(
         version = "=0.9.1",
@@ -109,11 +93,6 @@ RUST_CRATES = {
         default_features = False,
         features = ["alloc"],
         version = "=1.0.136",
-    ),
-    "sha2": crate.spec(
-        default_features = False,
-        features = ["force-soft"],
-        version = "=0.10.2",
     ),
     "smoltcp": crate.spec(
         default_features = False,
