@@ -48,10 +48,6 @@ rust_library(
         "//kernel/utils/tar",
         "//shared/syscalls",
         "@bootloader",
-        "@crates//:lazy_static",
-        "@crates//:managed",
-        "@crates//:smoltcp",
-        "@crates//:volatile",
         "@crates//:x86_64",
     ],
 )
