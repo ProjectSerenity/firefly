@@ -67,6 +67,8 @@ RUST_CRATES = {
         version = "=1.4.0",
     ),
     "linked_list_allocator": crate.spec(
+        default_features = False,
+        features = ["const_mut_refs"],
         version = "=0.9.1",
     ),
     "llvm-tools": crate.spec(

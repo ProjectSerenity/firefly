@@ -1,5 +1,5 @@
 {
-  "checksum": "ad09580a98c3c64420265f172a1306eb2c92091956069eb6414a6f60b639de4f",
+  "checksum": "573b7ac6e0d60ad3243f718ef6c04903cf167b8a9730fa4f472a528257f4cb15",
   "crates": {
     "bit_field 0.10.1": {
       "name": "bit_field",
@@ -366,21 +366,8 @@
           "**"
         ],
         "crate_features": [
-          "const_mut_refs",
-          "default",
-          "spinning_top",
-          "use_spin",
-          "use_spin_nightly"
+          "const_mut_refs"
         ],
-        "deps": {
-          "common": [
-            {
-              "id": "spinning_top 0.2.4",
-              "target": "spinning_top"
-            }
-          ],
-          "selects": {}
-        },
         "edition": "2015",
         "version": "0.9.1"
       },
@@ -418,51 +405,6 @@
         "version": "0.1.1"
       },
       "license": "MIT/Apache-2.0"
-    },
-    "lock_api 0.4.6": {
-      "name": "lock_api",
-      "version": "0.4.6",
-      "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/lock_api/0.4.6/download",
-          "sha256": "88943dd7ef4a2e5a4bfa2753aaab3013e34ce2533d1996fb18ef591e315e2b3b"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "lock_api",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "include": [
-                "**/*.rs"
-              ],
-              "exclude": []
-            }
-          }
-        }
-      ],
-      "library_target_name": "lock_api",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "crate_features": [
-          "nightly"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "scopeguard 1.1.0",
-              "target": "scopeguard"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2018",
-        "version": "0.4.6"
-      },
-      "license": "Apache-2.0/MIT"
     },
     "managed 0.8.0": {
       "name": "managed",
@@ -634,39 +576,6 @@
       },
       "license": "MIT/Apache-2.0"
     },
-    "scopeguard 1.1.0": {
-      "name": "scopeguard",
-      "version": "1.1.0",
-      "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/scopeguard/1.1.0/download",
-          "sha256": "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "scopeguard",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "include": [
-                "**/*.rs"
-              ],
-              "exclude": []
-            }
-          }
-        }
-      ],
-      "library_target_name": "scopeguard",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2015",
-        "version": "1.1.0"
-      },
-      "license": "MIT/Apache-2.0"
-    },
     "serde 1.0.136": {
       "name": "serde",
       "version": "1.0.136",
@@ -825,51 +734,6 @@
         "version": "0.5.2"
       },
       "license": "MIT"
-    },
-    "spinning_top 0.2.4": {
-      "name": "spinning_top",
-      "version": "0.2.4",
-      "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/spinning_top/0.2.4/download",
-          "sha256": "75adad84ee84b521fb2cca2d4fd0f1dab1d8d026bda3c5bea4ca63b5f9f9293c"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "spinning_top",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "include": [
-                "**/*.rs"
-              ],
-              "exclude": []
-            }
-          }
-        }
-      ],
-      "library_target_name": "spinning_top",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "crate_features": [
-          "nightly"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "lock_api 0.4.6",
-              "target": "lock_api"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2018",
-        "version": "0.2.4"
-      },
-      "license": "MIT/Apache-2.0"
     },
     "toml 0.5.8": {
       "name": "toml",
