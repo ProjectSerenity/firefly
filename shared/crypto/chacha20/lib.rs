@@ -349,47 +349,92 @@ fn quarter_round(a: u32, b: u32, c: u32, d: u32) -> (u32, u32, u32, u32) {
 
 #[cfg(test)]
 mod test {
+    extern crate std;
     use super::*;
     use hex_literal::hex;
+    use std::collections::HashMap;
+    use std::vec::Vec;
+
+    /// Macro to test the implementation using
+    /// a test vector. We use a macro so that
+    /// any panic uses the line number of the
+    /// vector that failed.
+    ///
+    macro_rules! test_vector {
+        ($nonce:expr, $key:expr, $counter:expr, $in:expr, $want:expr) => {{
+            // Check the simple crypt operation.
+            let mut cipher = ChaCha20::new($key, $counter, $nonce);
+            let mut data = Vec::new();
+            data.extend_from_slice($in);
+            cipher
+                .xor_key_stream(&mut data)
+                .expect("simple crypt error");
+            assert_eq!(&data, &$want, "simple crypt mismatch");
+
+            // Check the test vector by calling
+            // xor_key_stream multiple times.
+
+            // Wide range of step sizes to try and hit
+            // edge cases.
+            const STEPS: [usize; 10] = [1, 3, 4, 7, 8, 17, 24, 30, 64, 256];
+
+            // We want to pick steps at random, but
+            // the Rust stdlib doesn't include a random
+            // number generator. As a basic alternative,
+            // we copy the steps into a HashMap, covert
+            // that into an iterator (which iterates in
+            // an arbitrary order), then make it cycle,
+            // giving a loop of steps in an arbitrary
+            // order. It's not really pseudorandom, but
+            // it's good enough.
+            let steps = HashMap::<_, _>::from_iter(STEPS.iter().enumerate())
+                .into_values()
+                .collect::<Vec<&usize>>();
+
+            // Reset our state.
+            cipher = ChaCha20::new($key, $counter, $nonce);
+            data.truncate(0);
+            data.extend_from_slice($in);
+
+            let mut idx = 0;
+            for step in steps.iter().cycle() {
+                if idx + *step > data.len() {
+                    break;
+                }
+
+                cipher
+                    .xor_key_stream(&mut data[idx..idx + *step])
+                    .expect("stepped crypt loop error");
+                idx += *step;
+            }
+
+            // Crypt any remaining data.
+            cipher
+                .xor_key_stream(&mut data[idx..])
+                .expect("stepped crypt finish error");
+
+            // Check we correctly handle cryption
+            // with empty data.
+            let n = data.len();
+            cipher
+                .xor_key_stream(&mut data[n..])
+                .expect("stepped crypt empty error");
+
+            // Check the result.
+            assert_eq!(&data, &$want, "stepped crypt mismatch");
+        }};
+    }
 
     #[test]
     fn test_cipher_xor_key_stream() {
-        // Test vector from RFC 7539, section
-        // 2.4.2.
-        let key = hex!(
-            "0001020304050607 08090a0b0c0d0e0f"
-            "1011121314151617 18191a1b1c1d1e1f"
+        // RFC 7539, section 2.4.2.
+        test_vector!(
+            &hex!("000000000000004a00000000"),
+            &hex!("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"),
+            1,
+            &hex!("4c616469657320616e642047656e746c656d656e206f662074686520636c617373206f66202739393a204966204920636f756c64206f6666657220796f75206f6e6c79206f6e652074697020666f7220746865206675747572652c2073756e73637265656e20776f756c642062652069742e"),
+            &hex!("6e2e359a2568f98041ba0728dd0d6981e97e7aec1d4360c20a27afccfd9fae0bf91b65c5524733ab8f593dabcd62b3571639d624e65152ab8f530c359f0861d807ca0dbf500d6a6156a38e088a22b65e52bc514d16ccf806818ce91ab77937365af90bbf74a35be6b40b8eedf2785e42874d")
         );
-        let counter = 1;
-        let nonce = hex!("000000000000004a00000000");
-
-        let mut cipher = ChaCha20::new(&key, counter, &nonce);
-
-        let mut data = hex!(
-            "4c61646965732061 6e642047656e746c"
-            "656d656e206f6620 74686520636c6173"
-            "73206f6620273939 3a20496620492063"
-            "6f756c64206f6666 657220796f75206f"
-            "6e6c79206f6e6520 74697020666f7220"
-            "7468652066757475 72652c2073756e73"
-            "637265656e20776f 756c642062652069"
-            "742e"
-        );
-
-        cipher.xor_key_stream(&mut data).unwrap();
-
-        let want = hex!(
-            "6e2e359a2568f980 41ba0728dd0d6981"
-            "e97e7aec1d4360c2 0a27afccfd9fae0b"
-            "f91b65c5524733ab 8f593dabcd62b357"
-            "1639d624e65152ab 8f530c359f0861d8"
-            "07ca0dbf500d6a61 56a38e088a22b65e"
-            "52bc514d16ccf806 818ce91ab7793736"
-            "5af90bbf74a35be6 b40b8eedf2785e42"
-            "874d"
-        );
-
-        assert_eq!(data, want);
     }
 
     #[test]
