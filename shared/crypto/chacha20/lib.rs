@@ -221,7 +221,7 @@ impl ChaCha20 {
             }
 
             data = &mut data[n..];
-            self.block_bytes = 0;
+            self.block_bytes -= n;
         }
 
         // Iterate through the key stream
@@ -243,12 +243,13 @@ impl ChaCha20 {
         // into the block cache.
         if !data.is_empty() {
             self.next_block(&mut block)?;
-            for (d, b) in data.iter_mut().zip(block.iter()) {
+            let copied = data.len();
+            for (d, b) in data.iter_mut().zip(block[..copied].iter()) {
                 *d ^= b;
             }
 
             self.block = block;
-            self.block_bytes = BLOCK_SIZE - data.len();
+            self.block_bytes = BLOCK_SIZE - copied;
         }
 
         Ok(())
