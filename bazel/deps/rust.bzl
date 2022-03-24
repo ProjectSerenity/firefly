@@ -110,9 +110,6 @@ RUST_CRATES = {
         ],
         version = "=0.8.0",
     ),
-    "thiserror": crate.spec(
-        version = "=1.0.30",
-    ),
     "toml": crate.spec(
         version = "=0.5.8",
     ),

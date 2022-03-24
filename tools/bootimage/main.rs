@@ -17,7 +17,6 @@ use std::fs::{File, OpenOptions};
 use std::io;
 use std::path::Path;
 use std::process::Command;
-use thiserror::Error;
 
 fn main() {
     // We expect our input and output args.
@@ -115,32 +114,24 @@ fn pad_to_nearest_block_size(output_bin_path: &Path) -> Result<(), DiskImageErro
 }
 
 /// Creating the disk image failed.
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub enum DiskImageError {
     /// The `llvm-tools-preview` rustup component was not found
-    #[error(
-        "Could not find the `llvm-tools-preview` rustup component.\n\n\
-        You can install by executing `rustup component add llvm-tools-preview`."
-    )]
     LlvmToolsNotFound,
 
     /// There was another problem locating the `llvm-tools-preview` rustup component
-    #[error("Failed to locate the `llvm-tools-preview` rustup component: {0:?}")]
     LlvmTools(llvm_tools::Error),
 
     /// The llvm-tools component did not contain the required `llvm-objcopy` executable
-    #[error("Could not find `llvm-objcopy` in the `llvm-tools-preview` rustup component.")]
     LlvmObjcopyNotFound,
 
     /// The `llvm-objcopy` command failed
-    #[error("Failed to run `llvm-objcopy`: {}", String::from_utf8_lossy(.stderr))]
     ObjcopyFailed {
         /// The output of `llvm-objcopy` to standard error
         stderr: Vec<u8>,
     },
 
     /// An unexpected I/O error occurred
-    #[error("I/O error: {message}:\n{error}")]
     Io {
         /// Desciption of the failed I/O operation
         message: &'static str,

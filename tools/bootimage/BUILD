@@ -13,7 +13,6 @@ rust_binary(
     visibility = ["//visibility:public"],
     deps = [
         "@crates//:llvm-tools",
-        "@crates//:thiserror",
     ],
 )
 
