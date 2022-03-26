@@ -13,7 +13,7 @@ use core::cmp::min;
 use core::ptr::write_bytes;
 use core::slice;
 use core::sync::atomic::{AtomicU64, Ordering};
-use executable::Binary;
+use loader::Binary;
 use memlayout::{phys_to_virt_addr, PHYSICAL_MEMORY_OFFSET, USERSPACE};
 use physmem::{ArenaFrameAllocator, BitmapFrameTracker, ALLOCATOR};
 use serial::println;

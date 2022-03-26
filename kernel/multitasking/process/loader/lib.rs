@@ -3,7 +3,7 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-//! Provides functionality to parse and validate executable binaries.
+//! Provides functionality to parse and validate loadable binaries.
 
 #![no_std]
 

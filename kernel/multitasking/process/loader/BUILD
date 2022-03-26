@@ -6,12 +6,12 @@
 load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rust_test", "rustfmt_test")
 
 rust_library(
-    name = "executable",
+    name = "loader",
     srcs = [
         "elf.rs",
         "lib.rs",
     ],
-    crate_name = "executable",
+    crate_name = "loader",
     edition = "2021",
     visibility = ["//kernel:__subpackages__"],
     deps = [
@@ -23,25 +23,25 @@ rust_library(
 
 rust_clippy(
     name = "clippy",
-    deps = [":executable"],
+    deps = [":loader"],
 )
 
 rust_doc(
     name = "docs",
-    crate = ":executable",
+    crate = ":loader",
 )
 
 rustfmt_test(
     name = "fmt_test",
     size = "small",
-    targets = [":executable"],
+    targets = [":loader"],
 )
 
 rust_test(
-    name = "executable_test",
+    name = "loader_test",
     size = "small",
     compile_data = glob(["testdata/*"]),
-    crate = ":executable",
+    crate = ":loader",
     proc_macro_deps = [
         "@crates//:hex-literal",
     ],
