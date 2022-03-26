@@ -12,6 +12,7 @@ extern crate alloc;
 mod elf;
 
 use alloc::slice::Iter;
+use alloc::string::String;
 use alloc::vec::Vec;
 use x86_64::structures::paging::PageTableFlags;
 use x86_64::VirtAddr;
@@ -26,6 +27,17 @@ pub struct Binary<'a> {
 }
 
 impl<'a> Binary<'a> {
+    /// Loads the executable binary with the given name and
+    /// contents.
+    ///
+    pub fn parse(name: &String, content: &'a [u8]) -> Result<Self, &'static str> {
+        if elf::is_elf(name, content) {
+            return elf::parse_elf(content);
+        }
+
+        Err("unrecognised binary format")
+    }
+
     /// Returns the virtual address at which the binary should
     /// start execution.
     ///

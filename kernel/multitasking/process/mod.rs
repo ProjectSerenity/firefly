@@ -8,6 +8,7 @@
 use crate::thread::{KernelThreadId, Thread};
 use crate::PROCESSES;
 use alloc::collections::btree_map::{BTreeMap, Iter};
+use alloc::string::String;
 use alloc::vec::Vec;
 use core::cmp::min;
 use core::ptr::write_bytes;
@@ -111,8 +112,11 @@ impl Process {
     /// binary, which is used to construct the virtual
     /// memory space.
     ///
-    pub fn create_user_process(binary: &[u8]) -> Result<(KernelProcessId, KernelThreadId), Error> {
-        let bin = Binary::parse_elf(binary).map_err(Error::BadBinary)?;
+    pub fn create_user_process(
+        name: &String,
+        binary: &[u8],
+    ) -> Result<(KernelProcessId, KernelThreadId), Error> {
+        let bin = Binary::parse(name, binary).map_err(Error::BadBinary)?;
 
         let kernel_process_id = KernelProcessId::new();
         let mut process = Process {

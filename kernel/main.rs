@@ -80,7 +80,7 @@ fn initial_workload() -> ! {
             );
         }
 
-        match Process::create_user_process(&data[..]) {
+        match Process::create_user_process(&info.name, &data[..]) {
             Ok((_, thread_id)) => {
                 thread_id.resume();
             }
