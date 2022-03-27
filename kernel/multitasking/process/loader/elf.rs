@@ -113,6 +113,12 @@ pub fn parse_elf<'a>(binary: &'a [u8]) -> Result<Binary, &'static str> {
                             flags |= PageTableFlags::WRITABLE;
                         }
 
+                        if flags.contains(PageTableFlags::WRITABLE)
+                            && !flags.contains(PageTableFlags::NO_EXECUTE)
+                        {
+                            return Err("program segments cannot be both writable and executable");
+                        }
+
                         let segment = Segment {
                             start,
                             end,
