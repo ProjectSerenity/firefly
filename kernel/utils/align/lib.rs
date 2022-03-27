@@ -17,7 +17,7 @@ macro_rules! align_up_and_down {
         ///
         /// `align` must be an exact multiple of two.
         ///
-        pub fn $align_up(value: $t, align: $t) -> $t {
+        pub const fn $align_up(value: $t, align: $t) -> $t {
             assert!(
                 align.is_power_of_two(),
                 "`align` must be an exact multiple of two"
@@ -37,7 +37,7 @@ macro_rules! align_up_and_down {
         ///
         /// `align` must be an exact multiple of two.
         ///
-        pub fn $align_down(value: $t, align: $t) -> $t {
+        pub const fn $align_down(value: $t, align: $t) -> $t {
             assert!(
                 align.is_power_of_two(),
                 "`align` must be an exact multiple of two"
