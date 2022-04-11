@@ -83,13 +83,26 @@ pub unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
             PagePurpose::KernelBinaryUnknown => {
                 // Leave with the default flags. They might have more
                 // permissions than we'd like, but removing permissions
-                // could easily break things.
+                // could easily break things. However, we do ensure the
+                // GLOBAL flag is set.
+                let flags = PageTableFlags::GLOBAL | PageTableFlags::PRESENT | mapping.flags;
+                if mapping.flags != flags {
+                    mapping
+                        .update_flags(mapper, flags)
+                        .expect("failed to update page flags");
+                }
             }
             // MMIO and CPU-local data won't have been
             // mapped yet, so this shouldn't happen,
             // but if it does, we just leave it as is.
             PagePurpose::Mmio | PagePurpose::CpuLocal => {
-                // Nothing to do.
+                // Ensure the GLOBAL flag is set.
+                let flags = PageTableFlags::GLOBAL | PageTableFlags::PRESENT | mapping.flags;
+                if mapping.flags != flags {
+                    mapping
+                        .update_flags(mapper, flags)
+                        .expect("failed to update page flags");
+                }
             }
         }
     }
