@@ -107,6 +107,7 @@ qemu(
         "stdio",
         "-display",
         "none",
+        "-no-reboot",
     ],
     qemu = "qemu-system-x86_64",
 )
