@@ -144,6 +144,9 @@ impl Process {
                 Err(err) => {
                     // Drop the process to clean up any
                     // allocations we've made already.
+                    // Drop the allocator first as the
+                    // process's cleanup code locks it.
+                    drop(allocator);
                     drop(process);
                     return Err(Error::MapError(err));
                 }
