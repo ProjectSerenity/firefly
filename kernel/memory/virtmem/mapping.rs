@@ -51,24 +51,30 @@ pub unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
                     | PageTableFlags::PRESENT
                     | PageTableFlags::WRITABLE
                     | PageTableFlags::NO_EXECUTE;
-                mapping
-                    .update_flags(mapper, flags)
-                    .expect("failed to update page flags");
+                if mapping.flags != flags {
+                    mapping
+                        .update_flags(mapper, flags)
+                        .expect("failed to update page flags");
+                }
             }
             // Global read only (kernel constants, boot info).
             PagePurpose::KernelConstants | PagePurpose::KernelStrings | PagePurpose::BootInfo => {
                 let flags =
                     PageTableFlags::GLOBAL | PageTableFlags::PRESENT | PageTableFlags::NO_EXECUTE;
-                mapping
-                    .update_flags(mapper, flags)
-                    .expect("failed to update page flags");
+                if mapping.flags != flags {
+                    mapping
+                        .update_flags(mapper, flags)
+                        .expect("failed to update page flags");
+                }
             }
             // Global read execute (kernel code).
             PagePurpose::KernelCode => {
                 let flags = PageTableFlags::GLOBAL | PageTableFlags::PRESENT;
-                mapping
-                    .update_flags(mapper, flags)
-                    .expect("failed to update page flags");
+                if mapping.flags != flags {
+                    mapping
+                        .update_flags(mapper, flags)
+                        .expect("failed to update page flags");
+                }
             }
             // This means a segment spans multiple pages
             // and the page we got in our constants was
