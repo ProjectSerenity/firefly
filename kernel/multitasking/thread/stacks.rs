@@ -146,7 +146,10 @@ pub fn new_kernel_stack(num_pages: u64) -> Result<StackBounds, MapToError<Size4K
     let stack_end = stack_start + num_pages;
 
     let pages = Page::range(stack_start, stack_end);
-    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+    let flags = PageTableFlags::PRESENT
+        | PageTableFlags::GLOBAL
+        | PageTableFlags::WRITABLE
+        | PageTableFlags::NO_EXECUTE;
 
     map_pages(pages, &mut *lock!(physmem::ALLOCATOR), flags)?;
 
