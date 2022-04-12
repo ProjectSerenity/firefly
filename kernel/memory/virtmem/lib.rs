@@ -33,7 +33,7 @@
 //! ## Heap initialisation
 //!
 //! The [`init`] function starts by mapping the entirety of the kernel heap
-//! address space ([`KERNEL_HEAP`](memlayout::KERNEL_HEAP)) using the physical
+//! address space ([`KERNEL_HEAP`](memory::constants::KERNEL_HEAP)) using the physical
 //! frame allocator provided. This virtual memory is then used to initialise
 //! the heap allocator.
 //!
@@ -58,14 +58,13 @@ pub use self::translate::{virt_to_phys_addrs, PhysBuffer};
 use bootloader::BootInfo;
 use core::slice;
 use core::sync::atomic::{AtomicBool, Ordering};
-use memlayout::{phys_to_virt_addr, KERNELSPACE, PHYSICAL_MEMORY_OFFSET};
+use memory::constants::KERNELSPACE;
+use memory::{
+    phys_to_virt_addr, PageMappingError, PageTable, PageTableFlags, PhysAddr, PhysFrame,
+    PhysFrameAllocator, PhysFrameSize, VirtAddr, VirtPage, VirtPageSize,
+};
 use serial::println;
 use x86_64::registers::control::Cr3;
-use x86_64::structures::paging::mapper::MapToError;
-use x86_64::structures::paging::{
-    FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, PhysFrame, Size4KiB,
-};
-use x86_64::{PhysAddr, VirtAddr};
 
 // PML4 functionality.
 
@@ -76,13 +75,13 @@ use x86_64::{PhysAddr, VirtAddr};
 /// This is a mutable static value as it is only assigned to once, while
 /// the kernel is being initialised.
 ///
-static mut KERNEL_LEVEL4_PAGE_TABLE: PhysFrame<Size4KiB> =
-    unsafe { PhysFrame::from_start_address_unchecked(PhysAddr::zero()) };
+static mut KERNEL_LEVEL4_PAGE_TABLE: PhysFrame =
+    unsafe { PhysFrame::from_start_address_unchecked(PhysAddr::zero(), PhysFrameSize::Size4KiB) };
 
 /// Returns the kernel's level 4 page table. This must only be used
 /// as a readable page table to switch to, without being modified.
 ///
-pub fn kernel_level4_page_table() -> PhysFrame<Size4KiB> {
+pub fn kernel_level4_page_table() -> PhysFrame {
     unsafe { KERNEL_LEVEL4_PAGE_TABLE }
 }
 
@@ -98,7 +97,7 @@ pub fn kernel_level4_page_table() -> PhysFrame<Size4KiB> {
 ///
 /// This function is unsafe because the caller must guarantee
 /// that the complete physical memory is mapped to virtual memory
-/// at [`PHYSICAL_MEMORY_OFFSET`].
+/// at [`PHYSICAL_MEMORY_OFFSET`](memory::constants::PHYSICAL_MEMORY_OFFSET).
 ///
 /// `init` must be called only once to avoid aliasing &mut
 /// references (which is undefined behavior).
@@ -106,7 +105,11 @@ pub fn kernel_level4_page_table() -> PhysFrame<Size4KiB> {
 pub unsafe fn init(boot_info: &'static BootInfo) {
     // Prepare the kernel's PML4.
     let (level_4_table_frame, _) = Cr3::read();
-    KERNEL_LEVEL4_PAGE_TABLE = level_4_table_frame;
+    KERNEL_LEVEL4_PAGE_TABLE = PhysFrame::from_start_address(
+        PhysAddr::from_x86_64(level_4_table_frame.start_address()),
+        PhysFrameSize::Size4KiB,
+    )
+    .unwrap();
 
     let mut frame_allocator = physmem::bootstrap(&boot_info.memory_map);
 
@@ -168,16 +171,16 @@ pub fn freeze_kernel_mappings() {
     }
 
     // Set the page mappings.
-    with_page_tables(|mapper| {
-        let pml4 = mapper.level_4_table();
-
+    with_page_tables(|page_table| {
         // Skip the lower half (userspace) mappings.
-        for (idx, entry) in pml4.iter().skip(256).enumerate() {
-            if entry.flags().contains(PageTableFlags::PRESENT) {
-                let half_idx = 256 + idx as u64; // Bring back to higher half.
+        for (idx, entry) in page_table.iter().skip(256).enumerate() {
+            if entry.flags().present() {
+                let half_idx = 256 + idx; // Bring back to higher half.
                 let pml4_idx = half_idx << 39; // Bring back to an address.
-                let start_addr = VirtAddr::new(pml4_idx);
-                let page = Page::from_start_address(start_addr).unwrap();
+                let pml4_addr = pml4_idx | 0xffff_8000_0000_0000; // Sign-extend.
+                let start_addr = VirtAddr::new(pml4_addr);
+                let page =
+                    VirtPage::from_start_address(start_addr, VirtPageSize::Size4KiB).unwrap();
                 unsafe { KERNEL_MAPPINGS.map(&page) };
             }
         }
@@ -202,21 +205,22 @@ pub fn kernel_mappings_frozen() -> bool {
 /// This will panic if the kernel page mappings have
 /// not yet been frozen.
 ///
-pub fn new_page_table() -> PhysFrame<Size4KiB> {
+pub fn new_page_table() -> PhysFrame {
     if !kernel_mappings_frozen() {
         panic!("new_page_table() called without having frozen the kernel page mappings.");
     }
 
     // Allocate the frame, then copy from the
     // kernel mapping.
-    let frame = physmem::allocate_frame().expect("failed to allocate new page table");
+    let frame = physmem::allocate_phys_frame(PhysFrameSize::Size4KiB)
+        .expect("failed to allocate new page table");
     let new_virt = phys_to_virt_addr(frame.start_address());
     let old_phys = unsafe { KERNEL_LEVEL4_PAGE_TABLE };
     let old_virt = phys_to_virt_addr(old_phys.start_address());
     let new_buf: &mut [u8] =
-        unsafe { slice::from_raw_parts_mut(new_virt.as_mut_ptr(), frame.size() as usize) };
+        unsafe { slice::from_raw_parts_mut(new_virt.as_usize() as *mut u8, frame.size().bytes()) };
     let old_buf: &[u8] =
-        unsafe { slice::from_raw_parts(old_virt.as_mut_ptr(), frame.size() as usize) };
+        unsafe { slice::from_raw_parts(old_virt.as_usize() as *const u8, frame.size().bytes()) };
     new_buf.copy_from_slice(old_buf);
 
     frame
@@ -232,7 +236,7 @@ pub fn new_page_table() -> PhysFrame<Size4KiB> {
 /// The caller should do so and skip calling `check_mapping`
 /// if the page tables are not frozen.
 ///
-fn check_mapping(page: Page) {
+fn check_mapping(page: VirtPage) {
     let start_addr = page.start_address();
     if !KERNELSPACE.contains_addr(start_addr) {
         return;
@@ -256,19 +260,13 @@ fn check_mapping(page: Page) {
 ///
 pub fn with_page_tables<F, R>(f: F) -> R
 where
-    F: FnOnce(&mut OffsetPageTable) -> R,
+    F: FnOnce(&mut PageTable) -> R,
 {
     let (level_4_table_frame, _) = Cr3::read();
-    let phys = level_4_table_frame.start_address();
-    let virt = phys_to_virt_addr(phys);
-    let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
+    let phys = PhysAddr::from_x86_64(level_4_table_frame.start_address());
+    let mut page_table = unsafe { PageTable::at(phys).expect("failed to load page table") };
 
-    // This bit is unsafe if we're not using
-    // the currently-active page tables.
-    let page_table = unsafe { &mut *page_table_ptr };
-    let mut mapper = unsafe { OffsetPageTable::new(page_table, PHYSICAL_MEMORY_OFFSET) };
-
-    f(&mut mapper)
+    f(&mut page_table)
 }
 
 /// Map the given page range, which can be inclusive or exclusive.
@@ -277,23 +275,23 @@ pub fn map_pages<R, A>(
     page_range: R,
     allocator: &mut A,
     flags: PageTableFlags,
-) -> Result<(), MapToError<Size4KiB>>
+) -> Result<(), PageMappingError>
 where
-    R: Iterator<Item = Page>,
-    A: FrameAllocator<Size4KiB> + ?Sized,
+    R: Iterator<Item = VirtPage>,
+    A: PhysFrameAllocator + ?Sized,
 {
     let frozen = kernel_mappings_frozen();
-    with_page_tables(|mapper| {
+    with_page_tables(|page_table| {
         for page in page_range {
             if frozen {
                 check_mapping(page);
             }
 
             let frame = allocator
-                .allocate_frame()
-                .ok_or(MapToError::FrameAllocationFailed)?;
+                .allocate_phys_frame(PhysFrameSize::Size4KiB)
+                .ok_or(PageMappingError::PageTableAllocationFailed)?;
             unsafe {
-                mapper.map_to(page, frame, flags, allocator)?.flush();
+                page_table.map(page, frame, flags, allocator)?.flush();
             }
         }
 
@@ -309,14 +307,14 @@ pub fn map_frames_to_pages<F, P, A>(
     page_range: P,
     allocator: &mut A,
     flags: PageTableFlags,
-) -> Result<(), MapToError<Size4KiB>>
+) -> Result<(), PageMappingError>
 where
     F: Iterator<Item = PhysFrame>,
-    P: Iterator<Item = Page>,
-    A: FrameAllocator<Size4KiB> + ?Sized,
+    P: Iterator<Item = VirtPage>,
+    A: PhysFrameAllocator + ?Sized,
 {
     let frozen = kernel_mappings_frozen();
-    with_page_tables(|mapper| {
+    with_page_tables(|page_table| {
         for page in page_range {
             if frozen {
                 check_mapping(page);
@@ -324,9 +322,9 @@ where
 
             let frame = frame_range
                 .next()
-                .ok_or(MapToError::FrameAllocationFailed)?;
+                .ok_or(PageMappingError::PageTableAllocationFailed)?;
             unsafe {
-                mapper.map_to(page, frame, flags, allocator)?.flush();
+                page_table.map(page, frame, flags, allocator)?.flush();
             }
         }
 

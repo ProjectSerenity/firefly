@@ -37,9 +37,8 @@
 //! means each table contains 512 entries. Since we only care about
 //! the top half for this case, we need 256 entries.
 
-use memlayout::KERNELSPACE;
-use x86_64::structures::paging::Page;
-use x86_64::VirtAddr;
+use memory::constants::KERNELSPACE;
+use memory::{VirtAddr, VirtPage};
 
 /// The number of page table entries covering the higher half of
 /// memory.
@@ -54,13 +53,13 @@ const NUM_U64S: usize = NUM_BITS / 64;
 /// the given page, or the start address if the page is not
 /// in kernelspace.
 ///
-fn get_index(page: &Page) -> Result<(usize, u64), VirtAddr> {
+fn get_index(page: &VirtPage) -> Result<(usize, u64), VirtAddr> {
     let start = page.start_address();
     if !KERNELSPACE.contains_addr(start) {
         Err(start)
     } else {
         // Extract the level 4 page table index.
-        let pml4_index = 511 & ((start.as_u64() as usize) >> 39);
+        let pml4_index = 511 & ((start.as_usize()) >> 39);
 
         // Drop it down to the lower half.
         let half_index = pml4_index - 256;
@@ -97,7 +96,7 @@ impl BitmapLevel4KernelMappings {
     ///
     /// `map` will panic if the page is not in kernelspace.
     ///
-    pub fn map(&mut self, page: &Page) {
+    pub fn map(&mut self, page: &VirtPage) {
         match get_index(page) {
             Ok((index, mask)) => self.bits[index] |= mask,
             Err(start) => panic!("page at {:p} is not in kernelspace", start),
@@ -110,7 +109,7 @@ impl BitmapLevel4KernelMappings {
     ///
     /// `mapped` will panic if the page is not in kernelspace.
     ///
-    pub fn mapped(&self, page: &Page) -> bool {
+    pub fn mapped(&self, page: &VirtPage) -> bool {
         match get_index(page) {
             Ok((index, mask)) => (self.bits[index] & mask) == mask,
             Err(start) => panic!("page at {:p} is not in kernelspace", start),
@@ -121,20 +120,21 @@ impl BitmapLevel4KernelMappings {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use memory::VirtPageSize;
 
     #[test]
     fn bitmap_level4_kernel_mappings() {
         // Helper function to speed up making pages.
-        fn page_for(addr: u64) -> Page {
+        fn page_for(addr: usize) -> VirtPage {
             let start_addr = VirtAddr::new(addr);
-            Page::from_start_address(start_addr).unwrap()
+            VirtPage::from_start_address(start_addr, VirtPageSize::Size4KiB).unwrap()
         }
 
-        const NUL_PAGE: u64 = 0x0000_0000_0000_0000_u64;
-        const LOW_PAGE: u64 = 0x0000_0000_0000_4000_u64;
-        const HALF_PAGE: u64 = 0xffff_8000_0000_0000_u64;
-        const NEXT_PAGE: u64 = 0xffff_8080_0000_0000_u64;
-        const LAST_PAGE: u64 = 0xffff_ffff_ffff_f000_u64;
+        const NUL_PAGE: usize = 0x0000_0000_0000_0000_usize;
+        const LOW_PAGE: usize = 0x0000_0000_0000_4000_usize;
+        const HALF_PAGE: usize = 0xffff_8000_0000_0000_usize;
+        const NEXT_PAGE: usize = 0xffff_8080_0000_0000_usize;
+        const LAST_PAGE: usize = 0xffff_ffff_ffff_f000_usize;
 
         // First, check that `get_index` works correctly.
         assert_eq!(get_index(&page_for(NUL_PAGE)), Err(VirtAddr::new(NUL_PAGE)));

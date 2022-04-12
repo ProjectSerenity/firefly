@@ -182,7 +182,10 @@ fn set_current_thread(thread: Arc<Thread>) {
         kernel_level4_page_table()
     };
 
-    unsafe { Cr3::write(page_table, Cr3Flags::empty()) };
+    let start_addr = page_table.start_address().as_x86_64();
+    let frame = x86_64::structures::paging::PhysFrame::from_start_address(start_addr).unwrap();
+
+    unsafe { Cr3::write(frame, Cr3Flags::empty()) };
 
     lock!(CURRENT_THREADS)[cpu::id()] = thread;
 }

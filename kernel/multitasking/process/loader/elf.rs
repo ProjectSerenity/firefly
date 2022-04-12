@@ -8,9 +8,8 @@
 use super::{Binary, Segment};
 use alloc::string::String;
 use alloc::vec::Vec;
-use memlayout::{VirtAddrRange, USERSPACE};
-use x86_64::structures::paging::PageTableFlags;
-use x86_64::VirtAddr;
+use memory::constants::USERSPACE;
+use memory::{PageTableFlags, VirtAddr, VirtAddrRange};
 use xmas_elf::header::{sanity_check, Class, Data, Machine, Version};
 use xmas_elf::program::{ProgramHeader, Type};
 use xmas_elf::ElfFile;
@@ -59,7 +58,7 @@ pub fn parse_elf<'a>(binary: &'a [u8]) -> Result<Binary, &'static str> {
         _ => return Err("unsupported instruction set architecture"),
     }
 
-    let entry_point = VirtAddr::try_new(elf.header.pt2.entry_point())
+    let entry_point = VirtAddr::try_new(elf.header.pt2.entry_point() as usize)
         .map_err(|_| "invalid entry point virtual address")?;
     if !USERSPACE.contains_addr(entry_point) {
         return Err("invalid entry point outside userspace");
@@ -85,13 +84,13 @@ pub fn parse_elf<'a>(binary: &'a [u8]) -> Result<Binary, &'static str> {
                         // Check the segment doesn't overlap with
                         // any of the others and that the entire
                         // virtual memory space is valid.
-                        let start = VirtAddr::try_new(header.virtual_addr)
+                        let start = VirtAddr::try_new(header.virtual_addr as usize)
                             .map_err(|_| "invalid virtual address in program segment")?;
                         let end_addr = header
                             .virtual_addr
                             .checked_add(header.mem_size)
                             .ok_or("invalid memory size in program segment")?;
-                        let end = VirtAddr::try_new(end_addr)
+                        let end = VirtAddr::try_new(end_addr as usize)
                             .map_err(|_| "invalid memory size in program segment")?;
                         let range = VirtAddrRange::new(start, end);
                         for other in regions.iter() {

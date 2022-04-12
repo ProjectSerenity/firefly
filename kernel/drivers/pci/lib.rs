@@ -19,8 +19,8 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 use core::fmt;
+use memory::PhysAddr;
 use x86_64::instructions::port::Port;
-use x86_64::PhysAddr;
 
 const CONFIG_ADDRESS: u16 = 0xcf8;
 const CONFIG_DATA: u16 = 0xcfc;
@@ -34,8 +34,6 @@ const HEADER_TYPE: u8 = 0x0e; // u8
 
 /// Represents a device driver that can take ownership
 /// of a PCI device.
-///
-/// The mapper may be necessary to set up MMIO.
 ///
 pub type Driver = fn(device: Device);
 
@@ -223,7 +221,7 @@ impl Device {
         let bar = self.base_address_registers[index];
         if bar & 1 == 0 {
             Bar::MemoryMapped {
-                addr: PhysAddr::new((bar & !0b1111) as u64),
+                addr: PhysAddr::new((bar & !0b1111) as usize),
             }
         } else {
             Bar::IOMapped {

@@ -8,8 +8,7 @@
 
 use bootloader::bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 use core::slice::Iter;
-use x86_64::structures::paging::{FrameAllocator, PhysFrame, Size4KiB};
-use x86_64::PhysAddr;
+use memory::{PhysAddr, PhysFrame, PhysFrameAllocator, PhysFrameSize};
 
 /// A basic physical memory allocator.
 ///
@@ -50,10 +49,12 @@ impl BootInfoFrameAllocator {
         let addr_ranges = usable_regions.map(|r| r.range.start_addr()..r.range.end_addr());
 
         // Transform to an iterator of frame start addresses.
-        let frame_addresses = addr_ranges.flat_map(|r| r.step_by(4096));
+        let frame_addresses = addr_ranges.flat_map(|r| r.step_by(PhysFrameSize::Size4KiB.bytes()));
 
         // Create PhysFrame types from the start addresses.
-        frame_addresses.map(|addr| PhysFrame::containing_address(PhysAddr::new(addr)))
+        frame_addresses.map(|addr| {
+            PhysFrame::containing_address(PhysAddr::new(addr as usize), PhysFrameSize::Size4KiB)
+        })
     }
 
     /// Returns the underlying memory map.
@@ -75,10 +76,15 @@ impl BootInfoFrameAllocator {
     }
 }
 
-unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
+unsafe impl PhysFrameAllocator for BootInfoFrameAllocator {
     /// Returns the next available physical frame, or `None`.
     ///
-    fn allocate_frame(&mut self) -> Option<PhysFrame> {
+    fn allocate_phys_frame(&mut self, size: PhysFrameSize) -> Option<PhysFrame> {
+        // We only support 4 KiB frames for now.
+        if size != PhysFrameSize::Size4KiB {
+            return None;
+        }
+
         let frame = self.usable_frames().nth(self.next);
         self.next += 1;
         frame

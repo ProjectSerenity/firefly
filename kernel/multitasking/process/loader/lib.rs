@@ -14,8 +14,7 @@ mod elf;
 use alloc::slice::Iter;
 use alloc::string::String;
 use alloc::vec::Vec;
-use x86_64::structures::paging::PageTableFlags;
-use x86_64::VirtAddr;
+use memory::{PageTableFlags, VirtAddr};
 
 /// Represents the parsed information about an ELF
 /// binary.

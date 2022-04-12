@@ -44,13 +44,12 @@
 
 use core::arch::asm;
 use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use memlayout::CPU_LOCAL;
+use memory::constants::CPU_LOCAL;
+use memory::{PageTableFlags, VirtAddr, VirtPage, VirtPageSize};
 use physmem::ALLOCATOR;
 use spin::lock;
 use virtmem::map_pages;
 use x86_64::registers::model_specific::GsBase;
-use x86_64::structures::paging::{Page, PageTableFlags};
-use x86_64::VirtAddr;
 
 /// The offset into the per-CPU data at which the 8-byte
 /// unique CPU id is stored.
@@ -113,10 +112,11 @@ pub fn global_init() {
     let start = CPU_LOCAL.start();
     let end = start + region_size;
 
-    let start_page = Page::from_start_address(start).expect("bad start address");
-    let last_page = Page::containing_address(end);
+    let start_page =
+        VirtPage::from_start_address(start, VirtPageSize::Size4KiB).expect("bad start address");
+    let last_page = VirtPage::containing_address(end, VirtPageSize::Size4KiB);
 
-    let pages = Page::range_inclusive(start_page, last_page);
+    let pages = VirtPage::range_inclusive(start_page, last_page);
     let flags = PageTableFlags::PRESENT
         | PageTableFlags::GLOBAL
         | PageTableFlags::WRITABLE
@@ -149,7 +149,7 @@ pub fn per_cpu_init() {
 
     let id = NEXT_CPU_ID.fetch_add(1, Ordering::Relaxed);
     let start = CPU_LOCAL.start() + (id * PER_CPU_REGION_SIZE);
-    GsBase::write(start);
+    GsBase::write(start.as_x86_64());
 
     // Initialise the data. It's much simpler and quicker
     // to do this in assembly.
@@ -196,7 +196,7 @@ pub fn id() -> usize {
 ///
 #[inline(always)]
 pub fn syscall_stack_pointer() -> VirtAddr {
-    let mut ptr: u64;
+    let mut ptr: usize;
     unsafe {
         asm!("mov {ptr}, gs:[{offset}]", ptr = out(reg) ptr, offset = const SYSCALL_STACK_POINTER_OFFSET);
     }
@@ -209,7 +209,7 @@ pub fn syscall_stack_pointer() -> VirtAddr {
 ///
 #[inline(always)]
 pub fn set_syscall_stack_pointer(ptr: VirtAddr) {
-    let ptr = ptr.as_u64();
+    let ptr = ptr.as_usize();
     unsafe {
         asm!("mov gs:[{offset}], {ptr}", ptr = in(reg) ptr, offset = const SYSCALL_STACK_POINTER_OFFSET);
     }
@@ -220,7 +220,7 @@ pub fn set_syscall_stack_pointer(ptr: VirtAddr) {
 ///
 #[inline(always)]
 pub fn user_stack_pointer() -> VirtAddr {
-    let mut ptr: u64;
+    let mut ptr: usize;
     unsafe {
         asm!("mov {ptr}, gs:[{offset}]", ptr = out(reg) ptr, offset = const USER_STACK_POINTER_OFFSET);
     }
@@ -233,7 +233,7 @@ pub fn user_stack_pointer() -> VirtAddr {
 ///
 #[inline(always)]
 pub fn set_user_stack_pointer(ptr: VirtAddr) {
-    let ptr = ptr.as_u64();
+    let ptr = ptr.as_usize();
     unsafe {
         asm!("mov gs:[{offset}], {ptr}", ptr = in(reg) ptr, offset = const USER_STACK_POINTER_OFFSET);
     }

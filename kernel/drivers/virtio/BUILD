@@ -26,7 +26,7 @@ rust_library(
         "//kernel/drivers/pci",
         "//kernel/drivers/serial",
         "//kernel/interrupts",
-        "//kernel/memory/memlayout",
+        "//kernel/memory",
         "//kernel/memory/mmio",
         "//kernel/memory/physmem",
         "//kernel/memory/virtmem",

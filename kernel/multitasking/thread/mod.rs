@@ -38,15 +38,16 @@ use core::cell::UnsafeCell;
 use core::ptr::write_bytes;
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::Waker;
-use memlayout::{phys_to_virt_addr, VirtAddrRange, KERNEL_STACK, KERNEL_STACK_GUARD, USERSPACE};
+use memory::constants::{KERNEL_STACK, KERNEL_STACK_GUARD, USERSPACE};
+use memory::{
+    phys_to_virt_addr, PageTableFlags, PhysFrame, VirtAddr, VirtAddrRange, VirtPage, VirtPageSize,
+};
 use physmem::ALLOCATOR;
 use pretty::Bytes;
 use serial::println;
 use spin::lock;
 use time::{Duration, TimeSlice};
 use x86_64::instructions::interrupts::without_interrupts;
-use x86_64::structures::paging::{Page, PageSize, PageTableFlags, PhysFrame, Size4KiB};
-use x86_64::VirtAddr;
 
 /// The amount of CPU time given to threads when they are scheduled.
 ///
@@ -64,14 +65,14 @@ const KERNEL_STACK_PAGES: usize = 128;
 /// This does not include the extra page for the stack
 /// guard.
 ///
-const KERNEL_STACK_SIZE: usize = (Size4KiB::SIZE as usize) * KERNEL_STACK_PAGES; // 512 KiB.
+const KERNEL_STACK_SIZE: usize = VirtPageSize::Size4KiB.bytes() * KERNEL_STACK_PAGES; // 512 KiB.
 
 /// Sets up the thread data for this CPU.
 ///
 pub fn per_cpu_init() {
     // Start by identifying our stack space.
     let id = cpu::id();
-    let offset = id * KERNEL_STACK_SIZE + Size4KiB::SIZE as usize; // Include stack guard.
+    let offset = id * KERNEL_STACK_SIZE + VirtPageSize::Size4KiB.bytes(); // Include stack guard.
     let stack_start = KERNEL_STACK_GUARD.start() + offset;
     let stack_end = stack_start + KERNEL_STACK_SIZE;
     let stack_space = VirtAddrRange::new(stack_start, stack_end);
@@ -251,7 +252,7 @@ pub fn exit() -> ! {
 ///
 pub fn debug() {
     // Start by getting the current stack pointer.
-    let rsp: u64;
+    let rsp: usize;
     unsafe {
         asm!("mov {}, rsp", out(reg) rsp, options(nostack, nomem, preserves_flags));
     }
@@ -378,7 +379,7 @@ pub struct Thread {
     // The level 4 page table for this thread's owning
     // process, or `None` for kernel threads (which can
     // use any page table).
-    page_table: Option<PhysFrame<Size4KiB>>,
+    page_table: Option<PhysFrame>,
 
     // The thread's current state.
     state: UnsafeCell<ThreadState>,
@@ -417,7 +418,7 @@ pub struct Thread {
     // pointer is written to this cell. When the thread
     // is resumed, its stack pointer is restored from
     // this value.
-    stack_pointer: UnsafeCell<u64>,
+    stack_pointer: UnsafeCell<usize>,
 }
 
 /// push_stack is used to build a new thread's stack
@@ -452,7 +453,7 @@ impl Thread {
     /// for new user threads' stack. Unlike kernel
     /// stacks, these can grow at runtime.
     ///
-    const DEFAULT_USER_STACK_PAGES: u64 = 128; // 128 4-KiB pages = 512 KiB.
+    const DEFAULT_USER_STACK_PAGES: usize = 128; // 128 4-KiB pages = 512 KiB.
 
     /// Creates a new kernel thread, to which we fall
     /// back if no other threads are runnable.
@@ -471,7 +472,7 @@ impl Thread {
         // When we call switch for the first time, the
         // current stack pointer is written into the
         // idle thread. The 0 we set here is never read.
-        let stack_pointer = UnsafeCell::new(0u64);
+        let stack_pointer = UnsafeCell::new(0usize);
 
         // We inherit the kernel's initial stack, although
         // we never access any data previously stored
@@ -509,11 +510,11 @@ impl Thread {
     ///
     pub fn create_kernel_thread(entry_point: fn() -> !) -> KernelThreadId {
         // Allocate and prepare the stack pointer.
-        let stack = new_kernel_stack(KERNEL_STACK_PAGES as u64)
+        let stack = new_kernel_stack(KERNEL_STACK_PAGES)
             .expect("failed to allocate stack for new kernel thread");
 
         let rsp = unsafe {
-            let mut rsp: *mut u64 = stack.end().as_mut_ptr();
+            let mut rsp = stack.end().as_usize() as *mut u64;
 
             // The stack pointer starts out pointing to
             // the last address in range, which is not
@@ -556,7 +557,7 @@ impl Thread {
             interrupt_stack: None,
             syscall_stack: None,
             user_stack_pointer: UnsafeCell::new(VirtAddr::zero()),
-            stack_pointer: UnsafeCell::new(rsp as u64),
+            stack_pointer: UnsafeCell::new(rsp as usize),
             stack_bounds: Some(stack),
         });
 
@@ -601,14 +602,15 @@ impl Thread {
         // address.
         //
         // TODO: Support binaries that place binary segments in this space.
-        let stack_top = USERSPACE.end() - 7u64;
+        let stack_top = USERSPACE.end() - 7;
         let stack_bottom =
-            stack_top - (Thread::DEFAULT_USER_STACK_PAGES * Page::<Size4KiB>::SIZE) + 8u64;
-        let stack_top_page = Page::containing_address(stack_top);
-        let stack_bottom_page = Page::from_start_address(stack_bottom).unwrap();
+            stack_top - (Thread::DEFAULT_USER_STACK_PAGES * VirtPageSize::Size4KiB.bytes()) + 8;
+        let stack_top_page = VirtPage::containing_address(stack_top, VirtPageSize::Size4KiB);
+        let stack_bottom_page =
+            VirtPage::from_start_address(stack_bottom, VirtPageSize::Size4KiB).unwrap();
 
         // Map the stack.
-        let pages = Page::range_inclusive(stack_bottom_page, stack_top_page);
+        let pages = VirtPage::range_inclusive(stack_bottom_page, stack_top_page);
         let flags = PageTableFlags::PRESENT
             | PageTableFlags::USER_ACCESSIBLE
             | PageTableFlags::WRITABLE
@@ -621,23 +623,23 @@ impl Thread {
         drop(allocator);
 
         let stack = StackBounds::from_page_range(pages);
-        let int_stack = new_kernel_stack(KERNEL_STACK_PAGES as u64)
+        let int_stack = new_kernel_stack(KERNEL_STACK_PAGES)
             .expect("failed to allocate interrupt stack for new user thread");
-        let sys_stack = new_kernel_stack(KERNEL_STACK_PAGES as u64)
+        let sys_stack = new_kernel_stack(KERNEL_STACK_PAGES)
             .expect("failed to allocate syscall stack for new user thread");
 
         // Zero the stack so we don't leak stale memory.
         for frame in stack_frames.iter() {
             let virt = phys_to_virt_addr(frame.start_address());
-            unsafe { write_bytes(virt.as_mut_ptr::<u8>(), 0x00, frame.size() as usize) };
+            unsafe { write_bytes(virt.as_usize() as *mut u8, 0x00, frame.size().bytes()) };
         }
 
         let rsp = unsafe {
             // Get a virtual address for the end of the
             // last physical frame.
             let frame = stack_frames[stack_frames.len() - 1];
-            let virt = phys_to_virt_addr(frame.start_address() + (frame.size() - 1));
-            let mut rsp: *mut u64 = virt.as_mut_ptr();
+            let virt = phys_to_virt_addr(frame.start_address() + (frame.size().bytes() - 1));
+            let mut rsp = virt.as_usize() as *mut u64;
 
             // The stack pointer starts out pointing to
             // the last address in range, which is not
@@ -647,7 +649,7 @@ impl Thread {
 
             // Push the entry point to be used by
             // start_user_thread.
-            rsp = push_stack(rsp, entry_point.as_u64());
+            rsp = push_stack(rsp, entry_point.as_usize() as u64);
 
             // Push start_user_thread and the initial
             // registers to be loaded by switch_stack.
@@ -663,7 +665,7 @@ impl Thread {
             // Work out the virtual address by taking
             // the difference between rsp and virt,
             // then subtracting that from stack_top.
-            let stack_offset = (virt - VirtAddr::from_ptr(rsp)) - 7;
+            let stack_offset = (virt - VirtAddr::new(rsp as usize)) - 7;
             stack_top - stack_offset
         };
 
@@ -678,7 +680,7 @@ impl Thread {
             interrupt_stack: Some(int_stack),
             syscall_stack: Some(sys_stack),
             user_stack_pointer: UnsafeCell::new(VirtAddr::zero()),
-            stack_pointer: UnsafeCell::new(rsp.as_u64()),
+            stack_pointer: UnsafeCell::new(rsp.as_usize()),
             stack_bounds: Some(stack),
         });
 
@@ -719,7 +721,7 @@ impl Thread {
     /// `None` for kernel threads (which can use any
     /// page table).
     ///
-    pub(crate) fn page_table(&self) -> Option<PhysFrame<Size4KiB>> {
+    pub(crate) fn page_table(&self) -> Option<PhysFrame> {
         self.page_table
     }
 
@@ -731,7 +733,7 @@ impl Thread {
 
     /// Returns the thread's stack pointer.
     ///
-    pub(crate) fn stack_pointer(&self) -> *mut u64 {
+    pub(crate) fn stack_pointer(&self) -> *mut usize {
         self.stack_pointer.get()
     }
 
@@ -760,7 +762,7 @@ impl Thread {
     pub fn interrupt_stack(&self) -> VirtAddr {
         match self.interrupt_stack {
             None => VirtAddr::zero(),
-            Some(range) => range.end() - 7u64,
+            Some(range) => range.end() - 7,
         }
     }
 
@@ -771,7 +773,7 @@ impl Thread {
     pub fn syscall_stack(&self) -> VirtAddr {
         match self.syscall_stack {
             None => VirtAddr::zero(),
-            Some(range) => range.end() - 7u64,
+            Some(range) => range.end() - 7,
         }
     }
 
@@ -859,10 +861,10 @@ impl Thread {
         println!(
             "thread {:?}: {} ({}%) of stack used, {} / {} remaining.",
             self.kernel_id.0,
-            Bytes::from_u64(used_stack),
+            Bytes::from_usize(used_stack),
             percent,
-            Bytes::from_u64(free_stack),
-            Bytes::from_u64(total_stack)
+            Bytes::from_usize(free_stack),
+            Bytes::from_usize(total_stack)
         );
     }
 }

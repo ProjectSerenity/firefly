@@ -11,16 +11,11 @@ use alloc::vec::Vec;
 use bitmap_index::Bitmap;
 use bootloader::bootinfo::{MemoryRegion, MemoryRegionType};
 use core::slice::Iter;
+use memory::{
+    PhysAddr, PhysFrame, PhysFrameAllocator, PhysFrameDeallocator, PhysFrameRange, PhysFrameSize,
+};
 use pretty::Bytes;
 use serial::println;
-use x86_64::structures::paging::frame::PhysFrameRange;
-use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame, Size4KiB};
-use x86_64::PhysAddr;
-
-/// FRAME_SIZE is the size of a single frame of
-/// physical memory.
-///
-const FRAME_SIZE: usize = 4096;
 
 /// A single contiguous chunk of physical memory, which is
 /// tracked using a bitmap.
@@ -73,8 +68,8 @@ impl BitmapPool {
 
         let num_frames = region.range.end_frame_number - region.range.start_frame_number;
         BitmapPool {
-            start_address: PhysAddr::new(region.range.start_addr()),
-            last_address: PhysAddr::new(region.range.end_addr() - 1),
+            start_address: PhysAddr::new(region.range.start_addr() as usize),
+            last_address: PhysAddr::new(region.range.end_addr() as usize - 1),
             num_frames: num_frames as usize,
             free_frames: num_frames as usize,
             bitmap: Bitmap::new_set(num_frames as usize),
@@ -85,7 +80,8 @@ impl BitmapPool {
     /// index.
     ///
     fn frame_at(&self, index: usize) -> PhysFrame {
-        PhysFrame::from_start_address(self.start_address + index * FRAME_SIZE).unwrap()
+        let size = PhysFrameSize::Size4KiB;
+        PhysFrame::from_start_address(self.start_address + index * size.bytes(), size).unwrap()
     }
 
     /// index_for returns the index at which the given
@@ -100,13 +96,13 @@ impl BitmapPool {
             return Some(0);
         }
 
-        Some(((addr - self.start_address) as usize) / FRAME_SIZE)
+        Some(((addr - self.start_address) as usize) / PhysFrameSize::Size4KiB.bytes())
     }
 
     /// contains_frame returns whether the pool includes
     /// the given frame.
     ///
-    pub fn contains_frame(&self, frame: PhysFrame<Size4KiB>) -> bool {
+    pub fn contains_frame(&self, frame: PhysFrame) -> bool {
         let start_addr = frame.start_address();
         self.start_address <= start_addr && start_addr < self.last_address
     }
@@ -147,7 +143,7 @@ impl BitmapPool {
                 self.free_frames -= n;
                 let start = self.frame_at(index);
                 let end = self.frame_at(index + n);
-                Some(PhysFrame::range(start, end))
+                Some(PhysFrame::range_exclusive(start, end))
             }
         }
     }
@@ -155,7 +151,7 @@ impl BitmapPool {
     /// mark_frame_allocated marks the given frame as
     /// allocated.
     ///
-    pub fn mark_frame_allocated(&mut self, frame: PhysFrame<Size4KiB>) {
+    pub fn mark_frame_allocated(&mut self, frame: PhysFrame) {
         let start_addr = frame.start_address();
         match self.index_for(start_addr) {
             None => panic!("cannot mark frame at {:p}: frame not tracked", start_addr),
@@ -176,7 +172,7 @@ impl BitmapPool {
     /// Returns whether the given frame is marked as
     /// allocated in the pool.
     ///
-    pub fn is_allocated(&self, frame: PhysFrame<Size4KiB>) -> bool {
+    pub fn is_allocated(&self, frame: PhysFrame) -> bool {
         let start_addr = frame.start_address();
         match self.index_for(start_addr) {
             None => panic!("frame at {:p} not tracked", start_addr),
@@ -187,7 +183,7 @@ impl BitmapPool {
     /// deallocate_frame marks the given frame as free
     /// for use.
     ///
-    pub fn deallocate_frame(&mut self, frame: PhysFrame<Size4KiB>) {
+    pub fn deallocate_frame(&mut self, frame: PhysFrame) {
         let start_addr = frame.start_address();
         match self.index_for(start_addr) {
             None => panic!(
@@ -342,7 +338,7 @@ impl BitmapFrameAllocator {
 
     /// Marks the given frame as already allocated.
     ///
-    fn mark_frame_allocated(&mut self, frame: PhysFrame<Size4KiB>) {
+    fn mark_frame_allocated(&mut self, frame: PhysFrame) {
         for pool in self.pools.iter_mut() {
             if pool.contains_frame(frame) {
                 pool.mark_frame_allocated(frame);
@@ -399,10 +395,15 @@ impl BitmapFrameAllocator {
     }
 }
 
-unsafe impl FrameAllocator<Size4KiB> for BitmapFrameAllocator {
+unsafe impl PhysFrameAllocator for BitmapFrameAllocator {
     /// Returns the next available physical frame, or `None`.
     ///
-    fn allocate_frame(&mut self) -> Option<PhysFrame> {
+    fn allocate_phys_frame(&mut self, size: PhysFrameSize) -> Option<PhysFrame> {
+        // For now, we only support 4 KiB frames.
+        if size != PhysFrameSize::Size4KiB {
+            return None;
+        }
+
         for pool in self.pools.iter_mut() {
             if let Some(frame) = pool.allocate_frame() {
                 self.free_frames -= 1;
@@ -414,7 +415,7 @@ unsafe impl FrameAllocator<Size4KiB> for BitmapFrameAllocator {
     }
 }
 
-impl FrameDeallocator<Size4KiB> for BitmapFrameAllocator {
+impl PhysFrameDeallocator for BitmapFrameAllocator {
     /// Marks the given physical memory frame as unused and returns it to the
     /// list of free frames for later use.
     ///
@@ -422,7 +423,13 @@ impl FrameDeallocator<Size4KiB> for BitmapFrameAllocator {
     ///
     /// The caller must ensure that `frame` is unused.
     ///
-    unsafe fn deallocate_frame(&mut self, frame: PhysFrame<Size4KiB>) {
+    unsafe fn deallocate_phys_frame(&mut self, frame: PhysFrame) {
+        // For now, we only support 4 KiB, so we
+        // won't have allocated anything else.
+        if frame.size() != PhysFrameSize::Size4KiB {
+            panic!("cannot deallocate {:?}: frame not tracked", frame);
+        }
+
         for pool in self.pools.iter_mut() {
             if pool.contains_frame(frame) {
                 pool.deallocate_frame(frame);
@@ -433,7 +440,7 @@ impl FrameDeallocator<Size4KiB> for BitmapFrameAllocator {
 
         let start_addr = frame.start_address();
         panic!(
-            "cannot dallocate frame at {:p}: frame not tracked",
+            "cannot deallocate frame at {:p}: frame not tracked",
             start_addr
         );
     }
@@ -468,7 +475,7 @@ impl BitmapFrameTracker {
     /// Returns whether the given frame is tracked in this
     /// arena.
     ///
-    pub fn is_allocated(&self, frame: PhysFrame<Size4KiB>) -> bool {
+    pub fn is_allocated(&self, frame: PhysFrame) -> bool {
         for pool in self.pools.iter() {
             if pool.contains_frame(frame) {
                 return pool.is_allocated(frame);
@@ -480,7 +487,7 @@ impl BitmapFrameTracker {
 
     /// Mark the given frame as allocated in this arena.
     ///
-    pub fn allocate_frame(&mut self, frame: PhysFrame<Size4KiB>) {
+    pub fn allocate_frame(&mut self, frame: PhysFrame) {
         for pool in self.pools.iter_mut() {
             if pool.contains_frame(frame) {
                 pool.mark_frame_allocated(frame);
@@ -496,7 +503,7 @@ impl BitmapFrameTracker {
     /// Mark the given frame as not allocated in this
     /// arena.
     ///
-    pub fn deallocate_frame(&mut self, frame: PhysFrame<Size4KiB>) {
+    pub fn deallocate_frame(&mut self, frame: PhysFrame) {
         for pool in self.pools.iter_mut() {
             if pool.contains_frame(frame) {
                 pool.deallocate_frame(frame);
@@ -536,14 +543,12 @@ impl BitmapFrameTracker {
 /// then be used to deallocate all memory used in
 /// the arena.
 ///
-pub struct ArenaFrameAllocator<'a, 't, A: FrameAllocator<Size4KiB> + FrameDeallocator<Size4KiB>> {
+pub struct ArenaFrameAllocator<'a, 't, A: PhysFrameAllocator + PhysFrameDeallocator> {
     tracker: &'t mut BitmapFrameTracker,
     allocator: &'a mut A,
 }
 
-impl<'a, 't, A: FrameAllocator<Size4KiB> + FrameDeallocator<Size4KiB>>
-    ArenaFrameAllocator<'a, 't, A>
-{
+impl<'a, 't, A: PhysFrameAllocator + PhysFrameDeallocator> ArenaFrameAllocator<'a, 't, A> {
     /// Returns a new frame allocator, which will
     /// defer to allocator for `allocations`, then
     /// record them in `tracker`.
@@ -562,7 +567,7 @@ impl<'a, 't, A: FrameAllocator<Size4KiB> + FrameDeallocator<Size4KiB>>
     pub unsafe fn deallocate_all_frames(&mut self) {
         loop {
             if let Some(frame) = self.tracker.deallocate_next_frame() {
-                self.allocator.deallocate_frame(frame);
+                self.allocator.deallocate_phys_frame(frame);
             } else {
                 return;
             }
@@ -570,13 +575,13 @@ impl<'a, 't, A: FrameAllocator<Size4KiB> + FrameDeallocator<Size4KiB>>
     }
 }
 
-unsafe impl<'a, 't, A: FrameAllocator<Size4KiB> + FrameDeallocator<Size4KiB>>
-    FrameAllocator<Size4KiB> for ArenaFrameAllocator<'a, 't, A>
+unsafe impl<'a, 't, A: PhysFrameAllocator + PhysFrameDeallocator> PhysFrameAllocator
+    for ArenaFrameAllocator<'a, 't, A>
 {
     /// Returns the next available physical frame, or `None`.
     ///
-    fn allocate_frame(&mut self) -> Option<PhysFrame> {
-        if let Some(frame) = self.allocator.allocate_frame() {
+    fn allocate_phys_frame(&mut self, size: PhysFrameSize) -> Option<PhysFrame> {
+        if let Some(frame) = self.allocator.allocate_phys_frame(size) {
             self.tracker.allocate_frame(frame);
             Some(frame)
         } else {
@@ -585,7 +590,7 @@ unsafe impl<'a, 't, A: FrameAllocator<Size4KiB> + FrameDeallocator<Size4KiB>>
     }
 }
 
-impl<'a, 't, A: FrameAllocator<Size4KiB> + FrameDeallocator<Size4KiB>> FrameDeallocator<Size4KiB>
+impl<'a, 't, A: PhysFrameAllocator + PhysFrameDeallocator> PhysFrameDeallocator
     for ArenaFrameAllocator<'a, 't, A>
 {
     /// Marks the given physical memory frame as unused and returns it to the
@@ -595,9 +600,9 @@ impl<'a, 't, A: FrameAllocator<Size4KiB> + FrameDeallocator<Size4KiB>> FrameDeal
     ///
     /// The caller must ensure that `frame` is unused.
     ///
-    unsafe fn deallocate_frame(&mut self, frame: PhysFrame<Size4KiB>) {
+    unsafe fn deallocate_phys_frame(&mut self, frame: PhysFrame) {
         self.tracker.deallocate_frame(frame);
-        self.allocator.deallocate_frame(frame);
+        self.allocator.deallocate_phys_frame(frame);
     }
 }
 
@@ -651,60 +656,62 @@ mod tests {
         assert_eq!(alloc.free_frames, 6);
 
         // Helper function to speed up making frames.
-        fn frame_for(addr: u64) -> PhysFrame {
+        fn frame_for(addr: usize) -> PhysFrame {
             let start_addr = PhysAddr::new(addr);
-            let frame = PhysFrame::from_start_address(start_addr).unwrap();
+            let size = PhysFrameSize::Size4KiB;
+            let frame = PhysFrame::from_start_address(start_addr, size).unwrap();
             frame
         }
 
+        let size = PhysFrameSize::Size4KiB;
+
         // Do some allocations.
-        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x4000)));
+        assert_eq!(alloc.allocate_phys_frame(size), Some(frame_for(0x4000)));
         assert_eq!(alloc.num_frames, 6);
         assert_eq!(alloc.free_frames, 5);
-        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x5000)));
+        assert_eq!(alloc.allocate_phys_frame(size), Some(frame_for(0x5000)));
         assert_eq!(alloc.num_frames, 6);
         assert_eq!(alloc.free_frames, 4);
 
         // Do a free.
-        unsafe { alloc.deallocate_frame(frame_for(0x4000)) };
+        unsafe { alloc.deallocate_phys_frame(frame_for(0x4000)) };
         assert_eq!(alloc.num_frames, 6);
         assert_eq!(alloc.free_frames, 5);
 
         // Next allocation should return the address we just freed.
-        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x4000)));
+        assert_eq!(alloc.allocate_phys_frame(size), Some(frame_for(0x4000)));
         assert_eq!(alloc.num_frames, 6);
         assert_eq!(alloc.free_frames, 4);
 
         // Check that all remaining allocations are as we expect.
-        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x6000)));
-        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x7000)));
-        assert_eq!(alloc.allocate_frame(), Some(frame_for(0xc000)));
-        assert_eq!(alloc.allocate_frame(), Some(frame_for(0xd000)));
+        assert_eq!(alloc.allocate_phys_frame(size), Some(frame_for(0x6000)));
+        assert_eq!(alloc.allocate_phys_frame(size), Some(frame_for(0x7000)));
+        assert_eq!(alloc.allocate_phys_frame(size), Some(frame_for(0xc000)));
+        assert_eq!(alloc.allocate_phys_frame(size), Some(frame_for(0xd000)));
         assert_eq!(alloc.num_frames, 6);
         assert_eq!(alloc.free_frames, 0);
 
         // Check that we get nothing once we run out of frames.
-        assert_eq!(alloc.allocate_frame(), None);
+        assert_eq!(alloc.allocate_phys_frame(size), None);
         assert_eq!(alloc.num_frames, 6);
         assert_eq!(alloc.free_frames, 0);
 
         // Check that sequential allocations work correctly.
 
         // Deallocate 2 non-sequential frames, expect None.
-        unsafe { alloc.deallocate_frame(frame_for(0x5000)) };
-        unsafe { alloc.deallocate_frame(frame_for(0x7000)) };
+        unsafe { alloc.deallocate_phys_frame(frame_for(0x5000)) };
+        unsafe { alloc.deallocate_phys_frame(frame_for(0x7000)) };
         assert_eq!(alloc.allocate_n_frames(2), None);
 
         // Leave 2 sequential frames, check we get the right pair.
-        // Note: we use PhysFrameRange, not PhysFrameRangeInclusive.
-        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x5000)));
-        unsafe { alloc.deallocate_frame(frame_for(0x6000)) };
+        assert_eq!(alloc.allocate_phys_frame(size), Some(frame_for(0x5000)));
+        unsafe { alloc.deallocate_phys_frame(frame_for(0x6000)) };
         assert_eq!(
             alloc.allocate_n_frames(2),
-            Some(PhysFrameRange {
-                start: frame_for(0x6000),
-                end: frame_for(0x8000) // exclusive
-            })
+            Some(PhysFrame::range_exclusive(
+                frame_for(0x6000),
+                frame_for(0x8000)
+            ))
         );
 
         // Check that we get nothing once we run out of frames.
@@ -761,17 +768,20 @@ mod tests {
         assert_eq!(alloc.free_frames, 6);
 
         // Helper function to speed up making frames.
-        fn frame_for(addr: u64) -> PhysFrame {
+        fn frame_for(addr: usize) -> PhysFrame {
             let start_addr = PhysAddr::new(addr);
-            let frame = PhysFrame::from_start_address(start_addr).unwrap();
+            let size = PhysFrameSize::Size4KiB;
+            let frame = PhysFrame::from_start_address(start_addr, size).unwrap();
             frame
         }
 
+        let size = PhysFrameSize::Size4KiB;
+
         // Do some allocations.
-        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x4000)));
+        assert_eq!(alloc.allocate_phys_frame(size), Some(frame_for(0x4000)));
         assert_eq!(alloc.num_frames, 6);
         assert_eq!(alloc.free_frames, 5);
-        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x5000)));
+        assert_eq!(alloc.allocate_phys_frame(size), Some(frame_for(0x5000)));
         assert_eq!(alloc.num_frames, 6);
         assert_eq!(alloc.free_frames, 4);
 
@@ -789,32 +799,32 @@ mod tests {
 
         // Perform some allocations and confirm they
         // are tracked correctly.
-        assert_eq!(arena.allocate_frame(), Some(frame_for(0x6000)));
+        assert_eq!(arena.allocate_phys_frame(size), Some(frame_for(0x6000)));
         assert_eq!(arena.tracker.num_frames, 6);
         assert_eq!(arena.tracker.allocated_frames, 1);
         assert!(arena.tracker.is_allocated(frame_for(0x6000)));
 
         // Do a free.
-        unsafe { arena.deallocate_frame(frame_for(0x6000)) };
+        unsafe { arena.deallocate_phys_frame(frame_for(0x6000)) };
         assert_eq!(arena.tracker.num_frames, 6);
         assert_eq!(arena.tracker.allocated_frames, 0);
         assert!(!arena.tracker.is_allocated(frame_for(0x6000)));
 
         // Next allocation should return the address we just freed.
-        assert_eq!(arena.allocate_frame(), Some(frame_for(0x6000)));
+        assert_eq!(arena.allocate_phys_frame(size), Some(frame_for(0x6000)));
         assert_eq!(arena.tracker.num_frames, 6);
         assert_eq!(arena.tracker.allocated_frames, 1);
         assert!(arena.tracker.is_allocated(frame_for(0x6000)));
 
         // Check that all remaining allocations are as we expect.
-        assert_eq!(arena.allocate_frame(), Some(frame_for(0x7000)));
-        assert_eq!(arena.allocate_frame(), Some(frame_for(0xc000)));
-        assert_eq!(arena.allocate_frame(), Some(frame_for(0xd000)));
+        assert_eq!(arena.allocate_phys_frame(size), Some(frame_for(0x7000)));
+        assert_eq!(arena.allocate_phys_frame(size), Some(frame_for(0xc000)));
+        assert_eq!(arena.allocate_phys_frame(size), Some(frame_for(0xd000)));
         assert_eq!(arena.tracker.num_frames, 6);
         assert_eq!(arena.tracker.allocated_frames, 4);
 
         // Check that we get nothing once we run out of frames.
-        assert_eq!(arena.allocate_frame(), None);
+        assert_eq!(arena.allocate_phys_frame(size), None);
         assert_eq!(arena.tracker.num_frames, 6);
         assert_eq!(arena.tracker.allocated_frames, 4);
 
@@ -832,11 +842,12 @@ mod tests {
         assert!(!tracker.is_allocated(frame_for(0xd000)));
 
         // Check that the allocator agrees.
+        let size = PhysFrameSize::Size4KiB;
         assert_eq!(alloc.num_frames, 6);
         assert_eq!(alloc.free_frames, 4);
-        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x6000)));
-        assert_eq!(alloc.allocate_frame(), Some(frame_for(0x7000)));
-        assert_eq!(alloc.allocate_frame(), Some(frame_for(0xc000)));
-        assert_eq!(alloc.allocate_frame(), Some(frame_for(0xd000)));
+        assert_eq!(alloc.allocate_phys_frame(size), Some(frame_for(0x6000)));
+        assert_eq!(alloc.allocate_phys_frame(size), Some(frame_for(0x7000)));
+        assert_eq!(alloc.allocate_phys_frame(size), Some(frame_for(0xc000)));
+        assert_eq!(alloc.allocate_phys_frame(size), Some(frame_for(0xd000)));
     }
 }

@@ -25,7 +25,7 @@ rust_library(
     deps = [
         "//kernel/cpu",
         "//kernel/drivers/serial",
-        "//kernel/memory/memlayout",
+        "//kernel/memory",
         "//kernel/memory/physmem",
         "//kernel/memory/virtmem",
         "//kernel/multitasking/process/loader",

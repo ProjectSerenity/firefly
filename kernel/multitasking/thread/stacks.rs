@@ -7,22 +7,22 @@
 //! used for kernel threads.
 //!
 //! Each kernel thread (including the initial kernel thread, started by
-//! the bootloader) has its own stack, which exist within the [`KERNEL_STACK`](memlayout::KERNEL_STACK)
-//! memory region. The initial kernel thread is given its stack ([`KERNEL_STACK_0`](memlayout::KERNEL_STACK_0))
+//! the bootloader) has its own stack, which exist within the [`KERNEL_STACK`](memory::constants::KERNEL_STACK)
+//! memory region. The initial kernel thread is given its stack ([`KERNEL_STACK_0`](memory::constants::KERNEL_STACK_0))
 //! implicitly by the bootloader. Subsequent kernel threads are allocated
 //! by calling [`new_kernel_stack`] and can be de-allocated by calling
 //! [`free_kernel_stack`]. De-allocated stacks are reused and can be
 //! returned by subsequent calls to [`new_kernel_stack`].
 
 use alloc::vec::Vec;
-use core::sync::atomic::{AtomicU64, Ordering};
-use memlayout::{VirtAddrRange, KERNEL_STACK, KERNEL_STACK_1_START};
+use core::sync::atomic::{AtomicUsize, Ordering};
+use memory::constants::{KERNEL_STACK, KERNEL_STACK_1_START};
+use memory::{
+    PageMappingError, PageTableFlags, VirtAddr, VirtAddrRange, VirtPage, VirtPageRange,
+    VirtPageSize,
+};
 use spin::{lock, Mutex};
 use virtmem::map_pages;
-use x86_64::structures::paging::mapper::MapToError;
-use x86_64::structures::paging::page::PageRangeInclusive;
-use x86_64::structures::paging::{Page, PageSize, PageTableFlags, Size4KiB};
-use x86_64::VirtAddr;
 
 /// Describes the address space used for a kernel stack region.
 ///
@@ -46,10 +46,10 @@ impl StackBounds {
     /// Returns a set of stack bounds consisting of the given
     /// virtual page range.
     ///
-    pub fn from_page_range(range: PageRangeInclusive) -> Self {
+    pub fn from_page_range(range: VirtPageRange) -> Self {
         StackBounds {
-            start: range.start.start_address(),
-            end: range.end.start_address() + (Size4KiB::SIZE - 1u64),
+            start: range.start_address(),
+            end: range.end_address(),
         }
     }
 
@@ -71,8 +71,9 @@ impl StackBounds {
 
     /// Returns the number of pages included in the bounds.
     ///
-    pub fn num_pages(&self) -> u64 {
-        ((self.end - self.start) + (Size4KiB::SIZE - 1)) / Size4KiB::SIZE as u64
+    pub fn num_pages(&self) -> usize {
+        ((self.end - self.start) + (VirtPageSize::Size4KiB.bytes() - 1))
+            / VirtPageSize::Size4KiB.bytes()
     }
 
     /// Returns whether the stack bounds include the given
@@ -89,18 +90,20 @@ impl StackBounds {
 /// `reserve_kernel_stack` returns the page at the start of
 /// the stack (the lowest address).
 ///
-fn reserve_kernel_stack(num_pages: u64) -> Page {
-    static STACK_ALLOC_NEXT: AtomicU64 = AtomicU64::new(KERNEL_STACK_1_START.as_u64());
-    let start_addr = VirtAddr::new(
-        STACK_ALLOC_NEXT.fetch_add(num_pages * Page::<Size4KiB>::SIZE, Ordering::Relaxed),
-    );
+fn reserve_kernel_stack(num_pages: usize) -> VirtPage {
+    static STACK_ALLOC_NEXT: AtomicUsize = AtomicUsize::new(KERNEL_STACK_1_START.as_usize());
+    let start_addr = VirtAddr::new(STACK_ALLOC_NEXT.fetch_add(
+        num_pages * VirtPageSize::Size4KiB.bytes(),
+        Ordering::Relaxed,
+    ));
 
-    let last_addr = start_addr + (num_pages * Page::<Size4KiB>::SIZE) - 1u64;
+    let last_addr = start_addr + (num_pages * VirtPageSize::Size4KiB.bytes()) - 1;
     if !KERNEL_STACK.contains_range(start_addr, last_addr) {
         panic!("cannot reserve kernel stack: kernel stack space exhausted");
     }
 
-    Page::from_start_address(start_addr).expect("`STACK_ALLOC_NEXT` not page aligned")
+    VirtPage::from_start_address(start_addr, VirtPageSize::Size4KiB)
+        .expect("`STACK_ALLOC_NEXT` not page aligned")
 }
 
 /// DEAD_STACKS is a free list of kernel stacks that
@@ -125,7 +128,7 @@ static DEAD_STACKS: Mutex<Vec<StackBounds>> = Mutex::new(Vec::new());
 /// `new_kernel_stack` returns the address space of the
 /// allocated stack.
 ///
-pub fn new_kernel_stack(num_pages: u64) -> Result<StackBounds, MapToError<Size4KiB>> {
+pub fn new_kernel_stack(num_pages: usize) -> Result<StackBounds, PageMappingError> {
     // Check whether we can just recycle an old stack.
     // We use an extra scope so we don't hold the lock
     // on DEAD_STACKS for unnecessarily long.
@@ -145,7 +148,7 @@ pub fn new_kernel_stack(num_pages: u64) -> Result<StackBounds, MapToError<Size4K
     let stack_start = guard_page + 1;
     let stack_end = stack_start + num_pages;
 
-    let pages = Page::range(stack_start, stack_end);
+    let pages = VirtPage::range_exclusive(stack_start, stack_end);
     let flags = PageTableFlags::PRESENT
         | PageTableFlags::GLOBAL
         | PageTableFlags::WRITABLE
@@ -155,7 +158,7 @@ pub fn new_kernel_stack(num_pages: u64) -> Result<StackBounds, MapToError<Size4K
 
     Ok(StackBounds {
         start: stack_start.start_address(),
-        end: stack_end.start_address() - 1u64,
+        end: stack_end.start_address() - 1,
     })
 }
 

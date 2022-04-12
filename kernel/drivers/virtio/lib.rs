@@ -62,8 +62,8 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
 use interrupts::Irq;
+use memory::PhysAddr;
 use serial::println;
-use x86_64::PhysAddr;
 
 /// MAX_DESCRIPTORS is the maximum number of
 /// descriptors allowed in each virtqueue.

@@ -19,9 +19,8 @@
 
 use crate::{DeviceStatus, InterruptStatus};
 use interrupts::Irq;
+use memory::{PhysAddr, PhysFrame, PhysFrameRange, PhysFrameSize};
 use mmio::{read_volatile, write_volatile};
-use x86_64::structures::paging::frame::{PhysFrame, PhysFrameRange};
-use x86_64::PhysAddr;
 
 /// CAPABILITY_ID_VENDOR is the unique identifier
 /// for a PCI capability containing vendor-specific
@@ -99,19 +98,22 @@ fn bar_frame_range(
         }
     };
 
-    let start_addr = base + offset as u64;
-    let start_frame = PhysFrame::from_start_address(start_addr);
+    let start_addr = base + offset as usize;
+    let start_frame = PhysFrame::from_start_address(start_addr, PhysFrameSize::Size4KiB);
     if start_frame.is_err() {
         return None;
     }
 
-    let end_addr = start_addr + length as u64;
-    let end_frame = PhysFrame::from_start_address(end_addr);
+    let end_addr = start_addr + length as usize;
+    let end_frame = PhysFrame::from_start_address(end_addr, PhysFrameSize::Size4KiB);
     if end_frame.is_err() {
         return None;
     }
 
-    Some(PhysFrame::range(start_frame.unwrap(), end_frame.unwrap()))
+    Some(PhysFrame::range_exclusive(
+        start_frame.unwrap(),
+        end_frame.unwrap(),
+    ))
 }
 
 /// Describes a VirtIO PCI transport that is for
@@ -202,7 +204,7 @@ pub struct Transport {
 
     // notify implements notification configuratin.
     notify: mmio::Region,
-    notify_offset_multiplier: u64,
+    notify_offset_multiplier: usize,
 
     // interrupt implements the interrupt handler
     // status configuration.
@@ -223,7 +225,7 @@ impl Transport {
     pub fn new(device: pci::Device) -> Result<Self, ConfigError> {
         let mut common: Option<PhysFrameRange> = None;
         let mut notify: Option<PhysFrameRange> = None;
-        let mut notify_off_multiplier: Option<u64> = None;
+        let mut notify_off_multiplier: Option<usize> = None;
         let mut interrupt: Option<PhysFrameRange> = None;
         let mut device_spec: Option<PhysFrameRange> = None;
 
@@ -273,7 +275,7 @@ impl Transport {
                             capability.data[14],
                             capability.data[15],
                             capability.data[16],
-                        ]) as u64);
+                        ]) as usize);
                     }
                 }
                 Some(Type::Interrupt) => {
@@ -337,7 +339,7 @@ impl crate::Transport for Transport {
     ///
     fn read_device_config_u8(&self, offset: u16) -> u8 {
         self.device
-            .read(offset as u64)
+            .read(offset as usize)
             .expect("failed to read device configuration")
     }
 
@@ -467,7 +469,7 @@ impl crate::Transport for Transport {
 
         unsafe {
             let offset = self.notify_offset_multiplier
-                * u16::from_le(read_volatile!(common.queue_notify_off)) as u64;
+                * u16::from_le(read_volatile!(common.queue_notify_off)) as usize;
             *self.notify.as_mut(offset).unwrap() = queue_index;
         }
     }
@@ -489,7 +491,7 @@ impl crate::Transport for Transport {
     ///
     fn set_queue_descriptor_area(&self, area: PhysAddr) {
         let common = self.common();
-        let value = area.as_u64().to_le();
+        let value = area.as_usize().to_le();
 
         unsafe {
             write_volatile!(common.queue_desc_lo, value as u32);
@@ -503,7 +505,7 @@ impl crate::Transport for Transport {
     ///
     fn set_queue_driver_area(&self, area: PhysAddr) {
         let common = self.common();
-        let value = area.as_u64().to_le();
+        let value = area.as_usize().to_le();
 
         unsafe {
             write_volatile!(common.queue_driver_lo, value as u32);
@@ -517,7 +519,7 @@ impl crate::Transport for Transport {
     ///
     fn set_queue_device_area(&self, area: PhysAddr) {
         let common = self.common();
-        let value = area.as_u64().to_le();
+        let value = area.as_usize().to_le();
 
         unsafe {
             write_volatile!(common.queue_device_lo, value as u32);

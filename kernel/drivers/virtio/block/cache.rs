@@ -55,10 +55,8 @@ use crate::Buffer;
 use alloc::vec;
 use alloc::vec::Vec;
 use bitmap_index::Bitmap;
-use memlayout::phys_to_virt_addr;
-use physmem::allocate_frame;
-use x86_64::structures::paging::{PageSize, PhysFrame, Size4KiB};
-use x86_64::PhysAddr;
+use memory::{phys_to_virt_addr, PhysAddr, PhysFrame, PhysFrameSize};
+use physmem::allocate_phys_frame;
 
 /// The number of bytes in the header field.
 ///
@@ -75,7 +73,7 @@ const BUFFER_SIZE: usize = HEADER_SIZE + TRAILER_SIZE;
 
 /// The number of buffers per physical frame.
 ///
-const BUFFERS_PER_FRAME: usize = Size4KiB::SIZE as usize / BUFFER_SIZE;
+const BUFFERS_PER_FRAME: usize = PhysFrameSize::Size4KiB.bytes() / BUFFER_SIZE;
 
 /// An allocator of 17-byte buffers for use as block device
 /// request headers.
@@ -89,7 +87,8 @@ impl Allocator {
     /// Allocate one physical frame for header buffers.
     ///
     pub fn new() -> Self {
-        let frame = allocate_frame().expect("failed to allocate block device request header cache");
+        let frame = allocate_phys_frame(PhysFrameSize::Size4KiB)
+            .expect("failed to allocate block device request header cache");
         let bitmap = Bitmap::new_set(BUFFERS_PER_FRAME);
         let frames = vec![frame];
 
@@ -110,9 +109,9 @@ impl Allocator {
         // Populate the header.
         unsafe {
             #[allow(clippy::identity_op)]
-            (virt + 0u64).as_mut_ptr::<u32>().write(req_type.to_le()); // le32 type;
-            (virt + 4u64).as_mut_ptr::<u32>().write(0u32.to_le()); // le32 reserved;
-            (virt + 8u64).as_mut_ptr::<u64>().write(sector.to_le()); // le64 sector;
+            ((virt + 0).as_usize() as *mut u32).write(req_type.to_le()); // le32 type;
+            ((virt + 4).as_usize() as *mut u32).write(0u32.to_le()); // le32 reserved;
+            ((virt + 8).as_usize() as *mut u64).write(sector.to_le()); // le64 sector;
         }
 
         let header = Buffer::DeviceCanRead {
@@ -147,8 +146,8 @@ impl Allocator {
             Some(idx) => self.get(idx, req_type, sector),
             None => {
                 // Allocate another frame, then try again.
-                let frame =
-                    allocate_frame().expect("failed to allocate block device request header cache");
+                let frame = allocate_phys_frame(PhysFrameSize::Size4KiB)
+                    .expect("failed to allocate block device request header cache");
                 self.frames.push(frame);
                 self.bitmap.add_set(BUFFERS_PER_FRAME);
                 let idx = self
@@ -172,12 +171,12 @@ impl Allocator {
     pub fn deallocate(&mut self, buffer: PhysAddr) -> u8 {
         // Store the status code.
         let trailer_virt = phys_to_virt_addr(buffer + HEADER_SIZE);
-        let status = unsafe { trailer_virt.as_ptr::<u8>().read() };
+        let status = unsafe { (trailer_virt.as_usize() as *const u8).read() };
 
         // Work out the offset and deallocate.
         for (i, frame) in self.frames.iter().enumerate() {
             let start = frame.start_address();
-            if start > buffer || buffer > (start + frame.size()) {
+            if start > buffer || buffer > (start + frame.size().bytes()) {
                 continue;
             }
 

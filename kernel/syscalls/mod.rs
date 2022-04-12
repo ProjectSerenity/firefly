@@ -6,13 +6,13 @@
 //! Implements the kernel's syscalls, allowing user processes to access kernel functionality.
 
 use core::arch::global_asm;
+use memory::VirtAddr;
 use multitasking::thread;
 use segmentation::with_segment_data;
 use serial::println;
 use syscalls::{Error, Syscall};
 use x86_64::registers::model_specific::{Efer, EferFlags, LStar, SFMask, Star};
 use x86_64::registers::rflags::RFlags;
-use x86_64::VirtAddr;
 
 global_asm!(include_str!("entry.s"));
 
@@ -112,7 +112,7 @@ pub fn per_cpu_init() {
 
     // Set the kernel's entry point when SYSCALL
     // is invoked.
-    LStar::write(VirtAddr::from_ptr(syscall_entry as *const u8));
+    LStar::write(x86_64::VirtAddr::from_ptr(syscall_entry as *const u8));
 
     // Mask off interrupts so that interrupts are
     // disabled when the interrupt handler starts.

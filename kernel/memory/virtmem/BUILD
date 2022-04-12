@@ -20,7 +20,7 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/drivers/serial",
-        "//kernel/memory/memlayout",
+        "//kernel/memory",
         "//kernel/memory/physmem",
         "//kernel/utils/align",
         "//kernel/utils/pretty",

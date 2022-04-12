@@ -105,7 +105,7 @@ fn debug() {
 
     // Virtual memory.
     println!("Virtual memory manager:");
-    with_page_tables(|mapper| unsafe { virtmem::debug(mapper.level_4_table()) });
+    with_page_tables(|page_table| unsafe { virtmem::debug(page_table) });
     println!();
 
     // Physical memory.

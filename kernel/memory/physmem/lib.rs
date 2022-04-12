@@ -25,7 +25,7 @@
 //! ## Helper functions
 //!
 //! While the bitmap allocator can be used directly via [`ALLOCATOR`](struct@ALLOCATOR),
-//! the [`allocate_frame`], [`allocate_n_frames`], and [`deallocate_frame`]
+//! the [`allocate_phys_frame`], [`allocate_n_frames`], and [`deallocate_phys_frame`]
 //! helper functions are typically easier to use. The [`debug`]
 //! function can be used to print debug information about the bitmap
 //! allocator's state.
@@ -39,7 +39,7 @@
 //! // Write to the frame.
 //! let virt_addr = memory::phys_to_virt_addr(frame.start_address());
 //! let buf: &mut [u8] =
-//!     unsafe { slice::from_raw_parts_mut(virt_addr.as_mut_ptr(), frame.size() as usize) };
+//!     unsafe { slice::from_raw_parts_mut(virt_addr.as_usize() as *mut u8, frame.size().bytes()) };
 //! buf[0] = 0xff;
 //!
 //! // Drop the virtual memory and de-allocate the frame.
@@ -58,9 +58,8 @@ pub use crate::bitmap::{ArenaFrameAllocator, BitmapFrameAllocator, BitmapFrameTr
 pub use crate::boot_info::BootInfoFrameAllocator;
 use bootloader::bootinfo::MemoryMap;
 use lazy_static::lazy_static;
+use memory::{PhysFrame, PhysFrameAllocator, PhysFrameDeallocator, PhysFrameRange, PhysFrameSize};
 use spin::{lock, Mutex};
-use x86_64::structures::paging::frame::PhysFrameRange;
-use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, PhysFrame, Size4KiB};
 
 lazy_static! {
     /// The second-phase physical memory allocator.
@@ -93,9 +92,9 @@ pub unsafe fn init(bootstrap: BootInfoFrameAllocator) {
 ///
 /// If `allocate_frame` is called before [`init`], it will return `None`.
 ///
-pub fn allocate_frame() -> Option<PhysFrame> {
+pub fn allocate_phys_frame(size: PhysFrameSize) -> Option<PhysFrame> {
     let mut allocator = lock!(ALLOCATOR);
-    allocator.allocate_frame()
+    allocator.allocate_phys_frame(size)
 }
 
 /// Returns `n` sequential physical frames, or `None`.
@@ -118,9 +117,9 @@ pub fn allocate_n_frames(n: usize) -> Option<PhysFrameRange> {
 ///
 /// The caller must ensure that `frame` is unused.
 ///
-pub unsafe fn deallocate_frame(frame: PhysFrame<Size4KiB>) {
+pub unsafe fn deallocate_phys_frame(frame: PhysFrame) {
     let mut allocator = lock!(ALLOCATOR);
-    allocator.deallocate_frame(frame);
+    allocator.deallocate_phys_frame(frame);
 }
 
 /// Prints debug information about the physical memory manager.

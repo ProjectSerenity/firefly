@@ -31,11 +31,11 @@ use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
-use memlayout::{PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
+use memory::constants::{PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
+use memory::{PhysAddr, VirtAddr};
 use random::{register_entropy_source, EntropySource};
 use serial::println;
 use virtmem::virt_to_phys_addrs;
-use x86_64::{PhysAddr, VirtAddr};
 
 /// REQUEST_VIRTQUEUE is the sole virtqueue used
 /// with a virtio entropy device.
@@ -66,7 +66,7 @@ impl Driver {
     /// completely filled with entropy.
     ///
     pub fn read(&mut self, buf: &mut [u8]) -> usize {
-        let virt_addr = unsafe { VirtAddr::new_unsafe(buf.as_ptr() as u64) };
+        let virt_addr = unsafe { VirtAddr::new_unchecked(buf.as_ptr() as usize) };
         let (first_addr, buffers) = if PHYSICAL_MEMORY.contains_addr(virt_addr) {
             let addr = PhysAddr::new(virt_addr - PHYSICAL_MEMORY_OFFSET);
             let len = buf.len();

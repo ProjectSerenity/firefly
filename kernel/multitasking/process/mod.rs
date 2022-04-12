@@ -15,19 +15,17 @@ use core::ptr::write_bytes;
 use core::slice;
 use core::sync::atomic::{AtomicU64, Ordering};
 use loader::Binary;
-use memlayout::{phys_to_virt_addr, PHYSICAL_MEMORY_OFFSET, USERSPACE};
+use memory::constants::USERSPACE;
+use memory::{
+    phys_to_virt_addr, PageMappingError, PageTable, PageTableFlags, PhysAddr, PhysFrame,
+    PhysFrameAllocator, PhysFrameDeallocator, VirtAddr, VirtPage, VirtPageRange, VirtPageSize,
+};
 use physmem::{ArenaFrameAllocator, BitmapFrameTracker, ALLOCATOR};
 use serial::println;
 use spin::lock;
 use virtmem::{kernel_mappings_frozen, new_page_table};
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::registers::control::Cr3;
-use x86_64::structures::paging::mapper::MapToError;
-use x86_64::structures::paging::{
-    FrameAllocator, FrameDeallocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags,
-    PhysFrame, Size4KiB,
-};
-use x86_64::VirtAddr;
 
 /// Uniquely identifies a thread within a process.
 ///
@@ -79,7 +77,7 @@ pub enum Error {
 
     /// Failed to map the executable into the virtual
     /// memory space.
-    MapError(MapToError<Size4KiB>),
+    MapError(PageMappingError),
 }
 
 /// Contains a virtual memory space, shared between
@@ -91,7 +89,7 @@ pub struct Process {
 
     /// The physical frame where the process's level
     /// 4 page table resides.
-    page_table: PhysFrame<Size4KiB>,
+    page_table: PhysFrame,
 
     /// The tracker we use for our physical memory
     /// allocation arena.
@@ -135,9 +133,9 @@ impl Process {
         let mut allocations = Vec::new();
         let mut allocator = lock!(ALLOCATOR);
         for segment in bin.iter_segments() {
-            let page_start = Page::containing_address(segment.start);
-            let page_end = Page::containing_address(segment.end);
-            let page_range = Page::range_inclusive(page_start, page_end);
+            let page_start = VirtPage::containing_address(segment.start, VirtPageSize::Size4KiB);
+            let page_end = VirtPage::containing_address(segment.end, VirtPageSize::Size4KiB);
+            let page_range = VirtPage::range_inclusive(page_start, page_end);
 
             match process.map_pages(page_range, &mut *allocator, segment.flags) {
                 Ok(frames) => allocations.push((segment, frames)),
@@ -170,13 +168,13 @@ impl Process {
             // TODO: Only zero the parts of pages that won't be overwritten with segment data to save time.
             for frame in frames.iter() {
                 let virt = phys_to_virt_addr(frame.start_address());
-                unsafe { write_bytes(virt.as_mut_ptr::<u8>(), 0x00, frame.size() as usize) };
+                unsafe { write_bytes(virt.as_usize() as *mut u8, 0x00, frame.size().bytes()) };
             }
 
             // Next, we need to check whether
             // the segment is offset into the
             // page.
-            let page = Page::<Size4KiB>::containing_address(segment.start);
+            let page = VirtPage::containing_address(segment.start, VirtPageSize::Size4KiB);
             let offset = segment.start - page.start_address();
 
             // Next, we copy the file data into
@@ -186,9 +184,9 @@ impl Process {
                 // Work out where we copy to.
                 let start = if i == 0 { offset as usize } else { 0 };
 
-                let len = min(segment.data.len() - idx, frame.size() as usize - start);
+                let len = min(segment.data.len() - idx, frame.size().bytes() - start);
                 let virt = phys_to_virt_addr(frame.start_address()) + start;
-                let dst = unsafe { slice::from_raw_parts_mut(virt.as_mut_ptr::<u8>(), len) };
+                let dst = unsafe { slice::from_raw_parts_mut(virt.as_usize() as *mut u8, len) };
                 dst.copy_from_slice(&segment.data[idx..(idx + len)]);
 
                 idx += len;
@@ -244,7 +242,7 @@ impl Process {
 
     /// Returns the level 4 page table for this process.
     ///
-    pub(crate) fn page_table(&self) -> PhysFrame<Size4KiB> {
+    pub(crate) fn page_table(&self) -> PhysFrame {
         self.page_table
     }
 
@@ -266,26 +264,21 @@ impl Process {
     /// into the process's virtual memory space. This should not be
     /// used to map memory in kernelspace.
     ///
-    pub fn map_pages<R, A>(
+    pub fn map_pages<A>(
         &mut self,
-        page_range: R,
+        page_range: VirtPageRange,
         allocator: &mut A,
         flags: PageTableFlags,
-    ) -> Result<Vec<PhysFrame<Size4KiB>>, MapToError<Size4KiB>>
+    ) -> Result<Vec<PhysFrame>, PageMappingError>
     where
-        R: Iterator<Item = Page>,
-        A: FrameAllocator<Size4KiB> + FrameDeallocator<Size4KiB>,
+        A: PhysFrameAllocator + PhysFrameDeallocator,
     {
         if !kernel_mappings_frozen() {
             panic!("mapping process user memory without having frozen the kernel page mappings");
         }
 
-        // Prepare a page mapper using the process's
-        // page table.
-        let virt = phys_to_virt_addr(self.page_table.start_address());
-        let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
-        let page_table = unsafe { &mut *page_table_ptr };
-        let mut mapper = unsafe { OffsetPageTable::new(page_table, PHYSICAL_MEMORY_OFFSET) };
+        // Prepare a the process's page table.
+        let mut page_table = unsafe { PageTable::at(self.page_table.start_address()).unwrap() };
 
         // Prepare the physical allocator.
         let mut arena = ArenaFrameAllocator::new(allocator, &mut self.tracker);
@@ -298,11 +291,14 @@ impl Process {
             }
 
             let frame = arena
-                .allocate_frame()
-                .ok_or(MapToError::FrameAllocationFailed)?;
+                .allocate_phys_frame(page.size().phys_frame_size())
+                .ok_or(PageMappingError::PageTableAllocationFailed)?;
             frames.push(frame);
             unsafe {
-                mapper.map_to(page, frame, flags, &mut arena)?.flush();
+                // No need to flush the TLB, as this is not the main
+                // page table yet. The TLB will be flushed when we
+                // change address space.
+                page_table.map(page, frame, flags, &mut arena)?.ignore();
             }
         }
 
@@ -316,7 +312,8 @@ impl Drop for Process {
 
         // Check that our page table is not in use.
         let (page_table, _) = Cr3::read();
-        if page_table.start_address() == self.page_table.start_address() {
+        let current = PhysAddr::from_x86_64(page_table.start_address());
+        if current == self.page_table.start_address() {
             panic!(
                 "Process {} is being dropped while its page table is active",
                 self.kernel_process_id.0
@@ -329,7 +326,7 @@ impl Drop for Process {
         unsafe {
             arena.deallocate_all_frames();
             drop(arena);
-            allocator.deallocate_frame(self.page_table);
+            allocator.deallocate_phys_frame(self.page_table);
         }
 
         println!("Exiting process {}", self.kernel_process_id.0);

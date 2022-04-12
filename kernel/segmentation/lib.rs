@@ -28,6 +28,7 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::pin::Pin;
 use lazy_static::lazy_static;
+use memory::VirtAddr;
 use spin::{lock, Mutex};
 use x86_64::instructions::segmentation::{Segment, CS, SS};
 use x86_64::instructions::tables::load_tss;
@@ -35,7 +36,7 @@ use x86_64::structures::gdt::{
     Descriptor, DescriptorFlags, GlobalDescriptorTable, SegmentSelector,
 };
 use x86_64::structures::tss::TaskStateSegment;
-use x86_64::{PrivilegeLevel, VirtAddr};
+use x86_64::PrivilegeLevel;
 
 /// This is used as the bootstrap segment data until the
 /// kernel heap is up and running.
@@ -238,7 +239,7 @@ impl SegmentData {
         }
 
         // Set up the TSS.
-        let stack_bottom = VirtAddr::from_ptr(&self.double_fault_stack);
+        let stack_bottom = x86_64::VirtAddr::from_ptr(&self.double_fault_stack);
         let stack_top = stack_bottom + self.double_fault_stack.len();
         self.tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = stack_top;
 
@@ -328,7 +329,7 @@ impl SegmentData {
     /// of the stack, or zero.
     ///
     pub fn set_interrupt_stack(self: &mut Pin<&mut Self>, stack_top: VirtAddr) {
-        self.tss.privilege_stack_table[INTERRUPT_KERNEL_STACK_INDEX] = stack_top;
+        self.tss.privilege_stack_table[INTERRUPT_KERNEL_STACK_INDEX] = stack_top.as_x86_64();
     }
 
     /// Returns the kernel's 64-bit code and data segment

@@ -12,7 +12,7 @@
 
 use crate::features::Reserved;
 use crate::{Buffer, Transport, UsedBuffers, VirtqueueError, MAX_DESCRIPTORS};
-use align::align_up_u64;
+use align::align_up_usize;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
@@ -20,9 +20,8 @@ use bitmap_index::Bitmap;
 use core::mem::size_of;
 use core::slice;
 use core::sync::atomic::{fence, Ordering};
+use memory::{PhysAddr, PhysFrameSize};
 use physmem::allocate_n_frames;
-use x86_64::structures::paging::{PageSize, Size4KiB};
-use x86_64::PhysAddr;
 
 bitflags! {
     /// DescriptorFlags represents the set of flags that can
@@ -273,24 +272,25 @@ impl<'a> Virtqueue<'a> {
         // area's offset, plus its size, aligned up
         // if necessary.
 
-        let queue_size = num_descriptors as u64;
-        let descriptors_offset = 0u64; // Offset from frame start.
-        let descriptors_size = size_of::<Descriptor>() as u64 * queue_size;
+        let queue_size = num_descriptors as usize;
+        let descriptors_offset = 0; // Offset from frame start.
+        let descriptors_size = size_of::<Descriptor>() * queue_size;
         let descriptors_end = descriptors_offset + descriptors_size;
-        let driver_offset = align_up_u64(descriptors_end, 2);
-        let driver_size = 6u64 + 2u64 * queue_size;
+        let driver_offset = align_up_usize(descriptors_end, 2);
+        let driver_size = 6 + 2 * queue_size;
         let driver_end = driver_offset + driver_size;
-        let device_offset = align_up_u64(driver_end, 4);
-        let device_size = 6u64 + 8 * queue_size;
+        let device_offset = align_up_usize(driver_end, 4);
+        let device_size = 6 + 8 * queue_size;
         let device_end = device_offset + device_size;
 
         // Allocate the physical memory and map it
         // in the MMIO address space.
-        let num_frames = align_up_u64(device_end, Size4KiB::SIZE) / Size4KiB::SIZE;
+        let num_frames = align_up_usize(device_end, PhysFrameSize::Size4KiB.bytes())
+            / PhysFrameSize::Size4KiB.bytes();
         let frame_range = allocate_n_frames(num_frames as usize)
             .expect("failed to allocate physical memory for virtqueue");
         let mmio_region = mmio::Region::map(frame_range);
-        let start_phys = frame_range.start.start_address();
+        let start_phys = frame_range.start_address();
         let start_virt = mmio_region.as_mut::<u8>(0).unwrap() as *mut u8;
         let descriptors_phys = start_phys + descriptors_offset;
         let driver_phys = start_phys + driver_offset;
@@ -384,7 +384,7 @@ impl<'a> crate::Virtqueue for Virtqueue<'a> {
                 Buffer::DeviceCanWrite { addr, len } => (*addr, *len, DescriptorFlags::WRITE),
             };
 
-            self.descriptors[idx].addr = addr.as_u64().to_le();
+            self.descriptors[idx].addr = (addr.as_usize() as u64).to_le();
             self.descriptors[idx].len = (len as u32).to_le();
             self.descriptors[idx].flags = flags.bits().to_le();
             self.descriptors[idx].next = 0;
@@ -438,12 +438,12 @@ impl<'a> crate::Virtqueue for Virtqueue<'a> {
             let desc = self.descriptors[next_index as usize];
             buffers.push(if desc.writable() {
                 Buffer::DeviceCanWrite {
-                    addr: PhysAddr::new(desc.addr as u64),
+                    addr: PhysAddr::new(desc.addr as usize),
                     len: desc.len as usize,
                 }
             } else {
                 Buffer::DeviceCanRead {
-                    addr: PhysAddr::new(desc.addr as u64),
+                    addr: PhysAddr::new(desc.addr as usize),
                     len: desc.len as usize,
                 }
             });

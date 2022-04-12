@@ -17,6 +17,7 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/drivers/serial",
+        "//kernel/memory",
         "//kernel/utils/bitmap_index",
         "//kernel/utils/pretty",
         "//kernel/utils/spin",

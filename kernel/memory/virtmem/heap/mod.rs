@@ -9,12 +9,11 @@ mod fixed_size_block;
 
 use crate::mapping::remap_kernel;
 use crate::{map_pages, with_page_tables};
-use memlayout::KERNEL_HEAP;
+use memory::constants::KERNEL_HEAP;
+use memory::{PageMappingError, PageTableFlags, PhysFrameAllocator, VirtPage, VirtPageSize};
 use spin::Mutex;
 use x86_64::registers::control::{Cr4, Cr4Flags};
 use x86_64::registers::model_specific::{Efer, EferFlags};
-use x86_64::structures::paging::mapper::MapToError;
-use x86_64::structures::paging::{FrameAllocator, Page, PageTableFlags, Size4KiB};
 
 #[cfg(not(test))]
 #[global_allocator]
@@ -23,8 +22,8 @@ static ALLOCATOR: Locked<fixed_size_block::FixedSizeBlockAllocator> =
 
 /// Initialise the static global allocator, enabling the kernel heap.
 ///
-/// The given page mapper and physical memory frame allocator are used to
-/// map the entirety of the kernel heap address space ([`KERNEL_HEAP`](memlayout::KERNEL_HEAP)).
+/// The given physical memory frame allocator is used to map the
+/// entirety of the kernel heap address space ([`KERNEL_HEAP`](memlayout::KERNEL_HEAP)).
 ///
 /// With the heap initialised, `init` enables global page mappings and the
 /// no-execute permission bit and then remaps virtual memory. This ensures
@@ -32,14 +31,13 @@ static ALLOCATOR: Locked<fixed_size_block::FixedSizeBlockAllocator> =
 /// have the correct flags. For example, the kernel stack is mapped with the
 /// no-execute permission bit set.
 ///
-pub fn init(
-    frame_allocator: &mut impl FrameAllocator<Size4KiB>,
-) -> Result<(), MapToError<Size4KiB>> {
+pub fn init(frame_allocator: &mut impl PhysFrameAllocator) -> Result<(), PageMappingError> {
     let page_range = {
         let heap_end = KERNEL_HEAP.end();
-        let heap_start_page = Page::containing_address(KERNEL_HEAP.start());
-        let heap_end_page = Page::containing_address(heap_end);
-        Page::range_inclusive(heap_start_page, heap_end_page)
+        let heap_start_page =
+            VirtPage::containing_address(KERNEL_HEAP.start(), VirtPageSize::Size4KiB);
+        let heap_end_page = VirtPage::containing_address(heap_end, VirtPageSize::Size4KiB);
+        VirtPage::range_inclusive(heap_start_page, heap_end_page)
     };
 
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
@@ -49,10 +47,7 @@ pub fn init(
     #[cfg(not(test))]
     unsafe {
         use spin::lock;
-        lock!(ALLOCATOR.lock).init(
-            KERNEL_HEAP.start().as_u64() as usize,
-            KERNEL_HEAP.size() as usize,
-        );
+        lock!(ALLOCATOR.lock).init(KERNEL_HEAP.start().as_usize(), KERNEL_HEAP.size());
     }
 
     // Set the CR4 fields, so we can then use the global
@@ -68,7 +63,7 @@ pub fn init(
     unsafe { Efer::write(flags) };
 
     // Remap the kernel, now that the heap is set up.
-    with_page_tables(|mapper| unsafe { remap_kernel(mapper) });
+    with_page_tables(|page_table| unsafe { remap_kernel(page_table) });
 
     Ok(())
 }

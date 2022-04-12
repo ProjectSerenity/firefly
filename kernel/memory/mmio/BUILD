@@ -12,7 +12,7 @@ rust_library(
     edition = "2021",
     visibility = ["//kernel:__subpackages__"],
     deps = [
-        "//kernel/memory/memlayout",
+        "//kernel/memory",
         "//kernel/memory/physmem",
         "//kernel/memory/virtmem",
         "//kernel/utils/spin",

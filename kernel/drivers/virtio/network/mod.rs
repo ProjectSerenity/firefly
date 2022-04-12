@@ -59,20 +59,17 @@ use alloc::vec::Vec;
 use bitflags::bitflags;
 use core::mem;
 use interrupts::{register_irq, Irq};
-use memlayout::phys_to_virt_addr;
+use memory::{phys_to_virt_addr, PhysAddr, PhysFrame, PhysFrameSize};
 use multitasking::scheduler;
 use multitasking::thread::{current_kernel_thread_id, KernelThreadId, Thread};
 use network::{add_interface, InterfaceHandle};
-use physmem::{allocate_frame, deallocate_frame};
+use physmem::{allocate_phys_frame, deallocate_phys_frame};
 use serial::println;
 use smoltcp::phy::{DeviceCapabilities, Medium};
 use smoltcp::wire::EthernetAddress;
 use spin::{lock, Mutex};
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::idt::InterruptStackFrame;
-use x86_64::structures::paging::frame::PhysFrame;
-use x86_64::structures::paging::{PageSize, Size4KiB};
-use x86_64::PhysAddr;
 
 // These constants are used to ensure we
 // always receive packets from Virtqueue
@@ -243,15 +240,15 @@ impl Drop for Driver {
 
         // De-allocate the send buffers.
         for addr in self.send_buffers.iter() {
-            if let Ok(frame) = PhysFrame::from_start_address(*addr) {
-                unsafe { deallocate_frame(frame) };
+            if let Ok(frame) = PhysFrame::from_start_address(*addr, PhysFrameSize::Size4KiB) {
+                unsafe { deallocate_phys_frame(frame) };
             }
         }
 
         // De-allocate the receive buffers.
         for addr in self.recv_buffers.iter() {
-            if let Ok(frame) = PhysFrame::from_start_address(*addr) {
-                unsafe { deallocate_frame(frame) };
+            if let Ok(frame) = PhysFrame::from_start_address(*addr, PhysFrameSize::Size4KiB) {
+                unsafe { deallocate_phys_frame(frame) };
             }
         }
     }
@@ -360,7 +357,7 @@ impl network::Device for Device {
         // network header. We don't use any of
         // the advanced features yet, so we can
         // populate the fields with zeros.
-        let mut header = unsafe { *virt_addr.as_mut_ptr::<Header>() };
+        let mut header = unsafe { *(virt_addr.as_usize() as *mut Header) };
         header.flags = HeaderFlags::NONE.bits();
         header.gso_type = GsoType::None as u8;
         header.header_len = 0u16.to_le();
@@ -526,17 +523,19 @@ pub fn install_pci_device(device: pci::Device) {
     // we don't need any frame to be contiguous with
     // any other, making things *much* easier for
     // the allocator.
-    assert!(PACKET_LEN_MAX * 2 == Size4KiB::SIZE as usize);
+    assert!(PACKET_LEN_MAX * 2 == PhysFrameSize::Size4KiB.bytes());
     let mut send_buffers = Vec::new();
     while send_buffers.len() < send_queue_len {
-        let frame = allocate_frame().expect("failed to allocate for device send buffer");
+        let frame = allocate_phys_frame(PhysFrameSize::Size4KiB)
+            .expect("failed to allocate for device send buffer");
         send_buffers.push(frame.start_address());
         send_buffers.push(frame.start_address() + PACKET_LEN_MAX);
     }
 
     let mut recv_buffers = Vec::new();
     while recv_buffers.len() < recv_queue_len {
-        let frame = allocate_frame().expect("failed to allocate for device recv buffer");
+        let frame = allocate_phys_frame(PhysFrameSize::Size4KiB)
+            .expect("failed to allocate for device recv buffer");
         recv_buffers.push(frame.start_address());
         recv_buffers.push(frame.start_address() + PACKET_LEN_MAX);
     }

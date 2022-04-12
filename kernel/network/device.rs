@@ -12,12 +12,11 @@ use super::Device;
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use core::slice;
-use memlayout::phys_to_virt_addr;
+use memory::{phys_to_virt_addr, PhysAddr};
 use smoltcp::phy::{DeviceCapabilities, RxToken, TxToken};
 use smoltcp::time::Instant;
 use spin::{lock, Mutex};
 use x86_64::instructions::interrupts::without_interrupts;
-use x86_64::PhysAddr;
 
 /// This is our device wrapper which we use to ensure all
 /// our network interfaces are generic over the same type
@@ -109,7 +108,7 @@ impl<'a> RxToken for RecvToken {
         // Pass our buffer to the callback to
         // process the packet.
         let virt_addr = phys_to_virt_addr(self.addr);
-        let buf = unsafe { slice::from_raw_parts_mut(virt_addr.as_mut_ptr(), self.len) };
+        let buf = unsafe { slice::from_raw_parts_mut(virt_addr.as_usize() as *mut u8, self.len) };
         let ret = f(buf);
 
         // Return the used buffer to the device
@@ -152,7 +151,7 @@ impl<'a> TxToken for SendToken {
         // Pass our buffer to the callback to
         // receive the packet data.
         let virt_addr = phys_to_virt_addr(phys);
-        let buf = unsafe { slice::from_raw_parts_mut(virt_addr.as_mut_ptr(), len) };
+        let buf = unsafe { slice::from_raw_parts_mut(virt_addr.as_usize() as *mut u8, len) };
         let ret = f(buf)?;
 
         // Send the packet.

@@ -9,30 +9,28 @@
 use alloc::vec::Vec;
 use core::fmt;
 use core::sync::atomic::{AtomicU64, Ordering};
-use memlayout::{
-    phys_to_virt_addr, VirtAddrRange, BOOT_INFO, CPU_LOCAL, KERNEL_BINARY, KERNEL_HEAP,
-    KERNEL_STACK, KERNEL_STACK_GUARD, MMIO_SPACE, NULL_PAGE, PHYSICAL_MEMORY, USERSPACE,
+use memory::constants::{
+    BOOT_INFO, CPU_LOCAL, KERNEL_BINARY, KERNEL_HEAP, KERNEL_STACK, KERNEL_STACK_GUARD, MMIO_SPACE,
+    NULL_PAGE, PHYSICAL_MEMORY, USERSPACE,
+};
+use memory::{
+    PageRemappingError, PageTable, PageTableFlags, PageUnmappingError, PhysAddr, PhysFrame,
+    PhysFrameRange, PhysFrameSize, VirtAddr, VirtAddrRange, VirtPage, VirtPageRange, VirtPageSize,
 };
 use pretty::Bytes;
-use x86_64::instructions;
-use x86_64::structures::paging::mapper::{
-    FlagUpdateError, Mapper, MapperFlushAll, OffsetPageTable, UnmapError,
-};
-use x86_64::structures::paging::page::Page;
-use x86_64::structures::paging::{PageTable, PageTableFlags, Size1GiB, Size2MiB, Size4KiB};
-use x86_64::{PhysAddr, VirtAddr};
+use x86_64::instructions::{read_rip, tlb};
 
 // remap_kernel remaps all existing mappings for
 // the kernel's stack as non-executable, plus unmaps
 // any unknown mappings left over by the bootloader.
 //
-pub unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
+pub unsafe fn remap_kernel(page_table: &mut PageTable) {
     // Analyse and iterate through the page mappings
     // in the PML4.
     //
     // Rather than constantly flushing the TLB as we
     // go along, we do one big flush at the end.
-    let mappings = level_4_table(mapper.level_4_table());
+    let mappings = level_4_table(page_table);
     for mapping in mappings.iter() {
         match mapping.purpose {
             // Unmap pages we no longer need.
@@ -40,7 +38,7 @@ pub unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
             | PagePurpose::NullPage
             | PagePurpose::Userspace
             | PagePurpose::KernelStackGuard => {
-                mapping.unmap(mapper).expect("failed to unmap page");
+                mapping.unmap(page_table).expect("failed to unmap page");
             }
             // Global and read-write (kernel stack, heap, data, physical memory).
             PagePurpose::KernelStack
@@ -53,7 +51,7 @@ pub unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
                     | PageTableFlags::NO_EXECUTE;
                 if mapping.flags != flags {
                     mapping
-                        .update_flags(mapper, flags)
+                        .update_flags(page_table, flags)
                         .expect("failed to update page flags");
                 }
             }
@@ -63,7 +61,7 @@ pub unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
                     PageTableFlags::GLOBAL | PageTableFlags::PRESENT | PageTableFlags::NO_EXECUTE;
                 if mapping.flags != flags {
                     mapping
-                        .update_flags(mapper, flags)
+                        .update_flags(page_table, flags)
                         .expect("failed to update page flags");
                 }
             }
@@ -72,7 +70,7 @@ pub unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
                 let flags = PageTableFlags::GLOBAL | PageTableFlags::PRESENT;
                 if mapping.flags != flags {
                     mapping
-                        .update_flags(mapper, flags)
+                        .update_flags(page_table, flags)
                         .expect("failed to update page flags");
                 }
             }
@@ -88,7 +86,7 @@ pub unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
                 let flags = PageTableFlags::GLOBAL | PageTableFlags::PRESENT | mapping.flags;
                 if mapping.flags != flags {
                     mapping
-                        .update_flags(mapper, flags)
+                        .update_flags(page_table, flags)
                         .expect("failed to update page flags");
                 }
             }
@@ -100,7 +98,7 @@ pub unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
                 let flags = PageTableFlags::GLOBAL | PageTableFlags::PRESENT | mapping.flags;
                 if mapping.flags != flags {
                     mapping
-                        .update_flags(mapper, flags)
+                        .update_flags(page_table, flags)
                         .expect("failed to update page flags");
                 }
             }
@@ -108,7 +106,7 @@ pub unsafe fn remap_kernel(mapper: &mut OffsetPageTable) {
     }
 
     // Flush the TLB.
-    MapperFlushAll::new().flush_all();
+    tlb::flush_all();
 }
 
 // indices_to_addr converts a sequence of page table
@@ -122,7 +120,14 @@ fn indices_to_addr(l4: usize, l3: usize, l2: usize, l1: usize) -> VirtAddr {
     let l3 = (511 & l3) << 30;
     let l2 = (511 & l2) << 21;
     let l1 = (511 & l1) << 12;
-    VirtAddr::new(l4 as u64 | l3 as u64 | l2 as u64 | l1 as u64)
+
+    // Sign-extend if necessary.
+    let mut addr = l4 | l3 | l2 | l1;
+    if addr >= 0x0000_8000_0000_0000 {
+        addr |= 0xffff_8000_0000_0000;
+    }
+
+    VirtAddr::new(addr)
 }
 
 /// level_4_table iterates through a level 4 page table,
@@ -138,7 +143,7 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
     let mut mappings = Vec::new();
     let mut current: Option<Mapping> = None;
     for (i, pml4e) in pml4.iter().enumerate() {
-        if pml4e.is_unused() {
+        if !pml4e.is_present() {
             continue;
         }
 
@@ -146,10 +151,9 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
             panic!("invalid huge PML4 page");
         }
 
-        let pdpt_addr = phys_to_virt_addr(pml4e.addr());
-        let pdpt: &PageTable = &*pdpt_addr.as_mut_ptr(); // unsafe
+        let pdpt = PageTable::at(pml4e.addr()).unwrap(); // unsafe
         for (j, pdpe) in pdpt.iter().enumerate() {
-            if pdpe.is_unused() {
+            if !pdpe.is_present() {
                 continue;
             }
 
@@ -157,17 +161,17 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
                 let next = Mapping::new(
                     indices_to_addr(i, j, 0, 0),
                     pdpe.addr(),
-                    PageBytesSize::Size1GiB,
+                    VirtPageSize::Size1GiB,
+                    PhysFrameSize::Size1GiB,
                     pdpe.flags(),
                 );
                 current = Mapping::combine(&mut mappings, current, next);
                 continue;
             }
 
-            let pdt_addr = phys_to_virt_addr(pdpe.addr());
-            let pdt: &PageTable = &*pdt_addr.as_mut_ptr(); // unsafe
+            let pdt = PageTable::at(pdpe.addr()).unwrap(); // unsafe
             for (k, pde) in pdt.iter().enumerate() {
-                if pde.is_unused() {
+                if !pde.is_present() {
                     continue;
                 }
 
@@ -175,17 +179,17 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
                     let next = Mapping::new(
                         indices_to_addr(i, j, k, 0),
                         pde.addr(),
-                        PageBytesSize::Size2MiB,
+                        VirtPageSize::Size2MiB,
+                        PhysFrameSize::Size2MiB,
                         pde.flags(),
                     );
                     current = Mapping::combine(&mut mappings, current, next);
                     continue;
                 }
 
-                let pt_addr = phys_to_virt_addr(pde.addr());
-                let pt: &PageTable = &*pt_addr.as_mut_ptr(); // unsafe
+                let pt = PageTable::at(pde.addr()).unwrap(); // unsafe
                 for (l, page) in pt.iter().enumerate() {
-                    if page.is_unused() {
+                    if !page.is_present() {
                         continue;
                     }
 
@@ -196,7 +200,8 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
                     let next = Mapping::new(
                         indices_to_addr(i, j, k, l),
                         page.addr(),
-                        PageBytesSize::Size4KiB,
+                        VirtPageSize::Size4KiB,
+                        PhysFrameSize::Size4KiB,
                         page.flags(),
                     );
                     current = Mapping::combine(&mut mappings, current, next);
@@ -220,15 +225,15 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
     static STATIC_VAL: AtomicU64 = AtomicU64::new(CONST_NUM + CONST_STR.len() as u64);
 
     // Get example pointers.
-    let const_addr1 = VirtAddr::from_ptr(&CONST_NUM);
-    let const_addr2 = VirtAddr::from_ptr(&CONST_STR);
-    let static_addr = VirtAddr::from_ptr(&STATIC_VAL);
-    let code_addr = instructions::read_rip();
+    let const_addr1 = VirtAddr::new(&CONST_NUM as *const u64 as usize);
+    let const_addr2 = VirtAddr::new(CONST_STR as *const str as *const () as usize);
+    let static_addr = VirtAddr::new(&STATIC_VAL as *const AtomicU64 as usize);
+    let code_addr = VirtAddr::new(read_rip().as_u64() as usize);
     STATIC_VAL.fetch_add(1, Ordering::Relaxed);
 
     let mut out = Vec::with_capacity(mappings.len());
     for map in mappings {
-        let range = VirtAddrRange::new(map.virt_start, map.virt_end);
+        let range = VirtAddrRange::new(map.pages.start_address(), map.pages.end_address());
         let purpose = if NULL_PAGE.contains(&range) {
             PagePurpose::NullPage
         } else if USERSPACE.contains(&range) {
@@ -269,29 +274,10 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
     out
 }
 
-/// PageBytesSize gives the size in bytes of a mapped page.
-///
-#[derive(Clone, Copy, PartialEq)]
-pub enum PageBytesSize {
-    Size1GiB,
-    Size2MiB,
-    Size4KiB,
-}
-
-impl PageBytesSize {
-    pub fn size(&self) -> u64 {
-        match self {
-            PageBytesSize::Size1GiB => 0x40000000u64,
-            PageBytesSize::Size2MiB => 0x200000u64,
-            PageBytesSize::Size4KiB => 0x1000u64,
-        }
-    }
-}
-
 /// PagePurpose describes the known use of a contiguous
 /// set of mapped pages.
 ///
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PagePurpose {
     Unknown,
     NullPage,
@@ -336,12 +322,10 @@ impl fmt::Display for PagePurpose {
 /// contiguous page mappings.
 ///
 pub struct Mapping {
-    pub virt_start: VirtAddr,
-    pub virt_end: VirtAddr,
-    pub phys_start: PhysAddr,
-    pub phys_end: PhysAddr,
-    pub page_count: u64,
-    pub page_size: PageBytesSize,
+    pub pages: VirtPageRange,
+    pub page_size: VirtPageSize,
+    pub frames: PhysFrameRange,
+    pub frame_size: PhysFrameSize,
     pub flags: PageTableFlags,
     pub purpose: PagePurpose,
 }
@@ -350,7 +334,8 @@ impl Mapping {
     pub fn new(
         virt_start: VirtAddr,
         phys_start: PhysAddr,
-        page_size: PageBytesSize,
+        page_size: VirtPageSize,
+        frame_size: PhysFrameSize,
         flags: PageTableFlags,
     ) -> Self {
         let flags_mask = PageTableFlags::PRESENT
@@ -359,13 +344,13 @@ impl Mapping {
             | PageTableFlags::GLOBAL
             | PageTableFlags::NO_EXECUTE;
 
+        let page = VirtPage::containing_address(virt_start, page_size);
+        let frame = PhysFrame::containing_address(phys_start, frame_size);
         Mapping {
-            virt_start,
-            virt_end: virt_start + page_size.size() - 1u64,
-            phys_start,
-            phys_end: phys_start + page_size.size() - 1u64,
-            page_count: 1,
+            pages: VirtPage::range_inclusive(page, page),
             page_size,
+            frames: PhysFrame::range_inclusive(frame, frame),
+            frame_size,
             flags: flags & flags_mask,
             purpose: PagePurpose::Unknown,
         }
@@ -391,14 +376,11 @@ impl Mapping {
             Some(mut current) => {
                 // Check whether next extends the current
                 // mapping.
-                if current.virt_end + 1u64 == next.virt_start
-                    && current.phys_end + 1u64 == next.phys_start
-                    && current.page_size == next.page_size
-                    && current.flags == next.flags
-                {
-                    current.virt_end = next.virt_end;
-                    current.phys_end = next.phys_end;
-                    current.page_count += next.page_count;
+                if current.extends(&next) {
+                    current.pages =
+                        VirtPage::range_inclusive(current.pages.start(), next.pages.end());
+                    current.frames =
+                        PhysFrame::range_inclusive(current.frames.start(), next.frames.end());
 
                     Some(current)
                 } else {
@@ -412,77 +394,99 @@ impl Mapping {
         }
     }
 
-    /// unmap uses the given mapper to unmap the
+    /// Returns whether `other` is a logical continuation
+    /// of the current mapping. This is only true if the
+    /// two mappings form contiguous virtual and physical
+    /// memory.
+    ///
+    fn extends(&self, other: &Mapping) -> bool {
+        // If the page sizes or frame sizes don't
+        // match, then it's a simple `false`.
+        if self.page_size != other.page_size || self.frame_size != other.frame_size {
+            return false;
+        }
+
+        // Next, we check whether the two mappings
+        // form a contiguous sequence of virtual
+        // memory. This is less easy than it might
+        // seem, as we have to be careful not to
+        // pass non-canonical addresses to `VirtAddr::new`.
+        //
+        // First, we check that the addition does
+        // not overflow, which would cause problems
+        // before we even reach the point of calling
+        // `VirtAddr::new`.
+        let last_virt = self.pages.end_address().as_usize();
+        if last_virt.checked_add(1).is_none() {
+            return false;
+        }
+
+        // Now we can check that the next address is
+        // valid and then check it matches the first
+        // address in the next mapping.
+        match VirtAddr::try_new(last_virt + 1) {
+            Err(_) => return false,
+            Ok(next_virt) => {
+                if next_virt != other.pages.start_address() {
+                    return false;
+                }
+            }
+        }
+
+        // Now we do the same for the physical
+        // addresses. This is slightly simpler, as
+        // we don't need to worry about a chunk of
+        // invalid addresses within the address
+        // space like we do with virtual memory,
+        // but we might as well take the same robust
+        // approach.
+        let last_phys = self.frames.end_address().as_usize();
+        if last_phys.checked_add(1).is_none() {
+            return false;
+        }
+
+        // As before, we check that the next address
+        // is valid and matches the first address in
+        // the next mapping.
+        match PhysAddr::try_new(last_phys + 1) {
+            Err(_) => return false,
+            Ok(next_phys) => {
+                if next_phys != other.frames.start_address() {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+
+    /// unmap uses the given page table to unmap the
     /// entire mapping.
     ///
     /// Note that unmap will not flush the TLB.
     ///
-    pub fn unmap(&self, mapper: &mut OffsetPageTable) -> Result<(), UnmapError> {
-        match self.page_size {
-            PageBytesSize::Size4KiB => {
-                let start = Page::<Size4KiB>::containing_address(self.virt_start);
-                let end = Page::<Size4KiB>::containing_address(self.virt_end);
-                let range = Page::range_inclusive(start, end);
-                for page in range {
-                    mapper.unmap(page)?.1.ignore();
-                }
-            }
-            PageBytesSize::Size2MiB => {
-                let start = Page::<Size2MiB>::containing_address(self.virt_start);
-                let end = Page::<Size2MiB>::containing_address(self.virt_end);
-                let range = Page::range_inclusive(start, end);
-                for page in range {
-                    mapper.unmap(page)?.1.ignore();
-                }
-            }
-            PageBytesSize::Size1GiB => {
-                let start = Page::<Size1GiB>::containing_address(self.virt_start);
-                let end = Page::<Size1GiB>::containing_address(self.virt_end);
-                let range = Page::range_inclusive(start, end);
-                for page in range {
-                    mapper.unmap(page)?.1.ignore();
-                }
-            }
+    pub fn unmap(&self, page_table: &mut PageTable) -> Result<(), PageUnmappingError> {
+        let range = self.pages;
+        for page in range {
+            unsafe { page_table.unmap(page)?.1.ignore() };
         }
 
         Ok(())
     }
 
-    /// update_flags uses the given mapper to update the
+    /// update_flags uses the given page table to update the
     /// flags entire mapping.
     ///
     /// Note that update_flags will not flush the TLB.
     ///
     pub fn update_flags(
         &self,
-        mapper: &mut OffsetPageTable,
+        page_table: &mut PageTable,
         flags: PageTableFlags,
-    ) -> Result<(), FlagUpdateError> {
-        match self.page_size {
-            PageBytesSize::Size4KiB => {
-                let start = Page::<Size4KiB>::containing_address(self.virt_start);
-                let end = Page::<Size4KiB>::containing_address(self.virt_end);
-                let range = Page::range_inclusive(start, end);
-                for page in range {
-                    unsafe { mapper.update_flags(page, flags) }?.ignore();
-                }
-            }
-            PageBytesSize::Size2MiB => {
-                let start = Page::<Size2MiB>::containing_address(self.virt_start);
-                let end = Page::<Size2MiB>::containing_address(self.virt_end);
-                let range = Page::range_inclusive(start, end);
-                for page in range {
-                    unsafe { mapper.update_flags(page, flags) }?.ignore();
-                }
-            }
-            PageBytesSize::Size1GiB => {
-                let start = Page::<Size1GiB>::containing_address(self.virt_start);
-                let end = Page::<Size1GiB>::containing_address(self.virt_end);
-                let range = Page::range_inclusive(start, end);
-                for page in range {
-                    unsafe { mapper.update_flags(page, flags) }?.ignore();
-                }
-            }
+    ) -> Result<(), PageRemappingError> {
+        let range = self.pages;
+        for page in range {
+            unsafe { page_table.change_flags(page, flags)?.ignore() };
         }
 
         Ok(())
@@ -521,13 +525,13 @@ impl fmt::Display for Mapping {
         write!(
             f,
             "{:p}-{:p} -> {:#011x}-{:#011x} {:5} x {} page = {:7} {}{}{}{}{}{}",
-            self.virt_start,
-            self.virt_end,
-            self.phys_start,
-            self.phys_end,
-            self.page_count,
-            Bytes::from_u64(self.page_size.size()),
-            Bytes::from_u64(self.page_count * self.page_size.size()),
+            self.pages.start_address(),
+            self.pages.end_address(),
+            self.frames.start_address(),
+            self.frames.end_address(),
+            (self.pages.end_address() - self.pages.start_address() + 1) / self.page_size.bytes(),
+            Bytes::from_usize(self.page_size.bytes()),
+            Bytes::from_usize(self.pages.end_address() - self.pages.start_address() + 1),
             global,
             user,
             read,
@@ -546,20 +550,22 @@ mod test {
     #[test]
     fn test_display_mapping() {
         let offset = VirtAddr::new(0x123451000);
-        let phys_start = PhysAddr::new(0x8000);
-        let virt_start = offset + phys_start.as_u64();
-        let page_size = PageBytesSize::Size2MiB;
+        let phys_start = PhysAddr::new(0x800000);
+        let virt_start = offset + phys_start.as_usize();
+        let page_size = VirtPageSize::Size2MiB;
+        let frame_size = PhysFrameSize::Size2MiB;
         let flags = PageTableFlags::NO_EXECUTE;
-        let map = Mapping::new(virt_start, phys_start, page_size, flags);
+        let map = Mapping::new(virt_start, phys_start, page_size, frame_size, flags);
         let map = Mapping::with_purpose(map, PagePurpose::Mmio);
-        assert_eq!(format!("{}", map), "0x123459000-0x123658fff -> 0x000008000-0x000207fff     1 x 2 MiB page =   2 MiB ----- (MMIO)");
+        assert_eq!(format!("{}", map), "0x123c00000-0x123dfffff -> 0x000800000-0x0009fffff     1 x 2 MiB page =   2 MiB ----- (MMIO)");
 
         let offset = VirtAddr::new(0x1000);
         let phys_start = PhysAddr::new(0x2000);
-        let virt_start = offset + phys_start.as_u64();
-        let page_size = PageBytesSize::Size4KiB;
+        let virt_start = offset + phys_start.as_usize();
+        let page_size = VirtPageSize::Size4KiB;
+        let frame_size = PhysFrameSize::Size4KiB;
         let flags = PageTableFlags::all() - PageTableFlags::NO_EXECUTE;
-        let map = Mapping::new(virt_start, phys_start, page_size, flags);
+        let map = Mapping::new(virt_start, phys_start, page_size, frame_size, flags);
         let map = Mapping::with_purpose(map, PagePurpose::Userspace);
         assert_eq!(format!("{}", map), "0x3000-0x3fff -> 0x000002000-0x000002fff     1 x 4 KiB page =   4 KiB gurwx (userspace)");
     }

@@ -7,7 +7,7 @@
 //! I/O devices.
 //!
 //! This module provides basic but safe support for MMIO. Physical memory
-//! regions can be mapped into the [`MMIO_SPACE`](memlayout::MMIO_SPACE) virtual
+//! regions can be mapped into the [`MMIO_SPACE`](memory::constants::MMIO_SPACE) virtual
 //! memory region. This mapping disables the use of caching to ensure correct
 //! interaction with the underlying device memory.
 //!
@@ -56,14 +56,11 @@
 #![feature(decl_macro)]
 
 use core::sync::atomic;
-use memlayout::MMIO_SPACE;
+use memory::constants::MMIO_SPACE;
+use memory::{PageTableFlags, PhysFrameRange, VirtAddr, VirtPage, VirtPageRange, VirtPageSize};
 use physmem::ALLOCATOR;
 use spin::{lock, Mutex};
 use virtmem::map_frames_to_pages;
-use x86_64::structures::paging::frame::PhysFrameRange;
-use x86_64::structures::paging::page::{Page, PageRange};
-use x86_64::structures::paging::page_table::PageTableFlags;
-use x86_64::VirtAddr;
 
 /// MMIO_START_ADDRESS is the address where the next MMIO mapping
 /// will be placed.
@@ -81,7 +78,7 @@ pub fn access_barrier() {
 /// reserve_space reserves the given amount of MMIO address space,
 /// returning the virtual address where the reservation begins.
 ///
-fn reserve_space(size: u64) -> PageRange {
+fn reserve_space(size: usize) -> VirtPageRange {
     let mut start_address = lock!(MMIO_START_ADDRESS);
     let start = *start_address;
 
@@ -94,10 +91,12 @@ fn reserve_space(size: u64) -> PageRange {
     let end = start + size;
     *start_address = end;
 
-    let start_page = Page::from_start_address(start).expect("bad MMIO region start virt address");
-    let end_page = Page::from_start_address(end).expect("bad MMIO region end virt address");
+    let start_page = VirtPage::from_start_address(start, VirtPageSize::Size4KiB)
+        .expect("bad MMIO region start virt address");
+    let end_page = VirtPage::from_start_address(end, VirtPageSize::Size4KiB)
+        .expect("bad MMIO region end virt address");
 
-    Page::range(start_page, end_page)
+    VirtPage::range_exclusive(start_page, end_page)
 }
 
 /// Returns the referenced field in a way that will not be removed
@@ -154,9 +153,9 @@ impl Region {
     /// accessed safely.
     ///
     pub fn map(frame_range: PhysFrameRange) -> Self {
-        let first_addr = frame_range.start.start_address();
-        let last_addr = frame_range.end.start_address();
-        let size = last_addr - first_addr;
+        let first_addr = frame_range.start_address();
+        let last_addr = frame_range.end_address();
+        let size = (last_addr - first_addr) + 1;
 
         let page_range = reserve_space(size);
         let flags = PageTableFlags::PRESENT
@@ -170,35 +169,39 @@ impl Region {
             .expect("failed to map MMIO region");
 
         Region {
-            start: page_range.start.start_address(),
-            end: page_range.end.start_address() - 1u64,
+            start: page_range.start_address(),
+            end: page_range.end_address(),
         }
     }
 
     /// Returns a mutable reference of the given type at the MMIO memory
     /// at `offset` into the region.
     ///
-    pub fn as_mut<T: Copy>(&self, offset: u64) -> Result<&'static mut T, RegionOverflow> {
+    pub fn as_mut<T: Copy>(&self, offset: usize) -> Result<&'static mut T, RegionOverflow> {
         let addr = self.start + offset;
-        let size = core::mem::size_of::<T>() as u64;
+        let size = core::mem::size_of::<T>();
         if (addr + size) > self.end {
             return Err(RegionOverflow(addr + size));
         }
 
-        let ptr = addr.as_ptr::<T>() as *mut T;
+        let ptr = addr.as_usize() as *mut T;
         unsafe { Ok(ptr.as_mut().unwrap()) }
     }
 
     /// Returns a generic value at the given offset into the region.
     ///
-    pub fn read<T: 'static + Copy>(&self, offset: u64) -> Result<T, RegionOverflow> {
+    pub fn read<T: 'static + Copy>(&self, offset: usize) -> Result<T, RegionOverflow> {
         let ptr = self.as_mut(offset)?;
         Ok(*ptr)
     }
 
     /// Writes a generic value to the given offset into the region.
     ///
-    pub fn write<T: 'static + Copy>(&mut self, offset: u64, val: T) -> Result<(), RegionOverflow> {
+    pub fn write<T: 'static + Copy>(
+        &mut self,
+        offset: usize,
+        val: T,
+    ) -> Result<(), RegionOverflow> {
         let ptr = self.as_mut(offset)?;
         *ptr = val;
 

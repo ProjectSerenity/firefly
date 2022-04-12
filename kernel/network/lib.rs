@@ -32,6 +32,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::task::Waker;
 use managed::ManagedSlice;
+use memory::PhysAddr;
 use serial::println;
 use smoltcp::iface::{InterfaceBuilder, NeighborCache, Routes, SocketHandle, SocketStorage};
 use smoltcp::phy::DeviceCapabilities;
@@ -41,7 +42,6 @@ use smoltcp::wire::{EthernetAddress, HardwareAddress, IpCidr, Ipv4Address, Ipv4C
 use spin::{lock, Mutex};
 use time::{now, Duration};
 use x86_64::instructions::interrupts::without_interrupts;
-use x86_64::PhysAddr;
 
 /// INITIAL_WORKLOADS can be a set of thread ids that
 /// should be resumed once we have a DHCP configuration.

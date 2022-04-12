@@ -13,6 +13,7 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/cpu",
+        "//kernel/memory",
         "//kernel/utils/spin",
         "@crates//:lazy_static",
         "@crates//:x86_64",

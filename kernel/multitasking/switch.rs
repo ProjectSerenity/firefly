@@ -19,7 +19,7 @@ extern "sysv64" {
     /// switch_stack takes a pointer to each thread's saved
     /// stack pointer.
     ///
-    pub fn switch_stack(current_stack_pointer: *const u64, new_stack_pointer: *const u64);
+    pub fn switch_stack(current_stack_pointer: *const usize, new_stack_pointer: *const usize);
 
     // Note that we have no Rust function declaration for
     // replace_stack, as we jump to it in inline assembly,

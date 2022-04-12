@@ -12,6 +12,7 @@ rust_library(
     edition = "2021",
     visibility = ["//kernel:__subpackages__"],
     deps = [
+        "//kernel/memory",
         "@crates//:x86_64",
     ],
 )
