@@ -23,7 +23,6 @@ rust_library(
         "//kernel/utils/spin",
         "@bootloader",
         "@crates//:lazy_static",
-        "@crates//:x86_64",
     ],
 )
 

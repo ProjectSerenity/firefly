@@ -22,7 +22,6 @@ rust_library(
         "//kernel/drivers/serial",
         "//kernel/memory",
         "//kernel/memory/physmem",
-        "//kernel/utils/align",
         "//kernel/utils/pretty",
         "//kernel/utils/spin",
         "@bootloader",

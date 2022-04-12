@@ -11,10 +11,7 @@ rust_library(
     crate_name = "bitmap_index",
     edition = "2021",
     visibility = ["//kernel:__subpackages__"],
-    deps = [
-        "//kernel/utils/align",
-        "@crates//:x86_64",
-    ],
+    deps = ["//kernel/utils/align"],
 )
 
 rust_clippy(
@@ -37,8 +34,5 @@ rust_test(
     name = "bitmap_index_test",
     size = "small",
     crate = ":bitmap_index",
-    deps = [
-        "//kernel/utils/align",
-        "@crates//:x86_64",
-    ],
+    deps = ["//kernel/utils/align"],
 )

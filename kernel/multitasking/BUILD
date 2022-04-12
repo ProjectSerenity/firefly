@@ -35,7 +35,6 @@ rust_library(
         "//kernel/utils/spin",
         "@crates//:lazy_static",
         "@crates//:x86_64",
-        "@crates//:xmas-elf",
     ],
 )
 

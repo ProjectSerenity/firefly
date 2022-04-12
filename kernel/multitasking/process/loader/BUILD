@@ -16,7 +16,6 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/memory",
-        "@crates//:x86_64",
         "@crates//:xmas-elf",
     ],
 )

@@ -16,7 +16,6 @@ rust_library(
         "//kernel/memory/physmem",
         "//kernel/memory/virtmem",
         "//kernel/utils/spin",
-        "@crates//:x86_64",
     ],
 )
 
