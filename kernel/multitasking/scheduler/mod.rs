@@ -325,7 +325,7 @@ pub fn resume(thread_id: KernelThreadId) -> bool {
             ThreadState::BeingCreated => {
                 thread.set_state(ThreadState::Runnable);
                 drop(threads);
-                lock!(SCHEDULER).add(thread_id);
+                interrupts::without_interrupts(|| lock!(SCHEDULER).add(thread_id));
                 true
             }
             ThreadState::Runnable => true,
@@ -337,7 +337,7 @@ pub fn resume(thread_id: KernelThreadId) -> bool {
             ThreadState::Sleeping => {
                 thread.set_state(ThreadState::Runnable);
                 drop(threads);
-                lock!(SCHEDULER).add(thread_id);
+                interrupts::without_interrupts(|| lock!(SCHEDULER).add(thread_id));
                 true
             }
             ThreadState::Exiting => false,

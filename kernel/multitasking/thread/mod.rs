@@ -751,7 +751,9 @@ impl Thread {
         match new_state {
             ThreadState::BeingCreated => panic!("thread state set to BeingCreated"),
             ThreadState::Runnable | ThreadState::Drowsy | ThreadState::Insomniac => {}
-            ThreadState::Sleeping | ThreadState::Exiting => lock!(SCHEDULER).remove(self.kernel_id),
+            ThreadState::Sleeping | ThreadState::Exiting => {
+                without_interrupts(|| lock!(SCHEDULER).remove(self.kernel_id))
+            }
         }
     }
 
