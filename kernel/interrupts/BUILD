@@ -16,7 +16,7 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/drivers/serial",
-        "//kernel/segmentation",
+        "//kernel/memory/segmentation",
         "//kernel/utils/spin",
         "@crates//:lazy_static",
         "@crates//:pic8259",
