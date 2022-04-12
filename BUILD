@@ -8,6 +8,12 @@ load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
 load("@io_bazel_rules_go//go:def.bzl", "nogo")
 load("//bazel:qemu.bzl", "qemu")
 
+# Expose the license to the rest of the workspace.
+exports_files(
+    ["LICENSE"],
+    visibility = ["//visibility:public"],
+)
+
 # Configure nogo.
 nogo(
     name = "nogo",
