@@ -17,6 +17,7 @@
 //! links are ignored (or return an error, as appropriate).
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 
 extern crate alloc;
 

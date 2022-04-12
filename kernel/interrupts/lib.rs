@@ -66,6 +66,7 @@
 //!
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 #![feature(abi_x86_interrupt)]
 
 mod irq;

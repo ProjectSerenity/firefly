@@ -58,6 +58,7 @@
 //! ```
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 
 use core::cmp::min;
 

@@ -3,9 +3,10 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-#![no_std]
-
 //! Provides the list of syscalls implemented by the Firefly kernel.
+
+#![no_std]
+#![deny(clippy::wildcard_imports)]
 
 /// The set of syscalls implemented by the Firefly kernel.
 ///

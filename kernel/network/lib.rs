@@ -15,6 +15,7 @@
 //! the initial workload starts.
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 #![feature(const_btree_new)]
 
 extern crate alloc;

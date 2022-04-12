@@ -25,6 +25,7 @@
 //! ports without disabling interrupts could lead to deadlocks.
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 
 use core::fmt::Write;
 use spin::{lock, Mutex};

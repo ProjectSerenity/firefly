@@ -6,6 +6,7 @@
 //! Implements a alignment of unsigned integer types to exact powers of two.
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 
 /// An internal macro to implement alignment both up and
 /// down for each unsigned integer type.

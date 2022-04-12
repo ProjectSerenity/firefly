@@ -6,6 +6,7 @@
 //! Provides functionality to parse and validate loadable binaries.
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 
 extern crate alloc;
 

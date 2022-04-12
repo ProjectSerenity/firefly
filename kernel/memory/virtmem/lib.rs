@@ -44,6 +44,7 @@
 //! no-execute permission bit set.
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 #![feature(const_mut_refs)]
 
 extern crate alloc;

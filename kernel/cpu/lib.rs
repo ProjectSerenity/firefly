@@ -6,6 +6,7 @@
 //! Analyses the CPU for supported features and branding.
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 #![feature(asm_const)]
 
 mod local;

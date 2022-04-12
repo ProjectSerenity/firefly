@@ -6,6 +6,7 @@
 //! Implements the kernel's storage subsystem.
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 
 extern crate alloc;
 

@@ -41,6 +41,7 @@
 //! ranges.
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 
 pub mod constants;
 mod page_table;

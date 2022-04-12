@@ -11,6 +11,7 @@
 //! to userspace of the virtual filesystem.
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 
 extern crate alloc;
 

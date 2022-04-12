@@ -53,6 +53,7 @@
 //! ```
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 #![feature(decl_macro)]
 
 use core::sync::atomic;

@@ -21,6 +21,7 @@
 //! [Global Descriptor Table]: https://en.wikipedia.org/wiki/Global_Descriptor_Table
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 
 extern crate alloc;
 

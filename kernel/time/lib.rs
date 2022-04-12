@@ -15,6 +15,7 @@
 //! points in time.
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 
 mod rtc;
 mod slice;

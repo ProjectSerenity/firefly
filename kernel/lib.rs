@@ -44,6 +44,7 @@
 //! - [utils/tar](::tar)
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 #![feature(alloc_error_handler)]
 #![feature(const_btree_new)]
 

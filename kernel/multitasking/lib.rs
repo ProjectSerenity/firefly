@@ -21,6 +21,7 @@
 //! handler, this will pre-empt threads to allow fair sharing of the CPU.
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 #![feature(binary_heap_retain)]
 #![feature(const_btree_new)]
 

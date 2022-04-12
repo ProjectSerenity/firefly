@@ -7,6 +7,7 @@
 //! be deadlocked.
 
 #![no_std]
+#![deny(clippy::wildcard_imports)]
 
 use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut};
