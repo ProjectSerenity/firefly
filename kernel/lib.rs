@@ -28,7 +28,6 @@
 //! - [filesystem](::filesystem)
 //! - [interrupts](::interrupts)
 //! - [memory](::memory)
-//! - [memory/memlayout](::memlayout)
 //! - [memory/mmio](::mmio)
 //! - [memory/physmem](::physmem)
 //! - [memory/virtmem](::virtmem)

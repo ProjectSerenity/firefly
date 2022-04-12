@@ -32,7 +32,6 @@ rust_library(
         "//kernel/filesystem",
         "//kernel/interrupts",
         "//kernel/memory",
-        "//kernel/memory/memlayout",
         "//kernel/memory/mmio",
         "//kernel/memory/physmem",
         "//kernel/memory/virtmem",
