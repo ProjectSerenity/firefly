@@ -10,6 +10,7 @@ rust_library(
     srcs = [
         "constants.rs",
         "lib.rs",
+        "page_table.rs",
         "phys_addr.rs",
         "phys_frame.rs",
         "phys_range.rs",
@@ -22,6 +23,7 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/utils/align",
+        "@crates//:bitflags",
         "@crates//:x86_64",
     ],
 )

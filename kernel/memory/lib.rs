@@ -6,8 +6,8 @@
 //! Contains types and functionality to represent physical and virtual memory.
 //!
 //! This crate provides the core types for representing physical and virtual
-//! memory. From most basic to most sophisticated, the physical memory types
-//! are:
+//! memory, plus the page table code that maps the two together. From most
+//! basic to most sophisticated, the physical memory types are:
 //!
 //! - [`PhysAddr`]: An address in the 52-bit physical address space.
 //! - [`PhysAddrRange`]: An arbitrary sequence of contiguous physical addresses.
@@ -24,6 +24,9 @@
 //! - [`VirtPage`]: A page of virtual memory, including its size.
 //! - [`VirtPageRange`]: An arbitrary sequence of contiguous virtual memory pages.
 //!
+//! The [`PageTable`] allows the parsing and modification of page tables,
+//! mapping pages of virtual memory to frames of physical memory. This uses
+//! [`PageTableFlags`] to govern the behaviour of the mapped virtual memory.
 //! The kernel's page tables are configured to ensure that all physical memory
 //! is mapped contiguously at [`PHYSICAL_MEMORY_OFFSET`](constants::PHYSICAL_MEMORY_OFFSET).
 //! This allows the convenience function [`phys_to_virt_addr`], which can be
@@ -40,6 +43,7 @@
 #![no_std]
 
 pub mod constants;
+mod page_table;
 mod phys_addr;
 mod phys_frame;
 mod phys_range;
@@ -47,6 +51,10 @@ mod virt_addr;
 mod virt_page;
 mod virt_range;
 
+pub use page_table::{
+    PageMapping, PageMappingChange, PageMappingError, PageRemappingError, PageTable,
+    PageTableEntry, PageTableFlags, PageUnmappingError,
+};
 pub use phys_addr::{InvalidPhysAddr, PhysAddr};
 pub use phys_frame::{PhysFrame, PhysFrameRange, PhysFrameSize};
 pub use phys_range::PhysAddrRange;
