@@ -54,10 +54,15 @@ extern crate alloc;
 pub mod syscalls;
 
 use bootloader::BootInfo;
+use core::include_str;
 use interrupts::{register_irq, Irq};
 use multitasking::thread::Thread;
 use multitasking::{scheduler, thread};
 use x86_64::structures::idt::InterruptStackFrame;
+
+/// The Firefly license text.
+///
+pub const LICENSE: &str = include_str!("../LICENSE");
 
 /// Initialise the kernel and its core components.
 ///

@@ -20,6 +20,7 @@ rust_library(
     ],
     compile_data = [
         "syscalls/entry.s",
+        "//:LICENSE",
     ],
     crate_name = "kernel",
     edition = "2021",
