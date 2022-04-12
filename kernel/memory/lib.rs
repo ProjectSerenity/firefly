@@ -24,11 +24,22 @@
 //! - [`VirtPage`]: A page of virtual memory, including its size.
 //! - [`VirtPageRange`]: An arbitrary sequence of contiguous virtual memory pages.
 //!
+//! The kernel's page tables are configured to ensure that all physical memory
+//! is mapped contiguously at [`PHYSICAL_MEMORY_OFFSET`](constants::PHYSICAL_MEMORY_OFFSET).
+//! This allows the convenience function [`phys_to_virt_addr`], which can be
+//! used to translate any physical memory address to a virtual memory address
+//! that can be used to access the physical memory. Note that this virtual
+//! address cannot be used for fetching instructions.
+//!
 //! The [`PhysFrameAllocator`] and [`PhysFrameDeallocator`] traits can be used
 //! to abstract the management of physical memory.
+//!
+//! The [`constants`] module contains a set of important addresses and address
+//! ranges.
 
 #![no_std]
 
+pub mod constants;
 mod phys_addr;
 mod phys_frame;
 mod phys_range;
@@ -42,6 +53,18 @@ pub use phys_range::PhysAddrRange;
 pub use virt_addr::{InvalidVirtAddr, VirtAddr};
 pub use virt_page::{VirtPage, VirtPageRange, VirtPageSize};
 pub use virt_range::VirtAddrRange;
+
+/// Returns a virtual address that is mapped to the given physical
+/// address.
+///
+/// This uses the mapping of all physical memory at the virtual
+/// address `PHYSICAL_MEMORY_OFFSET`.
+///
+pub fn phys_to_virt_addr(phys: PhysAddr) -> VirtAddr {
+    constants::PHYSICAL_MEMORY_OFFSET
+        .checked_add(phys.as_usize())
+        .expect("invalid physical address")
+}
 
 /// A trait for types that can
 /// allocate a frame of physical

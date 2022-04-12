@@ -8,6 +8,7 @@ load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "r
 rust_library(
     name = "memory",
     srcs = [
+        "constants.rs",
         "lib.rs",
         "phys_addr.rs",
         "phys_frame.rs",
