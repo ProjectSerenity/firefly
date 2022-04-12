@@ -7,6 +7,7 @@
 
 #![no_std]
 #![deny(clippy::wildcard_imports)]
+#![deny(unused_crate_dependencies)]
 
 /// An internal macro to implement alignment both up and
 /// down for each unsigned integer type.

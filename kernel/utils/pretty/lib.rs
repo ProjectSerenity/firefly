@@ -10,6 +10,7 @@
 
 #![no_std]
 #![deny(clippy::wildcard_imports)]
+#![deny(unused_crate_dependencies)]
 
 extern crate alloc;
 

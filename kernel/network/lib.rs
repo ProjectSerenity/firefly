@@ -16,6 +16,7 @@
 
 #![no_std]
 #![deny(clippy::wildcard_imports)]
+#![deny(unused_crate_dependencies)]
 #![feature(const_btree_new)]
 
 extern crate alloc;

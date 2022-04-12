@@ -49,6 +49,7 @@
 
 #![no_std]
 #![deny(clippy::wildcard_imports)]
+#![deny(unused_crate_dependencies)]
 
 use core::cmp::min;
 use core::default::Default;

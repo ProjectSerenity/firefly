@@ -22,6 +22,7 @@
 
 #![no_std]
 #![deny(clippy::wildcard_imports)]
+#![deny(unused_crate_dependencies)]
 #![feature(binary_heap_retain)]
 #![feature(const_btree_new)]
 

@@ -54,6 +54,7 @@
 
 #![no_std]
 #![deny(clippy::wildcard_imports)]
+#![deny(unused_crate_dependencies)]
 #![feature(decl_macro)]
 
 use core::sync::atomic;

@@ -45,6 +45,7 @@
 
 #![no_std]
 #![deny(clippy::wildcard_imports)]
+#![allow(unused_crate_dependencies)] // This is to allow the doc references above.
 #![feature(alloc_error_handler)]
 #![feature(const_btree_new)]
 

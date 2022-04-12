@@ -10,6 +10,7 @@
 
 #![no_std]
 #![no_main]
+#![deny(unused_crate_dependencies)]
 
 extern crate alloc;
 
