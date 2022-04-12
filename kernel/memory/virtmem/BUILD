@@ -9,9 +9,7 @@ rust_library(
     name = "virtmem",
     srcs = [
         "bitmap.rs",
-        "heap/bump.rs",
         "heap/fixed_size_block.rs",
-        "heap/linked_list.rs",
         "heap/mod.rs",
         "lib.rs",
         "mapping.rs",

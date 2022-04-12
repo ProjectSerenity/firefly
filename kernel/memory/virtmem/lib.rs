@@ -37,14 +37,6 @@
 //! frame allocator provided. This virtual memory is then used to initialise
 //! the heap allocator.
 //!
-//! The module includes three different heap allocator implementations:
-//!
-//! - [`BumpAllocator`]
-//! - [`LinkedListAllocator`]
-//! - [`FixedSizeBlockAllocator`]
-//!
-//! Currently, we use `FixedSizeBlockAllocator`.
-//!
 //! With the heap initialised, `init` enables global page mappings and the
 //! no-execute permission bit and then remaps virtual memory. This ensures
 //! that unexpected page mappings are removed and the remaining page mappings
@@ -74,12 +66,6 @@ use x86_64::structures::paging::{
     FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, PhysFrame, Size4KiB,
 };
 use x86_64::{PhysAddr, VirtAddr};
-
-// Re-export the heap allocators. We don't need to do this, but it's useful
-// to expose their documentation to aid future development.
-pub use heap::bump::BumpAllocator;
-pub use heap::fixed_size_block::FixedSizeBlockAllocator;
-pub use heap::linked_list::LinkedListAllocator;
 
 // PML4 functionality.
 

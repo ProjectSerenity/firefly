@@ -64,6 +64,9 @@ pub struct FixedSizeBlockAllocator {
 impl FixedSizeBlockAllocator {
     /// Creates an empty `FixedSizeBlockAllocator`.
     ///
+    // We use #[cfg_attr] to silence dead code warnings
+    // in tests, where we don't use the global allocator.
+    #[cfg_attr(test, allow(dead_code))]
     pub const fn new() -> Self {
         const EMPTY: Option<&'static mut ListNode> = None;
         FixedSizeBlockAllocator {
@@ -80,6 +83,9 @@ impl FixedSizeBlockAllocator {
     /// heap bounds are valid and that the heap is unused. This method must be
     /// called only once.
     ///
+    // We use #[cfg_attr] to silence dead code warnings
+    // in tests, where we don't use the global allocator.
+    #[cfg_attr(test, allow(dead_code))]
     pub unsafe fn init(&mut self, heap_start: usize, heap_size: usize) {
         self.fallback_allocator.init(heap_start, heap_size);
     }

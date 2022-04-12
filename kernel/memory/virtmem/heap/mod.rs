@@ -5,9 +5,7 @@
 
 //! Manages the kernel's heap, along with the underlying allocator.
 
-pub mod bump;
-pub mod fixed_size_block;
-pub mod linked_list;
+mod fixed_size_block;
 
 use crate::mapping::remap_kernel;
 use crate::{map_pages, with_page_tables};
