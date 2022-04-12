@@ -61,7 +61,8 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use memory::constants::KERNELSPACE;
 use memory::{
     phys_to_virt_addr, PageMappingError, PageTable, PageTableFlags, PhysAddr, PhysFrame,
-    PhysFrameAllocator, PhysFrameSize, VirtAddr, VirtPage, VirtPageSize,
+    PhysFrameAllocator, PhysFrameRange, PhysFrameSize, VirtAddr, VirtPage, VirtPageRange,
+    VirtPageSize,
 };
 use serial::println;
 use x86_64::registers::control::Cr3;
@@ -271,13 +272,12 @@ where
 
 /// Map the given page range, which can be inclusive or exclusive.
 ///
-pub fn map_pages<R, A>(
-    page_range: R,
+pub fn map_pages<A>(
+    page_range: VirtPageRange,
     allocator: &mut A,
     flags: PageTableFlags,
 ) -> Result<(), PageMappingError>
 where
-    R: Iterator<Item = VirtPage>,
     A: PhysFrameAllocator + ?Sized,
 {
     let frozen = kernel_mappings_frozen();
@@ -302,17 +302,17 @@ where
 /// Map the given frame range to the page range, either of which
 /// can be inclusive or exclusive.
 ///
-pub fn map_frames_to_pages<F, P, A>(
-    mut frame_range: F,
-    page_range: P,
+pub fn map_frames_to_pages<A>(
+    frame_range: PhysFrameRange,
+    page_range: VirtPageRange,
     allocator: &mut A,
     flags: PageTableFlags,
 ) -> Result<(), PageMappingError>
 where
-    F: Iterator<Item = PhysFrame>,
-    P: Iterator<Item = VirtPage>,
     A: PhysFrameAllocator + ?Sized,
 {
+    // Make the frame range mutable.
+    let mut frame_range = frame_range;
     let frozen = kernel_mappings_frozen();
     with_page_tables(|page_table| {
         for page in page_range {
