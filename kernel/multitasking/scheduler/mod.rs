@@ -83,7 +83,7 @@ static INITIALISED: AtomicBool = AtomicBool::new(false);
 ///
 fn idle_loop() -> ! {
     loop {
-        x86_64::instructions::interrupts::enable_and_hlt();
+        interrupts::enable_and_hlt();
     }
 }
 
