@@ -218,7 +218,10 @@ impl Device {
     /// bar returns the corresponding base
     /// address register.
     ///
-    /// The index must be in the range [0, 6).
+    /// # Panics
+    ///
+    /// `bar` will panic if `index` is not
+    /// in the range `[0, 6)`.
     ///
     pub fn bar(&self, index: usize) -> Bar {
         assert!(index < 6);

@@ -249,6 +249,7 @@ impl<'desc> Virtqueue<'desc> {
     /// that have been negotiated with the
     /// device.
     ///
+    #[allow(clippy::missing_panics_doc)] // Can only panic if we run out of memory.
     pub fn new(queue_index: u16, transport: Arc<dyn Transport>, features: u64) -> Self {
         transport.select_queue(queue_index);
 

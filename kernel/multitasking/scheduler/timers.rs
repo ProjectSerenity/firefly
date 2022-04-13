@@ -57,6 +57,7 @@ pub fn cancel_all_for_thread(thread_id: KernelThreadId) -> bool {
 /// timers, removing any timers that have expired and
 /// marking the corresponding threads as runnable.
 ///
+#[allow(clippy::missing_panics_doc)] // Will only panic if the timer state is inconsistent.
 pub fn process() {
     let now = now();
     let mut timers = lock!(TIMERS);

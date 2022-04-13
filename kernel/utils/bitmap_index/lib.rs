@@ -98,7 +98,7 @@ impl Bitmap {
             .iter()
             .map(|&x| x.count_ones())
             .reduce(|accum, item| accum + item)
-            .unwrap() as usize
+            .unwrap_or(0) as usize
     }
 
     /// Returns the number of bits in the bitmap that are
@@ -113,11 +113,13 @@ impl Bitmap {
             .iter()
             .map(|&x| x.count_zeros())
             .reduce(|accum, item| accum + item)
-            .unwrap() as usize
+            .unwrap_or(0) as usize
             - ignore
     }
 
     /// Returns whether bit `n` is set.
+    ///
+    /// # Panics
     ///
     /// `get` will panic if `n` exceeds the bitmap's size
     /// in bits.
@@ -136,6 +138,8 @@ impl Bitmap {
 
     /// Sets bit `n` to `true`.
     ///
+    /// # Panics
+    ///
     /// `set` will panic if `n` exceeds the bitmap's size
     /// in bits.
     ///
@@ -152,6 +156,8 @@ impl Bitmap {
     }
 
     /// Sets bit `n` to `false`.
+    ///
+    /// # Panics
     ///
     /// `unset` will panic if `n` exceeds the bitmap's
     /// size in bits.

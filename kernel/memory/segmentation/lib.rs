@@ -94,6 +94,11 @@ pub fn per_cpu_init() {
 
 /// Invoke a callback acting on the segment data.
 ///
+/// # Panics
+///
+/// `with_segment_data` will panic if [`per_cpu_init`]
+/// has not yet been called on this CPU.
+///
 pub fn with_segment_data<F, R>(f: F) -> R
 where
     F: FnOnce(&mut Pin<&mut SegmentData>) -> R,

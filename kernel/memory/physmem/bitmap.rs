@@ -487,6 +487,11 @@ impl BitmapFrameTracker {
 
     /// Mark the given frame as allocated in this arena.
     ///
+    /// # Panics
+    ///
+    /// `allocate_frame` will panic if `frame` is not in
+    /// the set of physical memory tracked by this allocator.
+    ///
     pub fn allocate_frame(&mut self, frame: PhysFrame) {
         for pool in self.pools.iter_mut() {
             if pool.contains_frame(frame) {
@@ -502,6 +507,11 @@ impl BitmapFrameTracker {
 
     /// Mark the given frame as not allocated in this
     /// arena.
+    ///
+    /// # Panics
+    ///
+    /// `deallocate_frame` will panic if `frame` was not
+    /// returned by this allocator.
     ///
     pub fn deallocate_frame(&mut self, frame: PhysFrame) {
         for pool in self.pools.iter_mut() {

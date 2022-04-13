@@ -157,7 +157,7 @@ impl PhysFrame {
     /// Returns an exclusive frame range
     /// of `[start, end)`.
     ///
-    /// # Safety
+    /// # Panics
     ///
     /// `range_exclusive` will panic if
     /// `start` and `end` are not of the
@@ -176,7 +176,7 @@ impl PhysFrame {
     /// Returns an inclusive frame range
     /// of `[start, end]`.
     ///
-    /// # Safety
+    /// # Panics
     ///
     /// `range_inclusive` will panic if
     /// `start` and `end` are not of the

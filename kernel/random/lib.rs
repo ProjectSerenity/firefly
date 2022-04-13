@@ -115,6 +115,10 @@ pub fn register_entropy_source(src: Box<dyn EntropySource>) {
 /// `init` also starts a companion kernel thread to ensure the CSPRNG gets a steady
 /// feed of entropy  over time.
 ///
+/// # Panics
+///
+/// `init` will panic if no sources of entropy are available.
+///
 pub fn init() {
     // Detect RDRAND support before we lock ENTROPY_SOURCES.
     rdrand::init();
@@ -139,6 +143,10 @@ pub const RESEED_INTERVAL: Duration = Duration::from_secs(30);
 
 /// Reseed the CSPRNG's entropy pool. This should be performed periodically, no
 /// less frequently than [`RESEED_INTERVAL`].
+///
+/// # Panics
+///
+/// `reseed` will panic if no sources of entropy are available.
 ///
 pub fn reseed() {
     let mut buf = [0u8; 32];

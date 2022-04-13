@@ -46,6 +46,10 @@ impl Irq {
 
     /// Returns an IRQ if within the range [0, 15], or panics otherwise.
     ///
+    /// # Panics
+    ///
+    /// `new_unsafe` will panic if `irq` is larger than 15.
+    ///
     pub const fn new_unsafe(irq: u8) -> Irq {
         if irq > 15 {
             panic!("invalid IRQ larger than 15");
@@ -96,6 +100,8 @@ static IRQS: Mutex<[Option<IrqHandler>; 16]> = Mutex::new([None; 16]);
 /// The handler will almost certainly want to acknowledge
 /// the interrupt using `irq.acknowledge()`, so that future
 /// interrupts will follow.
+///
+/// # Panics
 ///
 /// If the given IRQ has already been assigned, `register_irq`
 /// will panic.

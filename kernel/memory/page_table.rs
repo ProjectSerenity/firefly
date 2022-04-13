@@ -487,10 +487,7 @@ impl<'entries> PageTable<'entries> {
     ///
     pub fn translate_page(&self, page: VirtPage) -> Option<PhysFrame> {
         match self.translate(page.start_address()) {
-            PageMapping::Mapping { frame, addr, .. } => {
-                assert_eq!(frame.start_address(), addr);
-                Some(frame)
-            }
+            PageMapping::Mapping { frame, .. } => Some(frame),
             PageMapping::NotMapped => None,
             PageMapping::InvalidPageTableAddr(_) => None,
             PageMapping::InvalidLevel4PageTable => None,

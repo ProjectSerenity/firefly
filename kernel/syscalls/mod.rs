@@ -101,6 +101,7 @@ extern "sysv64" fn syscall_handler(
 
 /// Sets up sycall handling for this CPU.
 ///
+#[allow(clippy::missing_panics_doc)] // Will only panic if kernel configuration is broken.
 pub fn per_cpu_init() {
     // Set the segment selectors for the kernel
     // and userspace.

@@ -107,6 +107,7 @@ pub fn kernel_level4_page_table() -> PhysFrame {
 /// `init` must be called only once to avoid aliasing &mut
 /// references (which is undefined behavior).
 ///
+#[allow(clippy::missing_panics_doc)] // Can only panic if the CPU gives us a bad address.
 pub unsafe fn init(boot_info: &'static BootInfo) {
     // Prepare the kernel's PML4.
     let (level_4_table_frame, _) = Cr3::read();
@@ -168,6 +169,11 @@ static mut KERNEL_MAPPINGS: BitmapLevel4KernelMappings = BitmapLevel4KernelMappi
 /// inconsistencies.
 ///
 /// The page mappings cannot be unfrozen once frozen.
+///
+/// # Panics
+///
+/// `freeze_kernel_mappings` panics if called more
+/// than once.
 ///
 pub fn freeze_kernel_mappings() {
     let prev = KERNEL_MAPPINGS_FROZEN.fetch_or(true, Ordering::SeqCst);

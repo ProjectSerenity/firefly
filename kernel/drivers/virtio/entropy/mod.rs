@@ -65,6 +65,11 @@ impl Driver {
     /// smaller than `buf`'s length. That is, `buf` may not be
     /// completely filled with entropy.
     ///
+    /// # Panics
+    ///
+    /// `read` will panic if `buf` points to virtual memory
+    /// that is not currently mapped.
+    ///
     pub fn read(&mut self, buf: &mut [u8]) -> usize {
         let virt_addr = unsafe { VirtAddr::new_unchecked(buf.as_ptr() as usize) };
         let (first_addr, buffers) = if PHYSICAL_MEMORY.contains_addr(virt_addr) {

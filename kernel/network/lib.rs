@@ -120,6 +120,7 @@ impl Interface {
     /// `poll` returns the delay before `poll` should next be
     /// called to balance performance and resource usage.
     ///
+    #[allow(clippy::missing_panics_doc)] // Will only panic if the network stack misbehaves.
     pub fn poll(&mut self) -> Duration {
         let now = Instant::from_micros(now().system_micros() as i64);
         loop {

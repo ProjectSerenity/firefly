@@ -157,7 +157,7 @@ impl VirtPage {
     /// Returns an exclusive page range
     /// of `[start, end)`.
     ///
-    /// # Safety
+    /// # Panics
     ///
     /// `range_exclusive` will panic if
     /// `start` and `end` are not of the
@@ -176,7 +176,7 @@ impl VirtPage {
     /// Returns an inclusive page range
     /// of `[start, end]`.
     ///
-    /// # Safety
+    /// # Panics
     ///
     /// `range_inclusive` will panic if
     /// `start` and `end` are not of the

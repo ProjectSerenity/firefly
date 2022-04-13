@@ -181,6 +181,12 @@ impl Region {
     /// Returns a mutable reference of the given type at the MMIO memory
     /// at `offset` into the region.
     ///
+    /// # Panics
+    ///
+    /// `as_mut` will panic if the resulting address is null. Provided
+    /// the region does not contain the null address, `as_mut` will not
+    /// panic.
+    ///
     pub fn as_mut<T: Copy>(&self, offset: usize) -> Result<&'static mut T, RegionOverflow> {
         let addr = self.start + offset;
         let size = core::mem::size_of::<T>();

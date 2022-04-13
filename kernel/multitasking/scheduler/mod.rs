@@ -203,6 +203,7 @@ fn idle_thread() -> Arc<Thread> {
 /// immediately. Calling `switch` does not modify the current
 /// thread's time slice.
 ///
+#[allow(clippy::missing_panics_doc)] // Will only panic if the thread state is inconsistent.
 pub fn switch() {
     let restart_interrupts = interrupts::are_enabled();
     interrupts::disable();

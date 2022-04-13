@@ -201,6 +201,7 @@ impl Driver {
     /// buffers from the send queue and adds them to
     /// the list of send buffers.
     ///
+    #[allow(clippy::missing_panics_doc)] // Can only panic if the device misbehaves.
     pub fn reclaim_send_buffers(&mut self) {
         loop {
             match self.driver.recv(SEND_VIRTQUEUE) {
@@ -471,6 +472,7 @@ struct Config {
 /// Takes ownership of the given PCI device to reset and configure
 /// a virtio network card.
 ///
+#[allow(clippy::missing_panics_doc)] // Can only panic if we run out of memory or the device misbehaves.
 pub fn install_pci_device(device: pci::Device) {
     let transport = match transports::pci::Transport::new(device) {
         Err(err) => {

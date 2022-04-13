@@ -264,6 +264,11 @@ impl Process {
     /// into the process's virtual memory space. This should not be
     /// used to map memory in kernelspace.
     ///
+    /// # Panics
+    ///
+    /// `map_pages` will panic if [`freeze_kernel_mappings`](virtmem::freeze_kernel_mappings)
+    /// has not yet been called.
+    ///
     pub fn map_pages<A>(
         &mut self,
         page_range: VirtPageRange,

@@ -69,6 +69,12 @@ const KERNEL_STACK_SIZE: usize = VirtPageSize::Size4KiB.bytes() * KERNEL_STACK_P
 
 /// Sets up the thread data for this CPU.
 ///
+/// # Panics
+///
+/// `per_cpu_init` will panic if the kernel
+/// is in an inconsistent state and sees
+/// the wrong number of active CPUs.
+///
 pub fn per_cpu_init() {
     // Start by identifying our stack space.
     let id = cpu::id();
@@ -148,6 +154,13 @@ const DEFAULT_RFLAGS: u64 = 0x2;
 /// first, configure the resumption, then call
 /// [`suspend`] or [`sleep`](scheduler::sleep),
 /// as appropriate.
+///
+/// # Panics
+///
+/// `prevent_next_sleep` will panic if the kernel
+/// is in an invalid state and believes that the
+/// current thread has not started, is already
+/// asleep, or is exiting.
 ///
 pub fn prevent_next_sleep() {
     let current = current_thread();
@@ -830,9 +843,14 @@ impl Thread {
 
     /// Prints debug information about the thread.
     ///
-    /// Do not call debug on the currently executing
+    /// Do not call `debug` on the currently executing
     /// thread, as its stack pointer will be out of
     /// date. Call [`debug`] instead.
+    ///
+    /// # Panics
+    ///
+    /// `debug` will panic if called on the currently
+    /// executing thread.
     ///
     pub fn debug(&self) {
         let stack_bounds = match self.stack_bounds {
