@@ -15,6 +15,7 @@
 //! points in time.
 
 #![no_std]
+#![deny(clippy::missing_panics_doc)]
 #![deny(clippy::return_self_not_must_use)]
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
