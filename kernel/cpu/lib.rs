@@ -6,6 +6,7 @@
 //! Analyses the CPU for supported features and branding.
 
 #![no_std]
+#![deny(clippy::float_arithmetic)]
 #![deny(clippy::inline_asm_x86_att_syntax)]
 #![deny(clippy::missing_panics_doc)]
 #![deny(clippy::return_self_not_must_use)]
