@@ -7,6 +7,7 @@
 //! be deadlocked.
 
 #![no_std]
+#![deny(clippy::return_self_not_must_use)]
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
 #![deny(unused_crate_dependencies)]
