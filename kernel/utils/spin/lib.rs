@@ -41,9 +41,9 @@ pub struct Mutex<T: ?Sized> {
 ///
 /// When the guard is dropped, the lock is released.
 ///
-pub struct MutexGuard<'a, T: ?Sized + 'a> {
-    lock: &'a AtomicBool,
-    data: &'a mut T,
+pub struct MutexGuard<'lock, T: ?Sized + 'lock> {
+    lock: &'lock AtomicBool,
+    data: &'lock mut T,
 }
 
 unsafe impl<T: ?Sized + Send> Sync for Mutex<T> {}
@@ -113,11 +113,11 @@ macro_rules! lock {
 /// will unlock the mutex once dropped.
 ///
 #[doc(hidden)]
-pub fn _lock<'a, T: ?Sized>(
-    mutex: &'a Mutex<T>,
+pub fn _lock<'lock, T: ?Sized>(
+    mutex: &'lock Mutex<T>,
     file: &'static str,
     line: u32,
-) -> MutexGuard<'a, T> {
+) -> MutexGuard<'lock, T> {
     let mut counter = 0_usize;
     while mutex
         .lock
@@ -176,32 +176,32 @@ impl<T> From<T> for Mutex<T> {
     }
 }
 
-impl<'a, T: ?Sized + fmt::Debug> fmt::Debug for MutexGuard<'a, T> {
+impl<'lock, T: ?Sized + fmt::Debug> fmt::Debug for MutexGuard<'lock, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(&**self, f)
     }
 }
 
-impl<'a, T: ?Sized + fmt::Display> fmt::Display for MutexGuard<'a, T> {
+impl<'lock, T: ?Sized + fmt::Display> fmt::Display for MutexGuard<'lock, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(&**self, f)
     }
 }
 
-impl<'a, T: ?Sized> Deref for MutexGuard<'a, T> {
+impl<'lock, T: ?Sized> Deref for MutexGuard<'lock, T> {
     type Target = T;
     fn deref(&self) -> &T {
         self.data
     }
 }
 
-impl<'a, T: ?Sized> DerefMut for MutexGuard<'a, T> {
+impl<'lock, T: ?Sized> DerefMut for MutexGuard<'lock, T> {
     fn deref_mut(&mut self) -> &mut T {
         self.data
     }
 }
 
-impl<'a, T: ?Sized> Drop for MutexGuard<'a, T> {
+impl<'lock, T: ?Sized> Drop for MutexGuard<'lock, T> {
     fn drop(&mut self) {
         self.lock.store(false, Ordering::Release);
     }

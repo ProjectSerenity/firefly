@@ -187,7 +187,7 @@ struct DeviceArea {
 /// Virtqueue implements a split virtqueue, as
 /// described in section 2.6.
 ///
-pub struct Virtqueue<'a> {
+pub struct Virtqueue<'desc> {
     // queue_index records which virtqueue
     // this is. The first virtqueue shared
     // with the device is number 0 and the
@@ -222,7 +222,7 @@ pub struct Virtqueue<'a> {
 
     // descriptors is the list of descriptors
     // in the descriptor area.
-    descriptors: &'a mut [Descriptor],
+    descriptors: &'desc mut [Descriptor],
 
     // driver_area is the area used to pass
     // buffers to the device.
@@ -233,7 +233,7 @@ pub struct Virtqueue<'a> {
     device_area: DeviceArea,
 }
 
-impl<'a> Virtqueue<'a> {
+impl<'desc> Virtqueue<'desc> {
     /// Allocates and configures a new split
     /// `Virtqueue`.
     ///
@@ -355,7 +355,7 @@ impl<'a> Virtqueue<'a> {
     }
 }
 
-impl<'a> crate::Virtqueue for Virtqueue<'a> {
+impl<'desc> crate::Virtqueue for Virtqueue<'desc> {
     /// send enqueues a request to the device. A request consists of
     /// a sequence of buffers. The sequence of buffers should place
     /// device-writable buffers after all device-readable buffers.

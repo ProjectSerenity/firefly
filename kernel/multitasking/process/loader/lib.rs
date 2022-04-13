@@ -22,16 +22,16 @@ use memory::{PageTableFlags, VirtAddr};
 /// binary.
 ///
 #[derive(Debug, PartialEq)]
-pub struct Binary<'a> {
+pub struct Binary<'data> {
     entry_point: VirtAddr,
-    segments: Vec<Segment<'a>>,
+    segments: Vec<Segment<'data>>,
 }
 
-impl<'a> Binary<'a> {
+impl<'data> Binary<'data> {
     /// Loads the executable binary with the given name and
     /// contents.
     ///
-    pub fn parse(name: &String, content: &'a [u8]) -> Result<Self, &'static str> {
+    pub fn parse(name: &String, content: &'data [u8]) -> Result<Self, &'static str> {
         if elf::is_elf(name, content) {
             return elf::parse_elf(content);
         }
@@ -58,9 +58,9 @@ impl<'a> Binary<'a> {
 /// process's virtual memory space.
 ///
 #[derive(Debug, PartialEq)]
-pub struct Segment<'a> {
+pub struct Segment<'data> {
     pub start: VirtAddr,
     pub end: VirtAddr,
-    pub data: &'a [u8],
+    pub data: &'data [u8],
     pub flags: PageTableFlags,
 }

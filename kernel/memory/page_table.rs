@@ -325,17 +325,17 @@ const ENTRY_MASK: usize = NUM_ENTRIES - 1;
 
 /// Provides access to a page table and its contents.
 ///
-pub struct PageTable<'a> {
+pub struct PageTable<'entries> {
     // Virtual address at which all physical memory is
     // already mapped. We use this to access page tables
     // (which use physical addresses) via virtual memory.
     physmem_offset: VirtAddr,
 
     // A reference/pointer to the actual page table.
-    table: &'a mut [PageTableEntry; NUM_ENTRIES],
+    table: &'entries mut [PageTableEntry; NUM_ENTRIES],
 }
 
-impl<'a> PageTable<'a> {
+impl<'entries> PageTable<'entries> {
     /// Creates a page table referring to the page table data
     /// at the given address.
     ///

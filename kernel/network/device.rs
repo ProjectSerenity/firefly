@@ -38,7 +38,7 @@ impl WrappedDevice {
     }
 }
 
-impl<'a> smoltcp::phy::Device<'a> for WrappedDevice {
+impl<'device> smoltcp::phy::Device<'device> for WrappedDevice {
     type RxToken = RecvToken;
     type TxToken = SendToken;
 
@@ -47,7 +47,7 @@ impl<'a> smoltcp::phy::Device<'a> for WrappedDevice {
     /// pop off the next packet from the receive
     /// queue and return it, or return None if not.
     ///
-    fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
+    fn receive(&'device mut self) -> Option<(Self::RxToken, Self::TxToken)> {
         without_interrupts(|| {
             let mut dev = lock!(self.dev);
             if let Some((addr, len)) = dev.recv_packet() {
@@ -69,7 +69,7 @@ impl<'a> smoltcp::phy::Device<'a> for WrappedDevice {
 
     /// transmit is called by the interface when
     /// it wants to send a packet.
-    fn transmit(&'a mut self) -> Option<Self::TxToken> {
+    fn transmit(&'device mut self) -> Option<Self::TxToken> {
         Some(SendToken {
             dev: self.dev.clone(),
         })
@@ -100,7 +100,7 @@ pub struct RecvToken {
     dev: Arc<Mutex<Box<dyn Device>>>,
 }
 
-impl<'a> RxToken for RecvToken {
+impl<'device> RxToken for RecvToken {
     fn consume<R, F>(self, _timestamp: Instant, f: F) -> smoltcp::Result<R>
     where
         F: FnOnce(&mut [u8]) -> smoltcp::Result<R>,
@@ -135,7 +135,7 @@ pub struct SendToken {
     dev: Arc<Mutex<Box<dyn Device>>>,
 }
 
-impl<'a> TxToken for SendToken {
+impl<'device> TxToken for SendToken {
     fn consume<R, F>(self, _timestamp: Instant, len: usize, f: F) -> smoltcp::Result<R>
     where
         F: FnOnce(&mut [u8]) -> smoltcp::Result<R>,

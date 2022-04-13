@@ -28,7 +28,7 @@ pub fn is_elf(name: &String, content: &[u8]) -> bool {
 /// If `parse` returns an `Ok` result, no further
 /// checks will be necessary.
 ///
-pub fn parse_elf<'a>(binary: &'a [u8]) -> Result<Binary, &'static str> {
+pub fn parse_elf<'bin>(binary: &'bin [u8]) -> Result<Binary, &'static str> {
     const GNU_STACK: Type = Type::OsSpecific(1685382481); // GNU stack segment.
 
     let elf = ElfFile::new(binary)?;

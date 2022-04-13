@@ -80,7 +80,7 @@ pub enum Error {
 /// An iterator returning the file information about
 /// each entry in a TAR archive.
 ///
-pub struct Reader<'a> {
+pub struct Reader<'device> {
     // The buffer we use to store headers.
     header: [u8; BLOCK_SIZE],
 
@@ -93,17 +93,17 @@ pub struct Reader<'a> {
     num_segments: usize,
 
     // The block device we're reading from.
-    device: &'a mut Box<dyn block::Device + Send>,
+    device: &'device mut Box<dyn block::Device + Send>,
 }
 
-impl<'a> Reader<'a> {
+impl<'device> Reader<'device> {
     /// Read the TAR archive data from the given block
     /// device.
     ///
     /// The block device must have a segment size that
     /// is an exact multiple of 512 bytes.
     ///
-    pub fn new(device: &'a mut Box<dyn block::Device + Send>) -> Self {
+    pub fn new(device: &'device mut Box<dyn block::Device + Send>) -> Self {
         Reader {
             header: [0u8; BLOCK_SIZE],
             next_segment: 0,
@@ -387,7 +387,7 @@ impl<'a> Reader<'a> {
     }
 }
 
-impl<'a> Iterator for Reader<'a> {
+impl<'device> Iterator for Reader<'device> {
     type Item = File;
 
     fn next(&mut self) -> Option<Self::Item> {

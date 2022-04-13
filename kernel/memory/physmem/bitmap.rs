@@ -543,17 +543,19 @@ impl BitmapFrameTracker {
 /// then be used to deallocate all memory used in
 /// the arena.
 ///
-pub struct ArenaFrameAllocator<'a, 't, A: PhysFrameAllocator + PhysFrameDeallocator> {
-    tracker: &'t mut BitmapFrameTracker,
-    allocator: &'a mut A,
+pub struct ArenaFrameAllocator<'allocator, 'tracker, A: PhysFrameAllocator + PhysFrameDeallocator> {
+    tracker: &'tracker mut BitmapFrameTracker,
+    allocator: &'allocator mut A,
 }
 
-impl<'a, 't, A: PhysFrameAllocator + PhysFrameDeallocator> ArenaFrameAllocator<'a, 't, A> {
+impl<'allocator, 'tracker, A: PhysFrameAllocator + PhysFrameDeallocator>
+    ArenaFrameAllocator<'allocator, 'tracker, A>
+{
     /// Returns a new frame allocator, which will
     /// defer to allocator for `allocations`, then
     /// record them in `tracker`.
     ///
-    pub fn new(allocator: &'a mut A, tracker: &'t mut BitmapFrameTracker) -> Self {
+    pub fn new(allocator: &'allocator mut A, tracker: &'tracker mut BitmapFrameTracker) -> Self {
         ArenaFrameAllocator { tracker, allocator }
     }
 
@@ -575,8 +577,8 @@ impl<'a, 't, A: PhysFrameAllocator + PhysFrameDeallocator> ArenaFrameAllocator<'
     }
 }
 
-unsafe impl<'a, 't, A: PhysFrameAllocator + PhysFrameDeallocator> PhysFrameAllocator
-    for ArenaFrameAllocator<'a, 't, A>
+unsafe impl<'allocator, 'tracker, A: PhysFrameAllocator + PhysFrameDeallocator> PhysFrameAllocator
+    for ArenaFrameAllocator<'allocator, 'tracker, A>
 {
     /// Returns the next available physical frame, or `None`.
     ///
@@ -590,8 +592,8 @@ unsafe impl<'a, 't, A: PhysFrameAllocator + PhysFrameDeallocator> PhysFrameAlloc
     }
 }
 
-impl<'a, 't, A: PhysFrameAllocator + PhysFrameDeallocator> PhysFrameDeallocator
-    for ArenaFrameAllocator<'a, 't, A>
+impl<'allocator, 'tracker, A: PhysFrameAllocator + PhysFrameDeallocator> PhysFrameDeallocator
+    for ArenaFrameAllocator<'allocator, 'tracker, A>
 {
     /// Marks the given physical memory frame as unused and returns it to the
     /// list of free frames for later use.
