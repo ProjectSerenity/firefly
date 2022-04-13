@@ -163,6 +163,7 @@ impl Config {
     ///
     /// Repeating the call at a later time may succeed.
     ///
+    #[must_use]
     pub fn set_non_blocking(self) -> Self {
         Config {
             non_blocking: true,
@@ -176,6 +177,7 @@ impl Config {
     /// `set_recv_packet_size` will panic if given a
     /// `num_packets` of zero.
     ///
+    #[must_use]
     pub fn set_recv_packet_size(self, num_packets: usize) -> Self {
         Config {
             recv_packet_size: num_packets,
@@ -188,6 +190,7 @@ impl Config {
     ///
     /// `set_send_packet_size` will panic if given a `num_packets` of zero.
     ///
+    #[must_use]
     pub fn set_send_packet_size(self, num_packets: usize) -> Self {
         Config {
             send_packet_size: num_packets,
@@ -199,6 +202,7 @@ impl Config {
     ///
     /// `set_recv_buffer_size` will panic if given a `size` of zero.
     ///
+    #[must_use]
     pub fn set_recv_buffer_size(self, size: usize) -> Self {
         Config {
             recv_buffer_size: size,
@@ -210,6 +214,7 @@ impl Config {
     ///
     /// `set_send_buffer_size` will panic if given a `size` of zero.
     ///
+    #[must_use]
     pub fn set_send_buffer_size(self, size: usize) -> Self {
         Config {
             send_buffer_size: size,

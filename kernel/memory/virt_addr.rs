@@ -97,6 +97,7 @@ impl VirtAddr {
     /// for convenience.
     ///
     #[inline]
+    #[must_use]
     pub fn as_x86_64(&self) -> x86_64::VirtAddr {
         x86_64::VirtAddr::new(self.0 as u64)
     }
@@ -127,6 +128,7 @@ impl VirtAddr {
     /// two.
     ///
     #[inline]
+    #[must_use]
     pub const fn align_down(self, align: usize) -> Self {
         // A change of alignment cannot make a valid
         // address invalid, so we can skip the checks
@@ -143,6 +145,7 @@ impl VirtAddr {
     /// two.
     ///
     #[inline]
+    #[must_use]
     pub const fn align_up(self, align: usize) -> Self {
         // A change of alignment cannot make a valid
         // address invalid, so we can skip the checks

@@ -192,6 +192,7 @@ impl ListenConfig {
     ///
     /// Repeating the call at a later time may succeed.
     ///
+    #[must_use]
     pub fn set_non_blocking(self) -> Self {
         ListenConfig {
             non_blocking: true,
@@ -210,6 +211,7 @@ impl ListenConfig {
     /// `backlog` is larger than [`MAX_BACKLOG`], the maximum is used
     /// instead.
     ///
+    #[must_use]
     pub fn set_backlog(self, backlog: usize) -> Self {
         let backlog = min(backlog, MAX_BACKLOG);
 
@@ -220,6 +222,7 @@ impl ListenConfig {
     ///
     /// `set_recv_buffer_size` will panic if given a `size` of zero.
     ///
+    #[must_use]
     pub fn set_recv_buffer_size(self, size: usize) -> Self {
         ListenConfig {
             recv_buffer_size: size,
@@ -231,6 +234,7 @@ impl ListenConfig {
     ///
     /// `set_send_buffer_size` will panic if given a `size` of zero.
     ///
+    #[must_use]
     pub fn set_send_buffer_size(self, size: usize) -> Self {
         ListenConfig {
             send_buffer_size: size,
@@ -496,6 +500,7 @@ impl DialConfig {
     ///
     /// Repeating the call at a later time may succeed.
     ///
+    #[must_use]
     pub fn set_non_blocking(self) -> Self {
         DialConfig {
             non_blocking: true,
@@ -511,6 +516,7 @@ impl DialConfig {
     /// setting a local IPv4 address will cause [`dial`](DialConfig::dial)
     /// calls to IPv6 addresses to fail.
     ///
+    #[must_use]
     pub fn set_local_addr<T: Into<IpEndpoint>>(self, addr: T) -> Self {
         DialConfig {
             local: addr.into(),
@@ -522,6 +528,7 @@ impl DialConfig {
     ///
     /// `set_recv_buffer_size` will panic if given a `size` of zero.
     ///
+    #[must_use]
     pub fn set_recv_buffer_size(self, size: usize) -> Self {
         DialConfig {
             recv_buffer_size: size,
@@ -533,6 +540,7 @@ impl DialConfig {
     ///
     /// `set_send_buffer_size` will panic if given a `size` of zero.
     ///
+    #[must_use]
     pub fn set_send_buffer_size(self, size: usize) -> Self {
         DialConfig {
             send_buffer_size: size,
