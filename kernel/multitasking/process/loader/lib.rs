@@ -6,6 +6,7 @@
 //! Provides functionality to parse and validate loadable binaries.
 
 #![no_std]
+#![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
 #![deny(unused_crate_dependencies)]
 

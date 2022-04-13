@@ -21,6 +21,7 @@
 //! handler, this will pre-empt threads to allow fair sharing of the CPU.
 
 #![no_std]
+#![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
 #![deny(unused_crate_dependencies)]
 #![feature(binary_heap_retain)]
