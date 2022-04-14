@@ -1,5 +1,5 @@
 {
-  "checksum": "3fe268325e4d94b8868cc2cdf0a7cc8d6c44f84fc34d1a1ceb723fdbd44d2c03",
+  "checksum": "f9c3d883c85a9444aab303e2eecbd3e5888896822e542499dceb8f31d08d1b3b",
   "crates": {
     "bit_field 0.10.1": {
       "name": "bit_field",
