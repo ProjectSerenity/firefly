@@ -93,6 +93,7 @@ pub enum FileType {
 
 /// Describes a file or directory.
 ///
+#[derive(Debug)]
 pub struct FileInfo {
     /// The file/directory's name.
     ///
