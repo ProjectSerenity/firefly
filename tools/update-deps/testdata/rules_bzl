@@ -37,6 +37,15 @@ RULES_GO = struct(
     sha256 = "d6b2513456fe2229811da7eb67a444be7785f5323c6708b38d851d2b51e54d83",
 )
 
+RULES_LICENSE = struct(
+    name = "rules_license",
+    repo = "bazelbuild/rules_license",
+    branch = "main",
+    archive = "https://github.com/bazelbuild/rules_license/archive/{v}.tar.gz",
+    version = "4a20d4e66ffefd3c0db5b72f7a7a5ea69c9d6806",
+    sha256 = "12c6c87972d251a19bad450ad81b3c3a4ff69280f979d24c5a84798af03282ef",
+)
+
 RULES_PKG = struct(
     name = "rules_pkg",
     repo = "bazelbuild/rules_pkg",

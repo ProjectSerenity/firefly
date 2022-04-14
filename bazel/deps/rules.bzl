@@ -9,8 +9,8 @@ RULES_BUILDTOOLS = struct(
     name = "com_github_bazelbuild_buildtools",
     repo = "bazelbuild/buildtools",
     archive = "https://github.com/bazelbuild/buildtools/archive/{v}.zip",
-    version = "5.0.1",
-    sha256 = "518b2ce90b1f8ad7c9a319ca84fd7de9a0979dd91e6d21648906ea68faa4f37a",
+    version = "5.1.0",
+    sha256 = "cc09d23397bce782542b7b4ad8e8c3de484f544df2d6d9f9add9469754cfcd20",
 )
 
 RULES_CC = struct(
@@ -33,24 +33,33 @@ RULES_GO = struct(
     name = "io_bazel_rules_go",
     repo = "bazelbuild/rules_go",
     archive = "https://github.com/bazelbuild/rules_go/releases/download/v{v}/rules_go-v{v}.zip",
-    version = "0.30.0",
-    sha256 = "d6b2513456fe2229811da7eb67a444be7785f5323c6708b38d851d2b51e54d83",
+    version = "0.31.0",
+    sha256 = "f2dcd210c7095febe54b804bb1cd3a58fe8435a909db2ec04e31542631cf715c",
+)
+
+RULES_LICENSE = struct(
+    name = "rules_license",
+    repo = "bazelbuild/rules_license",
+    branch = "main",
+    archive = "https://github.com/bazelbuild/rules_license/archive/{v}.tar.gz",
+    version = "4a20d4e66ffefd3c0db5b72f7a7a5ea69c9d6806",
+    sha256 = "12c6c87972d251a19bad450ad81b3c3a4ff69280f979d24c5a84798af03282ef",
 )
 
 RULES_PKG = struct(
     name = "rules_pkg",
     repo = "bazelbuild/rules_pkg",
     archive = "https://github.com/bazelbuild/rules_pkg/releases/download/{v}/rules_pkg-{v}.tar.gz",
-    version = "0.6.0",
-    sha256 = "62eeb544ff1ef41d786e329e1536c1d541bb9bcad27ae984d57f18f314018e66",
+    version = "0.7.0",
+    sha256 = "8a298e832762eda1830597d64fe7db58178aa84cd5926d76d5b744d6558941c2",
 )
 
 RULES_PROTOBUF = struct(
     name = "com_google_protobuf",
     repo = "protocolbuffers/protobuf",
     archive = "https://github.com/protocolbuffers/protobuf/archive/v{v}.zip",
-    version = "3.19.4",
-    sha256 = "25680843adf0c3302648d35f744e38cc3b6b05a6c77a927de5aea3e1c2e36106",
+    version = "3.20.0",
+    sha256 = "6bd1e17170ccb166029a1a5857e864020a18ed019a63fa8f1ac3b605f7be4466",
 )
 
 RULES_RUST = struct(
@@ -58,8 +67,8 @@ RULES_RUST = struct(
     repo = "bazelbuild/rules_rust",
     branch = "main",
     archive = "https://github.com/bazelbuild/rules_rust/archive/{v}.tar.gz",
-    version = "7c865ffeb1472c6ff2541c221169ba706ea0d839",
-    sha256 = "4bc9124b7ac63ccca8e5eb1a09d57d00dc5e442a9c7fef16cc6f7958ae95c05a",
+    version = "c3f56c2d50c29c97c513f158bcb1dfef1bd52f1e",
+    sha256 = "ab3de8c51a210bae2987bd0d3379b84d50c0e053219fad14969a93a842f1eabc",
 )
 
 RULES_SKYLIB = struct(
@@ -120,6 +129,13 @@ def rules_deps():
         sha256 = RULES_RUST.sha256,
         strip_prefix = "rules_rust-{v}".format(v = RULES_RUST.version),
         urls = [RULES_RUST.archive.format(v = RULES_RUST.version)],
+    )
+
+    http_archive(
+        name = RULES_LICENSE.name,
+        sha256 = RULES_LICENSE.sha256,
+        strip_prefix = "rules_license-{v}".format(v = RULES_LICENSE.version),
+        urls = [RULES_LICENSE.archive.format(v = RULES_LICENSE.version)],
     )
 
     http_archive(

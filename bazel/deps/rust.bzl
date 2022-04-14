@@ -4,8 +4,8 @@
 # license that can be found in the LICENSE file.
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-load("@rules_rust//crate_universe:crates.bzl", "crate_deps_repository")
 load("@rules_rust//crate_universe:defs.bzl", "crate", "crates_repository")
+load("@rules_rust//crate_universe:repositories.bzl", "crate_universe_dependencies")
 load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_register_toolchains")
 
 RUST_VERSION = "nightly"
@@ -188,9 +188,7 @@ def rust_deps():
 
     # Specify and configure the crates we use.
 
-    crate_deps_repository(
-        bootstrap = True,
-    )
+    crate_universe_dependencies()
 
     crates_repository(
         name = "crates",

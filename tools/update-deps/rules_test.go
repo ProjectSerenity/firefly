@@ -60,6 +60,14 @@ func TestParseRulesBzl(t *testing.T) {
 			SHA256:  "d6b2513456fe2229811da7eb67a444be7785f5323c6708b38d851d2b51e54d83",
 		},
 		{
+			Name:    "rules_license",
+			Repo:    "bazelbuild/rules_license",
+			Branch:  "main",
+			Archive: "https://github.com/bazelbuild/rules_license/archive/{v}.tar.gz",
+			Version: "4a20d4e66ffefd3c0db5b72f7a7a5ea69c9d6806",
+			SHA256:  "12c6c87972d251a19bad450ad81b3c3a4ff69280f979d24c5a84798af03282ef",
+		},
+		{
 			Name:    "rules_pkg",
 			Repo:    "bazelbuild/rules_pkg",
 			Archive: "https://github.com/bazelbuild/rules_pkg/releases/download/{v}/rules_pkg-{v}.tar.gz",
