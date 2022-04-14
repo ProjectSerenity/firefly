@@ -9,7 +9,7 @@ use crate::{Binary, Segment, MAX_SEGMENTS};
 use alloc::string::String;
 use alloc::vec::Vec;
 use memory::constants::USERSPACE;
-use memory::{PageTableFlags, VirtAddr, VirtAddrRange};
+use memory::{PageTableFlags, VirtAddr, VirtAddrRange, VirtPage, VirtPageSize};
 use xmas_elf::header::{sanity_check, Class, Data, Machine, Version};
 use xmas_elf::program::{ProgramHeader, Type};
 use xmas_elf::ElfFile;
@@ -69,8 +69,8 @@ pub fn parse_elf<'bin>(binary: &'bin [u8]) -> Result<Binary, &'static str> {
     // and switch to a new page table, we won't encounter
     // any errors and have to switch back. We also check
     // that none of the segments overlap.
-    let mut regions = Vec::new();
-    let mut segments = Vec::new();
+    let mut segments: Vec<Segment> = Vec::new();
+    let mut regions: Vec<VirtAddrRange> = Vec::new();
     for prog in elf.program_iter() {
         match prog {
             ProgramHeader::Ph64(header) => {
@@ -120,6 +120,27 @@ pub fn parse_elf<'bin>(binary: &'bin [u8]) -> Result<Binary, &'static str> {
                             && !flags.contains(PageTableFlags::NO_EXECUTE)
                         {
                             return Err("program segments cannot be both writable and executable");
+                        }
+
+                        // Check that the segment flags are correct.
+                        //
+                        // We've already ensured that no two segments overlap in
+                        // memory. This checks that where two (or more) segments
+                        // share a page, they all agree on the page flags. We have
+                        // few enough segments that we need not worry about this
+                        // check being particularly efficient.
+                        let start_page =
+                            VirtPage::containing_address(start, VirtPageSize::Size4KiB);
+                        let end_page = VirtPage::containing_address(end, VirtPageSize::Size4KiB);
+                        for other in segments.iter() {
+                            if (start_page.contains(other.start)
+                                || start_page.contains(other.end)
+                                || end_page.contains(other.start)
+                                || end_page.contains(other.end))
+                                && other.flags != flags
+                            {
+                                return Err("program segments with different flags share a page");
+                            }
                         }
 
                         let segment = Segment {
