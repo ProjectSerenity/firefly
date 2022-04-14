@@ -167,17 +167,7 @@ def rust_deps():
     )
 
     # Set up the Rust crates we depend on. Most of these are fetched
-    # using the experimental crate_universe functionality in rules_rust.
-    #
-    # Some crates require customisation beyond what crate_universe can
-    # give us. In particular, there doesn't seem to be support for:
-    #
-    # - Avoiding the use of optional dependencies.
-    # - Forcing the use of additional dependencies unconditionally.
-    #
-    # For the few crates this precludes, we instead fetch them using
-    # http_archive targets, injecting a custom build file. Those build
-    # files are all in //bazel/third_party.
+    # using the experimental crates_repository functionality in rules_rust.
 
     rules_rust_dependencies()
 
