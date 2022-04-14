@@ -127,14 +127,32 @@ impl PhysAddr {
     /// `align` must be an exact multiple of
     /// two.
     ///
+    /// # Panics
+    ///
+    /// `align_down` may panic if the change of
+    /// alignment results in an invalid address.
+    /// See also [`try_align_down`](Self::try_align_down),
+    /// which does not panic.
+    ///
     #[inline]
     #[must_use]
+    #[track_caller]
     pub const fn align_down(self, align: usize) -> Self {
-        // A change of alignment cannot make a valid
-        // address invalid, so we can skip the checks
-        // in the constructor and return the result
-        // directly.
-        PhysAddr(align_down_usize(self.0, align))
+        PhysAddr::new(align_down_usize(self.0, align))
+    }
+
+    /// Aligns the physical address downwards
+    /// to the largest exact multiple of `align`
+    /// that is no larger than the address.
+    /// Returns `None` if the resulting address
+    /// is invalid.
+    ///
+    /// `align` must be an exact multiple of
+    /// two.
+    ///
+    #[inline]
+    pub const fn try_align_down(self, align: usize) -> Result<Self, InvalidPhysAddr> {
+        PhysAddr::try_new(align_down_usize(self.0, align))
     }
 
     /// Aligns the physical address upwards to
@@ -144,14 +162,32 @@ impl PhysAddr {
     /// `align` must be an exact multiple of
     /// two.
     ///
+    /// # Panics
+    ///
+    /// `align_up` may panic if the change of
+    /// alignment results in an invalid address.
+    /// See also [`try_align_up`](Self::try_align_up),
+    /// which does not panic.
+    ///
     #[inline]
     #[must_use]
+    #[track_caller]
     pub const fn align_up(self, align: usize) -> Self {
-        // A change of alignment cannot make a valid
-        // address invalid, so we can skip the checks
-        // in the constructor and return the result
-        // directly.
-        PhysAddr(align_up_usize(self.0, align))
+        PhysAddr::new(align_up_usize(self.0, align))
+    }
+
+    /// Aligns the physical address upwards to
+    /// the smallest exact multiple of `align`
+    /// that is no smaller than the address.
+    /// Returns `None` if the resulting address
+    /// is invalid.
+    ///
+    /// `align` must be an exact multiple of
+    /// two.
+    ///
+    #[inline]
+    pub const fn try_align_up(self, align: usize) -> Result<Self, InvalidPhysAddr> {
+        PhysAddr::try_new(align_up_usize(self.0, align))
     }
 
     /// Checks whether the physical address has
