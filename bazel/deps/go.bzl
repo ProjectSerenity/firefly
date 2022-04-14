@@ -23,8 +23,8 @@ def go_deps():
     go_repository(
         name = "com_github_BurntSushi_toml",
         importpath = "github.com/BurntSushi/toml",
-        sum = "h1:dtDWrepsVPfW9H/4y7dDgFc2MBUSeJhlaDtK13CxFlU=",
-        version = "v1.0.0",
+        sum = "h1:ksErzDEI1khOiGPgpwuI7x2ebx/uXQNw7xJpn9Eq1+I=",
+        version = "v1.1.0",
     )
 
     go_repository(
@@ -38,6 +38,6 @@ def go_deps():
     go_repository(
         name = "org_golang_x_time",
         importpath = "golang.org/x/time",
-        sum = "h1:M73Iuj3xbbb9Uk1DYhzydthsj6oOd6l9bpuFcNoUvTs=",
-        version = "v0.0.0-20220224211638-0e9765cccd65",
+        sum = "h1:+gHMid33q6pen7kv9xvT+JRinntgeXO2AeZVd0AWD3w=",
+        version = "v0.0.0-20220411224347-583f2d630306",
     )
