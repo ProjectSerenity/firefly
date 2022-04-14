@@ -48,7 +48,10 @@ nogo(
 # gazelle:resolve go github.com/bazelbuild/buildtools/build @com_github_bazelbuild_buildtools//build:go_default_library
 
 # Allow Gazelle to be run with `bazel run //:gazelle`.
-gazelle(name = "gazelle")
+gazelle(
+    name = "gazelle",
+    external = "external",
+)
 
 # Allow Buildifier to be run with `bazel run //:buildifier`.
 buildifier(
