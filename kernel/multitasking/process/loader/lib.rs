@@ -24,6 +24,11 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use memory::{PageTableFlags, VirtAddr};
 
+/// The maximum number of program segments in any
+/// one process.
+///
+const MAX_SEGMENTS: usize = 16;
+
 /// Represents the parsed information about an ELF
 /// binary.
 ///

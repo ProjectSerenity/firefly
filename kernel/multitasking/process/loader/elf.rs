@@ -5,7 +5,7 @@
 
 //! Provides functionality to parse and validate ELF binaries.
 
-use super::{Binary, Segment};
+use crate::{Binary, Segment, MAX_SEGMENTS};
 use alloc::string::String;
 use alloc::vec::Vec;
 use memory::constants::USERSPACE;
@@ -79,6 +79,10 @@ pub fn parse_elf<'bin>(binary: &'bin [u8]) -> Result<Binary, &'static str> {
                     Type::Load => {
                         if header.mem_size < header.file_size {
                             return Err("program segment is larger on disk than in memory");
+                        }
+
+                        if segments.len() >= MAX_SEGMENTS {
+                            return Err("too many program segments");
                         }
 
                         // Check the segment doesn't overlap with
