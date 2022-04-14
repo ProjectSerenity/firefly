@@ -46,6 +46,7 @@ nogo(
 # gazelle:go_naming_convention import
 # gazelle:go_naming_convention_external import
 # gazelle:resolve go github.com/bazelbuild/buildtools/build @com_github_bazelbuild_buildtools//build:go_default_library
+# gazelle:resolve go github.com/bazelbuild/buildtools/labels @com_github_bazelbuild_buildtools//labels:go_default_library
 
 # Allow Gazelle to be run with `bazel run //:gazelle`.
 gazelle(
