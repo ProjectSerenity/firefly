@@ -71,7 +71,7 @@ fn initial_workload() -> ! {
                 info.size > 0
                     && info.file_type == FileType::RegularFile
                     && info.permissions.contains(Permissions::EXECUTE)
-                    && info.name == "./initial-workload"
+                    && info.name == "initial-workload"
             })
             .next()
             .expect("initial workload not found");
