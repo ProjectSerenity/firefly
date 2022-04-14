@@ -37,8 +37,4 @@ go_test(
     ],
     data = glob(["testdata/*"]),
     embed = [":crate-deps_lib"],
-    deps = [
-        "@com_github_bazelbuild_buildtools//build:go_default_library",
-        "@com_github_bazelbuild_buildtools//labels:go_default_library",
-    ],
 )
