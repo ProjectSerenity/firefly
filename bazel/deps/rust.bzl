@@ -116,7 +116,7 @@ RUST_CRATES = {
         version = "=0.5.8",
     ),
     "uart_16550": crate.spec(
-        version = "=0.2.16",
+        version = "=0.2.17",
     ),
     "usize_conversions": crate.spec(
         version = "=0.2.0",
@@ -125,7 +125,7 @@ RUST_CRATES = {
         version = "=0.4.4",
     ),
     "x86_64": crate.spec(
-        version = "=0.14.8",
+        version = "=0.14.9",
     ),
     "xmas-elf": crate.spec(
         version = "=0.8.0",

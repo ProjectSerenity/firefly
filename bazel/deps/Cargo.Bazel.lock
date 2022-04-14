@@ -1,5 +1,5 @@
 {
-  "checksum": "573b7ac6e0d60ad3243f718ef6c04903cf167b8a9730fa4f472a528257f4cb15",
+  "checksum": "3fe268325e4d94b8868cc2cdf0a7cc8d6c44f84fc34d1a1ceb723fdbd44d2c03",
   "crates": {
     "bit_field 0.10.1": {
       "name": "bit_field",
@@ -185,7 +185,7 @@
               "target": "toml"
             },
             {
-              "id": "uart_16550 0.2.16",
+              "id": "uart_16550 0.2.17",
               "target": "uart_16550"
             },
             {
@@ -197,7 +197,7 @@
               "target": "volatile"
             },
             {
-              "id": "x86_64 0.14.8",
+              "id": "x86_64 0.14.9",
               "target": "x86_64"
             },
             {
@@ -478,7 +478,7 @@
         "deps": {
           "common": [
             {
-              "id": "x86_64 0.14.8",
+              "id": "x86_64 0.14.9",
               "target": "x86_64"
             }
           ],
@@ -575,6 +575,65 @@
         "version": "1.0.0"
       },
       "license": "MIT/Apache-2.0"
+    },
+    "rustversion 1.0.6": {
+      "name": "rustversion",
+      "version": "1.0.6",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/rustversion/1.0.6/download",
+          "sha256": "f2cc38e8fa666e2de3c4aba7edeb5ffc5246c1c2ed0e3d17e560aeeba736b23f"
+        }
+      },
+      "targets": [
+        {
+          "ProcMacro": {
+            "crate_name": "rustversion",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "include": [
+                "**/*.rs"
+              ],
+              "exclude": []
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build/build.rs",
+            "srcs": {
+              "include": [
+                "**/*.rs"
+              ],
+              "exclude": []
+            }
+          }
+        }
+      ],
+      "library_target_name": "rustversion",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "rustversion 1.0.6",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "1.0.6"
+      },
+      "build_script_attrs": {
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT OR Apache-2.0"
     },
     "serde 1.0.136": {
       "name": "serde",
@@ -780,13 +839,13 @@
       },
       "license": "MIT/Apache-2.0"
     },
-    "uart_16550 0.2.16": {
+    "uart_16550 0.2.17": {
       "name": "uart_16550",
-      "version": "0.2.16",
+      "version": "0.2.17",
       "repository": {
         "Http": {
-          "url": "https://crates.io/api/v1/crates/uart_16550/0.2.16/download",
-          "sha256": "af81448a9a53c7b0f66198381f80912fd18f2c8965f9da4319e6f92e740bca5b"
+          "url": "https://crates.io/api/v1/crates/uart_16550/0.2.17/download",
+          "sha256": "3616395dbb38a9c39a5865b5691c21d9f8369ba876355cfef8ce39d0d4cf3281"
         }
       },
       "targets": [
@@ -822,7 +881,7 @@
           "selects": {
             "cfg(target_arch = \"x86_64\")": [
               {
-                "id": "x86_64 0.14.8",
+                "id": "x86_64 0.14.9",
                 "target": "x86_64"
               }
             ]
@@ -832,7 +891,7 @@
           "@crates//:x86_64"
         ],
         "edition": "2018",
-        "version": "0.2.16"
+        "version": "0.2.17"
       },
       "license": "MIT"
     },
@@ -902,13 +961,13 @@
       },
       "license": "MIT OR Apache-2.0"
     },
-    "x86_64 0.14.8": {
+    "x86_64 0.14.9": {
       "name": "x86_64",
-      "version": "0.14.8",
+      "version": "0.14.9",
       "repository": {
         "Http": {
-          "url": "https://crates.io/api/v1/crates/x86_64/0.14.8/download",
-          "sha256": "958ab3202b01bc43ba2eb832102c4a487ed93151667a2289062e5f2b00058be2"
+          "url": "https://crates.io/api/v1/crates/x86_64/0.14.9/download",
+          "sha256": "958cd5cb28e720db2f59ee9dc4235b5f82a183d079fb0e6caf43ad074cfdc66a"
         }
       },
       "targets": [
@@ -916,18 +975,6 @@
           "Library": {
             "crate_name": "x86_64",
             "crate_root": "src/lib.rs",
-            "srcs": {
-              "include": [
-                "**/*.rs"
-              ],
-              "exclude": []
-            }
-          }
-        },
-        {
-          "BuildScript": {
-            "crate_name": "build_script_build",
-            "crate_root": "build.rs",
             "srcs": {
               "include": [
                 "**/*.rs"
@@ -949,7 +996,8 @@
           "doc_cfg",
           "inline_asm",
           "instructions",
-          "nightly"
+          "nightly",
+          "step_trait"
         ],
         "deps": {
           "common": [
@@ -964,21 +1012,21 @@
             {
               "id": "volatile 0.4.4",
               "target": "volatile"
-            },
-            {
-              "id": "x86_64 0.14.8",
-              "target": "build_script_build"
             }
           ],
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.14.8"
-      },
-      "build_script_attrs": {
-        "data_glob": [
-          "**"
-        ]
+        "proc_macro_deps": {
+          "common": [
+            {
+              "id": "rustversion 1.0.6",
+              "target": "rustversion"
+            }
+          ],
+          "selects": {}
+        },
+        "version": "0.14.9"
       },
       "license": "MIT/Apache-2.0"
     },
