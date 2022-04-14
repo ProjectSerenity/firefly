@@ -154,6 +154,17 @@ impl VirtPage {
         self.size
     }
 
+    /// Returns whether `addr` exists within
+    /// this page.
+    ///
+    #[inline]
+    pub const fn contains(&self, addr: VirtAddr) -> bool {
+        // We compare the underlying usize values
+        // to remain constant.
+        self.start_addr.as_usize() <= addr.as_usize()
+            && addr.as_usize() <= self.end_address().as_usize()
+    }
+
     /// Returns an exclusive page range
     /// of `[start, end)`.
     ///
