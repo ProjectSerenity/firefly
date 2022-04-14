@@ -33,10 +33,11 @@ func init() {
 // in //bazel/deps/go.bzl.
 //
 type GoModuleData struct {
-	Name    StringField `bzl:"name"`
-	Path    StringField `bzl:"importpath"`
-	Sum     StringField `bzl:"sum"`
-	Version StringField `bzl:"version"`
+	Name          StringField `bzl:"name"`
+	Path          StringField `bzl:"importpath"`
+	BuildExternal StringField `bzl:"build_external,optional"`
+	Sum           StringField `bzl:"sum"`
+	Version       StringField `bzl:"version"`
 }
 
 // Parse go.bzl, returning the set of imported

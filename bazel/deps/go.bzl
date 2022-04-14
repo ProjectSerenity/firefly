@@ -30,6 +30,7 @@ def go_deps():
     go_repository(
         name = "org_golang_x_mod",
         importpath = "golang.org/x/mod",
+        build_external = "external",
         sum = "h1:OJxoQ/rynoF0dcCdI7cLPktw/hR2cueqYfjm43oqK38=",
         version = "v0.5.1",
     )
