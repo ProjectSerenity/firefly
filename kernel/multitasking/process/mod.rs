@@ -330,7 +330,6 @@ impl Drop for Process {
         let mut arena = ArenaFrameAllocator::new(&mut *allocator, &mut self.tracker);
         unsafe {
             arena.deallocate_all_frames();
-            drop(arena);
             allocator.deallocate_phys_frame(self.page_table);
         }
 
