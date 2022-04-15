@@ -23,7 +23,7 @@ static ALLOCATOR: Locked<fixed_size_block::FixedSizeBlockAllocator> =
 /// Initialise the static global allocator, enabling the kernel heap.
 ///
 /// The given physical memory frame allocator is used to map the
-/// entirety of the kernel heap address space ([`KERNEL_HEAP`](memlayout::KERNEL_HEAP)).
+/// entirety of the kernel heap address space ([`KERNEL_HEAP`]).
 ///
 /// With the heap initialised, `init` enables global page mappings and the
 /// no-execute permission bit and then remaps virtual memory. This ensures

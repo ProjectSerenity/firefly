@@ -64,6 +64,7 @@ use core::include_str;
 use interrupts::{register_irq, Irq};
 use multitasking::thread::Thread;
 use multitasking::{scheduler, thread};
+use virtmem::heap;
 use x86_64::structures::idt::InterruptStackFrame;
 
 /// The Firefly license text.
@@ -107,8 +108,14 @@ pub fn init(boot_info: &'static BootInfo) {
     register_irq(Irq::PID, timer_interrupt_handler);
     x86_64::instructions::interrupts::enable();
 
-    // Set up the heap allocator.
-    unsafe { virtmem::init(boot_info) };
+    // Set up the heap and physical memory
+    // allocators.
+    unsafe {
+        virtmem::init();
+        let mut frame_allocator = physmem::bootstrap(&boot_info.memory_map);
+        heap::init(&mut frame_allocator).expect("heap initialization failed");
+        physmem::init(frame_allocator); // Switch to a more advanced allocator.
+    }
 
     // Now we have a working heap, we can set
     // up the global memory region for CPU-local

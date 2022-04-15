@@ -25,7 +25,6 @@ rust_library(
         "//kernel/multitasking/process/loader",
         "//kernel/utils/pretty",
         "//kernel/utils/spin",
-        "@bootloader",
         "@crates//:linked_list_allocator",
         "@crates//:x86_64",
     ],

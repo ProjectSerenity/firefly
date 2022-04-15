@@ -57,13 +57,12 @@
 extern crate alloc;
 
 mod bitmap;
-mod heap;
+pub mod heap;
 mod mapping;
 mod translate;
 
 use self::bitmap::BitmapLevel4KernelMappings;
 pub use self::translate::{virt_to_phys_addrs, PhysBuffer};
-use bootloader::BootInfo;
 use core::slice;
 use core::sync::atomic::{AtomicBool, Ordering};
 use memory::constants::KERNELSPACE;
@@ -112,7 +111,7 @@ pub fn kernel_level4_page_table() -> PhysFrame {
 /// references (which is undefined behavior).
 ///
 #[allow(clippy::missing_panics_doc)] // Can only panic if the CPU gives us a bad address.
-pub unsafe fn init(boot_info: &'static BootInfo) {
+pub unsafe fn init() {
     // Prepare the kernel's PML4.
     let (level_4_table_frame, _) = Cr3::read();
     KERNEL_LEVEL4_PAGE_TABLE = PhysFrame::from_start_address(
@@ -120,13 +119,6 @@ pub unsafe fn init(boot_info: &'static BootInfo) {
         PhysFrameSize::Size4KiB,
     )
     .unwrap();
-
-    let mut frame_allocator = physmem::bootstrap(&boot_info.memory_map);
-
-    heap::init(&mut frame_allocator).expect("heap initialization failed");
-
-    // Switch over to a more sophisticated physical memory manager.
-    physmem::init(frame_allocator);
 }
 
 /// Indicates whether the kernel page mappings have
