@@ -6,6 +6,7 @@
 //! Translates virtual addresses to physical addresses.
 
 use alloc::vec::Vec;
+use core::cmp::min;
 use memory::{PageMapping, PageTable, PhysAddr, VirtAddr, VirtPageSize};
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::registers::control::Cr3;
@@ -88,17 +89,28 @@ fn _virt_to_phys_addrs(
                 let offset = addr - frame.start_address();
                 let remaining = frame.size().bytes() - offset;
 
-                bufs.push(PhysBuffer {
+                let next = PhysBuffer {
                     addr,
-                    len: core::cmp::min(len, remaining),
-                });
+                    len: min(len, remaining),
+                };
+
+                if !bufs.is_empty() {
+                    let n = bufs.len();
+                    let prev = bufs.get_mut(n - 1).unwrap();
+                    if prev.addr + prev.len == addr {
+                        prev.len += next.len;
+                    } else {
+                        bufs.push(next);
+                    }
+                } else {
+                    bufs.push(next);
+                }
+
                 virt_addr += remaining;
                 len = len.saturating_sub(remaining);
             }
         }
     }
-
-    // TODO(#10): Merge contiguous regions to reduce the number of buffers we return.
 
     Some(bufs)
 }
@@ -266,20 +278,13 @@ mod test {
         );
 
         // Crossing a contiguous page boundary.
-        // TODO: merge contiguous regions to reduce the number of buffers we return.
         let buf = Vec::with_capacity(5);
         assert_eq!(
             _virt_to_phys_addrs(&page_table, buf.to_vec(), page2 + 4090, 12),
-            Some(vec![
-                PhysBuffer {
-                    addr: frame1 + 4090,
-                    len: 6
-                },
-                PhysBuffer {
-                    addr: frame2,
-                    len: 6
-                }
-            ])
+            Some(vec![PhysBuffer {
+                addr: frame1 + 4090,
+                len: 12
+            }])
         );
     }
 }
