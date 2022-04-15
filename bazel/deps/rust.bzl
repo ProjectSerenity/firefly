@@ -160,17 +160,6 @@ def rust_deps():
         ],
     )
 
-    http_archive(
-        name = "compiler_builtins",
-        build_file = "//bazel/third_party:compiler_builtins.BUILD",
-        sha256 = "80873f979f0a344a4ade87c2f70d9ccf5720b83b10c97ec7cd745895d021e85a",
-        strip_prefix = "compiler_builtins-0.1.70",
-        type = "tgz",
-        urls = [
-            "https://static.crates.io/crates/compiler_builtins/compiler_builtins-0.1.70.crate",
-        ],
-    )
-
     # Fetch libcore, liballoc, and libcompiler-builtins
     # for the x86_64-unknown-none build target.
 
@@ -190,7 +179,6 @@ def rust_deps():
 
     rust_register_toolchains(
         edition = "2021",
-        include_rustc_srcs = True,
         iso_date = RUST_ISO_DATE,
         rustfmt_version = RUST_VERSION,
         sha256s = {

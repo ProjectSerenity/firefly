@@ -32,7 +32,6 @@ def x86_64_rust_toolchain(name, target_triple, stdlib_filegroup):
         rust_std = stdlib_filegroup,
         rustc = "@rust_linux_x86_64//:rustc",
         rustc_lib = "@rust_linux_x86_64//:rustc_lib",
-        rustc_srcs = "@rust_linux_x86_64//lib/rustlib/src:rustc_srcs",
         rustfmt = "@rust_linux_x86_64//:rustfmt_bin",
         staticlib_ext = ".a",
         stdlib_linkflags = [],
