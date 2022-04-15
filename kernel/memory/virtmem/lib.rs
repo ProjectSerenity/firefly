@@ -85,24 +85,19 @@ pub fn kernel_level4_page_table() -> PhysFrame {
 /// - The global heap allocator is initialised to set up the kernel's heap.
 /// - The heap and the bootstrap physical memory manager are used to initialse the second stage physical memory manager.
 ///
-/// # Safety
-///
-/// This function is unsafe because the caller must guarantee
-/// that the complete physical memory is mapped to virtual memory
-/// at [`PHYSICAL_MEMORY_OFFSET`](memory::constants::PHYSICAL_MEMORY_OFFSET).
-///
-/// `init` must be called only once to avoid aliasing &mut
-/// references (which is undefined behavior).
-///
 #[allow(clippy::missing_panics_doc)] // Can only panic if the CPU gives us a bad address.
-pub unsafe fn init() {
+pub fn init() {
     // Prepare the kernel's PML4.
     let (level_4_table_frame, _) = Cr3::read();
-    KERNEL_LEVEL4_PAGE_TABLE = PhysFrame::from_start_address(
+    let level_4_frame = PhysFrame::from_start_address(
         PhysAddr::from_x86_64(level_4_table_frame.start_address()),
         PhysFrameSize::Size4KiB,
     )
     .unwrap();
+
+    unsafe {
+        KERNEL_LEVEL4_PAGE_TABLE = level_4_frame;
+    }
 }
 
 /// Indicates whether the kernel page mappings have

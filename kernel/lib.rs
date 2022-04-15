@@ -110,8 +110,8 @@ pub fn init(boot_info: &'static BootInfo) {
 
     // Set up the heap and physical memory
     // allocators.
+    virtmem::init();
     unsafe {
-        virtmem::init();
         let mut frame_allocator = physmem::bootstrap(&boot_info.memory_map);
         heap::init(&mut frame_allocator).expect("heap initialization failed");
         physmem::init(frame_allocator); // Switch to a more advanced allocator.
