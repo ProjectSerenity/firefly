@@ -6,44 +6,41 @@
 load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rust_test", "rustfmt_test")
 
 rust_library(
-    name = "virtmem",
+    name = "heap",
     srcs = [
-        "bitmap.rs",
+        "fixed_size_block.rs",
         "lib.rs",
-        "mapping.rs",
-        "translate.rs",
     ],
-    crate_name = "virtmem",
+    crate_name = "heap",
     edition = "2021",
     visibility = ["//kernel:__subpackages__"],
     deps = [
-        "//kernel/drivers/serial",
         "//kernel/memory",
-        "//kernel/memory/physmem",
-        "//kernel/multitasking/process/loader",
-        "//kernel/utils/pretty",
+        "//kernel/memory/virtmem",
+        "//kernel/utils/spin",
+        "@crates//:linked_list_allocator",
         "@crates//:x86_64",
     ],
 )
 
 rust_clippy(
     name = "clippy",
-    deps = [":virtmem"],
+    deps = [":heap"],
 )
 
 rust_doc(
     name = "docs",
-    crate = ":virtmem",
+    crate = ":heap",
 )
 
 rustfmt_test(
     name = "fmt_test",
     size = "small",
-    targets = [":virtmem"],
+    targets = [":heap"],
 )
 
 rust_test(
-    name = "virtmem_test",
+    name = "heap_test",
     size = "small",
-    crate = ":virtmem",
+    crate = ":heap",
 )

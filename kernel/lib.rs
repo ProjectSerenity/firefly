@@ -28,6 +28,7 @@
 //! - [filesystem](::filesystem)
 //! - [interrupts](::interrupts)
 //! - [memory](::memory)
+//! - [memory/heap](::heap)
 //! - [memory/mmio](::mmio)
 //! - [memory/physmem](::physmem)
 //! - [memory/segmentation](::segmentation)
@@ -64,7 +65,6 @@ use core::include_str;
 use interrupts::{register_irq, Irq};
 use multitasking::thread::Thread;
 use multitasking::{scheduler, thread};
-use virtmem::heap;
 use x86_64::structures::idt::InterruptStackFrame;
 
 /// The Firefly license text.

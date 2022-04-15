@@ -3,10 +3,7 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-//! Virtual memory management and allocation, plus kernel heap management.
-//!
-//! This module provides the functionality to allocate heap memory. This is
-//! primarily used by Rust's runtime to allocate heap memory for the kernel.
+//! Virtual memory management and allocation.
 //!
 //! The two basic APIs are:
 //!
@@ -29,19 +26,6 @@
 //! - [`map_frames_to_pages`]: Map virtual pages to chosen physical memory.
 //! - [`with_page_tables`]: Allows access to the current page tables.
 //! - [`virt_to_phys_addrs`]: Translate a virtual memory region to the underlying physical memory region(s).
-//!
-//! ## Heap initialisation
-//!
-//! The [`init`] function starts by mapping the entirety of the kernel heap
-//! address space ([`KERNEL_HEAP`](memory::constants::KERNEL_HEAP)) using the physical
-//! frame allocator provided. This virtual memory is then used to initialise
-//! the heap allocator.
-//!
-//! With the heap initialised, `init` enables global page mappings and the
-//! no-execute permission bit and then remaps virtual memory. This ensures
-//! that unexpected page mappings are removed and the remaining page mappings
-//! have the correct flags. For example, the kernel stack is mapped with the
-//! no-execute permission bit set.
 
 #![no_std]
 #![deny(clippy::float_arithmetic)]
@@ -57,11 +41,11 @@
 extern crate alloc;
 
 mod bitmap;
-pub mod heap;
 mod mapping;
 mod translate;
 
 use self::bitmap::BitmapLevel4KernelMappings;
+pub use self::mapping::remap_kernel;
 pub use self::translate::{virt_to_phys_addrs, PhysBuffer};
 use core::slice;
 use core::sync::atomic::{AtomicBool, Ordering};

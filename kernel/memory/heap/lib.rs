@@ -4,14 +4,39 @@
 // license that can be found in the LICENSE file.
 
 //! Manages the kernel's heap, along with the underlying allocator.
+//!
+//! ## Heap initialisation
+//!
+//! The [`init`] function starts by mapping the entirety of the kernel heap
+//! address space ([`KERNEL_HEAP`](memory::constants::KERNEL_HEAP)) using the physical
+//! frame allocator provided. This virtual memory is then used to initialise
+//! the heap allocator.
+//!
+//! With the heap initialised, `init` enables global page mappings and the
+//! no-execute permission bit and then remaps virtual memory. This ensures
+//! that unexpected page mappings are removed and the remaining page mappings
+//! have the correct flags. For example, the kernel stack is mapped with the
+//! no-execute permission bit set.
+
+#![no_std]
+#![deny(clippy::float_arithmetic)]
+#![deny(clippy::inline_asm_x86_att_syntax)]
+#![deny(clippy::missing_panics_doc)]
+#![deny(clippy::panic)]
+#![deny(clippy::return_self_not_must_use)]
+#![deny(clippy::single_char_lifetime_names)]
+#![deny(clippy::wildcard_imports)]
+#![deny(unused_crate_dependencies)]
+#![feature(const_mut_refs)]
+
+extern crate alloc;
 
 mod fixed_size_block;
 
-use crate::mapping::remap_kernel;
-use crate::{map_pages, with_page_tables};
 use memory::constants::KERNEL_HEAP;
 use memory::{PageMappingError, PageTableFlags, PhysFrameAllocator, VirtPage, VirtPageSize};
 use spin::Mutex;
+use virtmem::{map_pages, remap_kernel, with_page_tables};
 use x86_64::registers::control::{Cr4, Cr4Flags};
 use x86_64::registers::model_specific::{Efer, EferFlags};
 
@@ -63,7 +88,7 @@ pub fn init(frame_allocator: &mut impl PhysFrameAllocator) -> Result<(), PageMap
     unsafe { Efer::write(flags) };
 
     // Remap the kernel, now that the heap is set up.
-    with_page_tables(|page_table| unsafe { remap_kernel(page_table) });
+    with_page_tables(remap_kernel);
 
     Ok(())
 }
