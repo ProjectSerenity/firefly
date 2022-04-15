@@ -27,7 +27,7 @@ pub fn add_device(device: Box<dyn Device + Send>) {
 /// Iterate through the set of block storage devices,
 /// calling f on each device.
 ///
-pub fn iter<F>(f: F)
+pub fn iter_devices<F>(f: F)
 where
     F: FnOnce(&mut Box<dyn Device + Send>) + Copy,
 {

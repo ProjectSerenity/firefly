@@ -63,7 +63,7 @@ fn kmain(boot_info: &'static BootInfo) -> ! {
 fn initial_workload() -> ! {
     println!("Starting initial workload.");
 
-    block::iter(|dev| {
+    block::iter_devices(|dev| {
         let mut reader = tar::Reader::new(dev);
         let initial_workload = (&mut reader)
             .find(|f| {
