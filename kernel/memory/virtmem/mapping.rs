@@ -21,11 +21,13 @@ use memory::{
 use pretty::Bytes;
 use x86_64::instructions::tlb;
 
-// remap_kernel remaps all existing mappings for
-// the kernel's stack as non-executable, plus unmaps
-// any unknown mappings left over by the bootloader.
-//
-pub unsafe fn remap_kernel(page_table: &mut PageTable) {
+/// Ensures all page mappings meet our expectations.
+///
+/// This includes ensuring that the kernel is mapped
+/// with the appropriate access controls and unmaps
+/// any unknown mappings left over by the bootloader.
+///
+pub fn remap_kernel(page_table: &mut PageTable) {
     // Analyse and iterate through the page mappings
     // in the PML4.
     //
@@ -118,13 +120,7 @@ fn indices_to_addr(l4: usize, l3: usize, l2: usize, l1: usize) -> VirtAddr {
 /// level_4_table iterates through a level 4 page table,
 /// returning the sequence of contiguous mappings.
 ///
-/// # Safety
-///
-/// This function is unsafe because the caller must
-/// guarantee that all physical memory is mapped in
-/// the given page table.
-///
-pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
+pub fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
     let mut mappings = Vec::new();
     let mut current: Option<Mapping> = None;
     for (i, pml4e) in pml4.iter().enumerate() {
@@ -136,7 +132,7 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
             panic!("invalid huge PML4 page");
         }
 
-        let pdpt = PageTable::at(pml4e.addr()).unwrap(); // unsafe
+        let pdpt = unsafe { PageTable::at(pml4e.addr()).unwrap() };
         for (j, pdpe) in pdpt.iter().enumerate() {
             if !pdpe.is_present() {
                 continue;
@@ -154,7 +150,7 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
                 continue;
             }
 
-            let pdt = PageTable::at(pdpe.addr()).unwrap(); // unsafe
+            let pdt = unsafe { PageTable::at(pdpe.addr()).unwrap() };
             for (k, pde) in pdt.iter().enumerate() {
                 if !pde.is_present() {
                     continue;
@@ -172,7 +168,7 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
                     continue;
                 }
 
-                let pt = PageTable::at(pde.addr()).unwrap(); // unsafe
+                let pt = unsafe { PageTable::at(pde.addr()).unwrap() };
                 for (l, page) in pt.iter().enumerate() {
                     if !page.is_present() {
                         continue;
@@ -205,10 +201,12 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
     // We load the kernel binary from memory, using the
     // flags for each segment to derive its purpose.
 
-    let kernel = slice::from_raw_parts(
-        KERNEL_BINARY.start().as_usize() as *const u8,
-        KERNEL_BINARY.size(),
-    );
+    let kernel = unsafe {
+        slice::from_raw_parts(
+            KERNEL_BINARY.start().as_usize() as *const u8,
+            KERNEL_BINARY.size(),
+        )
+    };
     let kernel_binary =
         Binary::parse_kernel("kernel.bin", kernel).expect("failed to parse kernel binary");
 
