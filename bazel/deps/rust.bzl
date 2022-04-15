@@ -93,9 +93,6 @@ RUST_CRATES = {
     "raw-cpuid": crate.spec(
         version = "=10.3.0",
     ),
-    "rlibc": crate.spec(
-        version = "=1.0.0",
-    ),
     "serde": crate.spec(
         default_features = False,
         features = ["alloc"],

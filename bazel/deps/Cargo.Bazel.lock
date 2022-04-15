@@ -1,5 +1,5 @@
 {
-  "checksum": "f9c3d883c85a9444aab303e2eecbd3e5888896822e542499dceb8f31d08d1b3b",
+  "checksum": "f3c557b9d9ef4c046b68189c555530bab74512a37299a047cf0421bb4c76e455",
   "crates": {
     "bit_field 0.10.1": {
       "name": "bit_field",
@@ -167,10 +167,6 @@
             {
               "id": "raw-cpuid 10.3.0",
               "target": "raw_cpuid"
-            },
-            {
-              "id": "rlibc 1.0.0",
-              "target": "rlibc"
             },
             {
               "id": "serde 1.0.136",
@@ -542,39 +538,6 @@
         "version": "10.3.0"
       },
       "license": "MIT"
-    },
-    "rlibc 1.0.0": {
-      "name": "rlibc",
-      "version": "1.0.0",
-      "repository": {
-        "Http": {
-          "url": "https://crates.io/api/v1/crates/rlibc/1.0.0/download",
-          "sha256": "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "rlibc",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "include": [
-                "**/*.rs"
-              ],
-              "exclude": []
-            }
-          }
-        }
-      ],
-      "library_target_name": "rlibc",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2015",
-        "version": "1.0.0"
-      },
-      "license": "MIT/Apache-2.0"
     },
     "rustversion 1.0.6": {
       "name": "rustversion",

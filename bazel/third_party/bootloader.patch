@@ -2,6 +2,15 @@ diff --git a/src/main.rs b/src/main.rs
 index f63c65e..ffd8e35 100644
 --- a/src/main.rs
 +++ b/src/main.rs
+@@ -7,8 +7,6 @@
+ #[cfg(not(target_os = "none"))]
+ compile_error!("The bootloader crate must be compiled for the `x86_64-bootloader.json` target");
+
+-extern crate rlibc;
+-
+ use bootloader::bootinfo::{BootInfo, FrameRange};
+ use core::arch::asm;
+ use core::{arch::global_asm, convert::TryInto, panic::PanicInfo};
 @@ -29,7 +29,7 @@ use x86_64::{PhysAddr, VirtAddr};
  // KERNEL_STACK_ADDRESS: The virtual address of the kernel stack.
  //
