@@ -6,7 +6,6 @@
 //! Provides functionality to parse and validate ELF binaries.
 
 use crate::{Binary, Segment, MAX_SEGMENTS};
-use alloc::string::String;
 use alloc::vec::Vec;
 use memory::constants::USERSPACE;
 use memory::{PageTableFlags, VirtAddr, VirtAddrRange, VirtPage, VirtPageSize};
@@ -17,7 +16,7 @@ use xmas_elf::ElfFile;
 /// Determines whether the given binary is likely
 /// and ELF binary.
 ///
-pub fn is_elf(name: &String, content: &[u8]) -> bool {
+pub fn is_elf(name: &str, content: &[u8]) -> bool {
     // We don't care about the name for ELF binaries.
     _ = name;
     content.starts_with(&[0x7f, b'E', b'L', b'F'])

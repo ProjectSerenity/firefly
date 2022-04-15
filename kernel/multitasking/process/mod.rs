@@ -8,7 +8,6 @@
 use crate::thread::{KernelThreadId, Thread};
 use crate::PROCESSES;
 use alloc::collections::btree_map::{BTreeMap, Iter};
-use alloc::string::String;
 use alloc::vec::Vec;
 use core::cmp::min;
 use core::ptr::write_bytes;
@@ -111,7 +110,7 @@ impl Process {
     /// memory space.
     ///
     pub fn create_user_process(
-        name: &String,
+        name: &str,
         binary: &[u8],
     ) -> Result<(KernelProcessId, KernelThreadId), Error> {
         let bin = Binary::parse(name, binary).map_err(Error::BadBinary)?;

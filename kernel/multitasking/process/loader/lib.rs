@@ -20,7 +20,6 @@ extern crate alloc;
 mod elf;
 
 use alloc::slice::Iter;
-use alloc::string::String;
 use alloc::vec::Vec;
 use memory::{PageTableFlags, VirtAddr};
 
@@ -42,7 +41,7 @@ impl<'data> Binary<'data> {
     /// Loads the executable binary with the given name and
     /// contents.
     ///
-    pub fn parse(name: &String, content: &'data [u8]) -> Result<Self, &'static str> {
+    pub fn parse(name: &str, content: &'data [u8]) -> Result<Self, &'static str> {
         if elf::is_elf(name, content) {
             return elf::parse_elf(content);
         }
