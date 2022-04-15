@@ -8,7 +8,8 @@
 
 use alloc::vec::Vec;
 use core::fmt;
-use core::sync::atomic::{AtomicU64, Ordering};
+use core::slice;
+use loader::Binary;
 use memory::constants::{
     BOOT_INFO, CPU_LOCAL, KERNEL_BINARY, KERNEL_HEAP, KERNEL_STACK, KERNEL_STACK_GUARD, MMIO_SPACE,
     NULL_PAGE, PHYSICAL_MEMORY, USERSPACE,
@@ -18,7 +19,7 @@ use memory::{
     PhysFrameRange, PhysFrameSize, VirtAddr, VirtAddrRange, VirtPage, VirtPageRange, VirtPageSize,
 };
 use pretty::Bytes;
-use x86_64::instructions::{read_rip, tlb};
+use x86_64::instructions::tlb;
 
 // remap_kernel remaps all existing mappings for
 // the kernel's stack as non-executable, plus unmaps
@@ -56,7 +57,7 @@ pub unsafe fn remap_kernel(page_table: &mut PageTable) {
                 }
             }
             // Global read only (kernel constants, boot info).
-            PagePurpose::KernelConstants | PagePurpose::KernelStrings | PagePurpose::BootInfo => {
+            PagePurpose::KernelConstants | PagePurpose::BootInfo => {
                 let flags =
                     PageTableFlags::GLOBAL | PageTableFlags::PRESENT | PageTableFlags::NO_EXECUTE;
                 if mapping.flags != flags {
@@ -68,22 +69,6 @@ pub unsafe fn remap_kernel(page_table: &mut PageTable) {
             // Global read execute (kernel code).
             PagePurpose::KernelCode => {
                 let flags = PageTableFlags::GLOBAL | PageTableFlags::PRESENT;
-                if mapping.flags != flags {
-                    mapping
-                        .update_flags(page_table, flags)
-                        .expect("failed to update page flags");
-                }
-            }
-            // This means a segment spans multiple pages
-            // and the page we got in our constants was
-            // not in this one, so we don't know which
-            // segment this is.
-            PagePurpose::KernelBinaryUnknown => {
-                // Leave with the default flags. They might have more
-                // permissions than we'd like, but removing permissions
-                // could easily break things. However, we do ensure the
-                // GLOBAL flag is set.
-                let flags = PageTableFlags::GLOBAL | PageTableFlags::PRESENT | mapping.flags;
                 if mapping.flags != flags {
                     mapping
                         .update_flags(page_table, flags)
@@ -216,20 +201,21 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
 
     // Analyse the mappings to determine their purpose,
     // which is hard to do correctly as we go along.
+    //
+    // We load the kernel binary from memory, using the
+    // flags for each segment to derive its purpose.
 
-    // Make some constants/statics, of which we can then
-    // take the address to determine where the relevant
-    // sections of the kernel are mapped.
-    const CONST_NUM: u64 = 1;
-    const CONST_STR: &str = "Hello, kernel!";
-    static STATIC_VAL: AtomicU64 = AtomicU64::new(CONST_NUM + CONST_STR.len() as u64);
+    let kernel = slice::from_raw_parts(
+        KERNEL_BINARY.start().as_usize() as *const u8,
+        KERNEL_BINARY.size(),
+    );
+    let kernel_binary =
+        Binary::parse_kernel("kernel.bin", kernel).expect("failed to parse kernel binary");
 
-    // Get example pointers.
-    let const_addr1 = VirtAddr::new(&CONST_NUM as *const u64 as usize);
-    let const_addr2 = VirtAddr::new(CONST_STR as *const str as *const () as usize);
-    let static_addr = VirtAddr::new(&STATIC_VAL as *const AtomicU64 as usize);
-    let code_addr = VirtAddr::new(read_rip().as_u64() as usize);
-    STATIC_VAL.fetch_add(1, Ordering::Relaxed);
+    let kernel_code = PageTableFlags::PRESENT; // r-x
+    let kernel_constants = PageTableFlags::PRESENT | PageTableFlags::NO_EXECUTE; // r--
+    let kernel_statics =
+        PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE; // rw-
 
     let mut out = Vec::with_capacity(mappings.len());
     for map in mappings {
@@ -239,16 +225,34 @@ pub unsafe fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
         } else if USERSPACE.contains(&range) {
             PagePurpose::Userspace
         } else if KERNEL_BINARY.contains(&range) {
-            if range.contains_addr(const_addr1) {
-                PagePurpose::KernelConstants
-            } else if range.contains_addr(const_addr2) {
-                PagePurpose::KernelStrings
-            } else if range.contains_addr(static_addr) {
-                PagePurpose::KernelStatics
-            } else if range.contains_addr(code_addr) {
+            // Find the kernel binary program segment
+            // containing this chunk of memory.
+            //
+            // When we match page mappings to segments,
+            // we round out the segment bounds to the
+            // page bounds, as segments cannot share a
+            // page with another segment with different
+            // flags.
+            let segment = kernel_binary
+                .iter_segments()
+                .find(|&s| {
+                    let size = VirtPageSize::Size4KiB.bytes();
+                    s.start.align_down(size) <= range.start() && range.end() < s.end.align_up(size)
+                })
+                .expect("mapping in kernel binary does not exist in any segment");
+
+            // Determine the page purpose by its flags.
+            if segment.flags == kernel_code {
                 PagePurpose::KernelCode
+            } else if segment.flags == kernel_constants {
+                PagePurpose::KernelConstants
+            } else if segment.flags == kernel_statics {
+                PagePurpose::KernelStatics
             } else {
-                PagePurpose::KernelBinaryUnknown
+                panic!(
+                    "kernel binary segment has unexpected flags {:?}",
+                    segment.flags
+                );
             }
         } else if BOOT_INFO.contains(&range) {
             PagePurpose::BootInfo
@@ -285,9 +289,7 @@ pub enum PagePurpose {
     BootInfo,
     KernelCode,
     KernelConstants,
-    KernelStrings,
     KernelStatics,
-    KernelBinaryUnknown,
     KernelHeap,
     KernelStack,
     KernelStackGuard,
@@ -305,9 +307,7 @@ impl fmt::Display for PagePurpose {
             PagePurpose::BootInfo => write!(f, " (boot info)"),
             PagePurpose::KernelCode => write!(f, " (kernel code)"),
             PagePurpose::KernelConstants => write!(f, " (kernel constants)"),
-            PagePurpose::KernelStrings => write!(f, " (kernel strings)"),
             PagePurpose::KernelStatics => write!(f, " (kernel statics)"),
-            PagePurpose::KernelBinaryUnknown => write!(f, " (kernel binary unknown)"),
             PagePurpose::KernelHeap => write!(f, " (kernel heap)"),
             PagePurpose::KernelStack => write!(f, " (kernel stack)"),
             PagePurpose::KernelStackGuard => write!(f, " (kernel stack guard)"),
