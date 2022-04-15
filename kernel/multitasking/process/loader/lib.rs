@@ -43,7 +43,19 @@ impl<'data> Binary<'data> {
     ///
     pub fn parse(name: &str, content: &'data [u8]) -> Result<Self, &'static str> {
         if elf::is_elf(name, content) {
-            return elf::parse_elf(content);
+            return elf::parse_elf(content, true);
+        }
+
+        Err("unrecognised binary format")
+    }
+
+    /// Loads the executable binary with the given name and
+    /// contents, allowing program segments to exist outside
+    /// userspace.
+    ///
+    pub fn parse_kernel(name: &str, content: &'data [u8]) -> Result<Self, &'static str> {
+        if elf::is_elf(name, content) {
+            return elf::parse_elf(content, false);
         }
 
         Err("unrecognised binary format")

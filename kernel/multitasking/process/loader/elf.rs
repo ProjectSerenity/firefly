@@ -27,7 +27,11 @@ pub fn is_elf(name: &str, content: &[u8]) -> bool {
 /// If `parse` returns an `Ok` result, no further
 /// checks will be necessary.
 ///
-pub fn parse_elf<'bin>(binary: &'bin [u8]) -> Result<Binary, &'static str> {
+/// If `userspace` is `true`, then all program
+/// segments and the entry point must exist purely
+/// within userspace.
+///
+pub fn parse_elf<'bin>(binary: &'bin [u8], userspace: bool) -> Result<Binary, &'static str> {
     const GNU_STACK: Type = Type::OsSpecific(1685382481); // GNU stack segment.
 
     let elf = ElfFile::new(binary)?;
@@ -59,7 +63,7 @@ pub fn parse_elf<'bin>(binary: &'bin [u8]) -> Result<Binary, &'static str> {
 
     let entry_point = VirtAddr::try_new(elf.header.pt2.entry_point() as usize)
         .map_err(|_| "invalid entry point virtual address")?;
-    if !USERSPACE.contains_addr(entry_point) {
+    if userspace && !USERSPACE.contains_addr(entry_point) {
         return Err("invalid entry point outside userspace");
     }
 
@@ -102,12 +106,15 @@ pub fn parse_elf<'bin>(binary: &'bin [u8]) -> Result<Binary, &'static str> {
                             }
                         }
 
-                        if !USERSPACE.contains(&range) {
+                        if userspace && !USERSPACE.contains(&range) {
                             return Err("program segment is outside userspace");
                         }
 
                         let data = header.raw_data(&elf);
-                        let mut flags = PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE;
+                        let mut flags = PageTableFlags::PRESENT;
+                        if USERSPACE.contains(&range) {
+                            flags |= PageTableFlags::USER_ACCESSIBLE;
+                        }
                         if !header.flags.is_execute() {
                             flags |= PageTableFlags::NO_EXECUTE;
                         }
@@ -237,7 +244,7 @@ mod test {
         // ```
         let simple = include_bytes!("testdata/x86_64-linux-none-simple.elf");
         assert_eq!(
-            parse_elf(simple),
+            parse_elf(simple, true),
             Ok(Binary {
                 entry_point: VirtAddr::new(0x201170),
                 segments: vec![
