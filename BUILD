@@ -65,35 +65,14 @@ buildifier(
 # Allow the bootable image to be built with `bazel build //:image`.
 genrule(
     name = "image",
-    srcs = [
-        "@bootloader//:binary",
-        "@rust_linux_x86_64//:rustc",
-    ],
+    srcs = ["@bootloader//:binary"],
     outs = ["image.bin"],
     cmd = """
         bootimage="$(location //tools/bootimage)"
         input="$(location @bootloader//:binary)"
         output="$$(realpath $(location image.bin))"
-        rustc_path="$$(dirname $(location @rust_linux_x86_64//:rustc))"
 
-        # Check whether the stage two bootloader is
-        # small enough to be loaded.
-        #
-        # This is just to help, so if GDB is not
-        # installed, we skip the check, rather
-        # than failing the build.
-        if command -v gdb &> /dev/null ; then
-            sectors=`gdb -batch -ex "file $$input" -ex "p (&_rest_of_bootloader_end_addr - &_rest_of_bootloader_start_addr) / 512"`
-            sectors=`echo $$sectors | awk '{print $$3}'`
-            if [ "$$sectors" -gt "127" ]; then
-                echo "\033[1;31mERROR:\033[0m Bootloader stage 2 takes up $$sectors disk sectors, which is too large."
-                exit 1
-            fi
-        fi
-
-        # Repackage the bootable image to a raw binary.
-        rm -f $$output
-        PATH=$$rustc_path:$$PATH $$bootimage $$input $$output""",
+        $$bootimage $$input $$output""",
     message = "Making bootable image",
     tools = ["//tools/bootimage"],
     visibility = ["//visibility:public"],
