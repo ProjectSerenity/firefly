@@ -66,14 +66,13 @@ fn initial_workload() -> ! {
     block::iter(|dev| {
         let mut reader = tar::Reader::new(dev);
         let initial_workload = (&mut reader)
-            .filter(|f| {
+            .find(|f| {
                 let info = f.info();
                 info.size > 0
                     && info.file_type == FileType::RegularFile
                     && info.permissions.contains(Permissions::EXECUTE)
                     && info.name == "initial-workload"
             })
-            .next()
             .expect("initial workload not found");
 
         let info = initial_workload.info();
