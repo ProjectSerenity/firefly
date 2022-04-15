@@ -37,6 +37,11 @@ RUST_RUSTFMT = struct(
     sum = "7fe3049fb4003f35539e622801cd62e1d20481915e4879aeb47965dafeb859bf",
 )
 
+RUST_NO_STD = struct(
+    name = "rust-std-nightly-x86_64-unknown-none",
+    sum = "35cd94ae9a6efc1839c227470041038e3c51f50db1f2c59ed7f5b32d03f4cd2f",
+)
+
 RUST_CRATE_ANNOTATIONS = {
     "uart_16550": [crate.annotation(
         deps = ["@crates//:x86_64"],
@@ -164,6 +169,18 @@ def rust_deps():
         urls = [
             "https://static.crates.io/crates/compiler_builtins/compiler_builtins-0.1.70.crate",
         ],
+    )
+
+    # Fetch libcore, liballoc, and libcompiler-builtins
+    # for the x86_64-unknown-none build target.
+
+    http_archive(
+        name = "rust_none_x86_64",
+        build_file = "//bazel/third_party:no_std.BUILD",
+        sha256 = RUST_NO_STD.sum,
+        strip_prefix = "rust-std-nightly-x86_64-unknown-none",
+        type = "tgz",
+        urls = ["https://static.rust-lang.org/dist/" + RUST_ISO_DATE + "/" + RUST_NO_STD.name],
     )
 
     # Set up the Rust crates we depend on. Most of these are fetched

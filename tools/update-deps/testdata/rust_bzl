@@ -37,6 +37,11 @@ RUST_RUSTFMT = struct(
     sum = "6cd904d0413a858a6073f1a553d2aa46e32124574da996dcd0d8aaeb706bd035",
 )
 
+RUST_NO_STD = struct(
+    name = "rust-std-nightly-x86_64-unknown-none",
+    sum = "35cd94ae9a6efc1839c227470041038e3c51f50db1f2c59ed7f5b32d03f4cd2f",
+)
+
 RUST_CRATE_ANNOTATIONS = {
     "uart_16550": [crate.annotation(
         deps = ["@crates//:x86_64"],

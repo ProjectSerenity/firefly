@@ -51,6 +51,10 @@ func TestParseRustBzl(t *testing.T) {
 			Name: "rustfmt-nightly-x86_64-unknown-linux-gnu",
 			Sum:  "6cd904d0413a858a6073f1a553d2aa46e32124574da996dcd0d8aaeb706bd035",
 		},
+		{
+			Name: "rust-std-nightly-x86_64-unknown-none",
+			Sum:  "35cd94ae9a6efc1839c227470041038e3c51f50db1f2c59ed7f5b32d03f4cd2f",
+		},
 	}
 
 	wantCrates := []struct {

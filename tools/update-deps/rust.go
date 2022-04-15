@@ -65,6 +65,7 @@ func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*Ru
 		"RUST_SRC",
 		"RUST_STD",
 		"RUST_RUSTFMT",
+		"RUST_NO_STD",
 	}
 
 	data, err := os.ReadFile(name)
