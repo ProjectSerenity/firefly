@@ -220,6 +220,21 @@ fn check_mapping(page: VirtPage) {
     }
 }
 
+/// Allows the caller to read the page mappings.
+///
+/// See also [`with_mut_page_tables`].
+///
+pub fn with_page_tables<F, R>(f: F) -> R
+where
+    F: FnOnce(&PageTable) -> R,
+{
+    let (level_4_table_frame, _) = Cr3::read();
+    let phys = PhysAddr::from_x86_64(level_4_table_frame.start_address());
+    let page_table = unsafe { PageTable::at(phys).expect("failed to load page table") };
+
+    f(&page_table)
+}
+
 /// Allows the caller to modify the page mappings
 /// without multiple mutable references existing
 /// at the same time.
@@ -228,7 +243,9 @@ fn check_mapping(page: VirtPage) {
 /// [`map_pages`] instead, which provides additional
 /// checks on the memory being mapped.
 ///
-pub fn with_page_tables<F, R>(f: F) -> R
+/// See also [`with_page_tables`].
+///
+pub fn with_mut_page_tables<F, R>(f: F) -> R
 where
     F: FnOnce(&mut PageTable) -> R,
 {
@@ -250,7 +267,7 @@ where
     A: PhysFrameAllocator + ?Sized,
 {
     let frozen = kernel_mappings_frozen();
-    with_page_tables(|page_table| {
+    with_mut_page_tables(|page_table| {
         for page in page_range {
             if frozen {
                 check_mapping(page);
@@ -283,7 +300,7 @@ where
     // Make the frame range mutable.
     let mut frame_range = frame_range;
     let frozen = kernel_mappings_frozen();
-    with_page_tables(|page_table| {
+    with_mut_page_tables(|page_table| {
         for page in page_range {
             if frozen {
                 check_mapping(page);
