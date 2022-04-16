@@ -53,10 +53,11 @@ type RustCrateData struct {
 // release date and the set of tools, plus the
 // *build.File containing the Starlark file's AST.
 //
-func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*RustToolData, crates []*RustCrateData, err error) {
+func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*RustToolData, crates []*RustCrateData, bootloader *StringField, err error) {
 	const (
-		rustDate   = "RUST_ISO_DATE"
-		rustCrates = "RUST_CRATES"
+		rustDate          = "RUST_ISO_DATE"
+		rustCrates        = "RUST_CRATES"
+		bootloaderVersion = "BOOTLOADER_VERSION"
 	)
 
 	var allTools = []string{
@@ -70,12 +71,12 @@ func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*Ru
 
 	data, err := os.ReadFile(name)
 	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("Failed to open %s: %v", name, err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("Failed to open %s: %v", name, err)
 	}
 
 	f, err := build.ParseBzl(name, data)
 	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %v", name, err)
+		return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %v", name, err)
 	}
 
 	toolsMap := make(map[string]bool)
@@ -90,14 +91,32 @@ func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*Ru
 			continue
 		}
 
+		if lhs.Name == bootloaderVersion {
+			rhs, ok := assign.RHS.(*build.StringExpr)
+			if !ok {
+				return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s has non-string value %#v", name, lhs.Name, assign.RHS)
+			}
+
+			if bootloader != nil {
+				return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s assigned for the second time", name, lhs.Name)
+			}
+
+			bootloader = &StringField{
+				Value: rhs.Value,
+				Ptr:   &rhs.Value,
+			}
+
+			continue
+		}
+
 		if lhs.Name == rustDate {
 			rhs, ok := assign.RHS.(*build.StringExpr)
 			if !ok {
-				return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s has non-string value %#v", name, lhs.Name, assign.RHS)
+				return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s has non-string value %#v", name, lhs.Name, assign.RHS)
 			}
 
 			if date != nil {
-				return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s assigned for the second time", name, lhs.Name)
+				return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s assigned for the second time", name, lhs.Name)
 			}
 
 			date = &StringField{
@@ -111,34 +130,34 @@ func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*Ru
 		if lhs.Name == rustCrates {
 			rhs, ok := assign.RHS.(*build.DictExpr)
 			if !ok {
-				return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s has non-list value %#v", name, lhs.Name, assign.RHS)
+				return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s has non-list value %#v", name, lhs.Name, assign.RHS)
 			}
 
 			if crates != nil {
-				return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s is assigned for the second time", name, lhs.Name)
+				return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s is assigned for the second time", name, lhs.Name)
 			}
 
 			for _, expr := range rhs.List {
 				crateName, ok := expr.Key.(*build.StringExpr)
 				if !ok {
-					return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: found non-string %#v, expected crate name", name, expr.Key)
+					return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: found non-string %#v, expected crate name", name, expr.Key)
 				}
 
 				crate := crateName.Value
 
 				call, ok := expr.Value.(*build.CallExpr)
 				if !ok {
-					return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s has non-call crate value %#v", name, lhs.Name, expr.Value)
+					return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s has non-call crate value %#v", name, lhs.Name, expr.Value)
 				}
 
 				lhs, ok := call.X.(*build.DotExpr)
 				if !ok {
-					return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: found crate with non-crate.spec value %#v", name, call.X)
+					return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: found crate with non-crate.spec value %#v", name, call.X)
 				}
 
 				if fun, ok := lhs.X.(*build.Ident); !ok || fun.Name != "crate" || lhs.Name != "spec" {
 					err = fmt.Errorf("Failed to parse %s: found crate with non-crate.spec value %#v.%s", name, lhs.X, lhs.Name)
-					return nil, nil, nil, nil, err
+					return nil, nil, nil, nil, nil, err
 				}
 
 				var version string
@@ -147,13 +166,13 @@ func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*Ru
 					assign, ok := expr.(*build.AssignExpr)
 					if !ok {
 						err = fmt.Errorf("Failed to parse %s: bad crate %q: field %d is not an assignment", name, crate, i)
-						return nil, nil, nil, nil, err
+						return nil, nil, nil, nil, nil, err
 					}
 
 					lhs, ok := assign.LHS.(*build.Ident)
 					if !ok {
 						err = fmt.Errorf("Failed to parse %s: bad crate %q: field %d assigns to a non-identifier value %#v", name, crate, i, assign.LHS)
-						return nil, nil, nil, nil, err
+						return nil, nil, nil, nil, nil, err
 					}
 
 					if lhs.Name != "version" {
@@ -163,7 +182,7 @@ func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*Ru
 					rhs, ok := assign.RHS.(*build.StringExpr)
 					if !ok {
 						err = fmt.Errorf("Failed to parse %s: bad crate %q: %q has non-string value %#v", name, crate, lhs.Name, assign.RHS)
-						return nil, nil, nil, nil, err
+						return nil, nil, nil, nil, nil, err
 					}
 
 					version = rhs.Value
@@ -172,7 +191,7 @@ func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*Ru
 				}
 
 				if versionPtr == nil {
-					return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: bad crate %q: no version found", name, crate)
+					return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: bad crate %q: no version found", name, crate)
 				}
 
 				data := RustCrateData{
@@ -197,21 +216,21 @@ func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*Ru
 
 			call, ok := assign.RHS.(*build.CallExpr)
 			if !ok {
-				return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: found %s with non-call value %#v", name, tool, assign.RHS)
+				return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: found %s with non-call value %#v", name, tool, assign.RHS)
 			}
 
 			if fun, ok := call.X.(*build.Ident); !ok || fun.Name != "struct" {
-				return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: found %s with non-struct value %#v", name, tool, call.X)
+				return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: found %s with non-struct value %#v", name, tool, call.X)
 			}
 
 			var data RustToolData
 			err = UnmarshalFields(call, &data)
 			if err != nil {
-				return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: invalid data for %s: %v", name, tool, err)
+				return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: invalid data for %s: %v", name, tool, err)
 			}
 
 			if toolsMap[tool] {
-				return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s assigned for the second time", name, tool)
+				return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: %s assigned for the second time", name, tool)
 			}
 
 			toolsMap[tool] = true
@@ -219,17 +238,21 @@ func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*Ru
 		}
 	}
 
+	if bootloader == nil {
+		return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: no data found for %s", name, bootloaderVersion)
+	}
+
 	if date == nil {
-		return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: no data found for %s", name, rustDate)
+		return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: no data found for %s", name, rustDate)
 	}
 
 	for _, tool := range allTools {
 		if !toolsMap[tool] {
-			return nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: no data found for %s", name, tool)
+			return nil, nil, nil, nil, nil, fmt.Errorf("Failed to parse %s: no data found for %s", name, tool)
 		}
 	}
 
-	return f, date, tools, crates, nil
+	return f, date, tools, crates, bootloader, nil
 }
 
 // Crate contains the metadata for a Rust Crate, as provided
@@ -433,7 +456,7 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 	// Find and parse the rust.bzl file to see
 	// what version we've got currently.
 	bzlPath := filepath.Join("bazel", "deps", rustBzl)
-	f, dateField, tools, crates, err := ParseRustBzl(bzlPath)
+	f, dateField, tools, crates, bootloader, err := ParseRustBzl(bzlPath)
 	if err != nil {
 		return err
 	}
@@ -525,6 +548,10 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 				cratesUpdated = true
 				*crate.Version.Ptr = "=" + version.Number
 				fmt.Fprintf(w, "Updated Rust crate %s from %s to %s.\n", name, current, version.Number)
+				if name == "bootloader" {
+					*bootloader.Ptr = version.Number
+				}
+
 				continue crates
 			}
 		}

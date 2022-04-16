@@ -42,6 +42,8 @@ RUST_NO_STD = struct(
     sum = "35cd94ae9a6efc1839c227470041038e3c51f50db1f2c59ed7f5b32d03f4cd2f",
 )
 
+BOOTLOADER_VERSION = "0.9.22"
+
 RUST_CRATE_ANNOTATIONS = {
     "uart_16550": [crate.annotation(
         deps = ["@crates//:x86_64"],

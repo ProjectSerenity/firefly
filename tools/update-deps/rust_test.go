@@ -20,7 +20,7 @@ import (
 
 func TestParseRustBzl(t *testing.T) {
 	bzlPath := filepath.Join("testdata", "rust_bzl")
-	_, date, tools, crates, err := ParseRustBzl(bzlPath)
+	_, date, tools, crates, _, err := ParseRustBzl(bzlPath)
 	if err != nil {
 		t.Fatal(err)
 	}
