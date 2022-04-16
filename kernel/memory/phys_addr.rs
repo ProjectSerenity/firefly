@@ -3,6 +3,7 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
+use crate::PhysAddrRange;
 use align::{align_down_usize, align_up_usize};
 use core::fmt;
 use core::ops::{Add, AddAssign, Sub, SubAssign};
@@ -235,6 +236,37 @@ impl PhysAddr {
         } else {
             None
         }
+    }
+
+    /// Returns an exclusive address range
+    /// of `[start, end)`.
+    ///
+    /// # Panics
+    ///
+    /// `range_exclusive` will panic if
+    /// `start` is larger than or equal
+    /// to `end`.
+    ///
+    #[inline]
+    #[track_caller]
+    pub const fn range_exclusive(start: Self, end: Self) -> PhysAddrRange {
+        assert!(start.0 < end.0);
+        PhysAddrRange::new(start, PhysAddr(end.0 - 1))
+    }
+
+    /// Returns an inclusive address range
+    /// of `[start, end]`.
+    ///
+    /// # Panics
+    ///
+    /// `range_inclusive` will panic if
+    /// `start` is larger than `end`.
+    ///
+    #[inline]
+    #[track_caller]
+    pub const fn range_inclusive(start: Self, end: Self) -> PhysAddrRange {
+        assert!(start.0 <= end.0);
+        PhysAddrRange::new(start, end)
     }
 }
 
