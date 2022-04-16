@@ -26,7 +26,7 @@ impl PhysAddrRange {
     #[track_caller]
     pub const fn new(start: PhysAddr, end: PhysAddr) -> Self {
         if start.as_usize() > end.as_usize() {
-            panic!("invalid physical address range: start is greather than end");
+            panic!("invalid physical address range: start is greater than end");
         }
 
         PhysAddrRange { start, end }

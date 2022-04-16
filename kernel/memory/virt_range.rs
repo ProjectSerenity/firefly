@@ -26,7 +26,7 @@ impl VirtAddrRange {
     #[track_caller]
     pub const fn new(start: VirtAddr, end: VirtAddr) -> Self {
         if start.as_usize() > end.as_usize() {
-            panic!("invalid virtual address range: start is greather than end");
+            panic!("invalid virtual address range: start is greater than end");
         }
 
         VirtAddrRange { start, end }
