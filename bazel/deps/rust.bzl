@@ -124,10 +124,10 @@ RUST_CRATES = {
     ),
     # For bootloader binary.
     "toml": crate.spec(
-        version = "=0.5.8",
+        version = "=0.5.9",
     ),
     "uart_16550": crate.spec(
-        version = "=0.2.17",
+        version = "=0.2.18",
     ),
     # For bootloader binary.
     "usize_conversions": crate.spec(
