@@ -29,7 +29,6 @@ rust_library(
         "//kernel/memory",
         "//kernel/memory/mmio",
         "//kernel/memory/physmem",
-        "//kernel/memory/virtmem",
         "//kernel/multitasking",
         "//kernel/network",
         "//kernel/random",

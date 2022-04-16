@@ -21,12 +21,11 @@ use alloc::vec;
 use alloc::vec::Vec;
 use interrupts::{register_irq, Irq};
 use memory::constants::{PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
-use memory::{PhysAddr, VirtAddr};
+use memory::{virt_to_phys_addrs, PhysAddr, VirtAddr};
 use multitasking::thread::{current_kernel_thread_id, prevent_next_sleep, suspend, KernelThreadId};
 use serial::println;
 use spin::{lock, Mutex};
 use storage::block::{add_device, Device, Error, Operations};
-use virtmem::virt_to_phys_addrs;
 use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::idt::InterruptStackFrame;
 

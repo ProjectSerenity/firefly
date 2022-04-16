@@ -32,10 +32,9 @@ use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
 use memory::constants::{PHYSICAL_MEMORY, PHYSICAL_MEMORY_OFFSET};
-use memory::{PhysAddr, VirtAddr};
+use memory::{virt_to_phys_addrs, PhysAddr, VirtAddr};
 use random::{register_entropy_source, EntropySource};
 use serial::println;
-use virtmem::virt_to_phys_addrs;
 
 /// REQUEST_VIRTQUEUE is the sole virtqueue used
 /// with a virtio entropy device.

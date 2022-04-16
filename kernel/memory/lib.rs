@@ -34,6 +34,9 @@
 //! that can be used to access the physical memory. Note that this virtual
 //! address cannot be used for fetching instructions.
 //!
+//! The [`virt_to_phys_addrs`] function can be used to translate a contiguous
+//! range of virtual memory to one or more contiguous ranges of physical memory.
+//!
 //! The [`PhysFrameAllocator`] and [`PhysFrameDeallocator`] traits can be used
 //! to abstract the management of physical memory.
 //!
@@ -61,16 +64,17 @@ mod virt_addr;
 mod virt_page;
 mod virt_range;
 
-pub use page_table::{
+pub use self::page_table::{
     PageMapping, PageMappingChange, PageMappingError, PageRemappingError, PageTable,
     PageTableEntry, PageTableFlags, PageUnmappingError,
 };
-pub use phys_addr::{InvalidPhysAddr, PhysAddr};
-pub use phys_frame::{PhysFrame, PhysFrameRange, PhysFrameSize};
-pub use phys_range::PhysAddrRange;
-pub use virt_addr::{InvalidVirtAddr, VirtAddr};
-pub use virt_page::{VirtPage, VirtPageRange, VirtPageSize};
-pub use virt_range::VirtAddrRange;
+pub use self::phys_addr::{InvalidPhysAddr, PhysAddr};
+pub use self::phys_frame::{PhysFrame, PhysFrameRange, PhysFrameSize};
+pub use self::phys_range::PhysAddrRange;
+pub use self::virt_addr::{InvalidVirtAddr, VirtAddr};
+pub use self::virt_page::{VirtPage, VirtPageRange, VirtPageSize};
+pub use self::virt_range::VirtAddrRange;
+use alloc::vec::Vec;
 
 /// Returns a virtual address that is mapped to the given physical
 /// address.
@@ -82,6 +86,16 @@ pub fn phys_to_virt_addr(phys: PhysAddr) -> VirtAddr {
     constants::PHYSICAL_MEMORY_OFFSET
         .checked_add(phys.as_usize())
         .expect("invalid physical address")
+}
+
+/// Translates a contiguous virtual memory region into one
+/// or more contiguous physical memory regions.
+///
+/// If any part of the virtual memory region is not mapped
+/// in the given page table, then None is returned.
+///
+pub fn virt_to_phys_addrs(addrs: VirtAddrRange) -> Option<Vec<PhysAddrRange>> {
+    PageTable::current().translate_addrs(addrs)
 }
 
 /// A trait for types that can

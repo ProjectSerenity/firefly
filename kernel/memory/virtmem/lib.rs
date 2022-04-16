@@ -19,7 +19,6 @@
 //!
 //! - [`map_pages`]: Map virtual pages to arbitrary physical memory.
 //! - [`map_frames_to_pages`]: Map virtual pages to chosen physical memory.
-//! - [`virt_to_phys_addrs`]: Translate a virtual memory region to the underlying physical memory region(s).
 
 #![no_std]
 #![deny(clippy::float_arithmetic)]
@@ -39,14 +38,13 @@ mod mapping;
 
 use self::bitmap::BitmapLevel4KernelMappings;
 pub use self::mapping::remap_kernel;
-use alloc::vec::Vec;
 use core::slice;
 use core::sync::atomic::{AtomicBool, Ordering};
 use memory::constants::KERNELSPACE;
 use memory::{
-    phys_to_virt_addr, PageMappingError, PageTable, PageTableFlags, PhysAddr, PhysAddrRange,
-    PhysFrame, PhysFrameAllocator, PhysFrameRange, PhysFrameSize, VirtAddr, VirtAddrRange,
-    VirtPage, VirtPageRange, VirtPageSize,
+    phys_to_virt_addr, PageMappingError, PageTable, PageTableFlags, PhysAddr, PhysFrame,
+    PhysFrameAllocator, PhysFrameRange, PhysFrameSize, VirtAddr, VirtPage, VirtPageRange,
+    VirtPageSize,
 };
 use serial::println;
 use x86_64::registers::control::Cr3;
@@ -275,16 +273,6 @@ where
     }
 
     Ok(())
-}
-
-/// Translates a contiguous virtual memory region into one
-/// or more contiguous physical memory regions.
-///
-/// If any part of the virtual memory region is not mapped
-/// in the given page table, then None is returned.
-///
-pub fn virt_to_phys_addrs(addrs: VirtAddrRange) -> Option<Vec<PhysAddrRange>> {
-    PageTable::current().translate_addrs(addrs)
 }
 
 /// Prints debug info about the passed level 4 page table, including
