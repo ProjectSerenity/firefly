@@ -88,7 +88,7 @@ RUST_CRATES = {
         features = ["const_mut_refs"],
         version = "=0.9.1",
     ),
-    # For bootloader binary.
+    # For bootloader build script.
     "llvm-tools": crate.spec(
         version = "=0.1.1",
     ),
@@ -122,7 +122,7 @@ RUST_CRATES = {
         ],
         version = "=0.8.0",
     ),
-    # For bootloader binary.
+    # For bootloader build script.
     "toml": crate.spec(
         version = "=0.5.9",
     ),
