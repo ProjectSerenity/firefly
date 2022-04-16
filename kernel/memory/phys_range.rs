@@ -10,6 +10,7 @@ use crate::PhysAddr;
 /// A range has no alignment requirements, such as adhering
 /// to frame boundaries.
 ///
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PhysAddrRange {
     start: PhysAddr,
     end: PhysAddr,

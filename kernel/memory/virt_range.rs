@@ -10,6 +10,7 @@ use crate::VirtAddr;
 /// A range has no alignment requirements, such as adhering
 /// to page boundaries.
 ///
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct VirtAddrRange {
     start: VirtAddr,
     end: VirtAddr,
