@@ -11,7 +11,6 @@ rust_library(
         "bitmap.rs",
         "lib.rs",
         "mapping.rs",
-        "translate.rs",
     ],
     crate_name = "virtmem",
     edition = "2021",

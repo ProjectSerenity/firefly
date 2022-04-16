@@ -79,17 +79,16 @@ impl Driver {
 
             (addr, bufs)
         } else {
-            let bufs = match virt_to_phys_addrs(virt_addr, buf.len()) {
-                None => panic!("failed to resolve physical memory region"),
-                Some(bufs) => bufs,
-            };
+            let bufs =
+                virt_to_phys_addrs(VirtAddr::range_exclusive(virt_addr, virt_addr + buf.len()))
+                    .expect("failed to resolve physical memory region");
 
-            let addr = bufs[0].addr;
+            let addr = bufs[0].start();
             let bufs = bufs
                 .iter()
-                .map(|b| Buffer::DeviceCanWrite {
-                    addr: b.addr,
-                    len: b.len,
+                .map(|range| Buffer::DeviceCanWrite {
+                    addr: range.start(),
+                    len: range.size(),
                 })
                 .collect::<Vec<Buffer>>();
 
