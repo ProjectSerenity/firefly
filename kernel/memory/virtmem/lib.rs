@@ -331,13 +331,7 @@ pub fn virt_to_phys_addrs(addrs: VirtAddrRange) -> Option<Vec<PhysAddrRange>> {
 /// Prints debug info about the passed level 4 page table, including
 /// its mappings.
 ///
-/// # Safety
-///
-/// This function is unsafe because the caller must
-/// guarantee that all physical memory is mapped in
-/// the given page table.
-///
-pub unsafe fn debug(pml4: &PageTable) {
+pub fn debug(pml4: &PageTable) {
     let mappings = mapping::level_4_table(pml4);
     for mapping in mappings.iter() {
         println!("{}", mapping);
