@@ -65,6 +65,7 @@ use core::include_str;
 use interrupts::{register_irq, Irq};
 use multitasking::thread::Thread;
 use multitasking::{scheduler, thread};
+use virtmem::{remap_kernel, with_mut_page_tables};
 use x86_64::structures::idt::InterruptStackFrame;
 
 /// The Firefly license text.
@@ -115,6 +116,13 @@ pub fn init(boot_info: &'static BootInfo) {
         heap::init(&mut frame_allocator).expect("heap initialization failed");
         physmem::init(frame_allocator); // Switch to a more advanced allocator.
     }
+
+    // With the heap set up, we can fix up the
+    // kernel page mappings to unmap any pages
+    // left over by the bootloader and to remap
+    // the kernel to ensure the correct page
+    // table flags.
+    with_mut_page_tables(remap_kernel);
 
     // Now we have a working heap, we can set
     // up the global memory region for CPU-local

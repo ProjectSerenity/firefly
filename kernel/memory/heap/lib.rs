@@ -36,7 +36,7 @@ mod fixed_size_block;
 use memory::constants::KERNEL_HEAP;
 use memory::{PageMappingError, PageTableFlags, PhysFrameAllocator, VirtPage, VirtPageSize};
 use spin::Mutex;
-use virtmem::{map_pages, remap_kernel, with_mut_page_tables};
+use virtmem::map_pages;
 use x86_64::registers::control::{Cr4, Cr4Flags};
 use x86_64::registers::model_specific::{Efer, EferFlags};
 
@@ -86,9 +86,6 @@ pub fn init(frame_allocator: &mut impl PhysFrameAllocator) -> Result<(), PageMap
     let mut flags = Efer::read();
     flags |= EferFlags::NO_EXECUTE_ENABLE; // Enable the no-execute flag in page tables.
     unsafe { Efer::write(flags) };
-
-    // Remap the kernel, now that the heap is set up.
-    with_mut_page_tables(remap_kernel);
 
     Ok(())
 }
