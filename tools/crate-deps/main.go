@@ -142,7 +142,7 @@ func main() {
 
 	stdout.Reset()
 	both.Reset()
-	cmd = exec.Command("bazel", "query", "deps(@//..., 1) + deps(@bootloader//..., 1)")
+	cmd = exec.Command("bazel", "query", "deps(@//..., 1) + deps(@//:bootloader_binary, 2) + deps(@//:bootloader_build_script, 2)")
 	cmd.Stdout = io.MultiWriter(&stdout, &both)
 	cmd.Stderr = &both
 	err = cmd.Run()
