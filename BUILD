@@ -64,9 +64,19 @@ buildifier(
     mode = "fix",
 )
 
+alias(
+    name = "bootloader_binary",
+    actual = "@crates__bootloader-" + BOOTLOADER_VERSION + "//:bootloader_bin",
+)
+
+alias(
+    name = "bootloader_build_script",
+    actual = "@crates__bootloader-" + BOOTLOADER_VERSION + "//:build_script",
+)
+
 x86_64_bare_metal_rust_binary(
     name = "bootloader",
-    rust_binary = "@crates__bootloader-" + BOOTLOADER_VERSION + "//:bootloader_bin",
+    rust_binary = ":bootloader_binary",
     visibility = ["//visibility:public"],
 )
 
