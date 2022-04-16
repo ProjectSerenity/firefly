@@ -5,10 +5,13 @@
 
 use crate::constants::PHYSICAL_MEMORY_OFFSET;
 use crate::{
-    InvalidPhysAddr, PhysAddr, PhysFrame, PhysFrameAllocator, PhysFrameSize, VirtAddr, VirtPage,
-    VirtPageSize,
+    InvalidPhysAddr, PhysAddr, PhysAddrRange, PhysFrame, PhysFrameAllocator, PhysFrameSize,
+    VirtAddr, VirtAddrRange, VirtPage, VirtPageSize,
 };
+use alloc::vec;
+use alloc::vec::Vec;
 use bitflags::bitflags;
+use core::cmp::min;
 use x86_64::instructions::tlb;
 
 // The 51st bit of a physical frame address in
@@ -490,6 +493,59 @@ impl<'entries> PageTable<'entries> {
         } else {
             None
         }
+    }
+
+    /// Translate a contiguous sequence of virtual memory
+    /// to one or more contiguous sequences of physical
+    /// memory.
+    ///
+    pub fn translate_addrs(&self, addrs: VirtAddrRange) -> Option<Vec<PhysAddrRange>> {
+        let mut len = addrs.size();
+        let mut virt = addrs.start();
+        // First, handle the special case where the range
+        // has only one address.
+        if len == 1 {
+            return self
+                .translate_addr(virt)
+                .map(|phys| vec![PhysAddrRange::new(phys, phys)]);
+        }
+
+        // Iterate through the input, chunk by chunk.
+        // Make the input mutable.
+        let mut out: Vec<PhysAddrRange> = Vec::new();
+        while len > 0 {
+            if let PageMapping::Mapping { frame, addr, .. } = self.translate(virt) {
+                let remaining = frame.end_address() - addr + 1; // Addresses left in the frame.
+                let size = min(remaining, len); // Number we can use.
+                let chunk = PhysAddr::range_exclusive(addr, addr + size);
+
+                // See whether to append this chunk to
+                // the list or extend the last chunk,
+                // if the two are contiguous.
+                if !out.is_empty() {
+                    let n = out.len();
+                    let prev = &mut out[n - 1];
+                    if prev.end() + 1 == addr {
+                        *prev = PhysAddr::range_inclusive(prev.start(), chunk.end());
+                    } else {
+                        out.push(chunk);
+                    }
+                } else {
+                    out.push(chunk);
+                }
+
+                // Advance the translated input.
+                virt += size;
+                len = len.saturating_sub(size);
+            } else {
+                // Part of the virtual memory range is
+                // not mapped and we cannot return a
+                // partial result.
+                return None;
+            }
+        }
+
+        Some(out)
     }
 
     /// Create a new mapping in the page table.
@@ -1403,5 +1459,91 @@ mod test {
                 case.name
             );
         }
+    }
+
+    #[test]
+    fn test_page_table_translate_addrs() {
+        // Start by making some mappings we can use.
+        // We map as follows:
+        // - page 1 => frame 3
+        // - page 2 => frame 1
+        // - page 3 => frame 2
+        let size = PhysFrameSize::Size4KiB;
+        let page1 = VirtAddr::new(1 * size.bytes());
+        let page2 = VirtAddr::new(2 * size.bytes());
+        let page3 = VirtAddr::new(3 * size.bytes());
+        let frame1 = PhysAddr::new(1 * size.bytes());
+        let frame2 = PhysAddr::new(2 * size.bytes());
+        let frame3 = PhysAddr::new(3 * size.bytes());
+
+        // We pretend that we're using physical memory by using
+        // an offset of 0.
+        let offset = VirtAddr::zero();
+
+        // Make the level-4 page table.
+        let mut allocator = FakePhysFrameAllocator::new();
+        let pml4 = allocator
+            .allocate_phys_frame(PhysFrameSize::Size4KiB)
+            .unwrap();
+        let pml4_addr = pml4.start_address();
+        let mut page_table = unsafe { PageTable::at_offset(pml4_addr, offset) };
+
+        fn virt_page(addr: VirtAddr) -> VirtPage {
+            let size = VirtPageSize::Size4KiB;
+            let page = VirtPage::from_start_address(addr, size);
+            page.unwrap()
+        }
+
+        fn phys_frame(addr: PhysAddr) -> PhysFrame {
+            let size = PhysFrameSize::Size4KiB;
+            let frame = PhysFrame::from_start_address(addr, size);
+            frame.unwrap()
+        }
+
+        unsafe {
+            let flags = PageTableFlags::PRESENT;
+            page_table
+                .map(virt_page(page1), phys_frame(frame3), flags, &mut allocator)
+                .unwrap()
+                .ignore();
+            page_table
+                .map(virt_page(page2), phys_frame(frame1), flags, &mut allocator)
+                .unwrap()
+                .ignore();
+            page_table
+                .map(virt_page(page3), phys_frame(frame2), flags, &mut allocator)
+                .unwrap()
+                .ignore();
+        }
+
+        // Simple example: single address.
+        assert_eq!(
+            page_table.translate_addrs(VirtAddr::range_inclusive(page1, page1)),
+            Some(vec![PhysAddr::range_inclusive(frame3, frame3)])
+        );
+
+        // Simple example: within a single page.
+        assert_eq!(
+            page_table.translate_addrs(VirtAddr::range_exclusive(page1 + 2, page1 + 2 + 2)),
+            Some(vec![PhysAddr::range_exclusive(frame3 + 2, frame3 + 2 + 2)])
+        );
+
+        // Crossing a split page boundary.
+        assert_eq!(
+            page_table.translate_addrs(VirtAddr::range_exclusive(page1 + 4090, page1 + 4090 + 12)),
+            Some(vec![
+                PhysAddr::range_exclusive(frame3 + 4090, frame3 + 4090 + 6),
+                PhysAddr::range_exclusive(frame1, frame1 + 6)
+            ])
+        );
+
+        // Crossing a contiguous page boundary.
+        assert_eq!(
+            page_table.translate_addrs(VirtAddr::range_exclusive(page2 + 4090, page2 + 4090 + 12)),
+            Some(vec![PhysAddr::range_exclusive(
+                frame1 + 4090,
+                frame1 + 4090 + 12
+            )])
+        );
     }
 }

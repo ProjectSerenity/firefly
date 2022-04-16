@@ -50,6 +50,8 @@
 #![deny(clippy::wildcard_imports)]
 #![deny(unused_crate_dependencies)]
 
+extern crate alloc;
+
 pub mod constants;
 mod page_table;
 mod phys_addr;
