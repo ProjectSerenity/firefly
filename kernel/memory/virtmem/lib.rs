@@ -5,12 +5,7 @@
 
 //! Virtual memory management and allocation.
 //!
-//! The two basic APIs are:
-//!
-//! 1. [`init`]: Use a page table and physical memory allocator to initialise the kernel heap.
-//! 2. [`debug`]: Print debug info about the page tables and the virtual address spaces in use.
-//!
-//! It also keeps track of the kernel's page tables, along with functionality
+//! This crate keeps track of the kernel's page tables, along with functionality
 //! to create new page tables safely shared with the kernel. This set of APIs
 //! consists of:
 //!
@@ -76,29 +71,6 @@ pub fn kernel_level4_page_table() -> PhysFrame {
     unsafe { KERNEL_LEVEL4_PAGE_TABLE }
 }
 
-/// Initialise the kernel's memory, including setting up the
-/// heap.
-///
-/// - The bootstrap physical memory manager is initialised using the memory map included in the boot info we are passed by the bootloader.
-/// - The bootstrap allocator is used to initialise the virtual memory management (including for allocating page tables).
-/// - The global heap allocator is initialised to set up the kernel's heap.
-/// - The heap and the bootstrap physical memory manager are used to initialse the second stage physical memory manager.
-///
-#[allow(clippy::missing_panics_doc)] // Can only panic if the CPU gives us a bad address.
-pub fn init() {
-    // Prepare the kernel's PML4.
-    let (level_4_table_frame, _) = Cr3::read();
-    let level_4_frame = PhysFrame::from_start_address(
-        PhysAddr::from_x86_64(level_4_table_frame.start_address()),
-        PhysFrameSize::Size4KiB,
-    )
-    .unwrap();
-
-    unsafe {
-        KERNEL_LEVEL4_PAGE_TABLE = level_4_frame;
-    }
-}
-
 /// Indicates whether the kernel page mappings have
 /// been frozen because the kernel's initialisation
 /// is complete.
@@ -153,6 +125,19 @@ pub fn freeze_kernel_mappings() {
     let prev = KERNEL_MAPPINGS_FROZEN.fetch_or(true, Ordering::SeqCst);
     if prev {
         panic!("virtmem::freeze_kernel_mappings() called more than once");
+    }
+
+    // Store the current page table so we
+    // can use it to make new page tables.
+    let (level_4_table_frame, _) = Cr3::read();
+    let level_4_frame = PhysFrame::from_start_address(
+        PhysAddr::from_x86_64(level_4_table_frame.start_address()),
+        PhysFrameSize::Size4KiB,
+    )
+    .unwrap();
+
+    unsafe {
+        KERNEL_LEVEL4_PAGE_TABLE = level_4_frame;
     }
 
     // Set the page mappings.
