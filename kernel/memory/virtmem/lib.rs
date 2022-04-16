@@ -235,7 +235,7 @@ where
         }
 
         let frame = allocator
-            .allocate_phys_frame(PhysFrameSize::Size4KiB)
+            .allocate_phys_frame(page.size().phys_frame_size())
             .ok_or(PageMappingError::PageTableAllocationFailed)?;
         unsafe {
             page_table.map(page, frame, flags, allocator)?.flush();
