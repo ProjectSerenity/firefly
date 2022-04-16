@@ -67,11 +67,13 @@ buildifier(
 alias(
     name = "bootloader_binary",
     actual = "@crates__bootloader-" + BOOTLOADER_VERSION + "//:bootloader_bin",
+    tags = ["manual"],
 )
 
 alias(
     name = "bootloader_build_script",
     actual = "@crates__bootloader-" + BOOTLOADER_VERSION + "//:build_script",
+    tags = ["manual"],
 )
 
 x86_64_bare_metal_rust_binary(
