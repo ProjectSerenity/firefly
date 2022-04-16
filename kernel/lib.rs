@@ -53,6 +53,7 @@
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
 #![allow(unused_crate_dependencies)] // This is to allow the doc references above.
+#![allow(unsafe_code)]
 #![feature(alloc_error_handler)]
 #![feature(const_btree_new)]
 

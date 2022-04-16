@@ -29,6 +29,7 @@
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
 #![deny(unused_crate_dependencies)]
+#![allow(unsafe_code)]
 #![feature(binary_heap_retain)]
 #![feature(const_btree_new)]
 

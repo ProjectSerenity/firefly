@@ -33,6 +33,7 @@
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
 #![deny(unused_crate_dependencies)]
+#![allow(unsafe_code)]
 
 use core::fmt::Write;
 use spin::{lock, Mutex};

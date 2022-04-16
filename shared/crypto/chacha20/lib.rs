@@ -66,6 +66,7 @@
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
 #![deny(unused_crate_dependencies)]
+#![forbid(unsafe_code)]
 
 use core::cmp::min;
 

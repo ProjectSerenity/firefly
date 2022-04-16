@@ -74,6 +74,7 @@
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
 #![deny(unused_crate_dependencies)]
+#![allow(unsafe_code)]
 #![feature(abi_x86_interrupt)]
 
 mod irq;

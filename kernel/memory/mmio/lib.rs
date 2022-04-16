@@ -61,6 +61,7 @@
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
 #![deny(unused_crate_dependencies)]
+#![allow(unsafe_code)]
 #![feature(decl_macro)]
 
 use core::sync::atomic;
