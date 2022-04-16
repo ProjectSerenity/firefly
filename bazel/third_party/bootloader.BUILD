@@ -60,7 +60,7 @@ rust_binary(
     ],
     crate_root = "build.rs",
     edition = "2021",
-    visibility = ["//visibility:private"],
+    visibility = ["//visibility:public"],
     deps = [
         "@crates//:llvm-tools",
         "@crates//:toml",
