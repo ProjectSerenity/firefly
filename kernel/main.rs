@@ -25,12 +25,12 @@ use alloc::{format, vec};
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use filesystem::{FileType, Permissions};
+use memory::PageTable;
 use multitasking::process::Process;
 use multitasking::thread::Thread;
 use multitasking::{scheduler, with_processes};
 use serial::println;
 use storage::block;
-use virtmem::with_page_tables;
 
 /// This function is called on panic.
 #[panic_handler]
@@ -112,7 +112,7 @@ fn debug() {
 
     // Virtual memory.
     println!("Virtual memory manager:");
-    with_page_tables(virtmem::debug);
+    virtmem::debug(&PageTable::current());
     println!();
 
     // Physical memory.

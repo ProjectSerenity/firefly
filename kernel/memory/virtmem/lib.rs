@@ -19,7 +19,6 @@
 //!
 //! - [`map_pages`]: Map virtual pages to arbitrary physical memory.
 //! - [`map_frames_to_pages`]: Map virtual pages to chosen physical memory.
-//! - [`with_page_tables`]: Allows access to the current page tables.
 //! - [`virt_to_phys_addrs`]: Translate a virtual memory region to the underlying physical memory region(s).
 
 #![no_std]
@@ -141,20 +140,18 @@ pub fn freeze_kernel_mappings() {
     }
 
     // Set the page mappings.
-    with_page_tables(|page_table| {
-        // Skip the lower half (userspace) mappings.
-        for (idx, entry) in page_table.iter().skip(256).enumerate() {
-            if entry.flags().present() {
-                let half_idx = 256 + idx; // Bring back to higher half.
-                let pml4_idx = half_idx << 39; // Bring back to an address.
-                let pml4_addr = pml4_idx | 0xffff_8000_0000_0000; // Sign-extend.
-                let start_addr = VirtAddr::new(pml4_addr);
-                let page =
-                    VirtPage::from_start_address(start_addr, VirtPageSize::Size4KiB).unwrap();
-                unsafe { KERNEL_MAPPINGS.map(&page) };
-            }
+    // Skip the lower half (userspace) mappings.
+    let page_table = PageTable::current();
+    for (idx, entry) in page_table.iter().skip(256).enumerate() {
+        if entry.flags().present() {
+            let half_idx = 256 + idx; // Bring back to higher half.
+            let pml4_idx = half_idx << 39; // Bring back to an address.
+            let pml4_addr = pml4_idx | 0xffff_8000_0000_0000; // Sign-extend.
+            let start_addr = VirtAddr::new(pml4_addr);
+            let page = VirtPage::from_start_address(start_addr, VirtPageSize::Size4KiB).unwrap();
+            unsafe { KERNEL_MAPPINGS.map(&page) };
         }
-    });
+    }
 }
 
 /// Returns whether the kernel page mappings have
@@ -220,42 +217,6 @@ fn check_mapping(page: VirtPage) {
     }
 }
 
-/// Allows the caller to read the page mappings.
-///
-/// See also [`with_mut_page_tables`].
-///
-pub fn with_page_tables<F, R>(f: F) -> R
-where
-    F: FnOnce(&PageTable) -> R,
-{
-    let (level_4_table_frame, _) = Cr3::read();
-    let phys = PhysAddr::from_x86_64(level_4_table_frame.start_address());
-    let page_table = unsafe { PageTable::at(phys).expect("failed to load page table") };
-
-    f(&page_table)
-}
-
-/// Allows the caller to modify the page mappings
-/// without multiple mutable references existing
-/// at the same time.
-///
-/// If just mapping a set of memory pages, prefer
-/// [`map_pages`] instead, which provides additional
-/// checks on the memory being mapped.
-///
-/// See also [`with_page_tables`].
-///
-pub fn with_mut_page_tables<F, R>(f: F) -> R
-where
-    F: FnOnce(&mut PageTable) -> R,
-{
-    let (level_4_table_frame, _) = Cr3::read();
-    let phys = PhysAddr::from_x86_64(level_4_table_frame.start_address());
-    let mut page_table = unsafe { PageTable::at(phys).expect("failed to load page table") };
-
-    f(&mut page_table)
-}
-
 /// Map the given page range, which can be inclusive or exclusive.
 ///
 pub fn map_pages<A>(
@@ -267,22 +228,21 @@ where
     A: PhysFrameAllocator + ?Sized,
 {
     let frozen = kernel_mappings_frozen();
-    with_mut_page_tables(|page_table| {
-        for page in page_range {
-            if frozen {
-                check_mapping(page);
-            }
-
-            let frame = allocator
-                .allocate_phys_frame(PhysFrameSize::Size4KiB)
-                .ok_or(PageMappingError::PageTableAllocationFailed)?;
-            unsafe {
-                page_table.map(page, frame, flags, allocator)?.flush();
-            }
+    let mut page_table = PageTable::current();
+    for page in page_range {
+        if frozen {
+            check_mapping(page);
         }
 
-        Ok(())
-    })
+        let frame = allocator
+            .allocate_phys_frame(PhysFrameSize::Size4KiB)
+            .ok_or(PageMappingError::PageTableAllocationFailed)?;
+        unsafe {
+            page_table.map(page, frame, flags, allocator)?.flush();
+        }
+    }
+
+    Ok(())
 }
 
 /// Map the given frame range to the page range, either of which
@@ -300,22 +260,21 @@ where
     // Make the frame range mutable.
     let mut frame_range = frame_range;
     let frozen = kernel_mappings_frozen();
-    with_mut_page_tables(|page_table| {
-        for page in page_range {
-            if frozen {
-                check_mapping(page);
-            }
-
-            let frame = frame_range
-                .next()
-                .ok_or(PageMappingError::PageTableAllocationFailed)?;
-            unsafe {
-                page_table.map(page, frame, flags, allocator)?.flush();
-            }
+    let mut page_table = PageTable::current();
+    for page in page_range {
+        if frozen {
+            check_mapping(page);
         }
 
-        Ok(())
-    })
+        let frame = frame_range
+            .next()
+            .ok_or(PageMappingError::PageTableAllocationFailed)?;
+        unsafe {
+            page_table.map(page, frame, flags, allocator)?.flush();
+        }
+    }
+
+    Ok(())
 }
 
 /// Translates a contiguous virtual memory region into one
@@ -325,7 +284,7 @@ where
 /// in the given page table, then None is returned.
 ///
 pub fn virt_to_phys_addrs(addrs: VirtAddrRange) -> Option<Vec<PhysAddrRange>> {
-    with_page_tables(|page_table| page_table.translate_addrs(addrs))
+    PageTable::current().translate_addrs(addrs)
 }
 
 /// Prints debug info about the passed level 4 page table, including

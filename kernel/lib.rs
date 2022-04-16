@@ -63,9 +63,9 @@ pub mod syscalls;
 use bootloader::BootInfo;
 use core::include_str;
 use interrupts::{register_irq, Irq};
+use memory::PageTable;
 use multitasking::thread::Thread;
 use multitasking::{scheduler, thread};
-use virtmem::{remap_kernel, with_mut_page_tables};
 use x86_64::structures::idt::InterruptStackFrame;
 
 /// The Firefly license text.
@@ -122,7 +122,7 @@ pub fn init(boot_info: &'static BootInfo) {
     // left over by the bootloader and to remap
     // the kernel to ensure the correct page
     // table flags.
-    with_mut_page_tables(remap_kernel);
+    virtmem::remap_kernel(&mut PageTable::current());
 
     // Now we have a working heap, we can set
     // up the global memory region for CPU-local

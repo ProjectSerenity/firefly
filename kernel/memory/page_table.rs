@@ -13,6 +13,7 @@ use alloc::vec::Vec;
 use bitflags::bitflags;
 use core::cmp::min;
 use x86_64::instructions::tlb;
+use x86_64::registers::control::Cr3;
 
 // The 51st bit of a physical frame address in
 // a page table entry is reserved and must be
@@ -339,6 +340,17 @@ pub struct PageTable {
 }
 
 impl PageTable {
+    /// Returns the current page tables, according to the
+    /// CPU.
+    ///
+    #[inline]
+    #[track_caller]
+    pub fn current() -> Self {
+        let (level_4_table_frame, _) = Cr3::read();
+        let phys = PhysAddr::from_x86_64(level_4_table_frame.start_address());
+        unsafe { PageTable::at(phys).expect("failed to load page table") }
+    }
+
     /// Creates a page table referring to the page table data
     /// at the given address.
     ///

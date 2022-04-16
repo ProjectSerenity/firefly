@@ -84,6 +84,7 @@ rust_binary(
         "//kernel/cpu",
         "//kernel/drivers/serial",
         "//kernel/filesystem",
+        "//kernel/memory",
         "//kernel/memory/physmem",
         "//kernel/memory/virtmem",
         "//kernel/multitasking",
