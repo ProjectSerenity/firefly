@@ -21,7 +21,7 @@ rust_library(
         "//kernel/utils/bitmap_index",
         "//kernel/utils/pretty",
         "//kernel/utils/spin",
-        "@bootloader",
+        "@crates//:bootloader",
         "@crates//:lazy_static",
     ],
 )

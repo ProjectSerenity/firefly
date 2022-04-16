@@ -42,7 +42,18 @@ RUST_NO_STD = struct(
     sum = "35cd94ae9a6efc1839c227470041038e3c51f50db1f2c59ed7f5b32d03f4cd2f",
 )
 
+BOOTLOADER_VERSION = "0.9.22"
+
 RUST_CRATE_ANNOTATIONS = {
+    "bootloader": [crate.annotation(
+        additive_build_file = "@//bazel/third_party:bootloader.BUILD",
+        build_script_data = ["@rust_linux_x86_64//:rustc"],
+        build_script_env = {
+            "PATH": "$$(dirname $(location @rust_linux_x86_64//:rustc)):$$PATH",
+        },
+        patch_args = ["-p1"],
+        patches = ["@//bazel/third_party:bootloader.patch"],
+    )],
     "uart_16550": [crate.annotation(
         deps = ["@crates//:x86_64"],
     )],
@@ -51,16 +62,17 @@ RUST_CRATE_ANNOTATIONS = {
 # After chaning any of these, the next build will
 # need to be run with CARGO_BAZEL_REPIN=true.
 RUST_CRATES = {
+    # For bootloader binary.
     "bit_field": crate.spec(
         version = "=0.10.1",
     ),
     "bitflags": crate.spec(
         version = "=1.3.2",
     ),
-    "byteorder": crate.spec(
-        default_features = False,
-        version = "=1.4.3",
+    "bootloader": crate.spec(
+        version = "=0.9.22",
     ),
+    # For bootloader binary.
     "fixedvec": crate.spec(
         version = "=0.2.4",
     ),
@@ -76,6 +88,7 @@ RUST_CRATES = {
         features = ["const_mut_refs"],
         version = "=0.9.1",
     ),
+    # For bootloader binary.
     "llvm-tools": crate.spec(
         version = "=0.1.1",
     ),
@@ -93,11 +106,6 @@ RUST_CRATES = {
     "raw-cpuid": crate.spec(
         version = "=10.3.0",
     ),
-    "serde": crate.spec(
-        default_features = False,
-        features = ["alloc"],
-        version = "=1.0.136",
-    ),
     "smoltcp": crate.spec(
         default_features = False,
         features = [
@@ -114,17 +122,16 @@ RUST_CRATES = {
         ],
         version = "=0.8.0",
     ),
+    # For bootloader binary.
     "toml": crate.spec(
         version = "=0.5.8",
     ),
     "uart_16550": crate.spec(
         version = "=0.2.17",
     ),
+    # For bootloader binary.
     "usize_conversions": crate.spec(
         version = "=0.2.0",
-    ),
-    "volatile": crate.spec(
-        version = "=0.4.4",
     ),
     "x86_64": crate.spec(
         version = "=0.14.9",
@@ -132,31 +139,9 @@ RUST_CRATES = {
     "xmas-elf": crate.spec(
         version = "=0.8.0",
     ),
-    "zero": crate.spec(
-        version = "=0.1.2",
-    ),
 }
 
 def rust_deps():
-    # Rust crates where we use a custom BUILD file.
-
-    # Modify the binary build to mimic what `bootimage runner` does.
-    # We also patch the binary to fix a path issue.
-    http_archive(
-        name = "bootloader",
-        build_file = "//bazel/third_party:bootloader.BUILD",
-        patch_args = ["-p1"],
-        patches = [
-            "//bazel/third_party:bootloader.patch",
-        ],
-        sha256 = "de78decc37247c7cfac5dbf3495c7298c6ac97cb355161caa7e15969c6648e6c",
-        strip_prefix = "bootloader-0.9.22",  # Keep this in sync with its BUILD file.
-        type = "tgz",
-        urls = [
-            "https://static.crates.io/crates/bootloader/bootloader-0.9.22.crate",
-        ],
-    )
-
     # Fetch libcore, liballoc, and libcompiler-builtins
     # for the x86_64-unknown-none build target.
 

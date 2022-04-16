@@ -3,16 +3,6 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_binary")
-load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
-
-licenses([
-    "notice",  # MIT from expression "MIT OR Apache-2.0"
-])
-
-BOOTLOADER_VERSION = "0.9.22"
-
 # The bootloader package is a little unusual, as we use
 # both its library crate and main binary crate, plus we
 # depend on its build.rs script.
@@ -47,48 +37,8 @@ BOOTLOADER_VERSION = "0.9.22"
 # crate to turn the ELF executable into a raw executable,
 # padded to the next smallest block size (512 bytes).
 
-# First, the bootloader library, which is a normal
+# We already have the bootloader library, which is a normal
 # build.
-
-rust_library(
-    name = "bootloader",
-    srcs = glob(["**/*.rs"]),
-    aliases = select({
-        # Default
-        "//conditions:default": {
-        },
-    }),
-    crate_features = [
-        "default",
-        "map_physical_memory",
-    ],
-    crate_root = "src/lib.rs",
-    data = glob(
-        ["**"],
-        exclude = [
-            # These can be manually added with overrides if needed.
-
-            # If you run `cargo build` in this dir, the target dir can get very big very quick.
-            "target/**",
-
-            # These are not vendored from the crate - we exclude them to avoid busting caches
-            # when we change how we generate BUILD files and such.
-            "BUILD.bazel",
-            "WORKSPACE.bazel",
-            "WORKSPACE",
-        ],
-    ),
-    edition = "2021",
-    rustc_flags = [
-        "--cap-lints=allow",
-    ],
-    tags = [
-        "cargo-raze",
-        "manual",
-    ],
-    version = BOOTLOADER_VERSION,
-    visibility = ["//visibility:public"],
-)
 
 # Now, the multiple steps necessary to build
 # the bootloader binary.
@@ -145,54 +95,6 @@ genrule(
         ":build_script",
     ],
     visibility = ["//visibility:private"],
-)
-
-# Now that we've got the file outputs, get the
-# command line outputs too so we can update the
-# search path for the linker.
-
-cargo_build_script(
-    name = "bootloader_build_script",
-    srcs = ["build.rs"],
-    build_script_env = {
-        "PATH": "$$(dirname $(location @rust_linux_x86_64//:rustc)):$$PATH",
-    },
-    crate_features = [
-        "default",
-        "map_physical_memory",
-    ],
-    crate_root = "build.rs",
-    data = glob(
-        ["**"],
-        exclude = [
-            # These can be manually added with overrides if needed.
-
-            # If you run `cargo build` in this dir, the target dir can get very big very quick.
-            "target/**",
-
-            # These are not vendored from the crate - we exclude them to avoid busting caches
-            # when we change how we generate BUILD files and such.
-            "BUILD.bazel",
-            "WORKSPACE.bazel",
-            "WORKSPACE",
-        ],
-    ) + [
-        "@rust_linux_x86_64//:rustc",
-    ],
-    edition = "2021",
-    rustc_flags = [
-        "--cap-lints=allow",
-    ],
-    tags = [
-        "cargo-raze",
-        "manual",
-    ],
-    version = BOOTLOADER_VERSION,
-    visibility = ["//visibility:private"],
-    deps = [
-        "@crates//:llvm-tools",
-        "@crates//:toml",
-    ],
 )
 
 # Build the bootloader binary using the
@@ -252,7 +154,6 @@ rust_binary(
         "-lstatic=kernel_bin-kernel",
     ],
     tags = ["manual"],
-    version = BOOTLOADER_VERSION,
     visibility = ["//visibility:public"],
     deps = [
         ":bootloader",
@@ -263,15 +164,4 @@ rust_binary(
         "@crates//:x86_64",
         "@crates//:xmas-elf",
     ],
-)
-
-# This is the real target, as it uses
-# a transition to enforce that the kernel
-# binary is compiled and linked using our
-# custom C/C++ toolchain and platform.
-
-x86_64_bare_metal_rust_binary(
-    name = "binary",
-    rust_binary = ":bootloader_bin",
-    visibility = ["//visibility:public"],
 )

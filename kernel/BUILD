@@ -49,7 +49,7 @@ rust_library(
         "//kernel/utils/spin",
         "//kernel/utils/tar",
         "//shared/syscalls",
-        "@bootloader",
+        "@crates//:bootloader",
         "@crates//:x86_64",
     ],
 )
@@ -92,7 +92,7 @@ rust_binary(
         "//kernel/storage",
         "//kernel/time",
         "//kernel/utils/tar",
-        "@bootloader",
+        "@crates//:bootloader",
     ],
 )
 
