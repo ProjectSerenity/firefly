@@ -474,11 +474,10 @@ impl<'entries> PageTable<'entries> {
     /// address, according to the page tables.
     ///
     pub fn translate_addr(&self, addr: VirtAddr) -> Option<PhysAddr> {
-        match self.translate(addr) {
-            PageMapping::Mapping { addr, .. } => Some(addr),
-            PageMapping::NotMapped => None,
-            PageMapping::InvalidPageTableAddr(_) => None,
-            PageMapping::InvalidLevel4PageTable => None,
+        if let PageMapping::Mapping { addr, .. } = self.translate(addr) {
+            Some(addr)
+        } else {
+            None
         }
     }
 
@@ -486,11 +485,10 @@ impl<'entries> PageTable<'entries> {
     /// frame, according to the page tables.
     ///
     pub fn translate_page(&self, page: VirtPage) -> Option<PhysFrame> {
-        match self.translate(page.start_address()) {
-            PageMapping::Mapping { frame, .. } => Some(frame),
-            PageMapping::NotMapped => None,
-            PageMapping::InvalidPageTableAddr(_) => None,
-            PageMapping::InvalidLevel4PageTable => None,
+        if let PageMapping::Mapping { frame, .. } = self.translate(page.start_address()) {
+            Some(frame)
+        } else {
+            None
         }
     }
 
