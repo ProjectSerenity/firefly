@@ -22,6 +22,14 @@
 pub enum Syscall {
     /// Exit the current thread.
     ExitThread = 0,
+
+    /// Write a message to the current process's
+    /// standard output.
+    PrintMessage = 3,
+
+    /// Write a message to the current process's
+    /// standard error output.
+    PrintError = 4,
     // Ensure new values are added to check_numerical_conversion below.
 }
 
@@ -32,6 +40,8 @@ impl Syscall {
     pub fn from_usize(num: usize) -> Option<Self> {
         match num {
             0 => Some(Self::ExitThread),
+            3 => Some(Self::PrintMessage),
+            4 => Some(Self::PrintError),
             _ => None,
         }
     }
@@ -47,6 +57,10 @@ pub enum Error {
     /// The requested syscall does not exist, or has not
     /// been implemented.
     BadSyscall = 1,
+
+    /// An invalid or malformed parameter was provided to
+    /// the syscall.
+    IllegalParameter = 2,
     // Ensure new values are added to check_numerical_conversion below.
 }
 
@@ -58,6 +72,7 @@ impl Error {
         match num {
             0 => Some(Self::NoError),
             1 => Some(Self::BadSyscall),
+            2 => Some(Self::IllegalParameter),
             _ => None,
         }
     }
@@ -69,13 +84,17 @@ mod tests {
 
     #[test]
     fn check_numerical_conversion() {
-        let syscalls = [Syscall::ExitThread];
+        let syscalls = [
+            Syscall::ExitThread,
+            Syscall::PrintMessage,
+            Syscall::PrintError,
+        ];
 
         for syscall in syscalls.iter().copied() {
             assert_eq!(Some(syscall), Syscall::from_usize(syscall as usize));
         }
 
-        let errors = [Error::NoError, Error::BadSyscall];
+        let errors = [Error::NoError, Error::BadSyscall, Error::IllegalParameter];
 
         for error in errors.iter().copied() {
             assert_eq!(Some(error), Error::from_usize(error as usize));

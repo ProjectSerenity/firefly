@@ -9,7 +9,7 @@ use core::arch::global_asm;
 use memory::VirtAddr;
 use multitasking::thread;
 use segmentation::with_segment_data;
-use serial::println;
+use serial::{print, println};
 use syscalls::{Error, Syscall};
 use x86_64::registers::model_specific::{Efer, EferFlags, LStar, SFMask, Star};
 use x86_64::registers::rflags::RFlags;
@@ -79,6 +79,76 @@ extern "sysv64" fn syscall_handler(
         Some(Syscall::ExitThread) => {
             println!("Exiting user thread.");
             thread::exit();
+        }
+        Some(Syscall::PrintMessage) => {
+            // fn print_message(ptr: *const u8, len: usize) -> (written: usize, error: Error)
+            // There are no pointers to pointers
+            // so we can consume the arguments
+            // straight away.
+            //
+            // It's a little tacky, but using
+            // UNIX shell colours helps us to
+            // differentiate user print_message
+            // and print_error from the kernel's
+            // println.
+            let b = unsafe { core::slice::from_raw_parts(arg1 as *const u8, arg2) };
+            if let Ok(s) = core::str::from_utf8(b) {
+                print!("\x1b[1;32m"); // Green foreground.
+                let written = if serial::write_str(s).is_err() {
+                    // We handle a failure to write the
+                    // message as having written nothing,
+                    // rather than returning an error.
+                    0
+                } else {
+                    arg2
+                };
+                print!("\x1b[0m"); // Reset colour.
+
+                let value = written;
+                let error = Error::NoError as usize;
+
+                SyscallResults { value, error }
+            } else {
+                let value = 0;
+                let error = Error::IllegalParameter as usize;
+
+                SyscallResults { value, error }
+            }
+        }
+        Some(Syscall::PrintError) => {
+            // fn print_error(ptr: *const u8, len: usize) -> (written: usize, error: Error)
+            // There are no pointers to pointers
+            // so we can consume the arguments
+            // straight away.
+            //
+            // It's a little tacky, but using
+            // UNIX shell colours helps us to
+            // differentiate user print_message
+            // and print_error from the kernel's
+            // println.
+            let b = unsafe { core::slice::from_raw_parts(arg1 as *const u8, arg2) };
+            if let Ok(s) = core::str::from_utf8(b) {
+                print!("\x1b[1;31m"); // Red foreground.
+                let written = if serial::write_str(s).is_err() {
+                    // We handle a failure to write the
+                    // message as having written nothing,
+                    // rather than returning an error.
+                    0
+                } else {
+                    arg2
+                };
+                print!("\x1b[0m"); // Reset colour.
+
+                let value = written;
+                let error = Error::NoError as usize;
+
+                SyscallResults { value, error }
+            } else {
+                let value = 0;
+                let error = Error::IllegalParameter as usize;
+
+                SyscallResults { value, error }
+            }
         }
         None => {
             println!("Unrecognised syscall {}", syscall_num);
