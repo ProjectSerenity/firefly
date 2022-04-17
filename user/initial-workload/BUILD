@@ -15,6 +15,9 @@ rust_library(
     crate_name = "initial_workload",
     edition = "2021",
     visibility = ["//visibility:private"],
+    deps = [
+        "//user/firefly",
+    ],
 )
 
 rust_clippy(

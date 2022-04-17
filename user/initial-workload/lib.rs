@@ -13,9 +13,12 @@
 #![deny(unused_crate_dependencies)]
 #![deny(unsafe_code)]
 
+use firefly::{eprintln, println};
+
 /// The application entry point.
 ///
 #[inline]
 pub fn main() {
-    // TODO
+    println!("Hello from userland!");
+    eprintln!("Hello again from userland!");
 }
