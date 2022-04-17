@@ -17,3 +17,110 @@
 #![allow(unsafe_code)]
 
 pub mod syscalls;
+
+use core::fmt;
+use core::fmt::Write;
+
+/// The process's standard output.
+///
+#[derive(Clone, Copy, Debug)]
+struct StandardOutput;
+
+impl StandardOutput {
+    pub fn new() -> Self {
+        StandardOutput
+    }
+}
+
+impl Default for StandardOutput {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Write for StandardOutput {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        if syscalls::print_message(s).is_ok() {
+            Ok(())
+        } else {
+            Err(fmt::Error::default())
+        }
+    }
+}
+
+/// _print writes text to the standard
+/// error output.
+///
+#[doc(hidden)]
+pub fn _print(args: ::core::fmt::Arguments) {
+    StandardOutput::new()
+        .write_fmt(args)
+        .expect("Printing to standard output failed");
+}
+
+/// Print to the standard output.
+///
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ($crate::_print(format_args!($($arg)*)));
+}
+
+/// Print to the standard output.
+///
+#[macro_export]
+macro_rules! println {
+    () => ($crate::print!("\n"));
+    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
+}
+
+/// The process's standard error output.
+///
+#[derive(Clone, Copy, Debug)]
+struct StandardError;
+
+impl StandardError {
+    pub fn new() -> Self {
+        StandardError
+    }
+}
+
+impl Default for StandardError {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Write for StandardError {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        if syscalls::print_error(s).is_ok() {
+            Ok(())
+        } else {
+            Err(fmt::Error::default())
+        }
+    }
+}
+
+/// _eprint writes text to the standard
+/// error output.
+///
+#[doc(hidden)]
+pub fn _eprint(args: ::core::fmt::Arguments) {
+    StandardError::new()
+        .write_fmt(args)
+        .expect("Printing to standard error failed");
+}
+
+/// Print to the standard error output.
+///
+#[macro_export]
+macro_rules! eprint {
+    ($($arg:tt)*) => ($crate::_eprint(format_args!($($arg)*)));
+}
+
+/// Print to the standard error output.
+///
+#[macro_export]
+macro_rules! eprintln {
+    () => ($crate::eprint!("\n"));
+    ($($arg:tt)*) => ($crate::eprint!("{}\n", format_args!($($arg)*)));
+}
