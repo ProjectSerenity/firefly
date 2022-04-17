@@ -150,6 +150,22 @@ extern "sysv64" fn syscall_handler(
                 SyscallResults { value, error }
             }
         }
+        Some(Syscall::ReadRandom) => {
+            // fn read_random(ptr: *mut u8, len: usize) -> (_: usize, error: Error)
+            // There are no pointers to pointers
+            // so we can consume the arguments
+            // straight away.
+            //
+            // We return no value (0) and no
+            // error.
+            let b = unsafe { core::slice::from_raw_parts_mut(arg1 as *mut u8, arg2) };
+            random::read(b);
+
+            let value = 0;
+            let error = Error::NoError as usize;
+
+            SyscallResults { value, error }
+        }
         None => {
             println!("Unrecognised syscall {}", syscall_num);
             println!("syscall_handler(");

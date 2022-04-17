@@ -30,6 +30,10 @@ pub enum Syscall {
     /// Write a message to the current process's
     /// standard error output.
     PrintError = 4,
+
+    /// Read cryptographically-secure pseudorandom
+    /// numbers into a memory buffer.
+    ReadRandom = 10,
     // Ensure new values are added to check_numerical_conversion below.
 }
 
@@ -42,6 +46,7 @@ impl Syscall {
             0 => Some(Self::ExitThread),
             3 => Some(Self::PrintMessage),
             4 => Some(Self::PrintError),
+            10 => Some(Self::ReadRandom),
             _ => None,
         }
     }
@@ -88,6 +93,7 @@ mod tests {
             Syscall::ExitThread,
             Syscall::PrintMessage,
             Syscall::PrintError,
+            Syscall::ReadRandom,
         ];
 
         for syscall in syscalls.iter().copied() {

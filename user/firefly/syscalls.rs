@@ -236,3 +236,23 @@ pub fn print_error(s: &str) -> Result<usize, Error> {
         None => Err(Error::BadSyscall),
     }
 }
+
+/// Read cryptographically-secure
+/// pseudorandom numbers into a memory
+/// buffer.
+///
+/// # Panics
+///
+/// In the unlikely scenario that the
+/// `read_random` syscall returns an
+/// error, this function will panic.
+///
+#[inline]
+pub fn read_random(buf: &mut [u8]) {
+    let sys = Syscall::ReadRandom as usize;
+    let (_, error) = unsafe { syscall2(sys, buf.as_mut_ptr() as usize, buf.len()) };
+    match Error::from_usize(error) {
+        Some(Error::NoError) | None => {}
+        Some(err) => panic!("unexpected error from read_random: {:?}", err),
+    }
+}
