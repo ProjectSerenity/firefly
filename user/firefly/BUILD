@@ -6,25 +6,28 @@
 load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rustfmt_test")
 
 rust_library(
-    name = "syscalls",
-    srcs = ["lib.rs"],
-    crate_name = "syscalls",
+    name = "firefly",
+    srcs = [
+        "lib.rs",
+        "syscalls.rs",
+    ],
+    crate_name = "firefly",
     edition = "2021",
     visibility = ["//visibility:public"],
 )
 
 rust_clippy(
-    name = "syscalls_clippy",
-    deps = [":syscalls"],
+    name = "firefly_clippy",
+    deps = [":firefly"],
 )
 
 rust_doc(
-    name = "syscalls_doc",
-    crate = ":syscalls",
+    name = "firefly_doc",
+    crate = ":firefly",
 )
 
 rustfmt_test(
     name = "fmt_test",
     size = "small",
-    targets = [":syscalls"],
+    targets = [":firefly"],
 )

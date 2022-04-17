@@ -3,10 +3,10 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-// This is a simple user application.
+//! Provides helper functions for calling Firefly syscalls.
 
 #![no_std]
-#![no_main]
+#![deny(clippy::float_arithmetic)]
 #![deny(clippy::inline_asm_x86_att_syntax)]
 #![deny(clippy::missing_panics_doc)]
 #![deny(clippy::panic)]
@@ -14,20 +14,6 @@
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
 #![deny(unused_crate_dependencies)]
+#![allow(unsafe_code)]
 
-use core::panic::PanicInfo;
-use firefly::syscalls::exit_thread;
-use initial_workload::main;
-
-/// This function is called on panic.
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
-}
-
-/// The application's entry point.
-#[no_mangle]
-pub extern "sysv64" fn _start() -> ! {
-    main();
-    exit_thread();
-}
+pub mod syscalls;

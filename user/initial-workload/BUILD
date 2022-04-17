@@ -44,7 +44,7 @@ rust_binary(
     tags = ["manual"],
     deps = [
         ":initial-workload_lib",
-        "//user/syscalls",
+        "//user/firefly",
     ],
 )
 
