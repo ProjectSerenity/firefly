@@ -56,6 +56,13 @@ pub static COM3: Mutex<SerialPort> = unsafe { Mutex::new(SerialPort::new(0x3e8))
 ///
 pub static COM4: Mutex<SerialPort> = unsafe { Mutex::new(SerialPort::new(0x2e8)) };
 
+/// Write a string to the first serial port,
+/// COM1.
+///
+pub fn write_str(s: &str) -> core::fmt::Result {
+    without_interrupts(|| lock!(COM1).write_str(s))
+}
+
 /// _print writes text to the serial port by
 /// acquiring COM1 using a spin lock.
 ///
