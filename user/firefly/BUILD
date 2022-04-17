@@ -20,12 +20,12 @@ rust_library(
 )
 
 rust_clippy(
-    name = "firefly_clippy",
+    name = "clippy",
     deps = [":firefly"],
 )
 
 rust_doc(
-    name = "firefly_doc",
+    name = "docs",
     crate = ":firefly",
 )
 
