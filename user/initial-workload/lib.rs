@@ -13,12 +13,14 @@
 #![deny(unused_crate_dependencies)]
 #![deny(unsafe_code)]
 
-use firefly::{eprintln, println};
+use firefly::println;
+use firefly::syscalls::read_random;
 
 /// The application entry point.
 ///
 #[inline]
 pub fn main() {
-    println!("Hello from userland!");
-    eprintln!("Hello again from userland!");
+    let mut buf = [0u8; 8];
+    read_random(&mut buf[..]);
+    println!("Hello from userland: {:x?}!", &buf[..]);
 }
