@@ -14,6 +14,9 @@ rust_library(
     crate_name = "firefly",
     edition = "2021",
     visibility = ["//visibility:public"],
+    deps = [
+        "//shared/syscalls",
+    ],
 )
 
 rust_clippy(
