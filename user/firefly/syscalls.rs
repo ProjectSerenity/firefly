@@ -6,7 +6,7 @@
 //! Provides helper functions for calling Firefly syscalls.
 
 use core::arch::asm;
-use syscalls::Syscall;
+use syscalls::{Error, Syscall};
 
 /// Call a raw syscall.
 ///
@@ -207,4 +207,32 @@ pub fn exit_thread() -> ! {
     unsafe { syscall0(Syscall::ExitThread as usize) };
 
     unreachable!();
+}
+
+/// Print a message to the process's
+/// standard output.
+///
+#[inline]
+pub fn print_message(s: &str) -> Result<usize, Error> {
+    let sys = Syscall::PrintMessage as usize;
+    let (value, error) = unsafe { syscall2(sys, s.as_ptr() as usize, s.len()) };
+    match Error::from_usize(error) {
+        Some(Error::NoError) => Ok(value),
+        Some(err) => Err(err),
+        None => Err(Error::BadSyscall),
+    }
+}
+
+/// Print a message to the process's
+/// standard error output.
+///
+#[inline]
+pub fn print_error(s: &str) -> Result<usize, Error> {
+    let sys = Syscall::PrintError as usize;
+    let (value, error) = unsafe { syscall2(sys, s.as_ptr() as usize, s.len()) };
+    match Error::from_usize(error) {
+        Some(Error::NoError) => Ok(value),
+        Some(err) => Err(err),
+        None => Err(Error::BadSyscall),
+    }
 }
