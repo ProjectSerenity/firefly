@@ -1,0 +1,12 @@
+/// A simple function that takes no arguments and
+/// returns no results.
+///
+#[inline]
+pub fn simple_syscall() -> Result<i64, ReadError> {
+    let sys = Syscalls::SimpleSyscall.as_u64() as usize;
+    let (result1, result2) = unsafe { syscall0(sys) };
+    match ReadError::from_u8(result2 as u8).expect("invalid result from kernel") {
+        ReadError::NoError => Ok(result1 as i64),
+        err => Err(err),
+    }
+}

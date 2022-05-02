@@ -1,0 +1,39 @@
+/// An error returned after a failed attempt to read from
+/// a file in a filesystem.
+///
+#[derive(Debug)]
+pub enum ReadError {
+    /// The file read completed successfully.
+    NoError,
+    /// There is no more data available in the file.
+    EndOfFile,
+    /// Read operations on this file are not permitted.
+    AccessDenied,
+}
+
+impl ReadError {
+    /// Returns the [`ReadError`] value that corresponds
+    /// to `val`, or `None`.
+    ///
+    #[allow(dead_code)]
+    pub const fn from_u8(val: u8) -> Option<Self> {
+        match val {
+            0_u8 => Some(ReadError::NoError),
+            1_u8 => Some(ReadError::EndOfFile),
+            2_u8 => Some(ReadError::AccessDenied),
+            _ => None,
+        }
+    }
+
+    /// Returns the numerical value that corresponds to
+    /// the [`ReadError`].
+    ///
+    #[allow(dead_code)]
+    pub const fn as_u8(&self) -> u8 {
+        match self {
+            ReadError::NoError => 0_u8,
+            ReadError::EndOfFile => 1_u8,
+            ReadError::AccessDenied => 2_u8,
+        }
+    }
+}

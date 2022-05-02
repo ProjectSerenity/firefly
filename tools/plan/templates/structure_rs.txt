@@ -1,0 +1,16 @@
+{{/* Print the documentation for the structure type */}}
+{{- range .Docs }}/// {{ . }}
+{{ end -}}
+///
+#[repr(packed)]
+#[derive(Debug)]
+pub struct {{ .Name.PascalCase }} {
+    {{- range $i, $field := .Fields }}
+    {{- /* Add a newline for fields after the first, to space them apart. */ -}}
+    {{- if ne $i 0 }}
+{{ end }}
+    {{ range .Docs }}/// {{ . }}
+    {{ end -}}
+    {{ fieldDefinition . }}
+    {{- end }}
+}
