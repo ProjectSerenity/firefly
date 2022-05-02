@@ -3,28 +3,16 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rustfmt_test")
+load("//tools/plan:defs.bzl", "plan_format", "plan_library")
 
-rust_library(
+plan_library(
     name = "syscalls",
-    srcs = ["lib.rs"],
-    crate_name = "syscalls",
-    edition = "2021",
+    src = "x86_64.plan",
+    arch = "x86-64",
     visibility = ["//visibility:public"],
 )
 
-rust_clippy(
-    name = "clippy",
-    deps = [":syscalls"],
-)
-
-rust_doc(
-    name = "docs",
-    crate = ":syscalls",
-)
-
-rustfmt_test(
-    name = "fmt_test",
-    size = "small",
-    targets = [":syscalls"],
+plan_format(
+    name = "syscalls_format",
+    embed = ":syscalls",
 )

@@ -16,10 +16,19 @@
 #![deny(unused_crate_dependencies)]
 #![allow(unsafe_code)]
 
-pub mod syscalls;
+pub mod syscalls {
+    include!(env!("SYSCALLS_RS"));
+}
 
 use core::fmt;
 use core::fmt::Write;
+
+/// Exit the current thread.
+///
+pub fn exit_thread() -> ! {
+    syscalls::exit_thread();
+    unreachable!();
+}
 
 /// The process's standard output.
 ///
@@ -40,7 +49,7 @@ impl Default for StandardOutput {
 
 impl Write for StandardOutput {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        if syscalls::print_message(s).is_ok() {
+        if syscalls::print_message(s.as_ptr(), s.len() as u64).is_ok() {
             Ok(())
         } else {
             Err(fmt::Error::default())
@@ -92,7 +101,7 @@ impl Default for StandardError {
 
 impl Write for StandardError {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        if syscalls::print_error(s).is_ok() {
+        if syscalls::print_error(s.as_ptr(), s.len() as u64).is_ok() {
             Ok(())
         } else {
             Err(fmt::Error::default())

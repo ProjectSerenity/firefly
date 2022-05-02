@@ -3,20 +3,27 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rustfmt_test")
+load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_library", "rustfmt_test")
+load("//tools/plan:defs.bzl", "plan_rust_userspace")
+
+plan_rust_userspace(
+    name = "syscalls",
+    embed = "//shared/syscalls",
+    rustfmt = "@rust_linux_x86_64//:rustfmt",
+)
 
 rust_library(
     name = "firefly",
     srcs = [
         "lib.rs",
-        "syscalls.rs",
+        ":syscalls",
     ],
     crate_name = "firefly",
     edition = "2021",
+    rustc_env = {
+        "SYSCALLS_RS": "$(location :syscalls)",
+    },
     visibility = ["//visibility:public"],
-    deps = [
-        "//shared/syscalls",
-    ],
 )
 
 rust_clippy(
@@ -24,10 +31,14 @@ rust_clippy(
     deps = [":firefly"],
 )
 
-rust_doc(
-    name = "docs",
-    crate = ":firefly",
-)
+# For now, we have to disable this due to the
+# generated code in :libkernel.
+#
+# See https://github.com/bazelbuild/rules_rust/issues/689
+# rust_doc(
+#     name = "docs",
+#     crate = ":firefly",
+# )
 
 rustfmt_test(
     name = "fmt_test",

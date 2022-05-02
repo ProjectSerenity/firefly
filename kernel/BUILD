@@ -3,13 +3,20 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_doc", "rust_library", "rustfmt_test")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_library", "rustfmt_test")
 load("//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_binary")
+load("//tools/plan:defs.bzl", "plan_rust_kernelspace")
 
 # Expose the manifest to the bootloader and bootimage.
 exports_files(
     ["ograC.toml"],
     visibility = ["//visibility:public"],
+)
+
+plan_rust_kernelspace(
+    name = "syscalls",
+    embed = "//shared/syscalls",
+    rustfmt = "@rust_linux_x86_64//:rustfmt",
 )
 
 rust_library(
@@ -23,7 +30,11 @@ rust_library(
         "//:LICENSE",
     ],
     crate_name = "kernel",
+    data = [":syscalls"],
     edition = "2021",
+    rustc_env = {
+        "SYSCALLS_RS": "$(location :syscalls)",
+    },
     visibility = ["//visibility:private"],
     deps = [
         "//kernel/cpu",
@@ -48,7 +59,6 @@ rust_library(
         "//kernel/utils/pretty",
         "//kernel/utils/spin",
         "//kernel/utils/tar",
-        "//shared/syscalls",
         "@crates//:bootloader",
         "@crates//:x86_64",
     ],
@@ -59,10 +69,14 @@ rust_clippy(
     deps = [":libkernel"],
 )
 
-rust_doc(
-    name = "docs",
-    crate = ":libkernel",
-)
+# For now, we have to disable this due to the
+# generated code in :libkernel.
+#
+# See https://github.com/bazelbuild/rules_rust/issues/689
+# rust_doc(
+#     name = "docs",
+#     crate = ":libkernel",
+# )
 
 rustfmt_test(
     name = "fmt_test",

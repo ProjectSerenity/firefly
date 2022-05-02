@@ -1,0 +1,110 @@
+; Copyright 2022 The Firefly Authors.
+;
+; Use of this source code is governed by a BSD 3-clause
+; license that can be found in the LICENSE file.
+
+
+(enumeration
+	(name error)
+	(docs
+		"A common error that has been encountered "
+		"while responding to a system call.")
+	(type uint64)
+	(value
+		(name no error)
+		(docs
+			"The system call was successful and no error occurred."))
+	(value
+		(name bad syscall)
+		(docs
+			"The system call specified does not exist, or has not "
+			"been implemented."))
+	(value
+		(name illegal parameter)
+		(docs
+			"An invalid or malformed parameter was provided to "
+			"the system calls.")))
+
+
+(syscall
+	(name exit thread)
+	(docs
+		"Exits the current thread, ceasing execution. `exit thread` "
+		"will not return."))
+
+
+(syscall
+	(name print message)
+	(docs
+		"Prints a message to the process's standard output.")
+	(arg1
+		(name pointer)
+		(docs
+			"The pointer to readable memory where the message resides. "
+			"No restrictions are placed on the contents pointed to by "
+			"`pointer`. For example, the contents do not need to be UTF-8 "
+			"encoded and NUL bytes have no special effects.")
+		(type *constant byte))
+	(arg2
+		(name length)
+		(docs
+			"The number of bytes that will be read and printed from `pointer`.")
+		(type uint64))
+	(result1
+		(name written)
+		(docs
+			"The number of bytes that were read and printed from `pointer`.")
+		(type uint64))
+	(result2
+		(name error)
+		(docs
+			"Any error encountered while printing the message.")
+		(type error)))
+
+
+(syscall
+	(name print error)
+	(docs
+		"Prints an error message to the process's standard error output.")
+	(arg1
+		(name pointer)
+		(docs
+			"The pointer to readable memory where the message resides. "
+			"No restrictions are placed on the contents pointed to by "
+			"`pointer`. For example, the contents do not need to be UTF-8 "
+			"encoded and NUL bytes have no special effects.")
+		(type *constant byte))
+	(arg2
+		(name length)
+		(docs
+			"The number of bytes that will be read and printed from `pointer`.")
+		(type uint64))
+	(result1
+		(name written)
+		(docs
+			"The number of bytes that were read and printed from `pointer`.")
+		(type uint64))
+	(result2
+		(name error)
+		(docs
+			"Any error encountered while printing the message.")
+		(type error)))
+
+
+(syscall
+	(name read random)
+	(docs
+		"Read cryptographically-secure pseudorandom numbers into a memory "
+		"buffer. `read random` will always succeed and fill the entire buffer "
+		"provided.")
+	(arg1
+		(name pointer)
+		(docs
+			"The pointer to writable memory where the random data is written.")
+		(type *mutable byte))
+	(arg2
+		(name length)
+		(docs
+			"The number of bytes that will be read from the source of entropy "
+			"and written to `pointer`.")
+		(type uint64)))

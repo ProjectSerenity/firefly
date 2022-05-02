@@ -1,9 +1,0 @@
-[package]
-name = "syscalls"
-version = "0.1.0"
-authors = ["Jamie Hall <the.sly.marbo@googlemail.com>"]
-edition = "2021"
-
-[lib]
-name = "syscalls"
-path = "lib.rs"

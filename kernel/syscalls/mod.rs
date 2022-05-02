@@ -5,12 +5,17 @@
 
 //! Implements the kernel's syscalls, allowing user processes to access kernel functionality.
 
+#[allow(clippy::enum_variant_names)]
+mod gensyscalls {
+    include!(env!("SYSCALLS_RS"));
+}
+
 use core::arch::global_asm;
+use gensyscalls::{Error, Syscalls};
 use memory::VirtAddr;
 use multitasking::thread;
 use segmentation::with_segment_data;
 use serial::{print, println};
-use syscalls::{Error, Syscall};
 use x86_64::registers::model_specific::{Efer, EferFlags, LStar, SFMask, Star};
 use x86_64::registers::rflags::RFlags;
 
@@ -75,12 +80,12 @@ extern "sysv64" fn syscall_handler(
     syscall_num: usize,
     registers: *mut SavedRegisters,
 ) -> SyscallResults {
-    match Syscall::from_usize(syscall_num) {
-        Some(Syscall::ExitThread) => {
+    match Syscalls::from_u64(syscall_num as u64) {
+        Some(Syscalls::ExitThread) => {
             println!("Exiting user thread.");
             thread::exit();
         }
-        Some(Syscall::PrintMessage) => {
+        Some(Syscalls::PrintMessage) => {
             // fn print_message(ptr: *const u8, len: usize) -> (written: usize, error: Error)
             // There are no pointers to pointers
             // so we can consume the arguments
@@ -115,7 +120,7 @@ extern "sysv64" fn syscall_handler(
                 SyscallResults { value, error }
             }
         }
-        Some(Syscall::PrintError) => {
+        Some(Syscalls::PrintError) => {
             // fn print_error(ptr: *const u8, len: usize) -> (written: usize, error: Error)
             // There are no pointers to pointers
             // so we can consume the arguments
@@ -150,7 +155,7 @@ extern "sysv64" fn syscall_handler(
                 SyscallResults { value, error }
             }
         }
-        Some(Syscall::ReadRandom) => {
+        Some(Syscalls::ReadRandom) => {
             // fn read_random(ptr: *mut u8, len: usize) -> (_: usize, error: Error)
             // There are no pointers to pointers
             // so we can consume the arguments

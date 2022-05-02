@@ -16,7 +16,7 @@
 #![deny(unused_crate_dependencies)]
 
 use core::panic::PanicInfo;
-use firefly::syscalls::exit_thread;
+use firefly::exit_thread;
 use initial_workload::main;
 
 /// This function is called on panic.
