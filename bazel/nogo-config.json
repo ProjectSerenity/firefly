@@ -1,7 +1,8 @@
 {
 	"composites": {
 		"exclude_files": {
-			"(external|vendor)/.*": "Only enforce composite literal check on first-party code."
+			"(external|vendor)/.*": "Only enforce composite literal check on first-party code.",
+			"testmain.go": "Ignore test drivers built by Bazel."
 		}
 	},
 	"copylocks": {
