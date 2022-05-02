@@ -1,0 +1,32 @@
+# Copyright 2022 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//bazel/gofmt:gofmt.bzl", "gofmt")
+
+go_library(
+    name = "token",
+    srcs = [
+        "position.go",
+        "token.go",
+    ],
+    importpath = "github.com/ProjectSerenity/firefly/tools/plan/token",
+    visibility = ["//visibility:public"],
+)
+
+gofmt(
+    name = "gofmt",
+    embed = [":token"],
+)
+
+go_test(
+    name = "token_test",
+    size = "small",
+    srcs = [
+        "position_test.go",
+        "token_test.go",
+    ],
+    embed = [":token"],
+)
