@@ -25,7 +25,7 @@ import (
 // indented by one. If the list is narrower than this,
 // it will be printed on one line, separated by a space.
 //
-const maxListWidth = 36
+const maxListWidth = 80
 
 // containsMultipleLists returns whether a set of expressions
 // contains more than one list.

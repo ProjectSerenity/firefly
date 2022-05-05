@@ -12,8 +12,7 @@
 	(type uint64)
 	(value
 		(name no error)
-		(docs
-			"The system call was successful and no error occurred."))
+		(docs "The system call was successful and no error occurred."))
 	(value
 		(name bad syscall)
 		(docs
@@ -21,9 +20,7 @@
 			"been implemented."))
 	(value
 		(name illegal parameter)
-		(docs
-			"An invalid or malformed parameter was provided to "
-			"the system calls.")))
+		(docs "An invalid or malformed parameter was provided to " "the system calls.")))
 
 
 (syscall
@@ -35,8 +32,7 @@
 
 (syscall
 	(name print message)
-	(docs
-		"Prints a message to the process's standard output.")
+	(docs "Prints a message to the process's standard output.")
 	(arg1
 		(name pointer)
 		(docs
@@ -47,25 +43,21 @@
 		(type *constant byte))
 	(arg2
 		(name length)
-		(docs
-			"The number of bytes that will be read and printed from `pointer`.")
+		(docs "The number of bytes that will be read and printed from `pointer`.")
 		(type uint64))
 	(result1
 		(name written)
-		(docs
-			"The number of bytes that were read and printed from `pointer`.")
+		(docs "The number of bytes that were read and printed from `pointer`.")
 		(type uint64))
 	(result2
 		(name error)
-		(docs
-			"Any error encountered while printing the message.")
+		(docs "Any error encountered while printing the message.")
 		(type error)))
 
 
 (syscall
 	(name print error)
-	(docs
-		"Prints an error message to the process's standard error output.")
+	(docs "Prints an error message to the process's standard error output.")
 	(arg1
 		(name pointer)
 		(docs
@@ -76,18 +68,15 @@
 		(type *constant byte))
 	(arg2
 		(name length)
-		(docs
-			"The number of bytes that will be read and printed from `pointer`.")
+		(docs "The number of bytes that will be read and printed from `pointer`.")
 		(type uint64))
 	(result1
 		(name written)
-		(docs
-			"The number of bytes that were read and printed from `pointer`.")
+		(docs "The number of bytes that were read and printed from `pointer`.")
 		(type uint64))
 	(result2
 		(name error)
-		(docs
-			"Any error encountered while printing the message.")
+		(docs "Any error encountered while printing the message.")
 		(type error)))
 
 
@@ -99,8 +88,7 @@
 		"provided.")
 	(arg1
 		(name pointer)
-		(docs
-			"The pointer to writable memory where the random data is written.")
+		(docs "The pointer to writable memory where the random data is written.")
 		(type *mutable byte))
 	(arg2
 		(name length)

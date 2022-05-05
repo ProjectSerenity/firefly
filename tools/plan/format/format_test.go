@@ -59,9 +59,7 @@ func TestFormatFile(t *testing.T) {
 
 (structure
 	(name asdf baz example)
-	(docs
-		"quite a long string"
-		"another string")
+	(docs "quite a long string" "another string")
 	(field
 		(name the first)
 		(docs "foo")
