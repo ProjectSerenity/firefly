@@ -62,9 +62,16 @@ func Interpret(filename string, file *ast.File, arch Arch) (*File, error) {
 		filename: filename,
 		out:      new(File),
 		arch:     arch,
-		typedefs: make(map[string]Type),
 		typerefs: make(map[string]ast.Node),
 		typeuses: make(map[string][]*Reference),
+		typedefs: map[string]Type{
+			// Add the synthetic enumeration for the set
+			// of all syscalls.
+			"syscalls": &Enumeration{
+				Name: Name{"syscalls"},
+				Type: Uint64,
+			},
+		},
 	}
 
 	err := i.interpretFile(file)

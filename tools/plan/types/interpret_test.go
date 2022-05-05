@@ -54,6 +54,31 @@ func TestInterpreter(t *testing.T) {
 			},
 		},
 		{
+			Name:   "Structure containing a syscall reference",
+			Source: `(structure (name blah) (docs "xyz") (field (name foo) (docs "bar") (type syscalls)))`,
+			Want: &File{
+				Structures: []*Structure{
+					{
+						Name: Name{"blah"},
+						Docs: Docs{"xyz"},
+						Fields: []*Field{
+							{
+								Name: Name{"foo"},
+								Docs: Docs{"bar"},
+								Type: &Reference{
+									Name: Name{"syscalls"},
+									Underlying: &Enumeration{
+										Name: Name{"syscalls"},
+										Type: Uint64,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			Name:   "Simple structure with AST",
 			Source: `(structure (name blah) (docs "xyz") (field (name foo) (docs "bar") (type *constant byte)))`,
 			AST:    true,
@@ -1004,6 +1029,11 @@ func TestInterpreterErrors(t *testing.T) {
 			Want: `test.plan:2:13: syscall "blah" is already defined at test.plan:1:1`,
 		},
 		// Type errors.
+		{
+			Name:   "type clashing with synthetic enumeration for syscalls",
+			Source: `(structure (name syscalls) (docs "xyz") (field (name foo) (docs "bar") (type uint64)))`,
+			Want:   `test.plan:1:1: type "syscalls" is already defined`,
+		},
 		{
 			Name:   "undefined type",
 			Source: `(structure (name blah) (docs "xyz") (field (name foo) (docs "bar") (type never before seen)))`,
