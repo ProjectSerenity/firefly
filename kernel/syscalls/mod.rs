@@ -10,8 +10,10 @@ mod abi {
     include!(env!("SYSCALLS_RS"));
 }
 
-use self::abi::{Error, SavedRegisters, SyscallABI};
+use self::abi::{Error, Registers, SavedRegisters, SyscallABI};
 use core::arch::global_asm;
+use memory::constants::USERSPACE;
+use memory::VirtAddr;
 use multitasking::thread;
 use segmentation::with_segment_data;
 use serial::{print, println};
@@ -69,6 +71,52 @@ impl SyscallABI for SyscallImpl {
     fn exit_thread(_registers: *mut SavedRegisters) {
         println!("Exiting user thread.");
         thread::exit();
+    }
+
+    /// Allows diagnostics of the syscall ABI by userspace.
+    /// The full set of registers received by the kernel is
+    /// written to the registers structure passed to it.
+    ///
+    #[inline]
+    fn syscall_diagnostics(
+        _registers: *mut SavedRegisters,
+        registers: *mut Registers,
+    ) -> Result<u8, Error> {
+        // Check that the pointer is in userspace.
+        if let Ok(ptr) = VirtAddr::try_new(registers as usize) {
+            if !USERSPACE.contains_addr(ptr) {
+                return Err(Error::IllegalParameter);
+            }
+        } else {
+            return Err(Error::IllegalParameter);
+        }
+
+        unsafe {
+            let regs = *_registers;
+            let rflags = regs.rflags;
+            *registers = Registers {
+                rax: regs.rax,
+                rbx: regs.rbx,
+                rcx: 0, // RCX is not preserved.
+                rdx: regs.rdx,
+                rsi: regs.rsi,
+                rdi: regs.rdi,
+                rbp: regs.rbp.as_usize() as u64,
+                rip: regs.rip.as_usize() as u64,
+                rsp: regs.rsp.as_usize() as u64,
+                r8: regs.r8,
+                r9: regs.r9,
+                r10: regs.r10,
+                r11: 0, // R11 is not preserved.
+                r12: regs.r12,
+                r13: regs.r13,
+                r14: regs.r14,
+                r15: regs.r15,
+                rflags: rflags.bits(),
+            };
+        }
+
+        Ok(0)
     }
 
     /// Prints a message to teh process's standard output.

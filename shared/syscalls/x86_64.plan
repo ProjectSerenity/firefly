@@ -23,11 +23,112 @@
 		(docs "An invalid or malformed parameter was provided to " "the system calls.")))
 
 
+(structure
+	(name registers)
+	(docs "A set of saved register values.")
+	(field
+		(name rsp)
+		(docs "Stack pointer (in the SS segment).")
+		(type uint64))
+	(field
+		(name rbx)
+		(docs "Pointer to data in the DS segment.")
+		(type uint64))
+	(field
+		(name rcx)
+		(docs "Counter for string and loop operations.")
+		(type uint64))
+	(field
+		(name rdx)
+		(docs "I/O pointer.")
+		(type uint64))
+	(field
+		(name rsi)
+		(docs
+			"Pointer to data in the segment pointed to by the DS register; "
+			"source pointer for string operations.")
+		(type uint64))
+	(field
+		(name rdi)
+		(docs
+			"Pointer to data (or destination) in the segment pointed to by "
+			"the ES register; destination pointer for string operations.")
+		(type uint64))
+	(field
+		(name rbp)
+		(docs "Pointer to data on the stack (in the SS segment).")
+		(type uint64))
+	(field
+		(name rip)
+		(docs "Instruction pointer (in the CS segment).")
+		(type uint64))
+	(field
+		(name rax)
+		(docs "Accumulator for operands and results data.")
+		(type uint64))
+	(field
+		(name r8)
+		(docs "General purpose register.")
+		(type uint64))
+	(field
+		(name r9)
+		(docs "General purpose register.")
+		(type uint64))
+	(field
+		(name r10)
+		(docs "General purpose register.")
+		(type uint64))
+	(field
+		(name r11)
+		(docs "General purpose register.")
+		(type uint64))
+	(field
+		(name r12)
+		(docs "General purpose register.")
+		(type uint64))
+	(field
+		(name r13)
+		(docs "General purpose register.")
+		(type uint64))
+	(field
+		(name r14)
+		(docs "General purpose register.")
+		(type uint64))
+	(field
+		(name r15)
+		(docs "General purpose register.")
+		(type uint64))
+	(field
+		(name rflags)
+		(docs "Flags register.")
+		(type uint64)))
+
+
 (syscall
 	(name exit thread)
 	(docs
 		"Exits the current thread, ceasing execution. `exit thread` "
 		"will not return."))
+
+
+(syscall
+	(name syscall diagnostics)
+	(docs
+		"Allows diagnostics of the syscall ABI by userspace. The full "
+		"set of registers received by the kernel is written to the "
+		"registers structure passed to it.")
+	(arg1
+		(name registers)
+		(docs "A pointer to the set of registers, which the kernel will populate.")
+		(type *mutable registers))
+	(result1
+		(name ignored)
+		(docs "A placeholder value, which will always be zero.")
+		(type uint8))
+	(result2
+		(name error)
+		(docs "Any error encountered during the diagnostics.")
+		(type error)))
 
 
 (syscall
