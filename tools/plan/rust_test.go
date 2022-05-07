@@ -9,10 +9,152 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/ProjectSerenity/firefly/tools/plan/parser"
 	"github.com/ProjectSerenity/firefly/tools/plan/types"
 )
+
+// getRustfmt returns a path to the rustfmt
+// tool.
+//
+func getRustfmt(t *testing.T) string {
+	t.Helper()
+
+	// We need to access rustfmt, but for some reason, we
+	// can't just use the path we get from the environment
+	// variable and instead need to construct an absolute
+	// path. This combines the runfiles path, the workspace
+	// name, and the second path we receive.
+	//
+	// As this code is quite fragile, we're unusually strict
+	// in checking that we get what we expect.
+	rustfmt := os.Getenv("rustfmt")
+	parts := strings.Split(rustfmt, " ")
+	if len(parts) != 2 {
+		t.Fatalf("rustfmt: expected 2 space-separated paths, found %d: %q", len(parts), rustfmt)
+	}
+
+	// Make sure we have them the right way around.
+	if !strings.HasPrefix(parts[0], "bazel-out") {
+		t.Fatalf("rustfmt: expected first path to begin in bazel-out, got %q", parts[0])
+	}
+	if !strings.HasPrefix(parts[1], "external") {
+		t.Fatalf("rustfmt: expected second path to begin in external, got %q", parts[1])
+	}
+
+	runfiles := os.Getenv("RUNFILES_DIR")
+	if runfiles == "" {
+		t.Fatal("rustfmt: got no path in RUNFILES_DIR")
+	}
+
+	if !filepath.IsAbs(runfiles) {
+		t.Fatalf("rustfmt: unexpected relative path in RUNFILES_DIR: %q", runfiles)
+	}
+
+	workspace := os.Getenv("TEST_WORKSPACE")
+	if workspace == "" {
+		t.Fatal("rustfmt: got no path in TEST_WORKSPACE")
+	}
+
+	rustfmt = filepath.Join(runfiles, workspace, parts[1])
+	info, err := os.Stat(rustfmt)
+	if err != nil {
+		t.Fatalf("rustfmt: failed to find rustfmt at %q: %v", rustfmt, err)
+	}
+
+	mode := info.Mode()
+	if mode.IsDir() {
+		t.Fatalf("rustfmt: path at %q is a directory", rustfmt)
+	}
+
+	if !mode.IsRegular() {
+		t.Fatalf("rustfmt: path at %q is not regular", rustfmt)
+	}
+
+	return rustfmt
+}
+
+func TestRustUserspace(t *testing.T) {
+	tests := []struct {
+		Name string
+		Want string
+		Arch types.Arch
+		Text string
+	}{
+		{
+			Name: "Simple",
+			Want: "file_user_simple_rs.txt",
+			Arch: types.X86_64,
+			Text: `(structure
+			           (name file info)
+			           (docs "Information about a file in a filesystem.")
+			           (field
+			               (name name pointer)
+			               (docs "The pointer to the file's name contents.")
+			               (type *constant byte))
+			           (field
+			               (name name size)
+			               (docs "The number of bytes at 'name pointer'.")
+			               (type uint32)))
+
+			       (enumeration
+			           (name error)
+			           (docs "A general purpose error.")
+			           (type uint64)
+			           (value
+			               (name no error)
+			               (docs "No error occurred.")))
+
+			       (syscall
+			           (name deny syscalls)
+			           (docs "Denies the process access to the specified syscalls.")
+			           (arg1
+			               (name syscalls)
+			               (docs "The syscalls to deny.")
+			               (type syscalls))
+			           (result1
+			               (name error)
+			               (docs "Any error encountered.")
+			               (type error)))`,
+		},
+	}
+
+	rustfmt := getRustfmt(t)
+
+	var buf bytes.Buffer
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			buf.Reset()
+			parsed, err := parser.ParseFile("test.plan", test.Text)
+			if err != nil {
+				t.Fatalf("failed to parse: %v", err)
+			}
+
+			typed, err := types.Interpret("test.plan", parsed, test.Arch)
+			if err != nil {
+				t.Fatalf("failed to interpret: %v", err)
+			}
+
+			err = RustUserspace(&buf, typed, rustfmt)
+			if err != nil {
+				t.Fatalf("failed to translate: %v", err)
+			}
+
+			wantName := filepath.Join("testdata", test.Want)
+			want, err := os.ReadFile(wantName)
+			if err != nil {
+				t.Fatalf("failed to read %q: %v", wantName, err)
+			}
+
+			got := buf.Bytes()
+			if !bytes.Equal(got, want) {
+				t.Fatalf("RustUserspace(): output mismatch:\nGot:\n%s\nWant:\n%s", got, want)
+			}
+		})
+	}
+}
 
 func TestDefineRust(t *testing.T) {
 	tests := []struct {

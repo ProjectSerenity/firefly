@@ -44,8 +44,11 @@ go_test(
     srcs = [
         "rust_test.go",
     ],
-    data = glob(["testdata/**"]),
+    data = glob(["testdata/**"]) + ["@rust_linux_x86_64//:rustfmt"],
     embed = [":plan_lib"],
+    env = {
+        "rustfmt": "$(locations @rust_linux_x86_64//:rustfmt)",
+    },
     deps = [
         "//tools/plan/parser",
     ],
