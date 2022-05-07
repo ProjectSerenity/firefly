@@ -30,6 +30,22 @@ pub fn exit_thread() -> ! {
     unreachable!();
 }
 
+/// Read cryptographically-secure
+/// pseudorandom numbers into the
+/// memory buffer.
+///
+/// # Panics
+///
+/// `read_random` will panic if `buf`
+/// is not a valid byte slice.
+///
+pub fn read_random(buf: &mut [u8]) {
+    let err = syscalls::read_random((&mut buf[..]).as_mut_ptr(), buf.len() as u64);
+    if err != syscalls::Error::NoError {
+        panic!("read_random: {:?}", err);
+    }
+}
+
 /// The process's standard output.
 ///
 #[derive(Clone, Copy, Debug)]
