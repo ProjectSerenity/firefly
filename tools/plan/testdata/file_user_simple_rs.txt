@@ -233,7 +233,7 @@ impl Syscalls {
 /// Information about a file in a filesystem.
 ///
 #[repr(packed)]
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct FileInfo {
     /// The pointer to the file's name contents.
     pub name_pointer: *const u8,

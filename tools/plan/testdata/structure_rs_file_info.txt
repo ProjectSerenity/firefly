@@ -2,7 +2,7 @@
 /// one file in a filesystem.
 ///
 #[repr(packed)]
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct FileInfo {
     /// The name of the file.
     pub name: *const ConstantString,

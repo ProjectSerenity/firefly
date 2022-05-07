@@ -3,7 +3,7 @@
 {{ end -}}
 ///
 #[repr(packed)]
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct {{ .Name.PascalCase }} {
     {{- range $i, $field := .Fields }}
     {{- /* Add a newline for fields after the first, to space them apart. */ -}}
