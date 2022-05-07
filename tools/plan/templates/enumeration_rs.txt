@@ -6,7 +6,7 @@
 {{- range .Docs }}/// {{ . }}
 {{ end -}}
 ///
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum {{ $name }} {
     {{- /* For each value in the enumeration, we print the value's documentation and name */ -}}
     {{- range .Values }}

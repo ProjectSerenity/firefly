@@ -218,7 +218,7 @@ pub extern "sysv64" fn syscall_handler(
 
 /// An enumeration describing the set of system calls.
 ///
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Syscalls {
     /// Denies the process access to the specified syscalls.
     DenySyscalls,
@@ -270,7 +270,7 @@ impl Syscalls {
 
 /// A colour.
 ///
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Colour {
     /// The colour red.
     Red,
@@ -317,7 +317,7 @@ pub struct FileInfo {
 
 /// A general purpose error.
 ///
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     /// No error occurred.
     NoError,

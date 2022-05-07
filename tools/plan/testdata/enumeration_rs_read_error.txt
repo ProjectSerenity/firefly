@@ -1,7 +1,7 @@
 /// An error returned after a failed attempt to read from
 /// a file in a filesystem.
 ///
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ReadError {
     /// The file read completed successfully.
     NoError,
