@@ -42,7 +42,7 @@
 			"encoded and NUL bytes have no special effects.")
 		(type *constant byte))
 	(arg2
-		(name length)
+		(name size)
 		(docs "The number of bytes that will be read and printed from `pointer`.")
 		(type uint64))
 	(result1
@@ -67,7 +67,7 @@
 			"encoded and NUL bytes have no special effects.")
 		(type *constant byte))
 	(arg2
-		(name length)
+		(name size)
 		(docs "The number of bytes that will be read and printed from `pointer`.")
 		(type uint64))
 	(result1
@@ -91,7 +91,7 @@
 		(docs "The pointer to writable memory where the random data is written.")
 		(type *mutable byte))
 	(arg2
-		(name length)
+		(name size)
 		(docs
 			"The number of bytes that will be read from the source of entropy "
 			"and written to `pointer`.")

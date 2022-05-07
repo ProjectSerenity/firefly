@@ -167,7 +167,18 @@ func TestRustKernelspace(t *testing.T) {
 			Name: "Simple",
 			Want: "file_kernel_simple_rs.txt",
 			Arch: types.X86_64,
-			Text: `(structure
+			Text: `(enumeration
+			           (name colour)
+			           (docs "A colour.")
+			           (type int8)
+			           (value
+			               (name red)
+			               (docs "The colour red."))
+			           (value
+			               (name green)
+			               (docs "The colour green.")))
+
+			       (structure
 			           (name file info)
 			           (docs "Information about a file in a filesystem.")
 			           (field
@@ -197,7 +208,75 @@ func TestRustKernelspace(t *testing.T) {
 			           (result1
 			               (name error)
 			               (docs "Any error encountered.")
-			               (type error)))`,
+			               (type error)))
+
+			       (syscall
+			           (name exit)
+			           (docs "Exits everything immediately."))
+
+			       (syscall
+			           (name get process id)
+			           (docs "Returns the process's unique identifier.")
+			           (result1
+			               (name process id)
+			               (docs "The process identifier")
+			               (type uint32)))
+
+			       (syscall
+			           (name three args two results)
+			           (docs "Docs on\n" "two lines")
+			           (arg1
+			               (name foo)
+			               (docs "")
+			               (type uint16))
+			           (arg2
+			               (name bar)
+			               (docs "")
+			               (type colour))
+			           (arg3
+			               (name baz)
+			               (docs "")
+			               (type *constant int8))
+			           (result1
+			               (name happiness)
+			               (docs "")
+			               (type uint64))
+			           (result2
+			               (name sadness)
+			               (docs "")
+			               (type error)))
+
+			       (syscall
+			           (name get file info)
+			           (docs "Returns the information about the named file.")
+			           (arg1
+			               (name name pointer)
+			               (docs "")
+			               (type *constant byte))
+			           (arg2
+			               (name name size)
+			               (docs "")
+			               (type uint64))
+			           (result1
+			               (name info)
+			               (docs "")
+			               (type *constant file info))
+			           (result2
+			               (name size)
+			               (docs "")
+			               (type uint32)))
+
+			       (syscall
+			           (name colour or size)
+			           (docs "Returns a colour or a size.")
+			           (result1
+			               (name colour)
+			               (docs "")
+			               (type colour))
+			           (result2
+			               (name size)
+			               (docs "")
+			               (type uint64)))`,
 		},
 	}
 

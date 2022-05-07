@@ -10,9 +10,8 @@ mod abi {
     include!(env!("SYSCALLS_RS"));
 }
 
-use self::abi::{Error, Syscalls};
+use self::abi::{Error, SavedRegisters, SyscallABI};
 use core::arch::global_asm;
-use memory::VirtAddr;
 use multitasking::thread;
 use segmentation::with_segment_data;
 use serial::{print, println};
@@ -30,163 +29,132 @@ extern "sysv64" {
     fn syscall_entry();
 }
 
-/// The set of saved registers from the user thread that
-/// is invoking a syscall.
+/// SyscallImpl is a unit type that contains the
+/// implementation for each syscall.
 ///
-#[repr(C, packed)]
-#[derive(Clone, Copy, Debug)]
-pub struct SavedRegisters {
-    pub rax: usize,
-    pub rbx: usize,
-    // RCX is not preserved.
-    pub rdx: usize,
-    pub rsi: usize,
-    pub rdi: usize,
-    pub rbp: VirtAddr,
-    pub rip: VirtAddr, // Return address.
-    pub rsp: VirtAddr,
-    pub r8: usize,
-    pub r9: usize,
-    pub r10: usize,
-    // R11 is not preserved.
-    pub r12: usize,
-    pub r13: usize,
-    pub r14: usize,
-    pub r15: usize,
-    pub rflags: RFlags,
-}
+struct SyscallImpl;
 
-/// The results structure is used internally to pass
-/// the result value and error.
-///
-#[repr(C)]
-struct SyscallResults {
-    value: usize,
-    error: usize,
-}
+impl SyscallABI for SyscallImpl {
+    /// Called when an unsupported syscall is received.
+    ///
+    #[inline]
+    fn bad_syscall(
+        registers: *mut SavedRegisters,
+        arg1: u64,
+        arg2: u64,
+        arg3: u64,
+        arg4: u64,
+        arg5: u64,
+        arg6: u64,
+        syscall_num: u64,
+    ) -> Error {
+        println!("Unrecognised syscall {}", syscall_num);
+        println!("syscall_handler(");
+        println!("    arg1: {:#016x},", arg1);
+        println!("    arg2: {:#016x},", arg2);
+        println!("    arg3: {:#016x},", arg3);
+        println!("    arg4: {:#016x},", arg4);
+        println!("    arg5: {:#016x},", arg5);
+        println!("    arg6: {:#016x},", arg6);
+        println!("    syscall_num: {:#016x},", syscall_num);
+        println!("    registers: {:?})", unsafe { &*registers });
 
-/// Called by syscall_entry to call the relevant
-/// syscall, or return an error if an invalid syscall
-/// is invoked.
-///
-#[no_mangle]
-extern "sysv64" fn syscall_handler(
-    arg1: usize,
-    arg2: usize,
-    arg3: usize,
-    arg4: usize,
-    arg5: usize,
-    arg6: usize,
-    syscall_num: usize,
-    registers: *mut SavedRegisters,
-) -> SyscallResults {
-    match Syscalls::from_u64(syscall_num as u64) {
-        Some(Syscalls::ExitThread) => {
-            println!("Exiting user thread.");
-            thread::exit();
-        }
-        Some(Syscalls::PrintMessage) => {
-            // fn print_message(ptr: *const u8, len: usize) -> (written: usize, error: Error)
-            // There are no pointers to pointers
-            // so we can consume the arguments
-            // straight away.
-            //
-            // It's a little tacky, but using
-            // UNIX shell colours helps us to
-            // differentiate user print_message
-            // and print_error from the kernel's
-            // println.
-            let b = unsafe { core::slice::from_raw_parts(arg1 as *const u8, arg2) };
-            if let Ok(s) = core::str::from_utf8(b) {
-                print!("\x1b[1;32m"); // Green foreground.
-                let written = if serial::write_str(s).is_err() {
-                    // We handle a failure to write the
-                    // message as having written nothing,
-                    // rather than returning an error.
-                    0
-                } else {
-                    arg2
-                };
-                print!("\x1b[0m"); // Reset colour.
+        Error::BadSyscall
+    }
 
-                let value = written;
-                let error = Error::NoError as usize;
+    /// Exits the current thread, ceasing execution. `exit_thread`
+    /// will not return.
+    ///
+    #[inline]
+    fn exit_thread(_registers: *mut SavedRegisters) {
+        println!("Exiting user thread.");
+        thread::exit();
+    }
 
-                SyscallResults { value, error }
+    /// Prints a message to teh process's standard output.
+    ///
+    #[inline]
+    fn print_message(
+        _registers: *mut SavedRegisters,
+        ptr: *const u8,
+        size: u64,
+    ) -> Result<u64, Error> {
+        // There are no pointers to pointers
+        // so we can consume the arguments
+        // straight away.
+        //
+        // It's a little tacky, but using
+        // UNIX shell colours helps us to
+        // differentiate user print_message
+        // and print_error from the kernel's
+        // println.
+        let b = unsafe { core::slice::from_raw_parts(ptr, size as usize) };
+        if let Ok(s) = core::str::from_utf8(b) {
+            print!("\x1b[1;32m"); // Green foreground.
+            let written = if serial::write_str(s).is_err() {
+                // We handle a failure to write the
+                // message as having written nothing,
+                // rather than returning an error.
+                0
             } else {
-                let value = 0;
-                let error = Error::IllegalParameter as usize;
+                size
+            };
+            print!("\x1b[0m"); // Reset colour.
 
-                SyscallResults { value, error }
-            }
+            Ok(written)
+        } else {
+            Err(Error::IllegalParameter)
         }
-        Some(Syscalls::PrintError) => {
-            // fn print_error(ptr: *const u8, len: usize) -> (written: usize, error: Error)
-            // There are no pointers to pointers
-            // so we can consume the arguments
-            // straight away.
-            //
-            // It's a little tacky, but using
-            // UNIX shell colours helps us to
-            // differentiate user print_message
-            // and print_error from the kernel's
-            // println.
-            let b = unsafe { core::slice::from_raw_parts(arg1 as *const u8, arg2) };
-            if let Ok(s) = core::str::from_utf8(b) {
-                print!("\x1b[1;31m"); // Red foreground.
-                let written = if serial::write_str(s).is_err() {
-                    // We handle a failure to write the
-                    // message as having written nothing,
-                    // rather than returning an error.
-                    0
-                } else {
-                    arg2
-                };
-                print!("\x1b[0m"); // Reset colour.
+    }
 
-                let value = written;
-                let error = Error::NoError as usize;
-
-                SyscallResults { value, error }
+    /// Prints an error message to the process's standard error
+    /// output.
+    ///
+    #[inline]
+    fn print_error(
+        _registers: *mut SavedRegisters,
+        ptr: *const u8,
+        size: u64,
+    ) -> Result<u64, Error> {
+        // There are no pointers to pointers
+        // so we can consume the arguments
+        // straight away.
+        //
+        // It's a little tacky, but using
+        // UNIX shell colours helps us to
+        // differentiate user print_message
+        // and print_error from the kernel's
+        // println.
+        let b = unsafe { core::slice::from_raw_parts(ptr, size as usize) };
+        if let Ok(s) = core::str::from_utf8(b) {
+            print!("\x1b[1;31m"); // Red foreground.
+            let written = if serial::write_str(s).is_err() {
+                // We handle a failure to write the
+                // message as having written nothing,
+                // rather than returning an error.
+                0
             } else {
-                let value = 0;
-                let error = Error::IllegalParameter as usize;
+                size
+            };
+            print!("\x1b[0m"); // Reset colour.
 
-                SyscallResults { value, error }
-            }
+            Ok(written)
+        } else {
+            Err(Error::IllegalParameter)
         }
-        Some(Syscalls::ReadRandom) => {
-            // fn read_random(ptr: *mut u8, len: usize) -> (_: usize, error: Error)
-            // There are no pointers to pointers
-            // so we can consume the arguments
-            // straight away.
-            //
-            // We return no value (0) and no
-            // error.
-            let b = unsafe { core::slice::from_raw_parts_mut(arg1 as *mut u8, arg2) };
-            random::read(b);
+    }
 
-            let value = 0;
-            let error = Error::NoError as usize;
-
-            SyscallResults { value, error }
-        }
-        None => {
-            println!("Unrecognised syscall {}", syscall_num);
-            println!("syscall_handler(");
-            println!("    arg1: {:#016x},", arg1);
-            println!("    arg2: {:#016x},", arg2);
-            println!("    arg3: {:#016x},", arg3);
-            println!("    arg4: {:#016x},", arg4);
-            println!("    arg5: {:#016x},", arg5);
-            println!("    arg6: {:#016x},", arg6);
-            println!("    syscall_num: {:#016x},", syscall_num);
-            println!("    registers: {:?})", unsafe { &*registers });
-            SyscallResults {
-                value: 0,
-                error: Error::BadSyscall as usize,
-            }
-        }
+    /// Read cryptographically-secure pseudorandom numbers into
+    /// a memory buffer. `read_random` will always succeed and
+    /// fill the entire buffer provided.
+    ///
+    #[inline]
+    fn read_random(_registers: *mut SavedRegisters, ptr: *mut u8, size: u64) {
+        // There are no pointers to pointers
+        // so we can consume the arguments
+        // straight away.
+        let b = unsafe { core::slice::from_raw_parts_mut(ptr, size as usize) };
+        random::read(b);
     }
 }
 

@@ -4,3 +4,101 @@
 //
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
+
+use super::SyscallImpl;
+use memory::VirtAddr;
+use x86_64::registers::rflags::RFlags;
+
+/// The Firefly syscall ABI, expressed as a trait.
+///
+/// The set of syscall implementations must be made
+/// as associated functions on a type to allow them
+/// to be type-checked.
+///
+pub trait SyscallABI {
+    /// Called when an unsupported syscall is received.
+    ///
+    #[allow(clippy::too_many_arguments)]
+    fn bad_syscall(
+        registers: *mut SavedRegisters,
+        arg1: u64,
+        arg2: u64,
+        arg3: u64,
+        arg4: u64,
+        arg5: u64,
+        arg6: u64,
+        syscall_num: u64
+    ) -> Error;
+    {{ range .Syscalls }}
+    {{/* Print the documentation for the syscall. */ -}}
+        {{- range .Docs }}/// {{ . }}
+{{ end -}}
+    ///
+    fn {{ traitSignature . }};
+{{ end -}}
+}
+
+/// The set of saved registers from the user thread that
+/// is invoking a syscall.
+///
+#[repr(C, packed)]
+#[derive(Clone, Copy, Debug)]
+pub struct SavedRegisters {
+    pub rax: u64,
+    pub rbx: u64,
+    // RCX is not preserved.
+    pub rdx: u64,
+    pub rsi: u64,
+    pub rdi: u64,
+    pub rbp: VirtAddr,
+    pub rip: VirtAddr, // Return address.
+    pub rsp: VirtAddr,
+    pub r8: u64,
+    pub r9: u64,
+    pub r10: u64,
+    // R11 is not preserved.
+    pub r12: u64,
+    pub r13: u64,
+    pub r14: u64,
+    pub r15: u64,
+    pub rflags: RFlags,
+}
+
+/// The results structure is used internally to pass
+/// the result value and error.
+///
+#[repr(C)]
+pub struct SyscallResults {
+    pub value: u64,
+    pub error: u64,
+}
+
+/// Called by syscall_entry to call the relevant
+/// syscall, or return an error if an invalid syscall
+/// is invoked.
+///
+#[no_mangle]
+pub extern "sysv64" fn syscall_handler(
+    arg1: u64,
+    arg2: u64,
+    arg3: u64,
+    arg4: u64,
+    arg5: u64,
+    arg6: u64,
+    syscall_num: u64,
+    registers: *mut SavedRegisters,
+) -> SyscallResults {
+    match Syscalls::from_u64(syscall_num) {
+        {{ range .Syscalls }}Some(Syscalls::{{ .Name.PascalCase }}) => {
+            {{ callSyscallImplementation . }}
+        }
+{{- end }}
+        None => {
+            let error = <SyscallImpl as SyscallABI>::bad_syscall(registers, arg1, arg2, arg3, arg4, arg5, arg6, syscall_num);
+            SyscallResults {
+                value: 0,
+                error: error.as_u64(),
+            }
+        }
+    }
+}

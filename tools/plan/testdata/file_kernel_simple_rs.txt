@@ -5,12 +5,234 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
+use super::SyscallImpl;
+use memory::VirtAddr;
+use x86_64::registers::rflags::RFlags;
+
+/// The Firefly syscall ABI, expressed as a trait.
+///
+/// The set of syscall implementations must be made
+/// as associated functions on a type to allow them
+/// to be type-checked.
+///
+pub trait SyscallABI {
+    /// Called when an unsupported syscall is received.
+    ///
+    #[allow(clippy::too_many_arguments)]
+    fn bad_syscall(
+        registers: *mut SavedRegisters,
+        arg1: u64,
+        arg2: u64,
+        arg3: u64,
+        arg4: u64,
+        arg5: u64,
+        arg6: u64,
+        syscall_num: u64,
+    ) -> Error;
+
+    /// Denies the process access to the specified syscalls.
+    ///
+    fn deny_syscalls(_registers: *mut SavedRegisters, syscalls: Syscalls) -> Error;
+
+    /// Exits everything immediately.
+    ///
+    fn exit(_registers: *mut SavedRegisters);
+
+    /// Returns the process's unique identifier.
+    ///
+    fn get_process_id(_registers: *mut SavedRegisters) -> u32;
+
+    /// Docs on
+    /// two lines
+    ///
+    fn three_args_two_results(
+        _registers: *mut SavedRegisters,
+        foo: u16,
+        bar: Colour,
+        baz: *const i8,
+    ) -> Result<u64, Error>;
+
+    /// Returns the information about the named file.
+    ///
+    fn get_file_info(
+        _registers: *mut SavedRegisters,
+        name_pointer: *const u8,
+        name_size: u64,
+    ) -> Result<*const FileInfo, u32>;
+
+    /// Returns a colour or a size.
+    ///
+    fn colour_or_size(_registers: *mut SavedRegisters) -> Result<Colour, u64>;
+}
+
+/// The set of saved registers from the user thread that
+/// is invoking a syscall.
+///
+#[repr(C, packed)]
+#[derive(Clone, Copy, Debug)]
+pub struct SavedRegisters {
+    pub rax: u64,
+    pub rbx: u64,
+    // RCX is not preserved.
+    pub rdx: u64,
+    pub rsi: u64,
+    pub rdi: u64,
+    pub rbp: VirtAddr,
+    pub rip: VirtAddr, // Return address.
+    pub rsp: VirtAddr,
+    pub r8: u64,
+    pub r9: u64,
+    pub r10: u64,
+    // R11 is not preserved.
+    pub r12: u64,
+    pub r13: u64,
+    pub r14: u64,
+    pub r15: u64,
+    pub rflags: RFlags,
+}
+
+/// The results structure is used internally to pass
+/// the result value and error.
+///
+#[repr(C)]
+pub struct SyscallResults {
+    pub value: u64,
+    pub error: u64,
+}
+
+/// Called by syscall_entry to call the relevant
+/// syscall, or return an error if an invalid syscall
+/// is invoked.
+///
+#[no_mangle]
+pub extern "sysv64" fn syscall_handler(
+    arg1: u64,
+    arg2: u64,
+    arg3: u64,
+    arg4: u64,
+    arg5: u64,
+    arg6: u64,
+    syscall_num: u64,
+    registers: *mut SavedRegisters,
+) -> SyscallResults {
+    match Syscalls::from_u64(syscall_num) {
+        Some(Syscalls::DenySyscalls) => {
+            let param1: Syscalls = match Syscalls::from_u64(arg1) {
+                Some(value) => value,
+                None => {
+                    return SyscallResults {
+                        value: 0,
+                        error: Error::IllegalParameter.as_u64(),
+                    }
+                }
+            };
+            let result = <SyscallImpl as SyscallABI>::deny_syscalls(registers, param1);
+            SyscallResults {
+                value: result.as_u64(),
+                error: Error::NoError.as_u64(),
+            }
+        }
+        Some(Syscalls::Exit) => {
+            <SyscallImpl as SyscallABI>::exit(registers);
+            SyscallResults {
+                value: 0,
+                error: Error::NoError.as_u64(),
+            }
+        }
+        Some(Syscalls::GetProcessId) => {
+            let result = <SyscallImpl as SyscallABI>::get_process_id(registers);
+            SyscallResults {
+                value: result as u64,
+                error: Error::NoError.as_u64(),
+            }
+        }
+        Some(Syscalls::ThreeArgsTwoResults) => {
+            let param1: u16 = arg1 as u16;
+            let param2: Colour = match Colour::from_i8(arg2 as i8) {
+                Some(value) => value,
+                None => {
+                    return SyscallResults {
+                        value: 0,
+                        error: Error::IllegalParameter.as_u64(),
+                    }
+                }
+            };
+            let param3: *const i8 = arg3 as *const i8;
+            let result = <SyscallImpl as SyscallABI>::three_args_two_results(
+                registers, param1, param2, param3,
+            );
+            match result {
+                Ok(value) => SyscallResults {
+                    value,
+                    error: Error::NoError.as_u64(),
+                },
+                Err(error) => SyscallResults {
+                    value: 0,
+                    error: error.as_u64(),
+                },
+            }
+        }
+        Some(Syscalls::GetFileInfo) => {
+            let param1: *const u8 = arg1 as *const u8;
+            let param2: u64 = arg2;
+            let result = <SyscallImpl as SyscallABI>::get_file_info(registers, param1, param2);
+            match result {
+                Ok(value) => SyscallResults {
+                    value: value as u64,
+                    error: Error::NoError.as_u64(),
+                },
+                Err(error) => SyscallResults {
+                    value: 0,
+                    error: error as u64,
+                },
+            }
+        }
+        Some(Syscalls::ColourOrSize) => {
+            let result = <SyscallImpl as SyscallABI>::colour_or_size(registers);
+            match result {
+                Ok(value) => SyscallResults {
+                    value: value.as_i8() as u64,
+                    error: Error::NoError.as_u64(),
+                },
+                Err(error) => SyscallResults { value: 0, error },
+            }
+        }
+        None => {
+            let error = <SyscallImpl as SyscallABI>::bad_syscall(
+                registers,
+                arg1,
+                arg2,
+                arg3,
+                arg4,
+                arg5,
+                arg6,
+                syscall_num,
+            );
+            SyscallResults {
+                value: 0,
+                error: error.as_u64(),
+            }
+        }
+    }
+}
+
 /// An enumeration describing the set of system calls.
 ///
 #[derive(Debug)]
 pub enum Syscalls {
     /// Denies the process access to the specified syscalls.
     DenySyscalls,
+    /// Exits everything immediately.
+    Exit,
+    /// Returns the process's unique identifier.
+    GetProcessId,
+    /// Docs on
+    /// two lines
+    ThreeArgsTwoResults,
+    /// Returns the information about the named file.
+    GetFileInfo,
+    /// Returns a colour or a size.
+    ColourOrSize,
 }
 
 impl Syscalls {
@@ -21,6 +243,11 @@ impl Syscalls {
     pub const fn from_u64(val: u64) -> Option<Self> {
         match val {
             0_u64 => Some(Syscalls::DenySyscalls),
+            1_u64 => Some(Syscalls::Exit),
+            2_u64 => Some(Syscalls::GetProcessId),
+            3_u64 => Some(Syscalls::ThreeArgsTwoResults),
+            4_u64 => Some(Syscalls::GetFileInfo),
+            5_u64 => Some(Syscalls::ColourOrSize),
             _ => None,
         }
     }
@@ -32,6 +259,46 @@ impl Syscalls {
     pub const fn as_u64(&self) -> u64 {
         match self {
             Syscalls::DenySyscalls => 0_u64,
+            Syscalls::Exit => 1_u64,
+            Syscalls::GetProcessId => 2_u64,
+            Syscalls::ThreeArgsTwoResults => 3_u64,
+            Syscalls::GetFileInfo => 4_u64,
+            Syscalls::ColourOrSize => 5_u64,
+        }
+    }
+}
+
+/// A colour.
+///
+#[derive(Debug)]
+pub enum Colour {
+    /// The colour red.
+    Red,
+    /// The colour green.
+    Green,
+}
+
+impl Colour {
+    /// Returns the [`Colour`] value that corresponds
+    /// to `val`, or `None`.
+    ///
+    #[allow(dead_code)]
+    pub const fn from_i8(val: i8) -> Option<Self> {
+        match val {
+            0_i8 => Some(Colour::Red),
+            1_i8 => Some(Colour::Green),
+            _ => None,
+        }
+    }
+
+    /// Returns the numerical value that corresponds to
+    /// the [`Colour`].
+    ///
+    #[allow(dead_code)]
+    pub const fn as_i8(&self) -> i8 {
+        match self {
+            Colour::Red => 0_i8,
+            Colour::Green => 1_i8,
         }
     }
 }

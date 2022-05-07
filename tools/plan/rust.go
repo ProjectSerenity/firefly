@@ -206,11 +206,13 @@ func RustKernelspace(w io.Writer, file *types.File, rustfmt string) error {
 var rustTemplatesFS embed.FS
 
 var rustTemplates = template.Must(template.New("").Funcs(template.FuncMap{
-	"fieldDefinition": rustFieldDefinition,
-	"funcSignature":   rustSyscallSignature,
-	"recvResults":     rustSyscallRecvResults,
-	"toString":        rustString,
-	"constructor":     rustConstructor,
+	"fieldDefinition":           rustFieldDefinition,
+	"funcSignature":             rustSyscallSignature,
+	"traitSignature":            rustSyscallTraitSignature,
+	"callSyscallImplementation": rustCallSyscallImplementation,
+	"recvResults":               rustSyscallRecvResults,
+	"toString":                  rustString,
+	"constructor":               rustConstructor,
 }).ParseFS(rustTemplatesFS, "templates/*"))
 
 const (
@@ -335,6 +337,160 @@ func rustSyscallSignature(s *types.Syscall) string {
 	}
 
 	panic(fmt.Sprintf("syscall has %d results", len(s.Results)))
+}
+
+func rustSyscallTraitSignature(s *types.Syscall) string {
+	reg := "_registers: *mut SavedRegisters"
+	switch len(s.Results) {
+	case 0:
+		if len(s.Args) == 0 {
+			return fmt.Sprintf("%s(%s)", s.Name.SnakeCase(), reg)
+		} else {
+			return fmt.Sprintf("%s(%s, %s)", s.Name.SnakeCase(), reg, rustParamNamesAndTypes(s.Args))
+		}
+	case 1:
+		if len(s.Args) == 0 {
+			return fmt.Sprintf("%s(%s) -> %s", s.Name.SnakeCase(), reg, rustString(s.Results[0].Type))
+		} else {
+			return fmt.Sprintf("%s(%s, %s) -> %s", s.Name.SnakeCase(), reg, rustParamNamesAndTypes(s.Args), rustString(s.Results[0].Type))
+		}
+	case 2:
+		if len(s.Args) == 0 {
+			return fmt.Sprintf("%s(%s) -> Result<%s>", s.Name.SnakeCase(), reg, rustParamTypes(s.Results))
+		} else {
+			return fmt.Sprintf("%s(%s, %s) -> Result<%s>", s.Name.SnakeCase(), reg, rustParamNamesAndTypes(s.Args), rustParamTypes(s.Results))
+		}
+	}
+
+	panic(fmt.Sprintf("syscall has %d results", len(s.Results)))
+}
+
+func rustCallSyscallImplementation(s *types.Syscall) string {
+	// Most values are u64, so we can ignore
+	// conversions to and from it.
+	fromU64 := func(t types.Type) string {
+		if ref, ok := t.(*types.Reference); ok {
+			t = ref.Underlying
+		}
+
+		if integer, ok := t.(types.Integer); ok && integer == types.Uint64 {
+			return ""
+		}
+
+		return fmt.Sprintf(" as %s", rustString(t))
+	}
+
+	toU64 := func(t types.Type) string {
+		if ref, ok := t.(*types.Reference); ok {
+			t = ref.Underlying
+		}
+
+		if integer, ok := t.(types.Integer); ok && integer == types.Uint64 {
+			return ""
+		}
+
+		return fmt.Sprintf(" as u64")
+	}
+
+	const indent = "        "
+	var buf strings.Builder
+	for i, arg := range s.Args {
+		fmt.Fprintf(&buf, "let param%d: %s = ", i+1, rustString(arg.Type))
+		argType := arg.Type
+		if ref, ok := argType.(*types.Reference); ok {
+			argType = ref.Underlying
+		}
+
+		if enum, ok := argType.(*types.Enumeration); ok {
+			fmt.Fprintf(&buf, "match %s::from_%s(arg%d%s) {", enum.Name.PascalCase(), rustString(enum.Type), i+1, fromU64(enum.Type))
+			buf.WriteByte('\n')
+			buf.WriteString(indent)
+			buf.WriteString("    Some(value) => value,")
+			buf.WriteByte('\n')
+			buf.WriteString(indent)
+			buf.WriteString("    None => return SyscallResults{ value: 0, error: Error::IllegalParameter.as_u64() },")
+			buf.WriteByte('\n')
+			buf.WriteString(indent)
+			buf.WriteString("};")
+		} else {
+			fmt.Fprintf(&buf, "arg%d%s;", i+1, fromU64(argType))
+		}
+
+		buf.WriteByte('\n')
+		buf.WriteString(indent)
+	}
+
+	switch len(s.Results) {
+	case 0:
+	case 1, 2:
+		buf.WriteString("let result = ")
+	}
+
+	buf.WriteString("<SyscallImpl as SyscallABI>::")
+	buf.WriteString(s.Name.SnakeCase())
+	buf.WriteString("(registers")
+	for i := range s.Args {
+		buf.WriteString(", param")
+		buf.WriteByte('1' + byte(i))
+	}
+	buf.WriteString(");\n")
+	buf.WriteString(indent)
+
+	switch len(s.Results) {
+	case 0:
+		buf.WriteString("SyscallResults { value: 0, error: Error::NoError.as_u64() }")
+	case 1:
+		resultType := s.Results[0].Type
+		if ref, ok := resultType.(*types.Reference); ok {
+			resultType = ref.Underlying
+		}
+
+		noError := "error: Error::NoError.as_u64()"
+		if enum, ok := resultType.(*types.Enumeration); ok {
+			fmt.Fprintf(&buf, "SyscallResults { value: result.as_%s()%s, %s }", rustString(enum.Type), toU64(enum.Type), noError)
+		} else {
+			fmt.Fprintf(&buf, "SyscallResults { value: result%s, %s }", toU64(resultType), noError)
+		}
+	case 2:
+		buf.WriteString("match result {\n")
+		buf.WriteString(indent)
+		buf.WriteString("    Ok(value) => ")
+
+		resultType := s.Results[0].Type
+		if ref, ok := resultType.(*types.Reference); ok {
+			resultType = ref.Underlying
+		}
+
+		noError := "error: Error::NoError.as_u64()"
+		if enum, ok := resultType.(*types.Enumeration); ok {
+			fmt.Fprintf(&buf, "SyscallResults { value: value.as_%s()%s, %s },\n", rustString(enum.Type), toU64(enum.Type), noError)
+		} else if integer, ok := resultType.(types.Integer); ok && integer == types.Uint64 {
+			fmt.Fprintf(&buf, "SyscallResults { value, %s },\n", noError)
+		} else {
+			fmt.Fprintf(&buf, "SyscallResults { value: value%s, %s },\n", toU64(resultType), noError)
+		}
+
+		resultType = s.Results[1].Type
+		if ref, ok := resultType.(*types.Reference); ok {
+			resultType = ref.Underlying
+		}
+
+		buf.WriteString(indent)
+		buf.WriteString("    Err(error) => ")
+		noValue := "value: 0"
+		if enum, ok := resultType.(*types.Enumeration); ok {
+			fmt.Fprintf(&buf, "SyscallResults { %s, error: error.as_%s()%s },\n", noValue, rustString(enum.Type), toU64(enum.Type))
+		} else if integer, ok := resultType.(types.Integer); ok && integer == types.Uint64 {
+			fmt.Fprintf(&buf, "SyscallResults { %s, error },\n", noValue)
+		} else {
+			fmt.Fprintf(&buf, "SyscallResults { %s, error: error%s },\n", noValue, toU64(resultType))
+		}
+
+		buf.WriteString(indent)
+		buf.WriteByte('}')
+	}
+
+	return buf.String()
 }
 
 func rustSyscallRecvResults(s *types.Syscall) string {
