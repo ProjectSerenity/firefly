@@ -19,8 +19,9 @@ use firefly::syscalls::read_random;
 /// The application entry point.
 ///
 #[inline]
+#[allow(clippy::missing_panics_doc)]
 pub fn main() {
     let mut buf = [0u8; 8];
-    read_random((&mut buf[..]).as_mut_ptr(), buf.len() as u64);
+    read_random((&mut buf[..]).as_mut_ptr(), buf.len() as u64).unwrap();
     println!("Hello from userland: {:x?}!", &buf[..]);
 }

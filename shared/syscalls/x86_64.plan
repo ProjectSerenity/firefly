@@ -196,4 +196,12 @@
 		(docs
 			"The number of bytes that will be read from the source of entropy "
 			"and written to `pointer`.")
-		(type uint64)))
+		(type uint64))
+	(result1
+		(name placeholder)
+		(docs "A placeholder value, which will always be zero.")
+		(type uint8))
+	(result2
+		(name error)
+		(docs "An error if the `pointer` is not in userspace.")
+		(type error)))
