@@ -105,7 +105,7 @@ func SortFields(file *ast.File, arch types.Arch) error {
 	}
 
 	sortList := func(typ string, list *ast.List) {
-		sort.Slice(list.Elements[1:], func(i, j int) bool {
+		sort.SliceStable(list.Elements[1:], func(i, j int) bool {
 			namei := list.Elements[i+1].(*ast.List).Elements[0].(*ast.Identifier).Name
 			namej := list.Elements[j+1].(*ast.List).Elements[0].(*ast.Identifier).Name
 			priorityi := order[namei]
