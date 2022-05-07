@@ -1,0 +1,80 @@
+// Code generated from a Plan document. DO NOT EDIT.
+
+// Copyright 2022 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
+/// An enumeration describing the set of system calls.
+///
+#[derive(Debug)]
+pub enum Syscalls {
+    /// Denies the process access to the specified syscalls.
+    DenySyscalls,
+}
+
+impl Syscalls {
+    /// Returns the [`Syscalls`] value that corresponds
+    /// to `val`, or `None`.
+    ///
+    #[allow(dead_code)]
+    pub const fn from_u64(val: u64) -> Option<Self> {
+        match val {
+            0_u64 => Some(Syscalls::DenySyscalls),
+            _ => None,
+        }
+    }
+
+    /// Returns the numerical value that corresponds to
+    /// the [`Syscalls`].
+    ///
+    #[allow(dead_code)]
+    pub const fn as_u64(&self) -> u64 {
+        match self {
+            Syscalls::DenySyscalls => 0_u64,
+        }
+    }
+}
+
+/// Information about a file in a filesystem.
+///
+#[repr(packed)]
+#[derive(Debug)]
+pub struct FileInfo {
+    /// The pointer to the file's name contents.
+    pub name_pointer: *const u8,
+
+    /// The number of bytes at 'name pointer'.
+    pub name_size: u32,
+}
+
+/// A general purpose error.
+///
+#[derive(Debug)]
+pub enum Error {
+    /// No error occurred.
+    NoError,
+}
+
+impl Error {
+    /// Returns the [`Error`] value that corresponds
+    /// to `val`, or `None`.
+    ///
+    #[allow(dead_code)]
+    pub const fn from_u64(val: u64) -> Option<Self> {
+        match val {
+            0_u64 => Some(Error::NoError),
+            _ => None,
+        }
+    }
+
+    /// Returns the numerical value that corresponds to
+    /// the [`Error`].
+    ///
+    #[allow(dead_code)]
+    pub const fn as_u64(&self) -> u64 {
+        match self {
+            Error::NoError => 0_u64,
+        }
+    }
+}
