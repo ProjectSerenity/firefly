@@ -6,7 +6,7 @@
 #![no_std]
 #![deny(clippy::inline_asm_x86_att_syntax)]
 #![deny(clippy::missing_panics_doc)]
-#![deny(clippy::panic)]
+#![allow(clippy::panic)]
 #![deny(clippy::return_self_not_must_use)]
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
@@ -14,7 +14,7 @@
 #![deny(unsafe_code)]
 
 use firefly::println;
-use firefly::syscalls::read_random;
+use firefly::syscalls::{read_random, Error};
 
 /// The application entry point.
 ///
@@ -22,6 +22,10 @@ use firefly::syscalls::read_random;
 #[allow(clippy::missing_panics_doc)]
 pub fn main() {
     let mut buf = [0u8; 8];
-    read_random((&mut buf[..]).as_mut_ptr(), buf.len() as u64).unwrap();
+    let err = read_random((&mut buf[..]).as_mut_ptr(), buf.len() as u64);
+    if err != Error::NoError {
+        panic!("read_random: {:?}", err);
+    }
+
     println!("Hello from userland: {:x?}!", &buf[..]);
 }

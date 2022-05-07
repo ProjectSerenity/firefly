@@ -78,17 +78,14 @@ impl SyscallABI for SyscallImpl {
     /// written to the registers structure passed to it.
     ///
     #[inline]
-    fn syscall_diagnostics(
-        _registers: *mut SavedRegisters,
-        registers: *mut Registers,
-    ) -> Result<u8, Error> {
+    fn syscall_diagnostics(_registers: *mut SavedRegisters, registers: *mut Registers) -> Error {
         // Check that the pointer is in userspace.
         if let Ok(ptr) = VirtAddr::try_new(registers as usize) {
             if !USERSPACE.contains_addr(ptr) {
-                return Err(Error::IllegalParameter);
+                return Error::IllegalParameter;
             }
         } else {
-            return Err(Error::IllegalParameter);
+            return Error::IllegalParameter;
         }
 
         unsafe {
@@ -116,7 +113,7 @@ impl SyscallABI for SyscallImpl {
             };
         }
 
-        Ok(0)
+        Error::NoError
     }
 
     /// Prints a message to teh process's standard output.
@@ -215,14 +212,14 @@ impl SyscallABI for SyscallImpl {
     /// fill the entire buffer provided.
     ///
     #[inline]
-    fn read_random(_registers: *mut SavedRegisters, ptr: *mut u8, size: u64) -> Result<u8, Error> {
+    fn read_random(_registers: *mut SavedRegisters, ptr: *mut u8, size: u64) -> Error {
         // Check that the pointer is in userspace.
         if let Ok(ptr) = VirtAddr::try_new(ptr as usize) {
             if !USERSPACE.contains_addr(ptr) {
-                return Err(Error::IllegalParameter);
+                return Error::IllegalParameter;
             }
         } else {
-            return Err(Error::IllegalParameter);
+            return Error::IllegalParameter;
         }
 
         // There are no pointers to pointers
@@ -230,7 +227,8 @@ impl SyscallABI for SyscallImpl {
         // straight away.
         let b = unsafe { core::slice::from_raw_parts_mut(ptr, size as usize) };
         random::read(b);
-        Ok(0)
+
+        Error::NoError
     }
 }
 

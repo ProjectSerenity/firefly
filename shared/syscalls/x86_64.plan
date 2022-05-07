@@ -122,10 +122,6 @@
 		(docs "A pointer to the set of registers, which the kernel will populate.")
 		(type *mutable registers))
 	(result1
-		(name ignored)
-		(docs "A placeholder value, which will always be zero.")
-		(type uint8))
-	(result2
 		(name error)
 		(docs "Any error encountered during the diagnostics.")
 		(type error)))
@@ -198,10 +194,6 @@
 			"and written to `pointer`.")
 		(type uint64))
 	(result1
-		(name placeholder)
-		(docs "A placeholder value, which will always be zero.")
-		(type uint8))
-	(result2
 		(name error)
 		(docs "An error if the `pointer` is not in userspace.")
 		(type error)))
