@@ -6,12 +6,12 @@
 //! Implements the kernel's syscalls, allowing user processes to access kernel functionality.
 
 #[allow(clippy::enum_variant_names)]
-mod gensyscalls {
+mod abi {
     include!(env!("SYSCALLS_RS"));
 }
 
+use self::abi::{Error, Syscalls};
 use core::arch::global_asm;
-use gensyscalls::{Error, Syscalls};
 use memory::VirtAddr;
 use multitasking::thread;
 use segmentation::with_segment_data;
