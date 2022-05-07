@@ -426,7 +426,7 @@ func rustCallSyscallImplementation(s *types.Syscall) string {
 		buf.WriteString("let result = ")
 	}
 
-	buf.WriteString("<SyscallImpl as SyscallABI>::")
+	buf.WriteString("<FireflyABI as SyscallABI>::")
 	buf.WriteString(s.Name.SnakeCase())
 	buf.WriteString("(registers")
 	for i := range s.Args {

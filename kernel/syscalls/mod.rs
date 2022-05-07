@@ -31,12 +31,12 @@ extern "sysv64" {
     fn syscall_entry();
 }
 
-/// SyscallImpl is a unit type that contains the
+/// FireflyABI is a unit type that contains the
 /// implementation for each syscall.
 ///
-struct SyscallImpl;
+struct FireflyABI;
 
-impl SyscallABI for SyscallImpl {
+impl SyscallABI for FireflyABI {
     /// Called when an unsupported syscall is received.
     ///
     #[inline]

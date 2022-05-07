@@ -5,7 +5,7 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-use super::SyscallImpl;
+use super::FireflyABI;
 use memory::VirtAddr;
 use x86_64::registers::rflags::RFlags;
 
@@ -94,7 +94,7 @@ pub extern "sysv64" fn syscall_handler(
         }
 {{- end }}
         None => {
-            let error = <SyscallImpl as SyscallABI>::bad_syscall(registers, arg1, arg2, arg3, arg4, arg5, arg6, syscall_num);
+            let error = <FireflyABI as SyscallABI>::bad_syscall(registers, arg1, arg2, arg3, arg4, arg5, arg6, syscall_num);
             SyscallResults {
                 value: 0,
                 error: error.as_u64(),
