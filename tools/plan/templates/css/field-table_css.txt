@@ -1,0 +1,15 @@
+.field-table {
+	text-align: left;
+	vertical-align: top;
+	border-spacing: 0;
+}
+
+.field-table td {
+	vertical-align: top;
+	border-top: 1px solid #555;
+	padding-right: 15px;
+}
+
+.field-table p {
+	margin-top: 0;
+}

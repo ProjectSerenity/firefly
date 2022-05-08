@@ -10,6 +10,7 @@ go_library(
     name = "plan_lib",
     srcs = [
         "build.go",
+        "docs.go",
         "format.go",
         "main.go",
         "rust.go",

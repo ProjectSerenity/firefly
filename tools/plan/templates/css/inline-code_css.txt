@@ -1,0 +1,12 @@
+.inline-code {
+	background-color: #f5f5f5; /* Light grey */
+	border-radius: 3px;
+	padding: 0 0.125em;
+	font-family: GoMono, Cousine, "Source Code Pro", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+	.inline-code {
+		background-color: #666; /* Medium grey */
+	}
+}

@@ -133,7 +133,7 @@
 	(arg1
 		(name pointer)
 		(docs
-			"The pointer to readable memory where the message resides. "
+			"The pointer to readable memory where the message resides.\n"
 			"No restrictions are placed on the contents pointed to by "
 			"`pointer`. For example, the contents do not need to be UTF-8 "
 			"encoded and NUL bytes have no special effects.")

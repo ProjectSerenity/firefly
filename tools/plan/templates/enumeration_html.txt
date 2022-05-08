@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>{{ .Name.Spaced }} enumeration - Firefly system call ABI</title>
+		<style>
+{{ template "base-style_css.txt" }}
+{{ template "inline-code_css.txt" }}
+{{ template "field-table_css.txt" }}
+		</style>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+	</head>
+	<body>
+		<h1>Enumeration <code class="inline-code enumeration">{{ .Name.Spaced }}</code> (<code class="inline-code">{{ .Type }}</code>)</h1>
+		{{ range .Docs }}
+			<p>{{ . }}</p>
+		{{ end }}
+		<h2>Values</h2>
+		<table class="field-table">
+			<thead>
+				<tr>
+					<th>Name</th>
+					<th>Description</th>
+				</tr>
+			</thead>
+			<tbody>
+			{{ range .Values }}
+				<tr>
+					<td>
+						<code class="inline-code">{{ .Name.Spaced}}</code>
+					</td>
+					<td>
+						{{ range .Docs }}
+							<p>{{ . }}</p>
+						{{ end }}
+					</td>
+				</tr>
+			{{ end }}
+			</tbody>
+		</table>
+	</body>
+</html>

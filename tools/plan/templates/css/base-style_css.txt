@@ -1,0 +1,40 @@
+html {
+	color: #000000; /* Black */
+	background-color: #ffffff; /* White */
+	font-family: Go, Roboto, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+}
+
+a {
+	text-decoration: none;
+}
+
+.enumeration {
+	color: #4e4ed3; /* Dark blue */
+}
+
+.structure {
+	color: #4ed34e; /* Dark green */
+}
+
+.syscall {
+	color: #d34e4e; /* Dark red */
+}
+
+@media (prefers-color-scheme: dark) {
+	html {
+		color: #ddd; /* Light grey */
+		background-color: #333; /* Dark grey */
+	}
+
+	.enumeration {
+		color: #b0bee5; /* Light blue */
+	}
+
+	.structure {
+		color: #bee5b0; /* Light green */
+	}
+
+	.syscall {
+		color: #e5b0be; /* Light red */
+	}
+}

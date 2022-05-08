@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>{{ .Name.Spaced }} syscall - Firefly system call ABI</title>
+		<style>
+{{ template "base-style_css.txt" }}
+{{ template "inline-code_css.txt" }}
+{{ template "field-table_css.txt" }}
+		</style>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+	</head>
+	<body>
+		<h1>Syscall <code class="inline-code syscall">{{ .Name.Spaced }}</code></h1>
+		{{ range .Docs }}
+			<p>{{ . }}</p>
+		{{ end }}
+		{{ if .Args }}
+			<h2>Arguments</h2>
+			<table class="field-table">
+				<thead>
+					<tr>
+						<th>#</th>
+						<th>Name</th>
+						<th>Type</th>
+						<th>Description</th>
+					</tr>
+				</thead>
+				<tbody>
+				{{ range $i, $arg := .Args }}
+					<tr>
+						<td>{{ addOne $i }}</td>
+						<td>
+							<code class="inline-code">{{ $arg.Name.Spaced}}</code>
+						</td>
+						<td>
+							<code class="inline-code">{{ toString $arg.Type }}</code>
+						</td>
+						<td>
+							{{ range $arg.Docs }}
+								<p>{{ . }}</p>
+							{{ end }}
+						</td>
+					</tr>
+				{{ end }}
+				</tbody>
+			</table>
+		{{ end }}
+		{{ if .Results }}
+			<h2>Results</h2>
+			<table class="field-table">
+				<thead>
+					<tr>
+						<th>#</th>
+						<th>Name</th>
+						<th>Type</th>
+						<th>Description</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{ range $i, $result := .Results }}
+						<tr>
+							<td>{{ addOne $i }}</td>
+							<td>
+								<code class="inline-code">{{ $result.Name.Spaced}}</code>
+							</td>
+							<td>
+								<code class="inline-code">{{ toString $result.Type }}</code>
+							</td>
+							<td>
+								{{ range $result.Docs }}
+									<p>{{ . }}</p>
+								{{ end }}
+							</td>
+						</tr>
+					{{ end }}
+				</tbody>
+			</table>
+		{{ end }}
+	</body>
+</html>

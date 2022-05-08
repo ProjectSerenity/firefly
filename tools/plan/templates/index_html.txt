@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Firefly system call ABI</title>
+		<style>
+{{ template "base-style_css.txt" }}
+{{ template "inline-code_css.txt" }}
+		</style>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+	</head>
+	<body>
+		<h1>Firefly system call ABI</h1>
+		<h2>Enumerations</h2>
+		<ul>
+			{{ range .Enumerations }}
+				<li>
+					<code class="inline-code">
+						<a href="enumerations/{{ .Name.SnakeCase }}.html" class="enumeration">{{ .Name.Spaced }}</a>
+					</code>
+				</li>
+			{{ end }}
+		</ul>
+		<h2>Structures</h2>
+		<ul>
+			{{ range .Structures }}
+				<li>
+					<code class="inline-code">
+						<a href="structures/{{ .Name.SnakeCase }}.html" class="structure">{{ .Name.Spaced }}</a>
+					</code>
+				</li>
+			{{ end }}
+		</ul>
+		<h2>Syscalls</h2>
+		<ul>
+			{{ range .Syscalls }}
+				<li>
+					<code class="inline-code">
+						<a href="syscalls/{{ .Name.SnakeCase }}.html" class="syscall">{{ .Name.Spaced }}</a>
+					</code>
+				</li>
+			{{ end }}
+		</ul>
+	</body>
+</html>
