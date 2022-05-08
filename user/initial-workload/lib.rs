@@ -13,12 +13,15 @@
 #![deny(unused_crate_dependencies)]
 #![deny(unsafe_code)]
 
-use firefly::{println, read_random};
+use firefly::{println, read_random, test_syscall_abi};
 
 /// The application entry point.
 ///
 #[inline]
 pub fn main() {
+    test_syscall_abi();
+    println!("PASS  test_syscall_abi();");
+
     let mut buf = [0u8; 8];
     read_random(&mut buf[..]);
     println!("Hello from userland: {:x?}!", &buf[..]);
