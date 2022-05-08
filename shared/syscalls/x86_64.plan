@@ -27,8 +27,8 @@
 	(name registers)
 	(docs "A set of saved register values.")
 	(field
-		(name rsp)
-		(docs "Stack pointer (in the SS segment).")
+		(name rax)
+		(docs "Accumulator for operands and results data.")
 		(type uint64))
 	(field
 		(name rbx)
@@ -63,8 +63,8 @@
 		(docs "Instruction pointer (in the CS segment).")
 		(type uint64))
 	(field
-		(name rax)
-		(docs "Accumulator for operands and results data.")
+		(name rsp)
+		(docs "Stack pointer (in the SS segment).")
 		(type uint64))
 	(field
 		(name r8)
