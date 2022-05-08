@@ -16,13 +16,14 @@
 #![deny(unused_crate_dependencies)]
 
 use core::panic::PanicInfo;
-use firefly::exit_thread;
+use firefly::{eprintln, exit_thread};
 use initial_workload::main;
 
 /// This function is called on panic.
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
+fn panic(info: &PanicInfo) -> ! {
+    eprintln!("{}", info);
+    exit_thread();
 }
 
 /// The application's entry point.
