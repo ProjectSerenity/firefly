@@ -2,17 +2,16 @@
 {{- $name := .Name.PascalCase -}}
 {{- $type := toString .Type -}}
 
-{{/* Print the documentation for the enumeration type */}}
-{{- range .Docs }}/// {{ . }}
-{{ end -}}
-///
+{{- toDocs 0 .Docs }}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum {{ $name }} {
     {{- /* For each value in the enumeration, we print the value's documentation and name */ -}}
-    {{- range .Values }}
-    {{ range .Docs }}/// {{ . }}
-    {{ end }}
-    {{- .Name.PascalCase }},
+    {{- range $i, $value := .Values }}
+    {{- /* Add a newline for fields after the first, to space them apart. */ -}}
+    {{- if ne $i 0 }}
+{{ end }}
+    {{ toDocs 1 $value.Docs }}
+    {{ $value.Name.PascalCase }},
     {{- end }}
 }
 

@@ -15,6 +15,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ProjectSerenity/firefly/tools/plan/parser"
 	"github.com/ProjectSerenity/firefly/tools/plan/types"
@@ -205,6 +206,7 @@ var htmlTemplatesFS embed.FS
 var htmlTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 	"addOne":   htmlAddOne,
 	"toString": htmlString,
+	"toDocs":   htmlDocs,
 }).ParseFS(htmlTemplatesFS, "templates/*_html.txt", "templates/css/*_css.txt"))
 
 const (
@@ -239,4 +241,22 @@ func htmlString(t types.Type) template.HTML {
 	default:
 		panic(fmt.Sprintf("htmlString(%T): unexpected type", t))
 	}
+}
+
+func htmlDocs(indent int, d types.Docs) template.HTML {
+	var buf strings.Builder
+	for i, item := range d {
+		if i > 0 {
+			buf.WriteByte('\n')
+			for j := 0; j < indent; j++ {
+				buf.WriteByte('\t')
+			}
+		}
+
+		buf.WriteString("<p>")
+		buf.WriteString(template.HTMLEscapeString(item))
+		buf.WriteString("</p>")
+	}
+
+	return template.HTML(buf.String())
 }

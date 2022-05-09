@@ -12,9 +12,7 @@
 	</head>
 	<body>
 		<h1>Syscall <code class="inline-code syscall">{{ .Name.Spaced }}</code></h1>
-		{{ range .Docs }}
-			<p>{{ . }}</p>
-		{{ end }}
+		{{ toDocs 2 .Docs }}
 		{{ if .Args }}
 			<h2>Arguments</h2>
 			<table class="field-table">
@@ -37,9 +35,7 @@
 							<code class="inline-code">{{ toString $arg.Type }}</code>
 						</td>
 						<td>
-							{{ range $arg.Docs }}
-								<p>{{ . }}</p>
-							{{ end }}
+							{{ toDocs 5 $arg.Docs }}
 						</td>
 					</tr>
 				{{ end }}
@@ -58,22 +54,20 @@
 					</tr>
 				</thead>
 				<tbody>
-					{{ range $i, $result := .Results }}
-						<tr>
-							<td>{{ addOne $i }}</td>
-							<td>
-								<code class="inline-code">{{ $result.Name.Spaced}}</code>
-							</td>
-							<td>
-								<code class="inline-code">{{ toString $result.Type }}</code>
-							</td>
-							<td>
-								{{ range $result.Docs }}
-									<p>{{ . }}</p>
-								{{ end }}
-							</td>
-						</tr>
-					{{ end }}
+				{{ range $i, $result := .Results }}
+					<tr>
+						<td>{{ addOne $i }}</td>
+						<td>
+							<code class="inline-code">{{ $result.Name.Spaced}}</code>
+						</td>
+						<td>
+							<code class="inline-code">{{ toString $result.Type }}</code>
+						</td>
+						<td>
+							{{ toDocs 5 $result.Docs }}
+						</td>
+					</tr>
+				{{ end }}
 				</tbody>
 			</table>
 		{{ end }}

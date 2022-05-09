@@ -4,10 +4,15 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ReadError {
     /// The file read completed successfully.
+    ///
     NoError,
+
     /// There is no more data available in the file.
+    ///
     EndOfFile,
+
     /// Read operations on this file are not permitted.
+    ///
     AccessDenied,
 }
 

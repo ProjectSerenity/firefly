@@ -12,9 +12,7 @@
 	</head>
 	<body>
 		<h1>Structure <code class="inline-code structure">{{ .Name.Spaced }}</code></h1>
-		{{ range .Docs }}
-			<p>{{ . }}</p>
-		{{ end }}
+		{{ toDocs 2 .Docs }}
 		<h2>Fields</h2>
 		<table class="field-table">
 			<thead>
@@ -34,9 +32,7 @@
 						<code class="inline-code">{{ .Type }}</code>
 					</td>
 					<td>
-						{{ range .Docs }}
-							<p>{{ . }}</p>
-						{{ end }}
+						{{ toDocs 5 .Docs }}
 					</td>
 				</tr>
 			{{ end }}

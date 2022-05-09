@@ -221,17 +221,28 @@ pub extern "sysv64" fn syscall_handler(
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Syscalls {
     /// Denies the process access to the specified syscalls.
+    ///
     DenySyscalls,
+
     /// Exits everything immediately.
+    ///
     Exit,
+
     /// Returns the process's unique identifier.
+    ///
     GetProcessId,
+
     /// Docs on
     /// two lines
+    ///
     ThreeArgsTwoResults,
+
     /// Returns the information about the named file.
+    ///
     GetFileInfo,
+
     /// Returns a colour or a size.
+    ///
     ColourOrSize,
 }
 
@@ -273,8 +284,11 @@ impl Syscalls {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Colour {
     /// The colour red.
+    ///
     Red,
+
     /// The colour green.
+    ///
     Green,
 }
 
@@ -309,9 +323,11 @@ impl Colour {
 #[derive(Clone, Copy, Debug)]
 pub struct FileInfo {
     /// The pointer to the file's name contents.
+    ///
     pub name_pointer: *const u8,
 
     /// The number of bytes at 'name pointer'.
+    ///
     pub name_size: u32,
 }
 
@@ -320,6 +336,7 @@ pub struct FileInfo {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     /// No error occurred.
+    ///
     NoError,
 }
 

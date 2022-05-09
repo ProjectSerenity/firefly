@@ -5,15 +5,19 @@
 #[derive(Clone, Copy, Debug)]
 pub struct FileInfo {
     /// The name of the file.
+    ///
     pub name: *const ConstantString,
 
     /// The permitted actions that can be performed on the file.
+    ///
     pub permissions: u8,
 
     /// Padding to align the structure.
+    ///
     #[allow(dead_code)]
     _padding1: [u8; 7],
 
     /// The size of the file in bytes.
+    ///
     pub file_size: u64,
 }

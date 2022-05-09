@@ -12,9 +12,7 @@
 	</head>
 	<body>
 		<h1>Enumeration <code class="inline-code enumeration">{{ .Name.Spaced }}</code> (<code class="inline-code">{{ .Type }}</code>)</h1>
-		{{ range .Docs }}
-			<p>{{ . }}</p>
-		{{ end }}
+		{{ toDocs 2 .Docs }}
 		<h2>Values</h2>
 		<table class="field-table">
 			<thead>
@@ -30,9 +28,7 @@
 						<code class="inline-code">{{ .Name.Spaced}}</code>
 					</td>
 					<td>
-						{{ range .Docs }}
-							<p>{{ . }}</p>
-						{{ end }}
+						{{ toDocs 5 .Docs }}
 					</td>
 				</tr>
 			{{ end }}

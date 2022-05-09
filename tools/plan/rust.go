@@ -212,6 +212,7 @@ var rustTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 	"callSyscallImplementation": rustCallSyscallImplementation,
 	"recvResults":               rustSyscallRecvResults,
 	"toString":                  rustString,
+	"toDocs":                    rustDocs,
 	"constructor":               rustConstructor,
 }).ParseFS(rustTemplatesFS, "templates/*"))
 
@@ -261,6 +262,22 @@ func rustString(t types.Type) string {
 	default:
 		panic(fmt.Sprintf("rustString(%T): unexpected type", t))
 	}
+}
+
+func rustDocs(indent int, d types.Docs) string {
+	var buf strings.Builder
+	for _, item := range d {
+		buf.WriteString("/// ")
+		buf.WriteString(item)
+		buf.WriteByte('\n')
+		for j := 0; j < indent; j++ {
+			buf.WriteString("    ")
+		}
+	}
+
+	buf.WriteString("///")
+
+	return buf.String()
 }
 
 func rustConstructor(variable string, varType types.Type) string {

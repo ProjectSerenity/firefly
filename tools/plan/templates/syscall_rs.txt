@@ -2,10 +2,7 @@
 {{- $num_args := len .Args -}}
 {{- $num_results := len .Results -}}
 
-{{/* Print the documentation for the syscall */}}
-{{- range .Docs }}/// {{ . }}
-{{ end -}}
-///
+{{ toDocs 0 .Docs }}
 #[inline]
 pub fn {{ funcSignature . }} {
     {{- /* Now that we've made the function signature, we write the body. */}}

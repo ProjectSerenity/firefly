@@ -1,7 +1,4 @@
-{{/* Print the documentation for the structure type */}}
-{{- range .Docs }}/// {{ . }}
-{{ end -}}
-///
+{{ toDocs 0 .Docs }}
 #[repr(packed)]
 #[derive(Clone, Copy, Debug)]
 pub struct {{ .Name.PascalCase }} {
@@ -9,8 +6,7 @@ pub struct {{ .Name.PascalCase }} {
     {{- /* Add a newline for fields after the first, to space them apart. */ -}}
     {{- if ne $i 0 }}
 {{ end }}
-    {{ range .Docs }}/// {{ . }}
-    {{ end -}}
+    {{ toDocs 1 .Docs }}
     {{ fieldDefinition . }}
     {{- end }}
 }
