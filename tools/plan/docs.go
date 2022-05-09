@@ -245,18 +245,24 @@ func htmlString(t types.Type) template.HTML {
 
 func htmlDocs(indent int, d types.Docs) template.HTML {
 	var buf strings.Builder
-	for i, item := range d {
-		if i > 0 {
-			buf.WriteByte('\n')
+	buf.WriteString("<p>")
+	for _, item := range d {
+		switch item := item.(type) {
+		case types.Text:
+			buf.WriteString(template.HTMLEscapeString(string(item)))
+		case types.Newline:
+			buf.WriteString("</p>\n")
 			for j := 0; j < indent; j++ {
 				buf.WriteByte('\t')
 			}
-		}
 
-		buf.WriteString("<p>")
-		buf.WriteString(template.HTMLEscapeString(item))
-		buf.WriteString("</p>")
+			buf.WriteString("<p>")
+		default:
+			panic(fmt.Sprintf("htmlDocs(%T): unexpected type", item))
+		}
 	}
+
+	buf.WriteString("</p>")
 
 	return template.HTML(buf.String())
 }

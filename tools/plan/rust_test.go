@@ -329,22 +329,23 @@ func TestDefineRust(t *testing.T) {
 			Type: &types.Enumeration{
 				Name: types.Name{"read", "error"},
 				Docs: types.Docs{
-					"An error returned after a failed attempt to read from",
-					"a file in a filesystem.",
+					types.Text("An error returned after a failed attempt to read from"),
+					types.Newline{},
+					types.Text("a file in a filesystem."),
 				},
 				Type: types.Uint8,
 				Values: []*types.Value{
 					{
 						Name: types.Name{"no", "error"},
-						Docs: types.Docs{"The file read completed successfully."},
+						Docs: types.Docs{types.Text("The file read completed successfully.")},
 					},
 					{
 						Name: types.Name{"end", "of", "file"},
-						Docs: types.Docs{"There is no more data available in the file."},
+						Docs: types.Docs{types.Text("There is no more data available in the file.")},
 					},
 					{
 						Name: types.Name{"access", "denied"},
-						Docs: types.Docs{"Read operations on this file are not permitted."},
+						Docs: types.Docs{types.Text("Read operations on this file are not permitted.")},
 					},
 				},
 			},
@@ -356,24 +357,25 @@ func TestDefineRust(t *testing.T) {
 			Type: &types.Structure{
 				Name: types.Name{"file", "info"},
 				Docs: types.Docs{
-					"The file info structure is used to represent information about",
-					"one file in a filesystem.",
+					types.Text("The file info structure is used to represent information about"),
+					types.Newline{},
+					types.Text("one file in a filesystem."),
 				},
 				Fields: []*types.Field{
 					{
 						Name: types.Name{"name"},
-						Docs: types.Docs{"The name of the file."},
+						Docs: types.Docs{types.Text("The name of the file.")},
 						Type: &types.Pointer{
 							Mutable: false,
 							Underlying: &types.Reference{
 								Name: types.Name{"constant", "string"},
 								Underlying: &types.Structure{
 									Name: types.Name{"constant", "string"},
-									Docs: types.Docs{"A read-only sequence of UTF-8 encoded text."},
+									Docs: types.Docs{types.Text("A read-only sequence of UTF-8 encoded text.")},
 									Fields: []*types.Field{
 										{
 											Name: types.Name{"pointer"},
-											Docs: types.Docs{"A pointer to the string's text."},
+											Docs: types.Docs{types.Text("A pointer to the string's text.")},
 											Type: &types.Pointer{
 												Mutable:    false,
 												Underlying: types.Byte,
@@ -381,7 +383,7 @@ func TestDefineRust(t *testing.T) {
 										},
 										{
 											Name: types.Name{"size"},
-											Docs: types.Docs{"The number of bytes in the string's text."},
+											Docs: types.Docs{types.Text("The number of bytes in the string's text.")},
 											Type: types.Uint64,
 										},
 									},
@@ -391,17 +393,17 @@ func TestDefineRust(t *testing.T) {
 					},
 					{
 						Name: types.Name{"permissions"},
-						Docs: types.Docs{"The permitted actions that can be performed on the file."},
+						Docs: types.Docs{types.Text("The permitted actions that can be performed on the file.")},
 						Type: types.Uint8,
 					},
 					{
 						Name: types.Name{"padding1"},
-						Docs: types.Docs{"Padding to align the structure."},
+						Docs: types.Docs{types.Text("Padding to align the structure.")},
 						Type: types.Padding(7),
 					},
 					{
 						Name: types.Name{"file", "size"},
-						Docs: types.Docs{"The size of the file in bytes."},
+						Docs: types.Docs{types.Text("The size of the file in bytes.")},
 						Type: types.Uint64,
 					},
 				},
@@ -414,8 +416,9 @@ func TestDefineRust(t *testing.T) {
 			Type: &types.Syscall{
 				Name: types.Name{"simple", "syscall"},
 				Docs: types.Docs{
-					"A simple function that takes no arguments and",
-					"returns no results.",
+					types.Text("A simple function that takes no arguments and"),
+					types.Newline{},
+					types.Text("returns no results."),
 				},
 			},
 		},
@@ -426,8 +429,9 @@ func TestDefineRust(t *testing.T) {
 			Type: &types.Syscall{
 				Name: types.Name{"simple", "syscall"},
 				Docs: types.Docs{
-					"A simple function that takes no arguments and",
-					"returns no results.",
+					types.Text("A simple function that takes no arguments and"),
+					types.Newline{},
+					types.Text("returns no results."),
 				},
 				Args: []*types.Parameter{
 					{
@@ -444,8 +448,9 @@ func TestDefineRust(t *testing.T) {
 			Type: &types.Syscall{
 				Name: types.Name{"simple", "syscall"},
 				Docs: types.Docs{
-					"A simple function that takes no arguments and",
-					"returns no results.",
+					types.Text("A simple function that takes no arguments and"),
+					types.Newline{},
+					types.Text("returns no results."),
 				},
 				Args: []*types.Parameter{
 					{
@@ -472,8 +477,9 @@ func TestDefineRust(t *testing.T) {
 			Type: &types.Syscall{
 				Name: types.Name{"simple", "syscall"},
 				Docs: types.Docs{
-					"A simple function that takes no arguments and",
-					"returns no results.",
+					types.Text("A simple function that takes no arguments and"),
+					types.Newline{},
+					types.Text("returns no results."),
 				},
 				Results: []*types.Parameter{
 					{
@@ -490,8 +496,9 @@ func TestDefineRust(t *testing.T) {
 			Type: &types.Syscall{
 				Name: types.Name{"simple", "syscall"},
 				Docs: types.Docs{
-					"A simple function that takes no arguments and",
-					"returns no results.",
+					types.Text("A simple function that takes no arguments and"),
+					types.Newline{},
+					types.Text("returns no results."),
 				},
 				Results: []*types.Parameter{
 					{
@@ -514,8 +521,9 @@ func TestDefineRust(t *testing.T) {
 			Type: &types.Syscall{
 				Name: types.Name{"simple", "syscall"},
 				Docs: types.Docs{
-					"A simple function that takes no arguments and",
-					"returns no results.",
+					types.Text("A simple function that takes no arguments and"),
+					types.Newline{},
+					types.Text("returns no results."),
 				},
 				Results: []*types.Parameter{
 					{

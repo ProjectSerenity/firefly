@@ -266,13 +266,27 @@ func rustString(t types.Type) string {
 
 func rustDocs(indent int, d types.Docs) string {
 	var buf strings.Builder
+	buf.WriteString("/// ")
 	for _, item := range d {
-		buf.WriteString("/// ")
-		buf.WriteString(item)
-		buf.WriteByte('\n')
-		for j := 0; j < indent; j++ {
-			buf.WriteString("    ")
+		switch item := item.(type) {
+		case types.Text:
+			buf.WriteString(string(item))
+		case types.Newline:
+			buf.WriteByte('\n')
+			for j := 0; j < indent; j++ {
+				buf.WriteString("    ")
+			}
+
+			buf.WriteString("/// ")
+		default:
+			panic(fmt.Sprintf("rustDocs(%T): unexpected type", item))
 		}
+	}
+
+	// Add a trailing empty comment.
+	buf.WriteByte('\n')
+	for j := 0; j < indent; j++ {
+		buf.WriteString("    ")
 	}
 
 	buf.WriteString("///")

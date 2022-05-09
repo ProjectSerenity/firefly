@@ -93,7 +93,7 @@ func (n Name) SnakeCase() string {
 // for a type Plan a source file. The docs
 // are split into lines.
 //
-type Docs []string
+type Docs []DocsItem
 
 // NewDocs returns the given documentation,
 // split into lines.
@@ -101,9 +101,40 @@ type Docs []string
 func NewDocs(text []string) Docs {
 	joined := strings.Join(text, "")
 	split := strings.Split(joined, "\n")
+	out := make(Docs, 0, 2*len(split))
+	for i, part := range split {
+		if i > 0 {
+			out = append(out, Newline{})
+		}
 
-	return Docs(split)
+		out = append(out, Text(part))
+	}
+
+	return out
 }
+
+// DocsItem represents an item in the set
+// of documentation for a type, syscall,
+// or field.
+//
+type DocsItem interface {
+	docsItem()
+}
+
+type (
+	// Text represents plain text in a set of
+	// documentation.
+	//
+	Text string
+
+	// Newline represents a line break in the
+	// text of a set of documentation.
+	//
+	Newline struct{}
+)
+
+func (t Text) docsItem()    {}
+func (n Newline) docsItem() {}
 
 // Arch represents an instruction set
 // architecture, which is used to customise
@@ -484,7 +515,7 @@ type File struct {
 func (f *File) SyscallsEnumeration() *Enumeration {
 	enum := &Enumeration{
 		Name:   Name{"syscalls"},
-		Docs:   Docs{"An enumeration describing the set of system calls."},
+		Docs:   Docs{Text("An enumeration describing the set of system calls.")},
 		Type:   Uint64,
 		Values: make([]*Value, len(f.Syscalls)),
 	}

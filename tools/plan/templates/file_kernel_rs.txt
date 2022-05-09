@@ -30,10 +30,7 @@ pub trait SyscallABI {
         syscall_num: u64
     ) -> Error;
     {{ range .Syscalls }}
-    {{/* Print the documentation for the syscall. */ -}}
-        {{- range .Docs }}/// {{ . }}
-{{ end -}}
-    ///
+    {{ toDocs 1 .Docs }}
     fn {{ traitSignature . }};
 {{ end -}}
 }

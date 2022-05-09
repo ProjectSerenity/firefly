@@ -39,11 +39,11 @@ func TestInterpreter(t *testing.T) {
 				Structures: []*Structure{
 					{
 						Name: Name{"blah"},
-						Docs: Docs{"xyz"},
+						Docs: Docs{Text("xyz")},
 						Fields: []*Field{
 							{
 								Name: Name{"foo"},
-								Docs: Docs{"bar"},
+								Docs: Docs{Text("bar")},
 								Type: &Pointer{
 									Underlying: Byte,
 								},
@@ -60,11 +60,11 @@ func TestInterpreter(t *testing.T) {
 				Structures: []*Structure{
 					{
 						Name: Name{"blah"},
-						Docs: Docs{"xyz"},
+						Docs: Docs{Text("xyz")},
 						Fields: []*Field{
 							{
 								Name: Name{"foo"},
-								Docs: Docs{"bar"},
+								Docs: Docs{Text("bar")},
 								Type: &Reference{
 									Name: Name{"syscalls"},
 									Underlying: &Enumeration{
@@ -145,7 +145,7 @@ func TestInterpreter(t *testing.T) {
 							},
 							ParenClose: position(t, 89, 1, 90),
 						},
-						Docs: Docs{"xyz"},
+						Docs: Docs{Text("xyz")},
 						Fields: []*Field{
 							{
 								Name: Name{"foo"},
@@ -185,7 +185,7 @@ func TestInterpreter(t *testing.T) {
 									},
 									ParenClose: position(t, 88, 1, 89),
 								},
-								Docs: Docs{"bar"},
+								Docs: Docs{Text("bar")},
 								Type: &Pointer{
 									Underlying: Byte,
 								},
@@ -202,16 +202,16 @@ func TestInterpreter(t *testing.T) {
 				Enumerations: []*Enumeration{
 					{
 						Name: Name{"blah"},
-						Docs: Docs{"xyz"},
+						Docs: Docs{Text("xyz")},
 						Type: Byte,
 						Values: []*Value{
 							{
 								Name: Name{"foo"},
-								Docs: Docs{"bar"},
+								Docs: Docs{Text("bar")},
 							},
 							{
 								Name: Name{"bar"},
-								Docs: Docs{"abc"},
+								Docs: Docs{Text("abc")},
 							},
 						},
 					},
@@ -235,11 +235,11 @@ func TestInterpreter(t *testing.T) {
 				Syscalls: []*Syscall{
 					{
 						Name: Name{"blah"},
-						Docs: Docs{"xyz"},
+						Docs: Docs{Text("xyz")},
 						Args: []*Parameter{
 							{
 								Name: Name{"foo"},
-								Docs: Docs{"bar"},
+								Docs: Docs{Text("bar")},
 								Type: &Pointer{
 									Underlying: Byte,
 								},
@@ -248,7 +248,7 @@ func TestInterpreter(t *testing.T) {
 						Results: []*Parameter{
 							{
 								Name: Name{"bar"},
-								Docs: Docs{"x"},
+								Docs: Docs{Text("x")},
 								Type: Uint64,
 							},
 						},
@@ -273,18 +273,18 @@ func TestInterpreter(t *testing.T) {
 				Structures: []*Structure{
 					{
 						Name: Name{"blah"},
-						Docs: Docs{"xyz"},
+						Docs: Docs{Text("xyz")},
 						Fields: []*Field{
 							{
 								Name: Name{"foo"},
-								Docs: Docs{"bar"},
+								Docs: Docs{Text("bar")},
 								Type: &Pointer{
 									Underlying: Byte,
 								},
 							},
 							{
 								Name: Name{"bar"},
-								Docs: Docs{"padding"},
+								Docs: Docs{Text("padding")},
 								Type: Padding(8),
 							},
 						},
@@ -300,11 +300,11 @@ func TestInterpreter(t *testing.T) {
 				Structures: []*Structure{
 					{
 						Name: Name{"blah"},
-						Docs: Docs{"xyz"},
+						Docs: Docs{Text("xyz")},
 						Fields: []*Field{
 							{
 								Name: Name{"foo"},
-								Docs: Docs{"bar"},
+								Docs: Docs{Text("bar")},
 								Type: &Pointer{
 									Underlying: Byte,
 								},
@@ -313,22 +313,22 @@ func TestInterpreter(t *testing.T) {
 					},
 					{
 						Name: Name{"two"},
-						Docs: Docs{"abc"},
+						Docs: Docs{Text("abc")},
 						Fields: []*Field{
 							{
 								Name: Name{"first"},
-								Docs: Docs{"x"},
+								Docs: Docs{Text("x")},
 								Type: &Pointer{
 									Mutable: true,
 									Underlying: &Reference{
 										Name: Name{"blah"},
 										Underlying: &Structure{
 											Name: Name{"blah"},
-											Docs: Docs{"xyz"},
+											Docs: Docs{Text("xyz")},
 											Fields: []*Field{
 												{
 													Name: Name{"foo"},
-													Docs: Docs{"bar"},
+													Docs: Docs{Text("bar")},
 													Type: &Pointer{
 														Underlying: Byte,
 													},
@@ -352,12 +352,12 @@ func TestInterpreter(t *testing.T) {
 				Enumerations: []*Enumeration{
 					{
 						Name: Name{"baz"},
-						Docs: Docs{"foo"},
+						Docs: Docs{Text("foo")},
 						Type: Byte,
 						Values: []*Value{
 							{
 								Name: Name{"one"},
-								Docs: Docs{"1"},
+								Docs: Docs{Text("1")},
 							},
 						},
 					},
@@ -365,33 +365,33 @@ func TestInterpreter(t *testing.T) {
 				Structures: []*Structure{
 					{
 						Name: Name{"two"},
-						Docs: Docs{"abc"},
+						Docs: Docs{Text("abc")},
 						Fields: []*Field{
 							{
 								Name: Name{"first"},
-								Docs: Docs{"x"},
+								Docs: Docs{Text("x")},
 								Type: &Pointer{
 									Mutable: true,
 									Underlying: &Reference{
 										Name: Name{"blah"},
 										Underlying: &Structure{
 											Name: Name{"blah"},
-											Docs: Docs{"xyz"},
+											Docs: Docs{Text("xyz")},
 											Fields: []*Field{
 												{
 													Name: Name{"foo"},
-													Docs: Docs{"bar"},
+													Docs: Docs{Text("bar")},
 													Type: &Pointer{
 														Underlying: &Reference{
 															Name: Name{"baz"},
 															Underlying: &Enumeration{
 																Name: Name{"baz"},
-																Docs: Docs{"foo"},
+																Docs: Docs{Text("foo")},
 																Type: Byte,
 																Values: []*Value{
 																	{
 																		Name: Name{"one"},
-																		Docs: Docs{"1"},
+																		Docs: Docs{Text("1")},
 																	},
 																},
 															},
@@ -407,22 +407,22 @@ func TestInterpreter(t *testing.T) {
 					},
 					{
 						Name: Name{"blah"},
-						Docs: Docs{"xyz"},
+						Docs: Docs{Text("xyz")},
 						Fields: []*Field{
 							{
 								Name: Name{"foo"},
-								Docs: Docs{"bar"},
+								Docs: Docs{Text("bar")},
 								Type: &Pointer{
 									Underlying: &Reference{
 										Name: Name{"baz"},
 										Underlying: &Enumeration{
 											Name: Name{"baz"},
-											Docs: Docs{"foo"},
+											Docs: Docs{Text("foo")},
 											Type: Byte,
 											Values: []*Value{
 												{
 													Name: Name{"one"},
-													Docs: Docs{"1"},
+													Docs: Docs{Text("1")},
 												},
 											},
 										},
