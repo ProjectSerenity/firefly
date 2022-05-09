@@ -135,17 +135,26 @@
 		(docs
 			"The pointer to readable memory where the message resides."
 			""
-			"No restrictions are placed on the contents pointed to by `pointer`."
+			"No restrictions are placed on the contents pointed to by"
+			(code "pointer")
+			"."
+			""
 			"For example, the contents do not need to be UTF-8 encoded and NUL"
 			"bytes have no special effects.")
 		(type *constant byte))
 	(arg2
 		(name size)
-		(docs "The number of bytes that will be read and printed from `pointer`.")
+		(docs
+			"The number of bytes that will be read and printed from"
+			(code "pointer")
+			".")
 		(type uint64))
 	(result1
 		(name written)
-		(docs "The number of bytes that were read and printed from `pointer`.")
+		(docs
+			"The number of bytes that were read and printed from"
+			(code "pointer")
+			".")
 		(type uint64))
 	(result2
 		(name error)
@@ -161,17 +170,24 @@
 		(docs
 			"The pointer to readable memory where the message resides."
 			""
-			"No restrictions are placed on the contents pointed to by `pointer`."
-			"For example, the contents do not need to be UTF-8 encoded and NUL bytes"
+			"No restrictions are placed on the contents pointed to by"
+			(code "pointer")
+			". For example, the contents do not need to be UTF-8 encoded and NUL bytes"
 			"have no special effects.")
 		(type *constant byte))
 	(arg2
 		(name size)
-		(docs "The number of bytes that will be read and printed from `pointer`.")
+		(docs
+			"The number of bytes that will be read and printed from"
+			(code "pointer")
+			".")
 		(type uint64))
 	(result1
 		(name written)
-		(docs "The number of bytes that were read and printed from `pointer`.")
+		(docs
+			"The number of bytes that were read and printed from"
+			(code "pointer")
+			".")
 		(type uint64))
 	(result2
 		(name error)
@@ -192,9 +208,11 @@
 		(name size)
 		(docs
 			"The number of bytes that will be read from the source of entropy and"
-			"written to `pointer`.")
+			"written to"
+			(code "pointer")
+			".")
 		(type uint64))
 	(result1
 		(name error)
-		(docs "An error if the `pointer` is not in userspace.")
+		(docs "An error if the" (code "pointer") "is not in userspace.")
 		(type error)))
