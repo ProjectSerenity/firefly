@@ -531,7 +531,7 @@ func TestInterpreterErrors(t *testing.T) {
 		{
 			Name:   "enumeration with invalid docs",
 			Source: `(enumeration (docs bar))`,
-			Want:   `test.plan:1:20: invalid enumeration docs: expected a string, found identifier`,
+			Want:   `test.plan:1:20: invalid enumeration docs: expected a string or formatting expression, found identifier`,
 		},
 		{
 			Name:   "enumeration with duplicate docs",
@@ -591,7 +591,7 @@ func TestInterpreterErrors(t *testing.T) {
 		{
 			Name:   "enumeration with invalid value docs",
 			Source: `(enumeration (value (docs bar)))`,
-			Want:   `test.plan:1:27: invalid value docs: expected a string, found identifier`,
+			Want:   `test.plan:1:27: invalid value docs: expected a string or formatting expression, found identifier`,
 		},
 		{
 			Name:   "enumeration with duplicate value docs",
@@ -678,7 +678,7 @@ func TestInterpreterErrors(t *testing.T) {
 		{
 			Name:   "structure with invalid docs",
 			Source: `(structure (docs bar))`,
-			Want:   `test.plan:1:18: invalid structure docs: expected a string, found identifier`,
+			Want:   `test.plan:1:18: invalid structure docs: expected a string or formatting expression, found identifier`,
 		},
 		{
 			Name:   "structure with duplicate docs",
@@ -723,7 +723,7 @@ func TestInterpreterErrors(t *testing.T) {
 		{
 			Name:   "structure with invalid field docs",
 			Source: `(structure (field (docs bar)))`,
-			Want:   `test.plan:1:25: invalid field docs: expected a string, found identifier`,
+			Want:   `test.plan:1:25: invalid field docs: expected a string or formatting expression, found identifier`,
 		},
 		{
 			Name:   "structure with duplicate field docs",
@@ -845,7 +845,7 @@ func TestInterpreterErrors(t *testing.T) {
 		{
 			Name:   "syscall with invalid docs",
 			Source: `(syscall (docs bar))`,
-			Want:   `test.plan:1:16: invalid syscall docs: expected a string, found identifier`,
+			Want:   `test.plan:1:16: invalid syscall docs: expected a string or formatting expression, found identifier`,
 		},
 		{
 			Name:   "syscall with duplicate docs",
@@ -890,7 +890,7 @@ func TestInterpreterErrors(t *testing.T) {
 		{
 			Name:   "syscall with invalid arg docs",
 			Source: `(syscall (arg1 (docs bar)))`,
-			Want:   `test.plan:1:22: invalid parameter docs: expected a string, found identifier`,
+			Want:   `test.plan:1:22: invalid parameter docs: expected a string or formatting expression, found identifier`,
 		},
 		{
 			Name:   "syscall with duplicate arg docs",
@@ -965,7 +965,7 @@ func TestInterpreterErrors(t *testing.T) {
 		{
 			Name:   "syscall with invalid result docs",
 			Source: `(syscall (result1 (docs bar)))`,
-			Want:   `test.plan:1:25: invalid parameter docs: expected a string, found identifier`,
+			Want:   `test.plan:1:25: invalid parameter docs: expected a string or formatting expression, found identifier`,
 		},
 		{
 			Name:   "syscall with duplicate result docs",

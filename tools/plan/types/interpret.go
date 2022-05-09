@@ -850,15 +850,10 @@ func (i *interpreter) interpretStrings(elts []ast.Expr) ([]string, *positionalEr
 func (i *interpreter) interpretDocs(elts []ast.Expr) (Docs, *positionalError) {
 	docs := make(Docs, 0, len(elts))
 	spaceNeeded := false
-	for _, elt := range elts {
-		str, ok := elt.(*ast.String)
-		if !ok {
-			return nil, i.errorf(elt, "expected a string, found %s", elt)
-		}
-
-		raw, err := strconv.Unquote(str.Text)
+	addPlainText := func(elt *ast.String, cast func(s string) DocsItem) *positionalError {
+		raw, err := strconv.Unquote(elt.Text)
 		if err != nil {
-			return nil, i.errorf(str, "invalid string: %v", err)
+			return i.errorf(elt, "invalid string: %v", err)
 		}
 
 		// We use an empty string to indicate
@@ -866,7 +861,7 @@ func (i *interpreter) interpretDocs(elts []ast.Expr) (Docs, *positionalError) {
 		if raw == "" {
 			docs = append(docs, Newline{})
 			spaceNeeded = false
-			continue
+			return nil
 		}
 
 		// Split into lines if necessary.
@@ -885,8 +880,22 @@ func (i *interpreter) interpretDocs(elts []ast.Expr) (Docs, *positionalError) {
 				docs = append(docs, Text(" "))
 			}
 
-			docs = append(docs, Text(line))
+			docs = append(docs, cast(line))
 			spaceNeeded = true
+		}
+
+		return nil
+	}
+
+	for _, elt := range elts {
+		switch elt := elt.(type) {
+		case *ast.String:
+			err := addPlainText(elt, func(s string) DocsItem { return Text(s) })
+			if err != nil {
+				return nil, err
+			}
+		default:
+			return nil, i.errorf(elt, "expected a string or formatting expression, found %s", elt)
 		}
 	}
 

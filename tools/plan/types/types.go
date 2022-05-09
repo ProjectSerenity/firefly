@@ -95,24 +95,6 @@ func (n Name) SnakeCase() string {
 //
 type Docs []DocsItem
 
-// NewDocs returns the given documentation,
-// split into lines.
-//
-func NewDocs(text []string) Docs {
-	joined := strings.Join(text, "")
-	split := strings.Split(joined, "\n")
-	out := make(Docs, 0, 2*len(split))
-	for i, part := range split {
-		if i > 0 {
-			out = append(out, Newline{})
-		}
-
-		out = append(out, Text(part))
-	}
-
-	return out
-}
-
 // DocsItem represents an item in the set
 // of documentation for a type, syscall,
 // or field.
