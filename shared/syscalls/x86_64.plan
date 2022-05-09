@@ -114,8 +114,9 @@
 	(name syscall diagnostics)
 	(docs
 		"Allows diagnostics of the syscall ABI by userspace. The full set of"
-		"registers received by the kernel is written to the registers structure"
-		"passed to it.")
+		"registers received by the kernel is written to the"
+		(reference registers)
+		"structure passed to it.")
 	(arg1
 		(name registers)
 		(docs "A pointer to the set of registers, which the kernel will populate.")

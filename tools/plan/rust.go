@@ -275,6 +275,10 @@ func rustDocs(indent int, d types.Docs) string {
 			buf.WriteByte('`')
 			buf.WriteString(string(item))
 			buf.WriteByte('`')
+		case types.ReferenceText:
+			buf.WriteString("[`")
+			buf.WriteString(rustString(item.Type))
+			buf.WriteString("`]")
 		case types.Newline:
 			buf.WriteByte('\n')
 			for j := 0; j < indent; j++ {

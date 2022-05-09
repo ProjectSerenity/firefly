@@ -913,6 +913,18 @@ func (i *interpreter) interpretDocs(elts []ast.Expr) (Docs, *positionalError) {
 						return nil, err
 					}
 				}
+			case "reference":
+				typ, err := i.interpretTypeReference(elts)
+				if err != nil {
+					return nil, err.Context("invalid reference formatting expression")
+				}
+
+				if spaceNeeded {
+					docs = append(docs, Text(" "))
+				}
+
+				docs = append(docs, ReferenceText{typ})
+				spaceNeeded = true
 			default:
 				return nil, i.errorf(def, "unrecognised formatting expression kind %q", def.Name)
 			}

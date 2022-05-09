@@ -115,15 +115,27 @@ type (
 	//
 	CodeText string
 
+	// ReferenceText represents plain text that
+	// refers to a type defined in the Plan document.
+	//
+	// This will normally be turned into a link
+	// to the relevant type definition when
+	// rendered in documentation.
+	//
+	ReferenceText struct {
+		Type
+	}
+
 	// Newline represents a line break in the
 	// text of a set of documentation.
 	//
 	Newline struct{}
 )
 
-func (t Text) docsItem()     {}
-func (t CodeText) docsItem() {}
-func (n Newline) docsItem()  {}
+func (t Text) docsItem()          {}
+func (t CodeText) docsItem()      {}
+func (r ReferenceText) docsItem() {}
+func (n Newline) docsItem()       {}
 
 // Arch represents an instruction set
 // architecture, which is used to customise

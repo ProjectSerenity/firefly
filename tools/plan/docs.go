@@ -254,6 +254,10 @@ func htmlDocs(indent int, d types.Docs) template.HTML {
 			buf.WriteString(`<code class="inline-code">`)
 			buf.WriteString(template.HTMLEscapeString(string(item)))
 			buf.WriteString(`</code>`)
+		case types.ReferenceText:
+			buf.WriteString(`<code class="inline-code">`)
+			buf.WriteString(string(htmlString(item.Type)))
+			buf.WriteString(`</code>`)
 		case types.Newline:
 			buf.WriteString("</p>\n")
 			for j := 0; j < indent; j++ {
