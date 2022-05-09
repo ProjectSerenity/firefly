@@ -894,6 +894,28 @@ func (i *interpreter) interpretDocs(elts []ast.Expr) (Docs, *positionalError) {
 			if err != nil {
 				return nil, err
 			}
+		case *ast.List:
+			def, elts, err := i.interpretDefinition(elt)
+			if err != nil {
+				return nil, err.Context("invalid formatting expression")
+			}
+
+			switch def.Name {
+			case "code":
+				for _, elt := range elts {
+					str, ok := elt.(*ast.String)
+					if !ok {
+						return nil, i.errorf(elt, "expected a string, found %s", elt)
+					}
+
+					err = addPlainText(str, func(s string) DocsItem { return CodeText(s) })
+					if err != nil {
+						return nil, err
+					}
+				}
+			default:
+				return nil, i.errorf(def, "unrecognised formatting expression kind %q", def.Name)
+			}
 		default:
 			return nil, i.errorf(elt, "expected a string or formatting expression, found %s", elt)
 		}

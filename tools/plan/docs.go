@@ -250,6 +250,10 @@ func htmlDocs(indent int, d types.Docs) template.HTML {
 		switch item := item.(type) {
 		case types.Text:
 			buf.WriteString(template.HTMLEscapeString(string(item)))
+		case types.CodeText:
+			buf.WriteString(`<code class="inline-code">`)
+			buf.WriteString(template.HTMLEscapeString(string(item)))
+			buf.WriteString(`</code>`)
 		case types.Newline:
 			buf.WriteString("</p>\n")
 			for j := 0; j < indent; j++ {

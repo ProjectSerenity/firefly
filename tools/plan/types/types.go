@@ -109,14 +109,21 @@ type (
 	//
 	Text string
 
+	// CodeText represents plain text in a set
+	// of documentation that should be formatted
+	// as source code.
+	//
+	CodeText string
+
 	// Newline represents a line break in the
 	// text of a set of documentation.
 	//
 	Newline struct{}
 )
 
-func (t Text) docsItem()    {}
-func (n Newline) docsItem() {}
+func (t Text) docsItem()     {}
+func (t CodeText) docsItem() {}
+func (n Newline) docsItem()  {}
 
 // Arch represents an instruction set
 // architecture, which is used to customise

@@ -271,6 +271,10 @@ func rustDocs(indent int, d types.Docs) string {
 		switch item := item.(type) {
 		case types.Text:
 			buf.WriteString(string(item))
+		case types.CodeText:
+			buf.WriteByte('`')
+			buf.WriteString(string(item))
+			buf.WriteByte('`')
 		case types.Newline:
 			buf.WriteByte('\n')
 			for j := 0; j < indent; j++ {

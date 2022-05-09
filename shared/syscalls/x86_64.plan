@@ -15,12 +15,10 @@
 		(docs "The system call was successful and no error occurred."))
 	(value
 		(name bad syscall)
-		(docs
-			"The system call specified does not exist, or has not"
-			"been implemented."))
+		(docs "The system call specified does not exist, or has not been implemented."))
 	(value
 		(name illegal parameter)
-		(docs "An invalid or malformed parameter was provided to " "the system calls.")))
+		(docs "An invalid or malformed parameter was provided to the system calls.")))
 
 
 (structure
@@ -107,8 +105,9 @@
 (syscall
 	(name exit thread)
 	(docs
-		"Exits the current thread, ceasing execution. `exit thread` will not"
-		"return."))
+		"Exits the current thread, ceasing execution."
+		(code "exit thread")
+		"will not return."))
 
 
 (syscall
