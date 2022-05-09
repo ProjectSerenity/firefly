@@ -12,6 +12,7 @@ package types
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/ProjectSerenity/firefly/tools/plan/ast"
 )
@@ -847,14 +848,59 @@ func (i *interpreter) interpretStrings(elts []ast.Expr) ([]string, *positionalEr
 // result of splitting the docs by newlines.
 //
 func (i *interpreter) interpretDocs(elts []ast.Expr) (Docs, *positionalError) {
-	docs, err := i.interpretStrings(elts)
-	if err != nil {
-		return nil, err
+	docs := make(Docs, 0, len(elts))
+	spaceNeeded := false
+	for _, elt := range elts {
+		str, ok := elt.(*ast.String)
+		if !ok {
+			return nil, i.errorf(elt, "expected a string, found %s", elt)
+		}
+
+		raw, err := strconv.Unquote(str.Text)
+		if err != nil {
+			return nil, i.errorf(str, "invalid string: %v", err)
+		}
+
+		// We use an empty string to indicate
+		// a newline.
+		if raw == "" {
+			docs = append(docs, Newline{})
+			spaceNeeded = false
+			continue
+		}
+
+		// Split into lines if necessary.
+		lines := strings.Split(raw, "\n")
+		for i, line := range lines {
+			if i > 0 {
+				docs = append(docs, Newline{})
+				spaceNeeded = false
+			}
+
+			if line == "" {
+				continue
+			}
+
+			if spaceNeeded {
+				docs = append(docs, Text(" "))
+			}
+
+			docs = append(docs, Text(line))
+			spaceNeeded = true
+		}
 	}
 
-	// The docs in a structure are split by newlines,
-	// not just the order they appear in the syntax.
-	return NewDocs(docs), nil
+	// We don't want a trailing newline.
+	for len(docs) > 0 {
+		_, ok := docs[len(docs)-1].(Newline)
+		if !ok {
+			break
+		}
+
+		docs = docs[:len(docs)-1]
+	}
+
+	return docs, nil
 }
 
 // interpretType ensures that the given elements form a

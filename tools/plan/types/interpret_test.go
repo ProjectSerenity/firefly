@@ -34,16 +34,16 @@ func TestInterpreter(t *testing.T) {
 	}{
 		{
 			Name:   "Simple structure",
-			Source: `(structure (name blah) (docs "xyz") (field (name foo) (docs "bar") (type *constant byte)))`,
+			Source: `(structure (name blah) (docs "xyz" "" "abc\n" "") (field (name foo) (docs "foo" "bar") (type *constant byte)))`,
 			Want: &File{
 				Structures: []*Structure{
 					{
 						Name: Name{"blah"},
-						Docs: Docs{Text("xyz")},
+						Docs: Docs{Text("xyz"), Newline{}, Text("abc")},
 						Fields: []*Field{
 							{
 								Name: Name{"foo"},
-								Docs: Docs{Text("bar")},
+								Docs: Docs{Text("foo"), Text(" "), Text("bar")},
 								Type: &Pointer{
 									Underlying: Byte,
 								},
