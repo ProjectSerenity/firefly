@@ -75,6 +75,10 @@ func Interpret(filename string, file *ast.File, arch Arch) (*File, error) {
 		},
 	}
 
+	for name, value := range integers {
+		i.typedefs[name] = value
+	}
+
 	err := i.interpretFile(file)
 	if err != nil {
 		return nil, err
