@@ -55,7 +55,7 @@ func TestInterpreter(t *testing.T) {
 		},
 		{
 			Name:   "Structure containing a syscall reference",
-			Source: `(structure (name blah) (docs "xyz") (field (name foo) (docs "bar") (type syscalls)))`,
+			Source: `(structure (name blah) (docs "xyz") (field (name foo) (docs "example" (reference syscalls) "ref") (type syscalls)))`,
 			Want: &File{
 				Structures: []*Structure{
 					{
@@ -64,7 +64,21 @@ func TestInterpreter(t *testing.T) {
 						Fields: []*Field{
 							{
 								Name: Name{"foo"},
-								Docs: Docs{Text("bar")},
+								Docs: Docs{
+									Text("example"),
+									Text(" "),
+									ReferenceText{
+										&Reference{
+											Name: Name{"syscalls"},
+											Underlying: &Enumeration{
+												Name: Name{"syscalls"},
+												Type: Uint64,
+											},
+										},
+									},
+									Text(" "),
+									Text("ref"),
+								},
 								Type: &Reference{
 									Name: Name{"syscalls"},
 									Underlying: &Enumeration{
@@ -263,7 +277,7 @@ func TestInterpreter(t *testing.T) {
 			             (docs "xyz")
 			             (field
 			                 (name foo)
-			                 (docs "bar")
+			                 (docs "bar" (code "foo") "baz")
 			                 (type *constant byte))
 			             (field
 			                 (name bar)
@@ -277,7 +291,13 @@ func TestInterpreter(t *testing.T) {
 						Fields: []*Field{
 							{
 								Name: Name{"foo"},
-								Docs: Docs{Text("bar")},
+								Docs: Docs{
+									Text("bar"),
+									Text(" "),
+									CodeText("foo"),
+									Text(" "),
+									Text("baz"),
+								},
 								Type: &Pointer{
 									Underlying: Byte,
 								},
@@ -295,7 +315,7 @@ func TestInterpreter(t *testing.T) {
 		{
 			Name: "Sequential type reference",
 			Source: `(structure (name blah) (docs "xyz") (field (name foo) (docs "bar") (type *constant byte)))
-			         (structure (name two)  (docs "abc") (field (name first) (docs "x") (type *mutable blah)))`,
+			         (structure (name two)  (docs "abc") (field (name first) (docs (reference blah)) (type *mutable blah)))`,
 			Want: &File{
 				Structures: []*Structure{
 					{
@@ -317,7 +337,26 @@ func TestInterpreter(t *testing.T) {
 						Fields: []*Field{
 							{
 								Name: Name{"first"},
-								Docs: Docs{Text("x")},
+								Docs: Docs{
+									ReferenceText{
+										&Reference{
+											Name: Name{"blah"},
+											Underlying: &Structure{
+												Name: Name{"blah"},
+												Docs: Docs{Text("xyz")},
+												Fields: []*Field{
+													{
+														Name: Name{"foo"},
+														Docs: Docs{Text("bar")},
+														Type: &Pointer{
+															Underlying: Byte,
+														},
+													},
+												},
+											},
+										},
+									},
+								},
 								Type: &Pointer{
 									Mutable: true,
 									Underlying: &Reference{
@@ -532,6 +571,26 @@ func TestInterpreterErrors(t *testing.T) {
 			Name:   "enumeration with invalid docs",
 			Source: `(enumeration (docs bar))`,
 			Want:   `test.plan:1:20: invalid enumeration docs: expected a string or formatting expression, found identifier`,
+		},
+		{
+			Name:   "enumeration with invalid docs formatting expression",
+			Source: `(enumeration (docs (bar)))`,
+			Want:   `test.plan:1:21: invalid enumeration docs: invalid formatting expression: definition must have at least one field, found none`,
+		},
+		{
+			Name:   "enumeration with unsupported docs formatting expression",
+			Source: `(enumeration (docs (bar foo)))`,
+			Want:   `test.plan:1:21: invalid enumeration docs: unrecognised formatting expression kind "bar"`,
+		},
+		{
+			Name:   "enumeration with invalid docs code formatting expression",
+			Source: `(enumeration (docs (code foo)))`,
+			Want:   `test.plan:1:26: invalid enumeration docs: invalid formatting expression: expected a string, found identifier`,
+		},
+		{
+			Name:   "enumeration with invalid docs reference formatting expression",
+			Source: `(enumeration (docs (reference "baz") "bar"))`,
+			Want:   `test.plan:1:31: invalid enumeration docs: invalid reference formatting expression: invalid type reference: expected an identifier, found string`,
 		},
 		{
 			Name:   "enumeration with duplicate docs",

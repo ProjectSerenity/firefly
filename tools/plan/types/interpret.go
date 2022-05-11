@@ -821,28 +821,6 @@ func (i *interpreter) interpretName(elts []ast.Expr) (Name, *positionalError) {
 	return out, nil
 }
 
-// interpretStrings ensures that the given elements are
-// all strings, returning them.
-//
-func (i *interpreter) interpretStrings(elts []ast.Expr) ([]string, *positionalError) {
-	out := make([]string, len(elts))
-	for j, elt := range elts {
-		str, ok := elt.(*ast.String)
-		if !ok {
-			return nil, i.errorf(elt, "expected a string, found %s", elt)
-		}
-
-		raw, err := strconv.Unquote(str.Text)
-		if err != nil {
-			return nil, i.errorf(str, "invalid string: %v", err)
-		}
-
-		out[j] = raw
-	}
-
-	return out, nil
-}
-
 // interpretDocs ensures that the given elements are all
 // strings, returning them. The returned strings are the
 // result of splitting the docs by newlines.
@@ -905,7 +883,7 @@ func (i *interpreter) interpretDocs(elts []ast.Expr) (Docs, *positionalError) {
 				for _, elt := range elts {
 					str, ok := elt.(*ast.String)
 					if !ok {
-						return nil, i.errorf(elt, "expected a string, found %s", elt)
+						return nil, i.errorf(elt, "invalid formatting expression: expected a string, found %s", elt)
 					}
 
 					err = addPlainText(str, func(s string) DocsItem { return CodeText(s) })
