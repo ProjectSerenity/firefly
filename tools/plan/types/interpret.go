@@ -915,14 +915,20 @@ func (i *interpreter) interpretDocs(elts []ast.Expr) (Docs, *positionalError) {
 		}
 	}
 
-	// We don't want a trailing newline.
+	// We don't want a trailing newline or auto-space.
 	for len(docs) > 0 {
-		_, ok := docs[len(docs)-1].(Newline)
-		if !ok {
-			break
+		switch item := docs[len(docs)-1].(type) {
+		case Newline:
+			docs = docs[:len(docs)-1]
+			continue
+		case Text:
+			if item == " " {
+				docs = docs[:len(docs)-1]
+				continue
+			}
 		}
 
-		docs = docs[:len(docs)-1]
+		break
 	}
 
 	return docs, nil
