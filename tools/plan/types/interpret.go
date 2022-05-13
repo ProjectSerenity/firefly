@@ -234,6 +234,7 @@ func (i *interpreter) interpretEnumeration(list *ast.List) (*Enumeration, *posit
 		Node: list,
 	}
 
+	values := make(map[string]*Value)
 	for _, part := range parts {
 		def, elts, err := i.interpretDefinition(part)
 		if err != nil {
@@ -286,12 +287,12 @@ func (i *interpreter) interpretEnumeration(list *ast.List) (*Enumeration, *posit
 			}
 
 			// Make sure the value isn't a duplicate.
-			for _, other := range enumeration.Values {
-				if other.Name.Spaced() == value.Name.Spaced() {
-					return nil, i.errorf(part, "value %q already defined at %s", value.Name.Spaced(), i.pos(other.Node))
-				}
+			name := value.Name.Spaced()
+			if other, ok := values[name]; ok {
+				return nil, i.errorf(part, "value %q already defined at %s", name, i.pos(other.Node))
 			}
 
+			values[name] = value
 			enumeration.Values = append(enumeration.Values, value)
 		default:
 			return nil, i.errorf(def, "unrecognised enumeration definition kind %q", def.Name)
