@@ -537,7 +537,7 @@ func (s *Syscall) Pos() token.Position { return s.Node.Pos() }
 func (s *Syscall) End() token.Position { return s.Node.End() }
 
 func (s *Syscall) String() string {
-	return fmt.Sprintf("syscall %s: (%d -> %d)", s.Name.Spaced(), len(s.Args), len(s.Results))
+	return fmt.Sprintf("syscall %s", s.Name.Spaced())
 }
 
 // SyscallReference can be used in documentation
