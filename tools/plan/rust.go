@@ -320,19 +320,6 @@ func rustConstructor(variable string, varType types.Type) string {
 	}
 }
 
-func rustParamNames(p types.Parameters) string {
-	if len(p) == 0 {
-		return ""
-	}
-
-	names := make([]string, len(p))
-	for i, param := range p {
-		names[i] = param.Name.SnakeCase()
-	}
-
-	return strings.Join(names, ", ")
-}
-
 func rustParamNamesAndTypes(p types.Parameters) string {
 	if len(p) == 0 {
 		return ""
@@ -371,8 +358,6 @@ func rustFieldDefinition(f *types.Field) string {
 
 func rustSyscallSignature(s *types.Syscall) string {
 	switch len(s.Results) {
-	case 0:
-		return fmt.Sprintf("%s(%s)", s.Name.SnakeCase(), rustParamNamesAndTypes(s.Args))
 	case 1:
 		return fmt.Sprintf("%s(%s) -> %s", s.Name.SnakeCase(), rustParamNamesAndTypes(s.Args), rustString(s.Results[0].Type))
 	case 2:
@@ -385,12 +370,6 @@ func rustSyscallSignature(s *types.Syscall) string {
 func rustSyscallTraitSignature(s *types.Syscall) string {
 	reg := "_registers: *mut SavedRegisters"
 	switch len(s.Results) {
-	case 0:
-		if len(s.Args) == 0 {
-			return fmt.Sprintf("%s(%s)", s.Name.SnakeCase(), reg)
-		} else {
-			return fmt.Sprintf("%s(%s, %s)", s.Name.SnakeCase(), reg, rustParamNamesAndTypes(s.Args))
-		}
 	case 1:
 		if len(s.Args) == 0 {
 			return fmt.Sprintf("%s(%s) -> %s", s.Name.SnakeCase(), reg, rustString(s.Results[0].Type))
@@ -463,13 +442,7 @@ func rustCallSyscallImplementation(s *types.Syscall) string {
 		buf.WriteString(indent)
 	}
 
-	switch len(s.Results) {
-	case 0:
-	case 1, 2:
-		buf.WriteString("let result = ")
-	}
-
-	buf.WriteString("<FireflyABI as SyscallABI>::")
+	buf.WriteString("let result = <FireflyABI as SyscallABI>::")
 	buf.WriteString(s.Name.SnakeCase())
 	buf.WriteString("(registers")
 	for i := range s.Args {
@@ -480,8 +453,6 @@ func rustCallSyscallImplementation(s *types.Syscall) string {
 	buf.WriteString(indent)
 
 	switch len(s.Results) {
-	case 0:
-		buf.WriteString("SyscallResults { value: 0, error: Error::NoError.as_u64() }")
 	case 1:
 		resultType := s.Results[0].Type
 		if ref, ok := resultType.(*types.Reference); ok {
@@ -489,11 +460,8 @@ func rustCallSyscallImplementation(s *types.Syscall) string {
 		}
 
 		noError := "error: Error::NoError.as_u64()"
-		if enum, ok := resultType.(*types.Enumeration); ok {
-			fmt.Fprintf(&buf, "SyscallResults { value: result.as_%s()%s, %s }", rustString(enum.Type), toU64(enum.Type), noError)
-		} else {
-			fmt.Fprintf(&buf, "SyscallResults { value: result%s, %s }", toU64(resultType), noError)
-		}
+		enum := resultType.(*types.Enumeration)
+		fmt.Fprintf(&buf, "SyscallResults { value: result.as_%s()%s, %s }", rustString(enum.Type), toU64(enum.Type), noError)
 	case 2:
 		buf.WriteString("match result {\n")
 		buf.WriteString(indent)
@@ -521,14 +489,8 @@ func rustCallSyscallImplementation(s *types.Syscall) string {
 		buf.WriteString(indent)
 		buf.WriteString("    Err(error) => ")
 		noValue := "value: 0"
-		if enum, ok := resultType.(*types.Enumeration); ok {
-			fmt.Fprintf(&buf, "SyscallResults { %s, error: error.as_%s()%s },\n", noValue, rustString(enum.Type), toU64(enum.Type))
-		} else if integer, ok := resultType.(types.Integer); ok && integer == types.Uint64 {
-			fmt.Fprintf(&buf, "SyscallResults { %s, error },\n", noValue)
-		} else {
-			fmt.Fprintf(&buf, "SyscallResults { %s, error: error%s },\n", noValue, toU64(resultType))
-		}
-
+		enum := resultType.(*types.Enumeration)
+		fmt.Fprintf(&buf, "SyscallResults { %s, error: error.as_%s()%s },\n", noValue, rustString(enum.Type), toU64(enum.Type))
 		buf.WriteString(indent)
 		buf.WriteByte('}')
 	}
@@ -538,8 +500,6 @@ func rustCallSyscallImplementation(s *types.Syscall) string {
 
 func rustSyscallRecvResults(s *types.Syscall) string {
 	switch len(s.Results) {
-	case 0:
-		return "_"
 	case 1:
 		return "(result1, _)"
 	case 2:

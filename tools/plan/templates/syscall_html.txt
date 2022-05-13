@@ -42,34 +42,32 @@
 				</tbody>
 			</table>
 		{{ end }}
-		{{ if .Results }}
-			<h2>Results</h2>
-			<table class="field-table">
-				<thead>
-					<tr>
-						<th>#</th>
-						<th>Name</th>
-						<th>Type</th>
-						<th>Description</th>
-					</tr>
-				</thead>
-				<tbody>
-				{{ range $i, $result := .Results }}
-					<tr>
-						<td>{{ addOne $i }}</td>
-						<td>
-							<code class="inline-code">{{ $result.Name.Spaced}}</code>
-						</td>
-						<td>
-							<code class="inline-code">{{ toString $result.Type }}</code>
-						</td>
-						<td>
-							{{ toDocs 5 $result.Docs }}
-						</td>
-					</tr>
-				{{ end }}
-				</tbody>
-			</table>
-		{{ end }}
+		<h2>Results</h2>
+		<table class="field-table">
+			<thead>
+				<tr>
+					<th>#</th>
+					<th>Name</th>
+					<th>Type</th>
+					<th>Description</th>
+				</tr>
+			</thead>
+			<tbody>
+			{{ range $i, $result := .Results }}
+				<tr>
+					<td>{{ addOne $i }}</td>
+					<td>
+						<code class="inline-code">{{ $result.Name.Spaced}}</code>
+					</td>
+					<td>
+						<code class="inline-code">{{ toString $result.Type }}</code>
+					</td>
+					<td>
+						{{ toDocs 5 $result.Docs }}
+					</td>
+				</tr>
+			{{ end }}
+			</tbody>
+		</table>
 	</body>
 </html>

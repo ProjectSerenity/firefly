@@ -1,8 +1,0 @@
-/// A simple function that takes no arguments and
-/// returns no results.
-///
-#[inline]
-pub fn simple_syscall(the_first: u16, second: MessageType) {
-    let sys = Syscalls::SimpleSyscall.as_u64() as usize;
-    let _ = unsafe { syscall2(sys, the_first as usize, second.as_i64() as usize) };
-}

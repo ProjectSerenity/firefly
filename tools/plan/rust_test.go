@@ -424,67 +424,6 @@ func TestDefineRust(t *testing.T) {
 			},
 		},
 		{
-			Name: "simple syscall with no args or results",
-			Want: "syscall_rs_no_args_or_results",
-			Tmpl: "syscall_rs.txt",
-			Type: &types.Syscall{
-				Name: types.Name{"simple", "syscall"},
-				Docs: types.Docs{
-					types.Text("A simple function that takes no arguments and"),
-					types.Newline{},
-					types.Text("returns no results."),
-				},
-			},
-		},
-		{
-			Name: "simple syscall with one arg and no results",
-			Want: "syscall_rs_one_arg_no_results",
-			Tmpl: "syscall_rs.txt",
-			Type: &types.Syscall{
-				Name: types.Name{"simple", "syscall"},
-				Docs: types.Docs{
-					types.Text("A simple function that takes no arguments and"),
-					types.Newline{},
-					types.Text("returns no results."),
-				},
-				Args: []*types.Parameter{
-					{
-						Name: types.Name{"the", "first"},
-						Type: types.Uint16,
-					},
-				},
-			},
-		},
-		{
-			Name: "simple syscall with two args and no results",
-			Want: "syscall_rs_two_args_no_results",
-			Tmpl: "syscall_rs.txt",
-			Type: &types.Syscall{
-				Name: types.Name{"simple", "syscall"},
-				Docs: types.Docs{
-					types.Text("A simple function that takes no arguments and"),
-					types.Newline{},
-					types.Text("returns no results."),
-				},
-				Args: []*types.Parameter{
-					{
-						Name: types.Name{"the", "first"},
-						Type: types.Uint16,
-					},
-					{
-						Name: types.Name{"second"},
-						Type: &types.Reference{
-							Name: types.Name{"message", "type"},
-							Underlying: &types.Enumeration{
-								Name: types.Name{"message", "type"},
-								Type: types.Sint64,
-							},
-						},
-					},
-				},
-			},
-		},
-		{
 			Name: "simple syscall with no args and one result",
 			Want: "syscall_rs_no_args_one_result",
 			Tmpl: "syscall_rs.txt",
