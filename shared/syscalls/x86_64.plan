@@ -106,8 +106,14 @@
 	(name exit thread)
 	(docs
 		"Exits the current thread, ceasing execution."
-		(code "exit thread")
-		"will not return."))
+		""
+		"Unless it has been disabled,"
+		(reference exit thread)
+		"will not return.")
+	(result1
+		(name error)
+		(docs "An error if" (reference exit thread) "has been disabled.")
+		(type error)))
 
 
 (syscall

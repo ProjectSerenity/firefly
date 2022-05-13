@@ -252,6 +252,14 @@ pub enum Error {
     /// No error occurred.
     ///
     NoError,
+
+    /// The specified syscall does not exist.
+    ///
+    BadSyscall,
+
+    /// A parameter to the syscall is an illegal value.
+    ///
+    IllegalParameter,
 }
 
 impl Error {
@@ -262,6 +270,8 @@ impl Error {
     pub const fn from_u64(val: u64) -> Option<Self> {
         match val {
             0_u64 => Some(Error::NoError),
+            1_u64 => Some(Error::BadSyscall),
+            2_u64 => Some(Error::IllegalParameter),
             _ => None,
         }
     }
@@ -273,6 +283,8 @@ impl Error {
     pub const fn as_u64(&self) -> u64 {
         match self {
             Error::NoError => 0_u64,
+            Error::BadSyscall => 1_u64,
+            Error::IllegalParameter => 2_u64,
         }
     }
 }

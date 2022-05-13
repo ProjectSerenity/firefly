@@ -17,6 +17,18 @@ import (
 	"github.com/ProjectSerenity/firefly/tools/plan/ast"
 )
 
+// requiredErrorValues is the set of values that
+// any error enumeration must include. The easiest,
+// but not only, way to do this is to define them
+// for a base error enumeration, then embed that in
+// more complex error enumerations.
+//
+var requiredErrorValues = []Name{
+	{"no", "error"},
+	{"bad", "syscall"},
+	{"illegal", "parameter"},
+}
+
 // positionalError represents an error that has
 // occurred at a specific location within a Plan
 // file.
@@ -148,6 +160,63 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 		}
 	}
 
+	// Make sure that each enumeration with a
+	// name ending in "error" has all the values
+	// we expect from an error enumeration.
+	errorEnumerations := make(map[string]string)
+	var isErrorEnumeration func(enum *Enumeration) (isError bool, missing string)
+	isErrorEnumeration = func(enum *Enumeration) (isError bool, missing string) {
+		name := enum.Name.Spaced()
+
+		// Check if we already know the answer.
+		missing, ok := errorEnumerations[name]
+		if ok {
+			return missing == "", missing
+		}
+
+		// Check if we already know for any
+		// embedded enumerations.
+		for _, embedded := range enum.Embeds {
+			if isError, _ := isErrorEnumeration(embedded); isError {
+				return true, ""
+			}
+		}
+
+		// Check whether we have all of the values
+		// we require.
+		for _, want := range requiredErrorValues {
+			ok = false
+			wantName := want.Spaced()
+			for _, got := range enum.Values {
+				if got.Name.Spaced() == wantName {
+					ok = true
+					break
+				}
+			}
+
+			if !ok {
+				errorEnumerations[name] = wantName
+				return false, wantName
+			}
+		}
+
+		errorEnumerations[name] = ""
+		return true, ""
+	}
+
+	for _, enumeration := range i.out.Enumerations {
+		// Ignore non-errors.
+		name := enumeration.Name
+		if name[len(name)-1] != "error" {
+			continue
+		}
+
+		isError, missing := isErrorEnumeration(enumeration)
+		if !isError {
+			return i.errorf(enumeration.Node, "enumeration %q is not an error enumeration: missing value %q", name.Spaced(), missing)
+		}
+	}
+
 	// Check that each structure's fields are
 	// complete and properly aligned.
 	for _, structure := range i.out.Structures {
@@ -212,6 +281,29 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 			default:
 				name := result.Name.Spaced()
 				return i.errorf(result.Node, "result%d %q has invalid type: %s cannot be stored in a register", j+1, name, resultType)
+			}
+		}
+
+		// Any syscall could fail, such as if it
+		// has been disabled. As a result, its
+		// final result must be an error enumeration.
+		if len(syscall.Results) == 0 {
+			return i.errorf(syscall.Node, "cannot handle errors in %s: syscall has no results", syscall)
+		} else {
+			result := syscall.Results[len(syscall.Results)-1]
+			resultType := result.Type
+			if ref, ok := resultType.(*Reference); ok {
+				resultType = ref.Underlying
+			}
+
+			enum, ok := resultType.(*Enumeration)
+			if !ok {
+				return i.errorf(result.Node, "cannot handle errors in %s: expected final result to be enumeration, found %s", syscall, resultType)
+			}
+
+			isError, missing := isErrorEnumeration(enum)
+			if !isError {
+				return i.errorf(result.Node, "cannot handle errors in %s: %s is not an error enumeration: missing value %q", syscall, enum, missing)
 			}
 		}
 	}

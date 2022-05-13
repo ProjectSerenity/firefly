@@ -45,12 +45,16 @@ func TestFormatFile(t *testing.T) {
 (structure (field (docs "foo") (type byte)(name the first) ) (docs "quite a long string" "another string")(name asdf baz             example)  (field (docs "Extra padding.") (name spacer) (padding    3)))
 
 (enumeration (type uint8) (value (name bob) (docs "bob")) (name names) (docs "set of names") (value (name dave) (docs "dave")))
+(enumeration (name read error) (docs "Failure to read data") (type sint8)
+	(value (name bad syscall) (docs "this syscall does not exist"))
+	(value (name illegal parameter) (docs "The police are getting involved."))
+	(value (name no error) (docs "All is well.")))
 
 ; Another comment.
 
 (syscall (name read) (docs "read things")
 (arg2 (name size) (docs "length") (type uint64))
-(result2 (name error) (docs "what went wrong") (type uint64))
+(result2 (name error) (docs "what went wrong") (type read error))
 (result1 (name name) (docs "who dun it") (type names))
 (arg1 (name ptr) (type *mutable byte) (docs "address")))`,
 			Want: `; Example
@@ -82,6 +86,21 @@ func TestFormatFile(t *testing.T) {
 		(docs "dave")))
 
 
+(enumeration
+	(name read error)
+	(docs "Failure to read data")
+	(type sint8)
+	(value
+		(name bad syscall)
+		(docs "this syscall does not exist"))
+	(value
+		(name illegal parameter)
+		(docs "The police are getting involved."))
+	(value
+		(name no error)
+		(docs "All is well.")))
+
+
 ; Another comment.
 
 
@@ -103,7 +122,7 @@ func TestFormatFile(t *testing.T) {
 	(result2
 		(name error)
 		(docs "what went wrong")
-		(type uint64)))`,
+		(type read error)))`,
 		},
 	}
 

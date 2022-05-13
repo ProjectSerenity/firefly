@@ -105,7 +105,13 @@ func TestRustUserspace(t *testing.T) {
 			           (type uint64)
 			           (value
 			               (name no error)
-			               (docs "No error occurred.")))
+			               (docs "No error occurred."))
+			           (value
+			               (name bad syscall)
+			               (docs "The specified syscall does not exist."))
+			           (value
+			               (name illegal parameter)
+			               (docs "A parameter to the syscall is an illegal value.")))
 
 			       (syscall
 			           (name deny syscalls)
@@ -196,7 +202,19 @@ func TestRustKernelspace(t *testing.T) {
 			           (type uint64)
 			           (value
 			               (name no error)
-			               (docs "No error occurred.")))
+			               (docs "No error occurred."))
+			           (value
+			               (name bad syscall)
+			               (docs "The specified syscall does not exist."))
+			           (value
+			               (name illegal parameter)
+			               (docs "A parameter to the syscall is an illegal value.")))
+
+			       (enumeration
+			           (name io error)
+			           (docs "An I/O error.")
+			           (type uint64)
+			           (embed error))
 
 			       (syscall
 			           (name deny syscalls)
@@ -212,7 +230,11 @@ func TestRustKernelspace(t *testing.T) {
 
 			       (syscall
 			           (name exit)
-			           (docs "Exits everything immediately."))
+			           (docs "Exits everything immediately.")
+			           (result1
+			               (name error)
+			               (docs "Any error encountered while trying to exit.")
+			               (type error)))
 
 			       (syscall
 			           (name get process id)
@@ -220,7 +242,11 @@ func TestRustKernelspace(t *testing.T) {
 			           (result1
 			               (name process id)
 			               (docs "The process identifier")
-			               (type uint32)))
+			               (type uint32))
+			           (result2
+			               (name error)
+			               (docs "Any error encountered.")
+			               (type error)))
 
 			       (syscall
 			           (name three args two results)
@@ -264,19 +290,7 @@ func TestRustKernelspace(t *testing.T) {
 			           (result2
 			               (name size)
 			               (docs "")
-			               (type uint32)))
-
-			       (syscall
-			           (name colour or size)
-			           (docs "Returns a colour or a size.")
-			           (result1
-			               (name colour)
-			               (docs "")
-			               (type colour))
-			           (result2
-			               (name size)
-			               (docs "")
-			               (type uint64)))`,
+			               (type io error)))`,
 		},
 	}
 

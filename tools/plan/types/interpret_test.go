@@ -309,8 +309,86 @@ func TestInterpreter(t *testing.T) {
 			             (result1
 			                 (name bar)
 			                 (docs "x")
-			                 (type uint64)))`,
+			                 (type other error)))
+			         (enumeration
+			             (name error)
+			             (docs "")
+			             (type uint8)
+			             (value (name no error) (docs ""))
+			             (value (name bad syscall) (docs ""))
+			             (value (name illegal parameter) (docs "")))
+			         (enumeration
+			             (name other error)
+			             (docs "")
+			             (type uint8)
+			             (embed error)
+			             (value (name other) (docs "")))`,
 			Want: &File{
+				Enumerations: []*Enumeration{
+					{
+						Name: Name{"error"},
+						Docs: Docs{},
+						Type: Uint8,
+						Values: []*Value{
+							{
+								Name: Name{"no", "error"},
+								Docs: Docs{},
+							},
+							{
+								Name: Name{"bad", "syscall"},
+								Docs: Docs{},
+							},
+							{
+								Name: Name{"illegal", "parameter"},
+								Docs: Docs{},
+							},
+						},
+					},
+					{
+						Name: Name{"other", "error"},
+						Docs: Docs{},
+						Type: Uint8,
+						Embeds: []*Enumeration{
+							{
+								Name: Name{"error"},
+								Docs: Docs{},
+								Type: Uint8,
+								Values: []*Value{
+									{
+										Name: Name{"no", "error"},
+										Docs: Docs{},
+									},
+									{
+										Name: Name{"bad", "syscall"},
+										Docs: Docs{},
+									},
+									{
+										Name: Name{"illegal", "parameter"},
+										Docs: Docs{},
+									},
+								},
+							},
+						},
+						Values: []*Value{
+							{
+								Name: Name{"no", "error"},
+								Docs: Docs{},
+							},
+							{
+								Name: Name{"bad", "syscall"},
+								Docs: Docs{},
+							},
+							{
+								Name: Name{"illegal", "parameter"},
+								Docs: Docs{},
+							},
+							{
+								Name: Name{"other"},
+								Docs: Docs{},
+							},
+						},
+					},
+				},
 				Syscalls: []*Syscall{
 					{
 						Name: Name{"blah"},
@@ -328,7 +406,53 @@ func TestInterpreter(t *testing.T) {
 							{
 								Name: Name{"bar"},
 								Docs: Docs{Text("x")},
-								Type: Uint64,
+								Type: &Reference{
+									Name: Name{"other", "error"},
+									Underlying: &Enumeration{
+										Name: Name{"other", "error"},
+										Docs: Docs{},
+										Type: Uint8,
+										Embeds: []*Enumeration{
+											{
+												Name: Name{"error"},
+												Docs: Docs{},
+												Type: Uint8,
+												Values: []*Value{
+													{
+														Name: Name{"no", "error"},
+														Docs: Docs{},
+													},
+													{
+														Name: Name{"bad", "syscall"},
+														Docs: Docs{},
+													},
+													{
+														Name: Name{"illegal", "parameter"},
+														Docs: Docs{},
+													},
+												},
+											},
+										},
+										Values: []*Value{
+											{
+												Name: Name{"no", "error"},
+												Docs: Docs{},
+											},
+											{
+												Name: Name{"bad", "syscall"},
+												Docs: Docs{},
+											},
+											{
+												Name: Name{"illegal", "parameter"},
+												Docs: Docs{},
+											},
+											{
+												Name: Name{"other"},
+												Docs: Docs{},
+											},
+										},
+									},
+								},
 							},
 						},
 					},
@@ -451,8 +575,12 @@ func TestInterpreter(t *testing.T) {
 			Name: "Nonsequential type reference",
 			Source: `(structure (name two)  (docs "abc") (field (name first) (docs "x") (type *mutable blah)))
 			         (structure (name blah) (docs (reference func)) (field (name foo) (docs "bar") (type *constant baz)))
-			         (syscall (name func) (docs "xyz"))
-			         (enumeration (name baz) (docs "foo") (type byte) (value (name one) (docs "1")))`,
+			         (syscall (name func) (docs "xyz") (result1 (name error) (docs "") (type error)))
+			         (enumeration (name baz) (docs "foo") (type byte) (value (name one) (docs "1")))
+			         (enumeration (name error) (docs "") (type uint8)
+			             (value (name no error) (docs ""))
+			             (value (name bad syscall) (docs ""))
+			             (value (name illegal parameter) (docs "")))`,
 			Want: &File{
 				Enumerations: []*Enumeration{
 					{
@@ -463,6 +591,25 @@ func TestInterpreter(t *testing.T) {
 							{
 								Name: Name{"one"},
 								Docs: Docs{Text("1")},
+							},
+						},
+					},
+					{
+						Name: Name{"error"},
+						Docs: Docs{},
+						Type: Uint8,
+						Values: []*Value{
+							{
+								Name: Name{"no", "error"},
+								Docs: Docs{},
+							},
+							{
+								Name: Name{"bad", "syscall"},
+								Docs: Docs{},
+							},
+							{
+								Name: Name{"illegal", "parameter"},
+								Docs: Docs{},
 							},
 						},
 					},
@@ -557,10 +704,37 @@ func TestInterpreter(t *testing.T) {
 				},
 				Syscalls: []*Syscall{
 					{
-						Name:    Name{"func"},
-						Docs:    Docs{Text("xyz")},
-						Args:    []*Parameter{},
-						Results: []*Parameter{},
+						Name: Name{"func"},
+						Docs: Docs{Text("xyz")},
+						Args: []*Parameter{},
+						Results: []*Parameter{
+							{
+								Name: Name{"error"},
+								Docs: Docs{},
+								Type: &Reference{
+									Name: Name{"error"},
+									Underlying: &Enumeration{
+										Name: Name{"error"},
+										Docs: Docs{},
+										Type: Uint8,
+										Values: []*Value{
+											{
+												Name: Name{"no", "error"},
+												Docs: Docs{},
+											},
+											{
+												Name: Name{"bad", "syscall"},
+												Docs: Docs{},
+											},
+											{
+												Name: Name{"illegal", "parameter"},
+												Docs: Docs{},
+											},
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -1255,6 +1429,11 @@ func TestInterpreterErrors(t *testing.T) {
 			Want:   `test.plan:1:84: invalid field type: invalid type reference: expected an identifier, found string`,
 		},
 		{
+			Name:   "error enumeration with missing values",
+			Source: `(enumeration (name example error) (docs "abc") (type uint8) (value (name foo) (docs "xyz")))`,
+			Want:   `test.plan:1:1: enumeration "example error" is not an error enumeration: missing value "no error"`,
+		},
+		{
 			Name:   "structure with only padding",
 			Source: `(structure (name blah) (docs "xyz") (field (name foo) (docs "bar") (padding 1)))`,
 			Want:   `test.plan:1:1: structure has no non-padding fields`,
@@ -1290,6 +1469,11 @@ func TestInterpreterErrors(t *testing.T) {
 			Source: `(structure (name blah) (docs "xyz") (field (name foo) (docs "bar") (type byte)))
 			         (syscall (name baz) (docs "abc") (result1 (name foo) (docs "bar") (type blah)))`,
 			Want: `test.plan:2:46: result1 "foo" has invalid type: structure blah cannot be stored in a register`,
+		},
+		{
+			Name:   "syscall with args but no results",
+			Source: `(syscall (name baz) (docs "abc") (arg1 (name foo) (docs "bar") (type byte)))`,
+			Want:   `test.plan:1:1: cannot handle errors in syscall baz: syscall has no results`,
 		},
 	}
 
