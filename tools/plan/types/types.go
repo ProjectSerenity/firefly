@@ -496,6 +496,20 @@ func (s *Syscall) String() string {
 	return fmt.Sprintf("syscall %s: (%d -> %d)", s.Name.Spaced(), len(s.Args), len(s.Results))
 }
 
+// SyscallReference can be used in documentation
+// references to link to a system call and
+// is used internally to prevent syscalls
+// and types clashing in the name space.
+//
+type SyscallReference struct {
+	Name Name
+}
+
+var _ Type = (*SyscallReference)(nil)
+
+func (r *SyscallReference) Size(a Arch) int { return 0 }
+func (r *SyscallReference) String() string  { return fmt.Sprintf("syscall %s", r.Name.Spaced()) }
+
 // File represents a parsed syscalls plan.
 //
 type File struct {

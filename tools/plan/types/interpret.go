@@ -530,11 +530,17 @@ func (i *interpreter) interpretSyscall(list *ast.List) (*Syscall, *positionalErr
 
 	// Track the syscall definition.
 	name := syscall.Name.Spaced()
-	for _, other := range i.out.Syscalls {
-		if other.Name.Spaced() == name {
-			return nil, i.errorf(syscall.Node, "syscall %q is already defined at %s", name, i.pos(other.Node))
-		}
+	if i.typedefs[name] != nil {
+		return nil, i.errorf(syscall.Node, "cannot define syscall: type %q is already defined", name)
 	}
+
+	// Complete any references to the type.
+	sysref := &SyscallReference{Name: syscall.Name}
+	i.typedefs[name] = sysref
+	for _, ref := range i.typeuses[name] {
+		ref.Underlying = sysref
+	}
+	i.typeuses[name] = nil
 
 	return syscall, nil
 }

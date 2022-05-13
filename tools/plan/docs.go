@@ -238,6 +238,8 @@ func htmlString(t types.Type) template.HTML {
 		return template.HTML(fmt.Sprintf(`<a href="../enumerations/%s.html" class="enumeration">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
 	case *types.Structure:
 		return template.HTML(fmt.Sprintf(`<a href="../structures/%s.html" class="structure">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
+	case *types.SyscallReference:
+		return template.HTML(fmt.Sprintf(`<a href="../syscalls/%s.html" class="syscall">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
 	default:
 		panic(fmt.Sprintf("htmlString(%T): unexpected type", t))
 	}

@@ -385,7 +385,8 @@ func TestInterpreter(t *testing.T) {
 		{
 			Name: "Nonsequential type reference",
 			Source: `(structure (name two)  (docs "abc") (field (name first) (docs "x") (type *mutable blah)))
-			         (structure (name blah) (docs "xyz") (field (name foo) (docs "bar") (type *constant baz)))
+			         (structure (name blah) (docs (reference func)) (field (name foo) (docs "bar") (type *constant baz)))
+			         (syscall (name func) (docs "xyz"))
 			         (enumeration (name baz) (docs "foo") (type byte) (value (name one) (docs "1")))`,
 			Want: &File{
 				Enumerations: []*Enumeration{
@@ -415,7 +416,16 @@ func TestInterpreter(t *testing.T) {
 										Name: Name{"blah"},
 										Underlying: &Structure{
 											Name: Name{"blah"},
-											Docs: Docs{Text("xyz")},
+											Docs: Docs{
+												ReferenceText{
+													&Reference{
+														Name: Name{"func"},
+														Underlying: &SyscallReference{
+															Name: Name{"func"},
+														},
+													},
+												},
+											},
 											Fields: []*Field{
 												{
 													Name: Name{"foo"},
@@ -446,7 +456,16 @@ func TestInterpreter(t *testing.T) {
 					},
 					{
 						Name: Name{"blah"},
-						Docs: Docs{Text("xyz")},
+						Docs: Docs{
+							ReferenceText{
+								&Reference{
+									Name: Name{"func"},
+									Underlying: &SyscallReference{
+										Name: Name{"func"},
+									},
+								},
+							},
+						},
 						Fields: []*Field{
 							{
 								Name: Name{"foo"},
@@ -469,6 +488,14 @@ func TestInterpreter(t *testing.T) {
 								},
 							},
 						},
+					},
+				},
+				Syscalls: []*Syscall{
+					{
+						Name:    Name{"func"},
+						Docs:    Docs{Text("xyz")},
+						Args:    []*Parameter{},
+						Results: []*Parameter{},
 					},
 				},
 			},
@@ -1085,7 +1112,12 @@ func TestInterpreterErrors(t *testing.T) {
 			Name: "duplicate syscall",
 			Source: `(syscall (name blah) (docs "xyz"))
 			         (syscall (name blah) (docs "abc"))`,
-			Want: `test.plan:2:13: syscall "blah" is already defined at test.plan:1:1`,
+			Want: `test.plan:2:13: cannot define syscall: type "blah" is already defined`,
+		},
+		{
+			Name:   "syscall clash",
+			Source: `(syscall (name uint64) (docs "abc"))`,
+			Want:   `test.plan:1:1: cannot define syscall: type "uint64" is already defined`,
 		},
 		// Type errors.
 		{
