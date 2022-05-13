@@ -117,8 +117,8 @@ pub extern "sysv64" fn syscall_handler(
                 Some(value) => value,
                 None => {
                     return SyscallResults {
-                        value: 0,
-                        error: Error::IllegalParameter.as_u64(),
+                        value: Error::IllegalParameter.as_u64(),
+                        error: 0,
                     }
                 }
             };
@@ -181,7 +181,7 @@ pub extern "sysv64" fn syscall_handler(
             match result {
                 Ok(value) => SyscallResults {
                     value: value as u64,
-                    error: Error::NoError.as_u64(),
+                    error: IoError::NoError.as_u64(),
                 },
                 Err(error) => SyscallResults {
                     value: 0,
