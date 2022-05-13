@@ -204,10 +204,10 @@ var integers = map[string]Integer{
 	"uint16": Uint16,
 	"uint32": Uint32,
 	"uint64": Uint64,
-	"int8":   Sint8,
-	"int16":  Sint16,
-	"int32":  Sint32,
-	"int64":  Sint64,
+	"sint8":  Sint8,
+	"sint16": Sint16,
+	"sint32": Sint32,
+	"sint64": Sint64,
 }
 
 func (b Integer) Size(a Arch) int {
@@ -225,7 +225,7 @@ func (b Integer) Size(a Arch) int {
 
 	size, ok := sizes[b]
 	if !ok {
-		panic(fmt.Sprintf("unrecognised basic type %d", b))
+		panic(fmt.Sprintf("unrecognised integer type %d", b))
 	}
 
 	return size
@@ -246,7 +246,7 @@ func (b Integer) String() string {
 
 	s, ok := ss[b]
 	if !ok {
-		panic(fmt.Sprintf("unrecognised basic type %d", b))
+		panic(fmt.Sprintf("unrecognised integer type %d", b))
 	}
 
 	return s

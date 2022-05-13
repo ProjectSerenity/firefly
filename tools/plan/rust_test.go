@@ -170,7 +170,7 @@ func TestRustKernelspace(t *testing.T) {
 			Text: `(enumeration
 			           (name colour)
 			           (docs "A colour.")
-			           (type int8)
+			           (type sint8)
 			           (value
 			               (name red)
 			               (docs "The colour red."))
@@ -236,7 +236,7 @@ func TestRustKernelspace(t *testing.T) {
 			           (arg3
 			               (name baz)
 			               (docs "")
-			               (type *constant int8))
+			               (type *constant sint8))
 			           (result1
 			               (name happiness)
 			               (docs "")

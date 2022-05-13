@@ -632,11 +632,11 @@ func TestInterpreterErrors(t *testing.T) {
 		{
 			Name:   "enumeration with complex type",
 			Source: `(enumeration (type *constant byte))`,
-			Want:   `test.plan:1:20: invalid enumeration type: must be a basic type, found *constant byte`,
+			Want:   `test.plan:1:20: invalid enumeration type: must be an integer type, found *constant byte`,
 		},
 		{
 			Name:   "enumeration with duplicate type",
-			Source: `(enumeration (type byte) (type int8))`,
+			Source: `(enumeration (type byte) (type sint8))`,
 			Want:   `test.plan:1:27: invalid enumeration definition: type already defined`,
 		},
 		{
@@ -722,7 +722,7 @@ func TestInterpreterErrors(t *testing.T) {
 		{
 			Name: "duplicate enumeration",
 			Source: `(enumeration (name blah) (docs "xyz") (type byte) (value (name foo) (docs "bar")))
-			         (enumeration (name blah) (docs "abc") (type int8) (value (name this) (docs "some")))`,
+			         (enumeration (name blah) (docs "abc") (type sint8) (value (name this) (docs "some")))`,
 			Want: `test.plan:2:13: type "blah" is already defined`,
 		},
 		// Structure errors.
@@ -1162,7 +1162,7 @@ func TestInterpreterErrors(t *testing.T) {
 			             (field
 			                 (name bar ber)
 			                 (docs "foo")
-			                 (type int16)))`,
+			                 (type sint16)))`,
 			Want: `test.plan:8:17: field "bar ber" is not aligned: 2-byte field found at offset 1`,
 		},
 		{

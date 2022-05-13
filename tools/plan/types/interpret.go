@@ -180,8 +180,8 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 	}
 
 	// Check that each syscall's args and results
-	// are basic types, enumerations (which are
-	// basic types under the hood), or pointers.
+	// are integer types, enumerations (which are
+	// integer types under the hood), or pointers.
 	for _, syscall := range i.out.Syscalls {
 		for j, arg := range syscall.Args {
 			argType := arg.Type
@@ -269,16 +269,16 @@ func (i *interpreter) interpretEnumeration(list *ast.List) (*Enumeration, *posit
 				return nil, err.Context("invalid enumeration type")
 			}
 
-			basic, ok := typ.(Integer)
+			integer, ok := typ.(Integer)
 			if !ok {
-				return nil, i.errorf(elts[0], "invalid enumeration type: must be a basic type, found %s", typ)
+				return nil, i.errorf(elts[0], "invalid enumeration type: must be an integer type, found %s", typ)
 			}
 
 			if enumeration.Type != InvalidInteger {
 				return nil, i.errorf(def, "invalid enumeration definition: type already defined")
 			}
 
-			enumeration.Type = basic
+			enumeration.Type = integer
 		case "value":
 			value, err := i.interpretValue(part)
 			if err != nil {

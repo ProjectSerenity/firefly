@@ -241,7 +241,7 @@ func rustString(t types.Type) string {
 
 		s, ok := ss[t]
 		if !ok {
-			panic(fmt.Sprintf("unrecognised basic type %d", t))
+			panic(fmt.Sprintf("unrecognised integer type %d", t))
 		}
 
 		return s
