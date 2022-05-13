@@ -15,9 +15,9 @@ use core::arch::asm;
 /// so it may have unsafe effects.
 ///
 #[inline]
-pub unsafe fn syscall0(sys: usize) -> (usize, usize) {
-    let result1: usize;
-    let result2: usize;
+pub unsafe fn syscall0(sys: u64) -> (u64, u64) {
+    let result1: u64;
+    let result2: u64;
     asm! {
         "syscall",
         inlateout("rax") sys => result1,
@@ -37,9 +37,9 @@ pub unsafe fn syscall0(sys: usize) -> (usize, usize) {
 /// so it may have unsafe effects.
 ///
 #[inline]
-pub unsafe fn syscall1(sys: usize, arg1: usize) -> (usize, usize) {
-    let result1: usize;
-    let result2: usize;
+pub unsafe fn syscall1(sys: u64, arg1: u64) -> (u64, u64) {
+    let result1: u64;
+    let result2: u64;
     asm! {
         "syscall",
         inlateout("rax") sys => result1,
@@ -60,9 +60,9 @@ pub unsafe fn syscall1(sys: usize, arg1: usize) -> (usize, usize) {
 /// so it may have unsafe effects.
 ///
 #[inline]
-pub unsafe fn syscall2(sys: usize, arg1: usize, arg2: usize) -> (usize, usize) {
-    let result1: usize;
-    let result2: usize;
+pub unsafe fn syscall2(sys: u64, arg1: u64, arg2: u64) -> (u64, u64) {
+    let result1: u64;
+    let result2: u64;
     asm! {
         "syscall",
         inlateout("rax") sys => result1,
@@ -84,9 +84,9 @@ pub unsafe fn syscall2(sys: usize, arg1: usize, arg2: usize) -> (usize, usize) {
 /// so it may have unsafe effects.
 ///
 #[inline]
-pub unsafe fn syscall3(sys: usize, arg1: usize, arg2: usize, arg3: usize) -> (usize, usize) {
-    let result1: usize;
-    let result2: usize;
+pub unsafe fn syscall3(sys: u64, arg1: u64, arg2: u64, arg3: u64) -> (u64, u64) {
+    let result1: u64;
+    let result2: u64;
     asm! {
         "syscall",
         inlateout("rax") sys => result1,
@@ -108,15 +108,9 @@ pub unsafe fn syscall3(sys: usize, arg1: usize, arg2: usize, arg3: usize) -> (us
 /// so it may have unsafe effects.
 ///
 #[inline]
-pub unsafe fn syscall4(
-    sys: usize,
-    arg1: usize,
-    arg2: usize,
-    arg3: usize,
-    arg4: usize,
-) -> (usize, usize) {
-    let result1: usize;
-    let result2: usize;
+pub unsafe fn syscall4(sys: u64, arg1: u64, arg2: u64, arg3: u64, arg4: u64) -> (u64, u64) {
+    let result1: u64;
+    let result2: u64;
     asm! {
         "syscall",
         inlateout("rax") sys => result1,
@@ -140,15 +134,15 @@ pub unsafe fn syscall4(
 ///
 #[inline]
 pub unsafe fn syscall5(
-    sys: usize,
-    arg1: usize,
-    arg2: usize,
-    arg3: usize,
-    arg4: usize,
-    arg5: usize,
-) -> (usize, usize) {
-    let result1: usize;
-    let result2: usize;
+    sys: u64,
+    arg1: u64,
+    arg2: u64,
+    arg3: u64,
+    arg4: u64,
+    arg5: u64,
+) -> (u64, u64) {
+    let result1: u64;
+    let result2: u64;
     asm! {
         "syscall",
         inlateout("rax") sys => result1,
@@ -173,16 +167,16 @@ pub unsafe fn syscall5(
 ///
 #[inline]
 pub unsafe fn syscall6(
-    sys: usize,
-    arg1: usize,
-    arg2: usize,
-    arg3: usize,
-    arg4: usize,
-    arg5: usize,
-    arg6: usize,
-) -> (usize, usize) {
-    let result1: usize;
-    let result2: usize;
+    sys: u64,
+    arg1: u64,
+    arg2: u64,
+    arg3: u64,
+    arg4: u64,
+    arg5: u64,
+    arg6: u64,
+) -> (u64, u64) {
+    let result1: u64;
+    let result2: u64;
     asm! {
         "syscall",
         inlateout("rax") sys => result1,

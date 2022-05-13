@@ -3,7 +3,7 @@
 ///
 #[inline]
 pub fn simple_syscall() -> MessageType {
-    let sys = Syscalls::SimpleSyscall.as_u64() as usize;
+    let sys = Syscalls::SimpleSyscall.as_u64();
     let (result1, _) = unsafe { syscall0(sys) };
     MessageType::from_u16(result1 as u16).expect("invalid MessageType")
 }

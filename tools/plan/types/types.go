@@ -415,21 +415,6 @@ func (e *Enumeration) String() string {
 	return fmt.Sprintf("enumeration %s (%s)", e.Name.Spaced(), e.Type.String())
 }
 
-func (e *Enumeration) GoString() string {
-	var buf strings.Builder
-	fmt.Fprintf(&buf, "enumeration %s (%s) {\n", e.Name.Spaced(), e.Type.String())
-	for _, value := range e.Values {
-		buf.WriteByte('\t')
-		buf.WriteString("value ")
-		buf.WriteString(value.Name.Spaced())
-		buf.WriteByte('\n')
-	}
-
-	buf.WriteByte('}')
-
-	return buf.String()
-}
-
 // Structure represents a structure defined
 // in a syscalls plan.
 //
@@ -461,20 +446,6 @@ func (s *Structure) Size(a Arch) int {
 
 func (s *Structure) String() string {
 	return fmt.Sprintf("structure %s", s.Name.Spaced())
-}
-
-func (s *Structure) GoString() string {
-	var buf strings.Builder
-	fmt.Fprintf(&buf, "structure %s {\n", s.Name.Spaced())
-	for _, field := range s.Fields {
-		buf.WriteByte('\t')
-		buf.WriteString(field.String())
-		buf.WriteByte('\n')
-	}
-
-	buf.WriteByte('}')
-
-	return buf.String()
 }
 
 // Parameter represents a single argument

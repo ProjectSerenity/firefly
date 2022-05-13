@@ -213,6 +213,8 @@ var rustTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 	"recvResults":               rustSyscallRecvResults,
 	"toString":                  rustString,
 	"toDocs":                    rustDocs,
+	"fromU64":                   rustFromU64,
+	"toU64":                     rustToU64,
 	"constructor":               rustConstructor,
 }).ParseFS(rustTemplatesFS, "templates/*"))
 
@@ -223,6 +225,32 @@ const (
 	rustFileUserTemplate    = "file_user_rs.txt"
 	rustFileKernelTemplate  = "file_kernel_rs.txt"
 )
+
+// Most values are u64, so we can ignore
+// conversions to and from it.
+func rustFromU64(t types.Type) string {
+	if ref, ok := t.(*types.Reference); ok {
+		t = ref.Underlying
+	}
+
+	if integer, ok := t.(types.Integer); ok && integer == types.Uint64 {
+		return ""
+	}
+
+	return fmt.Sprintf(" as %s", rustString(t))
+}
+
+func rustToU64(t types.Type) string {
+	if ref, ok := t.(*types.Reference); ok {
+		t = ref.Underlying
+	}
+
+	if integer, ok := t.(types.Integer); ok && integer == types.Uint64 {
+		return ""
+	}
+
+	return fmt.Sprintf(" as u64")
+}
 
 func rustString(t types.Type) string {
 	switch t := t.(type) {
@@ -314,7 +342,7 @@ func rustConstructor(variable string, varType types.Type) string {
 	if enum, ok := varType.(*types.Enumeration); ok {
 		enumType := enum.Name.PascalCase()
 		intType := rustString(enum.Type)
-		return fmt.Sprintf("%s::from_%s(%s as %s).expect(\"invalid %s\")", enumType, intType, variable, intType, enumType)
+		return fmt.Sprintf("%s::from_%s(%s%s).expect(\"invalid %s\")", enumType, intType, variable, rustFromU64(enum.Type), enumType)
 	} else {
 		return fmt.Sprintf("%s as %s", variable, rustString(varType))
 	}
@@ -388,32 +416,6 @@ func rustSyscallTraitSignature(s *types.Syscall) string {
 }
 
 func rustCallSyscallImplementation(s *types.Syscall) string {
-	// Most values are u64, so we can ignore
-	// conversions to and from it.
-	fromU64 := func(t types.Type) string {
-		if ref, ok := t.(*types.Reference); ok {
-			t = ref.Underlying
-		}
-
-		if integer, ok := t.(types.Integer); ok && integer == types.Uint64 {
-			return ""
-		}
-
-		return fmt.Sprintf(" as %s", rustString(t))
-	}
-
-	toU64 := func(t types.Type) string {
-		if ref, ok := t.(*types.Reference); ok {
-			t = ref.Underlying
-		}
-
-		if integer, ok := t.(types.Integer); ok && integer == types.Uint64 {
-			return ""
-		}
-
-		return fmt.Sprintf(" as u64")
-	}
-
 	const indent = "        "
 	var buf strings.Builder
 	for i, arg := range s.Args {
@@ -424,7 +426,7 @@ func rustCallSyscallImplementation(s *types.Syscall) string {
 		}
 
 		if enum, ok := argType.(*types.Enumeration); ok {
-			fmt.Fprintf(&buf, "match %s::from_%s(arg%d%s) {", enum.Name.PascalCase(), rustString(enum.Type), i+1, fromU64(enum.Type))
+			fmt.Fprintf(&buf, "match %s::from_%s(arg%d%s) {", enum.Name.PascalCase(), rustString(enum.Type), i+1, rustFromU64(enum.Type))
 			buf.WriteByte('\n')
 			buf.WriteString(indent)
 			buf.WriteString("    Some(value) => value,")
@@ -435,7 +437,7 @@ func rustCallSyscallImplementation(s *types.Syscall) string {
 			buf.WriteString(indent)
 			buf.WriteString("};")
 		} else {
-			fmt.Fprintf(&buf, "arg%d%s;", i+1, fromU64(argType))
+			fmt.Fprintf(&buf, "arg%d%s;", i+1, rustFromU64(argType))
 		}
 
 		buf.WriteByte('\n')
@@ -461,7 +463,7 @@ func rustCallSyscallImplementation(s *types.Syscall) string {
 
 		noError := "error: Error::NoError.as_u64()"
 		enum := resultType.(*types.Enumeration)
-		fmt.Fprintf(&buf, "SyscallResults { value: result.as_%s()%s, %s }", rustString(enum.Type), toU64(enum.Type), noError)
+		fmt.Fprintf(&buf, "SyscallResults { value: result.as_%s()%s, %s }", rustString(enum.Type), rustToU64(enum.Type), noError)
 	case 2:
 		buf.WriteString("match result {\n")
 		buf.WriteString(indent)
@@ -474,11 +476,11 @@ func rustCallSyscallImplementation(s *types.Syscall) string {
 
 		noError := "error: Error::NoError.as_u64()"
 		if enum, ok := resultType.(*types.Enumeration); ok {
-			fmt.Fprintf(&buf, "SyscallResults { value: value.as_%s()%s, %s },\n", rustString(enum.Type), toU64(enum.Type), noError)
+			fmt.Fprintf(&buf, "SyscallResults { value: value.as_%s()%s, %s },\n", rustString(enum.Type), rustToU64(enum.Type), noError)
 		} else if integer, ok := resultType.(types.Integer); ok && integer == types.Uint64 {
 			fmt.Fprintf(&buf, "SyscallResults { value, %s },\n", noError)
 		} else {
-			fmt.Fprintf(&buf, "SyscallResults { value: value%s, %s },\n", toU64(resultType), noError)
+			fmt.Fprintf(&buf, "SyscallResults { value: value%s, %s },\n", rustToU64(resultType), noError)
 		}
 
 		resultType = s.Results[1].Type
@@ -490,7 +492,7 @@ func rustCallSyscallImplementation(s *types.Syscall) string {
 		buf.WriteString("    Err(error) => ")
 		noValue := "value: 0"
 		enum := resultType.(*types.Enumeration)
-		fmt.Fprintf(&buf, "SyscallResults { %s, error: error.as_%s()%s },\n", noValue, rustString(enum.Type), toU64(enum.Type))
+		fmt.Fprintf(&buf, "SyscallResults { %s, error: error.as_%s()%s },\n", noValue, rustString(enum.Type), rustToU64(enum.Type))
 		buf.WriteString(indent)
 		buf.WriteByte('}')
 	}

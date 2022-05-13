@@ -6,9 +6,11 @@
 #[inline]
 pub fn {{ funcSignature . }} {
     {{- /* Now that we've made the function signature, we write the body. */}}
-    let sys = Syscalls::{{ .Name.PascalCase }}.as_u64() as usize;
+    let sys = Syscalls::{{ .Name.PascalCase }}.as_u64();
     let {{ recvResults . }} = unsafe { syscall{{ $num_args }}(sys
-    {{- range .Args }}, {{ .Name.SnakeCase }}{{ if .IsEnumeration }}.as_{{ toString .Enumeration.Type }}(){{ end }} as usize{{ end }}) };
+    {{- range .Args }}, {{ .Name.SnakeCase }}{{ if .IsEnumeration }}.as_{{ toString .Enumeration.Type }}(){{ toU64 .Enumeration.Type }}
+                                             {{- else }}{{ toU64 .Type }}{{ end -}}
+                                             {{ end }}) };
 
     {{- /* Now that we've called syscall, we need to sort out the return value */ -}}
     {{- if eq $num_results 1 }}
