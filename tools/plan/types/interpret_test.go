@@ -57,7 +57,7 @@ func TestInterpreter(t *testing.T) {
 		},
 		{
 			Name:   "Structure containing a syscall reference",
-			Source: `(structure (name blah) (docs "xyz") (field (name foo) (docs "example" (reference syscalls) "ref") (type syscalls)))`,
+			Source: `(structure (name blah) (docs "xyz") (field (name foo) (docs "example" (reference syscalls) ". ref") (type syscalls)))`,
 			Want: &File{
 				Structures: []*Structure{
 					{
@@ -78,8 +78,7 @@ func TestInterpreter(t *testing.T) {
 											},
 										},
 									},
-									Text(" "),
-									Text("ref"),
+									Text(". ref"),
 								},
 								Type: &Reference{
 									Name: Name{"syscalls"},

@@ -870,7 +870,10 @@ func (i *interpreter) interpretDocs(elts []ast.Expr) (Docs, *positionalError) {
 				continue
 			}
 
-			if spaceNeeded {
+			// Auto-insert a separating space unless
+			// the line begines with a full stop, which
+			// is likely after a formatting expression.
+			if spaceNeeded && !strings.HasPrefix(line, ".") {
 				docs = append(docs, Text(" "))
 			}
 
