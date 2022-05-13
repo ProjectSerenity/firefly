@@ -252,7 +252,11 @@ func rustString(t types.Type) string {
 			return "*const " + rustString(t.Underlying)
 		}
 	case *types.Reference:
-		return t.Name.PascalCase()
+		if _, ok := t.Underlying.(*types.SyscallReference); ok {
+			return t.Name.SnakeCase()
+		} else {
+			return t.Name.PascalCase()
+		}
 	case types.Padding:
 		return fmt.Sprintf("[u8; %d]", t)
 	case *types.Enumeration:
