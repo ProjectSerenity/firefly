@@ -129,7 +129,12 @@
 
 (syscall
 	(name print message)
-	(docs "Prints a message to the process's standard output.")
+	(docs
+		"Prints a message to the process's standard output."
+		""
+		"See also the"
+		(reference print error)
+		"syscall.")
 	(arg1
 		(name pointer)
 		(docs
@@ -137,9 +142,7 @@
 			""
 			"No restrictions are placed on the contents pointed to by"
 			(code "pointer")
-			"."
-			""
-			"For example, the contents do not need to be UTF-8 encoded and NUL"
+			". For example, the contents do not need to be UTF-8 encoded and NUL"
 			"bytes have no special effects.")
 		(type *constant byte))
 	(arg2
@@ -164,7 +167,12 @@
 
 (syscall
 	(name print error)
-	(docs "Prints an error message to the process's standard error output.")
+	(docs
+		"Prints an error message to the process's standard error output."
+		""
+		"See also the"
+		(reference print message)
+		"syscall.")
 	(arg1
 		(name pointer)
 		(docs
