@@ -7,6 +7,7 @@ package types
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -208,6 +209,48 @@ var integers = map[string]Integer{
 	"sint16": Sint16,
 	"sint32": Sint32,
 	"sint64": Sint64,
+}
+
+func (b Integer) Min() int64 {
+	mins := map[Integer]int64{
+		Byte:   0,
+		Uint8:  0,
+		Uint16: 0,
+		Uint32: 0,
+		Uint64: 0,
+		Sint8:  math.MinInt8,
+		Sint16: math.MinInt16,
+		Sint32: math.MinInt32,
+		Sint64: math.MinInt64,
+	}
+
+	min, ok := mins[b]
+	if !ok {
+		panic(fmt.Sprintf("unrecognised integer type %d", b))
+	}
+
+	return min
+}
+
+func (b Integer) Max() uint64 {
+	maxs := map[Integer]uint64{
+		Byte:   math.MaxUint8,
+		Uint8:  math.MaxUint8,
+		Uint16: math.MaxUint16,
+		Uint32: math.MaxUint32,
+		Uint64: math.MaxUint64,
+		Sint8:  math.MaxInt8,
+		Sint16: math.MaxInt16,
+		Sint32: math.MaxInt32,
+		Sint64: math.MaxInt64,
+	}
+
+	max, ok := maxs[b]
+	if !ok {
+		panic(fmt.Sprintf("unrecognised integer type %d", b))
+	}
+
+	return max
 }
 
 func (b Integer) Size(a Arch) int {

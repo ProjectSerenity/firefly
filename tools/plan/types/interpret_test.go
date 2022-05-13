@@ -7,7 +7,9 @@ package types
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/ProjectSerenity/firefly/tools/plan/ast"
@@ -718,6 +720,17 @@ func TestInterpreterErrors(t *testing.T) {
 			Name:   "enumeration with missing values",
 			Source: `(enumeration (name blah) (docs "foo") (type byte))`,
 			Want:   `test.plan:1:1: enumeration has no value definitions`,
+		},
+		{
+			Name: "enumeration with too many values",
+			Source: `(enumeration (name blah) (docs "foo") (type sint8)` + func() string {
+				var buf strings.Builder
+				for i := 0; i < 128; i++ {
+					fmt.Fprintf(&buf, `(value (name foo%d) (docs "bar"))`, i+1)
+				}
+				return buf.String()
+			}() + `)`,
+			Want: `test.plan:1:1: enumeration has 128 values, which exceeds capacity of sint8 (max 127)`,
 		},
 		{
 			Name: "duplicate enumeration",

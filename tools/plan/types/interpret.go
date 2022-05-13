@@ -309,6 +309,12 @@ func (i *interpreter) interpretEnumeration(list *ast.List) (*Enumeration, *posit
 		return nil, i.errorf(list, "enumeration has no value definitions")
 	}
 
+	if uint64(len(enumeration.Values)) > enumeration.Type.Max() {
+		got := len(enumeration.Values)
+		max := enumeration.Type.Max()
+		return nil, i.errorf(list, "enumeration has %d values, which exceeds capacity of %s (max %d)", got, enumeration.Type, max)
+	}
+
 	// Track the type definition.
 	typename := enumeration.Name.Spaced()
 	if i.typedefs[typename] != nil {
