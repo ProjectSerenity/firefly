@@ -395,6 +395,7 @@ type Enumeration struct {
 	Node   *ast.List
 	Docs   Docs
 	Type   Integer
+	Embeds []*Enumeration
 	Values []*Value
 }
 

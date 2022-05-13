@@ -234,6 +234,70 @@ func TestInterpreter(t *testing.T) {
 			},
 		},
 		{
+			Name: "Embedded enumeration",
+			Source: `(enumeration (name blah) (docs "xyz") (type byte) (value (name foo) (docs "bar")) (value (name bar) (docs "abc")))
+			         (enumeration (name two) (docs "abc") (type sint8) (value (name first) (docs "1")) (embed blah) (value (name four) (docs "4")))`,
+			Want: &File{
+				Enumerations: []*Enumeration{
+					{
+						Name: Name{"blah"},
+						Docs: Docs{Text("xyz")},
+						Type: Byte,
+						Values: []*Value{
+							{
+								Name: Name{"foo"},
+								Docs: Docs{Text("bar")},
+							},
+							{
+								Name: Name{"bar"},
+								Docs: Docs{Text("abc")},
+							},
+						},
+					},
+					{
+						Name: Name{"two"},
+						Docs: Docs{Text("abc")},
+						Type: Sint8,
+						Embeds: []*Enumeration{
+							{
+								Name: Name{"blah"},
+								Docs: Docs{Text("xyz")},
+								Type: Byte,
+								Values: []*Value{
+									{
+										Name: Name{"foo"},
+										Docs: Docs{Text("bar")},
+									},
+									{
+										Name: Name{"bar"},
+										Docs: Docs{Text("abc")},
+									},
+								},
+							},
+						},
+						Values: []*Value{
+							{
+								Name: Name{"first"},
+								Docs: Docs{Text("1")},
+							},
+							{
+								Name: Name{"foo"},
+								Docs: Docs{Text("bar")},
+							},
+							{
+								Name: Name{"bar"},
+								Docs: Docs{Text("abc")},
+							},
+							{
+								Name: Name{"four"},
+								Docs: Docs{Text("4")},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			Name: "Simple syscall",
 			Source: `(syscall
 			             (name blah)
@@ -699,6 +763,39 @@ func TestInterpreterErrors(t *testing.T) {
 			Name:   "enumeration with duplicate value",
 			Source: `(enumeration (type byte) (value (name bar ber) (docs "baz")) (value (name bar ber) (docs "foo")))`,
 			Want:   `test.plan:1:62: value "bar ber" already defined at test.plan:1:26`,
+		},
+		{
+			Name:   "enumeration with invalid embedding syntax",
+			Source: `(enumeration (embed "foo"))`,
+			Want:   `test.plan:1:21: invalid enumeration embedding: invalid type reference: expected an identifier, found string`,
+		},
+		{
+			Name:   "enumeration with invalid embedding type",
+			Source: `(enumeration (embed byte))`,
+			Want:   `test.plan:1:21: invalid embedded type: expected an enumeration, found byte`,
+		},
+		{
+			Name:   "enumeration with undefined embedding type",
+			Source: `(enumeration (embed foo))`,
+			Want:   `test.plan:1:21: invalid embedded type: type "foo" has not yet been defined`,
+		},
+		{
+			Name: "enumeration with invalid embedding reference type",
+			Source: `(structure (name foo) (docs "abc") (field (name bar) (docs "def") (type sint64)))
+			         (enumeration (embed foo))`,
+			Want: `test.plan:2:33: invalid embedded type: expected an enumeration, found structure foo`,
+		},
+		{
+			Name: "enumeration with clashing embedding value",
+			Source: `(enumeration (name foo) (docs "abc") (type byte) (value (name bar) (docs "def")))
+			         (enumeration (value (name bar) (docs "xyz")) (embed foo))`,
+			Want: `test.plan:2:65: embedded value "bar" already defined at test.plan:2:26`,
+		},
+		{
+			Name: "enumeration with value clashing with embedding value",
+			Source: `(enumeration (name foo) (docs "abc") (type byte) (value (name bar) (docs "def")))
+			         (enumeration (embed foo) (value (name bar) (docs "xyz")))`,
+			Want: `test.plan:2:38: value "bar" already defined at test.plan:1:50`,
 		},
 		{
 			Name:   "enumeration with missing name",

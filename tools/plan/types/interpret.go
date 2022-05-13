@@ -280,6 +280,38 @@ func (i *interpreter) interpretEnumeration(list *ast.List) (*Enumeration, *posit
 			}
 
 			enumeration.Type = integer
+		case "embed":
+			typ, err := i.interpretTypeReference(elts)
+			if err != nil {
+				return nil, err.Context("invalid enumeration embedding")
+			}
+
+			ref, ok := typ.(*Reference)
+			if !ok {
+				return nil, i.errorf(elts[0], "invalid embedded type: expected an enumeration, found %s", typ)
+			}
+
+			if ref.Underlying == nil {
+				return nil, i.errorf(elts[0], "invalid embedded type: type %q has not yet been defined", ref.Name.Spaced())
+			}
+
+			enum, ok := ref.Underlying.(*Enumeration)
+			if !ok {
+				return nil, i.errorf(elts[0], "invalid embedded type: expected an enumeration, found %s", ref.Underlying)
+			}
+
+			for _, value := range enum.Values {
+				// Make sure the value isn't a duplicate.
+				name := value.Name.Spaced()
+				if other, ok := values[name]; ok {
+					return nil, i.errorf(elts[0], "embedded value %q already defined at %s", name, i.pos(other.Node))
+				}
+
+				values[name] = value
+				enumeration.Values = append(enumeration.Values, value)
+			}
+
+			enumeration.Embeds = append(enumeration.Embeds, enum)
 		case "value":
 			value, err := i.interpretValue(part)
 			if err != nil {
