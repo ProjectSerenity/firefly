@@ -13,6 +13,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/ProjectSerenity/firefly/tools/plan/encoding/rust"
 	"github.com/ProjectSerenity/firefly/tools/plan/parser"
 	"github.com/ProjectSerenity/firefly/tools/plan/types"
 )
@@ -92,7 +93,7 @@ func cmdBuild(ctx context.Context, w io.Writer, args []string) error {
 			return fmt.Errorf("failed to create Rust userspace file %s: %v", rustUserPath, err)
 		}
 
-		err = RustUserspace(out, file, rustfmtPath)
+		err = rust.GenerateUserCode(out, file, rustfmtPath)
 		if err != nil {
 			out.Close()
 			return fmt.Errorf("failed to write Rust userspace file %s: %v", rustUserPath, err)
@@ -110,7 +111,7 @@ func cmdBuild(ctx context.Context, w io.Writer, args []string) error {
 			return fmt.Errorf("failed to create Rust kernelspace file %s: %v", rustKernelPath, err)
 		}
 
-		err = RustKernelspace(out, file, rustfmtPath)
+		err = rust.GenerateKernelCode(out, file, rustfmtPath)
 		if err != nil {
 			out.Close()
 			return fmt.Errorf("failed to write Rust kernelspace file %s: %v", rustKernelPath, err)

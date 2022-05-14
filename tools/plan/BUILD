@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 load("//bazel/gofmt:gofmt.bzl", "gofmt")
 
 go_library(
@@ -13,13 +13,13 @@ go_library(
         "docs.go",
         "format.go",
         "main.go",
-        "rust.go",
     ],
     embedsrcs = glob(["templates/**"]),
     importpath = "github.com/ProjectSerenity/firefly/tools/plan",
     visibility = ["//visibility:private"],
     deps = [
         "//tools/plan/ast",
+        "//tools/plan/encoding/rust",
         "//tools/plan/format",
         "//tools/plan/lexer",
         "//tools/plan/parser",
@@ -37,20 +37,4 @@ go_binary(
     name = "plan",
     embed = [":plan_lib"],
     visibility = ["//visibility:public"],
-)
-
-go_test(
-    name = "plan_test",
-    size = "small",
-    srcs = [
-        "rust_test.go",
-    ],
-    data = glob(["testdata/**"]) + ["@rust_linux_x86_64//:rustfmt"],
-    embed = [":plan_lib"],
-    env = {
-        "rustfmt": "$(locations @rust_linux_x86_64//:rustfmt)",
-    },
-    deps = [
-        "//tools/plan/parser",
-    ],
 )
