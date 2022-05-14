@@ -29,7 +29,7 @@
 						<code class="inline-code">{{ .Name.Spaced}}</code>
 					</td>
 					<td>
-						<code class="inline-code">{{ .Type }}</code>
+						<code class="inline-code">{{ toString .Type }}</code>
 					</td>
 					<td>
 						{{ toDocs 5 .Docs }}

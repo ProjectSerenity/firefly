@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>{{ .Name.Spaced }} enumeration - Firefly system call ABI</title>
+		<title>Integers - Firefly system call ABI</title>
 		<style>
 {{ template "base-style_css.txt" }}
 {{ template "inline-code_css.txt" }}
@@ -11,7 +11,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 	</head>
 	<body>
-		<h1>Enumeration <code class="inline-code enumeration">{{ .Name.Spaced }}</code> (<code class="inline-code">{{ toString .Type }}</code>)</h1>
+		<h1>Integers</h1>
 		{{ toDocs 2 .Docs }}
 		<h2>Values</h2>
 		<table class="field-table">
@@ -25,7 +25,7 @@
 			{{ range .Values }}
 				<tr>
 					<td>
-						<code class="inline-code">{{ .Name.Spaced}}</code>
+						<code class="inline-code">{{ .Name.Spaced }}</code>
 					</td>
 					<td>
 						{{ toDocs 5 .Docs }}
