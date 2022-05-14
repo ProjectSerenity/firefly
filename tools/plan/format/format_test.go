@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"rsc.io/diff"
+
 	"github.com/ProjectSerenity/firefly/tools/plan/parser"
 	"github.com/ProjectSerenity/firefly/tools/plan/types"
 )
@@ -148,7 +150,7 @@ func TestFormatFile(t *testing.T) {
 
 			got := buf.String()
 			if got != test.Want+"\n" {
-				t.Fatalf("Fprint():\nGot:\n%q\nWant:\n%q", got, test.Want)
+				t.Fatalf("Fprint():\n%s", diff.Format(got, test.Want+"\n"))
 			}
 
 			// Check that interpreting the original source and
@@ -192,7 +194,7 @@ func TestFormatFile(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				t.Fatalf("Interpret():\nGot:  %s\nWant: %s", gotJSON, wantJSON)
+				t.Fatalf("Interpret():\n%s", diff.Format(string(gotJSON), string(wantJSON)))
 			}
 
 			// Check that formatting the formatted code results
@@ -208,7 +210,7 @@ func TestFormatFile(t *testing.T) {
 
 			format2 := builder.String()
 			if format2 != format1 {
-				t.Fatalf("Fprint(formatted):\nGot:  %q\nWant: %q", format2, format1)
+				t.Fatalf("Fprint(formatted):\n%s", diff.Format(format2, format1))
 			}
 		})
 	}

@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"rsc.io/diff"
+
 	"github.com/ProjectSerenity/firefly/tools/plan/parser"
 	"github.com/ProjectSerenity/firefly/tools/plan/types"
 )
@@ -95,7 +97,7 @@ func TestGenerateUserCode(t *testing.T) {
 
 			got := buf.Bytes()
 			if !bytes.Equal(got, want) {
-				t.Fatalf("GenerateUserCode(): output mismatch:\nGot:\n%s\nWant:\n%s", got, want)
+				t.Fatalf("GenerateUserCode(): output mismatch:\n%s", diff.Format(string(got), string(want)))
 			}
 		})
 	}

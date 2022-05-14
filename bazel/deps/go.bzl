@@ -41,3 +41,10 @@ def go_deps():
         sum = "h1:+gHMid33q6pen7kv9xvT+JRinntgeXO2AeZVd0AWD3w=",
         version = "v0.0.0-20220411224347-583f2d630306",
     )
+
+    go_repository(
+        name = "rsc_io_diff",
+        importpath = "rsc.io/diff",
+        sum = "h1:/WCDjRGIVDjKlhtSc1PEApp2fR58gfSVK62dr/yQNyQ=",
+        version = "v0.0.0-20190621135850-fe3479844c3c",
+    )

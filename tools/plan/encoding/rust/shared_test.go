@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"rsc.io/diff"
+
 	"github.com/ProjectSerenity/firefly/tools/plan/types"
 )
 
@@ -265,7 +267,7 @@ func TestTemplates(t *testing.T) {
 			}
 
 			if !bytes.Equal(got, want) {
-				t.Fatalf("templating %s:\nGot:\n%s\nWant:\n%s", test.Type, got, want)
+				t.Fatalf("templating %s:\n%s", test.Type, diff.Format(string(got), string(want)))
 			}
 		})
 	}

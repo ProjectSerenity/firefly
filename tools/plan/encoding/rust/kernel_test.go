@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"rsc.io/diff"
+
 	"github.com/ProjectSerenity/firefly/tools/plan/parser"
 	"github.com/ProjectSerenity/firefly/tools/plan/types"
 )
@@ -176,7 +178,7 @@ func TestGenerateKernelCode(t *testing.T) {
 
 			got := buf.Bytes()
 			if !bytes.Equal(got, want) {
-				t.Fatalf("GenerateKernelCode(): output mismatch:\nGot:\n%s\nWant:\n%s", got, want)
+				t.Fatalf("GenerateKernelCode(): output mismatch:\n%s", diff.Format(string(got), string(want)))
 			}
 		})
 	}

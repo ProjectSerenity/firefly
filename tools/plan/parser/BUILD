@@ -29,4 +29,7 @@ go_test(
     srcs = ["parser_test.go"],
     data = glob(["testdata/**"]),
     embed = [":parser"],
+    deps = [
+        "@rsc_io_diff//:diff",
+    ],
 )

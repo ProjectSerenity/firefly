@@ -42,5 +42,6 @@ go_test(
     },
     deps = [
         "//tools/plan/parser",
+        "@rsc_io_diff//:diff",
     ],
 )

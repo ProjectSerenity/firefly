@@ -10,6 +10,8 @@ import (
 	"reflect"
 	"testing"
 
+	"rsc.io/diff"
+
 	"github.com/ProjectSerenity/firefly/tools/plan/ast"
 	"github.com/ProjectSerenity/firefly/tools/plan/token"
 )
@@ -170,7 +172,7 @@ func TestParseFile(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				t.Fatalf("ParseFile():\nGot  %s\nWant %s", gotJSON, wantJSON)
+				t.Fatalf("ParseFile():\n%s", diff.Format(string(gotJSON), string(wantJSON)))
 			}
 		})
 	}

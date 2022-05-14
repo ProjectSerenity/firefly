@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"rsc.io/diff"
+
 	"github.com/ProjectSerenity/firefly/tools/plan/ast"
 	"github.com/ProjectSerenity/firefly/tools/plan/parser"
 	"github.com/ProjectSerenity/firefly/tools/plan/token"
@@ -774,7 +776,7 @@ func TestInterpreter(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				t.Fatalf("Interpret():\nGot:  %s\nWant: %s", gotJSON, wantJSON)
+				t.Fatalf("Interpret():\n%s", diff.Format(string(gotJSON), string(wantJSON)))
 			}
 		})
 	}
