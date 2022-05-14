@@ -58,6 +58,10 @@ pub fn read_random(buf: &mut [u8]) {
 /// correctly.
 ///
 pub fn test_syscall_abi() {
+    // Start by testing that the kernel sees all
+    // general-purpose registers the same way we
+    // do in userspace, using debug_abi_registers.
+
     let mut got = syscalls::Registers {
         rax: 0,
         rbx: 0,
@@ -83,7 +87,7 @@ pub fn test_syscall_abi() {
         // Use bit patterns that are unlikely
         // to be mistaken for one another if
         // bits are copied across by mistake.
-        rax: syscalls::Syscalls::SyscallDiagnostics.as_u64(),
+        rax: syscalls::Syscalls::DebugAbiRegisters.as_u64(),
         rbx: 0, // RBX is used internally by LLVM and cannot be overridden.
         rcx: 0, // RCX is destroyed.
         rdx: 0x1032_5476_98ba_dcfe_u64,

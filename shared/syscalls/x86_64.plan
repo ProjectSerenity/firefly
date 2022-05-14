@@ -117,7 +117,7 @@
 
 
 (syscall
-	(name syscall diagnostics)
+	(name debug abi registers)
 	(docs
 		"Allows diagnostics of the syscall ABI by userspace. The full set of"
 		"registers received by the kernel is written to the"

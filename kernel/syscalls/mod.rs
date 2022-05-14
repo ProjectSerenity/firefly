@@ -78,7 +78,7 @@ impl SyscallABI for FireflyABI {
     /// written to the registers structure passed to it.
     ///
     #[inline]
-    fn syscall_diagnostics(_registers: *mut SavedRegisters, registers: *mut Registers) -> Error {
+    fn debug_abi_registers(_registers: *mut SavedRegisters, registers: *mut Registers) -> Error {
         // Check that the pointer is in userspace.
         if let Ok(ptr) = VirtAddr::try_new(registers as usize) {
             if !USERSPACE.contains_addr(ptr) {
