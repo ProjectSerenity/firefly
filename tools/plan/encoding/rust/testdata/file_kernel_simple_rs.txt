@@ -121,22 +121,22 @@ pub extern "sysv64" fn syscall_handler(
                 Some(value) => value,
                 None => {
                     return SyscallResults {
-                        value: Error::IllegalParameter.as_u64(),
-                        error: 0,
+                        value: 0,
+                        error: Error::IllegalParameter.as_u64(),
                     }
                 }
             };
             let result = <FireflyABI as SyscallABI>::deny_syscalls(registers, param1);
             SyscallResults {
-                value: result.as_u64(),
-                error: Error::NoError.as_u64(),
+                value: 0,
+                error: result.as_u64(),
             }
         }
         Some(Syscalls::Exit) => {
             let result = <FireflyABI as SyscallABI>::exit(registers);
             SyscallResults {
-                value: result.as_u64(),
-                error: Error::NoError.as_u64(),
+                value: 0,
+                error: result.as_u64(),
             }
         }
         Some(Syscalls::GetProcessId) => {

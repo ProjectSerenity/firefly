@@ -144,15 +144,9 @@ func kernelHandleSyscall(s *types.Syscall) string {
 			buf.WriteString("    Some(value) => value,")
 			buf.WriteByte('\n')
 			buf.WriteString(indent)
-			if len(s.Results) == 1 {
-				enum := s.Results[0].Type.(*types.Reference).Underlying.(*types.Enumeration)
-				fmt.Fprintf(&buf, "    None => return SyscallResults{ value: %s::IllegalParameter.as_%s()%s, error: 0 },",
-					enum.Name.PascalCase(), sharedToString(enum.Type), sharedToU64(enum.Type))
-			} else {
-				enum := s.Results[1].Type.(*types.Reference).Underlying.(*types.Enumeration)
-				fmt.Fprintf(&buf, "    None => return SyscallResults{ value: 0, error: %s::IllegalParameter.as_%s()%s },",
-					enum.Name.PascalCase(), sharedToString(enum.Type), sharedToU64(enum.Type))
-			}
+			enum := s.Results[len(s.Results)-1].Type.(*types.Reference).Underlying.(*types.Enumeration)
+			fmt.Fprintf(&buf, "    None => return SyscallResults{ value: 0, error: %s::IllegalParameter.as_%s()%s },",
+				enum.Name.PascalCase(), sharedToString(enum.Type), sharedToU64(enum.Type))
 			buf.WriteByte('\n')
 			buf.WriteString(indent)
 			buf.WriteString("};")
@@ -178,8 +172,7 @@ func kernelHandleSyscall(s *types.Syscall) string {
 	case 1:
 		resultType := types.Underlying(s.Results[0].Type)
 		enum := resultType.(*types.Enumeration)
-		noError := "error: Error::NoError.as_u64()"
-		fmt.Fprintf(&buf, "SyscallResults { value: result.as_%s()%s, %s }", sharedToString(enum.Type), sharedToU64(enum.Type), noError)
+		fmt.Fprintf(&buf, "SyscallResults { value: 0, error: result.as_%s()%s }", sharedToString(enum.Type), sharedToU64(enum.Type))
 	case 2:
 		buf.WriteString("match result {\n")
 		buf.WriteString(indent)

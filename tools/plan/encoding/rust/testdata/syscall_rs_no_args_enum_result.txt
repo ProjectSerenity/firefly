@@ -6,6 +6,6 @@
 pub fn simple_syscall() -> MessageType {
     let sys = Syscalls::SimpleSyscall.as_u64();
     let (result1, result2) = unsafe { syscall0(sys) };
-    let _ = result2; // Ignore the second result.
-    MessageType::from_u16(result1 as u16).expect("invalid MessageType")
+    let _ = result1; // The first result is not used in this syscall.
+    MessageType::from_u16(result2 as u16).expect("invalid MessageType")
 }
