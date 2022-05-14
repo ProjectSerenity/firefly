@@ -134,6 +134,23 @@
 
 
 (syscall
+	(name debug abi errors)
+	(docs
+		"Allows diagnostics of the syscall ABI by userspace. The error passed"
+		"to"
+		(reference debug abi errors)
+		"is returned as-is.")
+	(arg1
+		(name error)
+		(docs "An error to be returned.")
+		(type error))
+	(result1
+		(name error)
+		(docs "The error being mirrored.")
+		(type error)))
+
+
+(syscall
 	(name print message)
 	(docs
 		"Prints a message to the process's standard output."

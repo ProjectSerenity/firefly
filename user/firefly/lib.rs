@@ -20,7 +20,7 @@ pub mod syscalls {
     include!(env!("SYSCALLS_RS"));
 }
 
-use self::syscalls::Error;
+use self::syscalls::{debug_abi_errors, Error};
 use core::arch::asm;
 use core::fmt;
 use core::fmt::Write;
@@ -203,6 +203,14 @@ pub fn test_syscall_abi() {
     assert_eq!(gr13, sr13, "R13");
     assert_eq!(gr14, sr14, "R14");
     assert_eq!(gr15, sr15, "R15");
+
+    // Check that we handle errors correctly.
+    assert_eq!(debug_abi_errors(Error::NoError), Error::NoError);
+    assert_eq!(debug_abi_errors(Error::BadSyscall), Error::BadSyscall);
+    assert_eq!(
+        debug_abi_errors(Error::IllegalParameter),
+        Error::IllegalParameter
+    );
 }
 
 /// The process's standard output.

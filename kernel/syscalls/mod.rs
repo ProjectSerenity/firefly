@@ -116,6 +116,15 @@ impl SyscallABI for FireflyABI {
         Error::NoError
     }
 
+    /// Allows diagnostics of the syscall ABI by userspace.
+    /// The error passed to `debug_abi_errors` is returned
+    /// as-is.
+    ///
+    #[inline]
+    fn debug_abi_errors(_registers: *mut SavedRegisters, error: Error) -> Error {
+        error
+    }
+
     /// Prints a message to teh process's standard output.
     ///
     #[inline]
