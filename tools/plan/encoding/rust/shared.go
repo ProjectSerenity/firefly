@@ -39,9 +39,46 @@ func sharedIsEnumeration(typ types.Type) bool {
 	return ok
 }
 
+func sharedIsInteger(typ types.Type) bool {
+	_, ok := types.Underlying(typ).(types.Integer)
+	return ok
+}
+
 func sharedIsPadding(typ types.Type) bool {
 	_, ok := typ.(types.Padding)
 	return ok
+}
+
+func sharedIsPointer(typ types.Type) bool {
+	_, ok := typ.(*types.Pointer)
+	return ok
+}
+
+func sharedIsSigned(typ types.Type) bool {
+	if integer, ok := types.Underlying(typ).(types.Integer); ok {
+		switch integer {
+		case types.Sint8, types.Sint16, types.Sint32, types.Sint64:
+			return true
+		}
+	}
+
+	return false
+}
+
+func sharedIsSint64(typ types.Type) bool {
+	if integer, ok := types.Underlying(typ).(types.Integer); ok && integer == types.Sint64 {
+		return true
+	}
+
+	return false
+}
+
+func sharedIsUint64(typ types.Type) bool {
+	if integer, ok := types.Underlying(typ).(types.Integer); ok && integer == types.Uint64 {
+		return true
+	}
+
+	return false
 }
 
 func sharedOneResult(s *types.Syscall) bool {

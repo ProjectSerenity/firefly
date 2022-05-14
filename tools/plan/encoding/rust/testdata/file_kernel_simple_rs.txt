@@ -153,7 +153,15 @@ pub extern "sysv64" fn syscall_handler(
             }
         }
         Some(Syscalls::ThreeArgsTwoResults) => {
-            let param1: u16 = arg1 as u16;
+            let param1: u16 = match arg1.try_into() {
+                Ok(value) => value,
+                Err(_) => {
+                    return SyscallResults {
+                        value: 0,
+                        error: Error::IllegalParameter.as_u64(),
+                    }
+                }
+            };
             let param2: Colour = match Colour::from_i8(arg2 as i8) {
                 Some(value) => value,
                 None => {

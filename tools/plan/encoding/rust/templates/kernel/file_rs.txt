@@ -105,8 +105,32 @@ pub extern "sysv64" fn syscall_handler(
                             error: {{ toString $error }}::IllegalParameter.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
                         },
                     };
+                {{- else if isPointer $arg.Type -}}
+                    arg{{ addOne $i }} as {{ toString $arg.Type }};
+                {{- else if isInteger $arg.Type -}}
+                    {{- if isUint64 $arg.Type -}}
+                        arg{{ addOne $i }};
+                    {{- else if isSint64 $arg.Type -}}
+                        arg{{ addOne $i }} as i64;
+                    {{- else if isSigned $arg.Type -}}
+                        match (arg{{ addOne $i }} as i64).try_into() {
+                            Ok(value) => value,
+                            Err(_) => return SyscallResults {
+                                value: 0,
+                                error: {{ toString $error }}::IllegalParameter.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
+                            },
+                        };
+                    {{- else -}}
+                        match arg{{ addOne $i }}.try_into() {
+                            Ok(value) => value,
+                            Err(_) => return SyscallResults {
+                                value: 0,
+                                error: {{ toString $error }}::IllegalParameter.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
+                            },
+                        };
+                    {{- end }}
                 {{- else -}}
-                    arg{{ addOne $i }}{{ fromU64 $arg.Type }};
+                    compile_error!("unexpected arg{{ addOne $i }} type {{ toString $arg }}");
                 {{- end }}
             {{ end -}}
             let result = <FireflyABI as SyscallABI>::{{ .Name.SnakeCase }}(registers
