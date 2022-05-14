@@ -142,13 +142,13 @@ pub extern "sysv64" fn syscall_handler(
         Some(Syscalls::GetProcessId) => {
             let result = <FireflyABI as SyscallABI>::get_process_id(registers);
             match result {
-                Ok(value) => SyscallResults {
-                    value: value as u64,
+                Ok(result) => SyscallResults {
+                    value: result as u64,
                     error: Error::NoError.as_u64(),
                 },
-                Err(error) => SyscallResults {
+                Err(result) => SyscallResults {
                     value: 0,
-                    error: error.as_u64(),
+                    error: result.as_u64(),
                 },
             }
         }
@@ -168,13 +168,13 @@ pub extern "sysv64" fn syscall_handler(
                 registers, param1, param2, param3,
             );
             match result {
-                Ok(value) => SyscallResults {
-                    value,
+                Ok(result) => SyscallResults {
+                    value: result,
                     error: Error::NoError.as_u64(),
                 },
-                Err(error) => SyscallResults {
+                Err(result) => SyscallResults {
                     value: 0,
-                    error: error.as_u64(),
+                    error: result.as_u64(),
                 },
             }
         }
@@ -183,26 +183,26 @@ pub extern "sysv64" fn syscall_handler(
             let param2: u64 = arg2;
             let result = <FireflyABI as SyscallABI>::get_file_info(registers, param1, param2);
             match result {
-                Ok(value) => SyscallResults {
-                    value: value as u64,
+                Ok(result) => SyscallResults {
+                    value: result as u64,
                     error: IoError::NoError.as_u64(),
                 },
-                Err(error) => SyscallResults {
+                Err(result) => SyscallResults {
                     value: 0,
-                    error: error.as_u64(),
+                    error: result.as_u64(),
                 },
             }
         }
         Some(Syscalls::GetColour) => {
             let result = <FireflyABI as SyscallABI>::get_colour(registers);
             match result {
-                Ok(value) => SyscallResults {
-                    value: value.as_i8() as u64,
+                Ok(result) => SyscallResults {
+                    value: result.as_i8() as u64,
                     error: Error::NoError.as_u64(),
                 },
-                Err(error) => SyscallResults {
+                Err(result) => SyscallResults {
                     value: 0,
-                    error: error.as_u64(),
+                    error: result.as_u64(),
                 },
             }
         }

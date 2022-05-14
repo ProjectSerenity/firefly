@@ -117,89 +117,31 @@ func GenerateKernelCode(w io.Writer, file *types.File, rustfmt string) error {
 var kernelTemplatesFS embed.FS
 
 var kernelTemplates = template.Must(template.New("").Funcs(template.FuncMap{
-	"fromU64":        sharedFromU64,
-	"handleSyscall":  kernelHandleSyscall,
-	"isEnumeration":  sharedIsEnumeration,
-	"isPadding":      sharedIsPadding,
-	"toDocs":         kernelToDocs,
-	"toString":       sharedToString,
-	"toU64":          sharedToU64,
-	"traitSignature": kernelTraitSignature,
+	"addOne":             sharedAddOne,
+	"errorEnumeration":   sharedErrorEnumeration,
+	"fromU64":            sharedFromU64,
+	"isEnumeration":      sharedIsEnumeration,
+	"isPadding":          sharedIsPadding,
+	"nonErrorResult":     kernelNonErrorResult,
+	"oneResult":          sharedOneResult,
+	"paramNamesAndTypes": sharedParamNamesAndTypes,
+	"paramTypes":         sharedParamTypes,
+	"toDocs":             kernelToDocs,
+	"toString":           sharedToString,
+	"toU64":              sharedToU64,
 }).ParseFS(kernelTemplatesFS, "templates/*_rs.txt", "templates/kernel/*_rs.txt"))
 
 const (
 	kernelFileTemplate = "file_rs.txt"
 )
 
-func kernelHandleSyscall(s *types.Syscall) string {
-	const indent = "        "
-	var buf strings.Builder
-	for i, arg := range s.Args {
-		fmt.Fprintf(&buf, "let param%d: %s = ", i+1, sharedToString(arg.Type))
-		argType := types.Underlying(arg.Type)
-		if enum, ok := argType.(*types.Enumeration); ok {
-			fmt.Fprintf(&buf, "match %s::from_%s(arg%d%s) {", enum.Name.PascalCase(), sharedToString(enum.Type), i+1, sharedFromU64(enum.Type))
-			buf.WriteByte('\n')
-			buf.WriteString(indent)
-			buf.WriteString("    Some(value) => value,")
-			buf.WriteByte('\n')
-			buf.WriteString(indent)
-			enum := s.Results[len(s.Results)-1].Type.(*types.Reference).Underlying.(*types.Enumeration)
-			fmt.Fprintf(&buf, "    None => return SyscallResults{ value: 0, error: %s::IllegalParameter.as_%s()%s },",
-				enum.Name.PascalCase(), sharedToString(enum.Type), sharedToU64(enum.Type))
-			buf.WriteByte('\n')
-			buf.WriteString(indent)
-			buf.WriteString("};")
-		} else {
-			fmt.Fprintf(&buf, "arg%d%s;", i+1, sharedFromU64(argType))
-		}
-
-		buf.WriteByte('\n')
-		buf.WriteString(indent)
+func kernelNonErrorResult(s *types.Syscall, variable string) string {
+	resultType := types.Underlying(s.Results[0].Type)
+	if enum, ok := resultType.(*types.Enumeration); ok {
+		return fmt.Sprintf("%s.as_%s()%s", variable, sharedToString(enum.Type), sharedToU64(enum.Type))
+	} else {
+		return variable + sharedToU64(resultType)
 	}
-
-	buf.WriteString("let result = <FireflyABI as SyscallABI>::")
-	buf.WriteString(s.Name.SnakeCase())
-	buf.WriteString("(registers")
-	for i := range s.Args {
-		buf.WriteString(", param")
-		buf.WriteByte('1' + byte(i))
-	}
-	buf.WriteString(");\n")
-	buf.WriteString(indent)
-
-	switch len(s.Results) {
-	case 1:
-		resultType := types.Underlying(s.Results[0].Type)
-		enum := resultType.(*types.Enumeration)
-		fmt.Fprintf(&buf, "SyscallResults { value: 0, error: result.as_%s()%s }", sharedToString(enum.Type), sharedToU64(enum.Type))
-	case 2:
-		buf.WriteString("match result {\n")
-		buf.WriteString(indent)
-		buf.WriteString("    Ok(value) => ")
-
-		resultType := types.Underlying(s.Results[0].Type)
-		enum := s.Results[1].Type.(*types.Reference).Underlying.(*types.Enumeration)
-		noError := fmt.Sprintf("error: %s::NoError.as_%s()%s", enum.Name.PascalCase(), sharedToString(enum.Type), sharedToU64(enum.Type))
-		if enum, ok := resultType.(*types.Enumeration); ok {
-			fmt.Fprintf(&buf, "SyscallResults { value: value.as_%s()%s, %s },\n", sharedToString(enum.Type), sharedToU64(enum.Type), noError)
-		} else if integer, ok := resultType.(types.Integer); ok && integer == types.Uint64 {
-			fmt.Fprintf(&buf, "SyscallResults { value, %s },\n", noError)
-		} else {
-			fmt.Fprintf(&buf, "SyscallResults { value: value%s, %s },\n", sharedToU64(resultType), noError)
-		}
-
-		resultType = types.Underlying(s.Results[1].Type)
-		buf.WriteString(indent)
-		buf.WriteString("    Err(error) => ")
-		noValue := "value: 0"
-		enum = resultType.(*types.Enumeration)
-		fmt.Fprintf(&buf, "SyscallResults { %s, error: error.as_%s()%s },\n", noValue, sharedToString(enum.Type), sharedToU64(enum.Type))
-		buf.WriteString(indent)
-		buf.WriteByte('}')
-	}
-
-	return buf.String()
 }
 
 func kernelToDocs(indent int, d types.Docs) string {
@@ -247,24 +189,4 @@ func kernelToDocs(indent int, d types.Docs) string {
 	buf.WriteString("///")
 
 	return buf.String()
-}
-
-func kernelTraitSignature(s *types.Syscall) string {
-	reg := "_registers: *mut SavedRegisters"
-	switch len(s.Results) {
-	case 1:
-		if len(s.Args) == 0 {
-			return fmt.Sprintf("%s(%s) -> %s", s.Name.SnakeCase(), reg, sharedToString(s.Results[0].Type))
-		} else {
-			return fmt.Sprintf("%s(%s, %s) -> %s", s.Name.SnakeCase(), reg, sharedParamNamesAndTypes(s.Args), sharedToString(s.Results[0].Type))
-		}
-	case 2:
-		if len(s.Args) == 0 {
-			return fmt.Sprintf("%s(%s) -> Result<%s>", s.Name.SnakeCase(), reg, sharedParamTypes(s.Results))
-		} else {
-			return fmt.Sprintf("%s(%s, %s) -> Result<%s>", s.Name.SnakeCase(), reg, sharedParamNamesAndTypes(s.Args), sharedParamTypes(s.Results))
-		}
-	}
-
-	panic(fmt.Sprintf("syscall has %d results", len(s.Results)))
 }

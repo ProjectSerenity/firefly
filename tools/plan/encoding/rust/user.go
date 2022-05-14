@@ -116,42 +116,22 @@ func GenerateUserCode(w io.Writer, file *types.File, rustfmt string) error {
 var userTemplatesFS embed.FS
 
 var userTemplates = template.Must(template.New("").Funcs(template.FuncMap{
-	"constructor":   userConstructor,
-	"fromU64":       sharedFromU64,
-	"funcSignature": userFuncSignature,
-	"isEnumeration": sharedIsEnumeration,
-	"isPadding":     sharedIsPadding,
-	"toDocs":        userToDocs,
-	"toString":      sharedToString,
-	"toU64":         sharedToU64,
+	"errorEnumeration":   sharedErrorEnumeration,
+	"fromU64":            sharedFromU64,
+	"isEnumeration":      sharedIsEnumeration,
+	"isPadding":          sharedIsPadding,
+	"oneResult":          sharedOneResult,
+	"paramNamesAndTypes": sharedParamNamesAndTypes,
+	"paramTypes":         sharedParamTypes,
+	"toDocs":             userToDocs,
+	"toString":           sharedToString,
+	"toU64":              sharedToU64,
 }).ParseFS(userTemplatesFS, "templates/*_rs.txt", "templates/user/*_rs.txt"))
 
 const (
 	userSyscallTemplate = "syscall_rs.txt"
 	userFileTemplate    = "file_rs.txt"
 )
-
-func userConstructor(variable string, varType types.Type) string {
-	varType = types.Underlying(varType)
-	if enum, ok := varType.(*types.Enumeration); ok {
-		enumType := enum.Name.PascalCase()
-		intType := sharedToString(enum.Type)
-		return fmt.Sprintf("%s::from_%s(%s%s).expect(\"invalid %s\")", enumType, intType, variable, sharedFromU64(enum.Type), enumType)
-	} else {
-		return fmt.Sprintf("%s%s", variable, sharedFromU64(varType))
-	}
-}
-
-func userFuncSignature(s *types.Syscall) string {
-	switch len(s.Results) {
-	case 1:
-		return fmt.Sprintf("%s(%s) -> %s", s.Name.SnakeCase(), sharedParamNamesAndTypes(s.Args), sharedToString(s.Results[0].Type))
-	case 2:
-		return fmt.Sprintf("%s(%s) -> Result<%s>", s.Name.SnakeCase(), sharedParamNamesAndTypes(s.Args), sharedParamTypes(s.Results))
-	}
-
-	panic(fmt.Sprintf("syscall has %d results", len(s.Results)))
-}
 
 func userToDocs(indent int, d types.Docs) string {
 	if len(d) == 0 {

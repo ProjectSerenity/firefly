@@ -1,10 +1,12 @@
 {{/* Variable definitions that simplify declarations later */}}
 {{- $num_args := len .Args -}}
 {{- $num_results := len .Results -}}
+{{- $error := errorEnumeration . -}}
 
 {{ toDocs 0 .Docs }}
 #[inline]
-pub fn {{ funcSignature . }} {
+pub fn {{ .Name.SnakeCase }}({{ paramNamesAndTypes .Args }}) -> {{ if oneResult . }}{{ range .Results }}{{ toString .Type }}{{ end -}}
+                                                                {{ else }}Result<{{ paramTypes .Results }}>{{ end }} {
     {{- /* Now that we've made the function signature, we write the body. */}}
     let sys = Syscalls::{{ .Name.PascalCase }}.as_u64();
     let (result1, result2) = unsafe { syscall{{ $num_args }}(sys
@@ -15,11 +17,17 @@ pub fn {{ funcSignature . }} {
     {{- /* Now that we've called syscall, we need to sort out the return value */ -}}
     {{- if eq $num_results 1 }}
     let _ = result1; // The first result is not used in this syscall.
-    {{ range .Results }}{{ constructor "result2" .Type }}{{ end }}
-    {{- else }}{{ $result1 := index .Results 0 }}{{ $result2 := index .Results 1 }}
-    match {{ toString $result2.Type }}::from_{{ toString $result2.Enumeration.Type }}(result2 as {{ toString $result2.Enumeration.Type }}).expect("invalid result from kernel") {
-        {{ toString $result2.Type }}::{{ $first_value := index $result2.Enumeration.Values 0 }}{{ $first_value.Name.PascalCase }} => Ok(
-        {{- constructor "result1" $result1.Type }}),
+    {{ toString $error }}::from_{{ toString $error.Type }}(result2{{ fromU64 $error.Type }}).expect("invalid {{ toString $error }}")
+    {{- else }}{{ $result1 := index .Results 0 }}
+    match {{ toString $error }}::from_{{ toString $error.Type }}(result2 as {{ toString $error.Type }}).expect("invalid result from kernel") {
+        {{ toString $error }}::{{ $first_value := index $error.Values 0 }}{{ $first_value.Name.PascalCase }} => Ok(
+            {{- if isEnumeration $result1.Type -}}
+                {{ toString $result1.Type }}::from_{{ toString $result1.Enumeration.Type }}(
+                    result1{{ fromU64 $result1.Enumeration.Type }}).expect("invalid {{ toString $result1.Type }}"
+                )
+            {{- else -}}
+                result1{{ fromU64 $result1.Type }}
+            {{- end }}),
         err => Err(err),
     }
     {{- end }}

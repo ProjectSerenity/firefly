@@ -31,7 +31,15 @@ pub trait SyscallABI {
     ) -> Error;
     {{ range .Syscalls }}
     {{ toDocs 1 .Docs }}
-    fn {{ traitSignature . }};
+    fn {{ .Name.SnakeCase }}(_registers: *mut SavedRegisters
+        {{- if .Args -}}
+            , {{ paramNamesAndTypes .Args }}
+        {{- end }}) ->
+        {{- if oneResult . -}}
+            {{ range .Results }}{{ toString .Type }}{{ end }}
+        {{- else -}}
+            Result<{{ paramTypes .Results }}>
+        {{- end }};
 {{ end -}}
 }
 
@@ -86,10 +94,44 @@ pub extern "sysv64" fn syscall_handler(
     registers: *mut SavedRegisters,
 ) -> SyscallResults {
     match Syscalls::from_u64(syscall_num) {
-        {{ range .Syscalls }}Some(Syscalls::{{ .Name.PascalCase }}) => {
-            {{ handleSyscall . }}
+        {{ range .Syscalls }}{{ $error := errorEnumeration . }}Some(Syscalls::{{ .Name.PascalCase }}) => {
+            {{ range $i, $arg := .Args -}}
+            let param{{ addOne $i }}: {{ toString $arg.Type }} =
+                {{- if isEnumeration $arg.Type -}}
+                    match {{ toString $arg.Type }}::from_{{ toString $arg.Enumeration.Type }}(arg{{ addOne $i }}{{ fromU64 $arg.Enumeration.Type }}) {
+                        Some(value) => value,
+                        None => return SyscallResults {
+                            value: 0,
+                            error: {{ toString $error }}::IllegalParameter.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
+                        },
+                    };
+                {{- else -}}
+                    arg{{ addOne $i }}{{ fromU64 $arg.Type }};
+                {{- end }}
+            {{ end -}}
+            let result = <FireflyABI as SyscallABI>::{{ .Name.SnakeCase }}(registers
+                {{- range $i, $arg := .Args -}}
+                    , param{{ addOne $i }}
+                {{- end }});
+            {{ if oneResult . -}}
+                SyscallResults {
+                    value: 0,
+                    error: result.as_{{ toString $error.Type }}(){{ toU64 $error.Type }},
+                }
+            {{- else -}}
+                match result {
+                    Ok(result) => SyscallResults {
+                        value: {{ nonErrorResult . "result" }},
+                        error: {{ toString $error }}::NoError.as_{{ toString $error.Type }}(){{ toU64 $error.Type }},
+                    },
+                    Err(result) => SyscallResults {
+                        value: 0,
+                        error: result.as_{{ toString $error.Type }}(){{ toU64 $error.Type }},
+                    },
+                }
+            {{- end }}
         }
-{{- end }}
+        {{- end }}
         None => {
             let error = <FireflyABI as SyscallABI>::bad_syscall(registers, arg1, arg2, arg3, arg4, arg5, arg6, syscall_num);
             SyscallResults {

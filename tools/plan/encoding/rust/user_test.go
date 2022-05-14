@@ -233,25 +233,6 @@ func TestUserTemplates(t *testing.T) {
 			},
 		},
 		{
-			Name: "simple syscall with no args and one result",
-			Want: "syscall_rs_no_args_one_result",
-			Tmpl: userSyscallTemplate,
-			Type: &types.Syscall{
-				Name: types.Name{"simple", "syscall"},
-				Docs: types.Docs{
-					types.Text("A simple function that takes no arguments and"),
-					types.Newline{},
-					types.Text("returns no results."),
-				},
-				Results: []*types.Parameter{
-					{
-						Name: types.Name{"the", "first"},
-						Type: types.Uint16,
-					},
-				},
-			},
-		},
-		{
 			Name: "simple syscall with no args and enum result",
 			Want: "syscall_rs_no_args_enum_result",
 			Tmpl: userSyscallTemplate,

@@ -17,6 +17,14 @@ const (
 	structureTemplate   = "structure_rs.txt"
 )
 
+func sharedAddOne(i int) int {
+	return i + 1
+}
+
+func sharedErrorEnumeration(s *types.Syscall) *types.Enumeration {
+	return s.Results[len(s.Results)-1].Type.(*types.Reference).Underlying.(*types.Enumeration)
+}
+
 func sharedFromU64(t types.Type) string {
 	t = types.Underlying(t)
 	if integer, ok := t.(types.Integer); ok && integer == types.Uint64 {
@@ -34,6 +42,10 @@ func sharedIsEnumeration(typ types.Type) bool {
 func sharedIsPadding(typ types.Type) bool {
 	_, ok := typ.(types.Padding)
 	return ok
+}
+
+func sharedOneResult(s *types.Syscall) bool {
+	return len(s.Results) == 1
 }
 
 func sharedParamNamesAndTypes(p types.Parameters) string {
