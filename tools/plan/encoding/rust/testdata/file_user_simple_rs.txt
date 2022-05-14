@@ -199,7 +199,13 @@ pub unsafe fn syscall6(
 pub enum Syscalls {
     /// Denies the process access to the specified syscalls.
     ///
+    /// Attempts to call denied syscalls will result in the [`Error`] `bad syscall`.
+    ///
     DenySyscalls,
+
+    /// Returns the [`FileInfo`] for `name`.
+    ///
+    Stat,
 }
 
 impl Syscalls {
@@ -210,6 +216,7 @@ impl Syscalls {
     pub const fn from_u64(val: u64) -> Option<Self> {
         match val {
             0_u64 => Some(Syscalls::DenySyscalls),
+            1_u64 => Some(Syscalls::Stat),
             _ => None,
         }
     }
@@ -221,11 +228,12 @@ impl Syscalls {
     pub const fn as_u64(&self) -> u64 {
         match self {
             Syscalls::DenySyscalls => 0_u64,
+            Syscalls::Stat => 1_u64,
         }
     }
 }
 
-/// Information about a file in a filesystem.
+/// Information about a file in a filesystem, returned by [`stat`].
 ///
 #[repr(packed)]
 #[derive(Clone, Copy, Debug)]
@@ -234,7 +242,7 @@ pub struct FileInfo {
     ///
     pub name_pointer: *const u8,
 
-    /// The number of bytes at 'name pointer'.
+    /// The number of bytes at `name pointer`.
     ///
     pub name_size: u32,
 }
@@ -283,11 +291,76 @@ impl Error {
     }
 }
 
+/// Any error encountered during an I/O operation.
+///
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IoError {
+    /// No error occurred.
+    ///
+    NoError,
+
+    /// The specified syscall does not exist.
+    ///
+    BadSyscall,
+
+    /// A parameter to the syscall is an illegal value.
+    ///
+    IllegalParameter,
+
+    /// The specified file does not exist.
+    ///
+    FileNotFound,
+}
+
+impl IoError {
+    /// Returns the [`IoError`] value that corresponds
+    /// to `val`, or `None`.
+    ///
+    #[allow(dead_code)]
+    pub const fn from_u64(val: u64) -> Option<Self> {
+        match val {
+            0_u64 => Some(IoError::NoError),
+            1_u64 => Some(IoError::BadSyscall),
+            2_u64 => Some(IoError::IllegalParameter),
+            3_u64 => Some(IoError::FileNotFound),
+            _ => None,
+        }
+    }
+
+    /// Returns the numerical value that corresponds to
+    /// the [`IoError`].
+    ///
+    #[allow(dead_code)]
+    pub const fn as_u64(&self) -> u64 {
+        match self {
+            IoError::NoError => 0_u64,
+            IoError::BadSyscall => 1_u64,
+            IoError::IllegalParameter => 2_u64,
+            IoError::FileNotFound => 3_u64,
+        }
+    }
+}
+
 /// Denies the process access to the specified syscalls.
+///
+/// Attempts to call denied syscalls will result in the [`Error`] `bad syscall`.
 ///
 #[inline]
 pub fn deny_syscalls(syscalls: Syscalls) -> Error {
     let sys = Syscalls::DenySyscalls.as_u64();
-    let (result1, _) = unsafe { syscall1(sys, syscalls.as_u64()) };
+    let (result1, result2) = unsafe { syscall1(sys, syscalls.as_u64()) };
+    let _ = result2; // Ignore the second result.
     Error::from_u64(result1).expect("invalid Error")
+}
+
+/// Returns the [`FileInfo`] for `name`.
+///
+#[inline]
+pub fn stat(name_pointer: *const u8, name_size: u64) -> Result<*mut FileInfo, IoError> {
+    let sys = Syscalls::Stat.as_u64();
+    let (result1, result2) = unsafe { syscall2(sys, name_pointer as u64, name_size) };
+    match IoError::from_u64(result2 as u64).expect("invalid result from kernel") {
+        IoError::NoError => Ok(result1 as *mut FileInfo),
+        err => Err(err),
+    }
 }

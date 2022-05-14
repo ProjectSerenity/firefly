@@ -253,11 +253,7 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 	// integer types under the hood), or pointers.
 	for _, syscall := range i.out.Syscalls {
 		for j, arg := range syscall.Args {
-			argType := arg.Type
-			if ref, ok := argType.(*Reference); ok {
-				argType = ref.Underlying
-			}
-
+			argType := Underlying(arg.Type)
 			switch argType.(type) {
 			case Integer, *Enumeration, *Pointer:
 			case nil:
@@ -269,11 +265,7 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 		}
 
 		for j, result := range syscall.Results {
-			resultType := result.Type
-			if ref, ok := resultType.(*Reference); ok {
-				resultType = ref.Underlying
-			}
-
+			resultType := Underlying(result.Type)
 			switch resultType.(type) {
 			case Integer, *Enumeration, *Pointer:
 			case nil:
@@ -291,11 +283,7 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 			return i.errorf(syscall.Node, "cannot handle errors in %s: syscall has no results", syscall)
 		} else {
 			result := syscall.Results[len(syscall.Results)-1]
-			resultType := result.Type
-			if ref, ok := resultType.(*Reference); ok {
-				resultType = ref.Underlying
-			}
-
+			resultType := Underlying(result.Type)
 			enum, ok := resultType.(*Enumeration)
 			if !ok {
 				return i.errorf(result.Node, "cannot handle errors in %s: expected final result to be enumeration, found %s", syscall, resultType)

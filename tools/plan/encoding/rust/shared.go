@@ -6,71 +6,64 @@
 package rust
 
 import (
-	"embed"
 	"fmt"
 	"strings"
-	"text/template"
 
 	"github.com/ProjectSerenity/firefly/tools/plan/types"
 )
 
-// Use templates to define custom types and functions.
-
-// The templates used to render type definitions
-// as Rust code.
-//
-//go:embed templates/*_rs.txt
-var templatesFS embed.FS
-
-var templates = template.Must(template.New("").Funcs(template.FuncMap{
-	"fieldDefinition":           fieldDefinition,
-	"funcSignature":             syscallSignature,
-	"traitSignature":            syscallTraitSignature,
-	"callSyscallImplementation": callSyscallImplementation,
-	"recvResults":               syscallRecvResults,
-	"toString":                  toString,
-	"toDocs":                    toDocs,
-	"fromU64":                   fromU64,
-	"toU64":                     toU64,
-	"constructor":               constructor,
-}).ParseFS(templatesFS, "templates/*"))
-
 const (
 	enumerationTemplate = "enumeration_rs.txt"
 	structureTemplate   = "structure_rs.txt"
-	syscallTemplate     = "syscall_rs.txt"
-	fileUserTemplate    = "file_user_rs.txt"
-	fileKernelTemplate  = "file_kernel_rs.txt"
 )
 
-// Most values are u64, so we can ignore
-// conversions to and from it.
-func fromU64(t types.Type) string {
-	if ref, ok := t.(*types.Reference); ok {
-		t = ref.Underlying
-	}
-
+func sharedFromU64(t types.Type) string {
+	t = types.Underlying(t)
 	if integer, ok := t.(types.Integer); ok && integer == types.Uint64 {
 		return ""
 	}
 
-	return fmt.Sprintf(" as %s", toString(t))
+	return fmt.Sprintf(" as %s", sharedToString(t))
 }
 
-func toU64(t types.Type) string {
-	if ref, ok := t.(*types.Reference); ok {
-		t = ref.Underlying
-	}
+func sharedIsEnumeration(typ types.Type) bool {
+	_, ok := types.Underlying(typ).(*types.Enumeration)
+	return ok
+}
 
-	if integer, ok := t.(types.Integer); ok && integer == types.Uint64 {
+func sharedIsPadding(typ types.Type) bool {
+	_, ok := typ.(types.Padding)
+	return ok
+}
+
+func sharedParamNamesAndTypes(p types.Parameters) string {
+	if len(p) == 0 {
 		return ""
 	}
 
-	return fmt.Sprintf(" as u64")
+	names := make([]string, len(p))
+	for i, param := range p {
+		names[i] = param.Name.SnakeCase() + ": " + sharedToString(p[i].Type)
+	}
+
+	return strings.Join(names, ", ")
 }
 
-func toString(t types.Type) string {
-	switch t := t.(type) {
+func sharedParamTypes(p types.Parameters) string {
+	if len(p) == 0 {
+		return ""
+	}
+
+	names := make([]string, len(p))
+	for i, param := range p {
+		names[i] = sharedToString(param.Type)
+	}
+
+	return strings.Join(names, ", ")
+}
+
+func sharedToString(t types.Type) string {
+	switch t := types.Underlying(t).(type) {
 	case types.Integer:
 		ss := map[types.Integer]string{
 			types.Byte:   "u8",
@@ -92,15 +85,9 @@ func toString(t types.Type) string {
 		return s
 	case *types.Pointer:
 		if t.Mutable {
-			return "*mut " + toString(t.Underlying)
+			return "*mut " + sharedToString(t.Underlying)
 		} else {
-			return "*const " + toString(t.Underlying)
-		}
-	case *types.Reference:
-		if _, ok := t.Underlying.(*types.SyscallReference); ok {
-			return t.Name.SnakeCase()
-		} else {
-			return t.Name.PascalCase()
+			return "*const " + sharedToString(t.Underlying)
 		}
 	case types.Padding:
 		return fmt.Sprintf("[u8; %d]", t)
@@ -108,71 +95,17 @@ func toString(t types.Type) string {
 		return t.Name.PascalCase()
 	case *types.Structure:
 		return t.Name.PascalCase()
+	case *types.SyscallReference:
+		return t.Name.SnakeCase()
 	default:
-		panic(fmt.Sprintf("toString(%T): unexpected type", t))
+		panic(fmt.Sprintf("sharedToString(%T): unexpected type", t))
 	}
 }
 
-func toDocs(indent int, d types.Docs) string {
-	var buf strings.Builder
-	buf.WriteString("/// ")
-	for _, item := range d {
-		switch item := item.(type) {
-		case types.Text:
-			buf.WriteString(string(item))
-		case types.CodeText:
-			buf.WriteByte('`')
-			buf.WriteString(string(item))
-			buf.WriteByte('`')
-		case types.ReferenceText:
-			buf.WriteString("[`")
-			buf.WriteString(toString(item.Type))
-			buf.WriteString("`]")
-		case types.Newline:
-			buf.WriteByte('\n')
-			for j := 0; j < indent; j++ {
-				buf.WriteString("    ")
-			}
-
-			buf.WriteString("/// ")
-		default:
-			panic(fmt.Sprintf("toDocs(%T): unexpected type", item))
-		}
-	}
-
-	// Add a trailing empty comment.
-	buf.WriteByte('\n')
-	for j := 0; j < indent; j++ {
-		buf.WriteString("    ")
-	}
-
-	buf.WriteString("///")
-
-	return buf.String()
-}
-
-func paramNamesAndTypes(p types.Parameters) string {
-	if len(p) == 0 {
+func sharedToU64(t types.Type) string {
+	if integer, ok := types.Underlying(t).(types.Integer); ok && integer == types.Uint64 {
 		return ""
 	}
 
-	names := make([]string, len(p))
-	for i, param := range p {
-		names[i] = param.Name.SnakeCase() + ": " + toString(p[i].Type)
-	}
-
-	return strings.Join(names, ", ")
-}
-
-func paramTypes(p types.Parameters) string {
-	if len(p) == 0 {
-		return ""
-	}
-
-	names := make([]string, len(p))
-	for i, param := range p {
-		names[i] = toString(param.Type)
-	}
-
-	return strings.Join(names, ", ")
+	return " as u64"
 }

@@ -7,13 +7,14 @@
 pub fn {{ funcSignature . }} {
     {{- /* Now that we've made the function signature, we write the body. */}}
     let sys = Syscalls::{{ .Name.PascalCase }}.as_u64();
-    let {{ recvResults . }} = unsafe { syscall{{ $num_args }}(sys
-    {{- range .Args }}, {{ .Name.SnakeCase }}{{ if .IsEnumeration }}.as_{{ toString .Enumeration.Type }}(){{ toU64 .Enumeration.Type }}
+    let (result1, result2) = unsafe { syscall{{ $num_args }}(sys
+    {{- range .Args }}, {{ .Name.SnakeCase }}{{ if isEnumeration .Type }}.as_{{ toString .Enumeration.Type }}(){{ toU64 .Enumeration.Type }}
                                              {{- else }}{{ toU64 .Type }}{{ end -}}
                                              {{ end }}) };
 
     {{- /* Now that we've called syscall, we need to sort out the return value */ -}}
     {{- if eq $num_results 1 }}
+    let _ = result2; // Ignore the second result.
     {{ range .Results }}{{ constructor "result1" .Type }}{{ end }}
     {{- else }}{{ $result1 := index .Results 0 }}{{ $result2 := index .Results 1 }}
     match {{ toString $result2.Type }}::from_{{ toString $result2.Enumeration.Type }}(result2 as {{ toString $result2.Enumeration.Type }}).expect("invalid result from kernel") {

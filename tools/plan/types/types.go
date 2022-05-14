@@ -179,6 +179,20 @@ type Type interface {
 	String() string
 }
 
+// Underlying returns the base type, dereferencing
+// any References if necessary.
+//
+func Underlying(typ Type) Type {
+	for {
+		ref, ok := typ.(*Reference)
+		if !ok {
+			return typ
+		}
+
+		typ = ref.Underlying
+	}
+}
+
 // Integer represents a primitive integer,
 // type.
 //
@@ -458,23 +472,8 @@ type Parameter struct {
 	Type Type
 }
 
-func (p *Parameter) IsEnumeration() bool {
-	paramType := p.Type
-	if ref, ok := paramType.(*Reference); ok {
-		paramType = ref.Underlying
-	}
-
-	_, ok := paramType.(*Enumeration)
-	return ok
-}
-
 func (p *Parameter) Enumeration() *Enumeration {
-	paramType := p.Type
-	if ref, ok := paramType.(*Reference); ok {
-		paramType = ref.Underlying
-	}
-
-	return paramType.(*Enumeration)
+	return Underlying(p.Type).(*Enumeration)
 }
 
 func (p *Parameter) Size(a Arch) int {

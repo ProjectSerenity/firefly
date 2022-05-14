@@ -7,11 +7,14 @@ package rust
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"sort"
+	"strings"
+	"text/template"
 
 	"github.com/ProjectSerenity/firefly/tools/plan/ast"
 	"github.com/ProjectSerenity/firefly/tools/plan/types"
@@ -24,15 +27,15 @@ import (
 func GenerateUserCode(w io.Writer, file *types.File, rustfmt string) error {
 	// Start with the prelude.
 	var buf bytes.Buffer
-	err := templates.ExecuteTemplate(&buf, fileUserTemplate, file)
+	err := userTemplates.ExecuteTemplate(&buf, userFileTemplate, file)
 	if err != nil {
-		return fmt.Errorf("failed to execute %s: %v", fileUserTemplate, err)
+		return fmt.Errorf("failed to execute %s: %v", userFileTemplate, err)
 	}
 
 	buf.WriteString("\n\n")
 
 	// Then add the enumeration of the syscalls.
-	err = templates.ExecuteTemplate(&buf, enumerationTemplate, file.SyscallsEnumeration())
+	err = userTemplates.ExecuteTemplate(&buf, enumerationTemplate, file.SyscallsEnumeration())
 	if err != nil {
 		return fmt.Errorf("failed to append syscalls enumeration: %v", err)
 	}
@@ -75,12 +78,12 @@ func GenerateUserCode(w io.Writer, file *types.File, rustfmt string) error {
 		case *types.Structure:
 			template = structureTemplate
 		case *types.Syscall:
-			template = syscallTemplate
+			template = userSyscallTemplate
 		default:
 			panic(fmt.Sprintf("unreachable file item type %T", item))
 		}
 
-		err := templates.ExecuteTemplate(&buf, template, item)
+		err := userTemplates.ExecuteTemplate(&buf, template, item)
 		if err != nil {
 			return fmt.Errorf("failed to execute template %q with %T: %v", template, item, err)
 		}
@@ -106,48 +109,95 @@ func GenerateUserCode(w io.Writer, file *types.File, rustfmt string) error {
 	return nil
 }
 
-func constructor(variable string, varType types.Type) string {
-	if ref, ok := varType.(*types.Reference); ok {
-		varType = ref.Underlying
-	}
+// The templates used to render type definitions
+// as Rust code.
+//
+//go:embed templates/*_rs.txt templates/user/*_rs.txt
+var userTemplatesFS embed.FS
 
+var userTemplates = template.Must(template.New("").Funcs(template.FuncMap{
+	"constructor":   userConstructor,
+	"fromU64":       sharedFromU64,
+	"funcSignature": userFuncSignature,
+	"isEnumeration": sharedIsEnumeration,
+	"isPadding":     sharedIsPadding,
+	"toDocs":        userToDocs,
+	"toString":      sharedToString,
+	"toU64":         sharedToU64,
+}).ParseFS(userTemplatesFS, "templates/*_rs.txt", "templates/user/*_rs.txt"))
+
+const (
+	userSyscallTemplate = "syscall_rs.txt"
+	userFileTemplate    = "file_rs.txt"
+)
+
+func userConstructor(variable string, varType types.Type) string {
+	varType = types.Underlying(varType)
 	if enum, ok := varType.(*types.Enumeration); ok {
 		enumType := enum.Name.PascalCase()
-		intType := toString(enum.Type)
-		return fmt.Sprintf("%s::from_%s(%s%s).expect(\"invalid %s\")", enumType, intType, variable, fromU64(enum.Type), enumType)
+		intType := sharedToString(enum.Type)
+		return fmt.Sprintf("%s::from_%s(%s%s).expect(\"invalid %s\")", enumType, intType, variable, sharedFromU64(enum.Type), enumType)
 	} else {
-		return fmt.Sprintf("%s as %s", variable, toString(varType))
+		return fmt.Sprintf("%s%s", variable, sharedFromU64(varType))
 	}
 }
 
-func fieldDefinition(f *types.Field) string {
-	// We make padding fields private and
-	// all other fields public.
-	if _, ok := f.Type.(types.Padding); ok {
-		return fmt.Sprintf("#[allow(dead_code)]\n    _%s: %s,", f.Name.SnakeCase(), toString(f.Type))
-	} else {
-		return fmt.Sprintf("pub %s: %s,", f.Name.SnakeCase(), toString(f.Type))
-	}
-}
-
-func syscallSignature(s *types.Syscall) string {
+func userFuncSignature(s *types.Syscall) string {
 	switch len(s.Results) {
 	case 1:
-		return fmt.Sprintf("%s(%s) -> %s", s.Name.SnakeCase(), paramNamesAndTypes(s.Args), toString(s.Results[0].Type))
+		return fmt.Sprintf("%s(%s) -> %s", s.Name.SnakeCase(), sharedParamNamesAndTypes(s.Args), sharedToString(s.Results[0].Type))
 	case 2:
-		return fmt.Sprintf("%s(%s) -> Result<%s>", s.Name.SnakeCase(), paramNamesAndTypes(s.Args), paramTypes(s.Results))
+		return fmt.Sprintf("%s(%s) -> Result<%s>", s.Name.SnakeCase(), sharedParamNamesAndTypes(s.Args), sharedParamTypes(s.Results))
 	}
 
 	panic(fmt.Sprintf("syscall has %d results", len(s.Results)))
 }
 
-func syscallRecvResults(s *types.Syscall) string {
-	switch len(s.Results) {
-	case 1:
-		return "(result1, _)"
-	case 2:
-		return "(result1, result2)"
+func userToDocs(indent int, d types.Docs) string {
+	if len(d) == 0 {
+		return ""
 	}
 
-	panic(fmt.Sprintf("syscall has %d results", len(s.Results)))
+	var buf strings.Builder
+	buf.WriteString("/// ")
+	for _, item := range d {
+		switch item := item.(type) {
+		case types.Text:
+			buf.WriteString(string(item))
+		case types.CodeText:
+			buf.WriteByte('`')
+			buf.WriteString(string(item))
+			buf.WriteByte('`')
+		case types.ReferenceText:
+			buf.WriteString("[`")
+			buf.WriteString(sharedToString(item.Type))
+			buf.WriteString("`]")
+		case types.Newline:
+			// Add a blank comment.
+			buf.WriteByte('\n')
+			for j := 0; j < indent; j++ {
+				buf.WriteString("    ")
+			}
+
+			buf.WriteString("///\n")
+			// Add the next comment.
+			for j := 0; j < indent; j++ {
+				buf.WriteString("    ")
+			}
+
+			buf.WriteString("/// ")
+		default:
+			panic(fmt.Sprintf("userToDocs(%T): unexpected type", item))
+		}
+	}
+
+	// Add a trailing empty comment.
+	buf.WriteByte('\n')
+	for j := 0; j < indent; j++ {
+		buf.WriteString("    ")
+	}
+
+	buf.WriteString("///")
+
+	return buf.String()
 }

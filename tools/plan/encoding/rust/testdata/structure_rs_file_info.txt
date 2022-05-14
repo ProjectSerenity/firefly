@@ -1,4 +1,5 @@
 /// The file info structure is used to represent information about
+///
 /// one file in a filesystem.
 ///
 #[repr(packed)]

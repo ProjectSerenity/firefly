@@ -2,11 +2,15 @@
 #[repr(packed)]
 #[derive(Clone, Copy, Debug)]
 pub struct {{ .Name.PascalCase }} {
-    {{- range $i, $field := .Fields }}
+{{- range $i, $field := .Fields }}
     {{- /* Add a newline for fields after the first, to space them apart. */ -}}
-    {{- if ne $i 0 }}
+    {{- if $i }}
 {{ end }}
     {{ toDocs 1 .Docs }}
-    {{ fieldDefinition . }}
-    {{- end }}
+    {{ if isPadding .Type -}}
+    #[allow(dead_code)]
+    _
+    {{- else }}pub {{ end -}}
+    {{ .Name.SnakeCase }}: {{ toString .Type }},
+{{- end }}
 }

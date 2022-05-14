@@ -87,7 +87,7 @@ pub extern "sysv64" fn syscall_handler(
 ) -> SyscallResults {
     match Syscalls::from_u64(syscall_num) {
         {{ range .Syscalls }}Some(Syscalls::{{ .Name.PascalCase }}) => {
-            {{ callSyscallImplementation . }}
+            {{ handleSyscall . }}
         }
 {{- end }}
         None => {

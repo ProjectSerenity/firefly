@@ -8,7 +8,7 @@ pub enum {{ $name }} {
     {{- /* For each value in the enumeration, we print the value's documentation and name */ -}}
     {{- range $i, $value := .Values }}
     {{- /* Add a newline for fields after the first, to space them apart. */ -}}
-    {{- if ne $i 0 }}
+    {{- if $i }}
 {{ end }}
     {{ toDocs 1 $value.Docs }}
     {{ $value.Name.PascalCase }},
@@ -24,7 +24,8 @@ impl {{ $name }} {
     pub const fn from_{{ $type }}(val: {{ $type }}) -> Option<Self> {
         match val {
             {{ range $i, $value := .Values }}{{ $i }}_{{ $type }} => Some({{ $name }}::{{ $value.Name.PascalCase }}),
-            {{ end }}_ => None,
+            {{ end -}}
+            _ => None,
         }
     }
 
@@ -33,8 +34,10 @@ impl {{ $name }} {
     ///
     #[allow(dead_code)]
     pub const fn as_{{ $type }}(&self) -> {{ $type }} {
-        match self { {{- range $i, $value := .Values }}
-            {{ $name }}::{{ $value.Name.PascalCase }} => {{ $i }}_{{ $type }},{{- end }}
+        match self {
+        {{- range $i, $value := .Values }}
+            {{ $name }}::{{ $value.Name.PascalCase }} => {{ $i }}_{{ $type }},
+        {{- end }}
         }
     }
 }

@@ -52,13 +52,17 @@ pub trait SyscallABI {
         baz: *const i8,
     ) -> Result<u64, Error>;
 
-    /// Returns the information about the named file.
+    /// Returns the information about the `name` file.
     ///
     fn get_file_info(
         _registers: *mut SavedRegisters,
         name_pointer: *const u8,
         name_size: u64,
     ) -> Result<*const FileInfo, IoError>;
+
+    /// Returns a [`Colour`].
+    ///
+    fn get_colour(_registers: *mut SavedRegisters) -> Result<Colour, Error>;
 }
 
 /// The set of saved registers from the user thread that
@@ -189,6 +193,19 @@ pub extern "sysv64" fn syscall_handler(
                 },
             }
         }
+        Some(Syscalls::GetColour) => {
+            let result = <FireflyABI as SyscallABI>::get_colour(registers);
+            match result {
+                Ok(value) => SyscallResults {
+                    value: value.as_i8() as u64,
+                    error: Error::NoError.as_u64(),
+                },
+                Err(error) => SyscallResults {
+                    value: 0,
+                    error: error.as_u64(),
+                },
+            }
+        }
         None => {
             let error = <FireflyABI as SyscallABI>::bad_syscall(
                 registers,
@@ -229,9 +246,13 @@ pub enum Syscalls {
     ///
     ThreeArgsTwoResults,
 
-    /// Returns the information about the named file.
+    /// Returns the information about the `name` file.
     ///
     GetFileInfo,
+
+    /// Returns a [`Colour`].
+    ///
+    GetColour,
 }
 
 impl Syscalls {
@@ -246,6 +267,7 @@ impl Syscalls {
             2_u64 => Some(Syscalls::GetProcessId),
             3_u64 => Some(Syscalls::ThreeArgsTwoResults),
             4_u64 => Some(Syscalls::GetFileInfo),
+            5_u64 => Some(Syscalls::GetColour),
             _ => None,
         }
     }
@@ -261,6 +283,7 @@ impl Syscalls {
             Syscalls::GetProcessId => 2_u64,
             Syscalls::ThreeArgsTwoResults => 3_u64,
             Syscalls::GetFileInfo => 4_u64,
+            Syscalls::GetColour => 5_u64,
         }
     }
 }
@@ -312,6 +335,9 @@ pub struct FileInfo {
     ///
     pub name_pointer: *const u8,
 
+    #[allow(dead_code)]
+    _padding: [u8; 4],
+
     /// The number of bytes at 'name pointer'.
     ///
     pub name_size: u32,
@@ -361,7 +387,7 @@ impl Error {
     }
 }
 
-/// An I/O error.
+/// An I/O error returned by [`get_file_info`](SyscallABI::get_file_info).
 ///
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum IoError {

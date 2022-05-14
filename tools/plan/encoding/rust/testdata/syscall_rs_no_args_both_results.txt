@@ -1,4 +1,5 @@
 /// A simple function that takes no arguments and
+///
 /// returns no results.
 ///
 #[inline]

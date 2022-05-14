@@ -131,7 +131,7 @@ func addOne(i int) int {
 }
 
 func toString(t types.Type) template.HTML {
-	switch t := t.(type) {
+	switch t := types.Underlying(t).(type) {
 	case types.Integer:
 		return template.HTML(t.String())
 	case *types.Pointer:
@@ -140,8 +140,6 @@ func toString(t types.Type) template.HTML {
 		} else {
 			return "*constant " + toString(t.Underlying)
 		}
-	case *types.Reference:
-		return toString(t.Underlying)
 	case types.Padding:
 		return template.HTML(fmt.Sprintf("%d-byte padding", t))
 	case *types.Enumeration:

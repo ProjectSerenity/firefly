@@ -47,6 +47,10 @@ func TestGenerateKernelCode(t *testing.T) {
 			               (docs "The pointer to the file's name contents.")
 			               (type *constant byte))
 			           (field
+			               (name padding)
+			               (docs "")
+			               (padding 4))
+			           (field
 			               (name name size)
 			               (docs "The number of bytes at 'name pointer'.")
 			               (type uint32)))
@@ -67,7 +71,7 @@ func TestGenerateKernelCode(t *testing.T) {
 
 			       (enumeration
 			           (name io error)
-			           (docs "An I/O error.")
+			           (docs "An I/O error returned by" (reference get file info) ".")
 			           (type uint64)
 			           (embed error))
 
@@ -105,7 +109,7 @@ func TestGenerateKernelCode(t *testing.T) {
 
 			       (syscall
 			           (name three args two results)
-			           (docs "Docs on\n" "two lines")
+			           (docs "Docs on" "" "two lines")
 			           (arg1
 			               (name foo)
 			               (docs "")
@@ -129,7 +133,7 @@ func TestGenerateKernelCode(t *testing.T) {
 
 			       (syscall
 			           (name get file info)
-			           (docs "Returns the information about the named file.")
+			           (docs "Returns the information about the" (code "name") "file.")
 			           (arg1
 			               (name name pointer)
 			               (docs "")
@@ -145,7 +149,19 @@ func TestGenerateKernelCode(t *testing.T) {
 			           (result2
 			               (name size)
 			               (docs "")
-			               (type io error)))`,
+			               (type io error)))
+
+			       (syscall
+			           (name get colour)
+			           (docs "Returns a" (reference colour) ".")
+			           (result1
+			               (name colour)
+			               (docs "")
+			               (type colour))
+			           (result2
+			               (name error)
+			               (docs "")
+			               (type error)))`,
 		},
 	}
 
