@@ -20,7 +20,7 @@ pub mod syscalls {
     include!(env!("SYSCALLS_RS"));
 }
 
-use self::syscalls::{debug_abi_errors, Error};
+use self::syscalls::{debug_abi_errors, debug_abi_range, Error, Syscalls};
 use core::arch::asm;
 use core::fmt;
 use core::fmt::Write;
@@ -87,7 +87,7 @@ pub fn test_syscall_abi() {
         // Use bit patterns that are unlikely
         // to be mistaken for one another if
         // bits are copied across by mistake.
-        rax: syscalls::Syscalls::DebugAbiRegisters.as_u64(),
+        rax: Syscalls::DebugAbiRegisters.as_u64(),
         rbx: 0, // RBX is used internally by LLVM and cannot be overridden.
         rcx: 0, // RCX is destroyed.
         rdx: 0x1032_5476_98ba_dcfe_u64,
@@ -210,6 +210,67 @@ pub fn test_syscall_abi() {
     assert_eq!(
         debug_abi_errors(Error::IllegalParameter),
         Error::IllegalParameter
+    );
+
+    // Check that the syscall handler performs
+    // bounds checks for integer types.
+
+    // Signed integer.
+    assert_eq!(debug_abi_range(-128, 0, Error::NoError), Error::NoError);
+    assert_eq!(debug_abi_range(0, 0, Error::NoError), Error::NoError);
+    assert_eq!(debug_abi_range(127, 0, Error::NoError), Error::NoError);
+    assert_eq!(
+        unsafe {
+            syscalls::syscall3(
+                Syscalls::DebugAbiRange.as_u64(),
+                -129i16 as u64,
+                0u8 as u64,
+                Error::NoError.as_u64(),
+            )
+        },
+        (0u64, Error::IllegalParameter.as_u64())
+    );
+    assert_eq!(
+        unsafe {
+            syscalls::syscall3(
+                Syscalls::DebugAbiRange.as_u64(),
+                128i16 as u64,
+                0u8 as u64,
+                Error::NoError.as_u64(),
+            )
+        },
+        (0u64, Error::IllegalParameter.as_u64())
+    );
+    // Unsigned integer.
+    assert_eq!(debug_abi_range(0, 0, Error::NoError), Error::NoError);
+    assert_eq!(debug_abi_range(0, 255, Error::NoError), Error::NoError);
+    assert_eq!(
+        unsafe {
+            syscalls::syscall3(
+                Syscalls::DebugAbiRange.as_u64(),
+                0i16 as u64,
+                256u16 as u64,
+                Error::NoError.as_u64(),
+            )
+        },
+        (0u64, Error::IllegalParameter.as_u64())
+    );
+    // Enumeration.
+    assert_eq!(debug_abi_range(0, 0, Error::NoError), Error::NoError);
+    assert_eq!(
+        debug_abi_range(0, 0, Error::IllegalParameter),
+        Error::NoError
+    );
+    assert_eq!(
+        unsafe {
+            syscalls::syscall3(
+                Syscalls::DebugAbiRange.as_u64(),
+                0i16 as u64,
+                0u16 as u64,
+                0xffff_ffff_ffff_ffff_u64,
+            )
+        },
+        (0u64, Error::IllegalParameter.as_u64())
     );
 }
 

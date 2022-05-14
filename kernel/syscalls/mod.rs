@@ -125,6 +125,20 @@ impl SyscallABI for FireflyABI {
         error
     }
 
+    /// Allows diagnostics of the syscall ABI by userspace.
+    /// The syscall checks that the passed parameter is in
+    /// range and returns an [`Error`] accordingly.
+    ///
+    #[inline]
+    fn debug_abi_range(
+        _registers: *mut SavedRegisters,
+        _signed_value: i8,
+        _unsigned_value: u8,
+        _error: Error,
+    ) -> Error {
+        Error::NoError
+    }
+
     /// Prints a message to teh process's standard output.
     ///
     #[inline]

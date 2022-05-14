@@ -151,6 +151,31 @@
 
 
 (syscall
+	(name debug abi range)
+	(docs
+		"Allows diagnostics of the syscall ABI by userspace. The syscall checks"
+		"that the passed parameter is in range and returns an"
+		(reference error)
+		"accordingly.")
+	(arg1
+		(name signed value)
+		(docs "An 8-bit signed integer value.")
+		(type sint8))
+	(arg2
+		(name unsigned value)
+		(docs "An 8-bit unsigned integer value.")
+		(type uint8))
+	(arg3
+		(name error)
+		(docs "An example enumeration to bounds check.")
+		(type error))
+	(result1
+		(name error)
+		(docs "The error indicating the suitability of the passed values.")
+		(type error)))
+
+
+(syscall
 	(name print message)
 	(docs
 		"Prints a message to the process's standard output."
