@@ -121,6 +121,28 @@ qemu(
     qemu = "qemu-system-x86_64",
 )
 
+qemu(
+    name = "diagnostics",
+    drive = "//user/diagnostics-workload:tar",
+    image = ":image.bin",
+    options = [
+        "-device",
+        "virtio-net,netdev=net0,disable-legacy=on,disable-modern=off",
+        "-netdev",
+        "user,id=net0",
+        "-object",
+        "filter-dump,id=filter0,netdev=net0,file=virtio-net.pcap",
+        "-device",
+        "virtio-rng-pci,disable-legacy=on,disable-modern=off",
+        "-serial",
+        "stdio",
+        "-display",
+        "none",
+        "-no-reboot",
+    ],
+    qemu = "qemu-system-x86_64",
+)
+
 # Allow our dependencies to be updated with `bazel run //:update-deps`.
 alias(
     name = "update-deps",
