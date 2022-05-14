@@ -1,0 +1,24 @@
+# Copyright 2022 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//bazel/gofmt:gofmt.bzl", "gofmt")
+
+go_library(
+    name = "html",
+    srcs = ["html.go"],
+    embedsrcs = glob(["templates/**"]),
+    importpath = "github.com/ProjectSerenity/firefly/tools/plan/encoding/html",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tools/plan/ast",
+        "//tools/plan/types",
+    ],
+)
+
+gofmt(
+    name = "gofmt",
+    embed = [":html"],
+)

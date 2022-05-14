@@ -14,11 +14,11 @@ go_library(
         "format.go",
         "main.go",
     ],
-    embedsrcs = glob(["templates/**"]),
     importpath = "github.com/ProjectSerenity/firefly/tools/plan",
     visibility = ["//visibility:private"],
     deps = [
         "//tools/plan/ast",
+        "//tools/plan/encoding/html",
         "//tools/plan/encoding/rust",
         "//tools/plan/format",
         "//tools/plan/lexer",
