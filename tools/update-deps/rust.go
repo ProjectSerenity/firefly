@@ -645,7 +645,6 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 			}
 
 			foundHashes[name] = release.Hash
-			break
 		}
 	}
 
