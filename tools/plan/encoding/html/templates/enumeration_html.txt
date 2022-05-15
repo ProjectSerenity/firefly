@@ -11,7 +11,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 	</head>
 	<body>
-		<h1>Enumeration <code class="inline-code enumeration">{{ .Name.Spaced }}</code> (<code class="inline-code">{{ .Type }}</code>)</h1>
+		<h1>Enumeration <code class="inline-code enumeration">{{ .Name.Spaced }}</code> (<code class="inline-code">{{ toString .Type }}</code>)</h1>
 		{{ toDocs 2 .Docs }}
 		<h2>Values</h2>
 		<table class="field-table">
