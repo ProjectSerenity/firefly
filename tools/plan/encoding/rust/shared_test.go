@@ -7,6 +7,7 @@ package rust
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -27,6 +28,21 @@ func getRustfmt(t *testing.T) string {
 	// As this code is quite fragile, we're unusually strict
 	// in checking that we get what we expect.
 	rustfmt := os.Getenv("rustfmt")
+
+	// If we're testing outside Bazel, then the environment
+	// variable will be unset. In which case, we just use
+	// whatever the system gives us.
+	if rustfmt == "" && os.Getenv("RUNFILES_DIR") == "" {
+		rustfmt, err := exec.LookPath("rustfmt")
+		if err != nil {
+			t.Fatalf("rustfmt: failed to find binary in PATH: %v", err)
+		}
+
+		t.Logf("WARNING: using system installation of `rustfmt` at %s", rustfmt)
+
+		return rustfmt
+	}
+
 	parts := strings.Split(rustfmt, " ")
 	if len(parts) != 2 {
 		t.Fatalf("rustfmt: expected 2 space-separated paths, found %d: %q", len(parts), rustfmt)
