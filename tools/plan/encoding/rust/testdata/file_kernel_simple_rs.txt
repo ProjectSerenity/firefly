@@ -6,6 +6,7 @@
 // license that can be found in the LICENSE file.
 
 use super::FireflyABI;
+use memory::constants::USERSPACE;
 use memory::VirtAddr;
 use x86_64::registers::rflags::RFlags;
 
@@ -171,7 +172,23 @@ pub extern "sysv64" fn syscall_handler(
                     }
                 }
             };
-            let param3: *const i8 = arg3 as *const i8;
+            let param3: *const i8 = match VirtAddr::try_new(arg3 as usize) {
+                Ok(addr) => {
+                    if !USERSPACE.contains_addr(addr) {
+                        return SyscallResults {
+                            value: 0,
+                            error: Error::IllegalParameter.as_u64(),
+                        };
+                    }
+                    addr.as_usize() as *const i8
+                }
+                Err(_) => {
+                    return SyscallResults {
+                        value: 0,
+                        error: Error::IllegalParameter.as_u64(),
+                    }
+                }
+            };
             let result = <FireflyABI as SyscallABI>::three_args_two_results(
                 registers, param1, param2, param3,
             );
@@ -187,7 +204,23 @@ pub extern "sysv64" fn syscall_handler(
             }
         }
         Some(Syscalls::GetFileInfo) => {
-            let param1: *const u8 = arg1 as *const u8;
+            let param1: *const u8 = match VirtAddr::try_new(arg1 as usize) {
+                Ok(addr) => {
+                    if !USERSPACE.contains_addr(addr) {
+                        return SyscallResults {
+                            value: 0,
+                            error: IoError::IllegalParameter.as_u64(),
+                        };
+                    }
+                    addr.as_usize() as *const u8
+                }
+                Err(_) => {
+                    return SyscallResults {
+                        value: 0,
+                        error: IoError::IllegalParameter.as_u64(),
+                    }
+                }
+            };
             let param2: u64 = arg2;
             let result = <FireflyABI as SyscallABI>::get_file_info(registers, param1, param2);
             match result {
