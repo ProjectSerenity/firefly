@@ -18,7 +18,7 @@ import (
 )
 
 // requiredErrorValues is the set of values that
-// any error enumeration must include. The easiest,
+// any error enumeration must start with. The easiest,
 // but not only, way to do this is to define them
 // for a base error enumeration, then embed that in
 // more complex error enumerations.
@@ -174,27 +174,16 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 			return missing == "", missing
 		}
 
-		// Check if we already know for any
-		// embedded enumerations.
-		for _, embedded := range enum.Embeds {
-			if isError, _ := isErrorEnumeration(embedded); isError {
-				return true, ""
-			}
-		}
-
 		// Check whether we have all of the values
-		// we require.
-		for _, want := range requiredErrorValues {
-			ok = false
+		// we require at the start of the enumeration.
+		for i, want := range requiredErrorValues {
 			wantName := want.Spaced()
-			for _, got := range enum.Values {
-				if got.Name.Spaced() == wantName {
-					ok = true
-					break
-				}
+			if i >= len(enum.Values) {
+				errorEnumerations[name] = wantName
+				return false, wantName
 			}
 
-			if !ok {
+			if enum.Values[i].Name.Spaced() != wantName {
 				errorEnumerations[name] = wantName
 				return false, wantName
 			}
