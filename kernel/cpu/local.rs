@@ -42,11 +42,15 @@
 //! can be used to initialise a vector containing separate
 //! data for each CPU, which can be indexed by calling `id`.
 
+use acpi::platform::{PlatformInfo, ProcessorState};
+use acpi::{AcpiHandler, AcpiTables, PhysicalMapping};
 use core::arch::asm;
+use core::ptr::NonNull;
 use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use memory::constants::CPU_LOCAL;
-use memory::{PageTableFlags, VirtAddr, VirtPage, VirtPageSize};
+use memory::{phys_to_virt_addr, PageTableFlags, PhysAddr, VirtAddr, VirtPage, VirtPageSize};
 use physmem::ALLOCATOR;
+use serial::println;
 use spin::lock;
 use virtmem::map_pages;
 use x86_64::registers::model_specific::GsBase;
@@ -107,6 +111,33 @@ pub fn global_init() {
 
     // Get the max number of cores so we can map the
     // per-CPU memory region.
+    match unsafe { AcpiTables::search_for_rsdp_bios(PhysicalOffsetAcpiHandler) } {
+        Ok(acpi_tables) => {
+            match PlatformInfo::new(&acpi_tables) {
+                Ok(platform_info) => {
+                    if let Some(proc_info) = platform_info.processor_info {
+                        for ap in proc_info.application_processors {
+                            // Check that the processor is available.
+                            if ap.state == ProcessorState::WaitingForSipi {
+                                super::MAX_CORES.fetch_add(1, Ordering::Relaxed);
+                            }
+                        }
+                    }
+                }
+                Err(err) => {
+                    // Print an error and continue with
+                    // just the bootstrap processor.
+                    println!("Failed to load platform information from ACPI: {:?}", err);
+                }
+            }
+        }
+        Err(err) => {
+            // We print an error and continue with just
+            // the bootstrap processor.
+            println!("Failed to find ACPI tables: {:?}", err);
+        }
+    }
+
     let max_cores = super::max_cores();
     let region_size = max_cores * PER_CPU_REGION_SIZE;
     let start = CPU_LOCAL.start();
@@ -141,6 +172,7 @@ pub fn global_init() {
 ///
 pub fn per_cpu_init() {
     // This tracks the next valid unique CPU id.
+    // TODO: Get the processor ID from the processor itself.
     static NEXT_CPU_ID: AtomicUsize = AtomicUsize::new(0);
 
     if !GsBase::read().is_null() {
@@ -169,6 +201,12 @@ pub fn per_cpu_init() {
             usr = in(reg) usr,
         );
     }
+
+    println!(
+        "Initialised processor {} of {}.",
+        cpu + 1,
+        super::max_cores()
+    );
 }
 
 /// Returns this CPU's unique identifier.
@@ -237,4 +275,28 @@ pub fn set_user_stack_pointer(ptr: VirtAddr) {
     unsafe {
         asm!("mov gs:[{offset}], {ptr}", ptr = in(reg) ptr, offset = const USER_STACK_POINTER_OFFSET);
     }
+}
+
+/// An ACPI handler that uses the physical offset mapping
+/// to access physical memory. That is, rather than
+/// creating new mappings to access physical memory, the
+/// handler simply derives the offset into the virtual
+/// memory region where all physical memory is mapped.
+///
+#[derive(Clone, Debug)]
+struct PhysicalOffsetAcpiHandler;
+
+impl AcpiHandler for PhysicalOffsetAcpiHandler {
+    /// Derives the virtual address where `phys` can be found.
+    ///
+    unsafe fn map_physical_region<T>(&self, phys: usize, size: usize) -> PhysicalMapping<Self, T> {
+        let virt = phys_to_virt_addr(PhysAddr::new(phys));
+        let virt = NonNull::new(virt.as_usize() as *mut T).unwrap();
+        PhysicalMapping::new(phys, virt, size, size, Self)
+    }
+
+    /// This does nothing, as we have no need to unmap the
+    /// memory that was previously returned.
+    ///
+    fn unmap_physical_region<T>(_region: &PhysicalMapping<Self, T>) {}
 }

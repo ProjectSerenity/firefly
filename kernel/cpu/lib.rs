@@ -20,7 +20,6 @@
 mod local;
 
 use core::sync::atomic::{AtomicUsize, Ordering};
-use lazy_static::lazy_static;
 use raw_cpuid::CpuId;
 use serial::println;
 
@@ -29,13 +28,11 @@ pub use local::{
     syscall_stack_pointer, user_stack_pointer,
 };
 
-lazy_static! {
-    /// This stores the maximum number of logical cores.
-    ///
-    /// The value is not modified once initialised.
-    ///
-    static ref MAX_CORES: AtomicUsize = AtomicUsize::new(1); // TODO: Implement functionality to determine this.
-}
+/// This stores the maximum number of logical cores.
+///
+/// The value is not modified once initialised by [`global_init`](local::global_init).
+///
+static MAX_CORES: AtomicUsize = AtomicUsize::new(1);
 
 /// Returns the maximum number of logical cores on this
 /// machine.

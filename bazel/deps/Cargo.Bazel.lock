@@ -1,6 +1,56 @@
 {
-  "checksum": "35df96f656929c213170d5913308a528b0f3e40d81e0701d83f8acb592fdfa7f",
+  "checksum": "deaea8111ce8b8a524b183d1d2d7d96cc8d51d90b128d105bd34cbff7c298ad4",
   "crates": {
+    "acpi 4.1.0": {
+      "name": "acpi",
+      "version": "4.1.0",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/acpi/4.1.0/download",
+          "sha256": "55237649c6e747ea67e5ed45125af5e6a35ea1250c5e44995eb6049a955bd004"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "acpi",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "include": [
+                "**/*.rs"
+              ],
+              "exclude": []
+            }
+          }
+        }
+      ],
+      "library_target_name": "acpi",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "bit_field 0.10.1",
+              "target": "bit_field"
+            },
+            {
+              "id": "log 0.4.17",
+              "target": "log"
+            },
+            {
+              "id": "rsdp 2.0.0",
+              "target": "rsdp"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "4.1.0"
+      },
+      "license": "MIT/Apache-2.0"
+    },
     "bit_field 0.10.1": {
       "name": "bit_field",
       "version": "0.10.1",
@@ -196,6 +246,39 @@
       },
       "license": "Unlicense OR MIT"
     },
+    "cfg-if 1.0.0": {
+      "name": "cfg-if",
+      "version": "1.0.0",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/cfg-if/1.0.0/download",
+          "sha256": "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "cfg_if",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "include": [
+                "**/*.rs"
+              ],
+              "exclude": []
+            }
+          }
+        }
+      ],
+      "library_target_name": "cfg_if",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2018",
+        "version": "1.0.0"
+      },
+      "license": "MIT/Apache-2.0"
+    },
     "direct-cargo-bazel-deps 0.0.1": {
       "name": "direct-cargo-bazel-deps",
       "version": "0.0.1",
@@ -221,6 +304,10 @@
         ],
         "deps": {
           "common": [
+            {
+              "id": "acpi 4.1.0",
+              "target": "acpi"
+            },
             {
               "id": "bit_field 0.10.1",
               "target": "bit_field"
@@ -483,6 +570,69 @@
       },
       "license": "MIT/Apache-2.0"
     },
+    "log 0.4.17": {
+      "name": "log",
+      "version": "0.4.17",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/log/0.4.17/download",
+          "sha256": "abb12e687cfb44aa40f41fc3978ef76448f9b6038cad6aef4259d3c095a2382e"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "log",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "include": [
+                "**/*.rs"
+              ],
+              "exclude": []
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "include": [
+                "**/*.rs"
+              ],
+              "exclude": []
+            }
+          }
+        }
+      ],
+      "library_target_name": "log",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "cfg-if 1.0.0",
+              "target": "cfg_if"
+            },
+            {
+              "id": "log 0.4.17",
+              "target": "build_script_build"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2015",
+        "version": "0.4.17"
+      },
+      "build_script_attrs": {
+        "data_glob": [
+          "**"
+        ]
+      },
+      "license": "MIT OR Apache-2.0"
+    },
     "managed 0.8.0": {
       "name": "managed",
       "version": "0.8.0",
@@ -619,6 +769,48 @@
         "version": "10.3.0"
       },
       "license": "MIT"
+    },
+    "rsdp 2.0.0": {
+      "name": "rsdp",
+      "version": "2.0.0",
+      "repository": {
+        "Http": {
+          "url": "https://crates.io/api/v1/crates/rsdp/2.0.0/download",
+          "sha256": "66d3add2fc55ef37511bcf81a08ee7a09eff07b23aae38b06a29024a38c604b1"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "rsdp",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "include": [
+                "**/*.rs"
+              ],
+              "exclude": []
+            }
+          }
+        }
+      ],
+      "library_target_name": "rsdp",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "log 0.4.17",
+              "target": "log"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "2.0.0"
+      },
+      "license": "MIT/Apache-2.0"
     },
     "rustversion 1.0.6": {
       "name": "rustversion",

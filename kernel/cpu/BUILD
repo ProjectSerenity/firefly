@@ -20,7 +20,7 @@ rust_library(
         "//kernel/memory/physmem",
         "//kernel/memory/virtmem",
         "//kernel/utils/spin",
-        "@crates//:lazy_static",
+        "@crates//:acpi",
         "@crates//:raw-cpuid",
         "@crates//:x86_64",
     ],

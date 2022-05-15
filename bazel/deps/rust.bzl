@@ -62,6 +62,9 @@ RUST_CRATE_ANNOTATIONS = {
 # After chaning any of these, the next build will
 # need to be run with CARGO_BAZEL_REPIN=true.
 RUST_CRATES = {
+    "acpi": crate.spec(
+        version = "=4.1.0",
+    ),
     # For bootloader binary.
     "bit_field": crate.spec(
         version = "=0.10.1",
