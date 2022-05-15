@@ -10,36 +10,36 @@ load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_regi
 
 RUST_VERSION = "nightly"
 
-RUST_ISO_DATE = "2022-04-10"
+RUST_ISO_DATE = "2022-05-01"
 
 LLVM_TOOLS = struct(
     name = "llvm-tools-nightly-x86_64-unknown-linux-gnu",
-    sum = "3ccc356d9d7a4415790db539aa1c449d77b75d249732bbe0cb3248a5f39e428d",
+    sum = "ea73b3a7de098affc64b12fcd604f414c0d0aca849a6d226f0c3c1a3c26a0480",
 )
 
 RUST = struct(
     name = "rust-nightly-x86_64-unknown-linux-gnu",
-    sum = "05af4d844b308bfee0baa0f61a977a928b6b7eb27d4c859ececed5cab83a055d",
+    sum = "107420deb243bd2346af0484e6480c3a49862db878b3acb05e28dbdb26f7d9f9",
 )
 
 RUST_SRC = struct(
     name = "rust-src-nightly",
-    sum = "19bd1a6030c98643ed270682b031997fb323fc90fefc72fe2cb313e256ab0016",
+    sum = "84d0badd8e3e05282bd1c03e28517cbe50dba540cf2cfe96ee723ae83c0175dc",
 )
 
 RUST_STD = struct(
     name = "rust-std-nightly-x86_64-unknown-linux-gnu",
-    sum = "4166a60222de2c491847c3c925bcaf341afb19cad512f1c702b3b48e90867c90",
+    sum = "ac05606dccd8e7da4862b6b2cb2fc4224638a9a1313fdd6ee915eefa4cad54b5",
 )
 
 RUST_RUSTFMT = struct(
     name = "rustfmt-nightly-x86_64-unknown-linux-gnu",
-    sum = "7fe3049fb4003f35539e622801cd62e1d20481915e4879aeb47965dafeb859bf",
+    sum = "2d1b35c4d12310fe25c4ad36b35f90a222cf0235d249520630078eb099e7bdd7",
 )
 
 RUST_NO_STD = struct(
     name = "rust-std-nightly-x86_64-unknown-none",
-    sum = "35cd94ae9a6efc1839c227470041038e3c51f50db1f2c59ed7f5b32d03f4cd2f",
+    sum = "eee67cfab3e4f8f2f88975d3e2262b1b7eadc6ca32af354b4b3c7f532cc297b4",
 )
 
 BOOTLOADER_VERSION = "0.9.22"
@@ -120,7 +120,7 @@ RUST_CRATES = {
             "socket-tcp",
             "socket-udp",
         ],
-        version = "=0.8.0",
+        version = "=0.8.1",
     ),
     # For bootloader build script.
     "toml": crate.spec(

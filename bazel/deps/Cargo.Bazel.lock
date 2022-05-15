@@ -1,5 +1,5 @@
 {
-  "checksum": "a42165344f6265043af73c5539823fe35b2ca9a49e1b1e197b32ea4067d99afc",
+  "checksum": "35df96f656929c213170d5913308a528b0f3e40d81e0701d83f8acb592fdfa7f",
   "crates": {
     "bit_field 0.10.1": {
       "name": "bit_field",
@@ -262,7 +262,7 @@
               "target": "raw_cpuid"
             },
             {
-              "id": "smoltcp 0.8.0",
+              "id": "smoltcp 0.8.1",
               "target": "smoltcp"
             },
             {
@@ -679,13 +679,13 @@
       },
       "license": "MIT OR Apache-2.0"
     },
-    "serde 1.0.136": {
+    "serde 1.0.137": {
       "name": "serde",
-      "version": "1.0.136",
+      "version": "1.0.137",
       "repository": {
         "Http": {
-          "url": "https://crates.io/api/v1/crates/serde/1.0.136/download",
-          "sha256": "ce31e24b01e1e524df96f1c2fdd054405f8d7376249a5110886fb4b658484789"
+          "url": "https://crates.io/api/v1/crates/serde/1.0.137/download",
+          "sha256": "61ea8d54c77f8315140a05f4c7237403bf38b72704d031543aa1d16abbf517d1"
         }
       },
       "targets": [
@@ -726,14 +726,14 @@
         "deps": {
           "common": [
             {
-              "id": "serde 1.0.136",
+              "id": "serde 1.0.137",
               "target": "build_script_build"
             }
           ],
           "selects": {}
         },
         "edition": "2015",
-        "version": "1.0.136"
+        "version": "1.0.137"
       },
       "build_script_attrs": {
         "data_glob": [
@@ -742,13 +742,13 @@
       },
       "license": "MIT OR Apache-2.0"
     },
-    "smoltcp 0.8.0": {
+    "smoltcp 0.8.1": {
       "name": "smoltcp",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "repository": {
         "Http": {
-          "url": "https://crates.io/api/v1/crates/smoltcp/0.8.0/download",
-          "sha256": "d2308a1657c8db1f5b4993bab4e620bdbe5623bd81f254cf60326767bb243237"
+          "url": "https://crates.io/api/v1/crates/smoltcp/0.8.1/download",
+          "sha256": "72165c4af59f5f19c7fb774b88b95660591b612380305b5f4503157341a9f7ee"
         }
       },
       "targets": [
@@ -800,7 +800,7 @@
           "selects": {}
         },
         "edition": "2018",
-        "version": "0.8.0"
+        "version": "0.8.1"
       },
       "license": "0BSD"
     },
@@ -871,7 +871,7 @@
         "deps": {
           "common": [
             {
-              "id": "serde 1.0.136",
+              "id": "serde 1.0.137",
               "target": "serde"
             }
           ],
@@ -944,8 +944,7 @@
         },
         "version": "0.2.18"
       },
-      "license": "MIT",
-      "additive_build_file_content": "# Copyright 2022 The Firefly Authors.\n#\n# Use of this source code is governed by a BSD 3-clause\n# license that can be found in the LICENSE file.\n\n# The bootloader package is a little unusual, as we use\n# both its library crate and main binary crate, plus we\n# depend on its build.rs script.\n#\n# The library crate is a standard rust_library.\n#\n# The build.rs script  produces a couple of output files\n# we need later on (a generated rust file containing the\n# kernel's configuration, plus a modified version of the\n# kernel binary). It's not currently possible to declare\n# or use output files with a cargo_build_script. Instead,\n# we build it as a rust_binary and then use a genrule to\n# invoke it, collecting its outputs in the process.\n#\n# Sadly, the build script produces not only an output\n# file (bootloader_config.rs) but also prints important\n# information to stdout (an extra search path for the\n# linker). Running the build script as a rust_binary + genrule\n# is necessary so we can declare the output file, but a\n# cargo_build_script is necessary to capture, parse, and\n# pass on the search path to the linker. That means we\n# have to do both. It would be great to be able to use\n# just one. We can capture the path to the extra link\n# entry, but can't extract its parent directory to pass\n# to the linker.\n#\n# The binary crate is built as a rust_binary, passing in\n# the outputs from the build script. This produces the\n# bootable image in the form of an ELF executable.\n#\n# Once we have the bootable image, we use the bootimage\n# crate to turn the ELF executable into a raw executable,\n# padded to the next smallest block size (512 bytes).\n\n# We already have the bootloader library, which is a normal\n# build.\n\n# Now, the multiple steps necessary to build\n# the bootloader binary.\n#\n# First, we compile the build script.\n\nrust_binary(\n    name = \"build_script\",\n    srcs = [\"build.rs\"],\n    crate_features = [\n        \"binary\",\n        \"fixedvec\",\n        \"llvm-tools\",\n        \"map_physical_memory\",\n        \"toml\",\n        \"usize_conversions\",\n        \"x86_64\",\n        \"xmas-elf\",\n    ],\n    crate_root = \"build.rs\",\n    edition = \"2021\",\n    visibility = [\"//visibility:public\"],\n    deps = [\n        \"@crates//:llvm-tools\",\n        \"@crates//:toml\",\n    ],\n)\n\n# Invoke the build script, passing\n# in the kernel binary and its\n# Cargo.toml.\n\ngenrule(\n    name = \"package_kernel\",\n    srcs = [\n        \"@//kernel:kernel\",\n        \"@//kernel:ograC.toml\",\n        \"@rust_linux_x86_64//:rustc\",\n        \"x86_64-bootloader.json\",\n    ],\n    outs = [\n        \"bootloader_config.rs\",\n        \"libkernel_bin-kernel.a\",\n    ],\n    cmd = \"\"\"\n        export TARGET=\"$(location x86_64-bootloader.json)\"\n        export KERNEL=\"$(location @//kernel:kernel)\"\n        export KERNEL_MANIFEST=\"$(location @//kernel:ograC.toml)\"\n        export OUT_DIR=\"$$(realpath $(@D))\"\n        export PATH=\"$$(dirname $(location @rust_linux_x86_64//:rustc)):$$PATH\"\n        $(location :build_script) > /dev/null\"\"\",\n    message = \"Packaging the kernel binary\",\n    tools = [\n        \":build_script\",\n    ],\n    visibility = [\"//visibility:private\"],\n)\n\n# Build the bootloader binary using the\n# information and files generated by the\n# build script above.\n#\n# Note, we don't invoke this target directly,\n# as it needs to be built for a custom\n# target configuration. Instead, we invoke\n# bootloader_bin_transition below.\n\nrust_binary(\n    name = \"bootloader_bin\",\n    srcs = glob([\"**/*.rs\"]),\n    compile_data = [\n        \":bootloader_config.rs\",\n        \":libkernel_bin-kernel.a\",\n    ],\n    crate_features = [\n        \"binary\",\n        \"default\",\n        \"map_physical_memory\",\n    ],\n    crate_root = \"src/main.rs\",\n    data = glob(\n        [\"**\"],\n        exclude = [\n            # These can be manually added with overrides if needed.\n\n            # If you run `cargo build` in this dir, the target dir can get very big very quick.\n            \"target/**\",\n\n            # These are not vendored from the crate - we exclude them to avoid busting caches\n            # when we change how we generate BUILD files and such.\n            \"BUILD.bazel\",\n            \"WORKSPACE.bazel\",\n            \"WORKSPACE\",\n        ],\n    ),\n    edition = \"2021\",\n    linker_script = \"linker.ld\",\n    rustc_env = {\n        # This should be OUT_DIR, but while we can get the\n        # path to bootloader_config.rs, we can't get the\n        # path to its parent directory. As a result, we use\n        # bootloader.patch to change how the file is included.\n        \"BOOTLOADER_CONFIG_RS\": \"$(location :bootloader_config.rs)\",\n    },\n    rustc_flags = [\n        \"--cap-lints=allow\",\n        \"-Cpanic=abort\",\n        \"-Clink-args=-nostartfiles -static -Wl,--gc-sections -Wl,--build-id=none\",\n        \"-Ctarget-feature=+crt-static\",\n        # :bootloader_build_script adds to the linker's search path\n        # but for some reason it doesn't add to the link list, so\n        # we do that manually here.\n        \"-lstatic=kernel_bin-kernel\",\n    ],\n    tags = [\"manual\"],\n    visibility = [\"//visibility:public\"],\n    deps = [\n        \":bootloader\",\n        \":bootloader_build_script\",\n        \"@crates//:bit_field\",\n        \"@crates//:fixedvec\",\n        \"@crates//:usize_conversions\",\n        \"@crates//:x86_64\",\n        \"@crates//:xmas-elf\",\n    ],\n)\n"
+      "license": "MIT"
     },
     "usize_conversions 0.2.0": {
       "name": "usize_conversions",
@@ -980,13 +979,13 @@
       },
       "license": "MIT/Apache-2.0"
     },
-    "volatile 0.4.4": {
+    "volatile 0.4.5": {
       "name": "volatile",
-      "version": "0.4.4",
+      "version": "0.4.5",
       "repository": {
         "Http": {
-          "url": "https://crates.io/api/v1/crates/volatile/0.4.4/download",
-          "sha256": "e4c2dbd44eb8b53973357e6e207e370f0c1059990df850aca1eca8947cf464f0"
+          "url": "https://crates.io/api/v1/crates/volatile/0.4.5/download",
+          "sha256": "e3ca98349dda8a60ae74e04fd90c7fb4d6a4fbe01e6d3be095478aa0b76f6c0c"
         }
       },
       "targets": [
@@ -1009,7 +1008,7 @@
           "**"
         ],
         "edition": "2015",
-        "version": "0.4.4"
+        "version": "0.4.5"
       },
       "license": "MIT OR Apache-2.0"
     },
@@ -1062,7 +1061,7 @@
               "target": "bitflags"
             },
             {
-              "id": "volatile 0.4.4",
+              "id": "volatile 0.4.5",
               "target": "volatile"
             }
           ],
