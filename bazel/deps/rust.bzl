@@ -151,7 +151,7 @@ def rust_deps():
         sha256 = RUST_NO_STD.sum,
         strip_prefix = "rust-std-nightly-x86_64-unknown-none",
         type = "tgz",
-        urls = ["https://static.rust-lang.org/dist/" + RUST_ISO_DATE + "/" + RUST_NO_STD.name],
+        urls = ["https://static.rust-lang.org/dist/" + RUST_ISO_DATE + "/" + RUST_NO_STD.name + ".tar.gz"],
     )
 
     # Set up the Rust crates we depend on. Most of these are fetched
