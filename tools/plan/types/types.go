@@ -225,55 +225,25 @@ var integers = map[string]Integer{
 	"sint64": Sint64,
 }
 
-// Integers is a synthetic enumeration that
-// can be used to represent the set of integer
-// types.
-//
-var Integers = &Enumeration{
-	Name: Name{"integers"},
-	Docs: Docs{Text(
-		"The set of fixed-size integer types that can be used in structures, " +
-			"as an enumeration's base type, or in syscall parameters.",
-	)},
-	Type: Uint8,
-	Values: []*Value{
-		{
-			Name: Name{"byte"},
-			Docs: Docs{Text("An 8-bit unsigned integer, representing an octet of memory.")},
-		},
-		{
-			Name: Name{"sint8"},
-			Docs: Docs{Text("An 8-bit signed integer type.")},
-		},
-		{
-			Name: Name{"sint16"},
-			Docs: Docs{Text("A 16-bit signed integer type.")},
-		},
-		{
-			Name: Name{"sint32"},
-			Docs: Docs{Text("A 32-bit signed integer type.")},
-		},
-		{
-			Name: Name{"sint64"},
-			Docs: Docs{Text("A 64-bit signed integer type.")},
-		},
-		{
-			Name: Name{"uint8"},
-			Docs: Docs{Text("An 8-bit unsigned integer type.")},
-		},
-		{
-			Name: Name{"uint16"},
-			Docs: Docs{Text("A 16-bit unsigned integer type.")},
-		},
-		{
-			Name: Name{"uint32"},
-			Docs: Docs{Text("A 32-bit unsigned integer type.")},
-		},
-		{
-			Name: Name{"uint64"},
-			Docs: Docs{Text("A 64-bit unsigned integer type.")},
-		},
-	},
+func (b Integer) Docs() Docs {
+	docs := map[Integer]Text{
+		Byte:   "An 8-bit unsigned integer, representing an octet of memory.",
+		Uint8:  "An 8-bit unsigned integer type.",
+		Uint16: "A 16-bit unsigned integer type.",
+		Uint32: "A 32-bit unsigned integer type.",
+		Uint64: "A 64-bit unsigned integer type.",
+		Sint8:  "An 8-bit signed integer type.",
+		Sint16: "A 16-bit signed integer type.",
+		Sint32: "A 32-bit signed integer type.",
+		Sint64: "A 64-bit signed integer type.",
+	}
+
+	text, ok := docs[b]
+	if !ok {
+		panic(fmt.Sprintf("unrecognised integer type %d", b))
+	}
+
+	return Docs{text}
 }
 
 func (b Integer) Min() int64 {
