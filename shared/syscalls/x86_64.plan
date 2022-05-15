@@ -154,7 +154,7 @@
 	(name debug abi range)
 	(docs
 		"Allows diagnostics of the syscall ABI by userspace. The syscall checks"
-		"that the passed parameter is in range and returns an"
+		"that the passed parameters are in range and returns an"
 		(reference error)
 		"accordingly.")
 	(arg1
@@ -169,6 +169,10 @@
 		(name error)
 		(docs "An example enumeration to bounds check.")
 		(type error))
+	(arg4
+		(name pointer)
+		(docs "An example pointer to bounds check.")
+		(type *constant byte))
 	(result1
 		(name error)
 		(docs "The error indicating the suitability of the passed values.")

@@ -201,66 +201,112 @@ fn check_abi_errors() {
 
 /// Check that the syscall handler performs
 /// bounds checks on signed integers, unsigned
-/// integers, and enumerations.
+/// integers, enumerations, and pointers.
 ///
 fn check_abi_range() {
+    const BYTE: u8 = 1;
     // Signed integer.
-    assert_eq!(debug_abi_range(-128, 0, Error::NoError), Error::NoError);
-    assert_eq!(debug_abi_range(0, 0, Error::NoError), Error::NoError);
-    assert_eq!(debug_abi_range(127, 0, Error::NoError), Error::NoError);
+    assert_eq!(
+        debug_abi_range(-128, 0, Error::NoError, &BYTE as *const u8),
+        Error::NoError
+    );
+    assert_eq!(
+        debug_abi_range(0, 0, Error::NoError, &BYTE as *const u8),
+        Error::NoError
+    );
+    assert_eq!(
+        debug_abi_range(127, 0, Error::NoError, &BYTE as *const u8),
+        Error::NoError
+    );
     assert_eq!(
         unsafe {
-            syscalls::syscall3(
+            syscalls::syscall4(
                 Syscalls::DebugAbiRange.as_u64(),
                 -129i16 as u64,
                 0u8 as u64,
                 Error::NoError.as_u64(),
+                &BYTE as *const u8 as u64,
             )
         },
         (0u64, Error::IllegalParameter.as_u64())
     );
     assert_eq!(
         unsafe {
-            syscalls::syscall3(
+            syscalls::syscall4(
                 Syscalls::DebugAbiRange.as_u64(),
                 128i16 as u64,
                 0u8 as u64,
                 Error::NoError.as_u64(),
+                &BYTE as *const u8 as u64,
             )
         },
         (0u64, Error::IllegalParameter.as_u64())
     );
 
     // Unsigned integer.
-    assert_eq!(debug_abi_range(0, 0, Error::NoError), Error::NoError);
-    assert_eq!(debug_abi_range(0, 255, Error::NoError), Error::NoError);
+    assert_eq!(
+        debug_abi_range(0, 0, Error::NoError, &BYTE as *const u8),
+        Error::NoError
+    );
+    assert_eq!(
+        debug_abi_range(0, 255, Error::NoError, &BYTE as *const u8),
+        Error::NoError
+    );
     assert_eq!(
         unsafe {
-            syscalls::syscall3(
+            syscalls::syscall4(
                 Syscalls::DebugAbiRange.as_u64(),
                 0i16 as u64,
                 256u16 as u64,
                 Error::NoError.as_u64(),
+                &BYTE as *const u8 as u64,
             )
         },
         (0u64, Error::IllegalParameter.as_u64())
     );
 
     // Enumeration.
-    assert_eq!(debug_abi_range(0, 0, Error::NoError), Error::NoError);
     assert_eq!(
-        debug_abi_range(0, 0, Error::IllegalParameter),
+        debug_abi_range(0, 0, Error::NoError, &BYTE as *const u8),
+        Error::NoError
+    );
+    assert_eq!(
+        debug_abi_range(0, 0, Error::IllegalParameter, &BYTE as *const u8),
         Error::NoError
     );
     assert_eq!(
         unsafe {
-            syscalls::syscall3(
+            syscalls::syscall4(
                 Syscalls::DebugAbiRange.as_u64(),
                 0i16 as u64,
                 0u16 as u64,
                 0xffff_ffff_ffff_ffff_u64,
+                &BYTE as *const u8 as u64,
             )
         },
         (0u64, Error::IllegalParameter.as_u64())
     );
+
+    // Pointer.
+    assert_eq!(
+        debug_abi_range(0, 0, Error::NoError, &BYTE as *const u8),
+        Error::NoError
+    );
+    assert_eq!(
+        debug_abi_range(0, 0, Error::NoError, core::ptr::null::<u8>()),
+        Error::IllegalParameter
+    ); // NULL.
+    assert_eq!(
+        debug_abi_range(0, 0, Error::NoError, 0x8000_0000_0000_usize as *const u8),
+        Error::IllegalParameter
+    ); // Non-canonical.
+    assert_eq!(
+        debug_abi_range(
+            0,
+            0,
+            Error::NoError,
+            0xffff_ffff_ffff_ffff_usize as *const u8
+        ),
+        Error::IllegalParameter
+    ); // Kernel.
 }

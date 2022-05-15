@@ -135,6 +135,7 @@ impl SyscallABI for FireflyABI {
         _signed_value: i8,
         _unsigned_value: u8,
         _error: Error,
+        _pointer: *const u8,
     ) -> Error {
         Error::NoError
     }
