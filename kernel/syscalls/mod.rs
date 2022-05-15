@@ -12,8 +12,6 @@ mod abi {
 
 use self::abi::{Error, Registers, SavedRegisters, SyscallABI};
 use core::arch::global_asm;
-use memory::constants::USERSPACE;
-use memory::VirtAddr;
 use multitasking::thread;
 use segmentation::with_segment_data;
 use serial::{print, println};
@@ -79,15 +77,6 @@ impl SyscallABI for FireflyABI {
     ///
     #[inline]
     fn debug_abi_registers(_registers: *mut SavedRegisters, registers: *mut Registers) -> Error {
-        // Check that the pointer is in userspace.
-        if let Ok(ptr) = VirtAddr::try_new(registers as usize) {
-            if !USERSPACE.contains_addr(ptr) {
-                return Error::IllegalParameter;
-            }
-        } else {
-            return Error::IllegalParameter;
-        }
-
         unsafe {
             let regs = *_registers;
             let rflags = regs.rflags;
@@ -148,15 +137,6 @@ impl SyscallABI for FireflyABI {
         ptr: *const u8,
         size: u64,
     ) -> Result<u64, Error> {
-        // Check that the pointer is in userspace.
-        if let Ok(ptr) = VirtAddr::try_new(ptr as usize) {
-            if !USERSPACE.contains_addr(ptr) {
-                return Err(Error::IllegalParameter);
-            }
-        } else {
-            return Err(Error::IllegalParameter);
-        }
-
         // There are no pointers to pointers
         // so we can consume the arguments
         // straight away.
@@ -194,15 +174,6 @@ impl SyscallABI for FireflyABI {
         ptr: *const u8,
         size: u64,
     ) -> Result<u64, Error> {
-        // Check that the pointer is in userspace.
-        if let Ok(ptr) = VirtAddr::try_new(ptr as usize) {
-            if !USERSPACE.contains_addr(ptr) {
-                return Err(Error::IllegalParameter);
-            }
-        } else {
-            return Err(Error::IllegalParameter);
-        }
-
         // There are no pointers to pointers
         // so we can consume the arguments
         // straight away.
@@ -237,15 +208,6 @@ impl SyscallABI for FireflyABI {
     ///
     #[inline]
     fn read_random(_registers: *mut SavedRegisters, ptr: *mut u8, size: u64) -> Error {
-        // Check that the pointer is in userspace.
-        if let Ok(ptr) = VirtAddr::try_new(ptr as usize) {
-            if !USERSPACE.contains_addr(ptr) {
-                return Error::IllegalParameter;
-            }
-        } else {
-            return Error::IllegalParameter;
-        }
-
         // There are no pointers to pointers
         // so we can consume the arguments
         // straight away.
