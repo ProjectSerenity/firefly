@@ -130,15 +130,33 @@ func addOne(i int) int {
 	return i + 1
 }
 
+func plainDocs(docs types.Docs) string {
+	var out string
+	for _, part := range docs {
+		switch text := part.(type) {
+		case types.Text:
+			out += string(text)
+		case types.CodeText:
+			out += string(text)
+		case types.Newline:
+			return out
+		default:
+			panic(fmt.Sprintf("unsupported documentation item %T in docs", part))
+		}
+	}
+
+	return out
+}
+
 func toString(t types.Type) template.HTML {
 	switch t := types.Underlying(t).(type) {
 	case types.Integer:
-		return template.HTML(t.String())
+		return template.HTML(fmt.Sprintf(`<span title="%s">%s</span>`, plainDocs(t.Docs()), t))
 	case *types.Pointer:
 		if t.Mutable {
-			return "*mutable " + toString(t.Underlying)
+			return `<span title="A pointer to writable memory.">*mutable</span> ` + toString(t.Underlying)
 		} else {
-			return "*constant " + toString(t.Underlying)
+			return `<span title="A pointer to readable memory.">*constant</span> ` + toString(t.Underlying)
 		}
 	case types.Padding:
 		return template.HTML(fmt.Sprintf("%d-byte padding", t))
