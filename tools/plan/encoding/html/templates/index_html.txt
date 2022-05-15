@@ -5,6 +5,24 @@
 		<style>
 {{ template "base-style_css.txt" }}
 {{ template "inline-code_css.txt" }}
+		ul {
+			list-style-position: inside;
+		}
+
+		ol {
+			list-style-position: inside;
+			counter-reset: list -1;
+		}
+
+		ol > li {
+			list-style: none;
+		}
+
+		ol > li:before {
+			content: counter(list, decimal) ": ";
+			counter-increment: list;
+			padding-right: 5px;
+		}
 		</style>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -32,7 +50,7 @@
 			{{ end }}
 		</ul>
 		<h2>Syscalls</h2>
-		<ul>
+		<ol>
 			{{ range .Syscalls }}
 				<li>
 					<code class="inline-code">
@@ -40,6 +58,6 @@
 					</code>
 				</li>
 			{{ end }}
-		</ul>
+		</ol>
 	</body>
 </html>
