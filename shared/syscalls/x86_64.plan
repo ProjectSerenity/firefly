@@ -151,7 +151,7 @@
 
 
 (syscall
-	(name debug abi range)
+	(name debug abi bounds)
 	(docs
 		"Allows diagnostics of the syscall ABI by userspace. The syscall checks"
 		"that the passed parameters are in range and returns an"

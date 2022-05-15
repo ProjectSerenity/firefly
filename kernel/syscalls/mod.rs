@@ -109,7 +109,7 @@ impl SyscallABI for FireflyABI {
     /// range and returns an [`Error`] accordingly.
     ///
     #[inline]
-    fn debug_abi_range(
+    fn debug_abi_bounds(
         _registers: *mut SavedRegisters,
         _signed_value: i8,
         _unsigned_value: u8,
