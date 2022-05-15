@@ -94,8 +94,18 @@ pub extern "sysv64" fn syscall_handler(
     syscall_num: u64,
     registers: *mut SavedRegisters,
 ) -> SyscallResults {
-    match Syscalls::from_u64(syscall_num) {
-        {{ range .Syscalls }}{{ $error := errorEnumeration . }}Some(Syscalls::{{ .Name.PascalCase }}) => {
+    let syscall = if let Some(syscall) = Syscalls::from_u64(syscall_num) {
+        syscall
+    } else {
+        let error = <FireflyABI as SyscallABI>::bad_syscall(registers, arg1, arg2, arg3, arg4, arg5, arg6, syscall_num);
+        return SyscallResults {
+            value: 0,
+            error: error.as_u64(),
+        };
+    };
+
+    match syscall {
+        {{ range .Syscalls }}{{ $error := errorEnumeration . }}Syscalls::{{ .Name.PascalCase }} => {
             {{ range $i, $arg := .Args -}}
             let param{{ addOne $i }}: {{ toString $arg.Type }} =
                 {{- if isEnumeration $arg.Type -}}
@@ -171,12 +181,5 @@ pub extern "sysv64" fn syscall_handler(
             {{- end }}
         }
         {{- end }}
-        None => {
-            let error = <FireflyABI as SyscallABI>::bad_syscall(registers, arg1, arg2, arg3, arg4, arg5, arg6, syscall_num);
-            SyscallResults {
-                value: 0,
-                error: error.as_u64(),
-            }
-        }
     }
 }

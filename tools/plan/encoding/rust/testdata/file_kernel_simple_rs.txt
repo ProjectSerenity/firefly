@@ -116,8 +116,27 @@ pub extern "sysv64" fn syscall_handler(
     syscall_num: u64,
     registers: *mut SavedRegisters,
 ) -> SyscallResults {
-    match Syscalls::from_u64(syscall_num) {
-        Some(Syscalls::DenySyscalls) => {
+    let syscall = if let Some(syscall) = Syscalls::from_u64(syscall_num) {
+        syscall
+    } else {
+        let error = <FireflyABI as SyscallABI>::bad_syscall(
+            registers,
+            arg1,
+            arg2,
+            arg3,
+            arg4,
+            arg5,
+            arg6,
+            syscall_num,
+        );
+        return SyscallResults {
+            value: 0,
+            error: error.as_u64(),
+        };
+    };
+
+    match syscall {
+        Syscalls::DenySyscalls => {
             let param1: Syscalls = match Syscalls::from_u64(arg1) {
                 Some(value) => value,
                 None => {
@@ -133,14 +152,14 @@ pub extern "sysv64" fn syscall_handler(
                 error: result.as_u64(),
             }
         }
-        Some(Syscalls::Exit) => {
+        Syscalls::Exit => {
             let result = <FireflyABI as SyscallABI>::exit(registers);
             SyscallResults {
                 value: 0,
                 error: result.as_u64(),
             }
         }
-        Some(Syscalls::GetProcessId) => {
+        Syscalls::GetProcessId => {
             let result = <FireflyABI as SyscallABI>::get_process_id(registers);
             match result {
                 Ok(result) => SyscallResults {
@@ -153,7 +172,7 @@ pub extern "sysv64" fn syscall_handler(
                 },
             }
         }
-        Some(Syscalls::ThreeArgsTwoResults) => {
+        Syscalls::ThreeArgsTwoResults => {
             let param1: u16 = match arg1.try_into() {
                 Ok(value) => value,
                 Err(_) => {
@@ -203,7 +222,7 @@ pub extern "sysv64" fn syscall_handler(
                 },
             }
         }
-        Some(Syscalls::GetFileInfo) => {
+        Syscalls::GetFileInfo => {
             let param1: *const u8 = match VirtAddr::try_new(arg1 as usize) {
                 Ok(addr) => {
                     if !USERSPACE.contains_addr(addr) {
@@ -234,7 +253,7 @@ pub extern "sysv64" fn syscall_handler(
                 },
             }
         }
-        Some(Syscalls::GetColour) => {
+        Syscalls::GetColour => {
             let result = <FireflyABI as SyscallABI>::get_colour(registers);
             match result {
                 Ok(result) => SyscallResults {
@@ -245,22 +264,6 @@ pub extern "sysv64" fn syscall_handler(
                     value: 0,
                     error: result.as_u64(),
                 },
-            }
-        }
-        None => {
-            let error = <FireflyABI as SyscallABI>::bad_syscall(
-                registers,
-                arg1,
-                arg2,
-                arg3,
-                arg4,
-                arg5,
-                arg6,
-                syscall_num,
-            );
-            SyscallResults {
-                value: 0,
-                error: error.as_u64(),
             }
         }
     }
