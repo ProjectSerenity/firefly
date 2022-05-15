@@ -220,6 +220,12 @@ fn check_abi_errors() {
         debug_abi_errors(Error::IllegalParameter),
         Error::IllegalParameter
     );
+
+    // Check the kernel safely handles a non-existant syscall.
+    assert_eq!(
+        unsafe { syscalls::syscall0(0xffff_ffff_ffff_ffff_u64) },
+        (0u64, Error::BadSyscall.as_u64())
+    );
 }
 
 /// Check that the syscall handler performs
