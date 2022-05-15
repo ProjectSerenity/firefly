@@ -39,11 +39,6 @@ func GenerateDocs(dir string, file *types.File) error {
 	}
 
 	// Then the sub-folders.
-	err = generateItemHTML(filepath.Join(dir, types.Integers.Name.SnakeCase()+".html"), integersTemplate, types.Integers)
-	if err != nil {
-		return err
-	}
-
 	enumDir := filepath.Join(dir, "enumerations")
 	err = mkdir(enumDir)
 	if err != nil {
@@ -126,7 +121,6 @@ var templates = template.Must(template.New("").Funcs(template.FuncMap{
 
 const (
 	enumerationTemplate = "enumeration_html.txt"
-	integersTemplate    = "integers_html.txt"
 	structureTemplate   = "structure_html.txt"
 	syscallTemplate     = "syscall_html.txt"
 	indexTemplate       = "index_html.txt"
@@ -139,7 +133,7 @@ func addOne(i int) int {
 func toString(t types.Type) template.HTML {
 	switch t := types.Underlying(t).(type) {
 	case types.Integer:
-		return template.HTML(fmt.Sprintf(`<a href="../integers.html">%s</a>`, t.String()))
+		return template.HTML(t.String())
 	case *types.Pointer:
 		if t.Mutable {
 			return "*mutable " + toString(t.Underlying)
