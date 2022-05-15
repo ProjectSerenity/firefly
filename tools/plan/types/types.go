@@ -247,15 +247,15 @@ var Integers = &Enumeration{
 		},
 		{
 			Name: Name{"sint16"},
-			Docs: Docs{Text("An 16-bit signed integer type.")},
+			Docs: Docs{Text("A 16-bit signed integer type.")},
 		},
 		{
 			Name: Name{"sint32"},
-			Docs: Docs{Text("An 32-bit signed integer type.")},
+			Docs: Docs{Text("A 32-bit signed integer type.")},
 		},
 		{
 			Name: Name{"sint64"},
-			Docs: Docs{Text("An 64-bit signed integer type.")},
+			Docs: Docs{Text("A 64-bit signed integer type.")},
 		},
 		{
 			Name: Name{"uint8"},
@@ -263,15 +263,15 @@ var Integers = &Enumeration{
 		},
 		{
 			Name: Name{"uint16"},
-			Docs: Docs{Text("An 16-bit unsigned integer type.")},
+			Docs: Docs{Text("A 16-bit unsigned integer type.")},
 		},
 		{
 			Name: Name{"uint32"},
-			Docs: Docs{Text("An 32-bit unsigned integer type.")},
+			Docs: Docs{Text("A 32-bit unsigned integer type.")},
 		},
 		{
 			Name: Name{"uint64"},
-			Docs: Docs{Text("An 64-bit unsigned integer type.")},
+			Docs: Docs{Text("A 64-bit unsigned integer type.")},
 		},
 	},
 }
