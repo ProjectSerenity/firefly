@@ -14,7 +14,7 @@
 #![allow(unsafe_code)]
 
 use core::arch::asm;
-use firefly::syscalls::{debug_abi_errors, debug_abi_range, Error, Syscalls};
+use firefly::syscalls::{Error, Syscalls};
 use firefly::{println, syscalls};
 
 /// The application entry point.
@@ -186,14 +186,37 @@ fn check_abi_registers() {
     assert_eq!(gr15, sr15, "R15");
 }
 
+macro_rules! test {
+    // Typed syscall wrapper.
+    ($syscall:ident($($args:expr),+), $want:expr) => {
+        assert_eq!(
+            syscalls::$syscall($($args),+),
+            $want
+        );
+    };
+
+    // Raw syscall.
+    ($sys:ident $syscall:ident($($args:expr),+), $want:ident) => {
+        assert_eq!(
+            unsafe {
+                syscalls::$sys(
+                    Syscalls::$syscall.as_u64(),
+                    $($args as u64),+
+                )
+            },
+            (0u64, $want.as_u64())
+        );
+    };
+}
+
 /// Check that userspace and the kernel agree
 /// on how to handle syscalls that only return
 /// an error.
 ///
 fn check_abi_errors() {
-    assert_eq!(debug_abi_errors(Error::NoError), Error::NoError);
-    assert_eq!(debug_abi_errors(Error::BadSyscall), Error::BadSyscall);
-    assert_eq!(
+    test!(debug_abi_errors(Error::NoError), Error::NoError);
+    test!(debug_abi_errors(Error::BadSyscall), Error::BadSyscall);
+    test!(
         debug_abi_errors(Error::IllegalParameter),
         Error::IllegalParameter
     );
@@ -204,109 +227,34 @@ fn check_abi_errors() {
 /// integers, enumerations, and pointers.
 ///
 fn check_abi_range() {
+    let ok = Error::NoError;
+    let err = Error::IllegalParameter;
     const BYTE: u8 = 1;
+    let ptr = &BYTE as *const u8;
+    let null = core::ptr::null::<u8>();
+    let noncanonical = 0x8000_0000_0000_usize as *const u8;
+    let kernelspace = 0xffff_ffff_ffff_ffff_usize as *const u8;
+
     // Signed integer.
-    assert_eq!(
-        debug_abi_range(-128, 0, Error::NoError, &BYTE as *const u8),
-        Error::NoError
-    );
-    assert_eq!(
-        debug_abi_range(0, 0, Error::NoError, &BYTE as *const u8),
-        Error::NoError
-    );
-    assert_eq!(
-        debug_abi_range(127, 0, Error::NoError, &BYTE as *const u8),
-        Error::NoError
-    );
-    assert_eq!(
-        unsafe {
-            syscalls::syscall4(
-                Syscalls::DebugAbiRange.as_u64(),
-                -129i16 as u64,
-                0u8 as u64,
-                Error::NoError.as_u64(),
-                &BYTE as *const u8 as u64,
-            )
-        },
-        (0u64, Error::IllegalParameter.as_u64())
-    );
-    assert_eq!(
-        unsafe {
-            syscalls::syscall4(
-                Syscalls::DebugAbiRange.as_u64(),
-                128i16 as u64,
-                0u8 as u64,
-                Error::NoError.as_u64(),
-                &BYTE as *const u8 as u64,
-            )
-        },
-        (0u64, Error::IllegalParameter.as_u64())
-    );
+    test!(debug_abi_range(-128, 0, Error::NoError, ptr), ok);
+    test!(debug_abi_range(0, 0, Error::NoError, ptr), ok);
+    test!(debug_abi_range(127, 0, Error::NoError, ptr), ok);
+    test!(syscall4 DebugAbiRange(-129i16, 0u8, Error::NoError.as_u64(), ptr), err);
+    test!(syscall4 DebugAbiRange(128i16, 0u8, Error::NoError.as_u64(), ptr), err);
 
     // Unsigned integer.
-    assert_eq!(
-        debug_abi_range(0, 0, Error::NoError, &BYTE as *const u8),
-        Error::NoError
-    );
-    assert_eq!(
-        debug_abi_range(0, 255, Error::NoError, &BYTE as *const u8),
-        Error::NoError
-    );
-    assert_eq!(
-        unsafe {
-            syscalls::syscall4(
-                Syscalls::DebugAbiRange.as_u64(),
-                0i16 as u64,
-                256u16 as u64,
-                Error::NoError.as_u64(),
-                &BYTE as *const u8 as u64,
-            )
-        },
-        (0u64, Error::IllegalParameter.as_u64())
-    );
+    test!(debug_abi_range(0, 0, Error::NoError, ptr), ok);
+    test!(debug_abi_range(0, 255, Error::NoError, ptr), ok);
+    test!(syscall4 DebugAbiRange(0i16, 256u16, Error::NoError.as_u64(), ptr), err);
 
     // Enumeration.
-    assert_eq!(
-        debug_abi_range(0, 0, Error::NoError, &BYTE as *const u8),
-        Error::NoError
-    );
-    assert_eq!(
-        debug_abi_range(0, 0, Error::IllegalParameter, &BYTE as *const u8),
-        Error::NoError
-    );
-    assert_eq!(
-        unsafe {
-            syscalls::syscall4(
-                Syscalls::DebugAbiRange.as_u64(),
-                0i16 as u64,
-                0u16 as u64,
-                0xffff_ffff_ffff_ffff_u64,
-                &BYTE as *const u8 as u64,
-            )
-        },
-        (0u64, Error::IllegalParameter.as_u64())
-    );
+    test!(debug_abi_range(0, 0, Error::NoError, ptr), ok);
+    test!(debug_abi_range(0, 0, Error::IllegalParameter, ptr), ok);
+    test!(syscall4 DebugAbiRange(0i16, 0u16, 0xffff_ffff_ffff_ffff_u64, ptr), err);
 
     // Pointer.
-    assert_eq!(
-        debug_abi_range(0, 0, Error::NoError, &BYTE as *const u8),
-        Error::NoError
-    );
-    assert_eq!(
-        debug_abi_range(0, 0, Error::NoError, core::ptr::null::<u8>()),
-        Error::IllegalParameter
-    ); // NULL.
-    assert_eq!(
-        debug_abi_range(0, 0, Error::NoError, 0x8000_0000_0000_usize as *const u8),
-        Error::IllegalParameter
-    ); // Non-canonical.
-    assert_eq!(
-        debug_abi_range(
-            0,
-            0,
-            Error::NoError,
-            0xffff_ffff_ffff_ffff_usize as *const u8
-        ),
-        Error::IllegalParameter
-    ); // Kernel.
+    test!(debug_abi_range(0, 0, Error::NoError, ptr), ok);
+    test!(debug_abi_range(0, 0, Error::NoError, null), err);
+    test!(debug_abi_range(0, 0, Error::NoError, noncanonical), err);
+    test!(debug_abi_range(0, 0, Error::NoError, kernelspace), err);
 }
