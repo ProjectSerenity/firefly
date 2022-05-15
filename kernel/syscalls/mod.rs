@@ -39,26 +39,16 @@ impl SyscallABI for FireflyABI {
     ///
     #[inline]
     fn bad_syscall(
-        registers: *mut SavedRegisters,
-        arg1: u64,
-        arg2: u64,
-        arg3: u64,
-        arg4: u64,
-        arg5: u64,
-        arg6: u64,
+        _registers: *mut SavedRegisters,
+        _arg1: u64,
+        _arg2: u64,
+        _arg3: u64,
+        _arg4: u64,
+        _arg5: u64,
+        _arg6: u64,
         syscall_num: u64,
     ) -> Error {
         println!("Unrecognised syscall {}", syscall_num);
-        println!("syscall_handler(");
-        println!("    arg1: {:#016x},", arg1);
-        println!("    arg2: {:#016x},", arg2);
-        println!("    arg3: {:#016x},", arg3);
-        println!("    arg4: {:#016x},", arg4);
-        println!("    arg5: {:#016x},", arg5);
-        println!("    arg6: {:#016x},", arg6);
-        println!("    syscall_num: {:#016x},", syscall_num);
-        println!("    registers: {:?})", unsafe { &*registers });
-
         Error::BadSyscall
     }
 
