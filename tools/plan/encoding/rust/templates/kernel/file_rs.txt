@@ -79,6 +79,13 @@ pub struct SyscallResults {
     pub error: u64,
 }
 
+{{ define "returnIllegalParameter" }}
+    return SyscallResults {
+        value: 0,
+        error: {{ toString . }}::IllegalParameter.as_{{ toString .Type }}(){{ fromU64 .Type }},
+    }
+{{ end }}
+
 /// Called by syscall_entry to call the relevant
 /// syscall, or return an error if an invalid syscall
 /// is invoked.
@@ -111,26 +118,17 @@ pub extern "sysv64" fn syscall_handler(
                 {{- if isEnumeration $arg.Type -}}
                     match {{ toString $arg.Type }}::from_{{ toString $arg.Enumeration.Type }}(arg{{ addOne $i }}{{ fromU64 $arg.Enumeration.Type }}) {
                         Some(value) => value,
-                        None => return SyscallResults {
-                            value: 0,
-                            error: {{ toString $error }}::IllegalParameter.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
-                        },
+                        None => {{ template "returnIllegalParameter" $error }},
                     };
                 {{- else if isPointer $arg.Type -}}
                     match VirtAddr::try_new(arg{{ addOne $i }} as usize) {
                         Ok(addr) => {
                             if !USERSPACE.contains_addr(addr) {
-                                return SyscallResults {
-                                    value: 0,
-                                    error: {{ toString $error }}::IllegalParameter.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
-                                };
+                                {{ template "returnIllegalParameter" $error }};
                             }
                             addr.as_usize() as {{ toString $arg.Type }}
                         }
-                        Err(_) => return SyscallResults {
-                            value: 0,
-                            error: {{ toString $error }}::IllegalParameter.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
-                        },
+                        Err(_) => {{ template "returnIllegalParameter" $error }},
                     };
                 {{- else if isInteger $arg.Type -}}
                     {{- if isUint64 $arg.Type -}}
@@ -140,18 +138,12 @@ pub extern "sysv64" fn syscall_handler(
                     {{- else if isSigned $arg.Type -}}
                         match (arg{{ addOne $i }} as i64).try_into() {
                             Ok(value) => value,
-                            Err(_) => return SyscallResults {
-                                value: 0,
-                                error: {{ toString $error }}::IllegalParameter.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
-                            },
+                            Err(_) => {{ template "returnIllegalParameter" $error }},
                         };
                     {{- else -}}
                         match arg{{ addOne $i }}.try_into() {
                             Ok(value) => value,
-                            Err(_) => return SyscallResults {
-                                value: 0,
-                                error: {{ toString $error }}::IllegalParameter.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
-                            },
+                            Err(_) => {{ template "returnIllegalParameter" $error }},
                         };
                     {{- end }}
                 {{- else -}}
