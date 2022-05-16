@@ -251,7 +251,7 @@ pub struct BitmapFrameAllocator {
 impl BitmapFrameAllocator {
     /// Returns an empty allocator, which can allocate no memory.
     ///
-    pub fn empty() -> Self {
+    pub const fn empty() -> Self {
         BitmapFrameAllocator {
             num_frames: 0,
             free_frames: 0,

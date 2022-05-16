@@ -15,7 +15,6 @@ rust_library(
         "//kernel/cpu",
         "//kernel/memory",
         "//kernel/utils/spin",
-        "@crates//:lazy_static",
         "@crates//:x86_64",
     ],
 )

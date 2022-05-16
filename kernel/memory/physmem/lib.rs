@@ -24,7 +24,7 @@
 //!
 //! ## Helper functions
 //!
-//! While the bitmap allocator can be used directly via [`ALLOCATOR`](struct@ALLOCATOR),
+//! While the bitmap allocator can be used directly via [`ALLOCATOR`],
 //! the [`allocate_phys_frame`], [`allocate_n_frames`], and [`deallocate_phys_frame`]
 //! helper functions are typically easier to use. The [`debug`]
 //! function can be used to print debug information about the bitmap
@@ -66,19 +66,16 @@ mod boot_info;
 pub use crate::bitmap::{ArenaFrameAllocator, BitmapFrameAllocator, BitmapFrameTracker};
 pub use crate::boot_info::BootInfoFrameAllocator;
 use bootloader::bootinfo::MemoryMap;
-use lazy_static::lazy_static;
 use memory::{PhysFrame, PhysFrameAllocator, PhysFrameDeallocator, PhysFrameRange, PhysFrameSize};
 use spin::{lock, Mutex};
 
-lazy_static! {
-    /// The second-phase physical memory allocator.
-    ///
-    /// `ALLOCATOR` can be initialised by calling [`init`], once the kernel's heap has
-    /// been set up. To bootstrap the heap, use [`bootstrap`] to build a [`BootInfoFrameAllocator`],
-    /// then pass that to [`init`] so `ALLOCATOR` can take over.
-    ///
-    pub static ref ALLOCATOR: Mutex<BitmapFrameAllocator> = Mutex::new(BitmapFrameAllocator::empty());
-}
+/// The second-phase physical memory allocator.
+///
+/// `ALLOCATOR` can be initialised by calling [`init`], once the kernel's heap has
+/// been set up. To bootstrap the heap, use [`bootstrap`] to build a [`BootInfoFrameAllocator`],
+/// then pass that to [`init`] so `ALLOCATOR` can take over.
+///
+pub static ALLOCATOR: Mutex<BitmapFrameAllocator> = Mutex::new(BitmapFrameAllocator::empty());
 
 /// Sets up the second-phase physical memory manager, taking over
 /// from the bootstrap allocator.

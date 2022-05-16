@@ -36,7 +36,6 @@ extern crate alloc;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::pin::Pin;
-use lazy_static::lazy_static;
 use memory::VirtAddr;
 use spin::{lock, Mutex};
 use x86_64::instructions::segmentation::{Segment, CS, SS};
@@ -68,11 +67,9 @@ pub fn bootstrap() {
     pinned.activate();
 }
 
-lazy_static! {
-    /// The segment data for each CPU.
-    ///
-    static ref PER_CPU: Mutex<Vec<Pin<&'static mut SegmentData>>> = Mutex::new(Vec::new());
-}
+/// The segment data for each CPU.
+///
+static PER_CPU: Mutex<Vec<Pin<&'static mut SegmentData>>> = Mutex::new(Vec::new());
 
 /// Initialise the per-CPU segment data, which
 /// is used for the rest of the kernel's

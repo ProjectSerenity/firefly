@@ -22,7 +22,6 @@ rust_library(
         "//kernel/utils/pretty",
         "//kernel/utils/spin",
         "@crates//:bootloader",
-        "@crates//:lazy_static",
     ],
 )
 
