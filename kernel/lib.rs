@@ -213,33 +213,3 @@ fn entropy_reseed_helper() -> ! {
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     panic!("allocation error: {:?}", layout)
 }
-
-/// Halt the CPU using a loop of the `hlt` instruction.
-///
-pub fn halt_loop() -> ! {
-    loop {
-        x86_64::instructions::hlt();
-    }
-}
-
-/// shutdown_qemu uses the 0x604 I/O port
-/// to instruct QEMU to shut down successfully.
-///
-#[doc(hidden)]
-pub fn shutdown_qemu() -> ! {
-    unsafe {
-        x86_64::instructions::port::Port::new(0x604).write(0x2000u16);
-    }
-
-    // Sometimes there's a delay before QEMU fully
-    // exits, so to avoid the below panic triggering
-    // unnecessarily, we loop briefly.
-    let stop = time::after(time::Duration::from_secs(2));
-    while stop.after(time::now()) {
-        for _ in 0..1000 {
-            core::hint::spin_loop();
-        }
-    }
-
-    unreachable!("instruction to exit QEMU returned somehow");
-}

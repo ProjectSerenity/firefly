@@ -104,10 +104,12 @@ rust_binary(
         "//kernel/memory/virtmem",
         "//kernel/multitasking",
         "//kernel/network",
+        "//kernel/power",
         "//kernel/storage",
         "//kernel/time",
         "//kernel/utils/tar",
         "@crates//:bootloader",
+        "@crates//:x86_64",
     ],
 )
 

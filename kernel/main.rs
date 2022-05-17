@@ -31,13 +31,17 @@ use multitasking::thread::Thread;
 use multitasking::{scheduler, with_processes};
 use serial::println;
 use storage::block;
+use x86_64::instructions::{hlt, interrupts};
 
 /// This function is called on panic.
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
 
-    kernel::halt_loop();
+    loop {
+        interrupts::disable();
+        hlt();
+    }
 }
 
 entry_point!(kmain);
@@ -101,7 +105,7 @@ fn initial_workload() -> ! {
         scheduler::switch();
         if with_processes(|p| p.len()) == 0 {
             println!("All user processes have exited. Shutting down.");
-            kernel::shutdown_qemu();
+            power::shutdown();
         }
     }
 }
