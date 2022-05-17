@@ -156,32 +156,50 @@ fn set_address(bus: u8, slot: u8, func: u8, field: u8) {
 // tedious to maintain a device as we go along through
 // the discovery process.
 
-fn read_u8(bus: u8, slot: u8, func: u8, field: u8) -> u8 {
+/// Read an 8-bit unsigned integer at the given PCI
+/// field.
+///
+pub fn read_u8(bus: u8, slot: u8, func: u8, field: u8) -> u8 {
     set_address(bus, slot, func, field);
     unsafe { Port::new(CONFIG_DATA + (field as u16 & 3)).read() }
 }
 
-fn read_u16(bus: u8, slot: u8, func: u8, field: u8) -> u16 {
+/// Read an 16-bit unsigned integer at the given PCI
+/// field.
+///
+pub fn read_u16(bus: u8, slot: u8, func: u8, field: u8) -> u16 {
     set_address(bus, slot, func, field);
     unsafe { Port::new(CONFIG_DATA + (field as u16 & 2)).read() }
 }
 
-fn read_u32(bus: u8, slot: u8, func: u8, field: u8) -> u32 {
+/// Read an 32-bit unsigned integer at the given PCI
+/// field.
+///
+pub fn read_u32(bus: u8, slot: u8, func: u8, field: u8) -> u32 {
     set_address(bus, slot, func, field);
     unsafe { Port::new(CONFIG_DATA).read() }
 }
 
-fn write_u8(bus: u8, slot: u8, func: u8, field: u8, value: u8) {
+/// Write an 8-bit unsigned integer to the given PCI
+/// field.
+///
+pub fn write_u8(bus: u8, slot: u8, func: u8, field: u8, value: u8) {
     set_address(bus, slot, func, field);
     unsafe { Port::new(CONFIG_DATA).write(value) };
 }
 
-fn write_u16(bus: u8, slot: u8, func: u8, field: u8, value: u16) {
+/// Write an 16-bit unsigned integer to the given PCI
+/// field.
+///
+pub fn write_u16(bus: u8, slot: u8, func: u8, field: u8, value: u16) {
     set_address(bus, slot, func, field);
     unsafe { Port::new(CONFIG_DATA).write(value) };
 }
 
-fn write_u32(bus: u8, slot: u8, func: u8, field: u8, value: u32) {
+/// Write an 32-bit unsigned integer to the given PCI
+/// field.
+///
+pub fn write_u32(bus: u8, slot: u8, func: u8, field: u8, value: u32) {
     set_address(bus, slot, func, field);
     unsafe { Port::new(CONFIG_DATA).write(value) };
 }
