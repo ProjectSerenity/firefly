@@ -65,6 +65,9 @@ RUST_CRATES = {
     "acpi": crate.spec(
         version = "=4.1.0",
     ),
+    "aml": crate.spec(
+        version = "=0.16.1",
+    ),
     # For bootloader binary.
     "bit_field": crate.spec(
         version = "=0.10.1",

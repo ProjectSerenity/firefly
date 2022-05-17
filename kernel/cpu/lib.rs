@@ -30,7 +30,7 @@ pub use local::{
 
 /// This stores the maximum number of logical cores.
 ///
-/// The value is not modified once initialised by [`global_init`](local::global_init).
+/// The value is not modified once initialised by [`global_init`].
 ///
 static MAX_CORES: AtomicUsize = AtomicUsize::new(1);
 

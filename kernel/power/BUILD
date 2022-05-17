@@ -6,38 +6,35 @@
 load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rustfmt_test")
 
 rust_library(
-    name = "cpu",
+    name = "power",
     srcs = [
         "lib.rs",
-        "local.rs",
     ],
-    crate_name = "cpu",
+    crate_name = "power",
     edition = "2021",
     visibility = ["//kernel:__subpackages__"],
     deps = [
+        "//kernel/drivers/pci",
         "//kernel/drivers/serial",
         "//kernel/memory",
-        "//kernel/memory/physmem",
-        "//kernel/memory/virtmem",
-        "//kernel/power",
-        "//kernel/utils/spin",
-        "@crates//:raw-cpuid",
+        "@crates//:acpi",
+        "@crates//:aml",
         "@crates//:x86_64",
     ],
 )
 
 rust_clippy(
     name = "clippy",
-    deps = [":cpu"],
+    deps = [":power"],
 )
 
 rust_doc(
     name = "docs",
-    crate = ":cpu",
+    crate = ":power",
 )
 
 rustfmt_test(
     name = "fmt_test",
     size = "small",
-    targets = [":cpu"],
+    targets = [":power"],
 )

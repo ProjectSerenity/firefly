@@ -51,6 +51,7 @@ rust_library(
         "//kernel/memory/virtmem",
         "//kernel/multitasking",
         "//kernel/network",
+        "//kernel/power",
         "//kernel/random",
         "//kernel/storage",
         "//kernel/time",

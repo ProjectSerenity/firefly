@@ -35,6 +35,7 @@
 //! - [memory/virtmem](::virtmem)
 //! - [multitasking](::multitasking)
 //! - [network](::network)
+//! - [power](::power)
 //! - [random](::random)
 //! - [storage](::storage)
 //! - [time](::time)
