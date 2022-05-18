@@ -30,6 +30,8 @@ go_test(
     data = glob(["testdata/**"]),
     embed = [":parser"],
     deps = [
-        "@rsc_io_diff//:diff",
+        "//tools/plan/ast",
+        "//tools/plan/token",
+        "@io_rsc_diff//:diff",
     ],
 )

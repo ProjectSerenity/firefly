@@ -43,7 +43,7 @@ def go_deps():
     )
 
     go_repository(
-        name = "rsc_io_diff",
+        name = "io_rsc_diff",
         importpath = "rsc.io/diff",
         sum = "h1:/WCDjRGIVDjKlhtSc1PEApp2fR58gfSVK62dr/yQNyQ=",
         version = "v0.0.0-20190621135850-fe3479844c3c",

@@ -34,7 +34,9 @@ go_test(
     ],
     embed = [":types"],
     deps = [
+        "//tools/plan/ast",
         "//tools/plan/parser",
-        "@rsc_io_diff//:diff",
+        "//tools/plan/token",
+        "@io_rsc_diff//:diff",
     ],
 )

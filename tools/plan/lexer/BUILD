@@ -28,6 +28,7 @@ go_test(
     data = glob(["testdata/**"]),
     embed = [":lexer"],
     deps = [
-        "@rsc_io_diff//:diff",
+        "//tools/plan/token",
+        "@io_rsc_diff//:diff",
     ],
 )

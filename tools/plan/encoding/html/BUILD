@@ -12,10 +12,7 @@ go_library(
     embedsrcs = glob(["templates/**"]),
     importpath = "github.com/ProjectSerenity/firefly/tools/plan/encoding/html",
     visibility = ["//visibility:public"],
-    deps = [
-        "//tools/plan/ast",
-        "//tools/plan/types",
-    ],
+    deps = ["//tools/plan/types"],
 )
 
 gofmt(
