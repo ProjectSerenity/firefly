@@ -46,13 +46,13 @@ BOOTLOADER_VERSION = "0.9.22"
 
 RUST_CRATE_ANNOTATIONS = {
     "bootloader": [crate.annotation(
-        additive_build_file = "@//bazel/third_party:bootloader.BUILD",
+        additive_build_file = "@//third_party:bootloader.BUILD",
         build_script_data = ["@rust_linux_x86_64//:rustc"],
         build_script_env = {
             "PATH": "$$(dirname $(location @rust_linux_x86_64//:rustc)):$$PATH",
         },
         patch_args = ["-p1"],
-        patches = ["@//bazel/third_party:bootloader.patch"],
+        patches = ["@//third_party:bootloader.patch"],
     )],
     "uart_16550": [crate.annotation(
         deps = ["@crates//:x86_64"],
@@ -153,7 +153,7 @@ def rust_deps():
 
     http_archive(
         name = "rust_none_x86_64",
-        build_file = "//bazel/third_party:no_std.BUILD",
+        build_file = "//third_party:no_std.BUILD",
         sha256 = RUST_NO_STD.sum,
         strip_prefix = "rust-std-nightly-x86_64-unknown-none",
         type = "tgz",

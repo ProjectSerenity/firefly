@@ -1,5 +1,5 @@
 {
-  "checksum": "5e8e4922695d70c78c6a2bd8784ddf2498db5802380b9635691a00a88f655a2f",
+  "checksum": "4d75d162c1dcf3419a96aec6a6116f9512cb047367b0a08df27b9ed7cd1dbd1a",
   "crates": {
     "acpi 4.1.0": {
       "name": "acpi",
@@ -280,7 +280,7 @@
             "-p1"
           ],
           "patches": [
-            "@//bazel/third_party:bootloader.patch"
+            "@//third_party:bootloader.patch"
           ]
         }
       },
