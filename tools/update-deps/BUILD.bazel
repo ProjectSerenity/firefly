@@ -9,7 +9,6 @@ load("//bazel/gofmt:gofmt.bzl", "gofmt")
 go_library(
     name = "update-deps_lib",
     srcs = [
-        "go.go",
         "main.go",
         "rules.go",
         "rust.go",
@@ -19,9 +18,7 @@ go_library(
     deps = [
         "//vendor/go/github.com/BurntSushi/toml",
         "//vendor/go/github.com/bazelbuild/buildtools/build",
-        "//vendor/go/golang.org/x/mod/module",
         "//vendor/go/golang.org/x/mod/semver",
-        "//vendor/go/golang.org/x/mod/sumdb",
         "//vendor/go/golang.org/x/time/rate",
     ],
 )
@@ -42,7 +39,6 @@ go_test(
     size = "small",
     srcs = [
         "fields_test.go",
-        "go_test.go",
         "rules_test.go",
         "rust_test.go",
     ],

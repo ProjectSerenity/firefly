@@ -4,8 +4,6 @@
 # license that can be found in the LICENSE file.
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-load("@rules_rust//crate_universe:crates.bzl", "crate_deps_repository")
-load("@rules_rust//crate_universe:defs.bzl", "crate", "crates_repository")
 load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_register_toolchains")
 
 RUST_VERSION = "nightly"
@@ -42,149 +40,8 @@ RUST_NO_STD = struct(
     sum = "35cd94ae9a6efc1839c227470041038e3c51f50db1f2c59ed7f5b32d03f4cd2f",
 )
 
-BOOTLOADER_VERSION = "0.9.22"
-
-RUST_CRATE_ANNOTATIONS = {
-    "uart_16550": [crate.annotation(
-        deps = ["@crates//:x86_64"],
-    )],
-}
-
-# After chaning any of these, the next build will
-# need to be run with CARGO_BAZEL_REPIN=true.
-RUST_CRATES = {
-    "bit_field": crate.spec(
-        version = "=0.10.1",
-    ),
-    "bitflags": crate.spec(
-        version = "=1.3.2",
-    ),
-    "byteorder": crate.spec(
-        default_features = False,
-        version = "=1.4.3",
-    ),
-    "chacha20": crate.spec(
-        version = "=0.8.1",
-    ),
-    "digest": crate.spec(
-        #default_features = False,
-        version = "=0.10.3",
-    ),
-    "fixedvec": crate.spec(
-        version = "=0.2.4",
-    ),
-    "hex-literal": crate.spec(
-        version = "=0.3.4",
-    ),
-    "lazy_static": crate.spec(
-        features = ["spin_no_std"],
-        version = "=1.4.0",
-    ),
-    "libc": crate.spec(
-        version = "=0.2.119",
-    ),
-    "linked_list_allocator": crate.spec(
-        version = "=0.9.1",
-    ),
-    "llvm-tools": crate.spec(
-        version = "=0.1.1",
-    ),
-    "managed": crate.spec(
-        default_features = False,
-        features = [
-            "alloc",
-            "map",
-        ],
-        version = "=0.8",
-    ),
-    "pic8259": crate.spec(
-        version = "=0.10.2",
-    ),
-    "rand": crate.spec(
-        default_features = False,
-        version = "=0.8.5",
-    ),
-    "raw-cpuid": crate.spec(
-        version = "=10.2.0",
-    ),
-    "rlibc": crate.spec(
-        version = "=1.0.0",
-    ),
-    "serde": crate.spec(
-        default_features = False,
-        features = ["alloc"],
-        version = "=1.0.136",
-    ),
-    "sha2": crate.spec(
-        default_features = False,
-        features = ["force-soft"],
-        version = "=0.10.2",
-    ),
-    "smoltcp": crate.spec(
-        default_features = False,
-        features = [
-            "alloc",
-            "async",
-            "libc",
-            "medium-ethernet",
-            "proto-dhcpv4",
-            "proto-ipv4",
-            "socket",
-            "socket-dhcpv4",
-            "socket-raw",
-            "socket-tcp",
-            "socket-udp",
-        ],
-        version = "=0.8.0",
-    ),
-    "spin": crate.spec(
-        version = "=0.9.2",
-    ),
-    "thiserror": crate.spec(
-        version = "=1.0.30",
-    ),
-    "toml": crate.spec(
-        version = "=0.5.8",
-    ),
-    "uart_16550": crate.spec(
-        version = "=0.2.15",
-    ),
-    "usize_conversions": crate.spec(
-        version = "=0.2.0",
-    ),
-    "volatile": crate.spec(
-        version = "=0.4.4",
-    ),
-    "x86_64": crate.spec(
-        version = "=0.14.8",
-    ),
-    "xmas-elf": crate.spec(
-        version = "=0.8.0",
-    ),
-    "zero": crate.spec(
-        version = "=0.1.2",
-    ),
-}
-
 def rust_deps():
     # Rust crates where we use a custom BUILD file.
-
-    # Modify the binary build to mimic what `bootimage runner` does.
-    # We also patch the binary to fix a path issue.
-    http_archive(
-        name = "bootloader",
-        build_file = "//bazel/third_party:bootloader.BUILD",
-        patch_args = ["-p1"],
-        patches = [
-            "//bazel/third_party:bootloader.patch",
-        ],
-        sha256 = "a62c8f6168cd106687ee36a2b71a46c4144d73399f72814104d33094b8092fd2",
-        strip_prefix = "bootloader-0.9.21",
-        type = "tgz",
-        urls = [
-            "https://static.crates.io/crates/bootloader/bootloader-0.9.21.crate",
-        ],
-    )
 
     http_archive(
         name = "compiler_builtins",
@@ -225,22 +82,4 @@ def rust_deps():
             RUST_ISO_DATE + "/" + RUST_RUSTFMT.name: RUST_RUSTFMT.sum,
         },
         version = RUST_VERSION,
-    )
-
-    # Specify and configure the crates we use.
-
-    crate_deps_repository(
-        bootstrap = True,
-    )
-
-    crates_repository(
-        name = "crates",
-        rust_version = RUST_VERSION + "-" + RUST_ISO_DATE,
-        annotations = RUST_CRATE_ANNOTATIONS,
-        generator = "@cargo_bazel_bootstrap//:cargo-bazel",
-        lockfile = "//bazel/deps:Cargo.Bazel.lock",
-        packages = RUST_CRATES,
-        supported_platform_triples = [
-            "x86_64-unknown-linux-gnu",
-        ],
     )
