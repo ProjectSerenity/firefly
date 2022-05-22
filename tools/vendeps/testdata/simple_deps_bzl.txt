@@ -1,0 +1,25 @@
+# Copyright 2022 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+rust = [
+    crate(
+        name = "acpi",
+        version = "4.1.0",
+        deps = [
+            "bit_field",
+            "log",
+            "rsdp",
+        ],
+    ),
+    crate(
+        name = "managed",
+        features = [
+            "alloc",
+            "map",
+        ],
+        version = "0.8",
+        digest = "sha256:deadbeef",
+    ),
+]
