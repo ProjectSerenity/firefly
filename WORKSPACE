@@ -35,8 +35,6 @@ load("@crates//:defs.bzl", "crate_repositories")
 
 crate_repositories()
 
-# gazelle:repository go_repository name=org_golang_x_sys importpath=golang.org/x/sys
-
 go_deps()
 
 # Register our cross-compiling toolchains.

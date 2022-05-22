@@ -21,14 +21,6 @@ RULES_CC = struct(
     sha256 = "4dccbfd22c0def164c8f47458bd50e0c7148f3d92002cdb459c2a96a68498241",
 )
 
-RULES_GAZELLE = struct(
-    name = "bazel_gazelle",
-    repo = "bazelbuild/bazel-gazelle",
-    archive = "https://github.com/bazelbuild/bazel-gazelle/releases/download/v{v}/bazel-gazelle-v{v}.tar.gz",
-    version = "0.25.0",
-    sha256 = "5982e5463f171da99e3bdaeff8c0f48283a7a5f396ec5282910b9e8a49c0dd7e",
-)
-
 RULES_GO = struct(
     name = "io_bazel_rules_go",
     repo = "bazelbuild/rules_go",
@@ -87,12 +79,6 @@ def rules_deps():
         name = RULES_GO.name,
         sha256 = RULES_GO.sha256,
         urls = [RULES_GO.archive.format(v = RULES_GO.version)],
-    )
-
-    http_archive(
-        name = RULES_GAZELLE.name,
-        sha256 = RULES_GAZELLE.sha256,
-        urls = [RULES_GAZELLE.archive.format(v = RULES_GAZELLE.version)],
     )
 
     # Used by buildifier.

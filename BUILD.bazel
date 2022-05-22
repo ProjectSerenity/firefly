@@ -3,7 +3,6 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@bazel_gazelle//:def.bzl", "gazelle")
 load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
 load("@io_bazel_rules_go//go:def.bzl", "nogo")
 load("//bazel:qemu.bzl", "qemu")
@@ -38,21 +37,6 @@ nogo(
         "@org_golang_x_tools//go/analysis/passes/structtag",
         "@org_golang_x_tools//go/analysis/passes/unsafeptr",
     ],
-)
-
-# Configure Gazelle
-
-# gazelle:prefix github.com/ProjectSerenity/firefly
-# gazelle:build_file_name BUILD,BUILD.bazel
-# gazelle:go_naming_convention import
-# gazelle:go_naming_convention_external import
-# gazelle:resolve go github.com/bazelbuild/buildtools/build @com_github_bazelbuild_buildtools//build:go_default_library
-# gazelle:resolve go github.com/bazelbuild/buildtools/labels @com_github_bazelbuild_buildtools//labels:go_default_library
-
-# Allow Gazelle to be run with `bazel run //:gazelle`.
-gazelle(
-    name = "gazelle",
-    external = "external",
 )
 
 # Allow Buildifier to be run with `bazel run //:buildifier`.
