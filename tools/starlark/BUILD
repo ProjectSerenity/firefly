@@ -1,0 +1,36 @@
+# Copyright 2022 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//bazel/gofmt:gofmt.bzl", "gofmt")
+
+go_library(
+    name = "starlark",
+    srcs = [
+        "starlark.go",
+    ],
+    importpath = "github.com/ProjectSerenity/firefly/tools/starlark",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_bazelbuild_buildtools//build:go_default_library",
+    ],
+)
+
+gofmt(
+    name = "gofmt",
+    embed = [":starlark"],
+)
+
+go_test(
+    name = "starlark_test",
+    size = "small",
+    srcs = [
+        "starlark_test.go",
+    ],
+    embed = [":starlark"],
+    deps = [
+        "@io_rsc_diff//:diff",
+    ],
+)
