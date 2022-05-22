@@ -4,8 +4,6 @@
 # license that can be found in the LICENSE file.
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-load("@rules_rust//crate_universe:defs.bzl", "crate", "crates_repository")
-load("@rules_rust//crate_universe:repositories.bzl", "crate_universe_dependencies")
 load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_register_toolchains")
 
 RUST_VERSION = "nightly"
@@ -42,111 +40,6 @@ RUST_NO_STD = struct(
     sum = "eee67cfab3e4f8f2f88975d3e2262b1b7eadc6ca32af354b4b3c7f532cc297b4",
 )
 
-BOOTLOADER_VERSION = "0.9.22"
-
-RUST_CRATE_ANNOTATIONS = {
-    "bootloader": [crate.annotation(
-        additive_build_file = "@//third_party:bootloader.BUILD",
-        build_script_data = ["@rust_linux_x86_64//:rustc"],
-        build_script_env = {
-            "PATH": "$$(dirname $(location @rust_linux_x86_64//:rustc)):$$PATH",
-        },
-        patch_args = ["-p1"],
-        patches = ["@//third_party:bootloader.patch"],
-    )],
-    "uart_16550": [crate.annotation(
-        deps = ["@crates//:x86_64"],
-    )],
-}
-
-# After chaning any of these, the next build will
-# need to be run with CARGO_BAZEL_REPIN=true.
-RUST_CRATES = {
-    "acpi": crate.spec(
-        version = "=4.1.0",
-    ),
-    "aml": crate.spec(
-        version = "=0.16.1",
-    ),
-    # For bootloader binary.
-    "bit_field": crate.spec(
-        version = "=0.10.1",
-    ),
-    "bitflags": crate.spec(
-        version = "=1.3.2",
-    ),
-    "bootloader": crate.spec(
-        version = "=0.9.22",
-    ),
-    # For bootloader binary.
-    "fixedvec": crate.spec(
-        version = "=0.2.4",
-    ),
-    "hex-literal": crate.spec(
-        version = "=0.3.4",
-    ),
-    "lazy_static": crate.spec(
-        features = ["spin_no_std"],
-        version = "=1.4.0",
-    ),
-    "linked_list_allocator": crate.spec(
-        default_features = False,
-        features = ["const_mut_refs"],
-        version = "=0.9.1",
-    ),
-    # For bootloader build script.
-    "llvm-tools": crate.spec(
-        version = "=0.1.1",
-    ),
-    "managed": crate.spec(
-        default_features = False,
-        features = [
-            "alloc",
-            "map",
-        ],
-        version = "=0.8",
-    ),
-    "pic8259": crate.spec(
-        version = "=0.10.2",
-    ),
-    "raw-cpuid": crate.spec(
-        version = "=10.3.0",
-    ),
-    "smoltcp": crate.spec(
-        default_features = False,
-        features = [
-            "alloc",
-            "async",
-            "medium-ethernet",
-            "proto-dhcpv4",
-            "proto-ipv4",
-            "socket",
-            "socket-dhcpv4",
-            "socket-raw",
-            "socket-tcp",
-            "socket-udp",
-        ],
-        version = "=0.8.1",
-    ),
-    # For bootloader build script.
-    "toml": crate.spec(
-        version = "=0.5.9",
-    ),
-    "uart_16550": crate.spec(
-        version = "=0.2.18",
-    ),
-    # For bootloader binary.
-    "usize_conversions": crate.spec(
-        version = "=0.2.0",
-    ),
-    "x86_64": crate.spec(
-        version = "=0.14.9",
-    ),
-    "xmas-elf": crate.spec(
-        version = "=0.8.0",
-    ),
-}
-
 def rust_deps():
     # Fetch libcore, liballoc, and libcompiler-builtins
     # for the x86_64-unknown-none build target.
@@ -177,20 +70,4 @@ def rust_deps():
             RUST_ISO_DATE + "/" + RUST_RUSTFMT.name: RUST_RUSTFMT.sum,
         },
         version = RUST_VERSION,
-    )
-
-    # Specify and configure the crates we use.
-
-    crate_universe_dependencies()
-
-    crates_repository(
-        name = "crates",
-        rust_version = RUST_VERSION + "-" + RUST_ISO_DATE,
-        annotations = RUST_CRATE_ANNOTATIONS,
-        generator = "@cargo_bazel_bootstrap//:cargo-bazel",
-        lockfile = "//bazel/deps:Cargo.Bazel.lock",
-        packages = RUST_CRATES,
-        supported_platform_triples = [
-            "x86_64-unknown-linux-gnu",
-        ],
     )

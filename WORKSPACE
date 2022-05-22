@@ -31,10 +31,6 @@ load("//bazel/deps:defs.bzl", "go_deps", "rust_deps")
 
 rust_deps()
 
-load("@crates//:defs.bzl", "crate_repositories")
-
-crate_repositories()
-
 go_deps()
 
 # Register our cross-compiling toolchains.
