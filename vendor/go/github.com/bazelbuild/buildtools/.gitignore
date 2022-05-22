@@ -1,0 +1,6 @@
+/bazel-*
+*~
+.idea
+.ijwb
+*.iml
+/.bazelrc.user

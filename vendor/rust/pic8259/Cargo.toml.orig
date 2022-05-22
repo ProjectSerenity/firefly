@@ -1,0 +1,26 @@
+[package]
+name = "pic8259"
+version = "0.10.2"
+authors = ["Eric Kidd <git@randomhacks.net>"]
+edition = "2018"
+
+description = "Abstractions for the 8259 and 8259A interrupt controllers"
+repository = "https://github.com/rust-osdev/pic8259"
+readme = "README.md"
+keywords = ["no_std", "kernel", "interrupts"]
+license = "Apache-2.0/MIT"
+
+[features]
+default = ["nightly"]
+nightly = ["x86_64/inline_asm"]
+stable = ["x86_64/external_asm"]
+
+[dependencies]
+x86_64 = { version = "0.14.2", default-features = false, features = ["instructions"] }
+
+[package.metadata.release]
+no-dev-version = true
+pre-release-replacements = [
+    { file="Changelog.md", search="# Unreleased", replace="# Unreleased\n\n# {{version}} – {{date}}", exactly=1 },
+]
+pre-release-commit-message = "Bump version to {{version}}"

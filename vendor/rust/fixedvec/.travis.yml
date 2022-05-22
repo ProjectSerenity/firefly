@@ -1,0 +1,34 @@
+sudo: false
+language: rust
+rust:
+  - 1.23.0 # oldest supported version
+  - stable
+  - beta
+  - nightly
+
+matrix:
+  include:
+    - env: RUSTFMT
+      rust: 1.28.0
+      install:
+        - rustup component add rustfmt-preview
+      script:
+        - cargo fmt --all -- --check
+    - env: RUSTFLAGS="-D warnings"
+      rust: 1.28.0
+      script:
+        - cargo check --all --tests
+
+install:
+  - rustc -Vv
+  - cargo -V
+
+script:
+  - cargo clean
+  - cargo build --all --verbose
+  - cargo test --all --verbose
+  - rustdoc -L target/debug/deps --test README.md
+  - cargo doc --all --no-deps
+
+cache:
+  cargo: true

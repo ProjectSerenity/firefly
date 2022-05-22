@@ -1,0 +1,1187 @@
+diff --git a/BUILD.bazel b/BUILD.bazel
+deleted file mode 100644
+index 84cb973..0000000
+--- a/BUILD.bazel
++++ /dev/null
+@@ -1,46 +0,0 @@
+-load("@bazel_gazelle//:def.bzl", "gazelle")
+-load("//buildifier:def.bzl", "buildifier")
+-
+-exports_files([
+-    "LICENSE",
+-    "launcher.js",
+-])
+-
+-config_setting(
+-    name = "windows",
+-    values = {"cpu": "x64_windows"},
+-)
+-
+-filegroup(
+-    name = "warnings",
+-    srcs = ["WARNINGS.md"],
+-    visibility = ["//warn/docs:__pkg__"],
+-)
+-
+-test_suite(
+-    name = "tests",
+-    tests = [
+-        "//api_proto:api.gen.pb.go_checkshtest",
+-        "//build:go_default_test",
+-        "//build_proto:build.gen.pb.go_checkshtest",
+-        "//buildifier:buildifier_integration_test",
+-        "//deps_proto:deps.gen.pb.go_checkshtest",
+-        "//edit:go_default_test",
+-        "//extra_actions_base_proto:extra_actions_base.gen.pb.go_checkshtest",
+-        "//labels:go_default_test",
+-        "//lang:tables.gen.go_checkshtest",
+-        "//tables:go_default_test",
+-        "//warn:go_default_test",
+-        "//warn/docs:go_default_test",
+-        "//wspace:go_default_test",
+-    ],
+-)
+-
+-gazelle(
+-    name = "gazelle",
+-    prefix = "github.com/bazelbuild/buildtools",
+-)
+-
+-buildifier(
+-    name = "buildifier",
+-)
+diff --git a/api_proto/BUILD.bazel b/api_proto/BUILD.bazel
+deleted file mode 100644
+index e6a763a..0000000
+--- a/api_proto/BUILD.bazel
++++ /dev/null
+@@ -1,30 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+-load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+-load("@rules_proto//proto:defs.bzl", "proto_library")
+-load("//build:build_defs.bzl", "go_proto_checkedin_test")
+-
+-# gazelle:exclude api.gen.pb.go
+-
+-go_proto_checkedin_test(
+-    src = "api.gen.pb.go",
+-)
+-
+-proto_library(
+-    name = "api_proto_proto",
+-    srcs = ["api.proto"],
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_proto_library(
+-    name = "api_proto_go_proto",
+-    importpath = "github.com/bazelbuild/buildtools/api_proto",
+-    proto = ":api_proto_proto",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_library(
+-    name = "go_default_library",
+-    embed = [":api_proto_go_proto"],
+-    importpath = "github.com/bazelbuild/buildtools/api_proto",
+-    visibility = ["//visibility:public"],
+-)
+diff --git a/build/BUILD.bazel b/build/BUILD.bazel
+deleted file mode 100644
+index 2b7b967..0000000
+--- a/build/BUILD.bazel
++++ /dev/null
+@@ -1,52 +0,0 @@
+-# gazelle:exclude parse.y.go
+-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+-load(":build_defs.bzl", "go_yacc")
+-
+-go_yacc(
+-    src = "parse.y",
+-    out = "parse.y.baz.go",
+-)
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = [
+-        "lex.go",
+-        "parse.y.baz.go",  # keep
+-        "print.go",
+-        "quote.go",
+-        "rewrite.go",
+-        "rule.go",
+-        "syntax.go",
+-        "utils.go",
+-        "walk.go",
+-    ],
+-    importpath = "github.com/bazelbuild/buildtools/build",
+-    visibility = ["//visibility:public"],
+-    deps = ["//tables:go_default_library"],
+-)
+-
+-go_test(
+-    name = "go_default_test",
+-    size = "small",
+-    srcs = [
+-        "checkfile_test.go",
+-        "lex_test.go",
+-        "parse_test.go",
+-        "print_test.go",
+-        "quote_test.go",
+-        "rule_test.go",
+-        "walk_test.go",
+-    ],
+-    data = glob(["testdata/*"]) + [
+-        # parse.y.go is checked in to satisfy the Go community
+-        # https://github.com/bazelbuild/buildtools/issues/14
+-        # this test ensures it doesn't get stale.
+-        "parse.y.baz.go",
+-        "parse.y.go",
+-    ],
+-    embed = [":go_default_library"],
+-    deps = [
+-        "//tables:go_default_library",
+-        "//testutils",
+-    ],
+-)
+diff --git a/build_proto/BUILD.bazel b/build_proto/BUILD.bazel
+deleted file mode 100644
+index 7e12010..0000000
+--- a/build_proto/BUILD.bazel
++++ /dev/null
+@@ -1,25 +0,0 @@
+-load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+-load("@rules_proto//proto:defs.bzl", "proto_library")
+-load("//build:build_defs.bzl", "go_proto_checkedin_test")
+-
+-# gazelle:exclude build.gen.pb.go
+-
+-# build.proto is copied from Bazel 0.22.0
+-# https://github.com/bazelbuild/bazel/tree/0.22.0/src/main/protobuf
+-
+-go_proto_checkedin_test(
+-    src = "build.gen.pb.go",
+-)
+-
+-proto_library(
+-    name = "blaze_query_proto",
+-    srcs = ["build.proto"],
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_proto_library(
+-    name = "go_default_library",
+-    importpath = "github.com/bazelbuild/buildtools/build_proto",
+-    proto = ":blaze_query_proto",
+-    visibility = ["//visibility:public"],
+-)
+diff --git a/buildifier/BUILD.bazel b/buildifier/BUILD.bazel
+deleted file mode 100644
+index 1209821..0000000
+--- a/buildifier/BUILD.bazel
++++ /dev/null
+@@ -1,104 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+-
+-go_binary(
+-    name = "buildifier",
+-    embed = [":go_default_library"],
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_binary(
+-    name = "buildifier-darwin",
+-    out = "buildifier-darwin_amd64",
+-    embed = [":go_default_library"],
+-    goarch = "amd64",
+-    goos = "darwin",
+-    pure = "on",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_binary(
+-    name = "buildifier-linux",
+-    out = "buildifier-linux_amd64",
+-    embed = [":go_default_library"],
+-    goarch = "amd64",
+-    goos = "linux",
+-    pure = "on",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_binary(
+-    name = "buildifier-windows",
+-    out = "buildifier-windows_amd64.exe",
+-    embed = [":go_default_library"],
+-    goarch = "amd64",
+-    goos = "windows",
+-    pure = "on",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_binary(
+-    name = "buildifier-darwin-arm64",
+-    out = "buildifier-darwin_arm64",
+-    embed = [":go_default_library"],
+-    goarch = "arm64",
+-    goos = "darwin",
+-    pure = "on",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_binary(
+-    name = "buildifier-linux-arm64",
+-    out = "buildifier-linux_arm64",
+-    embed = [":go_default_library"],
+-    goarch = "arm64",
+-    goos = "linux",
+-    pure = "on",
+-    visibility = ["//visibility:public"],
+-)
+-
+-# Test that the buildifier binary works
+-sh_test(
+-    name = "buildifier_integration_test",
+-    size = "small",
+-    srcs = ["integration_test.sh"],
+-    args = [
+-        "$(location :buildifier)",
+-        "$(location //buildifier2)",
+-    ],
+-    data = [
+-        ":buildifier",
+-        "//buildifier2",
+-    ],
+-    deps = ["@bazel_tools//tools/bash/runfiles"],
+-)
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = ["buildifier.go"],
+-    importpath = "github.com/bazelbuild/buildtools/buildifier",
+-    visibility = ["//visibility:private"],
+-    x_defs = {
+-        "main.buildVersion": "{STABLE_buildVersion}",
+-        "main.buildScmRevision": "{STABLE_buildScmRevision}",
+-    },
+-    deps = [
+-        "//build:go_default_library",
+-        "//buildifier/utils:go_default_library",
+-        "//differ:go_default_library",
+-        "//tables:go_default_library",
+-        "//warn:go_default_library",
+-        "//wspace:go_default_library",
+-    ],
+-)
+-
+-exports_files(
+-    ["runner.bash.template"],
+-    visibility = ["//visibility:public"],
+-)
+-
+-exports_files(
+-    [
+-        "README.md",
+-    ],
+-    visibility = ["//buildifier/npm:__pkg__"],
+-)
+diff --git a/buildifier/npm/BUILD.bazel b/buildifier/npm/BUILD.bazel
+deleted file mode 100644
+index 7e04d5f..0000000
+--- a/buildifier/npm/BUILD.bazel
++++ /dev/null
+@@ -1,61 +0,0 @@
+-load("@build_bazel_rules_nodejs//:index.bzl", "nodejs_test", "pkg_npm")
+-load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+-
+-copy_file(
+-    name = "copy_LICENSE",
+-    src = "//:LICENSE",
+-    out = "LICENSE",
+-)
+-
+-genrule(
+-    name = "buildifier_launcher",
+-    srcs = ["//:launcher.js"],
+-    outs = ["buildifier.js"],
+-    cmd = "sed s/_TOOL_/buildifier/ $< > $@",
+-)
+-
+-# npm rules live in this subdirectory to avoid a load() statement
+-# in the parent package leaking to users. This means we need
+-# to copy the output files so the pkg_npm will find them in the
+-# output directory for this package.
+-_PARENT_PACKAGE_FILES = [
+-    "README.md",
+-    "buildifier-darwin_amd64",
+-    "buildifier-darwin_arm64",
+-    "buildifier-linux_amd64",
+-    "buildifier-linux_arm64",
+-    "buildifier-windows_amd64.exe",
+-]
+-
+-[
+-    copy_file(
+-        name = "copy_%s" % s,
+-        # go_binary doesn't give a predeclared output for
+-        # the file in "out" so we have to construct a
+-        # label to reference the go_binary rule itself.
+-        src = "//buildifier:%s" % s.replace("_arm64", "-arm64").split("_amd64")[0],
+-        out = s,
+-    )
+-    for s in _PARENT_PACKAGE_FILES
+-]
+-
+-pkg_npm(
+-    name = "buildifier",
+-    package_name = "@bazel/buildifier",
+-    srcs = [
+-        "package.json",
+-    ],
+-    substitutions = {
+-        "0.0.0-PLACEHOLDER": "{BUILD_SCM_VERSION}",
+-    },
+-    deps = [
+-        "LICENSE",
+-        "buildifier.js",
+-    ] + _PARENT_PACKAGE_FILES,
+-)
+-
+-nodejs_test(
+-    name = "integration_test",
+-    data = [":buildifier"],
+-    entry_point = "test.js",
+-)
+diff --git a/buildifier/utils/BUILD.bazel b/buildifier/utils/BUILD.bazel
+deleted file mode 100644
+index 5b61390..0000000
+--- a/buildifier/utils/BUILD.bazel
++++ /dev/null
+@@ -1,23 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = [
+-        "diagnostics.go",
+-        "flags.go",
+-        "tempfile.go",
+-        "utils.go",
+-    ],
+-    importpath = "github.com/bazelbuild/buildtools/buildifier/utils",
+-    visibility = ["//buildifier:__pkg__"],
+-    deps = [
+-        "//build:go_default_library",
+-        "//warn:go_default_library",
+-    ],
+-)
+-
+-go_test(
+-    name = "go_default_test",
+-    srcs = ["utils_test.go"],
+-    embed = [":go_default_library"],
+-)
+diff --git a/buildifier2/BUILD.bazel b/buildifier2/BUILD.bazel
+deleted file mode 100644
+index d31b486..0000000
+--- a/buildifier2/BUILD.bazel
++++ /dev/null
+@@ -1,19 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = ["buildifier2.go"],
+-    importpath = "github.com/bazelbuild/buildtools/buildifier2",
+-    visibility = ["//visibility:private"],
+-    deps = [
+-        "//build:go_default_library",
+-        "//convertast:go_default_library",
+-        "@skylark_syntax//syntax:go_default_library",
+-    ],
+-)
+-
+-go_binary(
+-    name = "buildifier2",
+-    embed = [":go_default_library"],
+-    visibility = ["//visibility:public"],
+-)
+diff --git a/buildozer/BUILD.bazel b/buildozer/BUILD.bazel
+deleted file mode 100644
+index 3bedd8a..0000000
+--- a/buildozer/BUILD.bazel
++++ /dev/null
+@@ -1,94 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = ["main.go"],
+-    importpath = "github.com/bazelbuild/buildtools/buildozer",
+-    visibility = ["//visibility:private"],
+-    x_defs = {
+-        "main.buildVersion": "{STABLE_buildVersion}",
+-        "main.buildScmRevision": "{STABLE_buildScmRevision}",
+-    },
+-    deps = [
+-        "//build:go_default_library",
+-        "//edit:go_default_library",
+-        "//tables:go_default_library",
+-    ],
+-)
+-
+-go_binary(
+-    name = "buildozer",
+-    embed = [":go_default_library"],
+-    visibility = ["//visibility:public"],
+-)
+-
+-sh_test(
+-    name = "buildozer_test",
+-    size = "small",
+-    srcs = ["buildozer_test.sh"],
+-    args = [
+-        "$(location :buildozer)",
+-    ],
+-    data = [
+-        "test_common.sh",
+-        ":buildozer",
+-    ],
+-    deps = ["@bazel_tools//tools/bash/runfiles"],
+-)
+-
+-go_binary(
+-    name = "buildozer-darwin",
+-    out = "buildozer-darwin_amd64",
+-    embed = [":go_default_library"],
+-    goarch = "amd64",
+-    goos = "darwin",
+-    pure = "on",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_binary(
+-    name = "buildozer-linux",
+-    out = "buildozer-linux_amd64",
+-    embed = [":go_default_library"],
+-    goarch = "amd64",
+-    goos = "linux",
+-    pure = "on",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_binary(
+-    name = "buildozer-windows",
+-    out = "buildozer-windows_amd64.exe",
+-    embed = [":go_default_library"],
+-    goarch = "amd64",
+-    goos = "windows",
+-    pure = "on",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_binary(
+-    name = "buildozer-darwin-arm64",
+-    out = "buildozer-darwin_arm64",
+-    embed = [":go_default_library"],
+-    goarch = "arm64",
+-    goos = "darwin",
+-    pure = "on",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_binary(
+-    name = "buildozer-linux-arm64",
+-    out = "buildozer-linux_arm64",
+-    embed = [":go_default_library"],
+-    goarch = "arm64",
+-    goos = "linux",
+-    pure = "on",
+-    visibility = ["//visibility:public"],
+-)
+-
+-exports_files(
+-    [
+-        "README.md",
+-    ],
+-    visibility = ["//buildozer/npm:__pkg__"],
+-)
+diff --git a/buildozer/npm/BUILD.bazel b/buildozer/npm/BUILD.bazel
+deleted file mode 100644
+index 1a1cac8..0000000
+--- a/buildozer/npm/BUILD.bazel
++++ /dev/null
+@@ -1,83 +0,0 @@
+-load("@build_bazel_rules_nodejs//:index.bzl", "nodejs_test", "pkg_npm")
+-load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+-load("@buildozer_npm_deps//typescript:index.bzl", "tsc")
+-
+-copy_file(
+-    name = "copy_LICENSE",
+-    src = "//:LICENSE",
+-    out = "LICENSE",
+-)
+-
+-tsc(
+-    name = "compile_ts",
+-    outs = [
+-        "index.d.ts",
+-        "index.js",
+-    ],
+-    args = [
+-        "$(execpath index.ts)",
+-        "--outDir $(RULEDIR)",
+-        "--target es2015",
+-        "--module commonjs",
+-        "--declaration",
+-    ],
+-    data = [
+-        "index.ts",
+-        "@buildozer_npm_deps//@types/node",
+-    ],
+-)
+-
+-genrule(
+-    name = "buildozer_launcher",
+-    srcs = ["//:launcher.js"],
+-    outs = ["buildozer.js"],
+-    cmd = "sed s/_TOOL_/buildozer/ $< > $@",
+-)
+-
+-# npm rules live in this subdirectory to avoid a load() statement
+-# in the parent package leaking to users. This means we need
+-# to copy the output files so the pkg_npm will find them in the
+-# output directory for this package.
+-_PARENT_PACKAGE_FILES = [
+-    "README.md",
+-    "buildozer-darwin_amd64",
+-    "buildozer-darwin_arm64",
+-    "buildozer-linux_amd64",
+-    "buildozer-linux_arm64",
+-    "buildozer-windows_amd64.exe",
+-]
+-
+-[
+-    copy_file(
+-        name = "copy_%s" % s,
+-        # go_binary doesn't give a predeclared output for
+-        # the file in "out" so we have to construct a
+-        # label to reference the go_binary rule itself.
+-        src = "//buildozer:%s" % s.replace("_arm64", "-arm64").split("_amd64")[0],
+-        out = s,
+-    )
+-    for s in _PARENT_PACKAGE_FILES
+-]
+-
+-pkg_npm(
+-    name = "buildozer",
+-    package_name = "@bazel/buildozer",
+-    srcs = [
+-        "package.json",
+-    ],
+-    substitutions = {
+-        "0.0.0-PLACEHOLDER": "{BUILD_SCM_VERSION}",
+-    },
+-    deps = [
+-        "LICENSE",
+-        "buildozer.js",
+-        "index.js",
+-        "index.d.ts",
+-    ] + _PARENT_PACKAGE_FILES,
+-)
+-
+-nodejs_test(
+-    name = "integration_test",
+-    data = [":buildozer"],
+-    entry_point = "test.js",
+-)
+diff --git a/bzlenv/BUILD.bazel b/bzlenv/BUILD.bazel
+deleted file mode 100644
+index c7cd709..0000000
+--- a/bzlenv/BUILD.bazel
++++ /dev/null
+@@ -1,23 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = ["bzlenv.go"],
+-    importpath = "github.com/bazelbuild/buildtools/bzlenv",
+-    visibility = ["//visibility:public"],
+-    deps = ["//build:go_default_library"],
+-)
+-
+-go_test(
+-    name = "bzlenv_test",
+-    size = "small",
+-    srcs = ["bzlenv_test.go"],
+-    embed = [":go_default_library"],
+-)
+-
+-go_test(
+-    name = "go_default_test",
+-    srcs = ["bzlenv_test.go"],
+-    embed = [":go_default_library"],
+-    deps = ["//build:go_default_library"],
+-)
+diff --git a/config/BUILD.bazel b/config/BUILD.bazel
+deleted file mode 100644
+index 206ec68..0000000
+--- a/config/BUILD.bazel
++++ /dev/null
+@@ -1,8 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = ["config.go"],
+-    importpath = "github.com/bazelbuild/buildtools/config",
+-    visibility = ["//visibility:public"],
+-)
+diff --git a/convertast/BUILD.bazel b/convertast/BUILD.bazel
+deleted file mode 100644
+index b8809df..0000000
+--- a/convertast/BUILD.bazel
++++ /dev/null
+@@ -1,12 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = ["convert_ast.go"],
+-    importpath = "github.com/bazelbuild/buildtools/convertast",
+-    visibility = ["//visibility:public"],
+-    deps = [
+-        "//build:go_default_library",
+-        "@skylark_syntax//syntax:go_default_library",
+-    ],
+-)
+diff --git a/deps_proto/BUILD.bazel b/deps_proto/BUILD.bazel
+deleted file mode 100644
+index 3dbf5f6..0000000
+--- a/deps_proto/BUILD.bazel
++++ /dev/null
+@@ -1,25 +0,0 @@
+-load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+-load("@rules_proto//proto:defs.bzl", "proto_library")
+-load("//build:build_defs.bzl", "go_proto_checkedin_test")
+-
+-# gazelle:exclude deps.gen.pb.go
+-
+-# deps.proto is copied from Bazel 0.22.0
+-# https://github.com/bazelbuild/bazel/tree/0.22.0/src/main/protobuf
+-
+-go_proto_checkedin_test(
+-    src = "deps.gen.pb.go",
+-)
+-
+-proto_library(
+-    name = "blaze_deps_proto",
+-    srcs = ["deps.proto"],
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_proto_library(
+-    name = "go_default_library",
+-    importpath = "github.com/bazelbuild/buildtools/deps_proto",
+-    proto = ":blaze_deps_proto",
+-    visibility = ["//visibility:public"],
+-)
+diff --git a/differ/BUILD.bazel b/differ/BUILD.bazel
+deleted file mode 100644
+index af72f1f..0000000
+--- a/differ/BUILD.bazel
++++ /dev/null
+@@ -1,12 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = [
+-        "diff.go",
+-        "isatty_other.go",
+-        "isatty_windows.go",
+-    ],
+-    importpath = "github.com/bazelbuild/buildtools/differ",
+-    visibility = ["//visibility:public"],
+-)
+diff --git a/edit/BUILD.bazel b/edit/BUILD.bazel
+deleted file mode 100644
+index 358c9c4..0000000
+--- a/edit/BUILD.bazel
++++ /dev/null
+@@ -1,38 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = [
+-        "buildozer.go",
+-        "default_buildifier.go",
+-        "edit.go",
+-        "fix.go",
+-        "types.go",
+-    ],
+-    importpath = "github.com/bazelbuild/buildtools/edit",
+-    visibility = ["//visibility:public"],
+-    deps = [
+-        "//api_proto:go_default_library",
+-        "//build:go_default_library",
+-        "//build_proto:go_default_library",
+-        "//file:go_default_library",
+-        "//labels:go_default_library",
+-        "//lang:go_default_library",
+-        "//tables:go_default_library",
+-        "//wspace:go_default_library",
+-        "@com_github_golang_protobuf//jsonpb:go_default_library",
+-        "@com_github_golang_protobuf//proto:go_default_library",
+-    ],
+-)
+-
+-go_test(
+-    name = "go_default_test",
+-    srcs = [
+-        "buildozer_command_file_test.go",
+-        "buildozer_test.go",
+-        "edit_test.go",
+-        "fix_test.go",
+-    ],
+-    embed = [":go_default_library"],
+-    deps = ["//build:go_default_library"],
+-)
+diff --git a/edit/safe/BUILD.bazel b/edit/safe/BUILD.bazel
+deleted file mode 100644
+index d987810..0000000
+--- a/edit/safe/BUILD.bazel
++++ /dev/null
+@@ -1,12 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = ["buildifier.go"],
+-    importpath = "github.com/bazelbuild/buildtools/edit/safe",
+-    visibility = ["//visibility:public"],
+-    deps = [
+-        "//build:go_default_library",
+-        "//edit:go_default_library",
+-    ],
+-)
+diff --git a/extra_actions_base_proto/BUILD.bazel b/extra_actions_base_proto/BUILD.bazel
+deleted file mode 100644
+index db33821..0000000
+--- a/extra_actions_base_proto/BUILD.bazel
++++ /dev/null
+@@ -1,25 +0,0 @@
+-load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+-load("@rules_proto//proto:defs.bzl", "proto_library")
+-load("//build:build_defs.bzl", "go_proto_checkedin_test")
+-
+-# gazelle:exclude extra_actions_base.gen.pb.go
+-
+-# extra_actions_base.proto is copied from Bazel 0.22.0
+-# https://github.com/bazelbuild/bazel/tree/0.22.0/src/main/protobuf
+-
+-go_proto_checkedin_test(
+-    src = "extra_actions_base.gen.pb.go",
+-)
+-
+-proto_library(
+-    name = "blaze_proto",
+-    srcs = ["extra_actions_base.proto"],
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_proto_library(
+-    name = "go_default_library",
+-    importpath = "github.com/bazelbuild/buildtools/extra_actions_base_proto",
+-    proto = ":blaze_proto",
+-    visibility = ["//visibility:public"],
+-)
+diff --git a/file/BUILD.bazel b/file/BUILD.bazel
+deleted file mode 100644
+index 50460a9..0000000
+--- a/file/BUILD.bazel
++++ /dev/null
+@@ -1,8 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = ["file.go"],
+-    importpath = "github.com/bazelbuild/buildtools/file",
+-    visibility = ["//visibility:public"],
+-)
+diff --git a/generatetables/BUILD.bazel b/generatetables/BUILD.bazel
+deleted file mode 100644
+index 1f1959f..0000000
+--- a/generatetables/BUILD.bazel
++++ /dev/null
+@@ -1,18 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = ["generate_tables.go"],
+-    importpath = "github.com/bazelbuild/buildtools/generatetables",
+-    visibility = ["//visibility:private"],
+-    deps = [
+-        "//build_proto:go_default_library",
+-        "@com_github_golang_protobuf//proto:go_default_library",
+-    ],
+-)
+-
+-go_binary(
+-    name = "generatetables",
+-    embed = [":go_default_library"],
+-    visibility = ["//visibility:public"],
+-)
+diff --git a/labels/BUILD.bazel b/labels/BUILD.bazel
+deleted file mode 100644
+index 557441b..0000000
+--- a/labels/BUILD.bazel
++++ /dev/null
+@@ -1,18 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = [
+-        "labels.go",
+-    ],
+-    importpath = "github.com/bazelbuild/buildtools/labels",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_test(
+-    name = "go_default_test",
+-    srcs = [
+-        "labels_test.go",
+-    ],
+-    embed = [":go_default_library"],
+-)
+diff --git a/lang/BUILD.bazel b/lang/BUILD.bazel
+deleted file mode 100644
+index 3cb9e44..0000000
+--- a/lang/BUILD.bazel
++++ /dev/null
+@@ -1,30 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+-load("//build:build_defs.bzl", "genfile_check_test")
+-load(":defs.bzl", "generate_tables")
+-
+-# gazelle:exclude tables.gen.go
+-
+-genfile_check_test(
+-    src = "tables.gen.go",
+-    gen = "tables.go",
+-)
+-
+-# generated by: bazel info build-language > build-language.pb
+-# Unable to get this info from within a single bazel.
+-generate_tables(
+-    name = "generateTablesFile",
+-    src = "build-language.pb",
+-    out = "tables.go",
+-)
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = [
+-        "tables.go",  # keep
+-    ],
+-    importpath = "github.com/bazelbuild/buildtools/lang",
+-    visibility = ["//visibility:public"],
+-    deps = [
+-        "//build_proto:go_default_library",  # keep
+-    ],
+-)
+diff --git a/tables/BUILD.bazel b/tables/BUILD.bazel
+deleted file mode 100644
+index 225f1b6..0000000
+--- a/tables/BUILD.bazel
++++ /dev/null
+@@ -1,19 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = [
+-        "jsonparser.go",
+-        "tables.go",
+-    ],
+-    importpath = "github.com/bazelbuild/buildtools/tables",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_test(
+-    name = "go_default_test",
+-    size = "small",
+-    srcs = ["jsonparser_test.go"],
+-    data = glob(["testdata/*"]),
+-    embed = [":go_default_library"],
+-)
+diff --git a/testutils/BUILD.bazel b/testutils/BUILD.bazel
+deleted file mode 100644
+index cbb5e09..0000000
+--- a/testutils/BUILD.bazel
++++ /dev/null
+@@ -1,11 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+-
+-go_library(
+-    name = "testutils",
+-    srcs = [
+-        "diff.go",
+-        "find.go",
+-    ],
+-    importpath = "github.com/bazelbuild/buildtools/testutils",
+-    visibility = ["//visibility:public"],
+-)
+diff --git a/unused_deps/BUILD.bazel b/unused_deps/BUILD.bazel
+deleted file mode 100644
+index c5be9ba..0000000
+--- a/unused_deps/BUILD.bazel
++++ /dev/null
+@@ -1,93 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = [
+-        "jar_manifest.go",
+-        "unused_deps.go",
+-    ],
+-    importpath = "github.com/bazelbuild/buildtools/unused_deps",
+-    visibility = ["//visibility:private"],
+-    x_defs = {
+-        "main.buildVersion": "{STABLE_buildVersion}",
+-        "main.buildScmRevision": "{STABLE_buildScmRevision}",
+-    },
+-    deps = [
+-        "//build:go_default_library",
+-        "//config:go_default_library",
+-        "//deps_proto:go_default_library",
+-        "//edit:go_default_library",
+-        "//extra_actions_base_proto:go_default_library",
+-        "//labels:go_default_library",
+-        "@com_github_golang_protobuf//proto:go_default_library",
+-    ],
+-)
+-
+-go_binary(
+-    name = "unused_deps",
+-    embed = [":go_default_library"],
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_binary(
+-    name = "unused_deps-darwin",
+-    out = "unused_deps-darwin_amd64",
+-    embed = [":go_default_library"],
+-    goarch = "amd64",
+-    goos = "darwin",
+-    pure = "on",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_binary(
+-    name = "unused_deps-linux",
+-    out = "unused_deps-linux_amd64",
+-    embed = [":go_default_library"],
+-    goarch = "amd64",
+-    goos = "linux",
+-    pure = "on",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_binary(
+-    name = "unused_deps-windows",
+-    out = "unused_deps-windows_amd64.exe",
+-    embed = [":go_default_library"],
+-    goarch = "amd64",
+-    goos = "windows",
+-    pure = "on",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_binary(
+-    name = "unused_deps-linux-arm64",
+-    out = "unused_deps-linux_arm64",
+-    embed = [":go_default_library"],
+-    goarch = "arm64",
+-    goos = "linux",
+-    pure = "on",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_binary(
+-    name = "unused_deps-darwin-arm64",
+-    out = "unused_deps-darwin_arm64",
+-    embed = [":go_default_library"],
+-    goarch = "arm64",
+-    goos = "darwin",
+-    pure = "on",
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_test(
+-    name = "jar_manifest_test",
+-    size = "small",
+-    srcs = ["jar_manifest_test.go"],
+-    embed = [":go_default_library"],
+-)
+-
+-go_test(
+-    name = "go_default_test",
+-    srcs = ["jar_manifest_test.go"],
+-    embed = [":go_default_library"],
+-)
+diff --git a/warn/BUILD.bazel b/warn/BUILD.bazel
+deleted file mode 100644
+index 2683f6e..0000000
+--- a/warn/BUILD.bazel
++++ /dev/null
+@@ -1,56 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = [
+-        "multifile.go",
+-        "types.go",
+-        "warn.go",
+-        "warn_bazel.go",
+-        "warn_bazel_api.go",
+-        "warn_bazel_operation.go",
+-        "warn_control_flow.go",
+-        "warn_cosmetic.go",
+-        "warn_deprecated.go",
+-        "warn_docstring.go",
+-        "warn_macro.go",
+-        "warn_naming.go",
+-        "warn_operation.go",
+-        "warn_visibility.go",
+-    ],
+-    importpath = "github.com/bazelbuild/buildtools/warn",
+-    visibility = ["//visibility:public"],
+-    deps = [
+-        "//build:go_default_library",
+-        "//bzlenv:go_default_library",
+-        "//edit:go_default_library",
+-        "//labels:go_default_library",
+-        "//tables:go_default_library",
+-    ],
+-)
+-
+-go_test(
+-    name = "go_default_test",
+-    size = "small",
+-    srcs = [
+-        "types_test.go",
+-        "warn_bazel_api_test.go",
+-        "warn_bazel_operation_test.go",
+-        "warn_bazel_test.go",
+-        "warn_control_flow_test.go",
+-        "warn_cosmetic_test.go",
+-        "warn_deprecated_test.go",
+-        "warn_docstring_test.go",
+-        "warn_macro_test.go",
+-        "warn_naming_test.go",
+-        "warn_operation_test.go",
+-        "warn_test.go",
+-        "warn_visibility_test.go",
+-    ],
+-    embed = [":go_default_library"],
+-    deps = [
+-        "//build:go_default_library",
+-        "//tables:go_default_library",
+-        "//testutils",
+-    ],
+-)
+diff --git a/warn/docs/BUILD.bazel b/warn/docs/BUILD.bazel
+deleted file mode 100644
+index 17ce422..0000000
+--- a/warn/docs/BUILD.bazel
++++ /dev/null
+@@ -1,58 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+-load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+-load("@rules_proto//proto:defs.bzl", "proto_library")
+-load(":build_defs.bzl", "documentation")
+-
+-documentation(
+-    name = "warnings_docs",
+-    bin = ":go_default_binary",
+-    markdown = "WARNINGS.md",
+-    textproto = "warnings.textproto",
+-)
+-
+-go_binary(
+-    name = "go_default_binary",
+-    embed = [":go_default_library"],
+-    visibility = ["//visibility:public"],
+-)
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = ["docs.go"],
+-    importpath = "github.com/bazelbuild/buildtools/warn.docs",
+-    visibility = ["//visibility:private"],
+-    deps = [
+-        ":docs_go_proto",
+-        "//warn:go_default_library",
+-        "@com_github_golang_protobuf//proto:go_default_library",
+-        "@io_bazel_rules_go//go/tools/bazel:go_default_library",
+-    ],
+-)
+-
+-go_test(
+-    name = "go_default_test",
+-    size = "small",
+-    srcs = [
+-        "docs_test.go",
+-    ],
+-    data = [
+-        "warnings.textproto",
+-        ":warnings_docs",
+-        "//:warnings",
+-    ],
+-    embed = [":go_default_library"],
+-    deps = [
+-        "//testutils",
+-    ],
+-)
+-
+-proto_library(
+-    name = "docs_proto",
+-    srcs = ["docs.proto"],
+-)
+-
+-go_proto_library(
+-    name = "docs_go_proto",
+-    importpath = "github.com/bazelbuild/buildtools/warn/docs/proto",
+-    proto = ":docs_proto",
+-)
+diff --git a/wspace/BUILD.bazel b/wspace/BUILD.bazel
+deleted file mode 100644
+index f5102e4..0000000
+--- a/wspace/BUILD.bazel
++++ /dev/null
+@@ -1,16 +0,0 @@
+-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+-
+-go_library(
+-    name = "go_default_library",
+-    srcs = ["workspace.go"],
+-    importpath = "github.com/bazelbuild/buildtools/wspace",
+-    visibility = ["//visibility:public"],
+-    deps = ["//build:go_default_library"],
+-)
+-
+-go_test(
+-    name = "go_default_test",
+-    size = "small",
+-    srcs = ["workspace_test.go"],
+-    embed = [":go_default_library"],
+-)

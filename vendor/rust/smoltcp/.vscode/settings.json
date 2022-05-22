@@ -1,0 +1,5 @@
+{
+    //"rust-analyzer.checkOnSave.command": "clippy",
+    "rust-analyzer.assist.importGranularity": "module",
+    "editor.formatOnSave": true
+}
