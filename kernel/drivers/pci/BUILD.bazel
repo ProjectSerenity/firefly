@@ -13,7 +13,7 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/memory",
-        "@crates//:x86_64",
+        "//vendor/rust/x86_64",
     ],
 )
 

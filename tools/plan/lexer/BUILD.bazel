@@ -29,6 +29,6 @@ go_test(
     embed = [":lexer"],
     deps = [
         "//tools/plan/token",
-        "@io_rsc_diff//:diff",
+        "//vendor/go/rsc.io/diff",
     ],
 )

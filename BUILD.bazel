@@ -8,7 +8,6 @@ load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
 load("@io_bazel_rules_go//go:def.bzl", "nogo")
 load("//bazel:qemu.bzl", "qemu")
 load("//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_binary")
-load("//bazel/deps:rust.bzl", "BOOTLOADER_VERSION")
 
 # Expose the license to the rest of the workspace.
 exports_files(
@@ -66,13 +65,13 @@ buildifier(
 
 alias(
     name = "bootloader_binary",
-    actual = "@crates__bootloader-" + BOOTLOADER_VERSION + "//:bootloader_bin",
+    actual = "//vendor/rust/bootloader:bootloader_bin",
     tags = ["manual"],
 )
 
 alias(
     name = "bootloader_build_script",
-    actual = "@crates__bootloader-" + BOOTLOADER_VERSION + "//:build_script",
+    actual = "//vendor/rust/bootloader:build_script",
     tags = ["manual"],
 )
 

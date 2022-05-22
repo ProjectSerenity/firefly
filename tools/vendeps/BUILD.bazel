@@ -24,12 +24,12 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//tools/starlark",
-        "@com_github_bazelbuild_buildtools//build:go_default_library",
-        "@org_golang_x_mod//module",
-        "@org_golang_x_mod//sumdb",
-        "@org_golang_x_mod//sumdb/dirhash",
-        "@org_golang_x_mod//zip",
-        "@org_golang_x_time//rate",
+        "//vendor/go/github.com/bazelbuild/buildtools/build",
+        "//vendor/go/golang.org/x/mod/module",
+        "//vendor/go/golang.org/x/mod/sumdb",
+        "//vendor/go/golang.org/x/mod/sumdb/dirhash",
+        "//vendor/go/golang.org/x/mod/zip",
+        "//vendor/go/golang.org/x/time/rate",
     ],
 )
 
@@ -50,7 +50,7 @@ go_test(
     data = glob(["testdata/**"]),
     embed = [":vendeps_lib"],
     deps = [
-        "@io_rsc_diff//:diff",
+        "//vendor/go/rsc.io/diff",
     ],
 )
 

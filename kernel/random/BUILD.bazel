@@ -20,7 +20,7 @@ rust_library(
         "//kernel/utils/spin",
         "//shared/crypto/chacha20",
         "//shared/crypto/sha256",
-        "@crates//:x86_64",
+        "//vendor/rust/x86_64",
     ],
 )
 
@@ -45,6 +45,6 @@ rust_test(
     size = "small",
     crate = ":random",
     proc_macro_deps = [
-        "@crates//:hex-literal",
+        "//vendor/rust/hex-literal",
     ],
 )

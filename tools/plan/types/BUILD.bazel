@@ -37,6 +37,6 @@ go_test(
         "//tools/plan/ast",
         "//tools/plan/parser",
         "//tools/plan/token",
-        "@io_rsc_diff//:diff",
+        "//vendor/go/rsc.io/diff",
     ],
 )

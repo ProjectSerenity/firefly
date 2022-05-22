@@ -23,8 +23,8 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/utils/align",
-        "@crates//:bitflags",
-        "@crates//:x86_64",
+        "//vendor/rust/bitflags",
+        "//vendor/rust/x86_64",
     ],
 )
 

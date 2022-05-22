@@ -60,8 +60,8 @@ rust_library(
         "//kernel/utils/pretty",
         "//kernel/utils/spin",
         "//kernel/utils/tar",
-        "@crates//:bootloader",
-        "@crates//:x86_64",
+        "//vendor/rust/bootloader",
+        "//vendor/rust/x86_64",
     ],
 )
 
@@ -108,8 +108,8 @@ rust_binary(
         "//kernel/storage",
         "//kernel/time",
         "//kernel/utils/tar",
-        "@crates//:bootloader",
-        "@crates//:x86_64",
+        "//vendor/rust/bootloader",
+        "//vendor/rust/x86_64",
     ],
 )
 

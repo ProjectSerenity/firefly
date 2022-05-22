@@ -12,7 +12,7 @@ rust_library(
     edition = "2021",
     visibility = ["//kernel:__subpackages__"],
     deps = [
-        "@crates//:bitflags",
+        "//vendor/rust/bitflags",
     ],
 )
 

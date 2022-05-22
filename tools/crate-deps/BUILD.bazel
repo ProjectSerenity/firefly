@@ -12,8 +12,8 @@ go_library(
     importpath = "github.com/ProjectSerenity/firefly/tools/crate-deps",
     visibility = ["//visibility:private"],
     deps = [
-        "@com_github_bazelbuild_buildtools//build:go_default_library",
-        "@com_github_bazelbuild_buildtools//labels:go_default_library",
+        "//vendor/go/github.com/bazelbuild/buildtools/build",
+        "//vendor/go/github.com/bazelbuild/buildtools/labels",
     ],
 )
 

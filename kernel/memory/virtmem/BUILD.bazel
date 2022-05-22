@@ -21,7 +21,7 @@ rust_library(
         "//kernel/memory/physmem",
         "//kernel/multitasking/process/loader",
         "//kernel/utils/pretty",
-        "@crates//:x86_64",
+        "//vendor/rust/x86_64",
     ],
 )
 

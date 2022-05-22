@@ -21,8 +21,8 @@ rust_library(
         "//kernel/memory/virtmem",
         "//kernel/power",
         "//kernel/utils/spin",
-        "@crates//:raw-cpuid",
-        "@crates//:x86_64",
+        "//vendor/rust/raw-cpuid",
+        "//vendor/rust/x86_64",
     ],
 )
 

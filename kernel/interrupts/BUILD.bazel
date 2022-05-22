@@ -18,9 +18,9 @@ rust_library(
         "//kernel/drivers/serial",
         "//kernel/memory/segmentation",
         "//kernel/utils/spin",
-        "@crates//:lazy_static",
-        "@crates//:pic8259",
-        "@crates//:x86_64",
+        "//vendor/rust/lazy_static",
+        "//vendor/rust/pic8259",
+        "//vendor/rust/x86_64",
     ],
 )
 

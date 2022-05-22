@@ -13,8 +13,8 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/utils/spin",
-        "@crates//:uart_16550",
-        "@crates//:x86_64",
+        "//vendor/rust/uart_16550",
+        "//vendor/rust/x86_64",
     ],
 )
 

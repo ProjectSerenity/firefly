@@ -36,9 +36,9 @@ rust_library(
         "//kernel/utils/align",
         "//kernel/utils/bitmap_index",
         "//kernel/utils/spin",
-        "@crates//:bitflags",
-        "@crates//:smoltcp",
-        "@crates//:x86_64",
+        "//vendor/rust/bitflags",
+        "//vendor/rust/smoltcp",
+        "//vendor/rust/x86_64",
     ],
 )
 

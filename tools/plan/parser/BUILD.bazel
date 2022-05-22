@@ -32,6 +32,6 @@ go_test(
     deps = [
         "//tools/plan/ast",
         "//tools/plan/token",
-        "@io_rsc_diff//:diff",
+        "//vendor/go/rsc.io/diff",
     ],
 )

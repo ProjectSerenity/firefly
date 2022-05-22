@@ -44,7 +44,7 @@ rust_test(
     compile_data = glob(["testdata/*.tar"]),
     crate = ":tar",
     proc_macro_deps = [
-        "@crates//:hex-literal",
+        "//vendor/rust/hex-literal",
     ],
     deps = [
         "//shared/crypto/sha256",

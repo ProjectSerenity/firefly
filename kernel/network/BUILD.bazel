@@ -23,9 +23,9 @@ rust_library(
         "//kernel/random",
         "//kernel/time",
         "//kernel/utils/spin",
-        "@crates//:managed",
-        "@crates//:smoltcp",
-        "@crates//:x86_64",
+        "//vendor/rust/managed",
+        "//vendor/rust/smoltcp",
+        "//vendor/rust/x86_64",
     ],
 )
 

@@ -16,7 +16,7 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/memory",
-        "@crates//:xmas-elf",
+        "//vendor/rust/xmas-elf",
     ],
 )
 
@@ -42,6 +42,6 @@ rust_test(
     compile_data = glob(["testdata/*"]),
     crate = ":loader",
     proc_macro_deps = [
-        "@crates//:hex-literal",
+        "//vendor/rust/hex-literal",
     ],
 )

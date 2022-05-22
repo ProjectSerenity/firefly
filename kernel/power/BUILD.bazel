@@ -17,9 +17,9 @@ rust_library(
         "//kernel/drivers/pci",
         "//kernel/drivers/serial",
         "//kernel/memory",
-        "@crates//:acpi",
-        "@crates//:aml",
-        "@crates//:x86_64",
+        "//vendor/rust/acpi",
+        "//vendor/rust/aml",
+        "//vendor/rust/x86_64",
     ],
 )
 

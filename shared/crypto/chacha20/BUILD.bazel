@@ -36,6 +36,6 @@ rust_test(
     size = "small",
     crate = ":chacha20",
     proc_macro_deps = [
-        "@crates//:hex-literal",
+        "//vendor/rust/hex-literal",
     ],
 )
