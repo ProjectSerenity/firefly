@@ -8,6 +8,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -15,31 +16,33 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"golang.org/x/mod/module"
+	"golang.org/x/mod/semver"
 	"golang.org/x/mod/sumdb"
 	"golang.org/x/mod/sumdb/dirhash"
 	"golang.org/x/mod/zip"
+)
+
+const (
+	goModuleProxyBase = "https://proxy.golang.org"
+
+	// Public key for sum.golang.org. See go/src/cmd/go/internal/modfetch/key.go
+	goChecksumHost = "sum.golang.org"
+	goChecksumKey  = "sum.golang.org+033de0ae+Ac4zctda0e5eza+HJyk9SxEdh+s3Ux18htTTAD8OuAn8"
 )
 
 // FetchGoModule downloads a Go module using the
 // proxy.golang.org Go module proxy API.
 //
 func FetchGoModule(ctx context.Context, mod *GoModule, dir string) error {
-	const (
-		moduleProxyBase = "https://proxy.golang.org"
-
-		// Public key for sum.golang.org. See go/src/cmd/go/internal/modfetch/key.go
-		checksumHost = "sum.golang.org"
-		checksumKey  = "sum.golang.org+033de0ae+Ac4zctda0e5eza+HJyk9SxEdh+s3Ux18htTTAD8OuAn8"
-	)
-
 	// We start by fetching the checksum we should
 	// expect for the module data.
 
 	clientOps := &GoChecksumDatabaseClient{
-		Host:      checksumHost,
-		PublicKey: checksumKey,
+		Host:      goChecksumHost,
+		PublicKey: goChecksumKey,
 	}
 
 	// Get the checksum.
@@ -76,7 +79,7 @@ func FetchGoModule(ctx context.Context, mod *GoModule, dir string) error {
 		return fmt.Errorf("failed to download Go module %s: invalid module path: %v", mod.Name, err)
 	}
 
-	zipURL := fmt.Sprintf("%s/%s/@v/%s.zip", moduleProxyBase, escaped, mod.Version)
+	zipURL := fmt.Sprintf("%s/%s/@v/%s.zip", goModuleProxyBase, escaped, mod.Version)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, zipURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed to fetch Go module %s: %v", mod.Name, err)
@@ -140,6 +143,67 @@ func FetchGoModule(ctx context.Context, mod *GoModule, dir string) error {
 	}
 
 	return nil
+}
+
+// UpdateGoModule checks a Go module for updates,
+// using the proxy.golang.org Go module proxy API.
+//
+func UpdateGoModule(ctx context.Context, mod *UpdateDep) (updated bool, err error) {
+	// Fetch the module's latest version.
+	escaped, err := module.EscapePath(mod.Name)
+	if err != nil {
+		return false, fmt.Errorf("failed to look up Go module %s: invalid module path: %v", mod.Name, err)
+	}
+
+	latestURL := fmt.Sprintf("%s/%s/@latest", goModuleProxyBase, escaped)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, latestURL, nil)
+	if err != nil {
+		return false, fmt.Errorf("failed to look up Go module %s: %v", mod.Name, err)
+	}
+
+	res, err := httpRequest(req)
+	if err != nil {
+		return false, fmt.Errorf("failed to look up Go module %s: %v", mod.Name, err)
+	}
+
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		res.Body.Close()
+		return false, fmt.Errorf("failed to read response for Go module %s: %v", mod.Name, err)
+	}
+
+	if err = res.Body.Close(); err != nil {
+		return false, fmt.Errorf("failed to close response for Go module %s: %v", mod.Name, err)
+	}
+
+	// See https://go.dev/ref/mod#goproxy-protocol.
+	var info struct {
+		Version string
+		Time    time.Time
+	}
+
+	err = json.Unmarshal(data, &info)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse response for Go module %s: %v", mod.Name, err)
+	}
+
+	if info.Version == "" || !semver.IsValid(info.Version) {
+		return false, fmt.Errorf("failed to check Go module %s for updates: latest version %q is invalid", mod.Name, info.Version)
+	}
+
+	switch semver.Compare(*mod.Version, info.Version) {
+	case 0:
+		// Current is latest.
+		return false, nil
+	case -1:
+		// There is a newer version.
+		fmt.Printf("Updated Go module %s from %s to %s.\n", mod.Name, *mod.Version, info.Version)
+		*mod.Version = info.Version
+		return true, nil
+	default:
+		log.Printf("WARN: Go module %s has version %s, but latest is %s, which is older", mod.Name, *mod.Version, info.Version)
+		return false, nil
+	}
 }
 
 type GoChecksumDatabaseClient struct {

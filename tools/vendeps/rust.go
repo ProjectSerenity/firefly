@@ -20,6 +20,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"golang.org/x/mod/semver"
 )
 
 // Crate contains the metadata for a Rust Crate, as provided
@@ -133,14 +135,15 @@ type CrateUser struct {
 	URL    string `json:"url"`
 }
 
+const cratesIO = "https://crates.io/api/v1/"
+
 // FetchRustCrate downloads a Rust crate using the
 // crates.io API.
 //
 func FetchRustCrate(ctx context.Context, crate *RustCrate, dir string) error {
-	const api = "https://crates.io/api/v1/"
-	u, err := url.Parse(api)
+	u, err := url.Parse(cratesIO)
 	if err != nil {
-		return fmt.Errorf("failed to parse crates.io API URL %q: %v", api, err)
+		return fmt.Errorf("failed to parse crates.io API URL %q: %v", cratesIO, err)
 	}
 
 	u.Path = path.Join("/", u.Path, "crates", crate.Name)
@@ -264,4 +267,123 @@ func FetchRustCrate(ctx context.Context, crate *RustCrate, dir string) error {
 	}
 
 	return nil
+}
+
+// UpdateRustCrate checks a Rust crate for updates,
+// using the crates.io API.
+//
+func UpdateRustCrate(ctx context.Context, crate *UpdateDep) (updated bool, err error) {
+	u, err := url.Parse(cratesIO)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse crates.io API URL %q: %v", cratesIO, err)
+	}
+
+	u.Path = path.Join("/", u.Path, "crates", crate.Name)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return false, fmt.Errorf("failed to prepare API request for Rust crate %q: %v", crate.Name, err)
+	}
+
+	res, err := httpRequest(req)
+	if err != nil {
+		return false, fmt.Errorf("failed to make API request for Rust crate %q: %v", crate.Name, err)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		log.Printf("WARN: Unexpected status code for API request for Rust crate %q: %v (%s)", crate.Name, res.StatusCode, res.Status)
+	}
+
+	body, err := io.ReadAll(res.Body)
+	res.Body.Close()
+	if err != nil {
+		return false, fmt.Errorf("failed to read API response for Rust crate %q: %v", crate.Name, err)
+	}
+
+	var data Crate
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse API response for Rust crate %q: %v", crate.Name, err)
+	}
+
+	if data.Crate.Name != crate.Name {
+		return false, fmt.Errorf("query to crates.io for Rust crate %s returned data for %q", crate.Name, data.Crate.Name)
+	}
+
+	current := semver.Canonical("v" + *crate.Version)
+	if current == "" {
+		return false, fmt.Errorf("Rust crate %s has an invalid version %q", crate.Name, *crate.Version)
+	}
+
+	yanked := false
+	ignoredMajor := false
+	for _, version := range data.Versions {
+		// Check that the version is canonical.
+		// If not, we log it and continue. We
+		// could return an error, but that feels
+		// likely to be more annoying than helpful.
+		next := semver.Canonical("v" + version.Number)
+		if next == "" {
+			log.Printf("WARN: Rust crate %s returned invalid version %q", crate.Name, version.Number)
+			continue
+		}
+
+		cmp := semver.Compare(current, next)
+		if cmp == 0 {
+			if version.Yanked {
+				// We keep going to find which version
+				// we should downgrade to.
+				yanked = true
+				continue
+			}
+
+			// We're already up to date.
+			return false, nil
+		}
+
+		// Ignore yanked versions, other than the
+		// current version. If that is yanked, we
+		// need to downgrade (see above).
+		if version.Yanked {
+			continue
+		}
+
+		// We often won't want to update to a
+		// higher major version if we're already
+		// on a stable version (one with a major
+		// version larger than zero). However,
+		// in case we do, we log the largest
+		// version we see with a larger major
+		// version.
+		if MajorUpdate(current, next) {
+			if !ignoredMajor {
+				ignoredMajor = true
+				fmt.Printf("Ignored Rust crate %s major update from %s to %s.\n", crate.Name, *crate.Version, version.Number)
+			}
+
+			continue
+		}
+
+		// If we see an older version and the
+		// current version has been yanked, we
+		// need to downgrade.
+		if cmp == +1 {
+			if yanked {
+				fmt.Printf("Downgraded Rust crate %s from %s (which has been yanked) to %s.\n", crate.Name, *crate.Version, version.Number)
+				*crate.Version = version.Number
+				return true, nil
+			}
+
+			return false, fmt.Errorf("Rust crate %s returned no data for the current version %s", crate.Name, *crate.Version)
+		}
+
+		fmt.Printf("Upgraded Rust crate %s from %s to %s.\n", crate.Name, *crate.Version, version.Number)
+		*crate.Version = version.Number
+		return true, nil
+	}
+
+	if yanked {
+		return false, fmt.Errorf("Rust crate %s returned no viable versions (current version %s is yanked)", crate.Name, *crate.Version)
+	}
+
+	return false, fmt.Errorf("Rust crate %s returned no viable versions (current version %s missing)", crate.Name, *crate.Version)
 }

@@ -125,6 +125,24 @@ type GoPackage struct {
 	TestDeps      []string `bzl:"test_deps"`
 }
 
+// UpdateDeps includes a set of dependencies
+// for the purposes of updating them.
+//
+type UpdateDeps struct {
+	Rust []*UpdateDep
+	Go   []*UpdateDep
+}
+
+// UpdateDep describes the least information
+// necessary to determine a third-party
+// software library. This is used when
+// determining whether updates are available.
+//
+type UpdateDep struct {
+	Name    string
+	Version *string
+}
+
 func init() {
 	log.SetFlags(0)
 	log.SetOutput(os.Stderr)
@@ -164,10 +182,11 @@ func httpRequest(req *http.Request) (*http.Response, error) {
 }
 
 func main() {
-	var help, noCache, dryRun bool
+	var help, noCache, dryRun, update bool
 	flag.BoolVar(&help, "h", false, "Show this message and exit.")
 	flag.BoolVar(&noCache, "no-cache", false, "Ignore any locally cached dependency data.")
 	flag.BoolVar(&dryRun, "dry-run", false, "Print the set of actions that would be performed, without performing them.")
+	flag.BoolVar(&update, "update", false, "Check the dependency specification for dependency updates.")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage\n  %s [OPTIONS]\n\n", filepath.Base(os.Args[0]))
 		fmt.Fprintf(os.Stderr, "Options:\n")
@@ -188,6 +207,15 @@ func main() {
 		if err != nil {
 			log.Printf("Failed to change directory to %q: %v", workspace, err)
 		}
+	}
+
+	if update {
+		err := UpdateDependencies(depsBzl)
+		if err != nil {
+			log.Fatalf("Failed to update dependencies: %v", err)
+		}
+
+		return
 	}
 
 	// Start by parsing the dependency manifest.
