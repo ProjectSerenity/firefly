@@ -38,7 +38,7 @@ plan_format = rule(
             doc = "The Plan tool.",
             default = "//tools/plan:plan",
             executable = True,
-            cfg = "host",
+            cfg = "exec",
         ),
     },
     doc = "Checks that a Plan document is correctly formatted.",

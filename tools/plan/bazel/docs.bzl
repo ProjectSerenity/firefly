@@ -37,7 +37,7 @@ plan_docs = rule(
             doc = "The Plan tool.",
             default = "//tools/plan:plan",
             executable = True,
-            cfg = "host",
+            cfg = "exec",
         ),
     },
     doc = "Generates HTML documentation for a Plan document.",

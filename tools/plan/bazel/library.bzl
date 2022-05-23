@@ -53,7 +53,7 @@ plan_library = rule(
             doc = "The Plan tool.",
             default = "//tools/plan:plan",
             executable = True,
-            cfg = "host",
+            cfg = "exec",
         ),
     },
     doc = "Checks a Plan document.",
