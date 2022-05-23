@@ -47,21 +47,9 @@ buildifier(
     mode = "fix",
 )
 
-alias(
-    name = "bootloader_binary",
-    actual = "//vendor/rust/bootloader:bootloader_bin",
-    tags = ["manual"],
-)
-
-alias(
-    name = "bootloader_build_script",
-    actual = "//vendor/rust/bootloader:build_script",
-    tags = ["manual"],
-)
-
 x86_64_bare_metal_rust_binary(
     name = "bootloader",
-    rust_binary = ":bootloader_binary",
+    rust_binary = "//vendor/rust/bootloader:bootloader_bin",
     visibility = ["//visibility:public"],
 )
 
@@ -126,10 +114,4 @@ qemu(
         "-no-reboot",
     ],
     qemu = "qemu-system-x86_64",
-)
-
-# Allow our dependencies to be updated with `bazel run //:update-deps`.
-alias(
-    name = "update-deps",
-    actual = "//tools/update-deps",
 )
