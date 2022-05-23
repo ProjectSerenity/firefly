@@ -51,11 +51,14 @@ type RustCrate struct {
 	BuildFile string `bzl:"build_file"`
 
 	// Build configuration
-	Edition       string   `bzl:"edition"`
-	Features      []string `bzl:"features"`
-	Deps          []string `bzl:"deps"`
-	ProcMacroDeps []string `bzl:"proc_macro_deps"`
-	NoDocs        bool     `bzl:"no_docs"`
+	Edition       string            `bzl:"edition"`
+	Features      []string          `bzl:"features"`
+	Deps          []string          `bzl:"deps"`
+	ProcMacroDeps []string          `bzl:"proc_macro_deps"`
+	RustcEnv      map[string]string `bzl:"rustc_env"`
+
+	// Whether to create rustdocs.
+	NoDocs bool `bzl:"no_docs"`
 
 	// Whether the crate is a library or
 	// a procedural macro library.

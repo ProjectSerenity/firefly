@@ -21,7 +21,10 @@ load("@rules_rust//rust:defs.bzl"{{ if not .NoDocs }}, "rust_doc"{{ end }}, {{ i
     edition = {{ if .Edition }}"{{ .Edition }}"{{ else }}"2015"{{ end }},{{ if .ProcMacroDeps }}
     proc_macro_deps = [{{ range .ProcMacroDeps }}
         "//vendor/rust/{{ . }}",{{ end }}
-    ],{{ end }}
+    ],{{ end }}{{ if .RustcEnv }}
+    rustc_env = { {{- range $k, $v := .RustcEnv }}
+        "{{ $k }}": "{{ $v }}",{{ end }}
+    },{{ end }}
     rustc_flags = [
         # In most cases, warnings in 3rd party crates are not interesting as
         # they're out of the control of consumers. The flag here silences
