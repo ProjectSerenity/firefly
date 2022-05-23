@@ -13,7 +13,7 @@ go_library(
         "rules.go",
         "rust.go",
     ],
-    importpath = "github.com/ProjectSerenity/firefly/tools/update-deps",
+    importpath = "firefly-os.dev/tools/update-deps",
     visibility = ["//visibility:private"],
     deps = [
         "//vendor/go/github.com/BurntSushi/toml",

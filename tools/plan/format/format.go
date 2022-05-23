@@ -14,8 +14,8 @@ import (
 	"io"
 	"sort"
 
-	"github.com/ProjectSerenity/firefly/tools/plan/ast"
-	"github.com/ProjectSerenity/firefly/tools/plan/types"
+	"firefly-os.dev/tools/plan/ast"
+	"firefly-os.dev/tools/plan/types"
 )
 
 // maxListWidth is the maximum width in bytes for a list.

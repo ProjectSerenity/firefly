@@ -13,9 +13,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/ProjectSerenity/firefly/tools/plan/encoding/html"
-	"github.com/ProjectSerenity/firefly/tools/plan/parser"
-	"github.com/ProjectSerenity/firefly/tools/plan/types"
+	"firefly-os.dev/tools/plan/encoding/html"
+	"firefly-os.dev/tools/plan/parser"
+	"firefly-os.dev/tools/plan/types"
 )
 
 const dirMode = 0777

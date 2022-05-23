@@ -14,9 +14,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/ProjectSerenity/firefly/tools/plan/ast"
-	"github.com/ProjectSerenity/firefly/tools/plan/lexer"
-	"github.com/ProjectSerenity/firefly/tools/plan/token"
+	"firefly-os.dev/tools/plan/ast"
+	"firefly-os.dev/tools/plan/lexer"
+	"firefly-os.dev/tools/plan/token"
 )
 
 // If src != nil, readSource converts src to a []byte if possible;

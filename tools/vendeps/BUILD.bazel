@@ -21,7 +21,7 @@ go_library(
         "vendor.go",
     ],
     embedsrcs = glob(["templates/**"]),
-    importpath = "github.com/ProjectSerenity/firefly/tools/vendeps",
+    importpath = "firefly-os.dev/tools/vendeps",
     visibility = ["//visibility:private"],
     deps = [
         "//tools/starlark",

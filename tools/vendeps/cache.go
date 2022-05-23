@@ -12,7 +12,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/ProjectSerenity/firefly/tools/starlark"
+	"firefly-os.dev/tools/starlark"
 )
 
 // StripCachedActions processes the action sequence,

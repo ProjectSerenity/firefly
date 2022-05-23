@@ -14,7 +14,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/ProjectSerenity/firefly/tools/plan/token"
+	"firefly-os.dev/tools/plan/token"
 )
 
 // Lexeme describes a token, its position, and its textual

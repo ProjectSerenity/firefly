@@ -13,8 +13,8 @@ import (
 
 	"rsc.io/diff"
 
-	"github.com/ProjectSerenity/firefly/tools/plan/parser"
-	"github.com/ProjectSerenity/firefly/tools/plan/types"
+	"firefly-os.dev/tools/plan/parser"
+	"firefly-os.dev/tools/plan/types"
 )
 
 func TestGenerateKernelCode(t *testing.T) {

@@ -11,7 +11,7 @@ go_library(
     srcs = [
         "starlark.go",
     ],
-    importpath = "github.com/ProjectSerenity/firefly/tools/starlark",
+    importpath = "firefly-os.dev/tools/starlark",
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/go/github.com/bazelbuild/buildtools/build",

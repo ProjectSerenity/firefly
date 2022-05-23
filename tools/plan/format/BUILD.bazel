@@ -9,7 +9,7 @@ load("//bazel/gofmt:gofmt.bzl", "gofmt")
 go_library(
     name = "format",
     srcs = ["format.go"],
-    importpath = "github.com/ProjectSerenity/firefly/tools/plan/format",
+    importpath = "firefly-os.dev/tools/plan/format",
     visibility = ["//visibility:public"],
     deps = [
         "//tools/plan/ast",

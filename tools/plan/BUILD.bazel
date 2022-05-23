@@ -14,7 +14,7 @@ go_library(
         "format.go",
         "main.go",
     ],
-    importpath = "github.com/ProjectSerenity/firefly/tools/plan",
+    importpath = "firefly-os.dev/tools/plan",
     visibility = ["//visibility:private"],
     deps = [
         "//tools/plan/encoding/html",

@@ -9,7 +9,7 @@ load("//bazel/gofmt:gofmt.bzl", "gofmt")
 go_library(
     name = "ast",
     srcs = ["ast.go"],
-    importpath = "github.com/ProjectSerenity/firefly/tools/plan/ast",
+    importpath = "firefly-os.dev/tools/plan/ast",
     visibility = ["//visibility:public"],
     deps = [
         "//tools/plan/token",

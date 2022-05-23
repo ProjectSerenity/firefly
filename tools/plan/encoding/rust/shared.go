@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ProjectSerenity/firefly/tools/plan/types"
+	"firefly-os.dev/tools/plan/types"
 )
 
 const (

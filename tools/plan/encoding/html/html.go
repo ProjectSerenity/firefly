@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ProjectSerenity/firefly/tools/plan/types"
+	"firefly-os.dev/tools/plan/types"
 )
 
 const dirMode = 0777

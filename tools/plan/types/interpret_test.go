@@ -14,9 +14,9 @@ import (
 
 	"rsc.io/diff"
 
-	"github.com/ProjectSerenity/firefly/tools/plan/ast"
-	"github.com/ProjectSerenity/firefly/tools/plan/parser"
-	"github.com/ProjectSerenity/firefly/tools/plan/token"
+	"firefly-os.dev/tools/plan/ast"
+	"firefly-os.dev/tools/plan/parser"
+	"firefly-os.dev/tools/plan/token"
 )
 
 func position(t *testing.T, offset, line, column int) token.Position {

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/ProjectSerenity/firefly/tools/starlark"
+	"firefly-os.dev/tools/starlark"
 )
 
 // The templates used to render build files and

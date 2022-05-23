@@ -9,7 +9,7 @@ load("//bazel/gofmt:gofmt.bzl", "gofmt")
 go_library(
     name = "crate-deps_lib",
     srcs = ["main.go"],
-    importpath = "github.com/ProjectSerenity/firefly/tools/crate-deps",
+    importpath = "firefly-os.dev/tools/crate-deps",
     visibility = ["//visibility:private"],
     deps = [
         "//vendor/go/github.com/bazelbuild/buildtools/build",

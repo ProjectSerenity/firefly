@@ -11,7 +11,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/ProjectSerenity/firefly/tools/plan/token"
+	"firefly-os.dev/tools/plan/token"
 )
 
 // All nodes contain position information marking the

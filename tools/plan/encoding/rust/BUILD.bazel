@@ -14,7 +14,7 @@ go_library(
         "user.go",
     ],
     embedsrcs = glob(["templates/**"]),
-    importpath = "github.com/ProjectSerenity/firefly/tools/plan/encoding/rust",
+    importpath = "firefly-os.dev/tools/plan/encoding/rust",
     visibility = ["//visibility:public"],
     deps = [
         "//tools/plan/ast",

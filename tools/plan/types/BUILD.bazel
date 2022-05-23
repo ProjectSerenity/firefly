@@ -12,7 +12,7 @@ go_library(
         "interpret.go",
         "types.go",
     ],
-    importpath = "github.com/ProjectSerenity/firefly/tools/plan/types",
+    importpath = "firefly-os.dev/tools/plan/types",
     visibility = ["//visibility:public"],
     deps = [
         "//tools/plan/ast",

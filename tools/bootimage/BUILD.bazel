@@ -9,7 +9,7 @@ load("//bazel/gofmt:gofmt.bzl", "gofmt")
 go_library(
     name = "bootimage_lib",
     srcs = ["main.go"],
-    importpath = "github.com/ProjectSerenity/firefly/tools/bootimage",
+    importpath = "firefly-os.dev/tools/bootimage",
     visibility = ["//visibility:private"],
 )
 

@@ -12,7 +12,7 @@ go_library(
         "position.go",
         "token.go",
     ],
-    importpath = "github.com/ProjectSerenity/firefly/tools/plan/token",
+    importpath = "firefly-os.dev/tools/plan/token",
     visibility = ["//visibility:public"],
 )
 

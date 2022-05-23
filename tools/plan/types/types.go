@@ -12,8 +12,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/ProjectSerenity/firefly/tools/plan/ast"
-	"github.com/ProjectSerenity/firefly/tools/plan/token"
+	"firefly-os.dev/tools/plan/ast"
+	"firefly-os.dev/tools/plan/token"
 )
 
 // Name represents a name defined in a

@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ProjectSerenity/firefly/tools/plan/ast"
+	"firefly-os.dev/tools/plan/ast"
 )
 
 // requiredErrorValues is the set of values that

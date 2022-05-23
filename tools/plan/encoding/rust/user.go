@@ -16,8 +16,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/ProjectSerenity/firefly/tools/plan/ast"
-	"github.com/ProjectSerenity/firefly/tools/plan/types"
+	"firefly-os.dev/tools/plan/ast"
+	"firefly-os.dev/tools/plan/types"
 )
 
 // GenerateUserCode generates the user implementation, of

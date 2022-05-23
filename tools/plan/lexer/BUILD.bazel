@@ -9,7 +9,7 @@ load("//bazel/gofmt:gofmt.bzl", "gofmt")
 go_library(
     name = "lexer",
     srcs = ["lexer.go"],
-    importpath = "github.com/ProjectSerenity/firefly/tools/plan/lexer",
+    importpath = "firefly-os.dev/tools/plan/lexer",
     visibility = ["//visibility:public"],
     deps = [
         "//tools/plan/token",

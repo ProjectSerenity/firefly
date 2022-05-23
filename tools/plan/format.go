@@ -14,9 +14,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/ProjectSerenity/firefly/tools/plan/format"
-	"github.com/ProjectSerenity/firefly/tools/plan/parser"
-	"github.com/ProjectSerenity/firefly/tools/plan/types"
+	"firefly-os.dev/tools/plan/format"
+	"firefly-os.dev/tools/plan/parser"
+	"firefly-os.dev/tools/plan/types"
 )
 
 func init() {

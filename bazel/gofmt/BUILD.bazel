@@ -8,7 +8,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 go_library(
     name = "gofmt_lib",
     srcs = ["main.go"],
-    importpath = "github.com/ProjectSerenity/firefly/bazel/gofmt",
+    importpath = "firefly-os.dev/bazel/gofmt",
     visibility = ["//visibility:private"],
 )
 

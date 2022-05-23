@@ -14,7 +14,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ProjectSerenity/firefly/tools/starlark"
+	"firefly-os.dev/tools/starlark"
 )
 
 // Vendor takes a filesystem, parses the set of software
