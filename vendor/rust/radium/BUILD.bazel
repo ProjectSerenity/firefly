@@ -24,7 +24,7 @@ rust_library(
     tags = [
         "manual",  # Only build when needed as a dependency.
     ],
-    version = "0.6.2",
+    version = "0.7.0",
     visibility = ["//visibility:public"],
     deps = [
         ":radium_build_script",
@@ -44,7 +44,7 @@ cargo_build_script(
         # https://doc.rust-lang.org/rustc/lints/levels.html
         "--cap-lints=allow",
     ],
-    version = "0.6.2",
+    version = "0.7.0",
     visibility = ["//visibility:private"],
 )
 

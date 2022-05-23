@@ -60,8 +60,8 @@ rust = [
     ),
     crate(
         name = "doc-comment",
-        version = "0.3.1",
-        digest = "sha256:471a3943b11103ec2251d93083d58a394f331d9b714a1fb37176b0835c01d9fb",
+        version = "0.3.3",
+        digest = "sha256:04773b3cadd218cfcd1b522f3ba66abb649d860734ae7ae767a6434db92e5743",
     ),
     crate(
         name = "fixedvec",
@@ -115,8 +115,8 @@ rust = [
     ),
     crate(
         name = "radium",
-        version = "0.6.2",
-        digest = "sha256:629cf5ec9a3484dbe151f5b5aa8f5c61dbb4dd65c2bc13b4ceb60400999854ac",
+        version = "0.7.0",
+        digest = "sha256:4e2e29fe24658d34164ba3f389e1b85c9463aa25b4b8634c1c8c4d68c99992f6",
     ),
     crate(
         name = "rand",
@@ -200,8 +200,8 @@ rust = [
     ),
     crate(
         name = "wyz",
-        version = "0.4.0",
-        digest = "sha256:3bdb3485ae0026f7dc3dfb4cc7e987248a0ec5ec43337c69b80784ce62ea1c00",
+        version = "0.5.0",
+        digest = "sha256:16e1ff51208f4ffc717bc9e3bb7642f04c09b59e8289c4e04a7a7ae6adc471a3",
     ),
     crate(
         name = "x86_64",

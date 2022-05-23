@@ -12,7 +12,7 @@
 
 [package]
 name = "doc-comment"
-version = "0.3.1"
+version = "0.3.3"
 authors = ["Guillaume Gomez <guillaume1.gomez@gmail.com>"]
 build = "build.rs"
 description = "Macro to generate doc comments"

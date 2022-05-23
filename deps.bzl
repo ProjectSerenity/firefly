@@ -51,6 +51,9 @@ rust = [
             "tap",
             "wyz",
         ],
+        rustc_env = {
+            "CARGO_PKG_REPOSITORY": "https://github.com/bitvecto-rs/bitvec",
+        },
         no_tests = True,  # The tests have lots of dependencies.
     ),
     crate(
@@ -73,7 +76,7 @@ rust = [
     ),
     crate(
         name = "doc-comment",
-        version = "0.3.1",
+        version = "0.3.3",
         build_script = "build.rs",
     ),
     crate(
@@ -153,7 +156,7 @@ rust = [
     ),
     crate(
         name = "radium",
-        version = "0.6.2",
+        version = "0.7.0",
         edition = "2018",
         build_script = "build.rs",
         test_deps = [
@@ -286,7 +289,7 @@ rust = [
     ),
     crate(
         name = "wyz",
-        version = "0.4.0",
+        version = "0.5.0",
         edition = "2018",
         deps = [
             "tap",
