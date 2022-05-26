@@ -78,9 +78,7 @@ pub fn init(frame_allocator: &mut impl PhysFrameAllocator) -> Result<(), PageMap
 
     // Set the CR4 fields, so we can then use the global
     // page flag when we remap the kernel.
-    let mut flags = Cr4::read();
-    flags |= Cr4Flags::PAGE_GLOBAL; // Enable the global flag in page tables.
-    unsafe { Cr4::write(flags) };
+    unsafe { Cr4::update(|flags| *flags |= Cr4Flags::PAGE_GLOBAL) }; // Enable the global flag in page tables.
 
     // Set the EFER fields, so we can use the no-execute
     // page flag when we remap the kernel.
