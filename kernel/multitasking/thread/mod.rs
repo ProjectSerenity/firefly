@@ -48,6 +48,7 @@ use serial::println;
 use spin::lock;
 use time::{Duration, TimeSlice};
 use x86_64::instructions::interrupts::without_interrupts;
+use x86_64::registers::rflags::RFlags;
 
 /// The amount of CPU time given to threads when they are scheduled.
 ///
@@ -137,6 +138,14 @@ pub fn current_thread_waker() -> Waker {
 /// on page 78 of volume 1 of the Intel 64 manual.
 ///
 const DEFAULT_RFLAGS: u64 = 0x2;
+
+/// USER_ACCESS allows the kernel to access user
+/// memory. We enable this in the initial stack of
+/// new user threads so that we do not trigger a
+/// page fault from accessing the user stack while
+/// preparing to transition to userspace.
+///
+const USER_ACCESS: u64 = RFlags::ALIGNMENT_CHECK.bits();
 
 /// Prevents the current thread from sleeping on
 /// its next attempt to do so.
@@ -673,7 +682,7 @@ impl Thread {
             rsp = push_stack(rsp, 0); // Initial R13.
             rsp = push_stack(rsp, 0); // Initial R14.
             rsp = push_stack(rsp, 0); // Initial R15.
-            rsp = push_stack(rsp, DEFAULT_RFLAGS); // RFLAGS (interrupts disabled).
+            rsp = push_stack(rsp, DEFAULT_RFLAGS | USER_ACCESS); // RFLAGS (interrupts disabled, user memory access allowed).
 
             // Work out the virtual address by taking
             // the difference between rsp and virt,

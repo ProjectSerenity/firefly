@@ -25,6 +25,7 @@ use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use core::arch::asm;
 use core::sync::atomic::{AtomicBool, Ordering};
+use cpu::enable_user_memory_access;
 use segmentation::with_segment_data;
 use spin::{lock, Mutex};
 use time::{after, Duration};
@@ -244,9 +245,18 @@ pub fn switch() {
     // copy of the current stack pointer.
     let current_stack_pointer = current.stack_pointer();
     let new_stack_pointer = next.stack_pointer();
+    let is_user_thread = next.process_thread_id().is_some();
 
     // Switch into the next thread and re-enable interrupts.
     set_current_thread(next);
+
+    // Enable access to user memory if we're switching to a
+    // user thread, so that we don't trigger a page fault
+    // when we switch to the user stack before we then load
+    // the user RFLAGS value from the stack.
+    if is_user_thread {
+        enable_user_memory_access();
+    }
 
     // Note that once we have multiple CPUs, there will be
     // an unsafe gap between when we schedule the current
