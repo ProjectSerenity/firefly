@@ -90,6 +90,8 @@ qemu(
         "-no-reboot",
         "-smp",
         "2",
+        "-cpu",
+        "Skylake-Server",
     ],
     qemu = "qemu-system-x86_64",
 )
@@ -112,6 +114,8 @@ qemu(
         "-display",
         "none",
         "-no-reboot",
+        "-cpu",
+        "Skylake-Server",
     ],
     qemu = "qemu-system-x86_64",
 )
