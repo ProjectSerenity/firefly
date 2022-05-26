@@ -6,6 +6,7 @@
 // license that can be found in the LICENSE file.
 
 use super::FireflyABI;
+use cpu::disable_user_memory_access;
 use memory::constants::USERSPACE;
 use memory::VirtAddr;
 use x86_64::registers::rflags::RFlags;
@@ -116,6 +117,11 @@ pub extern "sysv64" fn syscall_handler(
     syscall_num: u64,
     registers: *mut SavedRegisters,
 ) -> SyscallResults {
+    // Now we've switched back to a kernel stack, we
+    // disable the Access Control flag so that SMAP
+    // takes full effect.
+    disable_user_memory_access();
+
     let syscall = if let Some(syscall) = Syscalls::from_u64(syscall_num) {
         syscall
     } else {

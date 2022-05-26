@@ -40,11 +40,6 @@ syscall_entry:
 	mov gs:[USER_STACK], rsp
 	mov rsp, gs:[SYSCALL_STACK]
 
-	//; Now we've switched back to a kernel stack, we
-	//; disable the Access Control flag so that SMAP
-	//; takes full effect.
-	clac
-
 	//; Store the saved registers onto the stack, so
 	//; they can then be passed to the syscall handler.
 	//;
