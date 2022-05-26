@@ -22,6 +22,7 @@ mod local;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use raw_cpuid::CpuId;
 use serial::println;
+use x86_64::registers::control::{Cr4, Cr4Flags};
 
 pub use local::{
     global_init, id, per_cpu_init, set_syscall_stack_pointer, set_user_stack_pointer,
@@ -59,6 +60,20 @@ pub fn check_features() {
         Some(features) => {
             if !features.has_msr() {
                 panic!("CPU does not support model-specific registers");
+            }
+        }
+    }
+
+    match cpuid.get_extended_feature_info() {
+        None => panic!("unable to determine CPU features"),
+        Some(features) => {
+            if features.has_smep() {
+                // Enable SMEP, which prevents the execution of
+                // usermode code while running as the kernel.
+                unsafe {
+                    Cr4::update(|flags| *flags |= Cr4Flags::SUPERVISOR_MODE_EXECUTION_PROTECTION)
+                };
+                println!("Enabled SMEP.");
             }
         }
     }
