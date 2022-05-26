@@ -49,6 +49,13 @@ pub fn max_cores() -> usize {
     MAX_CORES.load(Ordering::Relaxed)
 }
 
+/// SMAP tracks whether Supervisor Mode Access Prevention
+/// is supported by the CPU and has thus been enabled. It
+/// will not change after check_features has returned for
+/// the first time.
+///
+static mut SMAP: bool = false;
+
 /// Checks that the CPU supports all the features we need.
 ///
 /// # Panics
@@ -75,8 +82,9 @@ pub fn check_features() {
                 // memory in ring 3 page mappings while running
                 // as the kernel.
                 unsafe {
-                    Cr4::update(|flags| *flags |= Cr4Flags::SUPERVISOR_MODE_ACCESS_PREVENTION)
-                };
+                    Cr4::update(|flags| *flags |= Cr4Flags::SUPERVISOR_MODE_ACCESS_PREVENTION);
+                    SMAP = true;
+                }
                 println!("Enabled SMAP.");
             }
             if features.has_smep() {
@@ -125,7 +133,11 @@ const ACCESS_CONTROL: RFlags = RFlags::ALIGNMENT_CHECK;
 ///
 #[inline]
 pub fn enable_user_memory_access() {
-    unsafe { asm!("stac") };
+    unsafe {
+        if SMAP {
+            asm!("stac");
+        }
+    }
 }
 
 /// Disables access to user memory, as described
@@ -133,7 +145,11 @@ pub fn enable_user_memory_access() {
 ///
 #[inline]
 pub fn disable_user_memory_access() {
-    unsafe { asm!("clac") };
+    unsafe {
+        if SMAP {
+            asm!("clac");
+        }
+    }
 }
 
 /// Provides temporary access to user memory via
