@@ -70,6 +70,15 @@ pub fn check_features() {
     match cpuid.get_extended_feature_info() {
         None => panic!("unable to determine CPU features"),
         Some(features) => {
+            if features.has_smap() {
+                // Enable SMAP, which prevents access to user
+                // memory in ring 3 page mappings while running
+                // as the kernel.
+                unsafe {
+                    Cr4::update(|flags| *flags |= Cr4Flags::SUPERVISOR_MODE_ACCESS_PREVENTION)
+                };
+                println!("Enabled SMAP.");
+            }
             if features.has_smep() {
                 // Enable SMEP, which prevents the execution of
                 // usermode code while running as the kernel.
