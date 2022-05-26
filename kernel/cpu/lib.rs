@@ -19,10 +19,13 @@
 
 mod local;
 
+use core::arch::asm;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use raw_cpuid::CpuId;
 use serial::println;
 use x86_64::registers::control::{Cr4, Cr4Flags};
+use x86_64::registers::rflags;
+use x86_64::registers::rflags::RFlags;
 
 pub use local::{
     global_init, id, per_cpu_init, set_syscall_stack_pointer, set_user_stack_pointer,
@@ -99,4 +102,70 @@ pub fn print_branding() {
     } else {
         println!("Kernel running on unknown CPU.");
     }
+}
+
+/// The Access Control flag in the RFLAGS. Note
+/// that this has the same value as the Alignment
+/// Check flag. See the x86_64 manual, volume 3A,
+/// section 2.3.
+///
+const ACCESS_CONTROL: RFlags = RFlags::ALIGNMENT_CHECK;
+
+/// Enables access to user memory, as described
+/// in [`with_user_memory_access`].
+///
+#[inline]
+pub fn enable_user_memory_access() {
+    unsafe { asm!("stac") };
+}
+
+/// Disables access to user memory, as described
+/// in [`with_user_memory_access`].
+///
+#[inline]
+pub fn disable_user_memory_access() {
+    unsafe { asm!("clac") };
+}
+
+/// Provides temporary access to user memory via
+/// user page mappings when SMAP is enabled. See
+/// the Intel x86_64 manual, volume 3A, sections
+/// 4.6.1 and 2.3.
+///
+/// If SMAP is not supported by the CPU, this has
+/// no effect.
+///
+/// ```
+/// // Access is disallowed if SMAP is enabled.
+/// with_user_memory_access(|| {
+///     // Access is allowed.
+///     with_user_memory_access(|| {
+///         // Access is allowed.
+///     });
+///     // Access is still allowed.
+/// });
+/// // Access is disallowed again if SMAP is enabled.
+/// ```
+///
+#[inline]
+pub fn with_user_memory_access<F, R>(f: F) -> R
+where
+    F: FnOnce() -> R,
+{
+    // Determine whether access is currently allowed.
+    let allowed = rflags::read().contains(ACCESS_CONTROL);
+    if !allowed {
+        enable_user_memory_access();
+    }
+
+    // Do `f` while access is allowed.
+    let ret = f();
+
+    // Remove access if we did not have it initially.
+    if !allowed {
+        disable_user_memory_access();
+    }
+
+    // Return the result of `f`.
+    ret
 }
