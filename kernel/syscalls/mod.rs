@@ -12,6 +12,7 @@ mod abi {
 
 use self::abi::{Error, Registers, SavedRegisters, SyscallABI};
 use core::arch::global_asm;
+use cpu::with_user_memory_access;
 use multitasking::thread;
 use segmentation::with_segment_data;
 use serial::{print, println};
@@ -70,26 +71,28 @@ impl SyscallABI for FireflyABI {
         unsafe {
             let regs = *_registers;
             let rflags = regs.rflags;
-            *registers = Registers {
-                rax: regs.rax,
-                rbx: regs.rbx,
-                rcx: 0, // RCX is not preserved.
-                rdx: regs.rdx,
-                rsi: regs.rsi,
-                rdi: regs.rdi,
-                rbp: regs.rbp.as_usize() as u64,
-                rip: regs.rip.as_usize() as u64,
-                rsp: regs.rsp.as_usize() as u64,
-                r8: regs.r8,
-                r9: regs.r9,
-                r10: regs.r10,
-                r11: 0, // R11 is not preserved.
-                r12: regs.r12,
-                r13: regs.r13,
-                r14: regs.r14,
-                r15: regs.r15,
-                rflags: rflags.bits(),
-            };
+            with_user_memory_access(|| {
+                *registers = Registers {
+                    rax: regs.rax,
+                    rbx: regs.rbx,
+                    rcx: 0, // RCX is not preserved.
+                    rdx: regs.rdx,
+                    rsi: regs.rsi,
+                    rdi: regs.rdi,
+                    rbp: regs.rbp.as_usize() as u64,
+                    rip: regs.rip.as_usize() as u64,
+                    rsp: regs.rsp.as_usize() as u64,
+                    r8: regs.r8,
+                    r9: regs.r9,
+                    r10: regs.r10,
+                    r11: 0, // R11 is not preserved.
+                    r12: regs.r12,
+                    r13: regs.r13,
+                    r14: regs.r14,
+                    r15: regs.r15,
+                    rflags: rflags.bits(),
+                }
+            });
         }
 
         Error::NoError
@@ -137,22 +140,24 @@ impl SyscallABI for FireflyABI {
         // and print_error from the kernel's
         // println.
         let b = unsafe { core::slice::from_raw_parts(ptr, size as usize) };
-        if let Ok(s) = core::str::from_utf8(b) {
-            print!("\x1b[1;32m"); // Green foreground.
-            let written = if serial::write_str(s).is_err() {
-                // We handle a failure to write the
-                // message as having written nothing,
-                // rather than returning an error.
-                0
-            } else {
-                size
-            };
-            print!("\x1b[0m"); // Reset colour.
+        with_user_memory_access(|| {
+            if let Ok(s) = core::str::from_utf8(b) {
+                print!("\x1b[1;32m"); // Green foreground.
+                let written = if serial::write_str(s).is_err() {
+                    // We handle a failure to write the
+                    // message as having written nothing,
+                    // rather than returning an error.
+                    0
+                } else {
+                    size
+                };
+                print!("\x1b[0m"); // Reset colour.
 
-            Ok(written)
-        } else {
-            Err(Error::IllegalParameter)
-        }
+                Ok(written)
+            } else {
+                Err(Error::IllegalParameter)
+            }
+        })
     }
 
     /// Prints an error message to the process's standard error
@@ -174,22 +179,24 @@ impl SyscallABI for FireflyABI {
         // and print_error from the kernel's
         // println.
         let b = unsafe { core::slice::from_raw_parts(ptr, size as usize) };
-        if let Ok(s) = core::str::from_utf8(b) {
-            print!("\x1b[1;31m"); // Red foreground.
-            let written = if serial::write_str(s).is_err() {
-                // We handle a failure to write the
-                // message as having written nothing,
-                // rather than returning an error.
-                0
-            } else {
-                size
-            };
-            print!("\x1b[0m"); // Reset colour.
+        with_user_memory_access(|| {
+            if let Ok(s) = core::str::from_utf8(b) {
+                print!("\x1b[1;31m"); // Red foreground.
+                let written = if serial::write_str(s).is_err() {
+                    // We handle a failure to write the
+                    // message as having written nothing,
+                    // rather than returning an error.
+                    0
+                } else {
+                    size
+                };
+                print!("\x1b[0m"); // Reset colour.
 
-            Ok(written)
-        } else {
-            Err(Error::IllegalParameter)
-        }
+                Ok(written)
+            } else {
+                Err(Error::IllegalParameter)
+            }
+        })
     }
 
     /// Read cryptographically-secure pseudorandom numbers into
@@ -202,7 +209,7 @@ impl SyscallABI for FireflyABI {
         // so we can consume the arguments
         // straight away.
         let b = unsafe { core::slice::from_raw_parts_mut(ptr, size as usize) };
-        random::read(b);
+        with_user_memory_access(|| random::read(b));
 
         Error::NoError
     }
