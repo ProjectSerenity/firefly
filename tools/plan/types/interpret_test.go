@@ -318,12 +318,12 @@ func TestInterpreter(t *testing.T) {
 			             (type uint8)
 			             (value (name no error) (docs ""))
 			             (value (name bad syscall) (docs ""))
-			             (value (name illegal parameter1) (docs ""))
-			             (value (name illegal parameter2) (docs ""))
-			             (value (name illegal parameter3) (docs ""))
-			             (value (name illegal parameter4) (docs ""))
-			             (value (name illegal parameter5) (docs ""))
-			             (value (name illegal parameter6) (docs "")))
+			             (value (name illegal arg1) (docs ""))
+			             (value (name illegal arg2) (docs ""))
+			             (value (name illegal arg3) (docs ""))
+			             (value (name illegal arg4) (docs ""))
+			             (value (name illegal arg5) (docs ""))
+			             (value (name illegal arg6) (docs "")))
 			         (enumeration
 			             (name other error)
 			             (docs "")
@@ -346,27 +346,27 @@ func TestInterpreter(t *testing.T) {
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter1"},
+								Name: Name{"illegal", "arg1"},
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter2"},
+								Name: Name{"illegal", "arg2"},
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter3"},
+								Name: Name{"illegal", "arg3"},
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter4"},
+								Name: Name{"illegal", "arg4"},
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter5"},
+								Name: Name{"illegal", "arg5"},
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter6"},
+								Name: Name{"illegal", "arg6"},
 								Docs: Docs{},
 							},
 						},
@@ -390,27 +390,27 @@ func TestInterpreter(t *testing.T) {
 										Docs: Docs{},
 									},
 									{
-										Name: Name{"illegal", "parameter1"},
+										Name: Name{"illegal", "arg1"},
 										Docs: Docs{},
 									},
 									{
-										Name: Name{"illegal", "parameter2"},
+										Name: Name{"illegal", "arg2"},
 										Docs: Docs{},
 									},
 									{
-										Name: Name{"illegal", "parameter3"},
+										Name: Name{"illegal", "arg3"},
 										Docs: Docs{},
 									},
 									{
-										Name: Name{"illegal", "parameter4"},
+										Name: Name{"illegal", "arg4"},
 										Docs: Docs{},
 									},
 									{
-										Name: Name{"illegal", "parameter5"},
+										Name: Name{"illegal", "arg5"},
 										Docs: Docs{},
 									},
 									{
-										Name: Name{"illegal", "parameter6"},
+										Name: Name{"illegal", "arg6"},
 										Docs: Docs{},
 									},
 								},
@@ -426,27 +426,27 @@ func TestInterpreter(t *testing.T) {
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter1"},
+								Name: Name{"illegal", "arg1"},
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter2"},
+								Name: Name{"illegal", "arg2"},
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter3"},
+								Name: Name{"illegal", "arg3"},
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter4"},
+								Name: Name{"illegal", "arg4"},
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter5"},
+								Name: Name{"illegal", "arg5"},
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter6"},
+								Name: Name{"illegal", "arg6"},
 								Docs: Docs{},
 							},
 							{
@@ -494,27 +494,27 @@ func TestInterpreter(t *testing.T) {
 														Docs: Docs{},
 													},
 													{
-														Name: Name{"illegal", "parameter1"},
+														Name: Name{"illegal", "arg1"},
 														Docs: Docs{},
 													},
 													{
-														Name: Name{"illegal", "parameter2"},
+														Name: Name{"illegal", "arg2"},
 														Docs: Docs{},
 													},
 													{
-														Name: Name{"illegal", "parameter3"},
+														Name: Name{"illegal", "arg3"},
 														Docs: Docs{},
 													},
 													{
-														Name: Name{"illegal", "parameter4"},
+														Name: Name{"illegal", "arg4"},
 														Docs: Docs{},
 													},
 													{
-														Name: Name{"illegal", "parameter5"},
+														Name: Name{"illegal", "arg5"},
 														Docs: Docs{},
 													},
 													{
-														Name: Name{"illegal", "parameter6"},
+														Name: Name{"illegal", "arg6"},
 														Docs: Docs{},
 													},
 												},
@@ -530,27 +530,27 @@ func TestInterpreter(t *testing.T) {
 												Docs: Docs{},
 											},
 											{
-												Name: Name{"illegal", "parameter1"},
+												Name: Name{"illegal", "arg1"},
 												Docs: Docs{},
 											},
 											{
-												Name: Name{"illegal", "parameter2"},
+												Name: Name{"illegal", "arg2"},
 												Docs: Docs{},
 											},
 											{
-												Name: Name{"illegal", "parameter3"},
+												Name: Name{"illegal", "arg3"},
 												Docs: Docs{},
 											},
 											{
-												Name: Name{"illegal", "parameter4"},
+												Name: Name{"illegal", "arg4"},
 												Docs: Docs{},
 											},
 											{
-												Name: Name{"illegal", "parameter5"},
+												Name: Name{"illegal", "arg5"},
 												Docs: Docs{},
 											},
 											{
-												Name: Name{"illegal", "parameter6"},
+												Name: Name{"illegal", "arg6"},
 												Docs: Docs{},
 											},
 											{
@@ -687,12 +687,12 @@ func TestInterpreter(t *testing.T) {
 			         (enumeration (name error) (docs "") (type uint8)
 			             (value (name no error) (docs ""))
 			             (value (name bad syscall) (docs ""))
-			             (value (name illegal parameter1) (docs ""))
-			             (value (name illegal parameter2) (docs ""))
-			             (value (name illegal parameter3) (docs ""))
-			             (value (name illegal parameter4) (docs ""))
-			             (value (name illegal parameter5) (docs ""))
-			             (value (name illegal parameter6) (docs "")))`,
+			             (value (name illegal arg1) (docs ""))
+			             (value (name illegal arg2) (docs ""))
+			             (value (name illegal arg3) (docs ""))
+			             (value (name illegal arg4) (docs ""))
+			             (value (name illegal arg5) (docs ""))
+			             (value (name illegal arg6) (docs "")))`,
 			Want: &File{
 				Enumerations: []*Enumeration{
 					{
@@ -720,27 +720,27 @@ func TestInterpreter(t *testing.T) {
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter1"},
+								Name: Name{"illegal", "arg1"},
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter2"},
+								Name: Name{"illegal", "arg2"},
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter3"},
+								Name: Name{"illegal", "arg3"},
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter4"},
+								Name: Name{"illegal", "arg4"},
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter5"},
+								Name: Name{"illegal", "arg5"},
 								Docs: Docs{},
 							},
 							{
-								Name: Name{"illegal", "parameter6"},
+								Name: Name{"illegal", "arg6"},
 								Docs: Docs{},
 							},
 						},
@@ -859,27 +859,27 @@ func TestInterpreter(t *testing.T) {
 												Docs: Docs{},
 											},
 											{
-												Name: Name{"illegal", "parameter1"},
+												Name: Name{"illegal", "arg1"},
 												Docs: Docs{},
 											},
 											{
-												Name: Name{"illegal", "parameter2"},
+												Name: Name{"illegal", "arg2"},
 												Docs: Docs{},
 											},
 											{
-												Name: Name{"illegal", "parameter3"},
+												Name: Name{"illegal", "arg3"},
 												Docs: Docs{},
 											},
 											{
-												Name: Name{"illegal", "parameter4"},
+												Name: Name{"illegal", "arg4"},
 												Docs: Docs{},
 											},
 											{
-												Name: Name{"illegal", "parameter5"},
+												Name: Name{"illegal", "arg5"},
 												Docs: Docs{},
 											},
 											{
-												Name: Name{"illegal", "parameter6"},
+												Name: Name{"illegal", "arg6"},
 												Docs: Docs{},
 											},
 										},

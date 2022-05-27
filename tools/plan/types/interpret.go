@@ -26,12 +26,12 @@ import (
 var requiredErrorValues = []Name{
 	{"no", "error"},
 	{"bad", "syscall"},
-	{"illegal", "parameter1"},
-	{"illegal", "parameter2"},
-	{"illegal", "parameter3"},
-	{"illegal", "parameter4"},
-	{"illegal", "parameter5"},
-	{"illegal", "parameter6"},
+	{"illegal", "arg1"},
+	{"illegal", "arg2"},
+	{"illegal", "arg3"},
+	{"illegal", "arg4"},
+	{"illegal", "arg5"},
+	{"illegal", "arg6"},
 }
 
 // positionalError represents an error that has

@@ -155,7 +155,7 @@ impl SyscallABI for FireflyABI {
 
                 Ok(written)
             } else {
-                Err(Error::IllegalParameter1)
+                Err(Error::IllegalArg1)
             }
         })
     }
@@ -194,7 +194,7 @@ impl SyscallABI for FireflyABI {
 
                 Ok(written)
             } else {
-                Err(Error::IllegalParameter1)
+                Err(Error::IllegalArg1)
             }
         })
     }

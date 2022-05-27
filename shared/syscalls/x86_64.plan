@@ -17,23 +17,23 @@
 		(name bad syscall)
 		(docs "The system call specified does not exist, or has not been implemented."))
 	(value
-		(name illegal parameter1)
-		(docs "An invalid or malformed parameter 1 was provided to the system call."))
+		(name illegal arg1)
+		(docs "An invalid or malformed argument 1 was provided to the system call."))
 	(value
-		(name illegal parameter2)
-		(docs "An invalid or malformed parameter 2 was provided to the system call."))
+		(name illegal arg2)
+		(docs "An invalid or malformed argument 2 was provided to the system call."))
 	(value
-		(name illegal parameter3)
-		(docs "An invalid or malformed parameter 3 was provided to the system call."))
+		(name illegal arg3)
+		(docs "An invalid or malformed argument 3 was provided to the system call."))
 	(value
-		(name illegal parameter4)
-		(docs "An invalid or malformed parameter 4 was provided to the system call."))
+		(name illegal arg4)
+		(docs "An invalid or malformed argument 4 was provided to the system call."))
 	(value
-		(name illegal parameter5)
-		(docs "An invalid or malformed parameter 5 was provided to the system call."))
+		(name illegal arg5)
+		(docs "An invalid or malformed argument 5 was provided to the system call."))
 	(value
-		(name illegal parameter6)
-		(docs "An invalid or malformed parameter 6 was provided to the system call.")))
+		(name illegal arg6)
+		(docs "An invalid or malformed argument 6 was provided to the system call.")))
 
 
 (structure
