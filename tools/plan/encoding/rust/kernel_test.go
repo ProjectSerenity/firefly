@@ -66,8 +66,23 @@ func TestGenerateKernelCode(t *testing.T) {
 			               (name bad syscall)
 			               (docs "The specified syscall does not exist."))
 			           (value
-			               (name illegal parameter)
-			               (docs "A parameter to the syscall is an illegal value.")))
+			               (name illegal parameter1)
+			               (docs "Parameter 1 to the syscall is an illegal value."))
+			           (value
+			               (name illegal parameter2)
+			               (docs "Parameter 2 to the syscall is an illegal value."))
+			           (value
+			               (name illegal parameter3)
+			               (docs "Parameter 3 to the syscall is an illegal value."))
+			           (value
+			               (name illegal parameter4)
+			               (docs "Parameter 4 to the syscall is an illegal value."))
+			           (value
+			               (name illegal parameter5)
+			               (docs "Parameter 5 to the syscall is an illegal value."))
+			           (value
+			               (name illegal parameter6)
+			               (docs "Parameter 6 to the syscall is an illegal value.")))
 
 			       (enumeration
 			           (name io error)

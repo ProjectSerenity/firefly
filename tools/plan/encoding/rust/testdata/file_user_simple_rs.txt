@@ -259,9 +259,29 @@ pub enum Error {
     ///
     BadSyscall,
 
-    /// A parameter to the syscall is an illegal value.
+    /// Parameter 1 to the syscall is an illegal value.
     ///
-    IllegalParameter,
+    IllegalParameter1,
+
+    /// Parameter 2 to the syscall is an illegal value.
+    ///
+    IllegalParameter2,
+
+    /// Parameter 3 to the syscall is an illegal value.
+    ///
+    IllegalParameter3,
+
+    /// Parameter 4 to the syscall is an illegal value.
+    ///
+    IllegalParameter4,
+
+    /// Parameter 5 to the syscall is an illegal value.
+    ///
+    IllegalParameter5,
+
+    /// Parameter 6 to the syscall is an illegal value.
+    ///
+    IllegalParameter6,
 }
 
 impl Error {
@@ -273,7 +293,12 @@ impl Error {
         match val {
             0_u64 => Some(Error::NoError),
             1_u64 => Some(Error::BadSyscall),
-            2_u64 => Some(Error::IllegalParameter),
+            2_u64 => Some(Error::IllegalParameter1),
+            3_u64 => Some(Error::IllegalParameter2),
+            4_u64 => Some(Error::IllegalParameter3),
+            5_u64 => Some(Error::IllegalParameter4),
+            6_u64 => Some(Error::IllegalParameter5),
+            7_u64 => Some(Error::IllegalParameter6),
             _ => None,
         }
     }
@@ -286,7 +311,12 @@ impl Error {
         match self {
             Error::NoError => 0_u64,
             Error::BadSyscall => 1_u64,
-            Error::IllegalParameter => 2_u64,
+            Error::IllegalParameter1 => 2_u64,
+            Error::IllegalParameter2 => 3_u64,
+            Error::IllegalParameter3 => 4_u64,
+            Error::IllegalParameter4 => 5_u64,
+            Error::IllegalParameter5 => 6_u64,
+            Error::IllegalParameter6 => 7_u64,
         }
     }
 }
@@ -303,9 +333,29 @@ pub enum IoError {
     ///
     BadSyscall,
 
-    /// A parameter to the syscall is an illegal value.
+    /// Parameter 1 to the syscall is an illegal value.
     ///
-    IllegalParameter,
+    IllegalParameter1,
+
+    /// Parameter 2 to the syscall is an illegal value.
+    ///
+    IllegalParameter2,
+
+    /// Parameter 3 to the syscall is an illegal value.
+    ///
+    IllegalParameter3,
+
+    /// Parameter 4 to the syscall is an illegal value.
+    ///
+    IllegalParameter4,
+
+    /// Parameter 5 to the syscall is an illegal value.
+    ///
+    IllegalParameter5,
+
+    /// Parameter 6 to the syscall is an illegal value.
+    ///
+    IllegalParameter6,
 
     /// The specified file does not exist.
     ///
@@ -321,8 +371,13 @@ impl IoError {
         match val {
             0_u64 => Some(IoError::NoError),
             1_u64 => Some(IoError::BadSyscall),
-            2_u64 => Some(IoError::IllegalParameter),
-            3_u64 => Some(IoError::FileNotFound),
+            2_u64 => Some(IoError::IllegalParameter1),
+            3_u64 => Some(IoError::IllegalParameter2),
+            4_u64 => Some(IoError::IllegalParameter3),
+            5_u64 => Some(IoError::IllegalParameter4),
+            6_u64 => Some(IoError::IllegalParameter5),
+            7_u64 => Some(IoError::IllegalParameter6),
+            8_u64 => Some(IoError::FileNotFound),
             _ => None,
         }
     }
@@ -335,8 +390,13 @@ impl IoError {
         match self {
             IoError::NoError => 0_u64,
             IoError::BadSyscall => 1_u64,
-            IoError::IllegalParameter => 2_u64,
-            IoError::FileNotFound => 3_u64,
+            IoError::IllegalParameter1 => 2_u64,
+            IoError::IllegalParameter2 => 3_u64,
+            IoError::IllegalParameter3 => 4_u64,
+            IoError::IllegalParameter4 => 5_u64,
+            IoError::IllegalParameter5 => 6_u64,
+            IoError::IllegalParameter6 => 7_u64,
+            IoError::FileNotFound => 8_u64,
         }
     }
 }

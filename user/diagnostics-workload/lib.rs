@@ -217,8 +217,8 @@ fn check_abi_errors() {
     test!(debug_abi_errors(Error::NoError), Error::NoError);
     test!(debug_abi_errors(Error::BadSyscall), Error::BadSyscall);
     test!(
-        debug_abi_errors(Error::IllegalParameter),
-        Error::IllegalParameter
+        debug_abi_errors(Error::IllegalParameter1),
+        Error::IllegalParameter1
     );
 
     // Check the kernel safely handles a non-existant syscall.
@@ -234,7 +234,10 @@ fn check_abi_errors() {
 ///
 fn check_abi_bounds() {
     let ok = Error::NoError;
-    let err = Error::IllegalParameter;
+    let err1 = Error::IllegalParameter1;
+    let err2 = Error::IllegalParameter2;
+    let err3 = Error::IllegalParameter3;
+    let err4 = Error::IllegalParameter4;
     const BYTE: u8 = 1;
     let ptr = &BYTE as *const u8;
     let null = core::ptr::null::<u8>();
@@ -245,22 +248,22 @@ fn check_abi_bounds() {
     test!(debug_abi_bounds(-128, 0, Error::NoError, ptr), ok);
     test!(debug_abi_bounds(0, 0, Error::NoError, ptr), ok);
     test!(debug_abi_bounds(127, 0, Error::NoError, ptr), ok);
-    test!(syscall4 DebugAbiBounds(-129i16, 0u8, Error::NoError.as_u64(), ptr), err);
-    test!(syscall4 DebugAbiBounds(128i16, 0u8, Error::NoError.as_u64(), ptr), err);
+    test!(syscall4 DebugAbiBounds(-129i16, 0u8, Error::NoError.as_u64(), ptr), err1);
+    test!(syscall4 DebugAbiBounds(128i16, 0u8, Error::NoError.as_u64(), ptr), err1);
 
     // Unsigned integer.
     test!(debug_abi_bounds(0, 0, Error::NoError, ptr), ok);
     test!(debug_abi_bounds(0, 255, Error::NoError, ptr), ok);
-    test!(syscall4 DebugAbiBounds(0i16, 256u16, Error::NoError.as_u64(), ptr), err);
+    test!(syscall4 DebugAbiBounds(0i16, 256u16, Error::NoError.as_u64(), ptr), err2);
 
     // Enumeration.
     test!(debug_abi_bounds(0, 0, Error::NoError, ptr), ok);
-    test!(debug_abi_bounds(0, 0, Error::IllegalParameter, ptr), ok);
-    test!(syscall4 DebugAbiBounds(0i16, 0u16, 0xffff_ffff_ffff_ffff_u64, ptr), err);
+    test!(debug_abi_bounds(0, 0, Error::IllegalParameter1, ptr), ok);
+    test!(syscall4 DebugAbiBounds(0i16, 0u16, 0xffff_ffff_ffff_ffff_u64, ptr), err3);
 
     // Pointer.
     test!(debug_abi_bounds(0, 0, Error::NoError, ptr), ok);
-    test!(debug_abi_bounds(0, 0, Error::NoError, null), err);
-    test!(debug_abi_bounds(0, 0, Error::NoError, noncanonical), err);
-    test!(debug_abi_bounds(0, 0, Error::NoError, kernelspace), err);
+    test!(debug_abi_bounds(0, 0, Error::NoError, null), err4);
+    test!(debug_abi_bounds(0, 0, Error::NoError, noncanonical), err4);
+    test!(debug_abi_bounds(0, 0, Error::NoError, kernelspace), err4);
 }

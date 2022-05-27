@@ -119,7 +119,7 @@ pub extern "sysv64" fn syscall_handler(
                         Some(value) => value,
                         None => return SyscallResults {
                             value: 0,
-                            error: {{ toString $error }}::IllegalParameter.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
+                            error: {{ toString $error }}::IllegalParameter{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
                         },
                     };
                 {{- else if isPointer $arg.Type -}}
@@ -128,14 +128,14 @@ pub extern "sysv64" fn syscall_handler(
                             if !USERSPACE.contains_addr(addr) {
                                 return SyscallResults {
                                     value: 0,
-                                    error: {{ toString $error }}::IllegalParameter.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
+                                    error: {{ toString $error }}::IllegalParameter{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
                                 };
                             }
                             addr.as_usize() as {{ toString $arg.Type }}
                         }
                         Err(_) => return SyscallResults {
                             value: 0,
-                            error: {{ toString $error }}::IllegalParameter.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
+                            error: {{ toString $error }}::IllegalParameter{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
                         },
                     };
                 {{- else if isInteger $arg.Type -}}
@@ -148,7 +148,7 @@ pub extern "sysv64" fn syscall_handler(
                             Ok(value) => value,
                             Err(_) => return SyscallResults {
                                 value: 0,
-                                error: {{ toString $error }}::IllegalParameter.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
+                                error: {{ toString $error }}::IllegalParameter{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
                             },
                         };
                     {{- else -}}
@@ -156,7 +156,7 @@ pub extern "sysv64" fn syscall_handler(
                             Ok(value) => value,
                             Err(_) => return SyscallResults {
                                 value: 0,
-                                error: {{ toString $error }}::IllegalParameter.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
+                                error: {{ toString $error }}::IllegalParameter{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
                             },
                         };
                     {{- end }}
