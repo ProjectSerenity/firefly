@@ -39,6 +39,16 @@
 				</li>
 			{{ end }}
 		</ul>
+		<h2>Bitfields</h2>
+		<ul>
+			{{ range .Bitfields }}
+				<li>
+					<code class="inline-code">
+						<a href="bitfields/{{ .Name.SnakeCase }}.html" class="bitfield">{{ .Name.Spaced }}</a>
+					</code>
+				</li>
+			{{ end }}
+		</ul>
 		<h2>Structures</h2>
 		<ul>
 			{{ range .Structures }}
