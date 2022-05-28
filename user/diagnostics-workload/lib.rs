@@ -14,7 +14,7 @@
 #![allow(unsafe_code)]
 
 use core::arch::asm;
-use firefly::syscalls::{Error, Syscalls};
+use firefly::syscalls::{shutdown, Error, Syscalls};
 use firefly::{println, syscalls};
 
 /// The application entry point.
@@ -36,6 +36,7 @@ pub fn main() {
     println!("PASS: debug_abi_bounds");
 
     println!("PASS");
+    shutdown();
 }
 
 /// Check that the kernel sees all general-purpose

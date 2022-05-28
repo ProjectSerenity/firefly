@@ -62,6 +62,15 @@ impl SyscallABI for FireflyABI {
         thread::exit();
     }
 
+    /// Shuts down the machine, ceasing all execution. `shutdown`
+    /// will not return.
+    ///
+    #[inline]
+    fn shutdown(_registers: *mut SavedRegisters) -> Error {
+        println!("Shutting down at user request.");
+        power::shutdown();
+    }
+
     /// Allows diagnostics of the syscall ABI by userspace.
     /// The full set of registers received by the kernel is
     /// written to the registers structure passed to it.

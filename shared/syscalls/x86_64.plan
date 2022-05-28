@@ -132,6 +132,20 @@
 
 
 (syscall
+	(name shutdown)
+	(docs
+		"Shuts down the machine, ceasing all execution."
+		""
+		"Unless it has been disabled,"
+		(reference shutdown)
+		"will not return.")
+	(result1
+		(name error)
+		(docs "An error if" (reference shutdown) "has been disabled.")
+		(type error)))
+
+
+(syscall
 	(name debug abi registers)
 	(docs
 		"Allows diagnostics of the syscall ABI by userspace. The full set of"
