@@ -90,6 +90,54 @@ func (n Name) SnakeCase() string {
 	return strings.Join(lower, "_")
 }
 
+// ScreamCase returns the name in 'scream case',
+// such as "SCREAM_CASE".
+//
+func (n Name) ScreamCase() string {
+	if len(n) == 1 {
+		return strings.ToUpper(n[0])
+	}
+
+	lower := make([]string, len(n))
+	for i, s := range n {
+		lower[i] = strings.ToUpper(s)
+	}
+
+	return strings.Join(lower, "_")
+}
+
+// KebabCase returns the name in 'kebab case',
+// such as "kebab-case".
+//
+func (n Name) KebabCase() string {
+	if len(n) == 1 {
+		return strings.ToLower(n[0])
+	}
+
+	lower := make([]string, len(n))
+	for i, s := range n {
+		lower[i] = strings.ToLower(s)
+	}
+
+	return strings.Join(lower, "-")
+}
+
+// TrainCase returns the name in 'train case',
+// such as "TRAIN-CASE".
+//
+func (n Name) TrainCase() string {
+	if len(n) == 1 {
+		return strings.ToUpper(n[0])
+	}
+
+	lower := make([]string, len(n))
+	for i, s := range n {
+		lower[i] = strings.ToUpper(s)
+	}
+
+	return strings.Join(lower, "-")
+}
+
 // Docs represents a set of documentation
 // for a type Plan a source file. The docs
 // are split into lines.
