@@ -1581,6 +1581,11 @@ func TestInterpreterErrors(t *testing.T) {
 			Want:   `test.plan:1:84: invalid field type: invalid type reference: expected an identifier, found string`,
 		},
 		{
+			Name:   "error enumeration with too few values",
+			Source: `(enumeration (name example error) (docs "abc") (type uint8) (value (name no error) (docs "xyz")))`,
+			Want:   `test.plan:1:1: enumeration "example error" is not an error enumeration: missing value "bad syscall"`,
+		},
+		{
 			Name:   "error enumeration with missing values",
 			Source: `(enumeration (name example error) (docs "abc") (type uint8) (value (name foo) (docs "xyz")))`,
 			Want:   `test.plan:1:1: enumeration "example error" is not an error enumeration: missing value "no error"`,
