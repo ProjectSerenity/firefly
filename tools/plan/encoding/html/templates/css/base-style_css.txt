@@ -12,6 +12,10 @@ a {
 	color: #4e4ed3; /* Dark blue */
 }
 
+.bitfield {
+	color: #4e4ed3; /* Dark blue */
+}
+
 .structure {
 	color: #4ed34e; /* Dark green */
 }
@@ -27,6 +31,10 @@ a {
 	}
 
 	.enumeration {
+		color: #b0bee5; /* Light blue */
+	}
+
+	.bitfield {
 		color: #b0bee5; /* Light blue */
 	}
 

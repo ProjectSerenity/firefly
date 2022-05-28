@@ -125,6 +125,10 @@ func SortFields(file *ast.File, arch types.Arch) error {
 		sortList("enumeration", enumeration.Node)
 	}
 
+	for _, bitfield := range prog.Bitfields {
+		sortList("bitfield", bitfield.Node)
+	}
+
 	for _, structure := range prog.Structures {
 		sortList("structure", structure.Node)
 		for _, field := range structure.Fields {

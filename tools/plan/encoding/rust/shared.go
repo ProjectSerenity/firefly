@@ -14,6 +14,7 @@ import (
 
 const (
 	enumerationTemplate = "enumeration_rs.txt"
+	bitfieldTemplate    = "bitfield_rs.txt"
 	structureTemplate   = "structure_rs.txt"
 )
 
@@ -141,6 +142,8 @@ func sharedToString(t types.Type) string {
 	case types.Padding:
 		return fmt.Sprintf("[u8; %d]", t)
 	case *types.Enumeration:
+		return t.Name.PascalCase()
+	case *types.Bitfield:
 		return t.Name.PascalCase()
 	case *types.Structure:
 		return t.Name.PascalCase()

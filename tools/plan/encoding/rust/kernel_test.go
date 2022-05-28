@@ -53,7 +53,11 @@ func TestGenerateKernelCode(t *testing.T) {
 			           (field
 			               (name name size)
 			               (docs "The number of bytes at 'name pointer'.")
-			               (type uint32)))
+			               (type uint32))
+			           (field
+			               (name permissions)
+			               (docs "The actions that can be performed on the file.")
+			               (type permissions)))
 
 			       (enumeration
 			           (name error)
@@ -89,6 +93,20 @@ func TestGenerateKernelCode(t *testing.T) {
 			           (docs "An I/O error returned by" (reference get file info) ".")
 			           (type uint64)
 			           (embed error))
+
+			       (bitfield
+			           (name permissions)
+			           (docs "The set of actions permitted on a resource.")
+			           (type uint8)
+			           (value
+			               (name read)
+			               (docs "The data can be read."))
+			           (value
+			               (name write)
+			               (docs "The data can be written."))
+			           (value
+			               (name execute)
+			               (docs "The data can be executed.")))
 
 			       (syscall
 			           (name deny syscalls)

@@ -38,7 +38,11 @@ func TestGenerateUserCode(t *testing.T) {
 			           (field
 			               (name name size)
 			               (docs "The number of bytes at" (code "name pointer") ".")
-			               (type uint32)))
+			               (type uint32))
+			           (field
+			               (name permissions)
+			               (docs "The actions that can be performed on the file.")
+			               (type permissions)))
 
 			       (enumeration
 			           (name error)
@@ -77,6 +81,20 @@ func TestGenerateUserCode(t *testing.T) {
 			           (value
 			               (name file not found)
 			               (docs "The specified file does not exist.")))
+
+			       (bitfield
+			           (name permissions)
+			           (docs "The set of actions permitted on a resource.")
+			           (type uint8)
+			           (value
+			               (name read)
+			               (docs "The data can be read."))
+			           (value
+			               (name write)
+			               (docs "The data can be written."))
+			           (value
+			               (name execute)
+			               (docs "The data can be executed.")))
 
 			       (syscall
 			           (name deny syscalls)
@@ -184,6 +202,32 @@ func TestUserTemplates(t *testing.T) {
 					{
 						Name: types.Name{"access", "denied"},
 						Docs: types.Docs{types.Text("Read operations on this file are not permitted.")},
+					},
+				},
+			},
+		},
+		{
+			Name: "access control bitfield",
+			Want: "bitfield_rs_access_control",
+			Tmpl: bitfieldTemplate,
+			Type: &types.Bitfield{
+				Name: types.Name{"access", "control"},
+				Docs: types.Docs{
+					types.Text("The permissions available on a resource."),
+				},
+				Type: types.Uint16,
+				Values: []*types.Value{
+					{
+						Name: types.Name{"read", "access"},
+						Docs: types.Docs{types.Text("The data can be read.")},
+					},
+					{
+						Name: types.Name{"write", "access"},
+						Docs: types.Docs{types.Text("The data can be written.")},
+					},
+					{
+						Name: types.Name{"execute", "access"},
+						Docs: types.Docs{types.Text("The data can be executed.")},
 					},
 				},
 			},

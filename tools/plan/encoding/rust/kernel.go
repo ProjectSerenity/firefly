@@ -54,6 +54,9 @@ func GenerateKernelCode(w io.Writer, file *types.File, rustfmt string) error {
 	for _, enumeration := range file.Enumerations {
 		items = append(items, enumeration)
 	}
+	for _, bitfield := range file.Bitfields {
+		items = append(items, bitfield)
+	}
 	for _, structure := range file.Structures {
 		items = append(items, structure)
 	}
@@ -75,6 +78,8 @@ func GenerateKernelCode(w io.Writer, file *types.File, rustfmt string) error {
 		switch item := item.(type) {
 		case *types.Enumeration:
 			template = enumerationTemplate
+		case *types.Bitfield:
+			template = bitfieldTemplate
 		case *types.Structure:
 			template = structureTemplate
 		case *types.Syscall:

@@ -5,6 +5,8 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
+#[allow(unused_imports)]
+use bitflags::bitflags;
 use core::arch::asm;
 
 /// Call a raw syscall.
@@ -245,6 +247,10 @@ pub struct FileInfo {
     /// The number of bytes at `name pointer`.
     ///
     pub name_size: u32,
+
+    /// The actions that can be performed on the file.
+    ///
+    pub permissions: Permissions,
 }
 
 /// A general purpose error.
@@ -398,6 +404,24 @@ impl IoError {
             IoError::IllegalArg6 => 7_u64,
             IoError::FileNotFound => 8_u64,
         }
+    }
+}
+
+bitflags! {
+    /// The set of actions permitted on a resource.
+    ///
+    pub struct Permissions: u8 {
+        /// The data can be read.
+        ///
+        const READ = 1 << 0;
+
+        /// The data can be written.
+        ///
+        const WRITE = 1 << 1;
+
+        /// The data can be executed.
+        ///
+        const EXECUTE = 1 << 2;
     }
 }
 

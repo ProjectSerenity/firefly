@@ -60,6 +60,7 @@ rust_library(
         "//kernel/utils/pretty",
         "//kernel/utils/spin",
         "//kernel/utils/tar",
+        "//vendor/rust/bitflags",
         "//vendor/rust/bootloader",
         "//vendor/rust/x86_64",
     ],

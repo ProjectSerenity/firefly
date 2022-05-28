@@ -52,6 +52,19 @@ func GenerateDocs(dir string, file *types.File) error {
 		}
 	}
 
+	bitsDir := filepath.Join(dir, "bitfields")
+	err = mkdir(bitsDir)
+	if err != nil {
+		return err
+	}
+
+	for _, bitfield := range file.Bitfields {
+		err = generateItemHTML(filepath.Join(bitsDir, bitfield.Name.SnakeCase()+".html"), bitfieldTemplate, bitfield)
+		if err != nil {
+			return err
+		}
+	}
+
 	structDir := filepath.Join(dir, "structures")
 	err = mkdir(structDir)
 	if err != nil {
@@ -121,6 +134,7 @@ var templates = template.Must(template.New("").Funcs(template.FuncMap{
 
 const (
 	enumerationTemplate = "enumeration_html.txt"
+	bitfieldTemplate    = "bitfield_html.txt"
 	structureTemplate   = "structure_html.txt"
 	syscallTemplate     = "syscall_html.txt"
 	indexTemplate       = "index_html.txt"
@@ -162,6 +176,8 @@ func toString(t types.Type) template.HTML {
 		return template.HTML(fmt.Sprintf("%d-byte padding", t))
 	case *types.Enumeration:
 		return template.HTML(fmt.Sprintf(`<a href="../enumerations/%s.html" class="enumeration">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
+	case *types.Bitfield:
+		return template.HTML(fmt.Sprintf(`<a href="../bitfields/%s.html" class="bitfield">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
 	case *types.Structure:
 		return template.HTML(fmt.Sprintf(`<a href="../structures/%s.html" class="structure">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
 	case *types.SyscallReference:

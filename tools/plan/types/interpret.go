@@ -139,6 +139,13 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 			}
 
 			i.out.Enumerations = append(i.out.Enumerations, enumeration)
+		case "bitfield":
+			bitfield, err := i.interpretBitfield(list)
+			if err != nil {
+				return err
+			}
+
+			i.out.Bitfields = append(i.out.Bitfields, bitfield)
 		case "structure":
 			structure, err := i.interpretStructure(list)
 			if err != nil {
@@ -249,7 +256,7 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 		for j, arg := range syscall.Args {
 			argType := Underlying(arg.Type)
 			switch argType.(type) {
-			case Integer, *Enumeration, *Pointer:
+			case Integer, *Enumeration, *Bitfield, *Pointer:
 			case nil:
 				return i.errorf(arg.Node, "arg%d %q is an invalid type reference", j, arg.Name.Spaced())
 			default:
@@ -436,6 +443,119 @@ func (i *interpreter) interpretEnumeration(list *ast.List) (*Enumeration, *posit
 	i.typeuses[typename] = nil
 
 	return enumeration, nil
+}
+
+// interpretBitfield parses the list elements as a
+// bitfield definition.
+//
+func (i *interpreter) interpretBitfield(list *ast.List) (*Bitfield, *positionalError) {
+	// Skip the first element, which is the 'bitfield'
+	// identifier.
+	parts, err := i.interpretLists(list.Elements[1:])
+	if err != nil {
+		return nil, err.Context("invalid bitfield")
+	}
+
+	bitfield := &Bitfield{
+		Node: list,
+	}
+
+	values := make(map[string]*Value)
+	for _, part := range parts {
+		def, elts, err := i.interpretDefinition(part)
+		if err != nil {
+			return nil, err
+		}
+
+		switch def.Name {
+		case "name":
+			name, err := i.interpretName(elts)
+			if err != nil {
+				return nil, err.Context("invalid bitfield name")
+			}
+
+			if bitfield.Name != nil {
+				return nil, i.errorf(def, "invalid bitfield definition: name already defined")
+			}
+
+			bitfield.Name = name
+		case "docs":
+			docs, err := i.interpretDocs(elts)
+			if err != nil {
+				return nil, err.Context("invalid bitfield docs")
+			}
+
+			if bitfield.Docs != nil {
+				return nil, i.errorf(def, "invalid bitfield definition: docs already defined")
+			}
+
+			bitfield.Docs = docs
+		case "type":
+			typ, err := i.interpretType(elts)
+			if err != nil {
+				return nil, err.Context("invalid bitfield type")
+			}
+
+			integer, ok := typ.(Integer)
+			if !ok {
+				return nil, i.errorf(elts[0], "invalid bitfield type: must be an integer type, found %s", typ)
+			}
+
+			if bitfield.Type != InvalidInteger {
+				return nil, i.errorf(def, "invalid bitfield definition: type already defined")
+			}
+
+			bitfield.Type = integer
+		case "value":
+			value, err := i.interpretValue(part)
+			if err != nil {
+				return nil, err
+			}
+
+			// Make sure the value isn't a duplicate.
+			name := value.Name.Spaced()
+			if other, ok := values[name]; ok {
+				return nil, i.errorf(part, "value %q already defined at %s", name, i.pos(other.Node))
+			}
+
+			values[name] = value
+			bitfield.Values = append(bitfield.Values, value)
+		default:
+			return nil, i.errorf(def, "unrecognised bitfield definition kind %q", def.Name)
+		}
+	}
+
+	// Make sure the bitfield is complete.
+	if bitfield.Name == nil {
+		return nil, i.errorf(list, "bitfield has no name definition")
+	} else if bitfield.Docs == nil {
+		return nil, i.errorf(list, "bitfield has no docs definition")
+	} else if bitfield.Type == InvalidInteger {
+		return nil, i.errorf(list, "bitfield has no type definition")
+	} else if bitfield.Values == nil {
+		return nil, i.errorf(list, "bitfield has no value definitions")
+	}
+
+	if len(bitfield.Values) > bitfield.Type.Bits() {
+		got := len(bitfield.Values)
+		max := bitfield.Type.Bits()
+		return nil, i.errorf(list, "bitfield has %d values, which exceeds capacity of %s (max %d)", got, bitfield.Type, max)
+	}
+
+	// Track the type definition.
+	typename := bitfield.Name.Spaced()
+	if i.typedefs[typename] != nil {
+		return nil, i.errorf(bitfield.Node, "type %q is already defined", typename)
+	}
+
+	// Complete any references to the type.
+	i.typedefs[typename] = bitfield
+	for _, ref := range i.typeuses[typename] {
+		ref.Underlying = bitfield
+	}
+	i.typeuses[typename] = nil
+
+	return bitfield, nil
 }
 
 // interpretStructure parses the list elements as

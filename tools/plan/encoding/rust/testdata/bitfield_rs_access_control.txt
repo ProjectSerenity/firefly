@@ -1,0 +1,17 @@
+bitflags! {
+    /// The permissions available on a resource.
+    ///
+    pub struct AccessControl: u16 {
+        /// The data can be read.
+        ///
+        const READ_ACCESS = 1 << 0;
+
+        /// The data can be written.
+        ///
+        const WRITE_ACCESS = 1 << 1;
+
+        /// The data can be executed.
+        ///
+        const EXECUTE_ACCESS = 1 << 2;
+    }
+}

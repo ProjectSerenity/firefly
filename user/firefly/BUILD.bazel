@@ -24,6 +24,9 @@ rust_library(
         "SYSCALLS_RS": "$(location :syscalls)",
     },
     visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/rust/bitflags",
+    ],
 )
 
 rust_clippy(

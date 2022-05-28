@@ -294,6 +294,27 @@ func (b Integer) Docs() Docs {
 	return Docs{text}
 }
 
+func (b Integer) Bits() int {
+	bits := map[Integer]int{
+		Byte:   8,
+		Uint8:  8,
+		Uint16: 16,
+		Uint32: 32,
+		Uint64: 64,
+		Sint8:  8,
+		Sint16: 16,
+		Sint32: 32,
+		Sint64: 64,
+	}
+
+	bit, ok := bits[b]
+	if !ok {
+		panic(fmt.Sprintf("unrecognised integer type %d", b))
+	}
+
+	return bit
+}
+
 func (b Integer) Min() int64 {
 	mins := map[Integer]int64{
 		Byte:   0,
@@ -498,6 +519,39 @@ func (e *Enumeration) String() string {
 	return fmt.Sprintf("enumeration %s (%s)", e.Name.Spaced(), e.Type.String())
 }
 
+// Bitfield represents a numerical type
+// with a constrained set of valid values
+// in a syscalls plan. The values can be
+// combined together, but each value uses
+// one bit in the underlying integer,
+// resulting in a smaller number of
+// individual values than an enumeration
+// of the same size.
+//
+type Bitfield struct {
+	Name   Name
+	Node   *ast.List
+	Docs   Docs
+	Type   Integer
+	Values []*Value
+}
+
+var (
+	_ Type     = (*Bitfield)(nil)
+	_ ast.Node = (*Bitfield)(nil)
+)
+
+func (e *Bitfield) Pos() token.Position { return e.Node.Pos() }
+func (e *Bitfield) End() token.Position { return e.Node.End() }
+
+func (e *Bitfield) Size(a Arch) int {
+	return e.Type.Size(a)
+}
+
+func (e *Bitfield) String() string {
+	return fmt.Sprintf("bitfield %s (%s)", e.Name.Spaced(), e.Type.String())
+}
+
 // Structure represents a structure defined
 // in a syscalls plan.
 //
@@ -598,6 +652,7 @@ func (r *SyscallReference) String() string  { return fmt.Sprintf("syscall %s", r
 type File struct {
 	// Data structures.
 	Enumerations []*Enumeration
+	Bitfields    []*Bitfield
 	Structures   []*Structure
 
 	// System calls.
@@ -636,6 +691,12 @@ func (f *File) DropAST() {
 	for _, enumeration := range f.Enumerations {
 		enumeration.Node = nil
 		for _, value := range enumeration.Values {
+			value.Node = nil
+		}
+	}
+	for _, bitfield := range f.Bitfields {
+		bitfield.Node = nil
+		for _, value := range bitfield.Values {
 			value.Node = nil
 		}
 	}
