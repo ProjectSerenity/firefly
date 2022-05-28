@@ -117,6 +117,38 @@
 		(type uint64)))
 
 
+(bitfield
+	(name file permissions)
+	(docs "Describes the actions that can be performed on a file or directory.")
+	(type uint8)
+	(value
+		(name execute)
+		(docs
+			"A file with this bit set can be executed to start a new process."
+			""
+			"A directory cannot have this bit set."))
+	(value
+		(name write)
+		(docs
+			"A file with this bit set can be modified, such as to truncate its"
+			"length or overwrite its contents."
+			""
+			"A directory with this bit set can be modified, such as by creating"
+			"new files within the directory. If a directory does not have this"
+			"bit set, then any files or directories within this directory behave"
+			"as if this bit is unset."))
+	(value
+		(name read)
+		(docs
+			"A file with this bit set can be read. If a file does not have this"
+			"bit set, then the only information available is its name and"
+			"permissions."
+			""
+			"A directory with this bit set can be read. If a directory does not"
+			"have this bit set, then the only information available is its name"
+			"and permissions.")))
+
+
 (syscall
 	(name exit thread)
 	(docs
