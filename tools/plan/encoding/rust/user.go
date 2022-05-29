@@ -34,14 +34,6 @@ func GenerateUserCode(w io.Writer, file *types.File, rustfmt string) error {
 
 	buf.WriteString("\n\n")
 
-	// Then add the enumeration of the syscalls.
-	err = userTemplates.ExecuteTemplate(&buf, enumerationTemplate, file.SyscallsEnumeration())
-	if err != nil {
-		return fmt.Errorf("failed to append syscalls enumeration: %v", err)
-	}
-
-	buf.WriteString("\n\n")
-
 	// Make a list of the items in the file, then sort
 	// them into the order in which they appeared in
 	// the order in which they were defined in the
@@ -76,12 +68,9 @@ func GenerateUserCode(w io.Writer, file *types.File, rustfmt string) error {
 
 		var template string
 		switch item := item.(type) {
-		case *types.Enumeration:
-			template = enumerationTemplate
-		case *types.Bitfield:
-			template = bitfieldTemplate
-		case *types.Structure:
-			template = structureTemplate
+		case *types.Enumeration, *types.Bitfield, *types.Structure:
+			// We import these, so nothing to do here.
+			continue
 		case *types.Syscall:
 			template = userSyscallTemplate
 		default:
@@ -117,7 +106,7 @@ func GenerateUserCode(w io.Writer, file *types.File, rustfmt string) error {
 // The templates used to render type definitions
 // as Rust code.
 //
-//go:embed templates/*_rs.txt templates/user/*_rs.txt
+//go:embed templates/user/*_rs.txt
 var userTemplatesFS embed.FS
 
 var userTemplates = template.Must(template.New("").Funcs(template.FuncMap{
@@ -131,7 +120,7 @@ var userTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 	"toDocs":             userToDocs,
 	"toString":           sharedToString,
 	"toU64":              sharedToU64,
-}).ParseFS(userTemplatesFS, "templates/*_rs.txt", "templates/user/*_rs.txt"))
+}).ParseFS(userTemplatesFS, "templates/user/*_rs.txt"))
 
 const (
 	userSyscallTemplate = "syscall_rs.txt"

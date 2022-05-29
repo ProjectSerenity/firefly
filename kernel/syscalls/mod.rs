@@ -6,13 +6,15 @@
 //! Implements the kernel's syscalls, allowing user processes to access kernel functionality.
 
 #[allow(clippy::enum_variant_names)]
-mod abi {
+#[allow(clippy::wildcard_imports)]
+mod firefly_syscalls {
     include!(env!("SYSCALLS_RS"));
 }
 
-use self::abi::{Error, Registers, SavedRegisters, SyscallABI};
 use core::arch::global_asm;
 use cpu::with_user_memory_access;
+use firefly_abi::{Error, Registers};
+use firefly_syscalls::{SavedRegisters, SyscallABI};
 use multitasking::thread;
 use segmentation::with_segment_data;
 use serial::{print, println};

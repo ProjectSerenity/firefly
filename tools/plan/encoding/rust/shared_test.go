@@ -235,6 +235,151 @@ func TestGenerateSharedCode(t *testing.T) {
 	}
 }
 
+func TestSubTemplates(t *testing.T) {
+	tests := []struct {
+		Name string
+		Want string
+		Tmpl string
+		Type any
+	}{
+		{
+			Name: "read error enumeration",
+			Want: "enumeration_rs_read_error",
+			Tmpl: enumerationTemplate,
+			Type: &types.Enumeration{
+				Name: types.Name{"read", "error"},
+				Docs: types.Docs{
+					types.Text("An error returned after a failed attempt to read from"),
+					types.Newline{},
+					types.Text("a file in a filesystem."),
+				},
+				Type: types.Uint8,
+				Values: []*types.Value{
+					{
+						Name: types.Name{"no", "error"},
+						Docs: types.Docs{types.Text("The file read completed successfully.")},
+					},
+					{
+						Name: types.Name{"end", "of", "file"},
+						Docs: types.Docs{types.Text("There is no more data available in the file.")},
+					},
+					{
+						Name: types.Name{"access", "denied"},
+						Docs: types.Docs{types.Text("Read operations on this file are not permitted.")},
+					},
+				},
+			},
+		},
+		{
+			Name: "access control bitfield",
+			Want: "bitfield_rs_access_control",
+			Tmpl: bitfieldTemplate,
+			Type: &types.Bitfield{
+				Name: types.Name{"access", "control"},
+				Docs: types.Docs{
+					types.Text("The permissions available on a resource."),
+				},
+				Type: types.Uint16,
+				Values: []*types.Value{
+					{
+						Name: types.Name{"read", "access"},
+						Docs: types.Docs{types.Text("The data can be read.")},
+					},
+					{
+						Name: types.Name{"write", "access"},
+						Docs: types.Docs{types.Text("The data can be written.")},
+					},
+					{
+						Name: types.Name{"execute", "access"},
+						Docs: types.Docs{types.Text("The data can be executed.")},
+					},
+				},
+			},
+		},
+		{
+			Name: "file info structure",
+			Want: "structure_rs_file_info",
+			Tmpl: structureTemplate,
+			Type: &types.Structure{
+				Name: types.Name{"file", "info"},
+				Docs: types.Docs{
+					types.Text("The file info structure is used to represent information about"),
+					types.Newline{},
+					types.Text("one file in a filesystem."),
+				},
+				Fields: []*types.Field{
+					{
+						Name: types.Name{"name"},
+						Docs: types.Docs{types.Text("The name of the file.")},
+						Type: &types.Pointer{
+							Mutable: false,
+							Underlying: &types.Reference{
+								Name: types.Name{"constant", "string"},
+								Underlying: &types.Structure{
+									Name: types.Name{"constant", "string"},
+									Docs: types.Docs{types.Text("A read-only sequence of UTF-8 encoded text.")},
+									Fields: []*types.Field{
+										{
+											Name: types.Name{"pointer"},
+											Docs: types.Docs{types.Text("A pointer to the string's text.")},
+											Type: &types.Pointer{
+												Mutable:    false,
+												Underlying: types.Byte,
+											},
+										},
+										{
+											Name: types.Name{"size"},
+											Docs: types.Docs{types.Text("The number of bytes in the string's text.")},
+											Type: types.Uint64,
+										},
+									},
+								},
+							},
+						},
+					},
+					{
+						Name: types.Name{"permissions"},
+						Docs: types.Docs{types.Text("The permitted actions that can be performed on the file.")},
+						Type: types.Uint8,
+					},
+					{
+						Name: types.Name{"padding1"},
+						Docs: types.Docs{types.Text("Padding to align the structure.")},
+						Type: types.Padding(7),
+					},
+					{
+						Name: types.Name{"file", "size"},
+						Docs: types.Docs{types.Text("The size of the file in bytes.")},
+						Type: types.Uint64,
+					},
+				},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			buf.Reset()
+			err := sharedTemplates.ExecuteTemplate(&buf, test.Tmpl, test.Type)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			got := buf.Bytes()
+			name := filepath.Join("testdata", test.Want+".txt")
+			want, err := os.ReadFile(name)
+			if err != nil {
+				t.Fatalf("failed to read %s: %v", name, err)
+			}
+
+			if !bytes.Equal(got, want) {
+				t.Fatalf("templating %s:\n%s", test.Type, diff.Format(string(got), string(want)))
+			}
+		})
+	}
+}
+
 // getRustfmt returns a path to the rustfmt
 // tool.
 //

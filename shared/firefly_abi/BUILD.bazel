@@ -1,0 +1,34 @@
+# Copyright 2022 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library")
+load("//tools/plan:defs.bzl", "plan_rust_shared")
+
+plan_rust_shared(
+    name = "lib",
+    embed = "//shared/syscalls",
+    rustfmt = "@rust_linux_x86_64//:rustfmt",
+)
+
+rust_library(
+    name = "firefly_abi",
+    srcs = [":lib"],
+    crate_name = "firefly_abi",
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/rust/bitflags",
+    ],
+)
+
+rust_clippy(
+    name = "clippy",
+    deps = [":firefly_abi"],
+)
+
+rust_doc(
+    name = "docs",
+    crate = ":firefly_abi",
+)

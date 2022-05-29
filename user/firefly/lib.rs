@@ -16,13 +16,10 @@
 #![deny(unused_crate_dependencies)]
 #![allow(unsafe_code)]
 
-pub mod syscalls {
-    include!(env!("SYSCALLS_RS"));
-}
-
-use self::syscalls::Error;
 use core::fmt;
 use core::fmt::Write;
+use firefly_abi::Error;
+use firefly_syscalls as syscalls;
 
 /// Exit the current thread.
 ///

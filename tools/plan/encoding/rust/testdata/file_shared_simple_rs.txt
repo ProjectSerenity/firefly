@@ -35,6 +35,7 @@ pub enum Syscalls {
     GetProcessId,
 
     /// Docs on
+    ///
     /// two lines
     ///
     ThreeArgsTwoResults,

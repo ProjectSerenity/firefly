@@ -12,11 +12,9 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"sort"
 	"strings"
 	"text/template"
 
-	"firefly-os.dev/tools/plan/ast"
 	"firefly-os.dev/tools/plan/types"
 )
 
@@ -30,69 +28,6 @@ func GenerateKernelCode(w io.Writer, file *types.File, rustfmt string) error {
 	err := kernelTemplates.ExecuteTemplate(&buf, kernelFileTemplate, file)
 	if err != nil {
 		return fmt.Errorf("failed to execute %s: %v", kernelFileTemplate, err)
-	}
-
-	buf.WriteString("\n\n")
-
-	// Then add the enumeration of the syscalls.
-	err = kernelTemplates.ExecuteTemplate(&buf, enumerationTemplate, file.SyscallsEnumeration())
-	if err != nil {
-		return fmt.Errorf("failed to append syscalls enumeration: %v", err)
-	}
-
-	buf.WriteString("\n\n")
-
-	// Make a list of the items in the file, then sort
-	// them into the order in which they appeared in
-	// the order in which they were defined in the
-	// original text. We then print them one by one
-	// using the corresponding template for each item
-	// type.
-
-	numItems := len(file.Enumerations) + len(file.Structures) + len(file.Syscalls)
-	items := make([]ast.Node, 0, numItems)
-	for _, enumeration := range file.Enumerations {
-		items = append(items, enumeration)
-	}
-	for _, bitfield := range file.Bitfields {
-		items = append(items, bitfield)
-	}
-	for _, structure := range file.Structures {
-		items = append(items, structure)
-	}
-	for _, syscall := range file.Syscalls {
-		items = append(items, syscall)
-	}
-
-	sort.Slice(items, func(i, j int) bool {
-		return items[i].Pos().Offset() < items[j].Pos().Offset()
-	})
-
-	// Finally, write the file's items.
-	for i, item := range items {
-		if i > 0 {
-			buf.WriteString("\n\n")
-		}
-
-		var template string
-		switch item := item.(type) {
-		case *types.Enumeration:
-			template = enumerationTemplate
-		case *types.Bitfield:
-			template = bitfieldTemplate
-		case *types.Structure:
-			template = structureTemplate
-		case *types.Syscall:
-			// We skip syscall definitions.
-			continue
-		default:
-			panic(fmt.Sprintf("unreachable file item type %T", item))
-		}
-
-		err := kernelTemplates.ExecuteTemplate(&buf, template, item)
-		if err != nil {
-			return fmt.Errorf("failed to execute template %q with %T: %v", template, item, err)
-		}
 	}
 
 	// Make sure rustfmt is happy.
@@ -118,7 +53,7 @@ func GenerateKernelCode(w io.Writer, file *types.File, rustfmt string) error {
 // The templates used to render type definitions
 // as Rust code.
 //
-//go:embed templates/*_rs.txt templates/kernel/*_rs.txt
+//go:embed templates/kernel/*_rs.txt
 var kernelTemplatesFS embed.FS
 
 var kernelTemplates = template.Must(template.New("").Funcs(template.FuncMap{
@@ -139,7 +74,7 @@ var kernelTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 	"toDocs":             kernelToDocs,
 	"toString":           sharedToString,
 	"toU64":              sharedToU64,
-}).ParseFS(kernelTemplatesFS, "templates/*_rs.txt", "templates/kernel/*_rs.txt"))
+}).ParseFS(kernelTemplatesFS, "templates/kernel/*_rs.txt"))
 
 const (
 	kernelFileTemplate = "file_rs.txt"
@@ -179,7 +114,14 @@ func kernelToDocs(indent int, d types.Docs) string {
 				buf.WriteString(")")
 			}
 		case types.Newline:
+			// Add a blank comment.
 			buf.WriteByte('\n')
+			for j := 0; j < indent; j++ {
+				buf.WriteString("    ")
+			}
+
+			buf.WriteString("///\n")
+			// Add the next comment.
 			for j := 0; j < indent; j++ {
 				buf.WriteString("    ")
 			}

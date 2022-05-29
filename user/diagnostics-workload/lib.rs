@@ -14,8 +14,9 @@
 #![allow(unsafe_code)]
 
 use core::arch::asm;
-use firefly::syscalls::{shutdown, Error, Syscalls};
-use firefly::{println, syscalls};
+use firefly::println;
+use firefly_abi::{Error, Registers, Syscalls};
+use firefly_syscalls::shutdown;
 
 /// The application entry point.
 ///
@@ -44,7 +45,7 @@ pub fn main() {
 /// using debug_abi_registers.
 ///
 fn check_abi_registers() {
-    let mut got = syscalls::Registers {
+    let mut got = Registers {
         rax: 0,
         rbx: 0,
         rcx: 0,
@@ -65,7 +66,7 @@ fn check_abi_registers() {
         rflags: 0,
     };
 
-    let sent = syscalls::Registers {
+    let sent = Registers {
         // Use bit patterns that are unlikely
         // to be mistaken for one another if
         // bits are copied across by mistake.
@@ -74,7 +75,7 @@ fn check_abi_registers() {
         rcx: 0, // RCX is destroyed.
         rdx: 0x1032_5476_98ba_dcfe_u64,
         rsi: 0x0011_2233_4455_6677_u64,
-        rdi: (&mut got) as *mut syscalls::Registers as usize as u64,
+        rdi: (&mut got) as *mut Registers as usize as u64,
         rbp: 0, // We calculate this later, which is easier than predicting it exactly.
         rip: 0, // We calculate this later, which is easier than predicting it exactly.
         rsp: 0, // We calculate this later, which is easier than predicting it exactly.
@@ -191,7 +192,7 @@ macro_rules! test {
     // Typed syscall wrapper.
     ($syscall:ident($($args:expr),+), $want:expr) => {
         assert_eq!(
-            syscalls::$syscall($($args),+),
+            firefly_syscalls::$syscall($($args),+),
             $want
         );
     };
@@ -200,7 +201,7 @@ macro_rules! test {
     ($sys:ident $syscall:ident($($args:expr),+), $want:ident) => {
         assert_eq!(
             unsafe {
-                syscalls::$sys(
+                firefly_syscalls::$sys(
                     Syscalls::$syscall.as_u64(),
                     $($args as u64),+
                 )
@@ -221,7 +222,7 @@ fn check_abi_errors() {
 
     // Check the kernel safely handles a non-existant syscall.
     assert_eq!(
-        unsafe { syscalls::syscall0(0xffff_ffff_ffff_ffff_u64) },
+        unsafe { firefly_syscalls::syscall0(0xffff_ffff_ffff_ffff_u64) },
         (0u64, Error::BadSyscall.as_u64())
     );
 }

@@ -118,7 +118,7 @@ func GenerateSharedCode(w io.Writer, file *types.File, rustfmt string) error {
 // The templates used to render type definitions
 // as Rust code.
 //
-//go:embed templates/*_rs.txt templates/shared/*_rs.txt
+//go:embed templates/shared/*_rs.txt
 var sharedTemplatesFS embed.FS
 
 var sharedTemplates = template.Must(template.New("").Funcs(template.FuncMap{
@@ -139,7 +139,7 @@ var sharedTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 	"toDocs":             sharedToDocs,
 	"toString":           sharedToString,
 	"toU64":              sharedToU64,
-}).ParseFS(sharedTemplatesFS, "templates/*_rs.txt", "templates/shared/*_rs.txt"))
+}).ParseFS(sharedTemplatesFS, "templates/shared/*_rs.txt"))
 
 const (
 	sharedFileTemplate  = "file_rs.txt"
@@ -267,7 +267,14 @@ func sharedToDocs(indent int, d types.Docs) string {
 				buf.WriteString(")")
 			}
 		case types.Newline:
+			// Add a blank comment.
 			buf.WriteByte('\n')
+			for j := 0; j < indent; j++ {
+				buf.WriteString("    ")
+			}
+
+			buf.WriteString("///\n")
+			// Add the next comment.
 			for j := 0; j < indent; j++ {
 				buf.WriteString("    ")
 			}
