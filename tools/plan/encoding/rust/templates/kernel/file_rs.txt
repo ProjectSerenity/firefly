@@ -6,8 +6,6 @@
 // license that can be found in the LICENSE file.
 
 use super::FireflyABI;
-#[allow(unused_imports)]
-use bitflags::bitflags;
 use cpu::disable_user_memory_access;
 use memory::constants::USERSPACE;
 use memory::VirtAddr;

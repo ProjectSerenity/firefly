@@ -1,4 +1,4 @@
-bitflags! {
+bitflags::bitflags! {
     /// The permissions available on a resource.
     ///
     pub struct AccessControl: u16 {

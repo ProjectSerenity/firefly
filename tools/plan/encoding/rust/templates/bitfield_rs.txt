@@ -2,7 +2,7 @@
 {{- $name := .Name.PascalCase -}}
 {{- $type := toString .Type -}}
 
-bitflags! {
+bitflags::bitflags! {
     {{ toDocs 1 .Docs }}
     pub struct {{ $name }}: {{ $type }} {
         {{- /* For each value in the enumeration, we print the value's documentation and name */ -}}
