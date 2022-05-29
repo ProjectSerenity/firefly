@@ -165,6 +165,14 @@ pub extern "sysv64" fn syscall_handler(
                     compile_error!("unexpected arg{{ addOne $i }} type {{ toString $arg }}");
                 {{- end }}
             {{ end -}}
+            {{ range unusedArgs .Args -}}
+                if arg{{ . }} != 0 {
+                    return SyscallResults {
+                        value: 0,
+                        error: {{ toString $error }}::IllegalArg{{ . }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
+                    };
+                }
+            {{- end -}}
             let result = <FireflyABI as SyscallABI>::{{ .Name.SnakeCase }}(registers
                 {{- range $i, $arg := .Args -}}
                     , param{{ addOne $i }}

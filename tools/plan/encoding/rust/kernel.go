@@ -74,6 +74,7 @@ var kernelTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 	"toDocs":             kernelToDocs,
 	"toString":           sharedToString,
 	"toU64":              sharedToU64,
+	"unusedArgs":         kernelUnusedArgs,
 }).ParseFS(kernelTemplatesFS, "templates/kernel/*_rs.txt"))
 
 const (
@@ -141,4 +142,26 @@ func kernelToDocs(indent int, d types.Docs) string {
 	buf.WriteString("///")
 
 	return buf.String()
+}
+
+// kernelUnusedArgs returns a (possibly empty)
+// slice of argument numbers that are not used
+// by a syscall.
+//
+// For example, if a syscall takes two arguments,
+// then kernelUnusedArgs would return a slice
+// containing the integers 3, 4, 5, 6 to represent
+// the four arguments it does not use.
+//
+func kernelUnusedArgs(params types.Parameters) []int {
+	if len(params) >= 6 {
+		return nil
+	}
+
+	out := make([]int, 6-len(params))
+	for i := range out {
+		out[i] = len(params) + i + 1
+	}
+
+	return out
 }
