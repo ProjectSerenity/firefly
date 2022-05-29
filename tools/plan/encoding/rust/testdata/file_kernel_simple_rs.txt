@@ -104,6 +104,24 @@ pub struct SyscallResults {
     pub error: u64,
 }
 
+impl SyscallResults {
+    /// Returns a syscall result with a zero error
+    /// and the given value.
+    ///
+    const fn val(value: u64) -> Self {
+        let error = 0;
+        SyscallResults { value, error }
+    }
+
+    /// Returns a syscall result with a zero value
+    /// and the given error.
+    ///
+    const fn err(error: u64) -> Self {
+        let value = 0;
+        SyscallResults { value, error }
+    }
+}
+
 /// Called by syscall_entry to call the relevant
 /// syscall, or return an error if an invalid syscall
 /// is invoked.
@@ -137,321 +155,167 @@ pub extern "sysv64" fn syscall_handler(
             arg6,
             syscall_num,
         );
-        return SyscallResults {
-            value: 0,
-            error: error.as_u64(),
-        };
+        return SyscallResults::err(error.as_u64());
     };
 
     match syscall {
         Syscalls::DenySyscalls => {
             let param1: Syscalls = match Syscalls::from_u64(arg1) {
                 Some(value) => value,
-                None => {
-                    return SyscallResults {
-                        value: 0,
-                        error: Error::IllegalArg1.as_u64(),
-                    }
-                }
+                None => return SyscallResults::err(Error::IllegalArg1.as_u64()),
             };
             if arg2 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg2.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg2.as_u64());
             }
             if arg3 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg3.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg3.as_u64());
             }
             if arg4 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg4.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg4.as_u64());
             }
             if arg5 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg5.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg5.as_u64());
             }
             if arg6 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg6.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg6.as_u64());
             }
             let result = <FireflyABI as SyscallABI>::deny_syscalls(registers, param1);
-            SyscallResults {
-                value: 0,
-                error: result.as_u64(),
-            }
+            SyscallResults::err(result.as_u64())
         }
         Syscalls::Exit => {
             if arg1 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg1.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg1.as_u64());
             }
             if arg2 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg2.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg2.as_u64());
             }
             if arg3 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg3.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg3.as_u64());
             }
             if arg4 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg4.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg4.as_u64());
             }
             if arg5 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg5.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg5.as_u64());
             }
             if arg6 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg6.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg6.as_u64());
             }
             let result = <FireflyABI as SyscallABI>::exit(registers);
-            SyscallResults {
-                value: 0,
-                error: result.as_u64(),
-            }
+            SyscallResults::err(result.as_u64())
         }
         Syscalls::GetProcessId => {
             if arg1 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg1.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg1.as_u64());
             }
             if arg2 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg2.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg2.as_u64());
             }
             if arg3 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg3.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg3.as_u64());
             }
             if arg4 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg4.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg4.as_u64());
             }
             if arg5 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg5.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg5.as_u64());
             }
             if arg6 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg6.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg6.as_u64());
             }
             let result = <FireflyABI as SyscallABI>::get_process_id(registers);
             match result {
-                Ok(result) => SyscallResults {
-                    value: result as u64,
-                    error: Error::NoError.as_u64(),
-                },
-                Err(result) => SyscallResults {
-                    value: 0,
-                    error: result.as_u64(),
-                },
+                Ok(result) => SyscallResults::val(result as u64),
+                Err(result) => SyscallResults::err(result.as_u64()),
             }
         }
         Syscalls::ThreeArgsTwoResults => {
             let param1: u16 = match arg1.try_into() {
                 Ok(value) => value,
-                Err(_) => {
-                    return SyscallResults {
-                        value: 0,
-                        error: Error::IllegalArg1.as_u64(),
-                    }
-                }
+                Err(_) => return SyscallResults::err(Error::IllegalArg1.as_u64()),
             };
             let param2: Colour = match Colour::from_i8(arg2 as i8) {
                 Some(value) => value,
-                None => {
-                    return SyscallResults {
-                        value: 0,
-                        error: Error::IllegalArg2.as_u64(),
-                    }
-                }
+                None => return SyscallResults::err(Error::IllegalArg2.as_u64()),
             };
             let param3: *const i8 = match VirtAddr::try_new(arg3 as usize) {
                 Ok(addr) => {
                     if !USERSPACE.contains_addr(addr) {
-                        return SyscallResults {
-                            value: 0,
-                            error: Error::IllegalArg3.as_u64(),
-                        };
+                        return SyscallResults::err(Error::IllegalArg3.as_u64());
                     }
                     addr.as_usize() as *const i8
                 }
-                Err(_) => {
-                    return SyscallResults {
-                        value: 0,
-                        error: Error::IllegalArg3.as_u64(),
-                    }
-                }
+                Err(_) => return SyscallResults::err(Error::IllegalArg3.as_u64()),
             };
             if arg4 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg4.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg4.as_u64());
             }
             if arg5 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg5.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg5.as_u64());
             }
             if arg6 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg6.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg6.as_u64());
             }
             let result = <FireflyABI as SyscallABI>::three_args_two_results(
                 registers, param1, param2, param3,
             );
             match result {
-                Ok(result) => SyscallResults {
-                    value: result,
-                    error: Error::NoError.as_u64(),
-                },
-                Err(result) => SyscallResults {
-                    value: 0,
-                    error: result.as_u64(),
-                },
+                Ok(result) => SyscallResults::val(result),
+                Err(result) => SyscallResults::err(result.as_u64()),
             }
         }
         Syscalls::GetFileInfo => {
             let param1: *const u8 = match VirtAddr::try_new(arg1 as usize) {
                 Ok(addr) => {
                     if !USERSPACE.contains_addr(addr) {
-                        return SyscallResults {
-                            value: 0,
-                            error: IoError::IllegalArg1.as_u64(),
-                        };
+                        return SyscallResults::err(IoError::IllegalArg1.as_u64());
                     }
                     addr.as_usize() as *const u8
                 }
-                Err(_) => {
-                    return SyscallResults {
-                        value: 0,
-                        error: IoError::IllegalArg1.as_u64(),
-                    }
-                }
+                Err(_) => return SyscallResults::err(IoError::IllegalArg1.as_u64()),
             };
             let param2: u64 = arg2;
             if arg3 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: IoError::IllegalArg3.as_u64(),
-                };
+                return SyscallResults::err(IoError::IllegalArg3.as_u64());
             }
             if arg4 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: IoError::IllegalArg4.as_u64(),
-                };
+                return SyscallResults::err(IoError::IllegalArg4.as_u64());
             }
             if arg5 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: IoError::IllegalArg5.as_u64(),
-                };
+                return SyscallResults::err(IoError::IllegalArg5.as_u64());
             }
             if arg6 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: IoError::IllegalArg6.as_u64(),
-                };
+                return SyscallResults::err(IoError::IllegalArg6.as_u64());
             }
             let result = <FireflyABI as SyscallABI>::get_file_info(registers, param1, param2);
             match result {
-                Ok(result) => SyscallResults {
-                    value: result as u64,
-                    error: IoError::NoError.as_u64(),
-                },
-                Err(result) => SyscallResults {
-                    value: 0,
-                    error: result.as_u64(),
-                },
+                Ok(result) => SyscallResults::val(result as u64),
+                Err(result) => SyscallResults::err(result.as_u64()),
             }
         }
         Syscalls::GetColour => {
             if arg1 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg1.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg1.as_u64());
             }
             if arg2 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg2.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg2.as_u64());
             }
             if arg3 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg3.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg3.as_u64());
             }
             if arg4 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg4.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg4.as_u64());
             }
             if arg5 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg5.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg5.as_u64());
             }
             if arg6 != 0 {
-                return SyscallResults {
-                    value: 0,
-                    error: Error::IllegalArg6.as_u64(),
-                };
+                return SyscallResults::err(Error::IllegalArg6.as_u64());
             }
             let result = <FireflyABI as SyscallABI>::get_colour(registers);
             match result {
-                Ok(result) => SyscallResults {
-                    value: result.as_i8() as u64,
-                    error: Error::NoError.as_u64(),
-                },
-                Err(result) => SyscallResults {
-                    value: 0,
-                    error: result.as_u64(),
-                },
+                Ok(result) => SyscallResults::val(result.as_i8() as u64),
+                Err(result) => SyscallResults::err(result.as_u64()),
             }
         }
     }

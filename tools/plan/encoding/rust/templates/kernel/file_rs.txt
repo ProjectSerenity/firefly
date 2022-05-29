@@ -81,6 +81,24 @@ pub struct SyscallResults {
     pub error: u64,
 }
 
+impl SyscallResults {
+    /// Returns a syscall result with a zero error
+    /// and the given value.
+    ///
+    const fn val(value: u64) -> Self {
+        let error = 0;
+        SyscallResults { value, error }
+    }
+
+    /// Returns a syscall result with a zero value
+    /// and the given error.
+    ///
+    const fn err(error: u64) -> Self {
+        let value = 0;
+        SyscallResults { value, error }
+    }
+}
+
 /// Called by syscall_entry to call the relevant
 /// syscall, or return an error if an invalid syscall
 /// is invoked.
@@ -105,10 +123,7 @@ pub extern "sysv64" fn syscall_handler(
         syscall
     } else {
         let error = <FireflyABI as SyscallABI>::bad_syscall(registers, arg1, arg2, arg3, arg4, arg5, arg6, syscall_num);
-        return SyscallResults {
-            value: 0,
-            error: error.as_u64(),
-        };
+        return SyscallResults::err(error.as_u64());
     };
 
     match syscall {
@@ -118,26 +133,17 @@ pub extern "sysv64" fn syscall_handler(
                 {{- if isEnumeration $arg.Type -}}
                     match {{ toString $arg.Type }}::from_{{ toString $arg.Enumeration.Type }}(arg{{ addOne $i }}{{ fromU64 $arg.Enumeration.Type }}) {
                         Some(value) => value,
-                        None => return SyscallResults {
-                            value: 0,
-                            error: {{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
-                        },
+                        None => return SyscallResults::err({{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }}),
                     };
                 {{- else if isPointer $arg.Type -}}
                     match VirtAddr::try_new(arg{{ addOne $i }} as usize) {
                         Ok(addr) => {
                             if !USERSPACE.contains_addr(addr) {
-                                return SyscallResults {
-                                    value: 0,
-                                    error: {{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
-                                };
+                                return SyscallResults::err({{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }});
                             }
                             addr.as_usize() as {{ toString $arg.Type }}
                         }
-                        Err(_) => return SyscallResults {
-                            value: 0,
-                            error: {{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
-                        },
+                        Err(_) => return SyscallResults::err({{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }}),
                     };
                 {{- else if isInteger $arg.Type -}}
                     {{- if isUint64 $arg.Type -}}
@@ -147,18 +153,12 @@ pub extern "sysv64" fn syscall_handler(
                     {{- else if isSigned $arg.Type -}}
                         match (arg{{ addOne $i }} as i64).try_into() {
                             Ok(value) => value,
-                            Err(_) => return SyscallResults {
-                                value: 0,
-                                error: {{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
-                            },
+                            Err(_) => return SyscallResults::err({{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }}),
                         };
                     {{- else -}}
                         match arg{{ addOne $i }}.try_into() {
                             Ok(value) => value,
-                            Err(_) => return SyscallResults {
-                                value: 0,
-                                error: {{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
-                            },
+                            Err(_) => return SyscallResults::err({{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }}),
                         };
                     {{- end }}
                 {{- else -}}
@@ -167,10 +167,7 @@ pub extern "sysv64" fn syscall_handler(
             {{ end -}}
             {{ range unusedArgs .Args -}}
                 if arg{{ . }} != 0 {
-                    return SyscallResults {
-                        value: 0,
-                        error: {{ toString $error }}::IllegalArg{{ . }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }},
-                    };
+                    return SyscallResults::err({{ toString $error }}::IllegalArg{{ . }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }});
                 }
             {{- end -}}
             let result = <FireflyABI as SyscallABI>::{{ .Name.SnakeCase }}(registers
@@ -178,20 +175,11 @@ pub extern "sysv64" fn syscall_handler(
                     , param{{ addOne $i }}
                 {{- end }});
             {{ if oneResult . -}}
-                SyscallResults {
-                    value: 0,
-                    error: result.as_{{ toString $error.Type }}(){{ toU64 $error.Type }},
-                }
+                SyscallResults::err(result.as_{{ toString $error.Type }}(){{ toU64 $error.Type }})
             {{- else -}}
                 match result {
-                    Ok(result) => SyscallResults {
-                        value: {{ nonErrorResult . "result" }},
-                        error: {{ toString $error }}::NoError.as_{{ toString $error.Type }}(){{ toU64 $error.Type }},
-                    },
-                    Err(result) => SyscallResults {
-                        value: 0,
-                        error: result.as_{{ toString $error.Type }}(){{ toU64 $error.Type }},
-                    },
+                    Ok(result) => SyscallResults::val({{ nonErrorResult . "result" }}),
+                    Err(result) => SyscallResults::err(result.as_{{ toString $error.Type }}(){{ toU64 $error.Type }}),
                 }
             {{- end }}
         }
