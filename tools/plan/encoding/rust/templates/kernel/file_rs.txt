@@ -99,6 +99,15 @@ impl SyscallResults {
     }
 }
 
+macro_rules! ensure_nonzero {
+    // Return the error if the argument is not zero.
+    ($arg:ident, $error:expr) => {
+        if $arg != 0 {
+            return SyscallResults::err($error);
+        }
+    };
+}
+
 /// Called by syscall_entry to call the relevant
 /// syscall, or return an error if an invalid syscall
 /// is invoked.
@@ -166,9 +175,7 @@ pub extern "sysv64" fn syscall_handler(
                 {{- end }}
             {{ end -}}
             {{ range unusedArgs .Args -}}
-                if arg{{ . }} != 0 {
-                    return SyscallResults::err({{ toString $error }}::IllegalArg{{ . }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }});
-                }
+                ensure_nonzero!(arg{{ . }},{{ toString $error }}::IllegalArg{{ . }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }});
             {{- end -}}
             let result = <FireflyABI as SyscallABI>::{{ .Name.SnakeCase }}(registers
                 {{- range $i, $arg := .Args -}}
