@@ -78,7 +78,15 @@ impl SyscallABI for FireflyABI {
     /// written to the registers structure passed to it.
     ///
     #[inline]
-    fn debug_abi_registers(_registers: *mut SavedRegisters, registers: *mut Registers) -> Error {
+    fn debug_abi_registers(
+        _registers: *mut SavedRegisters,
+        registers: *mut Registers,
+        _arg2: u64,
+        _arg3: u64,
+        _arg4: u64,
+        _arg5: u64,
+        _arg6: u64,
+    ) -> Error {
         unsafe {
             let regs = *_registers;
             let rflags = regs.rflags;

@@ -188,6 +188,51 @@
 		(name registers)
 		(docs "A pointer to the set of registers, which the kernel will populate.")
 		(type *mutable registers))
+	(arg2
+		(name arg2)
+		(docs
+			"An unused argument, returned in"
+			(code "registers")
+			"as"
+			(code "rsi")
+			".")
+		(type uint64))
+	(arg3
+		(name arg3)
+		(docs
+			"An unused argument, returned in"
+			(code "registers")
+			"as"
+			(code "rdx")
+			".")
+		(type uint64))
+	(arg4
+		(name arg4)
+		(docs
+			"An unused argument, returned in"
+			(code "registers")
+			"as"
+			(code "r10")
+			".")
+		(type uint64))
+	(arg5
+		(name arg5)
+		(docs
+			"An unused argument, returned in"
+			(code "registers")
+			"as"
+			(code "r8")
+			".")
+		(type uint64))
+	(arg6
+		(name arg6)
+		(docs
+			"An unused argument, returned in"
+			(code "registers")
+			"as"
+			(code "r9")
+			".")
+		(type uint64))
 	(result1
 		(name error)
 		(docs "Any error encountered during the diagnostics.")
