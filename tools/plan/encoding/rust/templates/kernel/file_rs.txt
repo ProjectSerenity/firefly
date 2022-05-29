@@ -108,6 +108,58 @@ macro_rules! ensure_nonzero {
     };
 }
 
+macro_rules! make {
+    // Enumeration constructor.
+    (enum $construction:expr, $error:expr) => {
+        if let Some(param) = $construction {
+            param
+        } else {
+            return SyscallResults::err($error);
+        }
+    };
+
+    // Pointer constructor.
+    (ptr $arg:ident, $type:ty, $error:expr) => {
+        if let Ok(addr) = VirtAddr::try_new($arg as usize) {
+            if !USERSPACE.contains_addr(addr) {
+                return SyscallResults::err($error);
+            }
+
+            addr.as_usize() as $type
+        } else {
+            return SyscallResults::err($error);
+        }
+    };
+
+    // Signed integer constructor.
+    (sint $arg:ident, $type:ty, $error:expr) => {
+        if let Ok(param) = ($arg as i64).try_into() {
+            param
+        } else {
+            return SyscallResults::err($error);
+        }
+    };
+
+    // Simple signed integer constructor.
+    (sint64 $arg:ident) => {
+        $arg as i64
+    };
+
+    // Unsigned integer constructor.
+    (uint $arg:ident, $type:ty, $error:expr) => {
+        if let Ok(param) = $arg.try_into() {
+            param
+        } else {
+            return SyscallResults::err($error);
+        }
+    };
+
+    // Simple unsigned integer constructor.
+    (uint64 $arg:ident) => {
+        $arg
+    };
+}
+
 /// Called by syscall_entry to call the relevant
 /// syscall, or return an error if an invalid syscall
 /// is invoked.
@@ -138,37 +190,36 @@ pub extern "sysv64" fn syscall_handler(
     match syscall {
         {{ range .Syscalls }}{{ $error := errorEnumeration . }}Syscalls::{{ .Name.PascalCase }} => {
             {{ range $i, $arg := .Args -}}
-            let param{{ addOne $i }}: {{ toString $arg.Type }} =
+            let param{{ addOne $i }} =
                 {{- if isEnumeration $arg.Type -}}
-                    match {{ toString $arg.Type }}::from_{{ toString $arg.Enumeration.Type }}(arg{{ addOne $i }}{{ fromU64 $arg.Enumeration.Type }}) {
-                        Some(value) => value,
-                        None => return SyscallResults::err({{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }}),
-                    };
+                    make!(enum {{/* spacer */}}
+                        {{- toString $arg.Type }}::from_{{ toString $arg.Enumeration.Type -}}
+                            (arg{{ addOne $i }}{{ fromU64 $arg.Enumeration.Type }}), {{/* spacer */}}
+                        {{- toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type -}}
+                    );
                 {{- else if isPointer $arg.Type -}}
-                    match VirtAddr::try_new(arg{{ addOne $i }} as usize) {
-                        Ok(addr) => {
-                            if !USERSPACE.contains_addr(addr) {
-                                return SyscallResults::err({{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }});
-                            }
-                            addr.as_usize() as {{ toString $arg.Type }}
-                        }
-                        Err(_) => return SyscallResults::err({{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }}),
-                    };
+                    make!(ptr {{/* spacer */ -}}
+                        arg{{ addOne $i }}, {{/* spacer */ -}}
+                        {{ toString $arg.Type }}, {{/* spacer */ -}}
+                        {{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type -}}
+                    );
                 {{- else if isInteger $arg.Type -}}
                     {{- if isUint64 $arg.Type -}}
-                        arg{{ addOne $i }};
+                        make!(uint64 arg{{ addOne $i }});
                     {{- else if isSint64 $arg.Type -}}
-                        arg{{ addOne $i }} as i64;
+                        make!(sint64 arg{{ addOne $i }});
                     {{- else if isSigned $arg.Type -}}
-                        match (arg{{ addOne $i }} as i64).try_into() {
-                            Ok(value) => value,
-                            Err(_) => return SyscallResults::err({{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }}),
-                        };
+                        make!(sint {{/* spacer */ -}}
+                            arg{{ addOne $i }}, {{/* spacer */ -}}
+                            {{ toString $arg.Type }}, {{/* spacer */ -}}
+                            {{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type -}}
+                        );
                     {{- else -}}
-                        match arg{{ addOne $i }}.try_into() {
-                            Ok(value) => value,
-                            Err(_) => return SyscallResults::err({{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type }}),
-                        };
+                        make!(uint {{/* spacer */ -}}
+                            arg{{ addOne $i }}, {{/* spacer */ -}}
+                            {{ toString $arg.Type }}, {{/* spacer */ -}}
+                            {{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type -}}
+                        );
                     {{- end }}
                 {{- else -}}
                     compile_error!("unexpected arg{{ addOne $i }} type {{ toString $arg }}");

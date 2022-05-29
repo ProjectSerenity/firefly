@@ -131,6 +131,58 @@ macro_rules! ensure_nonzero {
     };
 }
 
+macro_rules! make {
+    // Enumeration constructor.
+    (enum $construction:expr, $error:expr) => {
+        if let Some(param) = $construction {
+            param
+        } else {
+            return SyscallResults::err($error);
+        }
+    };
+
+    // Pointer constructor.
+    (ptr $arg:ident, $type:ty, $error:expr) => {
+        if let Ok(addr) = VirtAddr::try_new($arg as usize) {
+            if !USERSPACE.contains_addr(addr) {
+                return SyscallResults::err($error);
+            }
+
+            addr.as_usize() as $type
+        } else {
+            return SyscallResults::err($error);
+        }
+    };
+
+    // Signed integer constructor.
+    (sint $arg:ident, $type:ty, $error:expr) => {
+        if let Ok(param) = ($arg as i64).try_into() {
+            param
+        } else {
+            return SyscallResults::err($error);
+        }
+    };
+
+    // Simple signed integer constructor.
+    (sint64 $arg:ident) => {
+        $arg as i64
+    };
+
+    // Unsigned integer constructor.
+    (uint $arg:ident, $type:ty, $error:expr) => {
+        if let Ok(param) = $arg.try_into() {
+            param
+        } else {
+            return SyscallResults::err($error);
+        }
+    };
+
+    // Simple unsigned integer constructor.
+    (uint64 $arg:ident) => {
+        $arg
+    };
+}
+
 /// Called by syscall_entry to call the relevant
 /// syscall, or return an error if an invalid syscall
 /// is invoked.
@@ -169,10 +221,7 @@ pub extern "sysv64" fn syscall_handler(
 
     match syscall {
         Syscalls::DenySyscalls => {
-            let param1: Syscalls = match Syscalls::from_u64(arg1) {
-                Some(value) => value,
-                None => return SyscallResults::err(Error::IllegalArg1.as_u64()),
-            };
+            let param1 = make!(enum Syscalls::from_u64(arg1), Error::IllegalArg1.as_u64());
             ensure_nonzero!(arg2, Error::IllegalArg2.as_u64());
             ensure_nonzero!(arg3, Error::IllegalArg3.as_u64());
             ensure_nonzero!(arg4, Error::IllegalArg4.as_u64());
@@ -205,23 +254,9 @@ pub extern "sysv64" fn syscall_handler(
             }
         }
         Syscalls::ThreeArgsTwoResults => {
-            let param1: u16 = match arg1.try_into() {
-                Ok(value) => value,
-                Err(_) => return SyscallResults::err(Error::IllegalArg1.as_u64()),
-            };
-            let param2: Colour = match Colour::from_i8(arg2 as i8) {
-                Some(value) => value,
-                None => return SyscallResults::err(Error::IllegalArg2.as_u64()),
-            };
-            let param3: *const i8 = match VirtAddr::try_new(arg3 as usize) {
-                Ok(addr) => {
-                    if !USERSPACE.contains_addr(addr) {
-                        return SyscallResults::err(Error::IllegalArg3.as_u64());
-                    }
-                    addr.as_usize() as *const i8
-                }
-                Err(_) => return SyscallResults::err(Error::IllegalArg3.as_u64()),
-            };
+            let param1 = make!(uint arg1, u16, Error::IllegalArg1.as_u64());
+            let param2 = make!(enum Colour::from_i8(arg2 as i8), Error::IllegalArg2.as_u64());
+            let param3 = make!(ptr arg3, *const i8, Error::IllegalArg3.as_u64());
             ensure_nonzero!(arg4, Error::IllegalArg4.as_u64());
             ensure_nonzero!(arg5, Error::IllegalArg5.as_u64());
             ensure_nonzero!(arg6, Error::IllegalArg6.as_u64());
@@ -234,16 +269,8 @@ pub extern "sysv64" fn syscall_handler(
             }
         }
         Syscalls::GetFileInfo => {
-            let param1: *const u8 = match VirtAddr::try_new(arg1 as usize) {
-                Ok(addr) => {
-                    if !USERSPACE.contains_addr(addr) {
-                        return SyscallResults::err(IoError::IllegalArg1.as_u64());
-                    }
-                    addr.as_usize() as *const u8
-                }
-                Err(_) => return SyscallResults::err(IoError::IllegalArg1.as_u64()),
-            };
-            let param2: u64 = arg2;
+            let param1 = make!(ptr arg1, *const u8, IoError::IllegalArg1.as_u64());
+            let param2 = make!(uint64 arg2);
             ensure_nonzero!(arg3, IoError::IllegalArg3.as_u64());
             ensure_nonzero!(arg4, IoError::IllegalArg4.as_u64());
             ensure_nonzero!(arg5, IoError::IllegalArg5.as_u64());
