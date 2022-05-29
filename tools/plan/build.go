@@ -27,11 +27,12 @@ func cmdBuild(ctx context.Context, w io.Writer, args []string) error {
 
 	var help bool
 	var arch types.Arch
-	var rustfmtPath, rustUserPath, rustKernelPath string
+	var rustfmtPath, rustUserPath, rustKernelPath, rustSharedPath string
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
 	flags.StringVar(&rustfmtPath, "rustfmt", "rustfmt", "The path to the `rustfmt` binary.")
 	flags.StringVar(&rustUserPath, "rust-user", "", "The path where the Rust userspace module should be written.")
 	flags.StringVar(&rustKernelPath, "rust-kernel", "", "The path where the Rust kernelspace module should be written.")
+	flags.StringVar(&rustSharedPath, "rust-shared", "", "The path where the Rust shared module should be written.")
 	flags.Func("arch", "Instruction set architecture to target (options: x86-64).", func(s string) error {
 		switch s {
 		case "x86-64":
@@ -120,6 +121,24 @@ func cmdBuild(ctx context.Context, w io.Writer, args []string) error {
 		err = out.Close()
 		if err != nil {
 			return fmt.Errorf("failed to close Rust kernelspace file %s: %v", rustKernelPath, err)
+		}
+	}
+
+	if rustSharedPath != "" {
+		out, err := os.Create(rustSharedPath)
+		if err != nil {
+			return fmt.Errorf("failed to create Rust shared file %s: %v", rustSharedPath, err)
+		}
+
+		err = rust.GenerateSharedCode(out, file, rustfmtPath)
+		if err != nil {
+			out.Close()
+			return fmt.Errorf("failed to write Rust shared file %s: %v", rustSharedPath, err)
+		}
+
+		err = out.Close()
+		if err != nil {
+			return fmt.Errorf("failed to close Rust shared file %s: %v", rustSharedPath, err)
 		}
 	}
 

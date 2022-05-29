@@ -1,0 +1,307 @@
+// Code generated from a Plan document. DO NOT EDIT.
+
+// Copyright 2022 The Firefly Authors.
+//
+// Use of this source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
+//! Includes data structures and types used in the Firefly ABI.
+
+#![no_std]
+#![deny(clippy::float_arithmetic)]
+#![deny(clippy::inline_asm_x86_att_syntax)]
+#![deny(clippy::missing_panics_doc)]
+#![deny(clippy::panic)]
+#![deny(clippy::return_self_not_must_use)]
+#![deny(clippy::single_char_lifetime_names)]
+#![deny(clippy::wildcard_imports)]
+#![deny(unused_crate_dependencies)]
+#![deny(unsafe_code)]
+
+/// An enumeration describing the set of system calls.
+///
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Syscalls {
+    /// Denies the process access to the specified syscalls.
+    ///
+    DenySyscalls,
+
+    /// Exits everything immediately.
+    ///
+    Exit,
+
+    /// Returns the process's unique identifier.
+    ///
+    GetProcessId,
+
+    /// Docs on
+    /// two lines
+    ///
+    ThreeArgsTwoResults,
+
+    /// Returns the information about the `name` file.
+    ///
+    GetFileInfo,
+
+    /// Returns a [`Colour`].
+    ///
+    GetColour,
+}
+
+impl Syscalls {
+    /// Returns the [`Syscalls`] value that corresponds
+    /// to `val`, or `None`.
+    ///
+    #[allow(dead_code)]
+    pub const fn from_u64(val: u64) -> Option<Self> {
+        match val {
+            0_u64 => Some(Syscalls::DenySyscalls),
+            1_u64 => Some(Syscalls::Exit),
+            2_u64 => Some(Syscalls::GetProcessId),
+            3_u64 => Some(Syscalls::ThreeArgsTwoResults),
+            4_u64 => Some(Syscalls::GetFileInfo),
+            5_u64 => Some(Syscalls::GetColour),
+            _ => None,
+        }
+    }
+
+    /// Returns the numerical value that corresponds to
+    /// the [`Syscalls`].
+    ///
+    #[allow(dead_code)]
+    pub const fn as_u64(&self) -> u64 {
+        match self {
+            Syscalls::DenySyscalls => 0_u64,
+            Syscalls::Exit => 1_u64,
+            Syscalls::GetProcessId => 2_u64,
+            Syscalls::ThreeArgsTwoResults => 3_u64,
+            Syscalls::GetFileInfo => 4_u64,
+            Syscalls::GetColour => 5_u64,
+        }
+    }
+}
+
+/// A colour.
+///
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Colour {
+    /// The colour red.
+    ///
+    Red,
+
+    /// The colour green.
+    ///
+    Green,
+}
+
+impl Colour {
+    /// Returns the [`Colour`] value that corresponds
+    /// to `val`, or `None`.
+    ///
+    #[allow(dead_code)]
+    pub const fn from_i8(val: i8) -> Option<Self> {
+        match val {
+            0_i8 => Some(Colour::Red),
+            1_i8 => Some(Colour::Green),
+            _ => None,
+        }
+    }
+
+    /// Returns the numerical value that corresponds to
+    /// the [`Colour`].
+    ///
+    #[allow(dead_code)]
+    pub const fn as_i8(&self) -> i8 {
+        match self {
+            Colour::Red => 0_i8,
+            Colour::Green => 1_i8,
+        }
+    }
+}
+
+/// Information about a file in a filesystem.
+///
+#[repr(packed)]
+#[derive(Clone, Copy, Debug)]
+pub struct FileInfo {
+    /// The pointer to the file's name contents.
+    ///
+    pub name_pointer: *const u8,
+
+    #[allow(dead_code)]
+    _padding: [u8; 4],
+
+    /// The number of bytes at 'name pointer'.
+    ///
+    pub name_size: u32,
+
+    /// The actions that can be performed on the file.
+    ///
+    pub permissions: Permissions,
+}
+
+/// A general purpose error.
+///
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Error {
+    /// No error occurred.
+    ///
+    NoError,
+
+    /// The specified syscall does not exist.
+    ///
+    BadSyscall,
+
+    /// Argument 1 to the syscall is an illegal value.
+    ///
+    IllegalArg1,
+
+    /// Argument 2 to the syscall is an illegal value.
+    ///
+    IllegalArg2,
+
+    /// Argument 3 to the syscall is an illegal value.
+    ///
+    IllegalArg3,
+
+    /// Argument 4 to the syscall is an illegal value.
+    ///
+    IllegalArg4,
+
+    /// Argument 5 to the syscall is an illegal value.
+    ///
+    IllegalArg5,
+
+    /// Argument 6 to the syscall is an illegal value.
+    ///
+    IllegalArg6,
+}
+
+impl Error {
+    /// Returns the [`Error`] value that corresponds
+    /// to `val`, or `None`.
+    ///
+    #[allow(dead_code)]
+    pub const fn from_u64(val: u64) -> Option<Self> {
+        match val {
+            0_u64 => Some(Error::NoError),
+            1_u64 => Some(Error::BadSyscall),
+            2_u64 => Some(Error::IllegalArg1),
+            3_u64 => Some(Error::IllegalArg2),
+            4_u64 => Some(Error::IllegalArg3),
+            5_u64 => Some(Error::IllegalArg4),
+            6_u64 => Some(Error::IllegalArg5),
+            7_u64 => Some(Error::IllegalArg6),
+            _ => None,
+        }
+    }
+
+    /// Returns the numerical value that corresponds to
+    /// the [`Error`].
+    ///
+    #[allow(dead_code)]
+    pub const fn as_u64(&self) -> u64 {
+        match self {
+            Error::NoError => 0_u64,
+            Error::BadSyscall => 1_u64,
+            Error::IllegalArg1 => 2_u64,
+            Error::IllegalArg2 => 3_u64,
+            Error::IllegalArg3 => 4_u64,
+            Error::IllegalArg4 => 5_u64,
+            Error::IllegalArg5 => 6_u64,
+            Error::IllegalArg6 => 7_u64,
+        }
+    }
+}
+
+/// An I/O error returned by [`get_file_info`](Syscalls::GetFileInfo).
+///
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IoError {
+    /// No error occurred.
+    ///
+    NoError,
+
+    /// The specified syscall does not exist.
+    ///
+    BadSyscall,
+
+    /// Argument 1 to the syscall is an illegal value.
+    ///
+    IllegalArg1,
+
+    /// Argument 2 to the syscall is an illegal value.
+    ///
+    IllegalArg2,
+
+    /// Argument 3 to the syscall is an illegal value.
+    ///
+    IllegalArg3,
+
+    /// Argument 4 to the syscall is an illegal value.
+    ///
+    IllegalArg4,
+
+    /// Argument 5 to the syscall is an illegal value.
+    ///
+    IllegalArg5,
+
+    /// Argument 6 to the syscall is an illegal value.
+    ///
+    IllegalArg6,
+}
+
+impl IoError {
+    /// Returns the [`IoError`] value that corresponds
+    /// to `val`, or `None`.
+    ///
+    #[allow(dead_code)]
+    pub const fn from_u64(val: u64) -> Option<Self> {
+        match val {
+            0_u64 => Some(IoError::NoError),
+            1_u64 => Some(IoError::BadSyscall),
+            2_u64 => Some(IoError::IllegalArg1),
+            3_u64 => Some(IoError::IllegalArg2),
+            4_u64 => Some(IoError::IllegalArg3),
+            5_u64 => Some(IoError::IllegalArg4),
+            6_u64 => Some(IoError::IllegalArg5),
+            7_u64 => Some(IoError::IllegalArg6),
+            _ => None,
+        }
+    }
+
+    /// Returns the numerical value that corresponds to
+    /// the [`IoError`].
+    ///
+    #[allow(dead_code)]
+    pub const fn as_u64(&self) -> u64 {
+        match self {
+            IoError::NoError => 0_u64,
+            IoError::BadSyscall => 1_u64,
+            IoError::IllegalArg1 => 2_u64,
+            IoError::IllegalArg2 => 3_u64,
+            IoError::IllegalArg3 => 4_u64,
+            IoError::IllegalArg4 => 5_u64,
+            IoError::IllegalArg5 => 6_u64,
+            IoError::IllegalArg6 => 7_u64,
+        }
+    }
+}
+
+bitflags::bitflags! {
+    /// The set of actions permitted on a resource.
+    ///
+    pub struct Permissions: u8 {
+        /// The data can be read.
+        ///
+        const READ = 1 << 0;
+
+        /// The data can be written.
+        ///
+        const WRITE = 1 << 1;
+
+        /// The data can be executed.
+        ///
+        const EXECUTE = 1 << 2;
+    }
+}
