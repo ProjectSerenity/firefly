@@ -96,7 +96,7 @@ syscall_entry:
 	//; The values are popped in order from the
 	//; SavedRegisters structure on the stack we
 	//; prepared earlier.
-    //;
+	//;
 	//; syscall_handler places its return value
 	//; in RAX and its return error in RDX. We
 	//; return these to the user thread in the
