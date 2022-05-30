@@ -237,6 +237,8 @@ fn check_abi_bounds() {
     let err2 = Error::IllegalArg2;
     let err3 = Error::IllegalArg3;
     let err4 = Error::IllegalArg4;
+    let err5 = Error::IllegalArg5;
+    let err6 = Error::IllegalArg6;
     const BYTE: u8 = 1;
     let ptr = &BYTE as *const u8;
     let null = core::ptr::null::<u8>();
@@ -265,4 +267,9 @@ fn check_abi_bounds() {
     test!(debug_abi_bounds(0, 0, Error::NoError, null), err4);
     test!(debug_abi_bounds(0, 0, Error::NoError, noncanonical), err4);
     test!(debug_abi_bounds(0, 0, Error::NoError, kernelspace), err4);
+
+    // Check that non-zero values in unused arguments are rejected.
+    test!(syscall6 DebugAbiBounds(0i16, 0u16, Error::NoError, ptr, 0u64, 0u64), ok);
+    test!(syscall6 DebugAbiBounds(0i16, 0u16, Error::NoError, ptr, 1u64, 0u64), err5);
+    test!(syscall6 DebugAbiBounds(0i16, 0u16, Error::NoError, ptr, 0u64, 1u64), err6);
 }
