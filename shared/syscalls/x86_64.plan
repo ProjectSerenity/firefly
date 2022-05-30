@@ -382,3 +382,9 @@
 		(name error)
 		(docs "An error if the" (code "pointer") "is not in userspace.")
 		(type error)))
+
+
+(integer
+	(name port number)
+	(docs "The number for a TCP or UDP port.")
+	(type uint16))
