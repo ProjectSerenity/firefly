@@ -176,6 +176,11 @@ func FetchRustCrate(ctx context.Context, crate *RustCrate, dir string) error {
 	var downloadPath string
 	for _, version := range data.Versions {
 		if version.Number == crate.Version {
+			_, ok := AcceptableLicense(version.License)
+			if !ok {
+				return fmt.Errorf("cannot use Rust crate %s %s: license %q is unacceptable", crate.Name, crate.Version, version.License)
+			}
+
 			downloadPath = version.DownloadPath
 			break
 		}

@@ -13,6 +13,7 @@ go_library(
         "cache.go",
         "digest.go",
         "go.go",
+        "license.go",
         "main.go",
         "patch.go",
         "rust.go",
@@ -46,6 +47,7 @@ go_test(
     srcs = [
         "cache_test.go",
         "digest_test.go",
+        "license_test.go",
         "templates_test.go",
         "updates_test.go",
         "vendor_test.go",
