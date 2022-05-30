@@ -118,7 +118,7 @@ func GenerateSharedCode(w io.Writer, file *types.File, rustfmt string) error {
 // The templates used to render type definitions
 // as Rust code.
 //
-//go:embed templates/shared/*_rs.txt
+//go:embed templates/shared_*_rs.txt
 var sharedTemplatesFS embed.FS
 
 var sharedTemplates = template.Must(template.New("").Funcs(template.FuncMap{
@@ -139,13 +139,13 @@ var sharedTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 	"toDocs":             sharedToDocs,
 	"toString":           sharedToString,
 	"toU64":              sharedToU64,
-}).ParseFS(sharedTemplatesFS, "templates/shared/*_rs.txt"))
+}).ParseFS(sharedTemplatesFS, "templates/shared_*_rs.txt"))
 
 const (
-	sharedFileTemplate  = "file_rs.txt"
-	enumerationTemplate = "enumeration_rs.txt"
-	bitfieldTemplate    = "bitfield_rs.txt"
-	structureTemplate   = "structure_rs.txt"
+	sharedFileTemplate  = "shared_file_rs.txt"
+	enumerationTemplate = "shared_enumeration_rs.txt"
+	bitfieldTemplate    = "shared_bitfield_rs.txt"
+	structureTemplate   = "shared_structure_rs.txt"
 )
 
 func sharedAddOne(i int) int {

@@ -53,7 +53,7 @@ func GenerateKernelCode(w io.Writer, file *types.File, rustfmt string) error {
 // The templates used to render type definitions
 // as Rust code.
 //
-//go:embed templates/kernel/*_rs.txt
+//go:embed templates/kernel_*_rs.txt
 var kernelTemplatesFS embed.FS
 
 var kernelTemplates = template.Must(template.New("").Funcs(template.FuncMap{
@@ -75,10 +75,10 @@ var kernelTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 	"toString":           sharedToString,
 	"toU64":              sharedToU64,
 	"unusedArgs":         kernelUnusedArgs,
-}).ParseFS(kernelTemplatesFS, "templates/kernel/*_rs.txt"))
+}).ParseFS(kernelTemplatesFS, "templates/kernel_*_rs.txt"))
 
 const (
-	kernelFileTemplate = "file_rs.txt"
+	kernelFileTemplate = "kernel_file_rs.txt"
 )
 
 func kernelNonErrorResult(s *types.Syscall, variable string) string {

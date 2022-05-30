@@ -106,7 +106,7 @@ func GenerateUserCode(w io.Writer, file *types.File, rustfmt string) error {
 // The templates used to render type definitions
 // as Rust code.
 //
-//go:embed templates/user/*_rs.txt
+//go:embed templates/user_*_rs.txt
 var userTemplatesFS embed.FS
 
 var userTemplates = template.Must(template.New("").Funcs(template.FuncMap{
@@ -120,11 +120,11 @@ var userTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 	"toDocs":             userToDocs,
 	"toString":           sharedToString,
 	"toU64":              sharedToU64,
-}).ParseFS(userTemplatesFS, "templates/user/*_rs.txt"))
+}).ParseFS(userTemplatesFS, "templates/user_*_rs.txt"))
 
 const (
-	userSyscallTemplate = "syscall_rs.txt"
-	userFileTemplate    = "file_rs.txt"
+	userSyscallTemplate = "user_syscall_rs.txt"
+	userFileTemplate    = "user_file_rs.txt"
 )
 
 func userToDocs(indent int, d types.Docs) string {
