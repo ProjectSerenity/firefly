@@ -3,9 +3,13 @@
 /// returns no results.
 ///
 #[inline]
-pub fn simple_syscall() -> MessageType {
+pub fn simple_syscall() -> Result<(), MessageType> {
     let sys = Syscalls::SimpleSyscall.as_u64();
     let (result1, result2) = unsafe { syscall0(sys) };
     let _ = result1; // The first result is not used in this syscall.
-    MessageType::from_u16(result2 as u16).expect("invalid MessageType")
+    if result2 == 0 {
+        Ok(())
+    } else {
+        Err(MessageType::from_u16(result2 as u16).expect("invalid MessageType"))
+    }
 }

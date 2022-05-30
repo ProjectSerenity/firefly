@@ -14,7 +14,6 @@ rust_library(
     edition = "2021",
     visibility = ["//visibility:public"],
     deps = [
-        "//shared/firefly_abi",
         "//user/firefly_syscalls",
     ],
 )

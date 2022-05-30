@@ -18,13 +18,13 @@
 
 use core::fmt;
 use core::fmt::Write;
-use firefly_abi::Error;
 use firefly_syscalls as syscalls;
 
 /// Exit the current thread.
 ///
 pub fn exit_thread() -> ! {
-    syscalls::exit_thread();
+    // Ignore any error, as it should never happen in practice.
+    let _ = syscalls::exit_thread();
     unreachable!();
 }
 
@@ -38,10 +38,7 @@ pub fn exit_thread() -> ! {
 /// is not a valid byte slice.
 ///
 pub fn read_random(buf: &mut [u8]) {
-    let err = syscalls::read_random((&mut buf[..]).as_mut_ptr(), buf.len() as u64);
-    if err != Error::NoError {
-        panic!("read_random: {:?}", err);
-    }
+    syscalls::read_random((&mut buf[..]).as_mut_ptr(), buf.len() as u64).unwrap();
 }
 
 /// The process's standard output.

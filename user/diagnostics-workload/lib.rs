@@ -37,7 +37,7 @@ pub fn main() {
     println!("PASS: debug_abi_bounds");
 
     println!("PASS");
-    shutdown();
+    shutdown().expect("failed to request shutdown");
 }
 
 /// Check that the kernel sees all general-purpose
@@ -216,9 +216,12 @@ macro_rules! test {
 /// an error.
 ///
 fn check_abi_errors() {
-    test!(debug_abi_errors(Error::NoError), Error::NoError);
-    test!(debug_abi_errors(Error::BadSyscall), Error::BadSyscall);
-    test!(debug_abi_errors(Error::IllegalArg1), Error::IllegalArg1);
+    test!(debug_abi_errors(Error::NoError), Ok(()));
+    test!(debug_abi_errors(Error::BadSyscall), Err(Error::BadSyscall));
+    test!(
+        debug_abi_errors(Error::IllegalArg1),
+        Err(Error::IllegalArg1)
+    );
 
     // Check the kernel safely handles a non-existant syscall.
     assert_eq!(
@@ -246,27 +249,33 @@ fn check_abi_bounds() {
     let kernelspace = 0xffff_ffff_ffff_ffff_usize as *const u8;
 
     // Signed integer.
-    test!(debug_abi_bounds(-128, 0, Error::NoError, ptr), ok);
-    test!(debug_abi_bounds(0, 0, Error::NoError, ptr), ok);
-    test!(debug_abi_bounds(127, 0, Error::NoError, ptr), ok);
+    test!(debug_abi_bounds(-128, 0, Error::NoError, ptr), Ok(()));
+    test!(debug_abi_bounds(0, 0, Error::NoError, ptr), Ok(()));
+    test!(debug_abi_bounds(127, 0, Error::NoError, ptr), Ok(()));
     test!(syscall4 DebugAbiBounds(-129i16, 0u8, Error::NoError.as_u64(), ptr), err1);
     test!(syscall4 DebugAbiBounds(128i16, 0u8, Error::NoError.as_u64(), ptr), err1);
 
     // Unsigned integer.
-    test!(debug_abi_bounds(0, 0, Error::NoError, ptr), ok);
-    test!(debug_abi_bounds(0, 255, Error::NoError, ptr), ok);
+    test!(debug_abi_bounds(0, 0, Error::NoError, ptr), Ok(()));
+    test!(debug_abi_bounds(0, 255, Error::NoError, ptr), Ok(()));
     test!(syscall4 DebugAbiBounds(0i16, 256u16, Error::NoError.as_u64(), ptr), err2);
 
     // Enumeration.
-    test!(debug_abi_bounds(0, 0, Error::NoError, ptr), ok);
-    test!(debug_abi_bounds(0, 0, Error::IllegalArg1, ptr), ok);
+    test!(debug_abi_bounds(0, 0, Error::NoError, ptr), Ok(()));
+    test!(debug_abi_bounds(0, 0, Error::IllegalArg1, ptr), Ok(()));
     test!(syscall4 DebugAbiBounds(0i16, 0u16, 0xffff_ffff_ffff_ffff_u64, ptr), err3);
 
     // Pointer.
-    test!(debug_abi_bounds(0, 0, Error::NoError, ptr), ok);
-    test!(debug_abi_bounds(0, 0, Error::NoError, null), err4);
-    test!(debug_abi_bounds(0, 0, Error::NoError, noncanonical), err4);
-    test!(debug_abi_bounds(0, 0, Error::NoError, kernelspace), err4);
+    test!(debug_abi_bounds(0, 0, Error::NoError, ptr), Ok(()));
+    test!(debug_abi_bounds(0, 0, Error::NoError, null), Err(err4));
+    test!(
+        debug_abi_bounds(0, 0, Error::NoError, noncanonical),
+        Err(err4)
+    );
+    test!(
+        debug_abi_bounds(0, 0, Error::NoError, kernelspace),
+        Err(err4)
+    );
 
     // Check that non-zero values in unused arguments are rejected.
     test!(syscall6 DebugAbiBounds(0i16, 0u16, Error::NoError, ptr, 0u64, 0u64), ok);
