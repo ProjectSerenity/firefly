@@ -13,7 +13,7 @@ import (
 	"log"
 	"os"
 
-	"firefly-os.dev/tools/plan/encoding/html"
+	"firefly-os.dev/tools/plan/html"
 	"firefly-os.dev/tools/plan/parser"
 	"firefly-os.dev/tools/plan/types"
 )

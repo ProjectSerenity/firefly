@@ -17,10 +17,10 @@ go_library(
     importpath = "firefly-os.dev/tools/plan",
     visibility = ["//visibility:private"],
     deps = [
-        "//tools/plan/encoding/html",
-        "//tools/plan/encoding/rust",
         "//tools/plan/format",
+        "//tools/plan/html",
         "//tools/plan/parser",
+        "//tools/plan/rust",
         "//tools/plan/types",
     ],
 )

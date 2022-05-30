@@ -10,7 +10,7 @@ go_library(
     name = "html",
     srcs = ["html.go"],
     embedsrcs = glob(["templates/**"]),
-    importpath = "firefly-os.dev/tools/plan/encoding/html",
+    importpath = "firefly-os.dev/tools/plan/html",
     visibility = ["//visibility:public"],
     deps = ["//tools/plan/types"],
 )

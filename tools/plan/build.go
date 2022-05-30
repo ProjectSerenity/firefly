@@ -13,8 +13,8 @@ import (
 	"log"
 	"os"
 
-	"firefly-os.dev/tools/plan/encoding/rust"
 	"firefly-os.dev/tools/plan/parser"
+	"firefly-os.dev/tools/plan/rust"
 	"firefly-os.dev/tools/plan/types"
 )
 
