@@ -399,6 +399,30 @@ func (b Integer) String() string {
 	return s
 }
 
+// NewInteger represents a new type
+// that has been defined, with an
+// underlying integer type.
+//
+type NewInteger struct {
+	Name Name
+	Node *ast.List
+	Docs Docs
+	Type Integer
+}
+
+var (
+	_ Type     = (*NewInteger)(nil)
+	_ ast.Node = (*NewInteger)(nil)
+)
+
+func (i *NewInteger) Pos() token.Position { return i.Node.Pos() }
+func (i *NewInteger) End() token.Position { return i.Node.End() }
+func (i *NewInteger) Size(a Arch) int     { return i.Type.Size(a) }
+
+func (i *NewInteger) String() string {
+	return fmt.Sprintf("%s (%s)", i.Name.Spaced(), i.Type)
+}
+
 // Pointer represents a pointer to
 // another data type.
 //
@@ -651,6 +675,7 @@ func (r *SyscallReference) String() string  { return fmt.Sprintf("syscall %s", r
 //
 type File struct {
 	// Data structures.
+	NewIntegers  []*NewInteger
 	Enumerations []*Enumeration
 	Bitfields    []*Bitfield
 	Structures   []*Structure
@@ -688,6 +713,9 @@ func (f *File) SyscallsEnumeration() *Enumeration {
 // in tests.
 //
 func (f *File) DropAST() {
+	for _, integer := range f.NewIntegers {
+		integer.Node = nil
+	}
 	for _, enumeration := range f.Enumerations {
 		enumeration.Node = nil
 		for _, value := range enumeration.Values {

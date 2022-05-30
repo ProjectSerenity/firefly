@@ -8,6 +8,10 @@ a {
 	text-decoration: none;
 }
 
+.integer {
+	color: #4e4ed3; /* Dark blue */
+}
+
 .enumeration {
 	color: #4e4ed3; /* Dark blue */
 }
@@ -28,6 +32,10 @@ a {
 	html {
 		color: #ddd; /* Light grey */
 		background-color: #333; /* Dark grey */
+	}
+
+	.integer {
+		color: #b0bee5; /* Light blue */
 	}
 
 	.enumeration {

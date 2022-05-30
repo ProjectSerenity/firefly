@@ -49,8 +49,11 @@ func GenerateSharedCode(w io.Writer, file *types.File, rustfmt string) error {
 	// using the corresponding template for each item
 	// type.
 
-	numItems := len(file.Enumerations) + len(file.Structures) + len(file.Syscalls)
+	numItems := len(file.NewIntegers) + len(file.Enumerations) + len(file.Bitfields) + len(file.Structures) + len(file.Syscalls)
 	items := make([]ast.Node, 0, numItems)
+	for _, integer := range file.NewIntegers {
+		items = append(items, integer)
+	}
 	for _, enumeration := range file.Enumerations {
 		items = append(items, enumeration)
 	}
@@ -76,6 +79,8 @@ func GenerateSharedCode(w io.Writer, file *types.File, rustfmt string) error {
 
 		var template string
 		switch item := item.(type) {
+		case *types.NewInteger:
+			template = integerTemplate
 		case *types.Enumeration:
 			template = enumerationTemplate
 		case *types.Bitfield:
@@ -143,6 +148,7 @@ var sharedTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 
 const (
 	sharedFileTemplate  = "shared_file_rs.txt"
+	integerTemplate     = "shared_integer_rs.txt"
 	enumerationTemplate = "shared_enumeration_rs.txt"
 	bitfieldTemplate    = "shared_bitfield_rs.txt"
 	structureTemplate   = "shared_structure_rs.txt"
@@ -325,6 +331,8 @@ func sharedToString(t types.Type) string {
 		}
 	case types.Padding:
 		return fmt.Sprintf("[u8; %d]", t)
+	case *types.NewInteger:
+		return t.Name.PascalCase()
 	case *types.Enumeration:
 		return t.Name.PascalCase()
 	case *types.Bitfield:

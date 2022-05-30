@@ -37,6 +37,19 @@ func TestInterpreter(t *testing.T) {
 		Want   *File
 	}{
 		{
+			Name:   "Simple new integer",
+			Source: `(integer (name blah) (docs "xyz") (type byte))`,
+			Want: &File{
+				NewIntegers: []*NewInteger{
+					{
+						Name: Name{"blah"},
+						Docs: Docs{Text("xyz")},
+						Type: Byte,
+					},
+				},
+			},
+		},
+		{
 			Name:   "Simple structure",
 			Source: `(structure (name blah) (docs "xyz" "" "abc\n" "") (field (name foo) (docs "foo" "bar") (type *constant byte)))`,
 			Want: &File{
@@ -705,7 +718,8 @@ func TestInterpreter(t *testing.T) {
 			Name: "Nonsequential type reference",
 			Source: `(structure (name two)  (docs "abc") (field (name first) (docs "x") (type *mutable blah)) (field (name flag) (docs "") (type flags)))
 			         (structure (name blah) (docs (reference func)) (field (name foo) (docs "bar") (type *constant baz)))
-			         (syscall (name func) (docs "xyz") (result1 (name error) (docs "") (type error)))
+			         (syscall (name func) (docs "xyz") (arg1 (name fd) (docs "") (type fd)) (result1 (name error) (docs "") (type error)))
+			         (integer (name fd) (docs "file descriptor") (type uint32))
 			         (bitfield (name flags) (docs "Flags") (type uint16) (value (name on) (docs "On")))
 			         (enumeration (name baz) (docs "foo") (type byte) (value (name one) (docs "1")))
 			         (enumeration (name error) (docs "") (type uint8)
@@ -718,6 +732,13 @@ func TestInterpreter(t *testing.T) {
 			             (value (name illegal arg5) (docs ""))
 			             (value (name illegal arg6) (docs "")))`,
 			Want: &File{
+				NewIntegers: []*NewInteger{
+					{
+						Name: Name{"fd"},
+						Docs: Docs{Text("file descriptor")},
+						Type: Uint32,
+					},
+				},
 				Enumerations: []*Enumeration{
 					{
 						Name: Name{"baz"},
@@ -893,7 +914,20 @@ func TestInterpreter(t *testing.T) {
 					{
 						Name: Name{"func"},
 						Docs: Docs{Text("xyz")},
-						Args: []*Parameter{},
+						Args: []*Parameter{
+							{
+								Name: Name{"fd"},
+								Docs: Docs{},
+								Type: &Reference{
+									Name: Name{"fd"},
+									Underlying: &NewInteger{
+										Name: Name{"fd"},
+										Docs: Docs{Text("file descriptor")},
+										Type: Uint32,
+									},
+								},
+							},
+						},
 						Results: []*Parameter{
 							{
 								Name: Name{"error"},
@@ -1003,6 +1037,108 @@ func TestInterpreterErrors(t *testing.T) {
 			Name:   "unrecognised top-level definition",
 			Source: `(foo bar)`,
 			Want:   `test.plan:1:2: unrecognised definition kind "foo"`,
+		},
+		// NewInteger errors.
+		{
+			Name:   "new integer with identifier element",
+			Source: `(integer foo)`,
+			Want:   `test.plan:1:10: invalid integer: expected a list, found identifier`,
+		},
+		{
+			Name:   "new integer with empty definition",
+			Source: `(integer ())`,
+			Want:   `test.plan:1:10: empty definition`,
+		},
+		{
+			Name:   "new integer with bad definition",
+			Source: `(integer ("foo"))`,
+			Want:   `test.plan:1:11: definition kind must be an identifier, found string`,
+		},
+		{
+			Name:   "new integer with short definition",
+			Source: `(integer (foo))`,
+			Want:   `test.plan:1:11: definition must have at least one field, found none`,
+		},
+		{
+			Name:   "new integer with unrecognised definition",
+			Source: `(integer (foo bar))`,
+			Want:   `test.plan:1:11: unrecognised integer definition kind "foo"`,
+		},
+		{
+			Name:   "new integer with invalid name",
+			Source: `(integer (name "bar"))`,
+			Want:   `test.plan:1:16: invalid integer name: expected an identifier, found string`,
+		},
+		{
+			Name:   "new integer with duplicate name",
+			Source: `(integer (name bar) (name baz))`,
+			Want:   `test.plan:1:22: invalid integer definition: name already defined`,
+		},
+		{
+			Name:   "new integer with invalid docs",
+			Source: `(integer (docs bar))`,
+			Want:   `test.plan:1:16: invalid integer docs: expected a string or formatting expression, found identifier`,
+		},
+		{
+			Name:   "new integer with invalid docs formatting expression",
+			Source: `(integer (docs (bar)))`,
+			Want:   `test.plan:1:17: invalid integer docs: invalid formatting expression: definition must have at least one field, found none`,
+		},
+		{
+			Name:   "new integer with unsupported docs formatting expression",
+			Source: `(integer (docs (bar foo)))`,
+			Want:   `test.plan:1:17: invalid integer docs: unrecognised formatting expression kind "bar"`,
+		},
+		{
+			Name:   "new integer with invalid docs code formatting expression",
+			Source: `(integer (docs (code foo)))`,
+			Want:   `test.plan:1:22: invalid integer docs: invalid formatting expression: expected a string, found identifier`,
+		},
+		{
+			Name:   "new integer with invalid docs reference formatting expression",
+			Source: `(integer (docs (reference "baz") "bar"))`,
+			Want:   `test.plan:1:27: invalid integer docs: invalid reference formatting expression: invalid type reference: expected an identifier, found string`,
+		},
+		{
+			Name:   "new integer with duplicate docs",
+			Source: `(integer (docs "bar") (docs "baz"))`,
+			Want:   `test.plan:1:24: invalid integer definition: docs already defined`,
+		},
+		{
+			Name:   "new integer with invalid type",
+			Source: `(integer (type "foo"))`,
+			Want:   `test.plan:1:16: invalid integer type: expected a type definition, found string`,
+		},
+		{
+			Name:   "new integer with complex type",
+			Source: `(integer (type *constant byte))`,
+			Want:   `test.plan:1:16: invalid integer type: must be an integer type, found *constant byte`,
+		},
+		{
+			Name:   "new integer with duplicate type",
+			Source: `(integer (type byte) (type sint8))`,
+			Want:   `test.plan:1:23: invalid integer definition: type already defined`,
+		},
+		{
+			Name:   "new integer with missing name",
+			Source: `(integer (type byte) (docs "blah"))`,
+			Want:   `test.plan:1:1: integer has no name definition`,
+		},
+		{
+			Name:   "new integer with missing docs",
+			Source: `(integer (name blah) (type byte))`,
+			Want:   `test.plan:1:1: integer has no docs definition`,
+		},
+		{
+			Name:   "new integer with missing type",
+			Source: `(integer (name blah) (docs "abc"))`,
+			Want:   `test.plan:1:1: integer has no type definition`,
+		},
+		{
+			Name: "duplicate integer",
+			Source: `(integer (name blah) (docs "xyz") (type byte))
+			         (integer (name blah) (docs "abc") (type sint8))`,
+			Want: `test.plan:2:13: type "blah" is already defined`,
 		},
 		// Enumeration errors.
 		{

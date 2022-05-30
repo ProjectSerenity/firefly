@@ -39,6 +39,19 @@ func GenerateDocs(dir string, file *types.File) error {
 	}
 
 	// Then the sub-folders.
+	intDir := filepath.Join(dir, "integers")
+	err = mkdir(intDir)
+	if err != nil {
+		return err
+	}
+
+	for _, integer := range file.NewIntegers {
+		err = generateItemHTML(filepath.Join(intDir, integer.Name.SnakeCase()+".html"), integerTemplate, integer)
+		if err != nil {
+			return err
+		}
+	}
+
 	enumDir := filepath.Join(dir, "enumerations")
 	err = mkdir(enumDir)
 	if err != nil {
@@ -133,6 +146,7 @@ var templates = template.Must(template.New("").Funcs(template.FuncMap{
 }).ParseFS(templatesFS, "templates/*_html.txt", "templates/css/*_css.txt"))
 
 const (
+	integerTemplate     = "integer_html.txt"
 	enumerationTemplate = "enumeration_html.txt"
 	bitfieldTemplate    = "bitfield_html.txt"
 	structureTemplate   = "structure_html.txt"

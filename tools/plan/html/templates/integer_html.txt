@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>{{ .Name.Spaced }} integer - Firefly system call ABI</title>
+		<style>
+{{ template "base-style_css.txt" }}
+{{ template "inline-code_css.txt" }}
+{{ template "field-table_css.txt" }}
+		</style>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+	</head>
+	<body>
+		<h1>Integer <code class="inline-code integer">{{ .Name.Spaced }}</code> (<code class="inline-code">{{ toString .Type }}</code>)</h1>
+		{{ toDocs 2 .Docs }}
+	</body>
+</html>

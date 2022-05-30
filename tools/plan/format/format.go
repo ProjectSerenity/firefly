@@ -121,6 +121,10 @@ func SortFields(file *ast.File, arch types.Arch) error {
 		})
 	}
 
+	for _, integer := range prog.NewIntegers {
+		sortList("integer", integer.Node)
+	}
+
 	for _, enumeration := range prog.Enumerations {
 		sortList("enumeration", enumeration.Node)
 	}

@@ -47,6 +47,7 @@ func TestFormatFile(t *testing.T) {
 (structure (field (docs "foo") (type byte)(name the first) ) (docs "quite a long string" "another string")(name asdf baz             example)  (field (docs "Extra padding.") (name spacer) (padding    3)))
 
 (bitfield (value (name read) (docs "Read")) (value (name write) (docs "Write")) (type uint8) (docs "Access options.") (name access))
+(integer (type    uint16) (docs "Port number.")   (name port))
 
 (enumeration (type uint8) (value (name bob) (docs "bob")) (name names) (docs "set of names") (value (name dave) (docs "dave")))
 (enumeration (name read error) (docs "Failure to read data") (type sint8)
@@ -93,6 +94,12 @@ func TestFormatFile(t *testing.T) {
 	(value
 		(name write)
 		(docs "Write")))
+
+
+(integer
+	(name port)
+	(docs "Port number.")
+	(type uint16))
 
 
 (enumeration

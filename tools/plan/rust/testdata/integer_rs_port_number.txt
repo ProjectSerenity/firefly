@@ -1,0 +1,3 @@
+/// The number of a TCP or UDP port.
+///
+pub struct PortNumber(pub u16);

@@ -41,8 +41,11 @@ func GenerateUserCode(w io.Writer, file *types.File, rustfmt string) error {
 	// using the corresponding template for each item
 	// type.
 
-	numItems := len(file.Enumerations) + len(file.Structures) + len(file.Syscalls)
+	numItems := len(file.NewIntegers) + len(file.Enumerations) + len(file.Bitfields) + len(file.Structures) + len(file.Syscalls)
 	items := make([]ast.Node, 0, numItems)
+	for _, integer := range file.NewIntegers {
+		items = append(items, integer)
+	}
 	for _, enumeration := range file.Enumerations {
 		items = append(items, enumeration)
 	}
@@ -68,7 +71,7 @@ func GenerateUserCode(w io.Writer, file *types.File, rustfmt string) error {
 
 		var template string
 		switch item := item.(type) {
-		case *types.Enumeration, *types.Bitfield, *types.Structure:
+		case *types.NewInteger, *types.Enumeration, *types.Bitfield, *types.Structure:
 			// We import these, so nothing to do here.
 			continue
 		case *types.Syscall:

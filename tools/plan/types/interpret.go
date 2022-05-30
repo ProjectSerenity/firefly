@@ -132,6 +132,13 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 		}
 
 		switch def.Name {
+		case "integer":
+			integer, err := i.interpretNewInteger(list)
+			if err != nil {
+				return err
+			}
+
+			i.out.NewIntegers = append(i.out.NewIntegers, integer)
 		case "enumeration":
 			enumeration, err := i.interpretEnumeration(list)
 			if err != nil {
@@ -256,7 +263,7 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 		for j, arg := range syscall.Args {
 			argType := Underlying(arg.Type)
 			switch argType.(type) {
-			case Integer, *Enumeration, *Bitfield, *Pointer:
+			case Integer, *NewInteger, *Enumeration, *Bitfield, *Pointer:
 			case nil:
 				return i.errorf(arg.Node, "arg%d %q is an invalid type reference", j, arg.Name.Spaced())
 			default:
@@ -268,7 +275,7 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 		for j, result := range syscall.Results {
 			resultType := Underlying(result.Type)
 			switch resultType.(type) {
-			case Integer, *Enumeration, *Pointer:
+			case Integer, *NewInteger, *Enumeration, *Bitfield, *Pointer:
 			case nil:
 				return i.errorf(result.Node, "result%d %q is an invalid type reference", j, result.Name.Spaced())
 			default:
@@ -298,6 +305,96 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 	}
 
 	return nil
+}
+
+// interpretNewInteger parses the list elements as a
+// new integer definition.
+//
+func (i *interpreter) interpretNewInteger(list *ast.List) (*NewInteger, *positionalError) {
+	// Skip the first element, which is the 'integer'
+	// identifier.
+	parts, err := i.interpretLists(list.Elements[1:])
+	if err != nil {
+		return nil, err.Context("invalid integer")
+	}
+
+	newInteger := &NewInteger{
+		Node: list,
+	}
+
+	for _, part := range parts {
+		def, elts, err := i.interpretDefinition(part)
+		if err != nil {
+			return nil, err
+		}
+
+		switch def.Name {
+		case "name":
+			name, err := i.interpretName(elts)
+			if err != nil {
+				return nil, err.Context("invalid integer name")
+			}
+
+			if newInteger.Name != nil {
+				return nil, i.errorf(def, "invalid integer definition: name already defined")
+			}
+
+			newInteger.Name = name
+		case "docs":
+			docs, err := i.interpretDocs(elts)
+			if err != nil {
+				return nil, err.Context("invalid integer docs")
+			}
+
+			if newInteger.Docs != nil {
+				return nil, i.errorf(def, "invalid integer definition: docs already defined")
+			}
+
+			newInteger.Docs = docs
+		case "type":
+			typ, err := i.interpretType(elts)
+			if err != nil {
+				return nil, err.Context("invalid integer type")
+			}
+
+			integer, ok := typ.(Integer)
+			if !ok {
+				return nil, i.errorf(elts[0], "invalid integer type: must be an integer type, found %s", typ)
+			}
+
+			if newInteger.Type != InvalidInteger {
+				return nil, i.errorf(def, "invalid integer definition: type already defined")
+			}
+
+			newInteger.Type = integer
+		default:
+			return nil, i.errorf(def, "unrecognised integer definition kind %q", def.Name)
+		}
+	}
+
+	// Make sure the integer is complete.
+	if newInteger.Name == nil {
+		return nil, i.errorf(list, "integer has no name definition")
+	} else if newInteger.Docs == nil {
+		return nil, i.errorf(list, "integer has no docs definition")
+	} else if newInteger.Type == InvalidInteger {
+		return nil, i.errorf(list, "integer has no type definition")
+	}
+
+	// Track the type definition.
+	typename := newInteger.Name.Spaced()
+	if i.typedefs[typename] != nil {
+		return nil, i.errorf(newInteger.Node, "type %q is already defined", typename)
+	}
+
+	// Complete any references to the type.
+	i.typedefs[typename] = newInteger
+	for _, ref := range i.typeuses[typename] {
+		ref.Underlying = newInteger
+	}
+	i.typeuses[typename] = nil
+
+	return newInteger, nil
 }
 
 // interpretEnumeration parses the list elements as

@@ -29,6 +29,16 @@
 	</head>
 	<body>
 		<h1>Firefly system call ABI</h1>
+		<h2>Integers</h2>
+		<ul>
+			{{ range .NewIntegers }}
+				<li>
+					<code class="inline-code">
+						<a href="integers/{{ .Name.SnakeCase }}.html" class="integer">{{ .Name.Spaced }}</a>
+					</code>
+				</li>
+			{{ end }}
+		</ul>
 		<h2>Enumerations</h2>
 		<ul>
 			{{ range .Enumerations }}

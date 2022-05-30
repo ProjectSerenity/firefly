@@ -1,0 +1,6 @@
+{{/* Variable definitions that simplify declarations later */}}
+{{- $name := .Name.PascalCase -}}
+{{- $type := toString .Type -}}
+
+{{ toDocs 0 .Docs }}
+pub struct {{ $name }}(pub {{ $type }});

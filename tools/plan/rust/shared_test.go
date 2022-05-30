@@ -142,6 +142,11 @@ func TestGenerateSharedCode(t *testing.T) {
 			               (docs "Any error encountered.")
 			               (type error)))
 
+			       (integer
+			           (name port number)
+			           (docs "The number of a TCP or UDP port.")
+			           (type uint16))
+
 			       (syscall
 			           (name three args two results)
 			           (docs "Docs on" "" "two lines")
@@ -242,6 +247,18 @@ func TestSubTemplates(t *testing.T) {
 		Tmpl string
 		Type any
 	}{
+		{
+			Name: "port number integer",
+			Want: "integer_rs_port_number",
+			Tmpl: integerTemplate,
+			Type: &types.NewInteger{
+				Name: types.Name{"port", "number"},
+				Docs: types.Docs{
+					types.Text("The number of a TCP or UDP port."),
+				},
+				Type: types.Uint16,
+			},
+		},
 		{
 			Name: "read error enumeration",
 			Want: "enumeration_rs_read_error",
