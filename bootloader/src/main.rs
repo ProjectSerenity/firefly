@@ -4,8 +4,6 @@
 #[cfg(not(target_os = "none"))]
 compile_error!("The bootloader crate must be compiled for the `x86_64-bootloader.json` target");
 
-extern crate rlibc;
-
 use bootloader::bootinfo::{BootInfo, FrameRange};
 use core::arch::asm;
 use core::{arch::global_asm, convert::TryInto, panic::PanicInfo};
@@ -26,7 +24,7 @@ use x86_64::{PhysAddr, VirtAddr};
 // KERNEL_STACK_ADDRESS: The virtual address of the kernel stack.
 //
 // KERNEL_STACK_SIZE: The number of pages in the kernel stack.
-include!(concat!(env!("OUT_DIR"), "/bootloader_config.rs"));
+include!(env!("BOOTLOADER_CONFIG_RS"));
 
 global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));

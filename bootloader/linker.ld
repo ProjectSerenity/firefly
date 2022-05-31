@@ -47,4 +47,9 @@ SECTIONS {
     {
         KEEP(*(.kernel))
     }
+
+    /DISCARD/ :
+    {
+        *(.eh_frame*)
+    }
 }
