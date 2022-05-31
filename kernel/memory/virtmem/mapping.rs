@@ -40,7 +40,8 @@ pub fn remap_kernel(page_table: &mut PageTable) {
             PagePurpose::Unknown
             | PagePurpose::NullPage
             | PagePurpose::Userspace
-            | PagePurpose::KernelStackGuard => {
+            | PagePurpose::KernelStackGuard
+            | PagePurpose::BootInfo => {
                 mapping.unmap(page_table).expect("failed to unmap page");
             }
             // Global and read-write (kernel stack, heap, data, physical memory).
@@ -59,7 +60,7 @@ pub fn remap_kernel(page_table: &mut PageTable) {
                 }
             }
             // Global read only (kernel constants, boot info).
-            PagePurpose::KernelConstants | PagePurpose::BootInfo => {
+            PagePurpose::KernelConstants => {
                 let flags =
                     PageTableFlags::GLOBAL | PageTableFlags::PRESENT | PageTableFlags::NO_EXECUTE;
                 if mapping.flags != flags {
