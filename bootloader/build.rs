@@ -8,10 +8,6 @@
 // Use of new and modified source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-#[cfg(not(feature = "binary"))]
-fn main() {}
-
-#[cfg(feature = "binary")]
 fn main() {
     use std::env;
     use std::path::PathBuf;

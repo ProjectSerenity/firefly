@@ -48,9 +48,6 @@ rust_library(
 rust_binary(
     name = "build_script",
     srcs = ["build.rs"],
-    crate_features = [
-        "binary",
-    ],
     crate_root = "build.rs",
     edition = "2021",
     visibility = ["//visibility:public"],
@@ -98,9 +95,6 @@ rust_binary(
     srcs = glob(["**/*.rs"]),
     compile_data = [
         ":libkernel_bin-kernel.a",
-    ],
-    crate_features = [
-        "binary",
     ],
     crate_root = "src/main.rs",
     data = glob(
