@@ -39,7 +39,6 @@ use memory::{PageMappingError, PageTableFlags, PhysFrameAllocator, VirtPage, Vir
 use spin::Mutex;
 use virtmem::map_pages;
 use x86_64::registers::control::{Cr4, Cr4Flags};
-use x86_64::registers::model_specific::{Efer, EferFlags};
 
 #[cfg(not(test))]
 #[global_allocator]
@@ -79,12 +78,6 @@ pub fn init(frame_allocator: &mut impl PhysFrameAllocator) -> Result<(), PageMap
     // Set the CR4 fields, so we can then use the global
     // page flag when we remap the kernel.
     unsafe { Cr4::update(|flags| *flags |= Cr4Flags::PAGE_GLOBAL) }; // Enable the global flag in page tables.
-
-    // Set the EFER fields, so we can use the no-execute
-    // page flag when we remap the kernel.
-    let mut flags = Efer::read();
-    flags |= EferFlags::NO_EXECUTE_ENABLE; // Enable the no-execute flag in page tables.
-    unsafe { Efer::write(flags) };
 
     Ok(())
 }
