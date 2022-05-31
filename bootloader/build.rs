@@ -88,13 +88,11 @@ fn parse_to_config(cfg: &mut BootloaderConfig, table: &toml::value::Table) {
 
 #[cfg(feature = "binary")]
 fn main() {
-    use std::{
-        env,
-        fs::{self, File},
-        io::Write,
-        path::PathBuf,
-        process::{self, Command},
-    };
+    use std::env;
+    use std::fs::{self, File};
+    use std::io::Write;
+    use std::path::PathBuf;
+    use std::process::{self, Command};
     use toml::Value;
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));

@@ -20,18 +20,24 @@
 #![deny(unused_crate_dependencies)]
 #![allow(unsafe_code)]
 
-use bootloader::bootinfo::{BootInfo, FrameRange};
-use core::arch::asm;
-use core::{arch::global_asm, convert::TryInto, panic::PanicInfo};
+use bootloader::bootinfo::{BootInfo, FrameRange, MemoryRegion, MemoryRegionType};
+use core::arch::{asm, global_asm};
+use core::convert::TryInto;
+use core::fmt::Write;
+use core::panic::PanicInfo;
 use core::{mem, slice};
-use fixedvec::alloc_stack;
+use fixedvec::{alloc_stack, FixedVec};
 use usize_conversions::usize_from;
 use x86_64::instructions::tlb;
+use x86_64::registers::control::{Cr0, Cr0Flags, Efer, EferFlags};
+use x86_64::structures::paging::frame::PhysFrameRange;
+use x86_64::structures::paging::page_table::PageTableEntry;
 use x86_64::structures::paging::{
-    frame::PhysFrameRange, page_table::PageTableEntry, Mapper, Page, PageTable, PageTableFlags,
-    PageTableIndex, PhysFrame, RecursivePageTable, Size2MiB, Size4KiB,
+    Mapper, Page, PageTable, PageTableFlags, PageTableIndex, PhysFrame, RecursivePageTable,
+    Size2MiB, Size4KiB,
 };
 use x86_64::{PhysAddr, VirtAddr};
+use xmas_elf::program::{ProgramHeader, ProgramHeader64};
 
 // The bootloader_config.rs file contains some configuration constants set by the build script:
 // PHYSICAL_MEMORY_OFFSET: The offset into the virtual address space where the physical memory
@@ -134,10 +140,6 @@ fn bootloader_main(
     bootloader_end: PhysAddr,
     p4_physical: PhysAddr,
 ) -> ! {
-    use bootloader::bootinfo::{MemoryRegion, MemoryRegionType};
-    use fixedvec::FixedVec;
-    use xmas_elf::program::{ProgramHeader, ProgramHeader64};
-
     printer::Printer.clear_screen();
 
     let mut memory_map = boot_info::create_from(memory_map_addr, memory_map_entry_count);
@@ -360,19 +362,16 @@ fn bootloader_main(
 }
 
 fn enable_nxe_bit() {
-    use x86_64::registers::control::{Efer, EferFlags};
     unsafe { Efer::update(|efer| *efer |= EferFlags::NO_EXECUTE_ENABLE) }
 }
 
 fn enable_write_protect_bit() {
-    use x86_64::registers::control::{Cr0, Cr0Flags};
     unsafe { Cr0::update(|cr0| *cr0 |= Cr0Flags::WRITE_PROTECT) };
 }
 
 #[panic_handler]
 #[no_mangle]
 pub fn panic(info: &PanicInfo) -> ! {
-    use core::fmt::Write;
     write!(printer::Printer, "{}", info).unwrap();
     loop {}
 }

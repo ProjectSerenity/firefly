@@ -8,6 +8,7 @@
 // Use of new and modified source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
+use core::cmp::Ordering;
 use core::fmt;
 use core::ops::{Deref, DerefMut};
 
@@ -45,8 +46,6 @@ impl MemoryMap {
     }
 
     pub fn sort(&mut self) {
-        use core::cmp::Ordering;
-
         self.entries.sort_unstable_by(|r1, r2| {
             if r1.range.is_empty() {
                 Ordering::Greater
