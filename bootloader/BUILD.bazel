@@ -9,35 +9,16 @@
 #
 # The library crate is a standard rust_library.
 #
-# The build.rs script  produces a couple of output files
-# we need later on (a generated rust file containing the
-# kernel's configuration, plus a modified version of the
-# kernel binary). It's not currently possible to declare
-# or use output files with a cargo_build_script. Instead,
+# The build.rs script  produces a modified version of the
+# kernel binary. It's not currently possible to declare
+# or use output file with a cargo_build_script. Instead,
 # we build it as a rust_binary and then use a genrule to
 # invoke it, collecting its outputs in the process.
-#
-# Sadly, the build script produces not only an output
-# file (bootloader_config.rs) but also prints important
-# information to stdout (an extra search path for the
-# linker). Running the build script as a rust_binary + genrule
-# is necessary so we can declare the output file, but a
-# cargo_build_script is necessary to capture, parse, and
-# pass on the search path to the linker. That means we
-# have to do both. It would be great to be able to use
-# just one. We can capture the path to the extra link
-# entry, but can't extract its parent directory to pass
-# to the linker.
 #
 # The binary crate is built as a rust_binary, passing in
 # the outputs from the build script. This produces the
 # bootable image in the form of an ELF executable.
-#
-# Once we have the bootable image, we use the bootimage
-# crate to turn the ELF executable into a raw executable,
-# padded to the next smallest block size (512 bytes).
 
-load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
 
 rust_library(
@@ -57,33 +38,6 @@ rust_library(
         "manual",
     ],
     visibility = ["//visibility:public"],
-    deps = [
-        ":bootloader_build_script",
-    ],
-)
-
-cargo_build_script(
-    # See comment associated with alias. Do not change this name
-    name = "bootloader_build_script",
-    srcs = glob(["**/*.rs"]),
-    build_script_env = {
-        "PATH": "$$(dirname $(location @rust_linux_x86_64//:rustc)):$$PATH",
-    },
-    crate_name = "build_script_build",
-    crate_root = "build.rs",
-    data = glob(["**"]) + ["@rust_linux_x86_64//:rustc"],
-    edition = "2018",
-    rustc_flags = [
-        # In most cases, warnings in 3rd party crates are not interesting as
-        # they're out of the control of consumers. The flag here silences
-        # warnings. For more details see:
-        # https://doc.rust-lang.org/rustc/lints/levels.html
-        "--cap-lints=allow",
-    ],
-    tags = [
-        "manual",
-    ],
-    visibility = ["//visibility:private"],
 )
 
 # Now, the multiple steps necessary to build
@@ -180,7 +134,6 @@ rust_binary(
     visibility = ["//visibility:public"],
     deps = [
         ":bootloader",
-        ":bootloader_build_script",
         "//vendor/rust/bit_field",
         "//vendor/rust/fixedvec",
         "//vendor/rust/usize_conversions",
