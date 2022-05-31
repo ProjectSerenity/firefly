@@ -190,6 +190,7 @@ See these guides for advanced usage of this crate:
 
 ## License
 
-Licensed under the MIT license ([LICENSE](LICENSE) or http://opensource.org/licenses/MIT).
+The original work in the bootloader crate is licensed under the MIT license ([LICENSE.orig](LICENSE.orig) or https://opensource.org/licenses/MIT).
+Subsequent work is licensed under a BSD 3-clause license ([LICENSE](../LICENSE) or https://opensource.org/licenses/bsd-3-clause).
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.

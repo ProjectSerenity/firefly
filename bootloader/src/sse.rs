@@ -1,3 +1,13 @@
+// Forked from bootloader 0.9.22, copyright 2018 Philipp Oppermann.
+//
+// Use of the original source code is governed by the MIT
+// license that can be found in the LICENSE.orig file.
+//
+// Subsequent work copyright 2022 The Firefly Authors.
+//
+// Use of new and modified source code is governed by a BSD 3-clause
+// license that can be found in the LICENSE file.
+
 /// Enables Streaming SIMD Extensions (SSE) support for loaded kernels.
 pub fn enable_sse() {
     use x86_64::registers::control::{Cr0, Cr0Flags, Cr4, Cr4Flags};

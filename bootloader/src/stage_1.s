@@ -1,3 +1,13 @@
+# Forked from bootloader 0.9.22, copyright 2018 Philipp Oppermann.
+#
+# Use of the original source code is governed by the MIT
+# license that can be found in the LICENSE.orig file.
+#
+# Subsequent work copyright 2022 The Firefly Authors.
+#
+# Use of new and modified source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
 .section .boot-first-stage, "awx"
 .global _start
 .code16
@@ -107,7 +117,7 @@ load_rest_of_bootloader_from_disk:
     mov ah, 0x42
     int 0x13
     jc rest_of_bootloader_load_failed
-    
+
     # reset segment to 0
     mov word ptr [dap_buffer_seg], 0
 
