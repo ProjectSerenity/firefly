@@ -38,7 +38,7 @@ mod bitmap;
 mod mapping;
 
 use self::bitmap::BitmapLevel4KernelMappings;
-pub use self::mapping::remap_kernel;
+pub use self::mapping::unmap_unused_pages;
 use core::slice;
 use core::sync::atomic::{AtomicBool, Ordering};
 use memory::constants::KERNELSPACE;

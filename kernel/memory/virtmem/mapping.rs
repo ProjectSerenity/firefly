@@ -21,13 +21,12 @@ use memory::{
 use pretty::Bytes;
 use x86_64::instructions::tlb;
 
-/// Ensures all page mappings meet our expectations.
+/// Remove any page mappings we no longer need.
 ///
-/// This includes ensuring that the kernel is mapped
-/// with the appropriate access controls and unmaps
-/// any unknown mappings left over by the bootloader.
+/// This includes dropping any unkown mappings left over
+/// by the bootloader.
 ///
-pub fn remap_kernel(page_table: &mut PageTable) {
+pub fn unmap_unused_pages(page_table: &mut PageTable) {
     // Analyse and iterate through the page mappings
     // in the PML4.
     //

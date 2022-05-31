@@ -119,12 +119,9 @@ pub fn init(boot_info: &'static BootInfo) {
         physmem::init(frame_allocator); // Switch to a more advanced allocator.
     }
 
-    // With the heap set up, we can fix up the
-    // kernel page mappings to unmap any pages
-    // left over by the bootloader and to remap
-    // the kernel to ensure the correct page
-    // table flags.
-    virtmem::remap_kernel(&mut PageTable::current());
+    // With the heap set up, we can unmap any
+    // pages left over by the bootloader.
+    virtmem::unmap_unused_pages(&mut PageTable::current());
 
     // Now we have a working heap, we can set
     // up the global memory region for CPU-local
