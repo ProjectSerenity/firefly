@@ -64,7 +64,10 @@ pub fn init(frame_allocator: &mut impl PhysFrameAllocator) -> Result<(), PageMap
         VirtPage::range_inclusive(heap_start_page, heap_end_page)
     };
 
-    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+    let flags = PageTableFlags::PRESENT
+        | PageTableFlags::GLOBAL
+        | PageTableFlags::WRITABLE
+        | PageTableFlags::NO_EXECUTE;
 
     map_pages(page_range, frame_allocator, flags).expect("failed to map kernel heap");
 
