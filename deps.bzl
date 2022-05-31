@@ -199,15 +199,6 @@ rust = [
         version = "1.1.0",
     ),
     crate(
-        name = "serde",
-        version = "1.0.137",
-        build_script = "build.rs",
-        features = [
-            "std",
-        ],
-        no_tests = True,  # The tests have a lot of dependencies.
-    ),
-    crate(
         name = "smoltcp",
         version = "0.8.1",
         edition = "2018",
@@ -250,15 +241,6 @@ rust = [
     crate(
         name = "tap",
         version = "1.0.1",
-    ),
-    crate(
-        name = "toml",
-        version = "0.5.9",
-        edition = "2018",
-        deps = [
-            "serde",
-        ],
-        no_tests = True,
     ),
     crate(
         name = "uart_16550",

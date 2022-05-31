@@ -137,11 +137,6 @@ rust = [
         digest = "sha256:69a679946cd73c39bd8cbed4f633c9b3012547bf6014a446c8ee5530a4056aae",
     ),
     crate(
-        name = "serde",
-        version = "1.0.137",
-        digest = "sha256:ed775a3aa8e0215d497b145c71d23055d5a00e9c5637ec4dc4eaaef1a1a5ad19",
-    ),
-    crate(
         name = "smoltcp",
         version = "0.8.1",
         digest = "sha256:a2acd28879f77e694c9b2d90dfa969ee577214ca862900947427c8baf0eff2d4",
@@ -165,11 +160,6 @@ rust = [
         name = "tap",
         version = "1.0.1",
         digest = "sha256:7b55bd4fe29a53c3480cbff8ef7b4b8d190302720f3c91c4bace0d48fc3836cb",
-    ),
-    crate(
-        name = "toml",
-        version = "0.5.9",
-        digest = "sha256:70ea1f9916f2201391c5206a2369c093f821e80952f5c517a47c88c16aa4e2c0",
     ),
     crate(
         name = "uart_16550",
