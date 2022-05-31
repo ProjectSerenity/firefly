@@ -57,13 +57,6 @@ rust = [
         no_tests = True,  # The tests have lots of dependencies.
     ),
     crate(
-        name = "bootloader",
-        version = "0.9.22",
-        build_file = "third_party/bootloader.BUILD",
-        patch_args = ["-p1"],
-        patches = ["third_party/bootloader.patch"],
-    ),
-    crate(
         name = "byteorder",
         version = "1.4.3",
         edition = "2018",

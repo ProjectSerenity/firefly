@@ -37,18 +37,6 @@ rust = [
         digest = "sha256:efe6873f249e9c57c52efaad101fc6047a8961c89731658da3f56c13dee7cfc6",
     ),
     crate(
-        name = "bootloader",
-        version = "0.9.22",
-        digest = "sha256:ab9a8f7bded941cc2b6e1cf2b017bd344ba090d847adfaec3feeb867df174be9",
-        patch_args = [
-            "-p1",
-        ],
-        patches = [
-            "third_party/bootloader.patch",
-        ],
-        patch_digest = "sha256:c5ce1cb8480c1a730d1594b5f17eff72413592159ce062d727753f1cae107d45",
-    ),
-    crate(
         name = "byteorder",
         version = "1.4.3",
         digest = "sha256:b44b7b8a858e8df3cf7ff4484609b0bf57ee2e0bd23c6a32aa8b9e4c212dbf81",
