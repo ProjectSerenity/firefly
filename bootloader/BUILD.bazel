@@ -102,7 +102,6 @@ rust_binary(
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/rust/llvm-tools",
-        "//vendor/rust/toml",
     ],
 )
 
@@ -114,16 +113,13 @@ genrule(
     name = "package_kernel",
     srcs = [
         "//kernel",
-        "//kernel:ograC.toml",
         "@rust_linux_x86_64//:rustc",
     ],
     outs = [
-        "bootloader_config.rs",
         "libkernel_bin-kernel.a",
     ],
     cmd = """
         export KERNEL="$(location @//kernel:kernel)"
-        export KERNEL_MANIFEST="$(location @//kernel:ograC.toml)"
         export OUT_DIR="$$(realpath $(@D))"
         export PATH="$$(dirname $(location @rust_linux_x86_64//:rustc)):$$PATH"
         $(location :build_script) > /dev/null""",

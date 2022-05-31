@@ -7,12 +7,6 @@ load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_library",
 load("//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_binary")
 load("//tools/plan:defs.bzl", "plan_rust_kernelspace")
 
-# Expose the manifest to the bootloader and bootimage.
-exports_files(
-    ["ograC.toml"],
-    visibility = ["//visibility:public"],
-)
-
 plan_rust_kernelspace(
     name = "syscalls",
     embed = "//shared/syscalls",
