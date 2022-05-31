@@ -280,7 +280,7 @@ where
 /// its mappings.
 ///
 pub fn debug(pml4: &PageTable) {
-    let mappings = mapping::level_4_table(pml4);
+    let mappings = mapping::level_4_table(pml4, true);
     for mapping in mappings.iter() {
         println!("{}", mapping);
     }

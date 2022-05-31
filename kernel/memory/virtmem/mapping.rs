@@ -33,7 +33,7 @@ pub fn remap_kernel(page_table: &mut PageTable) {
     //
     // Rather than constantly flushing the TLB as we
     // go along, we do one big flush at the end.
-    let mappings = level_4_table(page_table);
+    let mappings = level_4_table(page_table, false);
     for mapping in mappings.iter() {
         match mapping.purpose {
             // Unmap pages we no longer need.
@@ -76,7 +76,7 @@ fn indices_to_addr(l4: usize, l3: usize, l2: usize, l1: usize) -> VirtAddr {
 /// level_4_table iterates through a level 4 page table,
 /// returning the sequence of contiguous mappings.
 ///
-pub fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
+pub fn level_4_table(pml4: &PageTable, parse_kernel: bool) -> Vec<Mapping> {
     let mut mappings = Vec::new();
     let mut current: Option<Mapping> = None;
     for (i, pml4e) in pml4.iter().enumerate() {
@@ -157,14 +157,18 @@ pub fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
     // We load the kernel binary from memory, using the
     // flags for each segment to derive its purpose.
 
-    let kernel = unsafe {
-        slice::from_raw_parts(
-            KERNEL_BINARY.start().as_usize() as *const u8,
-            KERNEL_BINARY.size(),
-        )
+    let kernel_binary = if parse_kernel {
+        let kernel = unsafe {
+            slice::from_raw_parts(
+                KERNEL_BINARY.start().as_usize() as *const u8,
+                KERNEL_BINARY.size(),
+            )
+        };
+
+        Some(Binary::parse_kernel("kernel.bin", kernel).expect("failed to parse kernel binary"))
+    } else {
+        None
     };
-    let kernel_binary =
-        Binary::parse_kernel("kernel.bin", kernel).expect("failed to parse kernel binary");
 
     let kernel_code = PageTableFlags::PRESENT; // r-x
     let kernel_constants = PageTableFlags::PRESENT | PageTableFlags::NO_EXECUTE; // r--
@@ -179,34 +183,39 @@ pub fn level_4_table(pml4: &PageTable) -> Vec<Mapping> {
         } else if USERSPACE.contains(&range) {
             PagePurpose::Userspace
         } else if KERNEL_BINARY.contains(&range) {
-            // Find the kernel binary program segment
-            // containing this chunk of memory.
-            //
-            // When we match page mappings to segments,
-            // we round out the segment bounds to the
-            // page bounds, as segments cannot share a
-            // page with another segment with different
-            // flags.
-            let segment = kernel_binary
-                .iter_segments()
-                .find(|&s| {
-                    let size = VirtPageSize::Size4KiB.bytes();
-                    s.start.align_down(size) <= range.start() && range.end() < s.end.align_up(size)
-                })
-                .expect("mapping in kernel binary does not exist in any segment");
+            if let Some(kernel_binary) = &kernel_binary {
+                // Find the kernel binary program segment
+                // containing this chunk of memory.
+                //
+                // When we match page mappings to segments,
+                // we round out the segment bounds to the
+                // page bounds, as segments cannot share a
+                // page with another segment with different
+                // flags.
+                let segment = kernel_binary
+                    .iter_segments()
+                    .find(|&s| {
+                        let size = VirtPageSize::Size4KiB.bytes();
+                        s.start.align_down(size) <= range.start()
+                            && range.end() < s.end.align_up(size)
+                    })
+                    .expect("mapping in kernel binary does not exist in any segment");
 
-            // Determine the page purpose by its flags.
-            if segment.flags == kernel_code {
-                PagePurpose::KernelCode
-            } else if segment.flags == kernel_constants {
-                PagePurpose::KernelConstants
-            } else if segment.flags == kernel_statics {
-                PagePurpose::KernelStatics
+                // Determine the page purpose by its flags.
+                if segment.flags == kernel_code {
+                    PagePurpose::KernelCode
+                } else if segment.flags == kernel_constants {
+                    PagePurpose::KernelConstants
+                } else if segment.flags == kernel_statics {
+                    PagePurpose::KernelStatics
+                } else {
+                    panic!(
+                        "kernel binary segment has unexpected flags {:?}",
+                        segment.flags
+                    );
+                }
             } else {
-                panic!(
-                    "kernel binary segment has unexpected flags {:?}",
-                    segment.flags
-                );
+                PagePurpose::KernelBinaryUnknown
             }
         } else if BOOT_INFO.contains(&range) {
             PagePurpose::BootInfo
@@ -247,6 +256,7 @@ pub enum PagePurpose {
     KernelHeap,
     KernelStack,
     KernelStackGuard,
+    KernelBinaryUnknown,
     Mmio,
     CpuLocal,
     AllPhysicalMemory,
@@ -265,6 +275,7 @@ impl fmt::Display for PagePurpose {
             PagePurpose::KernelHeap => write!(f, " (kernel heap)"),
             PagePurpose::KernelStack => write!(f, " (kernel stack)"),
             PagePurpose::KernelStackGuard => write!(f, " (kernel stack guard)"),
+            PagePurpose::KernelBinaryUnknown => write!(f, " (kernel binary)"),
             PagePurpose::Mmio => write!(f, " (MMIO)"),
             PagePurpose::CpuLocal => write!(f, " (CPU-local data)"),
             PagePurpose::AllPhysicalMemory => write!(f, " (all physical memory)"),
