@@ -147,7 +147,6 @@ rust_binary(
     name = "bootloader_bin",
     srcs = glob(["**/*.rs"]),
     compile_data = [
-        ":bootloader_config.rs",
         ":libkernel_bin-kernel.a",
     ],
     crate_features = [
@@ -171,13 +170,6 @@ rust_binary(
     ),
     edition = "2021",
     linker_script = "linker.ld",
-    rustc_env = {
-        # This should be OUT_DIR, but while we can get the
-        # path to bootloader_config.rs, we can't get the
-        # path to its parent directory. As a result, we use
-        # bootloader.patch to change how the file is included.
-        "BOOTLOADER_CONFIG_RS": "$(location :bootloader_config.rs)",
-    },
     rustc_flags = [
         "--cap-lints=allow",
         "-Cpanic=abort",

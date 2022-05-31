@@ -39,15 +39,6 @@ use x86_64::structures::paging::{
 use x86_64::{PhysAddr, VirtAddr};
 use xmas_elf::program::{ProgramHeader, ProgramHeader64};
 
-// The bootloader_config.rs file contains some configuration constants set by the build script:
-// PHYSICAL_MEMORY_OFFSET: The offset into the virtual address space where the physical memory
-// is mapped.
-//
-// KERNEL_STACK_ADDRESS: The virtual address of the kernel stack.
-//
-// KERNEL_STACK_SIZE: The number of pages in the kernel stack.
-include!(env!("BOOTLOADER_CONFIG_RS"));
-
 global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
 global_asm!(include_str!("e820.s"));
@@ -65,6 +56,13 @@ mod frame_allocator;
 mod level4_entries;
 mod page_table;
 mod printer;
+
+// Kernel configuration constants.
+
+const BOOT_INFO_ADDRESS: u64 = 0xffff800040000000;
+const KERNEL_STACK_ADDRESS: u64 = 0xffff80005554f000;
+const KERNEL_STACK_SIZE: u64 = 128;
+const PHYSICAL_MEMORY_OFFSET: u64 = 0xffff800080000000;
 
 pub struct IdentityMappedAddr(PhysAddr);
 
@@ -250,15 +248,7 @@ fn bootloader_main(
 
     // Map a page for the boot info structure
     let boot_info_page = {
-        let page: Page = match BOOT_INFO_ADDRESS {
-            Some(addr) => Page::containing_address(VirtAddr::new(addr)),
-            None => Page::from_page_table_indices(
-                level4_entries.get_free_entry(),
-                PageTableIndex::new(0),
-                PageTableIndex::new(0),
-                PageTableIndex::new(0),
-            ),
-        };
+        let page: Page = Page::containing_address(VirtAddr::new(BOOT_INFO_ADDRESS));
         let frame = frame_allocator
             .allocate_frame(MemoryRegionType::BootInfo)
             .expect("frame allocation failed");
@@ -278,10 +268,7 @@ fn bootloader_main(
     };
 
     // If no kernel stack address is provided, map the kernel stack after the boot info page
-    let kernel_stack_address = match KERNEL_STACK_ADDRESS {
-        Some(addr) => Page::containing_address(VirtAddr::new(addr)),
-        None => boot_info_page + 1,
-    };
+    let kernel_stack_address = Page::containing_address(VirtAddr::new(KERNEL_STACK_ADDRESS));
 
     // Map kernel segments.
     let kernel_memory_info = page_table::map_kernel(
@@ -295,17 +282,7 @@ fn bootloader_main(
     .expect("kernel mapping failed");
 
     let physical_memory_offset = {
-        let physical_memory_offset = PHYSICAL_MEMORY_OFFSET.unwrap_or_else(|| {
-            // If offset not manually provided, find a free p4 entry and map memory here.
-            // One level 4 entry spans 2^48/512 bytes (over 500gib) so this should suffice.
-            assert!(max_phys_addr < (1 << 48) / 512);
-            Page::from_page_table_indices_1gib(
-                level4_entries.get_free_entry(),
-                PageTableIndex::new(0),
-            )
-            .start_address()
-            .as_u64()
-        });
+        let physical_memory_offset = PHYSICAL_MEMORY_OFFSET;
 
         let virt_for_phys =
             |phys: PhysAddr| -> VirtAddr { VirtAddr::new(phys.as_u64() + physical_memory_offset) };
