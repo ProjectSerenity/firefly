@@ -48,19 +48,19 @@ buildifier(
 )
 
 x86_64_bare_metal_rust_binary(
-    name = "bootloader",
-    rust_binary = "//vendor/rust/bootloader:bootloader_bin",
+    name = "bootloader_bin",
+    rust_binary = "//bootloader:bootloader_bin",
     visibility = ["//visibility:public"],
 )
 
 # Allow the bootable image to be built with `bazel build //:image`.
 genrule(
     name = "image",
-    srcs = [":bootloader"],
+    srcs = [":bootloader_bin"],
     outs = ["image.bin"],
     cmd = """
         bootimage="$(location //tools/bootimage)"
-        input="$(location :bootloader)"
+        input="$(location :bootloader_bin)"
         output="$$(realpath $(location image.bin))"
 
         $$bootimage $$input $$output""",

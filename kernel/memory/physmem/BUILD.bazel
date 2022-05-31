@@ -16,12 +16,12 @@ rust_library(
     edition = "2021",
     visibility = ["//kernel:__subpackages__"],
     deps = [
+        "//bootloader",
         "//kernel/drivers/serial",
         "//kernel/memory",
         "//kernel/utils/bitmap_index",
         "//kernel/utils/pretty",
         "//kernel/utils/spin",
-        "//vendor/rust/bootloader",
     ],
 )
 
