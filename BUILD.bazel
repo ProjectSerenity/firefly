@@ -97,8 +97,8 @@ qemu(
 )
 
 qemu(
-    name = "diagnostics",
-    drive = "//user/diagnostics-workload:tar",
+    name = "test",
+    drive = "//user/test-workload:tar",
     image = ":image.bin",
     options = [
         "-device",

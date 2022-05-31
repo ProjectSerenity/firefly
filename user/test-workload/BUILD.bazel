@@ -8,11 +8,11 @@ load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_doc", "ru
 load("//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_binary")
 
 rust_library(
-    name = "diagnostics-workload_lib",
+    name = "test-workload_lib",
     srcs = [
         "lib.rs",
     ],
-    crate_name = "diagnostics_workload",
+    crate_name = "test_workload",
     edition = "2021",
     visibility = ["//visibility:private"],
     deps = [
@@ -24,22 +24,22 @@ rust_library(
 
 rust_clippy(
     name = "clippy",
-    deps = [":diagnostics-workload_lib"],
+    deps = [":test-workload_lib"],
 )
 
 rust_doc(
     name = "docs",
-    crate = ":diagnostics-workload_lib",
+    crate = ":test-workload_lib",
 )
 
 rustfmt_test(
     name = "fmt_test",
     size = "small",
-    targets = [":diagnostics-workload_lib"],
+    targets = [":test-workload_lib"],
 )
 
 rust_binary(
-    name = "diagnostics-workload_bin",
+    name = "test-workload_bin",
     srcs = ["main.rs"],
     rustc_flags = [
         "-Cpanic=abort",
@@ -48,21 +48,21 @@ rust_binary(
     ],
     tags = ["manual"],
     deps = [
-        ":diagnostics-workload_lib",
+        ":test-workload_lib",
         "//user/firefly",
     ],
 )
 
 x86_64_bare_metal_rust_binary(
-    name = "diagnostics-workload",
-    rust_binary = ":diagnostics-workload_bin",
+    name = "test-workload",
+    rust_binary = ":test-workload_bin",
     visibility = ["//visibility:public"],
 )
 
 pkg_tar(
     name = "tar",
     files = {
-        ":diagnostics-workload": "initial-workload",
+        ":test-workload": "initial-workload",
     },
     visibility = ["//visibility:public"],
 )

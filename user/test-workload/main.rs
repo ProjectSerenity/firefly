@@ -17,7 +17,7 @@
 
 use core::panic::PanicInfo;
 use firefly::{eprintln, exit_thread};
-use diagnostics_workload::main;
+use test_workload::main;
 
 /// This function is called on panic.
 #[panic_handler]
