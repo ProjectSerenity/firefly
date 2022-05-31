@@ -56,7 +56,6 @@ rust_library(
     tags = [
         "manual",
     ],
-    version = "0.9.22",
     visibility = ["//visibility:public"],
     deps = [
         ":bootloader_build_script",
@@ -84,7 +83,6 @@ cargo_build_script(
     tags = [
         "manual",
     ],
-    version = "0.9.22",
     visibility = ["//visibility:private"],
 )
 
