@@ -29,7 +29,7 @@ use core::{mem, slice};
 use fixedvec::{alloc_stack, FixedVec};
 use usize_conversions::usize_from;
 use x86_64::instructions::tlb;
-use x86_64::registers::control::{Cr0, Cr0Flags, Efer, EferFlags};
+use x86_64::registers::control::{Cr0, Cr0Flags, Cr4, Cr4Flags, Efer, EferFlags};
 use x86_64::structures::paging::frame::PhysFrameRange;
 use x86_64::structures::paging::page_table::PageTableEntry;
 use x86_64::structures::paging::{
@@ -175,6 +175,9 @@ fn bootloader_main(
 
     // Enable support for the no-execute bit in page tables.
     enable_nxe_bit();
+
+    // Enable support for the global bit in page tables.
+    enable_global_bit();
 
     // Create a recursive page table entry
     let recursive_index = PageTableIndex::new(level4_entries.get_free_entry().try_into().unwrap());
@@ -340,6 +343,10 @@ fn bootloader_main(
 
 fn enable_nxe_bit() {
     unsafe { Efer::update(|efer| *efer |= EferFlags::NO_EXECUTE_ENABLE) }
+}
+
+fn enable_global_bit() {
+    unsafe { Cr4::update(|cr4| *cr4 |= Cr4Flags::PAGE_GLOBAL) };
 }
 
 fn enable_write_protect_bit() {

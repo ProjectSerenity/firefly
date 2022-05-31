@@ -38,7 +38,6 @@ use memory::constants::KERNEL_HEAP;
 use memory::{PageMappingError, PageTableFlags, PhysFrameAllocator, VirtPage, VirtPageSize};
 use spin::Mutex;
 use virtmem::map_pages;
-use x86_64::registers::control::{Cr4, Cr4Flags};
 
 #[cfg(not(test))]
 #[global_allocator]
@@ -74,10 +73,6 @@ pub fn init(frame_allocator: &mut impl PhysFrameAllocator) -> Result<(), PageMap
         use spin::lock;
         lock!(ALLOCATOR.lock).init(KERNEL_HEAP.start().as_usize(), KERNEL_HEAP.size());
     }
-
-    // Set the CR4 fields, so we can then use the global
-    // page flag when we remap the kernel.
-    unsafe { Cr4::update(|flags| *flags |= Cr4Flags::PAGE_GLOBAL) }; // Enable the global flag in page tables.
 
     Ok(())
 }

@@ -19,7 +19,6 @@ rust_library(
         "//kernel/memory/virtmem",
         "//kernel/utils/spin",
         "//vendor/rust/linked_list_allocator",
-        "//vendor/rust/x86_64",
     ],
 )
 
