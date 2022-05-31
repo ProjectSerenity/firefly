@@ -168,6 +168,17 @@ pub(crate) fn map_segment(
                         )?
                     }
                     .flush();
+
+                    // We can now safely remove the temporary
+                    // mapping, as we've mapped last_page to
+                    // the underlying frame.
+                    if let Err(e) = page_table.unmap(temp_page) {
+                        return Err(match e {
+                            UnmapError::ParentEntryHugePage => MapToError::ParentEntryHugePage,
+                            UnmapError::PageNotMapped => unreachable!(),
+                            UnmapError::InvalidFrameAddress(_) => unreachable!(),
+                        });
+                    }
                 }
 
                 // Map additional frames.
