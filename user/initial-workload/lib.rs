@@ -11,7 +11,7 @@
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
 #![deny(unused_crate_dependencies)]
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 
 use firefly::{println, read_random};
 
