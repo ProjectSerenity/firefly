@@ -90,19 +90,10 @@ fn main() {
         env,
         fs::{self, File},
         io::Write,
-        path::{Path, PathBuf},
+        path::PathBuf,
         process::{self, Command},
     };
     use toml::Value;
-
-    let target = env::var("TARGET").expect("TARGET not set");
-    if Path::new(&target)
-        .file_stem()
-        .expect("target has no file stem")
-        != "x86_64-bootloader"
-    {
-        panic!("The bootloader must be compiled for the `x86_64-bootloader.json` target.");
-    }
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
     let kernel = PathBuf::from(match env::var("KERNEL") {

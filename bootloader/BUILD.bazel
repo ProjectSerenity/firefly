@@ -125,14 +125,12 @@ genrule(
         "//kernel",
         "//kernel:ograC.toml",
         "@rust_linux_x86_64//:rustc",
-        "x86_64-bootloader.json",
     ],
     outs = [
         "bootloader_config.rs",
         "libkernel_bin-kernel.a",
     ],
     cmd = """
-        export TARGET="$(location x86_64-bootloader.json)"
         export KERNEL="$(location @//kernel:kernel)"
         export KERNEL_MANIFEST="$(location @//kernel:ograC.toml)"
         export OUT_DIR="$$(realpath $(@D))"
