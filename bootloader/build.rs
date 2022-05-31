@@ -8,11 +8,11 @@
 // Use of new and modified source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-fn main() {
-    use std::env;
-    use std::path::PathBuf;
-    use std::process::{self, Command};
+use std::env;
+use std::path::PathBuf;
+use std::process::{self, Command};
 
+fn main() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
     let kernel = PathBuf::from(match env::var("KERNEL") {
         Ok(kernel) => kernel,
