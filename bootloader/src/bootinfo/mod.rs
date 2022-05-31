@@ -47,7 +47,6 @@ pub struct BootInfo {
     /// frames that are also mapped at other virtual addresses can easily break memory safety and
     /// cause undefined behavior. Only frames reported as `USABLE` by the memory map in the `BootInfo`
     /// can be safely accessed.
-    #[cfg(feature = "map_physical_memory")]
     pub physical_memory_offset: u64,
     tls_template: TlsTemplate,
     _non_exhaustive: u8, // `()` is not FFI safe
@@ -69,7 +68,6 @@ impl BootInfo {
         BootInfo {
             memory_map,
             tls_template,
-            #[cfg(feature = "map_physical_memory")]
             physical_memory_offset,
             _non_exhaustive: 0,
         }

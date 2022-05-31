@@ -65,14 +65,6 @@ fn parse_to_config(cfg: &mut BootloaderConfig, table: &toml::value::Table) {
             ("boot-info-address", Value::String(s)) => {
                 cfg.boot_info_address = Some(parse_aligned_addr(key.as_str(), &s));
             }
-            #[cfg(not(feature = "map_physical_memory"))]
-            ("physical-memory-offset", Value::String(_)) => {
-                panic!(
-                    "`physical-memory-offset` is only supported when the `map_physical_memory` \
-                     feature of the crate is enabled"
-                );
-            }
-            #[cfg(feature = "map_physical_memory")]
             ("physical-memory-offset", Value::String(s)) => {
                 cfg.physical_memory_offset = Some(parse_aligned_addr(key.as_str(), &s));
             }

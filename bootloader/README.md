@@ -97,7 +97,6 @@ kernel-stack-size = 128
 
 # The virtual address offset from which physical memory is mapped, as described in
 # https://os.phil-opp.com/paging-implementation/#map-the-complete-physical-memory
-# Only applies if the `map_physical_memory` feature of the crate is enabled.
 # If not provided, the bootloader dynamically searches for a location.
 physical-memory-offset = "0xFFFF800000000000"
 
@@ -171,12 +170,6 @@ qemu-system-x86_64 -drive format=raw,file=target/x86_64-bootloader/release/bootl
 ```
 
 If you use the `-enable-kvm` flag you need to use hardware breakpoints `hb`.
-
-## Features
-The bootloader crate can be configured through some cargo features:
-
-- `map_physical_memory`: Maps the complete physical memory in the virtual address space and passes a [`physical_memory_offset`](https://docs.rs/bootloader/0.4.0/bootloader/bootinfo/struct.BootInfo.html#structfield.physical_memory_offset) field in the `BootInfo`.
-- The virtual address where the physical memory should be mapped is configurable by setting the `physical-memory-offset` field in the kernel's `Cargo.toml`, as explained in [Configuration](#Configuration).
 
 
 ## Advanced Documentation

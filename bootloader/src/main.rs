@@ -26,7 +26,7 @@ use x86_64::{PhysAddr, VirtAddr};
 
 // The bootloader_config.rs file contains some configuration constants set by the build script:
 // PHYSICAL_MEMORY_OFFSET: The offset into the virtual address space where the physical memory
-// is mapped if the `map_physical_memory` feature is activated.
+// is mapped.
 //
 // KERNEL_STACK_ADDRESS: The virtual address of the kernel stack.
 //
@@ -283,7 +283,7 @@ fn bootloader_main(
     )
     .expect("kernel mapping failed");
 
-    let physical_memory_offset = if cfg!(feature = "map_physical_memory") {
+    let physical_memory_offset = {
         let physical_memory_offset = PHYSICAL_MEMORY_OFFSET.unwrap_or_else(|| {
             // If offset not manually provided, find a free p4 entry and map memory here.
             // One level 4 entry spans 2^48/512 bytes (over 500gib) so this should suffice.
@@ -319,8 +319,6 @@ fn bootloader_main(
         }
 
         physical_memory_offset
-    } else {
-        0 // Value is unused by BootInfo::new, so this doesn't matter
     };
 
     // Construct boot info structure.

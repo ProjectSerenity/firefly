@@ -98,13 +98,6 @@ rust_binary(
     srcs = ["build.rs"],
     crate_features = [
         "binary",
-        "fixedvec",
-        "llvm-tools",
-        "map_physical_memory",
-        "toml",
-        "usize_conversions",
-        "x86_64",
-        "xmas-elf",
     ],
     crate_root = "build.rs",
     edition = "2021",
@@ -161,8 +154,6 @@ rust_binary(
     ],
     crate_features = [
         "binary",
-        "default",
-        "map_physical_memory",
     ],
     crate_root = "src/main.rs",
     data = glob(
