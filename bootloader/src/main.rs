@@ -37,11 +37,7 @@ global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
 global_asm!(include_str!("e820.s"));
 global_asm!(include_str!("stage_3.s"));
-
-#[cfg(feature = "vga_320x200")]
-global_asm!(include_str!("video_mode/vga_320x200.s"));
-#[cfg(not(feature = "vga_320x200"))]
-global_asm!(include_str!("video_mode/vga_text_80x25.s"));
+global_asm!(include_str!("vga_text_80x25.s"));
 
 unsafe fn context_switch(boot_info: VirtAddr, entry_point: VirtAddr, stack_pointer: VirtAddr) -> ! {
     asm!("mov rsp, {1}; call {0}; 2: jmp 2b",
@@ -54,8 +50,6 @@ mod frame_allocator;
 mod level4_entries;
 mod page_table;
 mod printer;
-#[cfg(feature = "sse")]
-mod sse;
 
 pub struct IdentityMappedAddr(PhysAddr);
 
@@ -333,7 +327,6 @@ fn bootloader_main(
     let mut boot_info = BootInfo::new(
         memory_map,
         kernel_memory_info.tls_segment,
-        recursive_page_table_addr.as_u64(),
         physical_memory_offset,
     );
     boot_info.memory_map.sort();
@@ -345,20 +338,15 @@ fn bootloader_main(
     // Make sure that the kernel respects the write-protection bits, even when in ring 0.
     enable_write_protect_bit();
 
-    if cfg!(not(feature = "recursive_page_table")) {
-        // unmap recursive entry
-        rec_page_table
-            .unmap(Page::<Size4KiB>::containing_address(
-                recursive_page_table_addr,
-            ))
-            .expect("error deallocating recursive entry")
-            .1
-            .flush();
-        mem::drop(rec_page_table);
-    }
-
-    #[cfg(feature = "sse")]
-    sse::enable_sse();
+    // unmap recursive entry
+    rec_page_table
+        .unmap(Page::<Size4KiB>::containing_address(
+            recursive_page_table_addr,
+        ))
+        .expect("error deallocating recursive entry")
+        .1
+        .flush();
+    mem::drop(rec_page_table);
 
     let entry_point = VirtAddr::new(entry_point);
     unsafe { context_switch(boot_info_addr, entry_point, kernel_memory_info.stack_end) };

@@ -39,9 +39,6 @@ pub struct BootInfo {
     /// the memory map before passing it to the kernel. Regions marked as usable can be freely
     /// used by the kernel.
     pub memory_map: MemoryMap,
-    /// The virtual address of the recursively mapped level 4 page table.
-    #[cfg(feature = "recursive_page_table")]
-    pub recursive_page_table_addr: u64,
     /// The offset into the virtual address space where the physical memory is mapped.
     ///
     /// Physical addresses can be converted to virtual addresses by adding this offset to them.
@@ -58,12 +55,10 @@ pub struct BootInfo {
 
 impl BootInfo {
     /// Create a new boot information structure. This function is only for internal purposes.
-    #[allow(unused_variables)]
     #[doc(hidden)]
     pub fn new(
         memory_map: MemoryMap,
         tls_template: Option<TlsTemplate>,
-        recursive_page_table_addr: u64,
         physical_memory_offset: u64,
     ) -> Self {
         let tls_template = tls_template.unwrap_or(TlsTemplate {
@@ -74,8 +69,6 @@ impl BootInfo {
         BootInfo {
             memory_map,
             tls_template,
-            #[cfg(feature = "recursive_page_table")]
-            recursive_page_table_addr,
             #[cfg(feature = "map_physical_memory")]
             physical_memory_offset,
             _non_exhaustive: 0,
@@ -94,12 +87,6 @@ impl BootInfo {
         } else {
             None
         }
-    }
-
-    /// Returns the index into the page tables that recursively maps the page tables themselves.
-    #[cfg(feature = "recursive_page_table")]
-    pub fn recursive_index(&self) -> u16 {
-        ((self.recursive_page_table_addr >> 12) & 0x1FF) as u16
     }
 }
 
