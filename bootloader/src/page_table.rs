@@ -59,7 +59,10 @@ pub(crate) fn map_kernel(
     let stack_start = stack_start + 1; // Leave the first page unmapped as a 'guard page'
     let stack_end = stack_start + stack_size; // stack_size is in pages
 
-    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+    let flags = PageTableFlags::PRESENT
+        | PageTableFlags::GLOBAL
+        | PageTableFlags::WRITABLE
+        | PageTableFlags::NO_EXECUTE;
     let region_type = MemoryRegionType::KernelStack;
 
     for page in Page::range(stack_start, stack_end) {
@@ -95,7 +98,7 @@ pub(crate) fn map_segment(
             let end_frame = PhysFrame::containing_address(phys_start_addr + file_size - 1u64);
 
             let flags = segment.flags;
-            let mut page_table_flags = PageTableFlags::PRESENT;
+            let mut page_table_flags = PageTableFlags::PRESENT | PageTableFlags::GLOBAL;
             if !flags.is_execute() {
                 page_table_flags |= PageTableFlags::NO_EXECUTE
             };

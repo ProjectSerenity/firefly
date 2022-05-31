@@ -15,8 +15,8 @@ use memory::constants::{
     NULL_PAGE, PHYSICAL_MEMORY, USERSPACE,
 };
 use memory::{
-    PageRemappingError, PageTable, PageTableFlags, PageUnmappingError, PhysAddr, PhysFrame,
-    PhysFrameRange, PhysFrameSize, VirtAddr, VirtAddrRange, VirtPage, VirtPageRange, VirtPageSize,
+    PageTable, PageTableFlags, PageUnmappingError, PhysAddr, PhysFrame, PhysFrameRange,
+    PhysFrameSize, VirtAddr, VirtAddrRange, VirtPage, VirtPageRange, VirtPageSize,
 };
 use pretty::Bytes;
 use x86_64::instructions::tlb;
@@ -44,52 +44,7 @@ pub fn remap_kernel(page_table: &mut PageTable) {
             | PagePurpose::BootInfo => {
                 mapping.unmap(page_table).expect("failed to unmap page");
             }
-            // Global and read-write (kernel stack, heap, data, physical memory).
-            PagePurpose::KernelStack
-            | PagePurpose::KernelHeap
-            | PagePurpose::KernelStatics
-            | PagePurpose::AllPhysicalMemory => {
-                let flags = PageTableFlags::GLOBAL
-                    | PageTableFlags::PRESENT
-                    | PageTableFlags::WRITABLE
-                    | PageTableFlags::NO_EXECUTE;
-                if mapping.flags != flags {
-                    mapping
-                        .update_flags(page_table, flags)
-                        .expect("failed to update page flags");
-                }
-            }
-            // Global read only (kernel constants, boot info).
-            PagePurpose::KernelConstants => {
-                let flags =
-                    PageTableFlags::GLOBAL | PageTableFlags::PRESENT | PageTableFlags::NO_EXECUTE;
-                if mapping.flags != flags {
-                    mapping
-                        .update_flags(page_table, flags)
-                        .expect("failed to update page flags");
-                }
-            }
-            // Global read execute (kernel code).
-            PagePurpose::KernelCode => {
-                let flags = PageTableFlags::GLOBAL | PageTableFlags::PRESENT;
-                if mapping.flags != flags {
-                    mapping
-                        .update_flags(page_table, flags)
-                        .expect("failed to update page flags");
-                }
-            }
-            // MMIO and CPU-local data won't have been
-            // mapped yet, so this shouldn't happen,
-            // but if it does, we just leave it as is.
-            PagePurpose::Mmio | PagePurpose::CpuLocal => {
-                // Ensure the GLOBAL flag is set.
-                let flags = PageTableFlags::GLOBAL | PageTableFlags::PRESENT | mapping.flags;
-                if mapping.flags != flags {
-                    mapping
-                        .update_flags(page_table, flags)
-                        .expect("failed to update page flags");
-                }
-            }
+            _ => {}
         }
     }
 
@@ -468,24 +423,6 @@ impl Mapping {
         let range = self.pages;
         for page in range {
             unsafe { page_table.unmap(page)?.1.ignore() };
-        }
-
-        Ok(())
-    }
-
-    /// update_flags uses the given page table to update the
-    /// flags entire mapping.
-    ///
-    /// Note that update_flags will not flush the TLB.
-    ///
-    pub fn update_flags(
-        &self,
-        page_table: &mut PageTable,
-        flags: PageTableFlags,
-    ) -> Result<(), PageRemappingError> {
-        let range = self.pages;
-        for page in range {
-            unsafe { page_table.change_flags(page, flags)?.ignore() };
         }
 
         Ok(())

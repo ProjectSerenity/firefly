@@ -255,7 +255,7 @@ fn bootloader_main(
         let frame = frame_allocator
             .allocate_frame(MemoryRegionType::BootInfo)
             .expect("frame allocation failed");
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
         unsafe {
             page_table::map_page(
                 page,
@@ -295,7 +295,10 @@ fn bootloader_main(
 
         for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
             let page = Page::containing_address(virt_for_phys(frame.start_address()));
-            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+            let flags = PageTableFlags::PRESENT
+                | PageTableFlags::GLOBAL
+                | PageTableFlags::WRITABLE
+                | PageTableFlags::NO_EXECUTE;
             unsafe {
                 page_table::map_page(
                     page,
@@ -305,7 +308,7 @@ fn bootloader_main(
                     &mut frame_allocator,
                 )
             }
-            .expect("Mapping of bootinfo page failed")
+            .expect("Mapping of physical memory page failed")
             .flush();
         }
 
