@@ -62,7 +62,7 @@ extern crate alloc;
 
 pub mod syscalls;
 
-use bootloader::BootInfo;
+use bootinfo::BootInfo;
 use core::include_str;
 use interrupts::{register_irq, Irq};
 use memory::PageTable;

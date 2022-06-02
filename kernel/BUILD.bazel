@@ -31,7 +31,6 @@ rust_library(
     },
     visibility = ["//visibility:private"],
     deps = [
-        "//bootloader",
         "//kernel/cpu",
         "//kernel/drivers/pci",
         "//kernel/drivers/serial",
@@ -55,6 +54,7 @@ rust_library(
         "//kernel/utils/pretty",
         "//kernel/utils/spin",
         "//kernel/utils/tar",
+        "//shared/bootinfo",
         "//shared/firefly_abi",
         "//vendor/rust/bitflags",
         "//vendor/rust/x86_64",
@@ -92,7 +92,6 @@ rust_binary(
     tags = ["manual"],
     deps = [
         ":libkernel",
-        "//bootloader",
         "//kernel/cpu",
         "//kernel/drivers/serial",
         "//kernel/filesystem",
@@ -105,6 +104,7 @@ rust_binary(
         "//kernel/storage",
         "//kernel/time",
         "//kernel/utils/tar",
+        "//shared/bootinfo",
         "//vendor/rust/x86_64",
     ],
 )

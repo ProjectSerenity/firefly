@@ -1,0 +1,33 @@
+# Copyright 2022 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rustfmt_test")
+
+rust_library(
+    name = "bootinfo",
+    srcs = [
+        "lib.rs",
+        "memory_map.rs",
+    ],
+    crate_name = "bootinfo",
+    edition = "2021",
+    visibility = ["//:__subpackages__"],
+)
+
+rust_clippy(
+    name = "clippy",
+    deps = [":bootinfo"],
+)
+
+rust_doc(
+    name = "docs",
+    crate = ":bootinfo",
+)
+
+rustfmt_test(
+    name = "fmt_test",
+    size = "small",
+    targets = [":bootinfo"],
+)

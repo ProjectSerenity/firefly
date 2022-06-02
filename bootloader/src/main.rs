@@ -20,7 +20,7 @@
 #![deny(unused_crate_dependencies)]
 #![allow(unsafe_code)]
 
-use bootloader::bootinfo::{BootInfo, FrameRange, MemoryRegion, MemoryRegionType};
+use bootinfo::{BootInfo, FrameRange, MemoryRegion, MemoryRegionType};
 use core::arch::{asm, global_asm};
 use core::convert::TryInto;
 use core::fmt::Write;

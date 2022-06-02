@@ -9,8 +9,7 @@
 // license that can be found in the LICENSE file.
 
 use crate::frame_allocator::FrameAllocator;
-use bootloader::bootinfo::MemoryRegionType;
-use bootloader::bootinfo::TlsTemplate;
+use bootinfo::{MemoryRegionType, TlsTemplate};
 use fixedvec::FixedVec;
 use x86_64::structures::paging::mapper::{MapToError, MapperFlush, UnmapError};
 use x86_64::structures::paging::{

@@ -65,7 +65,7 @@ mod boot_info;
 
 pub use crate::bitmap::{ArenaFrameAllocator, BitmapFrameAllocator, BitmapFrameTracker};
 pub use crate::boot_info::BootInfoFrameAllocator;
-use bootloader::bootinfo::MemoryMap;
+use bootinfo::MemoryMap;
 use memory::{PhysFrame, PhysFrameAllocator, PhysFrameDeallocator, PhysFrameRange, PhysFrameSize};
 use spin::{lock, Mutex};
 

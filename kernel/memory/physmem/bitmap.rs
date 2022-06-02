@@ -9,7 +9,7 @@
 use crate::boot_info::BootInfoFrameAllocator;
 use alloc::vec::Vec;
 use bitmap_index::Bitmap;
-use bootloader::bootinfo::{MemoryRegion, MemoryRegionType};
+use bootinfo::{MemoryRegion, MemoryRegionType};
 use core::slice::Iter;
 use memory::{
     PhysAddr, PhysFrame, PhysFrameAllocator, PhysFrameDeallocator, PhysFrameRange, PhysFrameSize,
@@ -624,7 +624,7 @@ mod tests {
 
     #[test]
     fn test_bitmap_frame_allocator() {
-        use bootloader::bootinfo::FrameRange;
+        use bootinfo::FrameRange;
         let regions = [
             MemoryRegion {
                 range: FrameRange {
@@ -736,7 +736,7 @@ mod tests {
         // Construct an arena, confirm that it's empty to
         // start with, then perform some allocations and
         // make sure they match up with the allcoator.
-        use bootloader::bootinfo::FrameRange;
+        use bootinfo::FrameRange;
         let regions = [
             MemoryRegion {
                 range: FrameRange {

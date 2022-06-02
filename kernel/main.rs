@@ -22,7 +22,7 @@
 extern crate alloc;
 
 use alloc::{format, vec};
-use bootloader::{entry_point, BootInfo};
+use bootinfo::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use filesystem::{FileType, Permissions};
 use memory::PageTable;

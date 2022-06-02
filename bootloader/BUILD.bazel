@@ -55,6 +55,7 @@ rust_binary(
     visibility = ["//visibility:public"],
     deps = [
         ":bootloader",
+        "//shared/bootinfo",
         "//vendor/rust/bit_field",
         "//vendor/rust/fixedvec",
         "//vendor/rust/usize_conversions",

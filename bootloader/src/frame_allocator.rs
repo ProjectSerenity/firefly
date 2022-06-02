@@ -9,7 +9,7 @@
 // license that can be found in the LICENSE file.
 
 use super::{frame_range, phys_frame_range};
-use bootloader::bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
+use bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 use x86_64::structures::paging::{frame::PhysFrameRange, PhysFrame};
 
 pub(crate) struct FrameAllocator<'a> {

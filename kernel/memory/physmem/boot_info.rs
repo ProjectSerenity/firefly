@@ -6,7 +6,7 @@
 //! Provides a basic frame allocator, using information from
 //! the bootloader's memory map.
 
-use bootloader::bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
+use bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 use core::slice::Iter;
 use memory::{PhysAddr, PhysFrame, PhysFrameAllocator, PhysFrameSize};
 
