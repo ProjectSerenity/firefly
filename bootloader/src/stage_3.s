@@ -58,7 +58,8 @@ set_up_page_tables:
     mov [_p2], eax
     mov eax, (0x400000 | 1 | 2 | (1 << 7))
     mov ecx, 2
-    mov edx, offset _kernel_size
+    mov edx, offset _kernel_size_addr # Load the address of the kernel size.
+    mov edx, [edx]                    # Load the kernel size by dereferencing the address.
     add edx, 0x400000 # start address
     add edx, 0x200000 - 1 # align up
     shr edx, 12 + 9 # end huge page number

@@ -56,14 +56,18 @@ x86_64_bare_metal_rust_binary(
 # Allow the bootable image to be built with `bazel build //:image`.
 genrule(
     name = "image",
-    srcs = [":bootloader_bin"],
+    srcs = [
+        ":bootloader_bin",
+        "//kernel",
+    ],
     outs = ["image.bin"],
     cmd = """
         bootimage="$(location //tools/bootimage)"
-        input="$(location :bootloader_bin)"
+        bootloader="$(location :bootloader_bin)"
+        kernel="$(location //kernel)"
         output="$$(realpath $(location image.bin))"
 
-        $$bootimage $$input $$output""",
+        $$bootimage -bootloader="$$bootloader" -kernel="$$kernel" -out="$$output" """,
     message = "Making bootable image",
     tools = ["//tools/bootimage"],
     visibility = ["//visibility:public"],

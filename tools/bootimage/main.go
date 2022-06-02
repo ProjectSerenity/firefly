@@ -5,10 +5,22 @@
 
 // Command bootimage turns the bootloader and kernel into a bootable disk image.
 //
+// This has four responsibilities. Firstly, we parse the bootloader binary and
+// check that stages 2 onward do not exceed 127 disk sectors, so that stage 1
+// can load them successfully. Secondly, we identify the addresses where the
+// kernel size should be stored and the kernel should begin. Thirdly, we write
+// the size of the kernel in bytes into the relevant part of the bootloader.
+// Finally, we write the modified bootloader's segments and the entire kernel
+// binary to the output file. Note that we strip the ELF headers from the
+// bootloader, just writing the segments that are loaded into memory.
+//
 package main
 
 import (
+	"bytes"
 	"debug/elf"
+	"encoding/binary"
+	"flag"
 	"io"
 	"log"
 	"os"
@@ -27,24 +39,48 @@ func init() {
 }
 
 func main() {
-	if len(os.Args) != 3 {
-		log.Printf("Usage:\n  %s IN OUT", filepath.Base(os.Args[0]))
+	var help bool
+	var bootloaderName, kernelName, outName string
+	flag.BoolVar(&help, "h", false, "Print this help message and exit.")
+	flag.StringVar(&bootloaderName, "bootloader", "", "Path to the bootloader binary.")
+	flag.StringVar(&kernelName, "kernel", "", "Path to the kernel binary.")
+	flag.StringVar(&outName, "out", "", "Path to where the bootable image should be written.")
+	flag.Usage = func() {
+		log.Printf("Usage:\n  %s [OPTIONS]\n\nOptions:", filepath.Base(os.Args[0]))
+		flag.PrintDefaults()
+	}
+
+	flag.Parse()
+
+	if help {
+		flag.Usage()
 		os.Exit(2)
 	}
 
-	in := os.Args[1]
-	out := os.Args[2]
-	f, err := elf.Open(in)
-	if err != nil {
-		log.Fatalf("failed to read %q: %v", in, err)
+	if bootloaderName == "" {
+		log.Println("Missing -bootloader argument.")
+		flag.Usage()
+		os.Exit(1)
 	}
 
-	defer f.Close()
-
-	image, err := os.Create(out)
-	if err != nil {
-		log.Fatalf("failed to create %q: %v", out, err)
+	if kernelName == "" {
+		log.Println("Missing -kernel argument.")
+		flag.Usage()
+		os.Exit(1)
 	}
+
+	if outName == "" {
+		log.Println("Missing -out argument.")
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	bootloader, err := elf.Open(bootloaderName)
+	if err != nil {
+		log.Fatalf("Failed to parse bootloader: %v", err)
+	}
+
+	defer bootloader.Close()
 
 	// Check that the stage two bootloader
 	// is small enough to be loaded into
@@ -54,40 +90,50 @@ func main() {
 	const (
 		stageTwoStart      = "_rest_of_bootloader_start_addr"
 		stageTwoEnd        = "_rest_of_bootloader_end_addr"
+		kernelStartAddr    = "_kernel_start_addr"
+		kernelSizeAddr     = "_kernel_size_addr"
 		sectorSize         = 512
 		maxStageTwoSectors = 127
 	)
 
-	symbols, err := f.Symbols()
+	symbols, err := bootloader.Symbols()
 	if err != nil {
-		log.Fatalf("failed to parse symbol table: %v", err)
+		log.Fatalf("Failed to parse symbol table: %v", err)
 	}
 
-	var startSymbol, endSymbol elf.Symbol
+	var startSymbol, endSymbol, kernelStartSymbol, kernelSizeSymbol elf.Symbol
 	for _, sym := range symbols {
-		if sym.Name == stageTwoStart {
+		switch sym.Name {
+		case stageTwoStart:
 			startSymbol = sym
-		} else if sym.Name == stageTwoEnd {
+		case stageTwoEnd:
 			endSymbol = sym
+		case kernelStartAddr:
+			kernelStartSymbol = sym
+		case kernelSizeAddr:
+			kernelSizeSymbol = sym
 		}
 	}
 
 	if startSymbol.Value == 0 || endSymbol.Value == 0 {
-		log.Fatalf("failed to find stage two bootloader")
+		log.Fatalf("Failed to find stage two bootloader")
 	}
 	if startSymbol.Value > endSymbol.Value {
-		log.Fatalf("invalid stage two bootloader: region %#x-%#x", startSymbol.Value, endSymbol.Value)
+		log.Fatalf("Invalid stage two bootloader: region %#x-%#x", startSymbol.Value, endSymbol.Value)
+	}
+	if kernelStartSymbol.Value == 0 || kernelSizeSymbol.Value == 0 {
+		log.Fatalf("Failed to find kernel size symbol in the bootloader")
 	}
 
 	stageTwoSize := endSymbol.Value - startSymbol.Value
 	stageTwoSectors := (stageTwoSize + sectorSize - 1) / sectorSize
 	if stageTwoSectors > maxStageTwoSectors {
-		log.Fatalf("stage two bootloader is too large: %d bytes (%d sectors)", stageTwoSize, stageTwoSectors)
+		log.Fatalf("Stage two bootloader is too large: %d bytes (%d sectors)", stageTwoSize, stageTwoSectors)
 	}
 
 	seenHeaders := false
-	segments := make([]*elf.Prog, 0, len(f.Progs))
-	for _, prog := range f.Progs {
+	segments := make([]*elf.Prog, 0, len(bootloader.Progs))
+	for _, prog := range bootloader.Progs {
 		// Only consider parts of the binary that
 		// end up in memory.
 		if prog.Type != elf.PT_LOAD {
@@ -104,33 +150,77 @@ func main() {
 	}
 
 	if len(segments) == 0 {
-		log.Fatalf("no valid program segments found")
+		log.Fatalf("No valid program segments found.")
 	}
 
 	sort.Slice(segments, func(i, j int) bool { return segments[i].Vaddr < segments[j].Vaddr })
 
-	var written int64
+	var buf bytes.Buffer
 	for _, segment := range segments {
-		n, err := io.Copy(image, segment.Open())
+		_, err := io.Copy(&buf, segment.Open())
 		if err != nil {
-			log.Fatalf("failed to copy segment: %v", err)
+			log.Fatalf("Failed to copy segment: %v", err)
 		}
+	}
 
-		written += n
+	kernel, err := os.Open(kernelName)
+	if err != nil {
+		log.Fatalf("Failed to open kernel at %s: %v", kernelName, err)
+	}
+
+	defer kernel.Close()
+
+	kernelInfo, err := kernel.Stat()
+	if err != nil {
+		log.Fatalf("Failed to stat kernel: %v", err)
+	}
+
+	kernelSize := kernelInfo.Size()
+
+	// Write the kernel's size to the symbol address.
+	// First we work out the virtual address at the
+	// start of the first segment, as we need to
+	// subtract that offset from the address of the
+	// kernel size so we overwrite the right bit of
+	// memory.
+	offset := segments[0].Vaddr
+	binary.LittleEndian.PutUint32(buf.Bytes()[kernelSizeSymbol.Value-offset:], uint32(kernelSize))
+
+	// Check that we're putting the kernel where the
+	// bootloader expects it.
+	if uint64(buf.Len()) != kernelStartSymbol.Value-offset {
+		log.Fatalf("appending kernel at %#x but bootloader expects it at %#x", uint64(buf.Len()), kernelStartSymbol.Value-offset)
+	}
+
+	// Write out the modified bootloader.
+	out, err := os.Create(outName)
+	if err != nil {
+		log.Fatalf("Failed to create out at %s: %v", outName, err)
+	}
+
+	_, err = out.Write(buf.Bytes())
+	if err != nil {
+		log.Fatalf("Failed to write bootloader to %s: %v", outName, err)
+	}
+
+	// Then the kernel.
+	_, err = io.Copy(out, kernel)
+	if err != nil {
+		log.Fatalf("Failed to write kernel to %s: %v", outName, err)
 	}
 
 	// Round the image size up to the next multiple
 	// of 512.
-	remaining := blockSize - (written % blockSize)
+	remaining := blockSize - (buf.Len() % blockSize)
 	if remaining != blockSize {
-		_, err = image.Write(zeros[:remaining])
+		_, err = out.Write(zeros[:remaining])
 		if err != nil {
-			log.Fatalf("failed to pad image: %v", err)
+			log.Fatalf("Failed to write padding to %s: %v", outName, err)
 		}
 	}
 
-	err = image.Close()
+	err = out.Close()
 	if err != nil {
-		log.Fatalf("failed to close image: %v", err)
+		log.Fatalf("Failed to close %s: %v", outName, err)
 	}
 }

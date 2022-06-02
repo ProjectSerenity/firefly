@@ -42,6 +42,8 @@ SECTIONS {
 
         /* rest of bootloader */
         _rest_of_bootloader_start_addr = .;
+        _kernel_size_addr = .;
+        . += 4; /* Leave space for the kernel size. */
         *(.boot)
         *(.context_switch)
         *(.text .text.*)
@@ -51,11 +53,7 @@ SECTIONS {
         . = ALIGN(512);
         _rest_of_bootloader_end_addr = .;
         __bootloader_end = .;
-    }
-
-    .kernel :
-    {
-        KEEP(*(.kernel))
+        _kernel_start_addr = .;
     }
 
     /DISCARD/ :

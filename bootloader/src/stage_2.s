@@ -59,7 +59,8 @@ load_kernel_from_disk:
     mov edi, 0x400000
 
     # block count
-    mov ecx, offset _kernel_size
+    mov ecx, offset _kernel_size_addr # Load the address of the kernel size.
+    mov ecx, [ecx]                    # Load the kernel size by dereferencing the address.
     add ecx, 511 # align up
     shr ecx, 9
 
