@@ -82,6 +82,45 @@ rustfmt_test(
 )
 
 rust_binary(
+    name = "binary_debug",
+    srcs = ["main.rs"],
+    rustc_flags = [
+        "-Cpanic=abort",
+        "-Clink-args=-nostartfiles -static -Wl,--image-base=0xffff800000000000",
+        "-Ctarget-feature=+crt-static",
+    ],
+    tags = ["manual"],
+    deps = [
+        ":libkernel",
+        "//kernel/cpu",
+        "//kernel/drivers/serial",
+        "//kernel/filesystem",
+        "//kernel/memory",
+        "//kernel/memory/physmem",
+        "//kernel/memory/virtmem",
+        "//kernel/multitasking",
+        "//kernel/network",
+        "//kernel/power",
+        "//kernel/storage",
+        "//kernel/time",
+        "//kernel/utils/tar",
+        "//shared/bootinfo",
+        "//vendor/rust/x86_64",
+    ],
+)
+
+# This is the real target, as it uses
+# a transition to enforce that the kernel
+# binary is compiled and linked using our
+# custom C/C++ toolchain and platform.
+
+x86_64_bare_metal_rust_binary(
+    name = "kernel_debug",
+    rust_binary = ":binary_debug",
+    visibility = ["//visibility:public"],
+)
+
+rust_binary(
     name = "binary",
     srcs = ["main.rs"],
     rustc_flags = [
