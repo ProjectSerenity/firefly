@@ -85,7 +85,7 @@ func main() {
 		log.Fatalf("stage two bootloader is too large: %d bytes (%d sectors)", stageTwoSize, stageTwoSectors)
 	}
 
-	entry := f.Entry
+	seenHeaders := false
 	segments := make([]*elf.Prog, 0, len(f.Progs))
 	for _, prog := range f.Progs {
 		// Only consider parts of the binary that
@@ -94,8 +94,9 @@ func main() {
 			continue
 		}
 
-		// Ignore segments prior to the entry point.
-		if prog.Vaddr < entry {
+		// Ignore the first load segment, as it just has the ELF headers.
+		if !seenHeaders {
+			seenHeaders = true
 			continue
 		}
 
