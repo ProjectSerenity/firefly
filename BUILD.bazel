@@ -6,7 +6,6 @@
 load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
 load("@io_bazel_rules_go//go:def.bzl", "nogo")
 load("//bazel:qemu.bzl", "qemu")
-load("//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_binary")
 
 # Expose the license to the rest of the workspace.
 exports_files(
@@ -47,23 +46,17 @@ buildifier(
     mode = "fix",
 )
 
-x86_64_bare_metal_rust_binary(
-    name = "bootloader_bin",
-    rust_binary = "//bootloader:bootloader_bin",
-    visibility = ["//visibility:public"],
-)
-
 # Allow the bootable image to be built with `bazel build //:image`.
 genrule(
     name = "image",
     srcs = [
-        ":bootloader_bin",
+        "//bootloader",
         "//kernel",
     ],
     outs = ["image.bin"],
     cmd = """
         bootimage="$(location //tools/bootimage)"
-        bootloader="$(location :bootloader_bin)"
+        bootloader="$(location //bootloader)"
         kernel="$(location //kernel)"
         output="$$(realpath $(location image.bin))"
 
