@@ -326,9 +326,6 @@ go = [
                 build_file = "third_party/github.com_bazelbuild_buildtools_build.BUILD",
             ),
             package(
-                name = "github.com/bazelbuild/buildtools/labels",
-            ),
-            package(
                 name = "github.com/bazelbuild/buildtools/tables",
                 no_tests = True,  # The tests don't play nicely when vendored into another Bazel workspace.
             ),
@@ -408,9 +405,6 @@ go = [
                 test_deps = [
                     "golang.org/x/crypto/ed25519",
                 ],
-            ),
-            package(
-                name = "golang.org/x/mod/sumdb/storage",
             ),
             package(
                 name = "golang.org/x/mod/sumdb/tlog",
