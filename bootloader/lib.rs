@@ -47,7 +47,7 @@ global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
 global_asm!(include_str!("e820.s"));
 global_asm!(include_str!("stage_3.s"));
-global_asm!(include_str!("vga_text_80x25.s"));
+global_asm!(include_str!("uart_serial_port.s"));
 
 unsafe fn context_switch(boot_info: VirtAddr, entry_point: VirtAddr, stack_pointer: VirtAddr) -> ! {
     asm!("mov rsp, {1}; call {0}; 2: jmp 2b",

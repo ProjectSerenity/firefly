@@ -87,7 +87,6 @@ set_up_page_tables:
     cmp ecx, edx
     jb map_p1_table
     map_framebuffer:
-    call vga_map_frame_buffer
 
 enable_paging:
     # Write back cache and add a memory fence. I'm not sure if this is

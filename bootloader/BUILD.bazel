@@ -20,7 +20,7 @@ rust_library(
         "stage_1.s",
         "stage_2.s",
         "stage_3.s",
-        "vga_text_80x25.s",
+        "uart_serial_port.s",
     ],
     crate_name = "bootloader",
     edition = "2021",
