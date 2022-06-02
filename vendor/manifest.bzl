@@ -162,11 +162,6 @@ rust = [
         digest = "sha256:f58497bfb4bfba4fce95f5b518db8a162e9d033504eacae78033f1f2c8ada2a7",
     ),
     crate(
-        name = "usize_conversions",
-        version = "0.2.0",
-        digest = "sha256:32022d1cc5d4c7660cdc36faa31449725ffd0c856b49869f29aea82444d7f2db",
-    ),
-    crate(
         name = "volatile",
         version = "0.4.5",
         digest = "sha256:f583a4d1ff9e541ba7ca79417a1656e96bcefb7afd9646fb437fb88d4018417a",

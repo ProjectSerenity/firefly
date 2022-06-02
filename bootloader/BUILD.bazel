@@ -28,7 +28,6 @@ rust_library(
     deps = [
         "//shared/bootinfo",
         "//vendor/rust/fixedvec",
-        "//vendor/rust/usize_conversions",
         "//vendor/rust/x86_64",
         "//vendor/rust/xmas-elf",
     ],

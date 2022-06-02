@@ -31,7 +31,6 @@ use core::arch::{asm, global_asm};
 use core::convert::TryInto;
 use core::slice;
 use fixedvec::{alloc_stack, FixedVec};
-use usize_conversions::usize_from;
 use x86_64::instructions::tlb;
 use x86_64::registers::control::{Cr0, Cr0Flags, Cr4, Cr4Flags, Efer, EferFlags};
 use x86_64::structures::paging::frame::PhysFrameRange;
@@ -168,8 +167,8 @@ fn bootloader_main(
     let mut segments = FixedVec::new(&mut preallocated_space);
     let entry_point;
     {
-        let kernel_start_ptr = usize_from(kernel_start.as_u64()) as *const u8;
-        let kernel = unsafe { slice::from_raw_parts(kernel_start_ptr, usize_from(kernel_size)) };
+        let kernel_start_ptr = kernel_start.as_u64() as usize as *const u8;
+        let kernel = unsafe { slice::from_raw_parts(kernel_start_ptr, kernel_size as usize) };
         let elf_file = xmas_elf::ElfFile::new(kernel).unwrap();
         xmas_elf::header::sanity_check(&elf_file).unwrap();
 

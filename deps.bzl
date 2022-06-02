@@ -250,10 +250,6 @@ rust = [
         ],
     ),
     crate(
-        name = "usize_conversions",
-        version = "0.2.0",
-    ),
-    crate(
         name = "volatile",
         version = "0.4.5",
     ),
