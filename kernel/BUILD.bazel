@@ -88,6 +88,7 @@ rust_binary(
         "-Cpanic=abort",
         "-Clink-args=-nostartfiles -static -Wl,--image-base=0xffff800000000000",
         "-Ctarget-feature=+crt-static",
+        "-Cstrip=debuginfo",
     ],
     tags = ["manual"],
     deps = [
