@@ -55,7 +55,6 @@ rust_binary(
     edition = "2021",
     linker_script = "linker.ld",
     rustc_flags = [
-        "--cap-lints=allow",
         "-Cpanic=abort",
         "-Clink-args=-nostartfiles -static -Wl,--gc-sections -Wl,--build-id=none",
         "-Ctarget-feature=+crt-static",
