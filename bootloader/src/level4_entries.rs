@@ -46,7 +46,7 @@ impl UsedLevel4Entries {
             .entry_state
             .iter_mut()
             .enumerate()
-            .find(|(_, &mut entry)| entry == false)
+            .find(|(_, &mut entry)| !entry)
             .expect("no usable level 4 entries found");
 
         *entry = true;

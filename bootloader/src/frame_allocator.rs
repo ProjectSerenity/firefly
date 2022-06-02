@@ -10,6 +10,7 @@
 
 use super::{frame_range, phys_frame_range};
 use bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
+use core::cmp::Ordering;
 use x86_64::structures::paging::{frame::PhysFrameRange, PhysFrame};
 
 pub(crate) struct FrameAllocator<'map> {
@@ -92,43 +93,51 @@ impl<'map> FrameAllocator<'map> {
                 );
             }
 
-            if region.range.start_frame_number == r.range.start_frame_number {
-                if region.range.end_frame_number < r.range.end_frame_number {
+            match region
+                .range
+                .start_frame_number
+                .cmp(&r.range.start_frame_number)
+            {
+                Ordering::Equal => {
+                    if region.range.end_frame_number < r.range.end_frame_number {
+                        // Case: (r = `r`, R = `region`)
+                        // ----rrrrrrrrrrr----
+                        // ----RRRR-----------
+                        r.range.start_frame_number = region.range.end_frame_number;
+                        self.memory_map.add_region(region);
+                    } else {
+                        // Case: (r = `r`, R = `region`)
+                        // ----rrrrrrrrrrr----
+                        // ----RRRRRRRRRRRRRR-
+                        *r = region;
+                    }
+                }
+                Ordering::Greater => {
+                    if region.range.end_frame_number < r.range.end_frame_number {
+                        // Case: (r = `r`, R = `region`)
+                        // ----rrrrrrrrrrr----
+                        // ------RRRR---------
+                        let mut behind_r = *r;
+                        behind_r.range.start_frame_number = region.range.end_frame_number;
+                        r.range.end_frame_number = region.range.start_frame_number;
+                        self.memory_map.add_region(behind_r);
+                        self.memory_map.add_region(region);
+                    } else {
+                        // Case: (r = `r`, R = `region`)
+                        // ----rrrrrrrrrrr----
+                        // -----------RRRR---- or
+                        // -------------RRRR--
+                        r.range.end_frame_number = region.range.start_frame_number;
+                        self.memory_map.add_region(region);
+                    }
+                }
+                Ordering::Less => {
                     // Case: (r = `r`, R = `region`)
                     // ----rrrrrrrrrrr----
-                    // ----RRRR-----------
+                    // --RRRR-------------
                     r.range.start_frame_number = region.range.end_frame_number;
                     self.memory_map.add_region(region);
-                } else {
-                    // Case: (r = `r`, R = `region`)
-                    // ----rrrrrrrrrrr----
-                    // ----RRRRRRRRRRRRRR-
-                    *r = region;
                 }
-            } else if region.range.start_frame_number > r.range.start_frame_number {
-                if region.range.end_frame_number < r.range.end_frame_number {
-                    // Case: (r = `r`, R = `region`)
-                    // ----rrrrrrrrrrr----
-                    // ------RRRR---------
-                    let mut behind_r = r.clone();
-                    behind_r.range.start_frame_number = region.range.end_frame_number;
-                    r.range.end_frame_number = region.range.start_frame_number;
-                    self.memory_map.add_region(behind_r);
-                    self.memory_map.add_region(region);
-                } else {
-                    // Case: (r = `r`, R = `region`)
-                    // ----rrrrrrrrrrr----
-                    // -----------RRRR---- or
-                    // -------------RRRR--
-                    r.range.end_frame_number = region.range.start_frame_number;
-                    self.memory_map.add_region(region);
-                }
-            } else {
-                // Case: (r = `r`, R = `region`)
-                // ----rrrrrrrrrrr----
-                // --RRRR-------------
-                r.range.start_frame_number = region.range.end_frame_number;
-                self.memory_map.add_region(region);
             }
             return;
         }

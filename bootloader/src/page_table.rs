@@ -128,8 +128,8 @@ pub(crate) fn map_segment(
                         .ok_or(MapToError::FrameAllocationFailed)?;
                     unsafe {
                         map_page(
-                            temp_page.clone(),
-                            new_frame.clone(),
+                            temp_page,
+                            new_frame,
                             page_table_flags,
                             page_table,
                             frame_allocator,
@@ -149,7 +149,7 @@ pub(crate) fn map_segment(
                     }
 
                     // remap last page
-                    if let Err(e) = page_table.unmap(last_page.clone()) {
+                    if let Err(e) = page_table.unmap(last_page) {
                         return Err(match e {
                             UnmapError::ParentEntryHugePage => MapToError::ParentEntryHugePage,
                             UnmapError::PageNotMapped => unreachable!(),

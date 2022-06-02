@@ -23,7 +23,7 @@ impl Printer {
     pub fn clear_screen(&mut self) {
         for i in 0..SCREEN_SIZE {
             unsafe {
-                VGA_BUFFER.offset(i as isize).write_volatile(0);
+                VGA_BUFFER.add(i).write_volatile(0);
             }
         }
 

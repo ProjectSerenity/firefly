@@ -19,7 +19,7 @@
 #![deny(clippy::float_arithmetic)]
 #![deny(clippy::inline_asm_x86_att_syntax)]
 #![deny(clippy::missing_panics_doc)]
-#![deny(clippy::panic)]
+#![allow(clippy::panic)]
 #![deny(clippy::return_self_not_must_use)]
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
@@ -29,7 +29,7 @@
 use bootinfo::{BootInfo, FrameRange, MemoryRegion, MemoryRegionType};
 use core::arch::{asm, global_asm};
 use core::convert::TryInto;
-use core::{mem, slice};
+use core::slice;
 use fixedvec::{alloc_stack, FixedVec};
 use usize_conversions::usize_from;
 use x86_64::instructions::tlb;
@@ -99,6 +99,20 @@ extern "C" {
     static _p4: usize;
 }
 
+/// The Rust entry point for the bootloader.
+///
+/// This is called at the end of stage 3 by
+/// the assembly.
+///
+/// # Safety
+///
+/// This is unsafe, as it accesses symbols
+/// defined in the linker script, which may
+/// have unknown bitpatterns. However, any
+/// invalid values in these symbols would
+/// already have caused a boot failure by
+/// now.
+///
 #[no_mangle]
 pub unsafe extern "C" fn stage_4() -> ! {
     // Set stack segment
@@ -132,6 +146,7 @@ pub unsafe extern "C" fn stage_4() -> ! {
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn bootloader_main(
     kernel_start: IdentityMappedAddr,
     kernel_size: u64,
@@ -343,7 +358,6 @@ fn bootloader_main(
         .expect("error deallocating recursive entry")
         .1
         .flush();
-    mem::drop(rec_page_table);
 
     let entry_point = VirtAddr::new(entry_point);
     unsafe { context_switch(boot_info_addr, entry_point, kernel_memory_info.stack_end) };
