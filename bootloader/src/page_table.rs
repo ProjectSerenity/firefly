@@ -214,20 +214,24 @@ pub(crate) fn map_segment(
     }
 }
 
-pub(crate) unsafe fn map_page<'a, S>(
+pub(crate) unsafe fn map_page<'page_table, S>(
     page: Page<S>,
     phys_frame: PhysFrame<S>,
     flags: PageTableFlags,
-    page_table: &mut RecursivePageTable<'a>,
+    page_table: &mut RecursivePageTable<'page_table>,
     frame_allocator: &mut FrameAllocator,
 ) -> Result<MapperFlush<S>, MapToError<S>>
 where
     S: PageSize,
-    RecursivePageTable<'a>: Mapper<S>,
+    RecursivePageTable<'page_table>: Mapper<S>,
 {
-    struct PageTableAllocator<'a, 'b: 'a>(&'a mut FrameAllocator<'b>);
+    struct PageTableAllocator<'page_table, 'allocator: 'page_table>(
+        &'page_table mut FrameAllocator<'allocator>,
+    );
 
-    unsafe impl<'a, 'b> paging::FrameAllocator<Size4KiB> for PageTableAllocator<'a, 'b> {
+    unsafe impl<'page_table, 'allocator> paging::FrameAllocator<Size4KiB>
+        for PageTableAllocator<'page_table, 'allocator>
+    {
         fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
             self.0.allocate_frame(MemoryRegionType::PageTable)
         }

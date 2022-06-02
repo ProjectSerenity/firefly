@@ -12,11 +12,11 @@ use super::{frame_range, phys_frame_range};
 use bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 use x86_64::structures::paging::{frame::PhysFrameRange, PhysFrame};
 
-pub(crate) struct FrameAllocator<'a> {
-    pub memory_map: &'a mut MemoryMap,
+pub(crate) struct FrameAllocator<'map> {
+    pub memory_map: &'map mut MemoryMap,
 }
 
-impl<'a> FrameAllocator<'a> {
+impl<'map> FrameAllocator<'map> {
     pub(crate) fn allocate_frame(&mut self, region_type: MemoryRegionType) -> Option<PhysFrame> {
         // try to find an existing region of same type that can be enlarged
         let mut iter = self.memory_map.iter_mut().peekable();
@@ -36,9 +36,9 @@ impl<'a> FrameAllocator<'a> {
             }
         }
 
-        fn split_usable_region<'a, I>(iter: &mut I) -> Option<(PhysFrame, PhysFrameRange)>
+        fn split_usable_region<'map, I>(iter: &mut I) -> Option<(PhysFrame, PhysFrameRange)>
         where
-            I: Iterator<Item = &'a mut MemoryRegion>,
+            I: Iterator<Item = &'map mut MemoryRegion>,
         {
             for region in iter {
                 if region.region_type != MemoryRegionType::Usable {
