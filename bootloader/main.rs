@@ -30,8 +30,8 @@ use uart_16550::SerialPort;
 pub fn panic(info: &PanicInfo) -> ! {
     unsafe {
         // Write the panic info to COM1.
-        let mut COM1 = SerialPort::new(0x3f8);
-        write!(COM1, "{}", info);
+        let mut com1 = SerialPort::new(0x3f8);
+        let _ = write!(com1, "{}", info);
     }
 
     loop {}
