@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_doc", "rust_library", "rustfmt_test")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_doc", "rust_library", "rustfmt_test")
 load("//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_binary")
 
 rust_library(
@@ -33,6 +33,11 @@ rust_library(
         "//vendor/rust/x86_64",
         "//vendor/rust/xmas-elf",
     ],
+)
+
+rust_clippy(
+    name = "clippy",
+    deps = [":libbootloader"],
 )
 
 rust_doc(
