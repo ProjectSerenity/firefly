@@ -59,9 +59,6 @@ mod boot_info;
 mod frame_allocator;
 mod level4_entries;
 mod page_table;
-mod printer;
-
-pub use printer::Printer;
 
 // Kernel configuration constants.
 
@@ -158,8 +155,6 @@ fn bootloader_main(
     bootloader_end: PhysAddr,
     p4_physical: PhysAddr,
 ) -> ! {
-    Printer.clear_screen();
-
     let mut memory_map = boot_info::create_from(memory_map_addr, memory_map_entry_count);
 
     let max_phys_addr = memory_map

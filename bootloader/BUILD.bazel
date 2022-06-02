@@ -14,7 +14,6 @@ rust_library(
         "level4_entries.rs",
         "lib.rs",
         "page_table.rs",
-        "printer.rs",
     ],
     compile_data = [
         "e820.s",
@@ -65,6 +64,7 @@ rust_binary(
     tags = ["manual"],
     deps = [
         ":libbootloader",
+        "//vendor/rust/uart_16550",
     ],
 )
 

@@ -20,14 +20,20 @@
 #![deny(unused_crate_dependencies)]
 #![allow(unsafe_code)]
 
-use bootloader::Printer;
+use bootloader as _;
 use core::fmt::Write;
 use core::panic::PanicInfo;
+use uart_16550::SerialPort;
 
 #[panic_handler]
 #[no_mangle]
 pub fn panic(info: &PanicInfo) -> ! {
-    write!(Printer, "{}", info).unwrap();
+    unsafe {
+        // Write the panic info to COM1.
+        let mut COM1 = SerialPort::new(0x3f8);
+        write!(COM1, "{}", info);
+    }
+
     loop {}
 }
 
