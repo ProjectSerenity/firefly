@@ -102,16 +102,6 @@ rust = [
         digest = "sha256:4e2e29fe24658d34164ba3f389e1b85c9463aa25b4b8634c1c8c4d68c99992f6",
     ),
     crate(
-        name = "rand",
-        version = "0.8.5",
-        digest = "sha256:8de7b01d3bf4298b84b1d830fa59a818026b913fb8e458c6058b6ea1dddbbd67",
-    ),
-    crate(
-        name = "rand_core",
-        version = "0.6.3",
-        digest = "sha256:6a57759087ed6d1c2cc2fc48754ae290a9629b04a1f90228129bc1609d06f5e8",
-    ),
-    crate(
         name = "raw-cpuid",
         version = "10.3.0",
         digest = "sha256:2c555c7fc14ecf7eecce932fe7f7ba12988391babdf92338926cf62a35cedfac",

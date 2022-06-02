@@ -152,20 +152,6 @@ rust = [
         ],
     ),
     crate(
-        name = "rand",
-        version = "0.8.5",
-        edition = "2018",
-        deps = [
-            "rand_core",
-        ],
-        no_tests = True,  # Tests depend on rand_pcg, which has lots of deps.
-    ),
-    crate(
-        name = "rand_core",
-        version = "0.6.3",
-        edition = "2018",
-    ),
-    crate(
         name = "raw-cpuid",
         version = "10.3.0",
         edition = "2018",
