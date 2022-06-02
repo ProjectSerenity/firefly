@@ -182,10 +182,11 @@ func httpRequest(req *http.Request) (*http.Response, error) {
 }
 
 func main() {
-	var help, noCache, dryRun, update bool
+	var help, noCache, dryRun, check, update bool
 	flag.BoolVar(&help, "h", false, "Show this message and exit.")
 	flag.BoolVar(&noCache, "no-cache", false, "Ignore any locally cached dependency data.")
 	flag.BoolVar(&dryRun, "dry-run", false, "Print the set of actions that would be performed, without performing them.")
+	flag.BoolVar(&check, "check", false, "Check the dependency set for unused dependencies.")
 	flag.BoolVar(&update, "update", false, "Check the dependency specification for dependency updates.")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage\n  %s [OPTIONS]\n\n", filepath.Base(os.Args[0]))
@@ -207,6 +208,16 @@ func main() {
 		if err != nil {
 			log.Printf("Failed to change directory to %q: %v", workspace, err)
 		}
+	}
+
+	if check {
+		fsys := os.DirFS(".")
+		err := CheckDependencies(fsys)
+		if err != nil {
+			log.Fatalf("Failed to check dependencies: %v", err)
+		}
+
+		return
 	}
 
 	if update {

@@ -11,6 +11,7 @@ go_library(
     srcs = [
         "actions.go",
         "cache.go",
+        "check.go",
         "digest.go",
         "go.go",
         "license.go",
