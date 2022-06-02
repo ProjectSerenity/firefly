@@ -23,7 +23,7 @@ stage_3:
     mov ss, bx # set stack segment
 
     mov si, offset boot_third_stage_str
-    call vga_println
+    call uart_println
 
 check_cpu:
     call check_cpuid
@@ -161,7 +161,7 @@ check_cpuid:
     ret
 no_cpuid:
     mov esi, offset no_cpuid_str
-    call vga_println
+    call uart_println
 no_cpuid_spin:
     hlt
     jmp no_cpuid_spin
@@ -181,7 +181,7 @@ check_long_mode:
     ret
 no_long_mode:
     mov esi, offset no_long_mode_str
-    call vga_println
+    call uart_println
 no_long_mode_spin:
     hlt
     jmp no_long_mode_spin
