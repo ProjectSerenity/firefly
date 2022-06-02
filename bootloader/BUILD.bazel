@@ -7,7 +7,7 @@ load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_clippy", "rust_doc", "ru
 load("//bazel/cross-compiling:config-transition.bzl", "x86_64_bare_metal_rust_binary")
 
 rust_library(
-    name = "libbootloader",
+    name = "bootloader_lib",
     srcs = [
         "boot_info.rs",
         "frame_allocator.rs",
@@ -35,22 +35,22 @@ rust_library(
 
 rust_clippy(
     name = "clippy",
-    deps = [":libbootloader"],
+    deps = [":bootloader_lib"],
 )
 
 rust_doc(
     name = "docs",
-    crate = ":libbootloader",
+    crate = ":bootloader_lib",
 )
 
 rustfmt_test(
     name = "fmt_test",
     size = "small",
-    targets = [":libbootloader"],
+    targets = [":bootloader_lib"],
 )
 
 rust_binary(
-    name = "binary",
+    name = "bootloader_bin",
     srcs = ["main.rs"],
     edition = "2021",
     linker_script = "linker.ld",
@@ -61,13 +61,13 @@ rust_binary(
     ],
     tags = ["manual"],
     deps = [
-        ":libbootloader",
+        ":bootloader_lib",
         "//vendor/rust/uart_16550",
     ],
 )
 
 x86_64_bare_metal_rust_binary(
     name = "bootloader",
-    rust_binary = ":binary",
+    rust_binary = ":bootloader_bin",
     visibility = ["//visibility:public"],
 )

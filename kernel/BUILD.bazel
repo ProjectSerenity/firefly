@@ -14,7 +14,7 @@ plan_rust_kernelspace(
 )
 
 rust_library(
-    name = "libkernel",
+    name = "kernel_lib",
     srcs = [
         "lib.rs",
         "syscalls/mod.rs",
@@ -63,7 +63,7 @@ rust_library(
 
 rust_clippy(
     name = "clippy",
-    deps = [":libkernel"],
+    deps = [":kernel_lib"],
 )
 
 # For now, we have to disable this due to the
@@ -72,17 +72,17 @@ rust_clippy(
 # See https://github.com/bazelbuild/rules_rust/issues/689
 # rust_doc(
 #     name = "docs",
-#     crate = ":libkernel",
+#     crate = ":kernel_lib",
 # )
 
 rustfmt_test(
     name = "fmt_test",
     size = "small",
-    targets = [":libkernel"],
+    targets = [":kernel_lib"],
 )
 
 rust_binary(
-    name = "binary_debug",
+    name = "kernel_bin_debug",
     srcs = ["main.rs"],
     rustc_flags = [
         "-Cpanic=abort",
@@ -91,7 +91,7 @@ rust_binary(
     ],
     tags = ["manual"],
     deps = [
-        ":libkernel",
+        ":kernel_lib",
         "//kernel/cpu",
         "//kernel/drivers/serial",
         "//kernel/filesystem",
@@ -116,12 +116,12 @@ rust_binary(
 
 x86_64_bare_metal_rust_binary(
     name = "kernel_debug",
-    rust_binary = ":binary_debug",
+    rust_binary = ":kernel_bin_debug",
     visibility = ["//visibility:public"],
 )
 
 rust_binary(
-    name = "binary",
+    name = "kernel_bin",
     srcs = ["main.rs"],
     rustc_flags = [
         "-Cpanic=abort",
@@ -131,7 +131,7 @@ rust_binary(
     ],
     tags = ["manual"],
     deps = [
-        ":libkernel",
+        ":kernel_lib",
         "//kernel/cpu",
         "//kernel/drivers/serial",
         "//kernel/filesystem",
@@ -156,6 +156,6 @@ rust_binary(
 
 x86_64_bare_metal_rust_binary(
     name = "kernel",
-    rust_binary = ":binary",
+    rust_binary = ":kernel_bin",
     visibility = ["//visibility:public"],
 )
