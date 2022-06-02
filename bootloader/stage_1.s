@@ -183,8 +183,11 @@ real_mode_print_done:
 # CLOBBER
 #   ah
 real_mode_print_char:
-    mov ah, 0x0e
-    int 0x10
+    push dx      # Save dx.
+    mov dx, 0x00 # Serial port COM1.
+    mov ah, 0x01 # Transmit.
+    int 0x14     # Serial port services.
+    pop dx       # Restore dx.
     ret
 
 # print a number in hex
