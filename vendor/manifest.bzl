@@ -77,11 +77,6 @@ rust = [
         digest = "sha256:a5c951461498ce8e568a9bae57e35162a7fde5f762fe582242f59ee1de6f5d4c",
     ),
     crate(
-        name = "llvm-tools",
-        version = "0.1.1",
-        digest = "sha256:b4471bf53cecab502edd3c909b4b8b635fca8dcad2411e042a079823885332fe",
-    ),
-    crate(
         name = "lock_api",
         version = "0.4.7",
         digest = "sha256:1e17f46359d88912e76f7748ce30a874e517d2d49bbe24bc19201f3319c9e519",

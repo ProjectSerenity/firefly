@@ -107,11 +107,6 @@ rust = [
         features = ["const_mut_refs"],
     ),
     crate(
-        name = "llvm-tools",
-        version = "0.1.1",
-        edition = "2018",
-    ),
-    crate(
         name = "lock_api",
         version = "0.4.7",
         edition = "2018",
