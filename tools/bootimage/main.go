@@ -211,7 +211,8 @@ func main() {
 
 	// Round the image size up to the next multiple
 	// of 512.
-	remaining := blockSize - (buf.Len() % blockSize)
+	written := int64(buf.Len()) + kernelSize
+	remaining := blockSize - (written % blockSize)
 	if remaining != blockSize {
 		_, err = out.Write(zeros[:remaining])
 		if err != nil {
