@@ -182,24 +182,24 @@ go = [
     module(
         name = "github.com/BurntSushi/toml",
         version = "v1.1.0",
-        digest = "sha256:543f49808bf5a82dc8ce5b98b82ffc273b450dd1e5a616371ee6806dc4e58276",
+        digest = "sha256:2d2419b22944a3c77038205bef2ed91e387414df0a77f3355d9cc2c7b8becf90",
     ),
     module(
         name = "github.com/bazelbuild/buildtools",
         version = "v0.0.0-20220531122519-a43aed7014c8",
-        digest = "sha256:a7fe4579aad4ed223c90b799798e45dbf7f39afceb45244cde88f33a1cd0a16e",
+        digest = "sha256:5fb158bdff540fc1c984065d1cef4acd4e6f94869a0b5b26f0bd29b4ed192509",
         patch_args = [
             "-p1",
         ],
         patches = [
             "third_party/github.com_bazelbuild_buildtools.patch",
         ],
-        patch_digest = "sha256:adc98d9f6682a8fc707376215700d9316f3026c854a87d00fee0d968bfc5a750",
+        patch_digest = "sha256:50b62b020815f9b165975846aca4ce70f17ce357ac581fe4b484566449fcba96",
     ),
     module(
         name = "golang.org/x/crypto",
         version = "v0.0.0-20220525230936-793ad666bf5e",
-        digest = "sha256:277ef4db2183f1be53d37a11ce9937141ffdafb9885d627686c6575f6428dbde",
+        digest = "sha256:9cf21739f383c79039d1854b58da3c9215040756ab8028199ff8b57bef653471",
     ),
     module(
         name = "golang.org/x/xerrors",
@@ -209,7 +209,7 @@ go = [
     module(
         name = "golang.org/x/mod",
         version = "v0.5.1",
-        digest = "sha256:ea902e25fdc85aa5df7018a1ab974c2a0ed8f073544528d7a2e5e652447aad4a",
+        digest = "sha256:d17023cbaeab3774e68abccdee9ba368fe303a02765251adda41ab097d345e51",
     ),
     module(
         name = "golang.org/x/time",
@@ -219,7 +219,7 @@ go = [
     module(
         name = "golang.org/x/tools",
         version = "v0.1.10",
-        digest = "sha256:3e71c91e7289fcefad1acf31fc82eed092a50dc1524e8411a496b3eb64d77599",
+        digest = "sha256:f6f026b67b413d78ce4051bc75e7c44b737331a392c34e3df113876a85b6327f",
     ),
     module(
         name = "rsc.io/diff",
