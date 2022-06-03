@@ -22,6 +22,8 @@ import (
 
 	"github.com/bazelbuild/buildtools/build"
 	"golang.org/x/mod/semver"
+
+	"firefly-os.dev/tools/simplehttp"
 )
 
 func init() {
@@ -134,7 +136,7 @@ func githubAPI(v any, baseAPI string, args ...string) error {
 		return fmt.Errorf("Failed to request API %v", err)
 	}
 
-	res, err := httpRequest(req)
+	res, err := simplehttp.Request(req, userAgent)
 	if err != nil {
 		return fmt.Errorf("failed to call API: %v", err)
 	}
@@ -264,7 +266,7 @@ func UpdateRepo(data *BazelRuleData) (newVersion, checksum string, err error) {
 		return "", "", fmt.Errorf("Failed to request archive for %s: %v", data.Name, err)
 	}
 
-	res, err := httpRequest(req)
+	res, err := simplehttp.Request(req, userAgent)
 	if err != nil {
 		return "", "", fmt.Errorf("Failed to update %s: fetching archive: %v", data.Name, err)
 	}

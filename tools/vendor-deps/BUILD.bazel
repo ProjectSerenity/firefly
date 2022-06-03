@@ -15,7 +15,6 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//tools/vendeps",
-        "//vendor/go/golang.org/x/time/rate",
     ],
 )
 

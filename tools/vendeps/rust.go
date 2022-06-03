@@ -22,6 +22,8 @@ import (
 	"time"
 
 	"golang.org/x/mod/semver"
+
+	"firefly-os.dev/tools/simplehttp"
 )
 
 // Crate contains the metadata for a Rust Crate, as provided
@@ -152,7 +154,7 @@ func FetchRustCrate(ctx context.Context, crate *RustCrate, dir string) error {
 		return fmt.Errorf("failed to prepare API request for Rust crate %q: %v", crate.Name, err)
 	}
 
-	res, err := httpRequest(req)
+	res, err := simplehttp.Request(req, userAgent)
 	if err != nil {
 		return fmt.Errorf("failed to make API request for Rust crate %q: %v", crate.Name, err)
 	}
@@ -203,7 +205,7 @@ func FetchRustCrate(ctx context.Context, crate *RustCrate, dir string) error {
 		return fmt.Errorf("failed to prepare API request for Rust crate %q: %v", crate.Name, err)
 	}
 
-	res, err = httpRequest(req)
+	res, err = simplehttp.Request(req, userAgent)
 	if err != nil {
 		return fmt.Errorf("failed to make API request for Rust crate %q: %v", crate.Name, err)
 	}
@@ -289,7 +291,7 @@ func UpdateRustCrate(ctx context.Context, crate *UpdateDep) (updated bool, err e
 		return false, fmt.Errorf("failed to prepare API request for Rust crate %q: %v", crate.Name, err)
 	}
 
-	res, err := httpRequest(req)
+	res, err := simplehttp.Request(req, userAgent)
 	if err != nil {
 		return false, fmt.Errorf("failed to make API request for Rust crate %q: %v", crate.Name, err)
 	}

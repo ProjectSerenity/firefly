@@ -8,17 +8,11 @@
 package vendeps
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
-	"net"
-	"net/http"
 	"os"
 	"path/filepath"
-	"time"
-
-	"golang.org/x/time/rate"
 )
 
 const (
@@ -151,37 +145,7 @@ func init() {
 	log.SetPrefix("")
 }
 
-var httpClient = &http.Client{
-	Transport: &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	},
-}
-
 const userAgent = "Firefly-dependency-vendoring/1 (github.com/ProjectSerenity/firefly)"
-
-var rateLimit = rate.NewLimiter(rate.Every(time.Second), 1) // 1 request per second.
-
-func httpRequest(req *http.Request) (*http.Response, error) {
-	// Make sure we always use our User-Agent.
-	req.Header.Set("User-Agent", userAgent)
-
-	// Apply our rate limeter, waiting if necessary.
-	err := rateLimit.Wait(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	return httpClient.Do(req)
-}
 
 func main() {
 	var help, noCache, dryRun, check, update bool

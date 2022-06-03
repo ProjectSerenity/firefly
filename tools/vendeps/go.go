@@ -26,6 +26,8 @@ import (
 	"golang.org/x/mod/sumdb"
 	"golang.org/x/mod/sumdb/dirhash"
 	"golang.org/x/mod/zip"
+
+	"firefly-os.dev/tools/simplehttp"
 )
 
 const (
@@ -88,7 +90,7 @@ func FetchGoModule(ctx context.Context, mod *GoModule, dir string) error {
 		return fmt.Errorf("failed to fetch Go module %s: %v", mod.Name, err)
 	}
 
-	res, err := httpRequest(req)
+	res, err := simplehttp.Request(req, userAgent)
 	if err != nil {
 		return fmt.Errorf("failed to fetch Go module %s: %v", mod.Name, err)
 	}
@@ -239,7 +241,7 @@ func UpdateGoModule(ctx context.Context, mod *UpdateDep) (updated bool, err erro
 		return false, fmt.Errorf("failed to look up Go module %s: %v", mod.Name, err)
 	}
 
-	res, err := httpRequest(req)
+	res, err := simplehttp.Request(req, userAgent)
 	if err != nil {
 		return false, fmt.Errorf("failed to look up Go module %s: %v", mod.Name, err)
 	}
@@ -296,7 +298,7 @@ func (c *GoChecksumDatabaseClient) ReadRemote(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	res, err := httpRequest(req)
+	res, err := simplehttp.Request(req, userAgent)
 	if err != nil {
 		return nil, err
 	}

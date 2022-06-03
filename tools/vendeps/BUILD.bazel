@@ -26,6 +26,7 @@ go_library(
     importpath = "firefly-os.dev/tools/vendeps",
     visibility = ["//visibility:public"],
     deps = [
+        "//tools/simplehttp",
         "//tools/starlark",
         "//vendor/go/github.com/bazelbuild/buildtools/build",
         "//vendor/go/golang.org/x/mod/module",
@@ -33,7 +34,6 @@ go_library(
         "//vendor/go/golang.org/x/mod/sumdb",
         "//vendor/go/golang.org/x/mod/sumdb/dirhash",
         "//vendor/go/golang.org/x/mod/zip",
-        "//vendor/go/golang.org/x/time/rate",
     ],
 )
 

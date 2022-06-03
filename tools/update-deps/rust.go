@@ -20,6 +20,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/bazelbuild/buildtools/build"
+
+	"firefly-os.dev/tools/simplehttp"
 )
 
 func init() {
@@ -210,7 +212,7 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("Failed to request manifest for %s: %v", want, err)
 	}
 
-	res, err := httpRequest(req)
+	res, err := simplehttp.Request(req, userAgent)
 	if err != nil {
 		return fmt.Errorf("Failed to fetch manifest for %s: %v", want, err)
 	}
