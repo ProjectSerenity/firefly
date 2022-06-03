@@ -1,0 +1,31 @@
+# Copyright 2022 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("//bazel/gofmt:gofmt.bzl", "gofmt")
+
+go_library(
+    name = "vendor-deps_lib",
+    srcs = [
+        "main.go",
+    ],
+    importpath = "firefly-os.dev/tools/vendor-deps",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//tools/vendeps",
+        "//vendor/go/golang.org/x/time/rate",
+    ],
+)
+
+gofmt(
+    name = "gofmt",
+    embed = [":vendor-deps_lib"],
+)
+
+go_binary(
+    name = "vendor-deps",
+    embed = [":vendor-deps_lib"],
+    visibility = ["//visibility:public"],
+)

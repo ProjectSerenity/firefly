@@ -3,11 +3,11 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 load("//bazel/gofmt:gofmt.bzl", "gofmt")
 
 go_library(
-    name = "vendeps_lib",
+    name = "vendeps",
     srcs = [
         "actions.go",
         "cache.go",
@@ -15,16 +15,16 @@ go_library(
         "digest.go",
         "go.go",
         "license.go",
-        "main.go",
         "patch.go",
         "rust.go",
         "templates.go",
         "updates.go",
+        "vendeps.go",
         "vendor.go",
     ],
     embedsrcs = glob(["templates/**"]),
     importpath = "firefly-os.dev/tools/vendeps",
-    visibility = ["//visibility:private"],
+    visibility = ["//visibility:public"],
     deps = [
         "//tools/starlark",
         "//vendor/go/github.com/bazelbuild/buildtools/build",
@@ -39,7 +39,7 @@ go_library(
 
 gofmt(
     name = "gofmt",
-    embed = [":vendeps_lib"],
+    embed = [":vendeps"],
 )
 
 go_test(
@@ -54,14 +54,8 @@ go_test(
         "vendor_test.go",
     ],
     data = glob(["testdata/**"]),
-    embed = [":vendeps_lib"],
+    embed = [":vendeps"],
     deps = [
         "//vendor/go/rsc.io/diff",
     ],
-)
-
-go_binary(
-    name = "vendeps",
-    embed = [":vendeps_lib"],
-    visibility = ["//visibility:public"],
 )

@@ -12,10 +12,12 @@ go_library(
         "main.go",
         "rules.go",
         "rust.go",
+        "vendored.go",
     ],
     importpath = "firefly-os.dev/tools/update-deps",
     visibility = ["//visibility:private"],
     deps = [
+        "//tools/vendeps",
         "//vendor/go/github.com/BurntSushi/toml",
         "//vendor/go/github.com/bazelbuild/buildtools/build",
         "//vendor/go/golang.org/x/mod/semver",
