@@ -100,7 +100,7 @@ pub struct RecvToken {
     dev: Arc<Mutex<Box<dyn Device>>>,
 }
 
-impl<'device> RxToken for RecvToken {
+impl RxToken for RecvToken {
     fn consume<R, F>(self, _timestamp: Instant, f: F) -> smoltcp::Result<R>
     where
         F: FnOnce(&mut [u8]) -> smoltcp::Result<R>,
@@ -135,7 +135,7 @@ pub struct SendToken {
     dev: Arc<Mutex<Box<dyn Device>>>,
 }
 
-impl<'device> TxToken for SendToken {
+impl TxToken for SendToken {
     fn consume<R, F>(self, _timestamp: Instant, len: usize, f: F) -> smoltcp::Result<R>
     where
         F: FnOnce(&mut [u8]) -> smoltcp::Result<R>,
