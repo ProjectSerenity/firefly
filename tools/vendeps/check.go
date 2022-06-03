@@ -7,12 +7,20 @@ package vendeps
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"io/fs"
+	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
+	"time"
+
+	"golang.org/x/vuln/osv"
 
 	"firefly-os.dev/tools/starlark"
 )
@@ -43,6 +51,7 @@ func CheckDependencies(fsys fs.FS) error {
 	// the dependencies that are unused.
 	all := make(map[string][]string)
 	directOnly := make(map[string][]string)
+	crateVersion := make(map[string]string)
 	var rustCrates, goModules, goPackages int
 	for _, dep := range deps.Rust {
 		rustCrates++
@@ -67,6 +76,7 @@ func CheckDependencies(fsys fs.FS) error {
 
 		all[path] = children
 		directOnly[path] = directChildren
+		crateVersion[dep.Name] = dep.Version
 	}
 
 	for _, dep := range deps.Go {
@@ -187,6 +197,49 @@ func CheckDependencies(fsys fs.FS) error {
 	fmt.Printf("Rust crates: %d (%d unused, %d used only in tests)\n", rustCrates, rustUnused, rustTestsOnly)
 	fmt.Printf("Go modules: %d (%d packages, %d unused, %d used only in tests)\n", goModules, goPackages, goUnused, goTestsOnly)
 
+	vulns, err := FetchVulns()
+	if err != nil {
+		return fmt.Errorf("failed to fetch vulnerability data: %v", err)
+	}
+
+	now := time.Now()
+	for _, advisory := range vulns.Rust {
+		if advisory.Withdrawn != nil && !advisory.Withdrawn.IsZero() && advisory.Withdrawn.Before(now) {
+			continue
+		}
+
+		var affected []string
+		for _, affects := range advisory.Affected {
+			version, ok := crateVersion[affects.Package.Name]
+			if !ok {
+				continue
+			}
+
+			if !affects.Ranges.AffectsSemver(version) {
+				continue
+			}
+
+			affected = append(affected, affects.Package.Name)
+		}
+
+		if len(affected) == 0 {
+			continue
+		}
+
+		log.Printf("Potential vulnerability found:")
+		if len(affected) == 1 {
+			log.Printf("  Crate:   %s", affected[0])
+		} else {
+			log.Printf("  Crates:  %s", strings.Join(affected, ", "))
+		}
+		if len(advisory.Aliases) == 0 {
+			log.Printf("  ID:      %s", advisory.ID)
+		} else {
+			log.Printf("  ID:      %s (%s)", advisory.ID, strings.Join(advisory.Aliases, ", "))
+		}
+		log.Printf("  Details: %s", strings.Join(strings.Split(advisory.Details, "\n"), "\n           "))
+	}
+
 	if len(directOnly) == 0 {
 		// All dependencies are used directly.
 		return nil
@@ -205,6 +258,115 @@ func CheckDependencies(fsys fs.FS) error {
 	fmt.Println("Unused dependencies:")
 	for _, pkg := range unused {
 		fmt.Printf("  //%s\n", pkg)
+	}
+
+	return nil
+}
+
+// Vulns describes the set of vulnerability advisory
+// data for a set of software dependencies.
+//
+type Vulns struct {
+	Rust []*osv.Entry
+	Go   []*osv.Entry
+}
+
+// fetchVulns fetches/updates the set of vulnerability
+// advisories, then parses them into structured vuln
+// data in OSV format.
+//
+func FetchVulns() (*Vulns, error) {
+	vulns := new(Vulns)
+
+	// Rust.
+	rustAdvisories := filepath.Join(os.TempDir(), "rust-advisories")
+	err := fetchGitRepo("https://github.com/rustsec/advisory-db", "osv", rustAdvisories)
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	fsys := os.DirFS(rustAdvisories)
+	err = fs.WalkDir(fsys, "crates", func(name string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !strings.HasSuffix(name, ".json") {
+			return nil
+		}
+
+		buf.Reset()
+		f, err := fsys.Open(name)
+		if err != nil {
+			return fmt.Errorf("failed to open %s: %v", name, err)
+		}
+
+		_, err = io.Copy(&buf, f)
+		if err != nil {
+			f.Close()
+			return fmt.Errorf("failed to read %s: %v", name, err)
+		}
+
+		err = f.Close()
+		if err != nil {
+			return fmt.Errorf("failed to close %s: %v", name, err)
+		}
+
+		var entry osv.Entry
+		err = json.Unmarshal(buf.Bytes(), &entry)
+		if err != nil {
+			return fmt.Errorf("failed to parse %s: %v", name, err)
+		}
+
+		vulns.Rust = append(vulns.Rust, &entry)
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse Rust advisories: %v", err)
+	}
+
+	// TODO: Fetch and parse Go advisories.
+
+	return vulns, nil
+}
+
+// fetchGitRepo uses git to clone/update the given Git
+// repository to the directory provided.
+//
+func fetchGitRepo(repo, branch, dir string) error {
+	info, err := os.Stat(dir)
+	if err != nil && errors.Is(err, fs.ErrNotExist) {
+		err = os.MkdirAll(dir, 0777)
+		if err != nil {
+			return fmt.Errorf("failed to create %s: %v", dir, err)
+		}
+
+		// Clone the repo.
+		out, err := exec.Command("git", "clone", repo, "--branch", branch, "--single-branch", dir).CombinedOutput()
+		if err != nil {
+			os.Stderr.Write(out)
+			return fmt.Errorf("failed to clone %s: %v", repo, err)
+		}
+
+		return nil
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to check Git repository destination %s: %v", dir, err)
+	}
+
+	if !info.IsDir() {
+		return fmt.Errorf("cannot fetch Git repository to %s: not a directory", dir)
+	}
+
+	// Fetch and fast-forward.
+	cmd := exec.Command("git-pull", "origin", branch)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		os.Stderr.Write(out)
+		return fmt.Errorf("failed to update %s: %v", repo, err)
 	}
 
 	return nil

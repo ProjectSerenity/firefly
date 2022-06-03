@@ -421,6 +421,18 @@ go = [
         ],
     ),
     module(
+        name = "golang.org/x/vuln",
+        version = "v0.0.0-20220603152332-c59f2733b982",
+        packages = [
+            package(
+                name = "golang.org/x/vuln/osv",
+                deps = [
+                    "golang.org/x/mod/semver",
+                ],
+            ),
+        ],
+    ),
+    module(
         name = "golang.org/x/xerrors",
         version = "v0.0.0-20220517211312-f3a8303e98df",
         packages = [

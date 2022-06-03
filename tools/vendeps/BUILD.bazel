@@ -32,6 +32,7 @@ go_library(
         "//tools/starlark",
         "//vendor/go/github.com/bazelbuild/buildtools/build",
         "//vendor/go/golang.org/x/mod/semver",
+        "//vendor/go/golang.org/x/vuln/osv",
     ],
 )
 
