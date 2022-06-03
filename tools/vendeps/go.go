@@ -160,6 +160,11 @@ func FetchGoModule(ctx context.Context, mod *GoModule, dir string) error {
 	err = fs.WalkDir(fsys, mod.Name, func(name string, d fs.DirEntry, err error) error {
 		// Ignore files.
 		if !d.IsDir() || name == mod.Name {
+			// Drop build files we wouldn't use.
+			if path.Base(name) == "BUILD.bazel" {
+				remove[name] = true
+			}
+
 			return nil
 		}
 
