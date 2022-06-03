@@ -12,7 +12,7 @@ go_library(
         "cratesio.go",
         "structures.go",
     ],
-    importpath = "firefly-os.dev/tools/vendeps/cratesio",
+    importpath = "firefly-os.dev/tools/cratesio",
     visibility = ["//visibility:public"],
     deps = [
         "//tools/simplehttp",

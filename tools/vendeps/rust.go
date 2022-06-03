@@ -12,7 +12,7 @@ import (
 
 	"golang.org/x/mod/semver"
 
-	"firefly-os.dev/tools/vendeps/cratesio"
+	"firefly-os.dev/tools/cratesio"
 )
 
 // FetchRustCrate downloads a Rust crate using the

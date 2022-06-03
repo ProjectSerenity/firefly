@@ -26,10 +26,10 @@ go_library(
     importpath = "firefly-os.dev/tools/vendeps",
     visibility = ["//visibility:public"],
     deps = [
+        "//tools/cratesio",
+        "//tools/gomodproxy",
         "//tools/simplehttp",
         "//tools/starlark",
-        "//tools/vendeps/cratesio",
-        "//tools/vendeps/gomodproxy",
         "//vendor/go/github.com/bazelbuild/buildtools/build",
         "//vendor/go/golang.org/x/mod/semver",
     ],

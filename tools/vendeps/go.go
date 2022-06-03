@@ -17,7 +17,7 @@ import (
 
 	"golang.org/x/mod/semver"
 
-	"firefly-os.dev/tools/vendeps/gomodproxy"
+	"firefly-os.dev/tools/gomodproxy"
 )
 
 // FetchGoModule downloads a Go module using the

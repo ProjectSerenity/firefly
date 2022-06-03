@@ -12,7 +12,7 @@ go_library(
         "gomodproxy.go",
         "gosumdb.go",
     ],
-    importpath = "firefly-os.dev/tools/vendeps/gomodproxy",
+    importpath = "firefly-os.dev/tools/gomodproxy",
     visibility = ["//visibility:public"],
     deps = [
         "//tools/simplehttp",
