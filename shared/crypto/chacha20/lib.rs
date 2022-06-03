@@ -101,7 +101,7 @@ const WORDS: [u32; 4] = [
 /// Represents an error that can occur
 /// while using ChaCha20.
 ///
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     /// The internal counter has overflowed,
     /// exhausting the key stream.
@@ -268,7 +268,7 @@ impl ChaCha20 {
 /// Represents the ChaCha20 internal key
 /// state.
 ///
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 struct KeyState {
     s: [u32; 16],
 }

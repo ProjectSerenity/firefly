@@ -140,7 +140,7 @@ pub fn digest(data: &[u8]) -> [u8; SIZE] {
 /// assert_eq!(&got, &want);
 /// ```
 ///
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Sha256 {
     // The current hash state.
     state: [u32; STATE_SIZE],

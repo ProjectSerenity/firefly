@@ -243,7 +243,7 @@ pub fn level_4_table(pml4: &PageTable, parse_kernel: bool) -> Vec<Mapping> {
 /// PagePurpose describes the known use of a contiguous
 /// set of mapped pages.
 ///
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PagePurpose {
     Unknown,
     NullPage,

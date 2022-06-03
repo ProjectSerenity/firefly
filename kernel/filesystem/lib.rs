@@ -76,7 +76,7 @@ bitflags! {
 
 /// Describes a file's type.
 ///
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FileType {
     /// An unknown file type.
     ///

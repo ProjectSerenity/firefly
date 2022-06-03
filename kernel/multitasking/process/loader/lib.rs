@@ -32,7 +32,7 @@ const MAX_SEGMENTS: usize = 16;
 /// Represents the parsed information about an ELF
 /// binary.
 ///
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Binary<'data> {
     entry_point: VirtAddr,
     segments: Vec<Segment<'data>>,
@@ -80,7 +80,7 @@ impl<'data> Binary<'data> {
 /// Represents an area in memory as part of a
 /// process's virtual memory space.
 ///
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Segment<'data> {
     pub start: VirtAddr,
     pub end: VirtAddr,

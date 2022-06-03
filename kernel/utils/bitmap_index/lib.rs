@@ -44,7 +44,7 @@ use alloc::vec::Vec;
 
 /// A simple bitmap implementation, backed by a sequence of `u64`s.
 ///
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Bitmap {
     num: usize,
     bits: Vec<u64>,

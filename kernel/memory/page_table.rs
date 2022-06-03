@@ -819,7 +819,7 @@ impl PageTable {
 /// Describes the result of translating a virtual address
 /// to a physical address using a set of page tables.
 ///
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PageMapping {
     /// A valid mapping.
     Mapping {
@@ -878,7 +878,7 @@ impl PageMappingChange {
 /// Describes an error encountered while trying to make a
 /// new page mapping.
 ///
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PageMappingError {
     /// Failed to allocate a new physical memory frame
     /// for use as a new page table.
@@ -899,7 +899,7 @@ pub enum PageMappingError {
 /// Describes an error encountered while trying to change
 /// the flags on an existing page mapping.
 ///
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PageRemappingError {
     /// Tried to change a page mapping within a larger
     /// mapping, such as a 4 KiB page inside a 2 MiB
@@ -912,7 +912,7 @@ pub enum PageRemappingError {
 /// Describes an error encountered while trying to remove
 /// a page mapping.
 ///
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PageUnmappingError {
     /// Tried to remove a page mapping within a larger
     /// mapping, such as a 4 KiB page inside a 2 MiB
