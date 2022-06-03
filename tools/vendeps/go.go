@@ -11,10 +11,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -140,6 +143,76 @@ func FetchGoModule(ctx context.Context, mod *GoModule, dir string) error {
 	err = zip.Unzip(dir, version, tmp.Name())
 	if err != nil {
 		return fmt.Errorf("failed to unzip Go module %s: %v", mod.Name, err)
+	}
+
+	// Identify the set of directories to keep,
+	// based on the packages specified.
+	keep := make(map[string]bool)
+	for _, pkg := range mod.Packages {
+		keep[pkg.Name] = true
+	}
+
+	// Delete directories we haven't marked to
+	// keep.
+	prefix := strings.TrimSuffix(dir, mod.Name)
+	remove := make(map[string]bool)
+	fsys := os.DirFS(prefix)
+	err = fs.WalkDir(fsys, mod.Name, func(name string, d fs.DirEntry, err error) error {
+		// Ignore files.
+		if !d.IsDir() || name == mod.Name {
+			return nil
+		}
+
+		// Ignore directories we should keep.
+		if keep[name] {
+			return fs.SkipDir
+		}
+
+		remove[name] = true
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to identify unused Go packages to delete: %v", err)
+	}
+
+	// Don't remove any directories that are a
+	// parent directory of a package we use.
+	//
+	// We have to do this separately so that we
+	// remove packages that are siblings of
+	// packages we want to keep.
+	for pkg := range keep {
+		name := path.Dir(pkg)
+		for name != "" && name != "." && name != mod.Name {
+			delete(remove, name)
+			name = path.Dir(name)
+		}
+	}
+
+	// There's no point removing child directories
+	// of other directories we will remove.
+	for dir := range remove {
+		if remove[path.Dir(dir)] {
+			delete(remove, dir)
+		}
+	}
+
+	if len(remove) == 0 {
+		return nil
+	}
+
+	delete := make([]string, 0, len(remove))
+	for remove := range remove {
+		delete = append(delete, remove)
+	}
+
+	sort.Strings(delete)
+
+	for _, dir := range delete {
+		err = os.RemoveAll(prefix + dir)
+		if err != nil {
+			return fmt.Errorf("failed to delete unused Go package %s: %v", dir, err)
+		}
 	}
 
 	return nil
