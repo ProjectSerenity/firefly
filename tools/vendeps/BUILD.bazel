@@ -28,6 +28,7 @@ go_library(
     deps = [
         "//tools/simplehttp",
         "//tools/starlark",
+        "//tools/vendeps/cratesio",
         "//vendor/go/github.com/bazelbuild/buildtools/build",
         "//vendor/go/golang.org/x/mod/module",
         "//vendor/go/golang.org/x/mod/semver",
