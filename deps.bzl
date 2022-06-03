@@ -333,11 +333,6 @@ go = [
                 name = "github.com/bazelbuild/buildtools/testutils",
             ),
         ],
-        patch_args = ["-p1"],
-        patches = [
-            # Strip out the BUILD.bazel files in the repo.
-            "third_party/github.com_bazelbuild_buildtools.patch",
-        ],
     ),
     module(
         name = "golang.org/x/crypto",
