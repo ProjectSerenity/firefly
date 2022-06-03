@@ -42,37 +42,50 @@ func CheckDependencies(fsys fs.FS) error {
 	// we know are used. This will leave us with
 	// the dependencies that are unused.
 	all := make(map[string][]string)
+	directOnly := make(map[string][]string)
+	var rustCrates, goModules, goPackages int
 	for _, dep := range deps.Rust {
+		rustCrates++
 		path := "vendor/rust/" + dep.Name
+		directChildren := make([]string, 0, len(dep.Deps)+len(dep.ProcMacroDeps)+len(dep.BuildScriptDeps))
 		children := make([]string, 0, len(dep.Deps)+len(dep.ProcMacroDeps)+len(dep.BuildScriptDeps)+len(dep.TestDeps))
 		for _, child := range dep.Deps {
 			children = append(children, "vendor/rust/"+child)
+			directChildren = append(directChildren, "vendor/rust/"+child)
 		}
 		for _, child := range dep.ProcMacroDeps {
 			children = append(children, "vendor/rust/"+child)
+			directChildren = append(directChildren, "vendor/rust/"+child)
 		}
 		for _, child := range dep.BuildScriptDeps {
 			children = append(children, "vendor/rust/"+child)
+			directChildren = append(directChildren, "vendor/rust/"+child)
 		}
 		for _, child := range dep.TestDeps {
 			children = append(children, "vendor/rust/"+child)
 		}
 
 		all[path] = children
+		directOnly[path] = directChildren
 	}
 
 	for _, dep := range deps.Go {
+		goModules++
 		for _, pkg := range dep.Packages {
+			goPackages++
 			path := "vendor/go/" + pkg.Name
+			directChildren := make([]string, 0, len(pkg.Deps))
 			children := make([]string, 0, len(pkg.Deps)+len(pkg.TestDeps))
 			for _, child := range pkg.Deps {
 				children = append(children, "vendor/go/"+child)
+				directChildren = append(directChildren, "vendor/go/"+child)
 			}
 			for _, child := range pkg.TestDeps {
 				children = append(children, "vendor/go/"+child)
 			}
 
 			all[path] = children
+			directOnly[path] = directChildren
 		}
 	}
 
@@ -117,7 +130,8 @@ func CheckDependencies(fsys fs.FS) error {
 	// removing them from the set of all
 	// dependencies.
 	for _, pkg := range used {
-		children, ok := all[pkg]
+		children, _ := all[pkg]
+		directChildren, ok := directOnly[pkg]
 		if !ok {
 			continue
 		}
@@ -126,20 +140,67 @@ func CheckDependencies(fsys fs.FS) error {
 			delete(all, child)
 		}
 
+		for _, child := range directChildren {
+			delete(directOnly, child)
+		}
+
 		delete(all, pkg)
+		delete(directOnly, pkg)
+	}
+
+	// Work out how many dependencies were
+	// not used.
+	var rustUnused, goUnused int
+	unused := make([]string, 0, len(all))
+	for pkg := range all {
+		if strings.HasPrefix(pkg, "vendor/rust/") {
+			rustUnused++
+		} else if strings.HasPrefix(pkg, "vendor/go/") {
+			goUnused++
+		} else {
+			return fmt.Errorf("found unexpected Bazel package //%s", pkg)
+		}
+
+		unused = append(unused, pkg)
+	}
+
+	sort.Strings(unused)
+
+	// Work out how many dependencies were
+	// only used in tests.
+	var rustTestsOnly, goTestsOnly int
+	testsOnly := make([]string, 0, len(directOnly))
+	for pkg := range directOnly {
+		if strings.HasPrefix(pkg, "vendor/rust/") {
+			rustTestsOnly++
+		} else if strings.HasPrefix(pkg, "vendor/go/") {
+			goTestsOnly++
+		} else {
+			return fmt.Errorf("found unexpected Bazel package //%s", pkg)
+		}
+
+		testsOnly = append(testsOnly, pkg)
+	}
+
+	sort.Strings(testsOnly)
+
+	fmt.Printf("Rust crates: %d (%d unused, %d used only in tests)\n", rustCrates, rustUnused, rustTestsOnly)
+	fmt.Printf("Go modules: %d (%d packages, %d unused, %d used only in tests)\n", goModules, goPackages, goUnused, goTestsOnly)
+
+	if len(directOnly) == 0 {
+		// All dependencies are used directly.
+		return nil
+	}
+
+	fmt.Println("Dependencies used only in tests:")
+	for _, pkg := range testsOnly {
+		fmt.Printf("  //%s\n", pkg)
 	}
 
 	if len(all) == 0 {
 		// All dependencies are used.
 		return nil
 	}
-
-	unused := make([]string, 0, len(all))
-	for pkg := range all {
-		unused = append(unused, pkg)
-	}
-
-	sort.Strings(unused)
 
 	fmt.Println("Unused dependencies:")
 	for _, pkg := range unused {
