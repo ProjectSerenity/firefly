@@ -49,7 +49,6 @@ func ParseRulesBzl(name string) (file *build.File, rules []*BazelRuleData, err e
 	var allRules = []string{
 		"RULES_BUILDTOOLS",
 		"RULES_CC",
-		"RULES_GAZELLE",
 		"RULES_GO",
 		"RULES_LICENSE",
 		"RULES_PKG",

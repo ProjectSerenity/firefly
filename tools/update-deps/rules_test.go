@@ -46,13 +46,6 @@ func TestParseRulesBzl(t *testing.T) {
 			SHA256:  "4dccbfd22c0def164c8f47458bd50e0c7148f3d92002cdb459c2a96a68498241",
 		},
 		{
-			Name:    "bazel_gazelle",
-			Repo:    "bazelbuild/bazel-gazelle",
-			Archive: "https://github.com/bazelbuild/bazel-gazelle/releases/download/v{v}/bazel-gazelle-v{v}.tar.gz",
-			Version: "0.24.0",
-			SHA256:  "de69a09dc70417580aabf20a28619bb3ef60d038470c7cf8442fafcf627c21cb",
-		},
-		{
 			Name:    "io_bazel_rules_go",
 			Repo:    "bazelbuild/rules_go",
 			Archive: "https://github.com/bazelbuild/rules_go/releases/download/v{v}/rules_go-v{v}.zip",
