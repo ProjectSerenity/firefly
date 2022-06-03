@@ -344,21 +344,6 @@ go = [
         ],
     ),
     module(
-        name = "golang.org/x/xerrors",
-        version = "v0.0.0-20220517211312-f3a8303e98df",
-        packages = [
-            package(
-                name = "golang.org/x/xerrors",
-                deps = [
-                    "golang.org/x/xerrors/internal",
-                ],
-            ),
-            package(
-                name = "golang.org/x/xerrors/internal",
-            ),
-        ],
-    ),
-    module(
         name = "golang.org/x/mod",
         version = "v0.5.1",
         packages = [
@@ -432,6 +417,21 @@ go = [
         packages = [
             package(
                 name = "golang.org/x/tools/txtar",
+            ),
+        ],
+    ),
+    module(
+        name = "golang.org/x/xerrors",
+        version = "v0.0.0-20220517211312-f3a8303e98df",
+        packages = [
+            package(
+                name = "golang.org/x/xerrors",
+                deps = [
+                    "golang.org/x/xerrors/internal",
+                ],
+            ),
+            package(
+                name = "golang.org/x/xerrors/internal",
             ),
         ],
     ),

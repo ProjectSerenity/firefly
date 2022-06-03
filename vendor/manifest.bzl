@@ -195,11 +195,6 @@ go = [
         digest = "sha256:9cf21739f383c79039d1854b58da3c9215040756ab8028199ff8b57bef653471",
     ),
     module(
-        name = "golang.org/x/xerrors",
-        version = "v0.0.0-20220517211312-f3a8303e98df",
-        digest = "sha256:7362d2c0d94b3be18fc502ec3decb3eb914da3d64562340ed18e86ede2548b46",
-    ),
-    module(
         name = "golang.org/x/mod",
         version = "v0.5.1",
         digest = "sha256:d17023cbaeab3774e68abccdee9ba368fe303a02765251adda41ab097d345e51",
@@ -213,6 +208,11 @@ go = [
         name = "golang.org/x/tools",
         version = "v0.1.10",
         digest = "sha256:f6f026b67b413d78ce4051bc75e7c44b737331a392c34e3df113876a85b6327f",
+    ),
+    module(
+        name = "golang.org/x/xerrors",
+        version = "v0.0.0-20220517211312-f3a8303e98df",
+        digest = "sha256:7362d2c0d94b3be18fc502ec3decb3eb914da3d64562340ed18e86ede2548b46",
     ),
     module(
         name = "rsc.io/diff",
