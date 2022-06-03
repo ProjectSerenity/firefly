@@ -319,7 +319,7 @@ go = [
     ),
     module(
         name = "github.com/bazelbuild/buildtools",
-        version = "v0.0.0-20220510163207-df8cabe96863",
+        version = "v0.0.0-20220531122519-a43aed7014c8",
         packages = [
             package(
                 name = "github.com/bazelbuild/buildtools/build",
@@ -341,7 +341,7 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.0.0-20220518034528-6f7dac969898",
+        version = "v0.0.0-20220525230936-793ad666bf5e",
         packages = [
             package(
                 name = "golang.org/x/crypto/ed25519",

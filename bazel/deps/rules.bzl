@@ -34,8 +34,8 @@ RULES_LICENSE = struct(
     repo = "bazelbuild/rules_license",
     branch = "main",
     archive = "https://github.com/bazelbuild/rules_license/archive/{v}.tar.gz",
-    version = "4a20d4e66ffefd3c0db5b72f7a7a5ea69c9d6806",
-    sha256 = "12c6c87972d251a19bad450ad81b3c3a4ff69280f979d24c5a84798af03282ef",
+    version = "21fcdc447645094aecec5f5cbe4f8cc5e4984aa0",
+    sha256 = "aa142aafb1d20118a35c2f41c00918d8303e56c04b23528015379186f282fef6",
 )
 
 RULES_PKG = struct(
@@ -50,8 +50,8 @@ RULES_PROTOBUF = struct(
     name = "com_google_protobuf",
     repo = "protocolbuffers/protobuf",
     archive = "https://github.com/protocolbuffers/protobuf/archive/v{v}.zip",
-    version = "3.20.1",
-    sha256 = "662879e41508a5ecce3be2c65563a8fac3301a48adef3113913ec4010f405a33",
+    version = "21.1",
+    sha256 = "6a2a9b6d00e9a5a28d251f4dc5f2a7e72684a699206ec286ea02ac0b02c22e77",
 )
 
 RULES_RUST = struct(
@@ -59,8 +59,8 @@ RULES_RUST = struct(
     repo = "bazelbuild/rules_rust",
     branch = "main",
     archive = "https://github.com/bazelbuild/rules_rust/archive/{v}.tar.gz",
-    version = "a066bfed462ea941c248d083081b02efbd08bea1",
-    sha256 = "cb3380689e86e863749769a7c0951afd847e1f2afac9d72bdf56ef35377c530c",
+    version = "521e649ff44e9711fe3c45b0ec1e792f7e1d361e",
+    sha256 = "c181738e13abc7a92c9ab38f820f7902353c2a824085747f25943baeb14db182",
 )
 
 RULES_SKYLIB = struct(

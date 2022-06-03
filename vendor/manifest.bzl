@@ -186,8 +186,8 @@ go = [
     ),
     module(
         name = "github.com/bazelbuild/buildtools",
-        version = "v0.0.0-20220510163207-df8cabe96863",
-        digest = "sha256:942baa6a5fcae76f5f2ec4d083558d8a08c9a17467dd4c542547b49a305f5d90",
+        version = "v0.0.0-20220531122519-a43aed7014c8",
+        digest = "sha256:a7fe4579aad4ed223c90b799798e45dbf7f39afceb45244cde88f33a1cd0a16e",
         patch_args = [
             "-p1",
         ],
@@ -198,8 +198,8 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.0.0-20220518034528-6f7dac969898",
-        digest = "sha256:a0c9994579c8cf05274b59617f5250431aa26ed6d7f1efb68ea72bb36e2c17c1",
+        version = "v0.0.0-20220525230936-793ad666bf5e",
+        digest = "sha256:277ef4db2183f1be53d37a11ce9937141ffdafb9885d627686c6575f6428dbde",
     ),
     module(
         name = "golang.org/x/xerrors",
