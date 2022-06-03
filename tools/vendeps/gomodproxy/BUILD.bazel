@@ -1,0 +1,30 @@
+# Copyright 2022 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//bazel/gofmt:gofmt.bzl", "gofmt")
+
+go_library(
+    name = "gomodproxy",
+    srcs = [
+        "gomodproxy.go",
+        "gosumdb.go",
+    ],
+    importpath = "firefly-os.dev/tools/vendeps/gomodproxy",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tools/simplehttp",
+        "//vendor/go/golang.org/x/mod/module",
+        "//vendor/go/golang.org/x/mod/semver",
+        "//vendor/go/golang.org/x/mod/sumdb",
+        "//vendor/go/golang.org/x/mod/sumdb/dirhash",
+        "//vendor/go/golang.org/x/mod/zip",
+    ],
+)
+
+gofmt(
+    name = "gofmt",
+    embed = [":gomodproxy"],
+)
