@@ -20,12 +20,16 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/buildtools/build"
+
+	"firefly-os.dev/tools/simplehttp"
 )
 
 func init() {
 	log.SetFlags(0)
 	log.SetOutput(os.Stderr)
 	log.SetPrefix("")
+
+	simplehttp.UserAgent = "Firefly-dependency-updates/1 (github.com/ProjectSerenity/firefly)"
 }
 
 type Command struct {
@@ -53,8 +57,6 @@ func RegisterCommand(name, description string, fun func(ctx context.Context, w i
 	commandsNames = append(commandsNames, name)
 	commandsMap[name] = &Command{Name: name, Description: description, Func: fun}
 }
-
-const userAgent = "Firefly-dependency-updates/1 (github.com/ProjectSerenity/firefly)"
 
 func main() {
 	sort.Strings(commandsNames)

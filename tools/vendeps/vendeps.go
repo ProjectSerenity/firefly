@@ -13,6 +13,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	"firefly-os.dev/tools/simplehttp"
 )
 
 const (
@@ -143,9 +145,9 @@ func init() {
 	log.SetFlags(0)
 	log.SetOutput(os.Stderr)
 	log.SetPrefix("")
-}
 
-const userAgent = "Firefly-dependency-vendoring/1 (github.com/ProjectSerenity/firefly)"
+	simplehttp.UserAgent = "Firefly-dependency-vendoring/1 (github.com/ProjectSerenity/firefly)"
+}
 
 func main() {
 	var help, noCache, dryRun, check, update bool

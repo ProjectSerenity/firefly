@@ -212,7 +212,7 @@ func cmdRust(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("Failed to request manifest for %s: %v", want, err)
 	}
 
-	res, err := simplehttp.Request(req, userAgent)
+	res, err := simplehttp.Request(req)
 	if err != nil {
 		return fmt.Errorf("Failed to fetch manifest for %s: %v", want, err)
 	}

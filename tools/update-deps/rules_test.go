@@ -123,8 +123,8 @@ func TestGitHubAPI(t *testing.T) {
 	// Start an HTTP server, serving a
 	// captured copy of an actual response.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if got := r.Header.Get("User-Agent"); got != userAgent {
-			t.Errorf("Got request with User-Agent %q, want %q", got, userAgent)
+		if got := r.Header.Get("User-Agent"); got != "Firefly-dependency-updates/1 (github.com/ProjectSerenity/firefly)" {
+			t.Errorf("Got request with User-Agent %q, want %q", got, "Firefly-dependency-updates/1 (github.com/ProjectSerenity/firefly)")
 		}
 
 		switch r.URL.Path {

@@ -7,6 +7,7 @@ package simplehttp
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
 	"time"
@@ -14,6 +15,9 @@ import (
 	"golang.org/x/time/rate"
 )
 
+// Client is the underlying HTTP client that
+// will be used by Request.
+//
 var Client = &http.Client{
 	Transport: &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
@@ -29,11 +33,28 @@ var Client = &http.Client{
 	},
 }
 
+// UserAgent is the user-agent string that
+// should be provided with requests. If
+// UserAgent is empty, Request will return
+// an error.
+//
+var UserAgent string
+
+// RateLimit will be used by Request to ensure
+// we do not overload the servers we use.
+//
 var RateLimit = rate.NewLimiter(rate.Every(time.Second), 1) // 1 request per second.
 
-func Request(req *http.Request, userAgent string) (*http.Response, error) {
+// Request performs the given HTTP request,
+// returning the response.
+//
+func Request(req *http.Request) (*http.Response, error) {
+	if UserAgent == "" {
+		return nil, errors.New("simplehttp.UserAgent is unset")
+	}
+
 	// Make sure we always use our User-Agent.
-	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("User-Agent", UserAgent)
 
 	// Apply our rate limeter, waiting if necessary.
 	err := RateLimit.Wait(context.Background())

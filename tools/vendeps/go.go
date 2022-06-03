@@ -90,7 +90,7 @@ func FetchGoModule(ctx context.Context, mod *GoModule, dir string) error {
 		return fmt.Errorf("failed to fetch Go module %s: %v", mod.Name, err)
 	}
 
-	res, err := simplehttp.Request(req, userAgent)
+	res, err := simplehttp.Request(req)
 	if err != nil {
 		return fmt.Errorf("failed to fetch Go module %s: %v", mod.Name, err)
 	}
@@ -241,7 +241,7 @@ func UpdateGoModule(ctx context.Context, mod *UpdateDep) (updated bool, err erro
 		return false, fmt.Errorf("failed to look up Go module %s: %v", mod.Name, err)
 	}
 
-	res, err := simplehttp.Request(req, userAgent)
+	res, err := simplehttp.Request(req)
 	if err != nil {
 		return false, fmt.Errorf("failed to look up Go module %s: %v", mod.Name, err)
 	}
@@ -298,7 +298,7 @@ func (c *GoChecksumDatabaseClient) ReadRemote(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	res, err := simplehttp.Request(req, userAgent)
+	res, err := simplehttp.Request(req)
 	if err != nil {
 		return nil, err
 	}

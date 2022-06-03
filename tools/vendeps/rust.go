@@ -154,7 +154,7 @@ func FetchRustCrate(ctx context.Context, crate *RustCrate, dir string) error {
 		return fmt.Errorf("failed to prepare API request for Rust crate %q: %v", crate.Name, err)
 	}
 
-	res, err := simplehttp.Request(req, userAgent)
+	res, err := simplehttp.Request(req)
 	if err != nil {
 		return fmt.Errorf("failed to make API request for Rust crate %q: %v", crate.Name, err)
 	}
@@ -205,7 +205,7 @@ func FetchRustCrate(ctx context.Context, crate *RustCrate, dir string) error {
 		return fmt.Errorf("failed to prepare API request for Rust crate %q: %v", crate.Name, err)
 	}
 
-	res, err = simplehttp.Request(req, userAgent)
+	res, err = simplehttp.Request(req)
 	if err != nil {
 		return fmt.Errorf("failed to make API request for Rust crate %q: %v", crate.Name, err)
 	}
@@ -291,7 +291,7 @@ func UpdateRustCrate(ctx context.Context, crate *UpdateDep) (updated bool, err e
 		return false, fmt.Errorf("failed to prepare API request for Rust crate %q: %v", crate.Name, err)
 	}
 
-	res, err := simplehttp.Request(req, userAgent)
+	res, err := simplehttp.Request(req)
 	if err != nil {
 		return false, fmt.Errorf("failed to make API request for Rust crate %q: %v", crate.Name, err)
 	}
