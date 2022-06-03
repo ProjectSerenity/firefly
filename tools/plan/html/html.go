@@ -3,6 +3,8 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
+// Package html uses templates to render a Plan document as HTML documentation.
+//
 package html
 
 import (
