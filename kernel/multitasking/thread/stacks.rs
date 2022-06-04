@@ -18,8 +18,8 @@ use alloc::vec::Vec;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use memory::constants::{KERNEL_STACK, KERNEL_STACK_1_START};
 use memory::{
-    PageMappingError, PageTableFlags, VirtAddr, VirtAddrRange, VirtPage, VirtPageRange,
-    VirtPageSize,
+    PageMappingError, PageTableFlags, PhysAddr, PhysFrame, PhysFrameSize, VirtAddr, VirtAddrRange,
+    VirtPage, VirtPageSize,
 };
 use spin::{lock, Mutex};
 use virtmem::map_pages;
@@ -43,14 +43,12 @@ impl StackBounds {
         }
     }
 
-    /// Returns a set of stack bounds consisting of the given
-    /// virtual page range.
+    /// Returns a set of stack bounds from the given start
+    /// and stop addresses. The top of the stack is `end`
+    /// and the bottom is `start`.
     ///
-    pub fn from_page_range(range: VirtPageRange) -> Self {
-        StackBounds {
-            start: range.start_address(),
-            end: range.end_address(),
-        }
+    pub fn from_addrs(start: VirtAddr, end: VirtAddr) -> Self {
+        StackBounds { start, end }
     }
 
     /// Returns the smallest valid address in the stack bounds.
@@ -81,6 +79,106 @@ impl StackBounds {
     ///
     pub fn contains(&self, addr: VirtAddr) -> bool {
         self.start <= addr && addr <= self.end
+    }
+
+    /// Populates the stack with its initial contents,
+    /// starting at the top of the stack (the highest
+    /// address).
+    ///
+    /// The resulting stack pointer is returned.
+    ///
+    /// # Safety
+    ///
+    /// `populate_kernel` is unsafe, as it writes to
+    /// the memory in the stack bounds. This memory
+    /// must be mapped in, and must not be being used
+    /// for any other purposes.
+    ///
+    pub unsafe fn populate_kernel(&self, entries: &[u64]) -> usize {
+        // Round down the address at the top of the
+        // stack to be an exact multiple of 8.
+        //
+        // This means the next write to rsp will
+        // insert the value into the top of the
+        // stack.
+        let top = self.end.as_usize() & !7;
+        let mut rsp = top as *mut u64;
+        for entry in entries {
+            // Write the entry into the stack,
+            // then decrement the stack pointer.
+            rsp.write(*entry);
+            rsp = rsp.sub(1);
+        }
+
+        // Increment the stack pointer so that it
+        // points at the last value we inserted.
+
+        rsp.add(1) as usize
+    }
+
+    /// Populates the stack with its initial contents,
+    /// starting at the top of the stack (the highest
+    /// address).
+    ///
+    /// The resulting stack pointer is returned.
+    ///
+    /// # Safety
+    ///
+    /// `populate_user` is unsafe, as it writes to
+    /// the underlying physical memory passed to it.
+    /// This memory need not be mapped in, but it must
+    /// not be being used for any other purposes.
+    ///
+    pub unsafe fn populate_user(
+        &self,
+        frames: &[PhysFrame],
+        phys_to_virt_addr: fn(PhysAddr) -> VirtAddr,
+        entries: &[u64],
+    ) -> usize {
+        let frame_start = |frame: PhysFrame| {
+            let phys = frame.start_address();
+            phys_to_virt_addr(phys)
+        };
+
+        // Get a virtual address for the top of the
+        // stack's physical memory.
+        //
+        // First, we need to work out the offset
+        // of the top of the stack into the final
+        // frame.
+        let top_page = VirtPage::containing_address(self.end, VirtPageSize::Size4KiB);
+        let offset = self.end - top_page.start_address();
+        let mut end_idx = frames.len() - 1;
+        let mut last_virt = frame_start(frames[end_idx]);
+        let mut top_virt = last_virt + offset;
+
+        // Round down the address at the top of the
+        // stack to be an exact multiple of 8.
+        let mut rsp = (top_virt.as_usize() & !7) as *mut u64;
+        for entry in entries {
+            // Write the entry into the stack,
+            // then decrement the stack pointer.
+            rsp.write(*entry);
+
+            // If we've reached the bottom of
+            // the current frame, we move to
+            // the end of the next one.
+            if rsp as usize == last_virt.as_usize() {
+                end_idx -= 1;
+                last_virt = frame_start(frames[end_idx]);
+                top_virt = last_virt + PhysFrameSize::Size4KiB.bytes();
+                rsp = top_virt.as_usize() as *mut u64;
+            }
+
+            rsp = rsp.sub(1);
+        }
+
+        // Now we have to derive the original
+        // virtual address that would correspond
+        // to the physical address rsp now points
+        // to.
+
+        (self.end.as_usize() & !7) - (entries.len() - 1) * 8
     }
 }
 
@@ -167,4 +265,120 @@ pub fn new_kernel_stack(num_pages: usize) -> Result<StackBounds, PageMappingErro
 ///
 pub fn free_kernel_stack(stack_bounds: StackBounds) {
     lock!(DEAD_STACKS).push(stack_bounds);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core::slice;
+
+    #[test]
+    fn populate_kernel_stack() {
+        let mut stack = [0u64; 4];
+        let bounds = StackBounds {
+            start: VirtAddr::new((&mut stack[0]) as *mut u64 as usize),
+            end: VirtAddr::new((&mut stack[0]) as *mut u64 as usize + 8 * 4 - 1), // Last addr of the buffer.
+        };
+
+        let entries = [0x1122_3344_5566_7788, 0x99aa_bbcc_ddee_ff00];
+
+        let want_rsp = (&stack[2]) as *const u64 as usize; // Addr of the last item pushed.
+        let want_stack = [0, 0, 0x99aa_bbcc_ddee_ff00, 0x1122_3344_5566_7788]; // Note the order.
+
+        assert_eq!(want_rsp, unsafe { bounds.populate_kernel(&entries) });
+        assert_eq!(want_stack, stack);
+    }
+
+    #[test]
+    fn populate_user_stack() {
+        // We start by allocating at least three
+        // pages of memory. We do this so that
+        // we can make a region of memory within
+        // it that covers exactly two pages.
+        //
+        // We then use that region of two pages
+        // to simulate various edge cases.
+        const PAGE_SIZE: usize = VirtPageSize::Size4KiB.bytes();
+        const TWO_PAGES: usize = 2 * PAGE_SIZE;
+        let mut region = [0u8; 3 * PAGE_SIZE];
+        let offset = (&region[0]) as *const u8 as usize % PAGE_SIZE;
+        let start = PAGE_SIZE - offset;
+        let region = &mut region[start..start + TWO_PAGES];
+        let frames = [
+            PhysFrame::from_start_address(
+                PhysAddr::new((&region[0]) as *const u8 as usize),
+                PhysFrameSize::Size4KiB,
+            )
+            .unwrap(),
+            PhysFrame::from_start_address(
+                PhysAddr::new((&region[PAGE_SIZE]) as *const u8 as usize),
+                PhysFrameSize::Size4KiB,
+            )
+            .unwrap(),
+        ];
+
+        // We fake away physical memory by pretending
+        // it's identity mapped.
+        let phys_to_virt_addr = |phys: PhysAddr| VirtAddr::new(phys.as_usize());
+
+        // Start with the simple case, where all
+        // entries fit in the final frame.
+
+        let stack = unsafe {
+            slice::from_raw_parts_mut((&mut region[0]) as *mut u8 as *mut u64, TWO_PAGES / 8)
+        };
+        let bounds = StackBounds {
+            start: VirtAddr::new((&mut stack[0]) as *mut u64 as usize),
+            end: VirtAddr::new((&mut stack[0]) as *mut u64 as usize + stack.len() * 8 - 1), // Last addr of the buffer.
+        };
+
+        let entries = [0x1122_3344_5566_7788, 0x99aa_bbcc_ddee_ff00];
+
+        let want_rsp = (&stack[stack.len() - 2]) as *const u64 as usize; // Addr of the last item pushed.
+        let mut want_stack = [0u64; TWO_PAGES / 8];
+
+        // Note that the order is reversed.
+        let n = want_stack.len();
+        want_stack[n - 2] = 0x99aa_bbcc_ddee_ff00;
+        want_stack[n - 1] = 0x1122_3344_5566_7788;
+
+        assert_eq!(want_rsp, unsafe {
+            bounds.populate_user(&frames, phys_to_virt_addr, &entries)
+        });
+        assert_eq!(want_stack, stack);
+
+        // Next, a case where entries are spread
+        // over a frame boundary.
+
+        let stack = unsafe {
+            slice::from_raw_parts_mut((&mut region[0]) as *mut u8 as *mut u64, (PAGE_SIZE / 8) + 2)
+        };
+        stack.fill(0); // Reset the stack.
+        let bounds = StackBounds {
+            start: VirtAddr::new((&mut stack[0]) as *mut u64 as usize),
+            end: VirtAddr::new((&mut stack[0]) as *mut u64 as usize + PAGE_SIZE + 15), // Space for 2 entries.
+        };
+
+        let entries = [
+            0x1122_3344_5566_7788,
+            0x99aa_bbcc_ddee_ff00,
+            0x3131_4242_7575_8686,
+            0xffff_ffff_ffff_ffff,
+        ];
+
+        let want_rsp = (&stack[stack.len() - 4]) as *const u64 as usize; // Addr of the last item pushed.
+        let mut want_stack = [0u64; (PAGE_SIZE / 8) + 2];
+
+        // Note that the order is reversed.
+        let n = want_stack.len();
+        want_stack[n - 4] = 0xffff_ffff_ffff_ffff;
+        want_stack[n - 3] = 0x3131_4242_7575_8686;
+        want_stack[n - 2] = 0x99aa_bbcc_ddee_ff00;
+        want_stack[n - 1] = 0x1122_3344_5566_7788;
+
+        assert_eq!(want_rsp, unsafe {
+            bounds.populate_user(&frames, phys_to_virt_addr, &entries)
+        });
+        assert_eq!(want_stack, stack);
+    }
 }

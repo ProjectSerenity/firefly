@@ -443,22 +443,6 @@ pub struct Thread {
     stack_pointer: UnsafeCell<usize>,
 }
 
-/// push_stack is used to build a new thread's stack
-/// without having to drop down to assembly. This is
-/// done by dynamically populating the stack, value
-/// by value. These are then popped off in switch_stack
-/// when switching to the new thread for the first
-/// time.
-///
-unsafe fn push_stack(mut rsp: *mut u64, value: u64) -> *mut u64 {
-    // We move the stack pointer down by 8 bytes, write
-    // the value to the new space, then return the updated
-    // stack pointer.
-    rsp = rsp.sub(1);
-    rsp.write(value);
-    rsp
-}
-
 // Thread is not thread-safe by default, as its
 // stack pointer is stored in an UnsafeCell.
 // However, as we only ever access this while
@@ -536,33 +520,21 @@ impl Thread {
             .expect("failed to allocate stack for new kernel thread");
 
         let rsp = unsafe {
-            let mut rsp = stack.end().as_usize() as *mut u64;
-
-            // The stack pointer starts out pointing to
-            // the last address in range, which is not
-            // aligned. We add one to the pointer value
-            // so it becomes aligned again. The next
-            // `push_stack` will subtract 8 straight
-            // away, so we will still remain within the
-            // stack bounds.
-            rsp = (rsp as *mut u8).add(1) as *mut u64;
-
-            // Push the entry point, to be called by
-            // start_kernel_thread.
-            rsp = push_stack(rsp, entry_point as usize as u64);
-
-            // Push start_kernel_thread and the initial
-            // registers to be loaded by switch_stack.
-            rsp = push_stack(rsp, start_kernel_thread as *const u8 as u64); // RIP.
-            rsp = push_stack(rsp, 0); // Initial RBP.
-            rsp = push_stack(rsp, 0); // Initial RBX.
-            rsp = push_stack(rsp, 0); // Initial R12.
-            rsp = push_stack(rsp, 0); // Initial R13.
-            rsp = push_stack(rsp, 0); // Initial R14.
-            rsp = push_stack(rsp, 0); // Initial R15.
-            rsp = push_stack(rsp, DEFAULT_RFLAGS); // RFLAGS (interrupts disabled).
-
-            rsp
+            stack.populate_kernel(&[
+                // Push the entry point, to be called
+                // by start_kernel_thread.
+                entry_point as usize as u64,
+                start_kernel_thread as *const u8 as u64,
+                // Initial register values.
+                0, // Initial RBP.
+                0, // Initial RBX.
+                0, // Initial R12.
+                0, // Initial R13.
+                0, // Initial R14.
+                0, // Initial R15.
+                // Initial RFLAGS (interrupts disabled).
+                DEFAULT_RFLAGS,
+            ])
         };
 
         let kernel_id = KernelThreadId::new();
@@ -579,7 +551,7 @@ impl Thread {
             interrupt_stack: None,
             syscall_stack: None,
             user_stack_pointer: UnsafeCell::new(VirtAddr::zero()),
-            stack_pointer: UnsafeCell::new(rsp as usize),
+            stack_pointer: UnsafeCell::new(rsp),
             stack_bounds: Some(stack),
         });
 
@@ -624,9 +596,9 @@ impl Thread {
         // address.
         //
         // TODO: Support binaries that place binary segments in this space.
-        let stack_top = USERSPACE.end() - 7;
+        let stack_top = USERSPACE.end();
         let stack_bottom =
-            stack_top - (Thread::DEFAULT_USER_STACK_PAGES * VirtPageSize::Size4KiB.bytes()) + 8;
+            stack_top - (Thread::DEFAULT_USER_STACK_PAGES * VirtPageSize::Size4KiB.bytes()) + 1;
         let stack_top_page = VirtPage::containing_address(stack_top, VirtPageSize::Size4KiB);
         let stack_bottom_page =
             VirtPage::from_start_address(stack_bottom, VirtPageSize::Size4KiB).unwrap();
@@ -644,7 +616,7 @@ impl Thread {
             .expect("failed to allocate stack for user thread");
         drop(allocator);
 
-        let stack = StackBounds::from_page_range(pages);
+        let stack = StackBounds::from_addrs(stack_bottom, stack_top);
         let int_stack = new_kernel_stack(KERNEL_STACK_PAGES)
             .expect("failed to allocate interrupt stack for new user thread");
         let sys_stack = new_kernel_stack(KERNEL_STACK_PAGES)
@@ -657,38 +629,25 @@ impl Thread {
         }
 
         let rsp = unsafe {
-            // Get a virtual address for the end of the
-            // last physical frame.
-            let frame = stack_frames[stack_frames.len() - 1];
-            let virt = phys_to_virt_addr(frame.start_address() + (frame.size().bytes() - 1));
-            let mut rsp = virt.as_usize() as *mut u64;
-
-            // The stack pointer starts out pointing to
-            // the last address in range, which is not
-            // aligned. We subtract seven to the pointer
-            // value so it becomes aligned again.
-            rsp = (rsp as *mut u8).sub(7) as *mut u64;
-
-            // Push the entry point to be used by
-            // start_user_thread.
-            rsp = push_stack(rsp, entry_point.as_usize() as u64);
-
-            // Push start_user_thread and the initial
-            // registers to be loaded by switch_stack.
-            rsp = push_stack(rsp, start_user_thread as *const u8 as u64); // RIP.
-            rsp = push_stack(rsp, 0); // Initial RBP.
-            rsp = push_stack(rsp, 0); // Initial RBX.
-            rsp = push_stack(rsp, 0); // Initial R12.
-            rsp = push_stack(rsp, 0); // Initial R13.
-            rsp = push_stack(rsp, 0); // Initial R14.
-            rsp = push_stack(rsp, 0); // Initial R15.
-            rsp = push_stack(rsp, DEFAULT_RFLAGS | USER_ACCESS); // RFLAGS (interrupts disabled, user memory access allowed).
-
-            // Work out the virtual address by taking
-            // the difference between rsp and virt,
-            // then subtracting that from stack_top.
-            let stack_offset = (virt - VirtAddr::new(rsp as usize)) - 7;
-            stack_top - stack_offset
+            stack.populate_user(
+                &stack_frames,
+                phys_to_virt_addr,
+                &[
+                    // Push the entry point, to be used by
+                    // start_user_thread.
+                    entry_point.as_usize() as u64,
+                    start_user_thread as *const u8 as u64,
+                    // Initial register values.
+                    0, // Initial RBP.
+                    0, // Initial RBX.
+                    0, // Initial R12.
+                    0, // Initial R13.
+                    0, // Initial R14.
+                    0, // Initial R15.
+                    // Initial RFLAGS (interrupts disabled, user memory access allowed).
+                    DEFAULT_RFLAGS | USER_ACCESS,
+                ],
+            )
         };
 
         let kernel_id = KernelThreadId::new();
@@ -702,7 +661,7 @@ impl Thread {
             interrupt_stack: Some(int_stack),
             syscall_stack: Some(sys_stack),
             user_stack_pointer: UnsafeCell::new(VirtAddr::zero()),
-            stack_pointer: UnsafeCell::new(rsp.as_usize()),
+            stack_pointer: UnsafeCell::new(rsp),
             stack_bounds: Some(stack),
         });
 
