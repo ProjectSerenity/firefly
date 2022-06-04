@@ -27,6 +27,10 @@ use firefly_syscalls::shutdown;
 ///
 #[inline]
 pub fn main() {
+    let rsp: u64;
+    unsafe { asm!("mov {:r}, rsp", out(reg) rsp) };
+    println!("Stack pointer: {:p}.", rsp as usize as *const ());
+
     check_abi_registers();
     println!("PASS: debug_abi_registers");
 
