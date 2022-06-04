@@ -44,6 +44,7 @@ use memory::{
 };
 use physmem::ALLOCATOR;
 use pretty::Bytes;
+use random::read as read_random;
 use serial::println;
 use spin::lock;
 use time::{Duration, TimeSlice};
@@ -285,6 +286,26 @@ pub fn debug() {
 
     // Debug as normal.
     current.debug();
+}
+
+/// Returns a randomised stack offset.
+///
+/// The offset will take one of 524,288 different
+/// positions within an 8 MiB range. The offset is
+/// expressed as an unsigned integer in the range
+/// [0, 0x80_0000).
+///
+fn random_stack_offset() -> usize {
+    // We get 19 bits of entropy, then multiply
+    // the result by 16 to get the characteristics
+    // we want. Rather than do this as two separate
+    // steps, we get 23 bits of entropy and mask
+    // off the bottom 4 bits.
+    const MASK: usize = 0b0111_1111_1111_1111_1111_0000;
+    let mut entropy = [0u8; 8];
+    read_random(&mut entropy[4..]);
+
+    usize::from_be_bytes(entropy) & MASK
 }
 
 /// Uniquely identifies a thread throughout
@@ -596,12 +617,11 @@ impl Thread {
         // address.
         //
         // TODO: Support binaries that place binary segments in this space.
-        let stack_top = USERSPACE.end();
+        let stack_top = USERSPACE.end() - random_stack_offset();
         let stack_bottom =
             stack_top - (Thread::DEFAULT_USER_STACK_PAGES * VirtPageSize::Size4KiB.bytes()) + 1;
         let stack_top_page = VirtPage::containing_address(stack_top, VirtPageSize::Size4KiB);
-        let stack_bottom_page =
-            VirtPage::from_start_address(stack_bottom, VirtPageSize::Size4KiB).unwrap();
+        let stack_bottom_page = VirtPage::containing_address(stack_bottom, VirtPageSize::Size4KiB);
 
         // Map the stack.
         let pages = VirtPage::range_inclusive(stack_bottom_page, stack_top_page);
