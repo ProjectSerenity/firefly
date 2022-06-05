@@ -35,7 +35,7 @@ def x86_64_cc_toolchain(name):
             "ar": "/usr/bin/ar",
             "cpp": "/bin/false",
             "gcc": "/usr/bin/clang",
-            "ld": "/usr/bin/lld",
+            "ld": "/usr/bin/ld",
             "llvm-cov": "/bin/false",
             "nm": "/bin/false",
             "objdump": "/bin/false",
