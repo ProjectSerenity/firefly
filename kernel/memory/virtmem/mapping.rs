@@ -192,7 +192,8 @@ pub fn level_4_table(pml4: &PageTable, parse_kernel: bool) -> Vec<Mapping> {
                 // page with another segment with different
                 // flags.
                 let segment = kernel_binary
-                    .iter_segments()
+                    .segments
+                    .iter()
                     .find(|&s| {
                         let size = VirtPageSize::Size4KiB.bytes();
                         s.start.align_down(size) <= range.start()

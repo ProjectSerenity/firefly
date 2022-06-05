@@ -20,7 +20,6 @@ extern crate alloc;
 
 mod elf;
 
-use alloc::slice::Iter;
 use alloc::vec::Vec;
 use memory::{PageTableFlags, VirtAddr};
 
@@ -34,8 +33,8 @@ const MAX_SEGMENTS: usize = 16;
 ///
 #[derive(Debug, PartialEq, Eq)]
 pub struct Binary<'data> {
-    entry_point: VirtAddr,
-    segments: Vec<Segment<'data>>,
+    pub entry_point: VirtAddr,
+    pub segments: Vec<Segment<'data>>,
 }
 
 impl<'data> Binary<'data> {
@@ -60,20 +59,6 @@ impl<'data> Binary<'data> {
         }
 
         Err("unrecognised binary format")
-    }
-
-    /// Returns the virtual address at which the binary should
-    /// start execution.
-    ///
-    pub fn entry_point(&self) -> VirtAddr {
-        self.entry_point
-    }
-
-    /// Returns an iterator over the memory segments in the
-    /// binary.
-    ///
-    pub fn iter_segments(&self) -> Iter<Segment> {
-        self.segments.iter()
     }
 }
 

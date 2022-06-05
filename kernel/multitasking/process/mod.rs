@@ -131,7 +131,7 @@ impl Process {
         // allocation so we can copy the data in later.
         let mut allocations = Vec::new();
         let mut allocator = lock!(ALLOCATOR);
-        for segment in bin.iter_segments() {
+        for segment in bin.segments.iter() {
             let page_start = VirtPage::containing_address(segment.start, VirtPageSize::Size4KiB);
             let page_end = VirtPage::containing_address(segment.end, VirtPageSize::Size4KiB);
             let page_range = VirtPage::range_inclusive(page_start, page_end);
@@ -205,7 +205,7 @@ impl Process {
             // do anything more.
         }
 
-        let kernel_thread_id = process.create_user_thread(bin.entry_point());
+        let kernel_thread_id = process.create_user_thread(bin.entry_point);
 
         without_interrupts(|| {
             lock!(PROCESSES).insert(kernel_process_id, process);
