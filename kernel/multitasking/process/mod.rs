@@ -113,7 +113,7 @@ impl Process {
         name: &str,
         binary: &[u8],
     ) -> Result<(KernelProcessId, KernelThreadId), Error> {
-        let bin = Binary::parse(name, binary).map_err(Error::BadBinary)?;
+        let mut bin = Binary::parse(name, binary).map_err(Error::BadBinary)?;
 
         let kernel_process_id = KernelProcessId::new();
         let mut process = Process {
@@ -122,6 +122,66 @@ impl Process {
             tracker: lock!(ALLOCATOR).new_tracker(),
             next_thread_id: ProcessThreadId(0),
             threads: BTreeMap::new(),
+        };
+
+        // Determine our relocation offset if the
+        // binary is relocatable, then update all
+        // segment addresses and the entry point,
+        // then apply any relocations.
+        let relocation_offset = if bin.relocatable {
+            let offset = USERSPACE.start().as_usize();
+
+            // Update and check the entry point.
+            bin.entry_point = bin
+                .entry_point
+                .checked_add(offset)
+                .ok_or(Error::BadBinary("entry point made invalid by ASLR offset"))?;
+            if !USERSPACE.contains_addr(bin.entry_point) {
+                return Err(Error::BadBinary(
+                    "entry point not in userspace after applying ASLR",
+                ));
+            }
+
+            // Update and check the segment bounds.
+            for segment in bin.segments.iter_mut() {
+                segment.start = segment.start.checked_add(offset).ok_or(Error::BadBinary(
+                    "segment start made invalid by ASLR offset",
+                ))?;
+                if !USERSPACE.contains_addr(segment.start) {
+                    return Err(Error::BadBinary(
+                        "segment start not in userspace after applying ASLR",
+                    ));
+                }
+
+                segment.end = segment
+                    .end
+                    .checked_add(offset)
+                    .ok_or(Error::BadBinary("segment end made invalid by ASLR offset"))?;
+                if !USERSPACE.contains_addr(segment.end) {
+                    return Err(Error::BadBinary(
+                        "segment end not in userspace after applying ASLR",
+                    ));
+                }
+            }
+
+            // Update the relocations. We actually
+            // apply them later, once the segments
+            // have been copied into memory.
+            for relocation in bin.relocations.iter_mut() {
+                relocation.addr = relocation.addr.checked_add(offset).ok_or(Error::BadBinary(
+                    "relocation address made invalid by ASLR offset",
+                ))?;
+                if !USERSPACE.contains_addr(relocation.addr) {
+                    return Err(Error::BadBinary(
+                        "relocation address not in userspace after applying ASLR",
+                    ));
+                }
+            }
+
+            offset
+        } else {
+            // No relocation for static executables.
+            0
         };
 
         // Allocate the virtual memory for the binary.
@@ -203,6 +263,60 @@ impl Process {
             // However, we've already zeroed the
             // memory regions, so we don't need to
             // do anything more.
+        }
+
+        // Apply any relocations.
+        if bin.relocatable {
+            for relocation in bin.relocations.iter() {
+                // First, we find the segment where
+                // the relocation exists.
+                let (segment, frames) = allocations
+                    .iter()
+                    .find(|(s, _f)| s.start <= relocation.addr && relocation.addr <= s.end)
+                    .ok_or(Error::BadBinary("relocation does not exist in any segment"))?;
+
+                // Next, we find the page where the
+                // relocation exists, and its index
+                // into the set of pages in the
+                // segment, so we can find the
+                // corresponding frame of underlying
+                // memory.
+                let page_range = VirtPage::range_inclusive(
+                    VirtPage::containing_address(segment.start, VirtPageSize::Size4KiB),
+                    VirtPage::containing_address(segment.end, VirtPageSize::Size4KiB),
+                );
+                let (idx, page) = page_range
+                    .enumerate()
+                    .find(|(_idx, page)| page.contains(relocation.addr))
+                    .ok_or(Error::BadBinary(
+                        "failed to find relocation within its segment somehow",
+                    ))?;
+
+                let frame = frames[idx];
+
+                // Now, we find the index into the
+                // page so we can use that as the
+                // offset into the frame.
+                let offset = relocation.addr - page.start_address();
+                let phys = frame.start_address() + offset;
+                let virt = phys_to_virt_addr(phys);
+                let ptr = virt.as_usize() as *mut u64;
+
+                // Get the base value, which we need to
+                // increment by the relocation offset.
+                let base = if let Some(base) = relocation.base {
+                    base // We already have the base value.
+                } else {
+                    unsafe { *ptr } // We increment the existing value.
+                };
+
+                let value = base
+                    .checked_add(relocation_offset as u64)
+                    .ok_or(Error::BadBinary("relocation resulted in a wrapped value"))?;
+
+                // Apply the relocation.
+                unsafe { *ptr = value };
+            }
         }
 
         let kernel_thread_id = process.create_user_thread(bin.entry_point);

@@ -35,6 +35,8 @@ const MAX_SEGMENTS: usize = 16;
 pub struct Binary<'data> {
     pub entry_point: VirtAddr,
     pub segments: Vec<Segment<'data>>,
+    pub relocatable: bool,
+    pub relocations: Vec<Relocation>,
 }
 
 impl<'data> Binary<'data> {
@@ -71,4 +73,21 @@ pub struct Segment<'data> {
     pub end: VirtAddr,
     pub data: &'data [u8],
     pub flags: PageTableFlags,
+    pub align: usize,
+}
+
+/// Represents a relative address within the
+/// binary, which should be incremented by
+/// the binary's virtual memory base before
+/// execution.
+///
+/// If the `base` is `None`, the value already
+/// at `addr` should be incremented. Otherwise,
+/// the value at `addr` should be set to `base`
+/// plus the increment.
+///
+#[derive(Debug, PartialEq, Eq)]
+pub struct Relocation {
+    pub addr: VirtAddr,
+    pub base: Option<u64>,
 }
