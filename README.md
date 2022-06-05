@@ -21,7 +21,7 @@ Firefly is built using the [Bazel](https://bazel.build/) build system. You will 
 While Bazel manages most of the build, some tools are currently used from the host for now. This currently consists of:
 
 - Clang (expected in `/usr/bin/clang`)
-- LLD (expected in `/usr/bin/ld`)
+- LLD (expected in `/usr/bin/lld`)
 - LLVM-tools (as installed with `rustup component add llvm-tools-preview`)
 
 Once Bazel and the above host tools are prepared, the following commands are common:
