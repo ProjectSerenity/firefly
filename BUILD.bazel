@@ -5,7 +5,7 @@
 
 load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
 load("@io_bazel_rules_go//go:def.bzl", "nogo")
-load("//bazel:qemu.bzl", "qemu")
+load("//bazel:qemu.bzl", "qemu", "qemu_test")
 
 # Expose the license to the rest of the workspace.
 exports_files(
@@ -95,6 +95,31 @@ qemu(
 
 qemu(
     name = "test",
+    drive = "//user/test-workload:tar",
+    image = ":image.bin",
+    options = [
+        "-device",
+        "virtio-net,netdev=net0,disable-legacy=on,disable-modern=off",
+        "-netdev",
+        "user,id=net0",
+        "-object",
+        "filter-dump,id=filter0,netdev=net0,file=virtio-net.pcap",
+        "-device",
+        "virtio-rng-pci,disable-legacy=on,disable-modern=off",
+        "-serial",
+        "stdio",
+        "-display",
+        "none",
+        "-no-reboot",
+        "-cpu",
+        "Skylake-Server",
+    ],
+    qemu = "qemu-system-x86_64",
+)
+
+qemu_test(
+    name = "qemu_test",
+    size = "small",
     drive = "//user/test-workload:tar",
     image = ":image.bin",
     options = [
