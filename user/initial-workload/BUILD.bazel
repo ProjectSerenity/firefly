@@ -41,8 +41,9 @@ rust_binary(
     srcs = ["main.rs"],
     rustc_flags = [
         "-Cpanic=abort",
-        "-Clink-args=-nostartfiles -s -static",
+        "-Clink-args=-nostartfiles -s -static-pie",
         "-Ctarget-feature=+crt-static",
+        "-Crelocation-model=pie",
     ],
     tags = ["manual"],
     deps = [

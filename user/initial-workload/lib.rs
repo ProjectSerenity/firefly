@@ -22,4 +22,5 @@ pub fn main() {
     let mut buf = [0u8; 8];
     read_random(&mut buf[..]);
     println!("Hello from userland: {:x?}!", &buf[..]);
+    println!("main() is at {:p}", main as *const u8);
 }
