@@ -290,20 +290,20 @@ pub fn debug() {
 
 /// Returns a randomised stack offset.
 ///
-/// The offset will take one of 524,288 different
-/// positions within an 8 MiB range. The offset is
-/// expressed as an unsigned integer in the range
-/// [0, 0x80_0000).
+/// The offset will take one of 1,073,741,824
+/// different positions within an 16 GiB range.
+/// The offset is expressed as an unsigned
+/// integer in the range [0, 0x4_0000_0000).
 ///
 fn random_stack_offset() -> usize {
-    // We get 19 bits of entropy, then multiply
+    // We get 30 bits of entropy, then multiply
     // the result by 16 to get the characteristics
     // we want. Rather than do this as two separate
-    // steps, we get 23 bits of entropy and mask
+    // steps, we get 34 bits of entropy and mask
     // off the bottom 4 bits.
-    const MASK: usize = 0b0111_1111_1111_1111_1111_0000;
+    const MASK: usize = 0x3f_ffff_fff0;
     let mut entropy = [0u8; 8];
-    read_random(&mut entropy[4..]);
+    read_random(&mut entropy[5..]);
 
     usize::from_be_bytes(entropy) & MASK
 }
