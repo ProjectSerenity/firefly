@@ -20,6 +20,7 @@ use memory::{
     PhysFrameAllocator, PhysFrameDeallocator, VirtAddr, VirtPage, VirtPageRange, VirtPageSize,
 };
 use physmem::{ArenaFrameAllocator, BitmapFrameTracker, ALLOCATOR};
+use random::read as read_random;
 use serial::println;
 use spin::lock;
 use virtmem::{kernel_mappings_frozen, new_page_table};
@@ -129,7 +130,24 @@ impl Process {
         // segment addresses and the entry point,
         // then apply any relocations.
         let relocation_offset = if bin.relocatable {
-            let offset = USERSPACE.start().as_usize();
+            let max_align = bin
+                .segments
+                .iter()
+                .map(|s| s.align)
+                .max()
+                .ok_or(Error::BadBinary("no segments"))?;
+
+            // We get 28 bits of entropy, then multiply
+            // the result by the largest segment alignment.
+            const MASK: usize = 0xfff_ffff;
+            let mut entropy = [0u8; 8];
+            read_random(&mut entropy[4..]);
+
+            // Calculate the offset.
+            let offset = USERSPACE.start().as_usize()
+                + (usize::from_be_bytes(entropy) & MASK)
+                    .checked_mul(max_align)
+                    .ok_or(Error::BadBinary("excessive segment alignment"))?;
 
             // Update and check the entry point.
             bin.entry_point = bin
