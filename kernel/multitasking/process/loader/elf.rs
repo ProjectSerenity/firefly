@@ -201,7 +201,7 @@ mod test {
     #[test]
     fn test_elf_parsing() {
         // ```
-        // % readelf -W -l testdata/x86_64-linux-none-simple.elf
+        // % readelf --wide --program-headers testdata/x86_64-linux-none-simple.elf
         //
         // Elf file type is EXEC (Executable file)
         // Entry point 0x201170
