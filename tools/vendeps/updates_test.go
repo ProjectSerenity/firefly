@@ -141,13 +141,13 @@ func TestMajorUpdate(t *testing.T) {
 			Name:    "unstable newer minor version",
 			Current: "v0.1.2",
 			Next:    "v0.2.2",
-			Want:    false,
+			Want:    true,
 		},
 		{
 			Name:    "unstable newer major version",
 			Current: "v0.1.2",
 			Next:    "v1.2.3",
-			Want:    false,
+			Want:    true,
 		},
 		{
 			Name:    "stable older version",

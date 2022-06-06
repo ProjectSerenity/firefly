@@ -75,14 +75,15 @@ func UpdateDependencies(name string) error {
 	return nil
 }
 
-// MajorUpdate returns true if the current
-// version is stable (its major version number
-// is nonzero) and the newer version has a
-// larger major version than current.
+// MajorUpdate returns true if the newer
+// version has a different major number,
+// or if both have major version 0 and
+// the newer version has a different
+// minor version.
 //
 func MajorUpdate(current, next string) bool {
-	if semver.Major(current) == "v0" {
-		return false
+	if semver.Major(current) == "v0" && semver.Major(next) == "v0" {
+		return semver.Compare(current, next) == -1 && semver.MajorMinor(current) != semver.MajorMinor(next)
 	}
 
 	return semver.Compare(current, next) == -1 && semver.Major(current) != semver.Major(next)
