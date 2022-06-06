@@ -32,7 +32,7 @@ pub fn is_elf(name: &str, content: &[u8]) -> bool {
 /// segments and the entry point must exist purely
 /// within userspace.
 ///
-pub fn parse_elf<'bin>(binary: &'bin [u8], userspace: bool) -> Result<Binary, &'static str> {
+pub fn parse_elf<'bin>(binary: &'bin [u8]) -> Result<Binary, &'static str> {
     const GNU_STACK: program::Type = program::Type::OsSpecific(1685382481); // GNU stack segment.
 
     let elf = ElfFile::new(binary)?;
@@ -67,7 +67,7 @@ pub fn parse_elf<'bin>(binary: &'bin [u8], userspace: bool) -> Result<Binary, &'
 
     let relocatable = match elf.header.pt2.type_().as_type() {
         header::Type::Executable => {
-            if userspace && !USERSPACE.contains_addr(entry_point) {
+            if !USERSPACE.contains_addr(entry_point) {
                 // We are strict for static executables.
                 return Err("invalid entry point outside userspace");
             }
@@ -122,15 +122,12 @@ pub fn parse_elf<'bin>(binary: &'bin [u8], userspace: bool) -> Result<Binary, &'
                             }
                         }
 
-                        if !relocatable && userspace && !USERSPACE.contains(&range) {
+                        if !relocatable && !USERSPACE.contains(&range) {
                             return Err("program segment is outside userspace");
                         }
 
                         let data = header.raw_data(&elf);
-                        let mut flags = PageTableFlags::PRESENT;
-                        if userspace {
-                            flags |= PageTableFlags::USER_ACCESSIBLE;
-                        }
+                        let mut flags = PageTableFlags::PRESENT | PageTableFlags::USER_ACCESSIBLE;
                         if !header.flags.is_execute() {
                             flags |= PageTableFlags::NO_EXECUTE;
                         }
@@ -334,7 +331,7 @@ mod test {
         // ```
         let simple = include_bytes!("testdata/x86_64-linux-none-simple.elf");
         assert_eq!(
-            parse_elf(simple, true),
+            parse_elf(simple),
             Ok(Binary {
                 entry_point: VirtAddr::new(0x201170),
                 segments: vec![
@@ -1309,7 +1306,7 @@ mod test {
         // ```
         let simple = include_bytes!("testdata/x86_64-linux-none-pie.elf");
         assert_eq!(
-            parse_elf(simple, true),
+            parse_elf(simple),
             Ok(Binary {
                 entry_point: VirtAddr::new(0x14a0),
                 segments: vec![
