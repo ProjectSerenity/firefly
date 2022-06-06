@@ -422,7 +422,7 @@ go = [
     ),
     module(
         name = "golang.org/x/vuln",
-        version = "v0.0.0-20220603152332-c59f2733b982",
+        version = "v0.0.0-20220606135952-b5c0ef50b988",
         packages = [
             package(
                 name = "golang.org/x/vuln/osv",

@@ -25,8 +25,8 @@ RULES_GO = struct(
     name = "io_bazel_rules_go",
     repo = "bazelbuild/rules_go",
     archive = "https://github.com/bazelbuild/rules_go/releases/download/v{v}/rules_go-v{v}.zip",
-    version = "0.32.0",
-    sha256 = "ab21448cef298740765f33a7f5acee0607203e4ea321219f2a4c85a6e0fb0a27",
+    version = "0.33.0",
+    sha256 = "685052b498b6ddfe562ca7a97736741d87916fe536623afb7da2824c0211c369",
 )
 
 RULES_LICENSE = struct(
