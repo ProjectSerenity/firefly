@@ -36,6 +36,15 @@
 		(docs "An invalid or malformed argument 6 was provided to the system call.")))
 
 
+(group
+	(name debugging)
+	(docs "The set of functionality used for debugging the kernel and the ABI.")
+	(structure registers)
+	(syscall debug abi registers)
+	(syscall debug abi errors)
+	(syscall debug abi bounds))
+
+
 (structure
 	(name registers)
 	(docs "A set of saved register values.")
