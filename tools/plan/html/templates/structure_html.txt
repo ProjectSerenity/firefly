@@ -1,42 +1,26 @@
-<!DOCTYPE html>
-<html lang="en">
-	<head>
-		<title>{{ .Name.Spaced }} structure - Firefly system call ABI</title>
-		<style>
-{{ template "base-style_css.txt" }}
-{{ template "inline-code_css.txt" }}
-{{ template "field-table_css.txt" }}
-		</style>
-		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-	</head>
-	<body>
-		<h1>Structure <code class="inline-code structure">{{ .Name.Spaced }}</code></h1>
-		{{ toDocs 2 .Docs }}
-		<h2>Fields</h2>
-		<table class="field-table">
-			<thead>
-				<tr>
-					<th>Name</th>
-					<th>Type</th>
-					<th>Description</th>
-				</tr>
-			</thead>
-			<tbody>
-			{{ range .Fields }}
-				<tr>
-					<td>
-						<code class="inline-code">{{ .Name.Spaced}}</code>
-					</td>
-					<td>
-						<code class="inline-code">{{ toString .Type }}</code>
-					</td>
-					<td>
-						{{ toDocs 5 .Docs }}
-					</td>
-				</tr>
-			{{ end }}
-			</tbody>
-		</table>
-	</body>
-</html>
+{{ toDocs 2 .Docs }}
+<h2>Fields</h2>
+<table class="field-table">
+	<thead>
+		<tr>
+			<th>Name</th>
+			<th>Type</th>
+			<th>Description</th>
+		</tr>
+	</thead>
+	<tbody>
+	{{ range .Fields }}
+		<tr>
+			<td>
+				<code class="inline-code">{{ .Name.Spaced}}</code>
+			</td>
+			<td>
+				<code class="inline-code">{{ toString .Type }}</code>
+			</td>
+			<td>
+				{{ toDocs 5 .Docs }}
+			</td>
+		</tr>
+	{{ end }}
+	</tbody>
+</table>

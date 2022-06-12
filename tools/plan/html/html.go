@@ -35,7 +35,7 @@ func mkdir(dir string) error {
 //
 func GenerateDocs(dir string, file *types.File) error {
 	// Start with the index page.
-	err := generateItemHTML(filepath.Join(dir, "index.html"), indexTemplate, file)
+	err := generateItemHTML(filepath.Join(dir, "index.html"), indexTemplate, file, false)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func GenerateDocs(dir string, file *types.File) error {
 	}
 
 	for _, integer := range file.NewIntegers {
-		err = generateItemHTML(filepath.Join(intDir, integer.Name.SnakeCase()+".html"), integerTemplate, integer)
+		err = generateItemHTML(filepath.Join(intDir, integer.Name.SnakeCase()+".html"), integerTemplate, integer, true)
 		if err != nil {
 			return err
 		}
@@ -61,7 +61,7 @@ func GenerateDocs(dir string, file *types.File) error {
 	}
 
 	for _, enumeration := range file.Enumerations {
-		err = generateItemHTML(filepath.Join(enumDir, enumeration.Name.SnakeCase()+".html"), enumerationTemplate, enumeration)
+		err = generateItemHTML(filepath.Join(enumDir, enumeration.Name.SnakeCase()+".html"), enumerationTemplate, enumeration, true)
 		if err != nil {
 			return err
 		}
@@ -74,7 +74,7 @@ func GenerateDocs(dir string, file *types.File) error {
 	}
 
 	for _, bitfield := range file.Bitfields {
-		err = generateItemHTML(filepath.Join(bitsDir, bitfield.Name.SnakeCase()+".html"), bitfieldTemplate, bitfield)
+		err = generateItemHTML(filepath.Join(bitsDir, bitfield.Name.SnakeCase()+".html"), bitfieldTemplate, bitfield, true)
 		if err != nil {
 			return err
 		}
@@ -87,7 +87,7 @@ func GenerateDocs(dir string, file *types.File) error {
 	}
 
 	for _, structure := range file.Structures {
-		err = generateItemHTML(filepath.Join(structDir, structure.Name.SnakeCase()+".html"), structureTemplate, structure)
+		err = generateItemHTML(filepath.Join(structDir, structure.Name.SnakeCase()+".html"), structureTemplate, structure, true)
 		if err != nil {
 			return err
 		}
@@ -100,7 +100,7 @@ func GenerateDocs(dir string, file *types.File) error {
 	}
 
 	for _, syscall := range file.Syscalls {
-		err = generateItemHTML(filepath.Join(syscallDir, syscall.Name.SnakeCase()+".html"), syscallTemplate, syscall)
+		err = generateItemHTML(filepath.Join(syscallDir, syscall.Name.SnakeCase()+".html"), syscallTemplate, syscall, true)
 		if err != nil {
 			return err
 		}
@@ -113,16 +113,32 @@ func GenerateDocs(dir string, file *types.File) error {
 // the item and writes it to a new file with
 // the given name.
 //
-func generateItemHTML(name, template string, item any) error {
+func generateItemHTML(name, template string, item any, isItem bool) error {
 	f, err := os.Create(name)
 	if err != nil {
 		return fmt.Errorf("failed to create %q: %v", name, err)
+	}
+
+	if isItem {
+		err = templates.ExecuteTemplate(f, itemPrefixTemplate, item)
+		if err != nil {
+			f.Close()
+			return fmt.Errorf("failed to execute template %q for %s: %v", itemPrefixTemplate, name, err)
+		}
 	}
 
 	err = templates.ExecuteTemplate(f, template, item)
 	if err != nil {
 		f.Close()
 		return fmt.Errorf("failed to execute template %q for %s: %v", template, name, err)
+	}
+
+	if isItem {
+		err = templates.ExecuteTemplate(f, itemSuffixTemplate, item)
+		if err != nil {
+			f.Close()
+			return fmt.Errorf("failed to execute template %q for %s: %v", itemSuffixTemplate, name, err)
+		}
 	}
 
 	err = f.Close()
@@ -142,12 +158,18 @@ func generateItemHTML(name, template string, item any) error {
 var templatesFS embed.FS
 
 var templates = template.Must(template.New("").Funcs(template.FuncMap{
-	"addOne":   addOne,
-	"toString": toString,
-	"toDocs":   toDocs,
+	"addOne":               addOne,
+	"toItemClass":          toItemClass,
+	"toItemName":           toItemName,
+	"toItemTitle":          toItemTitle,
+	"toItemUnderlyingType": toItemUnderlyingType,
+	"toString":             toString,
+	"toDocs":               toDocs,
 }).ParseFS(templatesFS, "templates/*_html.txt", "templates/css/*_css.txt"))
 
 const (
+	itemPrefixTemplate  = "item-prefix_html.txt"
+	itemSuffixTemplate  = "item-suffix_html.txt"
 	integerTemplate     = "integer_html.txt"
 	enumerationTemplate = "enumeration_html.txt"
 	bitfieldTemplate    = "bitfield_html.txt"
@@ -176,6 +198,70 @@ func plainDocs(docs types.Docs) string {
 	}
 
 	return out
+}
+
+func toItemClass(item any) string {
+	switch item.(type) {
+	case *types.NewInteger:
+		return "integer"
+	case *types.Enumeration:
+		return "enumeration"
+	case *types.Bitfield:
+		return "bitfield"
+	case *types.Structure:
+		return "structure"
+	case *types.Syscall:
+		return "syscall"
+	default:
+		panic(fmt.Sprintf("toItemClass(%T): unexpected type", item))
+	}
+}
+
+func toItemName(item any) string {
+	switch item := item.(type) {
+	case *types.NewInteger:
+		return item.Name.Spaced()
+	case *types.Enumeration:
+		return item.Name.Spaced()
+	case *types.Bitfield:
+		return item.Name.Spaced()
+	case *types.Structure:
+		return item.Name.Spaced()
+	case *types.Syscall:
+		return item.Name.Spaced()
+	default:
+		panic(fmt.Sprintf("toItemName(%T): unexpected type", item))
+	}
+}
+
+func toItemTitle(item any) string {
+	switch item.(type) {
+	case *types.NewInteger:
+		return "Integer"
+	case *types.Enumeration:
+		return "Enumeration"
+	case *types.Bitfield:
+		return "Bitfield"
+	case *types.Structure:
+		return "Structure"
+	case *types.Syscall:
+		return "Syscall"
+	default:
+		panic(fmt.Sprintf("toItemTitle(%T): unexpected type", item))
+	}
+}
+
+func toItemUnderlyingType(item any) types.Type {
+	switch item := item.(type) {
+	case *types.NewInteger:
+		return item.Type
+	case *types.Enumeration:
+		return item.Type
+	case *types.Bitfield:
+		return item.Type
+	default:
+		return nil
+	}
 }
 
 func toString(t types.Type) template.HTML {

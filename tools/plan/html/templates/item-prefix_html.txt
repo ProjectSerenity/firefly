@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>{{ toItemName . }} {{ toItemClass . }} - Firefly system call ABI</title>
+		<style>
+{{ template "base-style_css.txt" }}
+{{ template "inline-code_css.txt" }}
+{{ template "field-table_css.txt" }}
+		</style>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+	</head>
+	<body>
+		<h1>{{ toItemTitle . }} <code class="inline-code {{ toItemClass . }}">{{ toItemName . }}</code>
+			{{- if toItemUnderlyingType . }}{{ $typ := toItemUnderlyingType . }} (<code class="inline-code">{{ toString $typ }}</code>){{ end -}}
+		</h1>
