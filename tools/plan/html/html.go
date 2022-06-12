@@ -106,6 +106,19 @@ func GenerateDocs(dir string, file *types.File) error {
 		}
 	}
 
+	groupDir := filepath.Join(dir, "groups")
+	err = mkdir(groupDir)
+	if err != nil {
+		return err
+	}
+
+	for _, group := range file.Groups {
+		err = generateItemHTML(filepath.Join(groupDir, group.Name.SnakeCase()+".html"), groupTemplate, group, true)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -159,6 +172,7 @@ var templatesFS embed.FS
 
 var templates = template.Must(template.New("").Funcs(template.FuncMap{
 	"addOne":               addOne,
+	"join":                 strings.Join,
 	"toItemClass":          toItemClass,
 	"toItemName":           toItemName,
 	"toItemTitle":          toItemTitle,
@@ -175,6 +189,7 @@ const (
 	bitfieldTemplate    = "bitfield_html.txt"
 	structureTemplate   = "structure_html.txt"
 	syscallTemplate     = "syscall_html.txt"
+	groupTemplate       = "group_html.txt"
 	indexTemplate       = "index_html.txt"
 )
 
@@ -212,6 +227,8 @@ func toItemClass(item any) string {
 		return "structure"
 	case *types.Syscall:
 		return "syscall"
+	case *types.Group:
+		return "group"
 	default:
 		panic(fmt.Sprintf("toItemClass(%T): unexpected type", item))
 	}
@@ -228,6 +245,8 @@ func toItemName(item any) string {
 	case *types.Structure:
 		return item.Name.Spaced()
 	case *types.Syscall:
+		return item.Name.Spaced()
+	case *types.Group:
 		return item.Name.Spaced()
 	default:
 		panic(fmt.Sprintf("toItemName(%T): unexpected type", item))
@@ -246,6 +265,8 @@ func toItemTitle(item any) string {
 		return "Structure"
 	case *types.Syscall:
 		return "Syscall"
+	case *types.Group:
+		return "Group"
 	default:
 		panic(fmt.Sprintf("toItemTitle(%T): unexpected type", item))
 	}

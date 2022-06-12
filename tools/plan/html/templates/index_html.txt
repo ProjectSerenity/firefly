@@ -79,5 +79,15 @@
 				</li>
 			{{ end }}
 		</ol>
+		<h2>Groups</h2>
+		<ul>
+			{{ range .Groups }}
+				<li>
+					<code class="inline-code">
+						<a href="groups/{{ .Name.SnakeCase }}.html" class="group">{{ .Name.Spaced }}</a>
+					</code>
+				</li>
+			{{ end }}
+		</ul>
 	</body>
 </html>

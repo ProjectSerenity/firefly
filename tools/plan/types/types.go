@@ -609,6 +609,30 @@ func (s *Structure) String() string {
 	return fmt.Sprintf("structure %s", s.Name.Spaced())
 }
 
+// ItemReference is like Reference, but it
+// names the type of item in Underlying.
+//
+type ItemReference struct {
+	Type       string
+	Name       Name
+	Node       *ast.List
+	Underlying any
+}
+
+// Group represents a group of logically
+// related items.
+//
+type Group struct {
+	Name Name
+	Node *ast.List
+	Docs Docs
+	List []*ItemReference
+}
+
+func (g *Group) String() string {
+	return fmt.Sprintf("group %s", g.Name.Spaced())
+}
+
 // Parameter represents a single argument
 // or result in a function call.
 //
@@ -682,6 +706,9 @@ type File struct {
 
 	// System calls.
 	Syscalls []*Syscall
+
+	// Item groups.
+	Groups []*Group
 }
 
 // SyscallsEnumeration returns a synthetic
@@ -741,6 +768,12 @@ func (f *File) DropAST() {
 		}
 		for _, result := range syscall.Results {
 			result.Node = nil
+		}
+	}
+	for _, group := range f.Groups {
+		group.Node = nil
+		for _, item := range group.List {
+			item.Node = nil
 		}
 	}
 }

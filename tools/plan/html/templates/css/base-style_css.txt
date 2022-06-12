@@ -28,6 +28,10 @@ a {
 	color: #d34e4e; /* Dark red */
 }
 
+.group {
+	color: #4ed34e; /* Dark green */
+}
+
 @media (prefers-color-scheme: dark) {
 	html {
 		color: #ddd; /* Light grey */
@@ -52,5 +56,9 @@ a {
 
 	.syscall {
 		color: #e5b0be; /* Light red */
+	}
+
+	.group {
+		color: #bee5b0; /* Light green */
 	}
 }

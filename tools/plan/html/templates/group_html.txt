@@ -1,0 +1,19 @@
+{{ toDocs 2 .Docs }}
+{{ range .List }}
+	<h2>{{ toItemTitle .Underlying }} <code class="inline-code {{ toItemClass .Underlying }}">{{ toItemName .Underlying }}</code>
+		{{- if toItemUnderlyingType .Underlying }}{{ $typ := toItemUnderlyingType .Underlying }} (<code class="inline-code">{{ toString $typ }}</code>){{ end -}}
+	</h2>
+	{{ if eq .Type "integer" }}
+		{{ template "integer_html.txt" .Underlying }}
+	{{ else if eq .Type "enumeration" }}
+		{{ template "enumeration_html.txt" .Underlying }}
+	{{ else if eq .Type "bitfield" }}
+		{{ template "bitfield_html.txt" .Underlying }}
+	{{ else if eq .Type "structure" }}
+		{{ template "structure_html.txt" .Underlying }}
+	{{ else if eq .Type "syscall" }}
+		{{ template "syscall_html.txt" .Underlying }}
+	{{ else }}
+		<h3>Unexpected type {{ toItemClass .Type }} {{ join .Name " " }}</h3>
+	{{ end }}
+{{ end }}

@@ -167,6 +167,13 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 			}
 
 			i.out.Syscalls = append(i.out.Syscalls, syscall)
+		case "group":
+			group, err := i.interpretGroup(list)
+			if err != nil {
+				return err
+			}
+
+			i.out.Groups = append(i.out.Groups, group)
 		default:
 			return i.errorf(def, "unrecognised definition kind %q", def.Name)
 		}
@@ -301,6 +308,56 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 			if !isError {
 				return i.errorf(result.Node, "cannot handle errors in %s: %s is not an error enumeration: missing value %q", syscall, enum, missing)
 			}
+		}
+	}
+
+	// Complete each item group's item references,
+	// ensuring each refers to a valid item.
+	for _, group := range i.out.Groups {
+		// Check that the group name doesn't clash
+		// with an item name.
+		groupName := group.Name.Spaced()
+		if _, ok := i.typedefs[groupName]; ok {
+			return i.errorf(group.Node, "type %q is already defined", groupName)
+		}
+
+		for _, item := range group.List {
+			typename := item.Name.Spaced()
+			typ, ok := i.typedefs[typename]
+			if !ok {
+				return i.errorf(item.Node, "type %q is not defined", typename)
+			}
+
+			var value any = typ
+
+			var want string
+			switch typ.(type) {
+			case *NewInteger:
+				want = "integer"
+			case *Enumeration:
+				want = "enumeration"
+			case *Bitfield:
+				want = "bitfield"
+			case *Structure:
+				want = "structure"
+			case *SyscallReference:
+				want = "syscall"
+				for _, syscall := range i.out.Syscalls {
+					gotName := syscall.Name.Spaced()
+					if gotName == typename {
+						value = syscall
+						break
+					}
+				}
+			default:
+				return i.errorf(item.Node, "%s reference %q resolved to a %T", item.Type, typename, value)
+			}
+
+			if item.Type != want {
+				return i.errorf(item.Node, "%s reference %q resolved to a %T", item.Type, typename, value)
+			}
+
+			item.Underlying = value
 		}
 	}
 
@@ -873,6 +930,81 @@ func (i *interpreter) interpretSyscall(list *ast.List) (*Syscall, *positionalErr
 	i.typeuses[name] = nil
 
 	return syscall, nil
+}
+
+// interpretGroup parses the list elements as a
+// group definition.
+//
+func (i *interpreter) interpretGroup(list *ast.List) (*Group, *positionalError) {
+	// Skip the first element, which is the 'group'
+	// identifier.
+	parts, err := i.interpretLists(list.Elements[1:])
+	if err != nil {
+		return nil, err.Context("invalid group")
+	}
+
+	group := &Group{
+		Node: list,
+	}
+
+	for _, part := range parts {
+		def, elts, err := i.interpretDefinition(part)
+		if err != nil {
+			return nil, err
+		}
+
+		switch def.Name {
+		case "name":
+			name, err := i.interpretName(elts)
+			if err != nil {
+				return nil, err.Context("invalid group name")
+			}
+
+			if group.Name != nil {
+				return nil, i.errorf(def, "invalid group definition: name already defined")
+			}
+
+			group.Name = name
+		case "docs":
+			docs, err := i.interpretDocs(elts)
+			if err != nil {
+				return nil, err.Context("invalid group docs")
+			}
+
+			if group.Docs != nil {
+				return nil, i.errorf(def, "invalid group definition: docs already defined")
+			}
+
+			group.Docs = docs
+		case "integer", "enumeration", "bitfield", "structure", "syscall":
+			name, err := i.interpretName(elts)
+			if err != nil {
+				return nil, err
+			}
+
+			// We populate Underlying later.
+			ref := &ItemReference{
+				Type: def.Name,
+				Name: name,
+				Node: part,
+			}
+
+			group.List = append(group.List, ref)
+		default:
+			return nil, i.errorf(def, "unrecognised group definition kind %q", def.Name)
+		}
+	}
+
+	// Make sure the group is complete.
+	if group.Name == nil {
+		return nil, i.errorf(list, "group has no name definition")
+	} else if group.Docs == nil {
+		return nil, i.errorf(list, "group has no docs definition")
+	} else if len(group.List) == 0 {
+		return nil, i.errorf(list, "group has no item definitions")
+	}
+
+	return group, nil
 }
 
 // interpretField parses the list elements as a

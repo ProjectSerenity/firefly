@@ -980,6 +980,436 @@ func TestInterpreter(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "Item group",
+			Source: `(structure (name two)  (docs "abc") (field (name first) (docs "x") (type *mutable blah)) (field (name flag) (docs "") (type flags)))
+			         (structure (name blah) (docs (reference func)) (field (name foo) (docs "bar") (type *constant baz)))
+			         (syscall (name func) (docs "xyz") (arg1 (name fd) (docs "") (type fd)) (result1 (name error) (docs "") (type error)))
+			         (integer (name fd) (docs "file descriptor") (type uint32))
+			         (group
+			             (name fun features)
+			             (docs "Where the good times roll.")
+			             (integer fd)
+			             (structure blah)
+			             (syscall func)
+			             (enumeration baz)
+			             (bitfield flags))
+			         (bitfield (name flags) (docs "Flags") (type uint16) (value (name on) (docs "On")))
+			         (enumeration (name baz) (docs "foo") (type byte) (value (name one) (docs "1")))
+			         (enumeration (name error) (docs "") (type uint8)
+			             (value (name no error) (docs ""))
+			             (value (name bad syscall) (docs ""))
+			             (value (name illegal arg1) (docs ""))
+			             (value (name illegal arg2) (docs ""))
+			             (value (name illegal arg3) (docs ""))
+			             (value (name illegal arg4) (docs ""))
+			             (value (name illegal arg5) (docs ""))
+			             (value (name illegal arg6) (docs "")))`,
+			Want: &File{
+				NewIntegers: []*NewInteger{
+					{
+						Name: Name{"fd"},
+						Docs: Docs{Text("file descriptor")},
+						Type: Uint32,
+					},
+				},
+				Enumerations: []*Enumeration{
+					{
+						Name: Name{"baz"},
+						Docs: Docs{Text("foo")},
+						Type: Byte,
+						Values: []*Value{
+							{
+								Name: Name{"one"},
+								Docs: Docs{Text("1")},
+							},
+						},
+					},
+					{
+						Name: Name{"error"},
+						Docs: Docs{},
+						Type: Uint8,
+						Values: []*Value{
+							{
+								Name: Name{"no", "error"},
+								Docs: Docs{},
+							},
+							{
+								Name: Name{"bad", "syscall"},
+								Docs: Docs{},
+							},
+							{
+								Name: Name{"illegal", "arg1"},
+								Docs: Docs{},
+							},
+							{
+								Name: Name{"illegal", "arg2"},
+								Docs: Docs{},
+							},
+							{
+								Name: Name{"illegal", "arg3"},
+								Docs: Docs{},
+							},
+							{
+								Name: Name{"illegal", "arg4"},
+								Docs: Docs{},
+							},
+							{
+								Name: Name{"illegal", "arg5"},
+								Docs: Docs{},
+							},
+							{
+								Name: Name{"illegal", "arg6"},
+								Docs: Docs{},
+							},
+						},
+					},
+				},
+				Bitfields: []*Bitfield{
+					{
+						Name: Name{"flags"},
+						Docs: Docs{Text("Flags")},
+						Type: Uint16,
+						Values: []*Value{
+							{
+								Name: Name{"on"},
+								Docs: Docs{Text("On")},
+							},
+						},
+					},
+				},
+				Structures: []*Structure{
+					{
+						Name: Name{"two"},
+						Docs: Docs{Text("abc")},
+						Fields: []*Field{
+							{
+								Name: Name{"first"},
+								Docs: Docs{Text("x")},
+								Type: &Pointer{
+									Mutable: true,
+									Underlying: &Reference{
+										Name: Name{"blah"},
+										Underlying: &Structure{
+											Name: Name{"blah"},
+											Docs: Docs{
+												ReferenceText{
+													&Reference{
+														Name: Name{"func"},
+														Underlying: &SyscallReference{
+															Name: Name{"func"},
+														},
+													},
+												},
+											},
+											Fields: []*Field{
+												{
+													Name: Name{"foo"},
+													Docs: Docs{Text("bar")},
+													Type: &Pointer{
+														Underlying: &Reference{
+															Name: Name{"baz"},
+															Underlying: &Enumeration{
+																Name: Name{"baz"},
+																Docs: Docs{Text("foo")},
+																Type: Byte,
+																Values: []*Value{
+																	{
+																		Name: Name{"one"},
+																		Docs: Docs{Text("1")},
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+							{
+								Name: Name{"flag"},
+								Docs: Docs{},
+								Type: &Reference{
+									Name: Name{"flags"},
+									Underlying: &Bitfield{
+										Name: Name{"flags"},
+										Docs: Docs{Text("Flags")},
+										Type: Uint16,
+										Values: []*Value{
+											{
+												Name: Name{"on"},
+												Docs: Docs{Text("On")},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					{
+						Name: Name{"blah"},
+						Docs: Docs{
+							ReferenceText{
+								&Reference{
+									Name: Name{"func"},
+									Underlying: &SyscallReference{
+										Name: Name{"func"},
+									},
+								},
+							},
+						},
+						Fields: []*Field{
+							{
+								Name: Name{"foo"},
+								Docs: Docs{Text("bar")},
+								Type: &Pointer{
+									Underlying: &Reference{
+										Name: Name{"baz"},
+										Underlying: &Enumeration{
+											Name: Name{"baz"},
+											Docs: Docs{Text("foo")},
+											Type: Byte,
+											Values: []*Value{
+												{
+													Name: Name{"one"},
+													Docs: Docs{Text("1")},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				Syscalls: []*Syscall{
+					{
+						Name: Name{"func"},
+						Docs: Docs{Text("xyz")},
+						Args: []*Parameter{
+							{
+								Name: Name{"fd"},
+								Docs: Docs{},
+								Type: &Reference{
+									Name: Name{"fd"},
+									Underlying: &NewInteger{
+										Name: Name{"fd"},
+										Docs: Docs{Text("file descriptor")},
+										Type: Uint32,
+									},
+								},
+							},
+						},
+						Results: []*Parameter{
+							{
+								Name: Name{"error"},
+								Docs: Docs{},
+								Type: &Reference{
+									Name: Name{"error"},
+									Underlying: &Enumeration{
+										Name: Name{"error"},
+										Docs: Docs{},
+										Type: Uint8,
+										Values: []*Value{
+											{
+												Name: Name{"no", "error"},
+												Docs: Docs{},
+											},
+											{
+												Name: Name{"bad", "syscall"},
+												Docs: Docs{},
+											},
+											{
+												Name: Name{"illegal", "arg1"},
+												Docs: Docs{},
+											},
+											{
+												Name: Name{"illegal", "arg2"},
+												Docs: Docs{},
+											},
+											{
+												Name: Name{"illegal", "arg3"},
+												Docs: Docs{},
+											},
+											{
+												Name: Name{"illegal", "arg4"},
+												Docs: Docs{},
+											},
+											{
+												Name: Name{"illegal", "arg5"},
+												Docs: Docs{},
+											},
+											{
+												Name: Name{"illegal", "arg6"},
+												Docs: Docs{},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				Groups: []*Group{
+					{
+						Name: Name{"fun", "features"},
+						Docs: Docs{Text("Where the good times roll.")},
+						List: []*ItemReference{
+							{
+								Type: "integer",
+								Name: Name{"fd"},
+								Underlying: &NewInteger{
+									Name: Name{"fd"},
+									Docs: Docs{Text("file descriptor")},
+									Type: Uint32,
+								},
+							},
+							{
+								Type: "structure",
+								Name: Name{"blah"},
+								Underlying: &Structure{
+									Name: Name{"blah"},
+									Docs: Docs{
+										ReferenceText{
+											&Reference{
+												Name: Name{"func"},
+												Underlying: &SyscallReference{
+													Name: Name{"func"},
+												},
+											},
+										},
+									},
+									Fields: []*Field{
+										{
+											Name: Name{"foo"},
+											Docs: Docs{Text("bar")},
+											Type: &Pointer{
+												Underlying: &Reference{
+													Name: Name{"baz"},
+													Underlying: &Enumeration{
+														Name: Name{"baz"},
+														Docs: Docs{Text("foo")},
+														Type: Byte,
+														Values: []*Value{
+															{
+																Name: Name{"one"},
+																Docs: Docs{Text("1")},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+							{
+								Type: "syscall",
+								Name: Name{"func"},
+								Underlying: &Syscall{
+									Name: Name{"func"},
+									Docs: Docs{Text("xyz")},
+									Args: []*Parameter{
+										{
+											Name: Name{"fd"},
+											Docs: Docs{},
+											Type: &Reference{
+												Name: Name{"fd"},
+												Underlying: &NewInteger{
+													Name: Name{"fd"},
+													Docs: Docs{Text("file descriptor")},
+													Type: Uint32,
+												},
+											},
+										},
+									},
+									Results: []*Parameter{
+										{
+											Name: Name{"error"},
+											Docs: Docs{},
+											Type: &Reference{
+												Name: Name{"error"},
+												Underlying: &Enumeration{
+													Name: Name{"error"},
+													Docs: Docs{},
+													Type: Uint8,
+													Values: []*Value{
+														{
+															Name: Name{"no", "error"},
+															Docs: Docs{},
+														},
+														{
+															Name: Name{"bad", "syscall"},
+															Docs: Docs{},
+														},
+														{
+															Name: Name{"illegal", "arg1"},
+															Docs: Docs{},
+														},
+														{
+															Name: Name{"illegal", "arg2"},
+															Docs: Docs{},
+														},
+														{
+															Name: Name{"illegal", "arg3"},
+															Docs: Docs{},
+														},
+														{
+															Name: Name{"illegal", "arg4"},
+															Docs: Docs{},
+														},
+														{
+															Name: Name{"illegal", "arg5"},
+															Docs: Docs{},
+														},
+														{
+															Name: Name{"illegal", "arg6"},
+															Docs: Docs{},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+							{
+								Type: "enumeration",
+								Name: Name{"baz"},
+								Underlying: &Enumeration{
+									Name: Name{"baz"},
+									Docs: Docs{Text("foo")},
+									Type: Byte,
+									Values: []*Value{
+										{
+											Name: Name{"one"},
+											Docs: Docs{Text("1")},
+										},
+									},
+								},
+							},
+							{
+								Type: "bitfield",
+								Name: Name{"flags"},
+								Underlying: &Bitfield{
+									Name: Name{"flags"},
+									Docs: Docs{Text("Flags")},
+									Type: Uint16,
+									Values: []*Value{
+										{
+											Name: Name{"on"},
+											Docs: Docs{Text("On")},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -1923,6 +2353,98 @@ func TestInterpreterErrors(t *testing.T) {
 			Source: `(syscall (name uint64) (docs "abc"))`,
 			Want:   `test.plan:1:1: cannot define syscall: type "uint64" is already defined`,
 		},
+		// Group errors.
+		{
+			Name:   "group with identifier element",
+			Source: `(group foo)`,
+			Want:   `test.plan:1:8: invalid group: expected a list, found identifier`,
+		},
+		{
+			Name:   "group with empty definition",
+			Source: `(group ())`,
+			Want:   `test.plan:1:8: empty definition`,
+		},
+		{
+			Name:   "group with bad definition",
+			Source: `(group ("foo"))`,
+			Want:   `test.plan:1:9: definition kind must be an identifier, found string`,
+		},
+		{
+			Name:   "group with short definition",
+			Source: `(group (foo))`,
+			Want:   `test.plan:1:9: definition must have at least one field, found none`,
+		},
+		{
+			Name:   "group with unrecognised definition",
+			Source: `(group (foo bar))`,
+			Want:   `test.plan:1:9: unrecognised group definition kind "foo"`,
+		},
+		{
+			Name:   "group with invalid name",
+			Source: `(group (name "bar"))`,
+			Want:   `test.plan:1:14: invalid group name: expected an identifier, found string`,
+		},
+		{
+			Name:   "group with duplicate name",
+			Source: `(group (name bar) (name baz))`,
+			Want:   `test.plan:1:20: invalid group definition: name already defined`,
+		},
+		{
+			Name:   "group with invalid docs",
+			Source: `(group (docs bar))`,
+			Want:   `test.plan:1:14: invalid group docs: expected a string or formatting expression, found identifier`,
+		},
+		{
+			Name:   "group with invalid docs formatting expression",
+			Source: `(group (docs (bar)))`,
+			Want:   `test.plan:1:15: invalid group docs: invalid formatting expression: definition must have at least one field, found none`,
+		},
+		{
+			Name:   "group with unsupported docs formatting expression",
+			Source: `(group (docs (bar foo)))`,
+			Want:   `test.plan:1:15: invalid group docs: unrecognised formatting expression kind "bar"`,
+		},
+		{
+			Name:   "group with invalid docs code formatting expression",
+			Source: `(group (docs (code foo)))`,
+			Want:   `test.plan:1:20: invalid group docs: invalid formatting expression: expected a string, found identifier`,
+		},
+		{
+			Name:   "group with invalid docs reference formatting expression",
+			Source: `(group (docs (reference "baz") "bar"))`,
+			Want:   `test.plan:1:25: invalid group docs: invalid reference formatting expression: invalid type reference: expected an identifier, found string`,
+		},
+		{
+			Name:   "group with duplicate docs",
+			Source: `(group (docs "bar") (docs "baz"))`,
+			Want:   `test.plan:1:22: invalid group definition: docs already defined`,
+		},
+		{
+			Name:   "group with invalid item",
+			Source: `(group (integer "foo"))`,
+			Want:   `test.plan:1:17: expected an identifier, found string`,
+		},
+		{
+			Name:   "group with missing name",
+			Source: `(group (docs "blah") (integer uint8))`,
+			Want:   `test.plan:1:1: group has no name definition`,
+		},
+		{
+			Name:   "group with missing docs",
+			Source: `(group (name blah) (integer uint8))`,
+			Want:   `test.plan:1:1: group has no docs definition`,
+		},
+		{
+			Name:   "group with missing items",
+			Source: `(group (name blah) (docs "foo"))`,
+			Want:   `test.plan:1:1: group has no item definitions`,
+		},
+		{
+			Name: "duplicate group",
+			Source: `(integer (name blah) (docs "xyz") (type uint8))
+			         (group (name blah) (docs "abc") (integer uint8))`,
+			Want: `test.plan:2:13: type "blah" is already defined`,
+		},
 		// Type errors.
 		{
 			Name:   "type clashing with synthetic enumeration for syscalls",
@@ -2000,6 +2522,22 @@ func TestInterpreterErrors(t *testing.T) {
 			Name:   "syscall with args but no results",
 			Source: `(syscall (name baz) (docs "abc") (arg1 (name foo) (docs "bar") (type byte)))`,
 			Want:   `test.plan:1:1: cannot handle errors in syscall baz: syscall has no results`,
+		},
+		{
+			Name:   "group referencing a non-existant type",
+			Source: `(group (name baz) (docs "abc") (integer foo))`,
+			Want:   `test.plan:1:32: type "foo" is not defined`,
+		},
+		{
+			Name:   "group referencing an unexpected type",
+			Source: `(group (name baz) (docs "abc") (structure uint8))`,
+			Want:   `test.plan:1:32: structure reference "uint8" resolved to a types.Integer`,
+		},
+		{
+			Name: "group referencing the wrong type",
+			Source: `(integer (name foo) (docs "xyz") (type uint8))
+			         (group (name baz) (docs "abc") (structure foo))`,
+			Want: `test.plan:2:44: structure reference "foo" resolved to a *types.NewInteger`,
 		},
 	}
 
