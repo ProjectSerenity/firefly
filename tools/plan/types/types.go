@@ -404,10 +404,11 @@ func (b Integer) String() string {
 // underlying integer type.
 //
 type NewInteger struct {
-	Name Name
-	Node *ast.List
-	Docs Docs
-	Type Integer
+	Name   Name
+	Node   *ast.List
+	Docs   Docs
+	Groups []Name
+	Type   Integer
 }
 
 var (
@@ -522,6 +523,7 @@ type Enumeration struct {
 	Name   Name
 	Node   *ast.List
 	Docs   Docs
+	Groups []Name
 	Type   Integer
 	Embeds []*Enumeration
 	Values []*Value
@@ -556,6 +558,7 @@ type Bitfield struct {
 	Name   Name
 	Node   *ast.List
 	Docs   Docs
+	Groups []Name
 	Type   Integer
 	Values []*Value
 }
@@ -583,6 +586,7 @@ type Structure struct {
 	Name   Name
 	Node   *ast.List
 	Docs   Docs
+	Groups []Name
 	Fields []*Field
 }
 
@@ -668,6 +672,7 @@ type Syscall struct {
 	Name    Name
 	Node    *ast.List
 	Docs    Docs
+	Groups  []Name
 	Args    Parameters
 	Results Parameters
 }

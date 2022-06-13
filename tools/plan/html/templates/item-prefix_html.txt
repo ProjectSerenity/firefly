@@ -14,3 +14,10 @@
 		<h1>{{ toItemTitle . }} <code class="inline-code {{ toItemClass . }}">{{ toItemName . }}</code>
 			{{- if toItemUnderlyingType . }}{{ $typ := toItemUnderlyingType . }} (<code class="inline-code">{{ toString $typ }}</code>){{ end -}}
 		</h1>
+		{{- if toItemGroups . }}
+			<h2>Groups: {{ range $i, $group := toItemGroups . }}{{ if $i }}, {{ end -}}
+				<code class="inline-code">
+					<a href="../groups/{{ $group.SnakeCase }}.html" class="group">{{ $group.Spaced }}</a>
+				</code>{{ end }}
+			</h2>
+		{{ end }}

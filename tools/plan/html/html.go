@@ -174,6 +174,7 @@ var templates = template.Must(template.New("").Funcs(template.FuncMap{
 	"addOne":               addOne,
 	"join":                 strings.Join,
 	"toItemClass":          toItemClass,
+	"toItemGroups":         toItemGroups,
 	"toItemName":           toItemName,
 	"toItemTitle":          toItemTitle,
 	"toItemUnderlyingType": toItemUnderlyingType,
@@ -231,6 +232,23 @@ func toItemClass(item any) string {
 		return "group"
 	default:
 		panic(fmt.Sprintf("toItemClass(%T): unexpected type", item))
+	}
+}
+
+func toItemGroups(item any) []types.Name {
+	switch item := item.(type) {
+	case *types.NewInteger:
+		return item.Groups
+	case *types.Enumeration:
+		return item.Groups
+	case *types.Bitfield:
+		return item.Groups
+	case *types.Structure:
+		return item.Groups
+	case *types.Syscall:
+		return item.Groups
+	default:
+		return nil
 	}
 }
 

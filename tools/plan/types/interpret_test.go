@@ -1008,16 +1008,18 @@ func TestInterpreter(t *testing.T) {
 			Want: &File{
 				NewIntegers: []*NewInteger{
 					{
-						Name: Name{"fd"},
-						Docs: Docs{Text("file descriptor")},
-						Type: Uint32,
+						Name:   Name{"fd"},
+						Docs:   Docs{Text("file descriptor")},
+						Groups: []Name{{"fun", "features"}},
+						Type:   Uint32,
 					},
 				},
 				Enumerations: []*Enumeration{
 					{
-						Name: Name{"baz"},
-						Docs: Docs{Text("foo")},
-						Type: Byte,
+						Name:   Name{"baz"},
+						Docs:   Docs{Text("foo")},
+						Groups: []Name{{"fun", "features"}},
+						Type:   Byte,
 						Values: []*Value{
 							{
 								Name: Name{"one"},
@@ -1067,9 +1069,10 @@ func TestInterpreter(t *testing.T) {
 				},
 				Bitfields: []*Bitfield{
 					{
-						Name: Name{"flags"},
-						Docs: Docs{Text("Flags")},
-						Type: Uint16,
+						Name:   Name{"flags"},
+						Docs:   Docs{Text("Flags")},
+						Groups: []Name{{"fun", "features"}},
+						Type:   Uint16,
 						Values: []*Value{
 							{
 								Name: Name{"on"},
@@ -1102,6 +1105,7 @@ func TestInterpreter(t *testing.T) {
 													},
 												},
 											},
+											Groups: []Name{{"fun", "features"}},
 											Fields: []*Field{
 												{
 													Name: Name{"foo"},
@@ -1110,9 +1114,10 @@ func TestInterpreter(t *testing.T) {
 														Underlying: &Reference{
 															Name: Name{"baz"},
 															Underlying: &Enumeration{
-																Name: Name{"baz"},
-																Docs: Docs{Text("foo")},
-																Type: Byte,
+																Name:   Name{"baz"},
+																Docs:   Docs{Text("foo")},
+																Groups: []Name{{"fun", "features"}},
+																Type:   Byte,
 																Values: []*Value{
 																	{
 																		Name: Name{"one"},
@@ -1134,9 +1139,10 @@ func TestInterpreter(t *testing.T) {
 								Type: &Reference{
 									Name: Name{"flags"},
 									Underlying: &Bitfield{
-										Name: Name{"flags"},
-										Docs: Docs{Text("Flags")},
-										Type: Uint16,
+										Name:   Name{"flags"},
+										Docs:   Docs{Text("Flags")},
+										Groups: []Name{{"fun", "features"}},
+										Type:   Uint16,
 										Values: []*Value{
 											{
 												Name: Name{"on"},
@@ -1160,6 +1166,7 @@ func TestInterpreter(t *testing.T) {
 								},
 							},
 						},
+						Groups: []Name{{"fun", "features"}},
 						Fields: []*Field{
 							{
 								Name: Name{"foo"},
@@ -1168,9 +1175,10 @@ func TestInterpreter(t *testing.T) {
 									Underlying: &Reference{
 										Name: Name{"baz"},
 										Underlying: &Enumeration{
-											Name: Name{"baz"},
-											Docs: Docs{Text("foo")},
-											Type: Byte,
+											Name:   Name{"baz"},
+											Docs:   Docs{Text("foo")},
+											Groups: []Name{{"fun", "features"}},
+											Type:   Byte,
 											Values: []*Value{
 												{
 													Name: Name{"one"},
@@ -1186,8 +1194,9 @@ func TestInterpreter(t *testing.T) {
 				},
 				Syscalls: []*Syscall{
 					{
-						Name: Name{"func"},
-						Docs: Docs{Text("xyz")},
+						Name:   Name{"func"},
+						Docs:   Docs{Text("xyz")},
+						Groups: []Name{{"fun", "features"}},
 						Args: []*Parameter{
 							{
 								Name: Name{"fd"},
@@ -1195,9 +1204,10 @@ func TestInterpreter(t *testing.T) {
 								Type: &Reference{
 									Name: Name{"fd"},
 									Underlying: &NewInteger{
-										Name: Name{"fd"},
-										Docs: Docs{Text("file descriptor")},
-										Type: Uint32,
+										Name:   Name{"fd"},
+										Docs:   Docs{Text("file descriptor")},
+										Groups: []Name{{"fun", "features"}},
+										Type:   Uint32,
 									},
 								},
 							},
@@ -1261,9 +1271,10 @@ func TestInterpreter(t *testing.T) {
 								Type: "integer",
 								Name: Name{"fd"},
 								Underlying: &NewInteger{
-									Name: Name{"fd"},
-									Docs: Docs{Text("file descriptor")},
-									Type: Uint32,
+									Name:   Name{"fd"},
+									Docs:   Docs{Text("file descriptor")},
+									Groups: []Name{{"fun", "features"}},
+									Type:   Uint32,
 								},
 							},
 							{
@@ -1281,6 +1292,7 @@ func TestInterpreter(t *testing.T) {
 											},
 										},
 									},
+									Groups: []Name{{"fun", "features"}},
 									Fields: []*Field{
 										{
 											Name: Name{"foo"},
@@ -1289,9 +1301,10 @@ func TestInterpreter(t *testing.T) {
 												Underlying: &Reference{
 													Name: Name{"baz"},
 													Underlying: &Enumeration{
-														Name: Name{"baz"},
-														Docs: Docs{Text("foo")},
-														Type: Byte,
+														Name:   Name{"baz"},
+														Docs:   Docs{Text("foo")},
+														Groups: []Name{{"fun", "features"}},
+														Type:   Byte,
 														Values: []*Value{
 															{
 																Name: Name{"one"},
@@ -1309,8 +1322,9 @@ func TestInterpreter(t *testing.T) {
 								Type: "syscall",
 								Name: Name{"func"},
 								Underlying: &Syscall{
-									Name: Name{"func"},
-									Docs: Docs{Text("xyz")},
+									Name:   Name{"func"},
+									Docs:   Docs{Text("xyz")},
+									Groups: []Name{{"fun", "features"}},
 									Args: []*Parameter{
 										{
 											Name: Name{"fd"},
@@ -1318,9 +1332,10 @@ func TestInterpreter(t *testing.T) {
 											Type: &Reference{
 												Name: Name{"fd"},
 												Underlying: &NewInteger{
-													Name: Name{"fd"},
-													Docs: Docs{Text("file descriptor")},
-													Type: Uint32,
+													Name:   Name{"fd"},
+													Docs:   Docs{Text("file descriptor")},
+													Groups: []Name{{"fun", "features"}},
+													Type:   Uint32,
 												},
 											},
 										},
@@ -1379,9 +1394,10 @@ func TestInterpreter(t *testing.T) {
 								Type: "enumeration",
 								Name: Name{"baz"},
 								Underlying: &Enumeration{
-									Name: Name{"baz"},
-									Docs: Docs{Text("foo")},
-									Type: Byte,
+									Name:   Name{"baz"},
+									Docs:   Docs{Text("foo")},
+									Groups: []Name{{"fun", "features"}},
+									Type:   Byte,
 									Values: []*Value{
 										{
 											Name: Name{"one"},
@@ -1394,9 +1410,10 @@ func TestInterpreter(t *testing.T) {
 								Type: "bitfield",
 								Name: Name{"flags"},
 								Underlying: &Bitfield{
-									Name: Name{"flags"},
-									Docs: Docs{Text("Flags")},
-									Type: Uint16,
+									Name:   Name{"flags"},
+									Docs:   Docs{Text("Flags")},
+									Groups: []Name{{"fun", "features"}},
+									Type:   Uint16,
 									Values: []*Value{
 										{
 											Name: Name{"on"},

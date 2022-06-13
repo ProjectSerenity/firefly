@@ -11,6 +11,7 @@ package types
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -331,21 +332,26 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 			var value any = typ
 
 			var want string
-			switch typ.(type) {
+			switch typ := typ.(type) {
 			case *NewInteger:
 				want = "integer"
+				typ.Groups = append(typ.Groups, group.Name)
 			case *Enumeration:
 				want = "enumeration"
+				typ.Groups = append(typ.Groups, group.Name)
 			case *Bitfield:
 				want = "bitfield"
+				typ.Groups = append(typ.Groups, group.Name)
 			case *Structure:
 				want = "structure"
+				typ.Groups = append(typ.Groups, group.Name)
 			case *SyscallReference:
 				want = "syscall"
 				for _, syscall := range i.out.Syscalls {
 					gotName := syscall.Name.Spaced()
 					if gotName == typename {
 						value = syscall
+						syscall.Groups = append(syscall.Groups, group.Name)
 						break
 					}
 				}
@@ -359,6 +365,46 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 
 			item.Underlying = value
 		}
+	}
+
+	// Now that we've resolved all groups, we should
+	// sort the group names in each item.
+	sortGroups := func(groups []Name) {
+		if len(groups) == 0 {
+			return
+		}
+
+		sort.Slice(groups, func(i, j int) bool {
+			// First, try the easy path where the
+			// first part of both names differ.
+			if groups[i][0] != groups[j][0] {
+				return groups[i][0] < groups[j][0]
+			}
+
+			// Otherwise, we take the more involved
+			// route.
+			return groups[i].Spaced() < groups[j].Spaced()
+		})
+	}
+
+	for _, integer := range i.out.NewIntegers {
+		sortGroups(integer.Groups)
+	}
+
+	for _, enumeration := range i.out.Enumerations {
+		sortGroups(enumeration.Groups)
+	}
+
+	for _, bitfield := range i.out.Bitfields {
+		sortGroups(bitfield.Groups)
+	}
+
+	for _, structure := range i.out.Structures {
+		sortGroups(structure.Groups)
+	}
+
+	for _, syscall := range i.out.Syscalls {
+		sortGroups(syscall.Groups)
 	}
 
 	return nil
