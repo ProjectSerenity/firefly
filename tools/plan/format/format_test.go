@@ -48,6 +48,7 @@ func TestFormatFile(t *testing.T) {
 
 (bitfield (value (name read) (docs "Read")) (value (name write) (docs "Write")) (type uint8) (docs "Access options.") (name access))
 (integer (type    uint16) (docs "Port number.")   (name port))
+(group (enumeration names) (syscall read) (enumeration read error) (bitfield access) (integer port) (structure asdf baz example) (docs "foo") (name all))
 
 (enumeration (type uint8) (value (name bob) (docs "bob")) (name names) (docs "set of names") (value (name dave) (docs "dave")))
 (enumeration (name read error) (docs "Failure to read data") (type sint8)
@@ -100,6 +101,17 @@ func TestFormatFile(t *testing.T) {
 	(name port)
 	(docs "Port number.")
 	(type uint16))
+
+
+(group
+	(name all)
+	(docs "foo")
+	(enumeration names)
+	(syscall read)
+	(enumeration read error)
+	(bitfield access)
+	(integer port)
+	(structure asdf baz example))
 
 
 (enumeration

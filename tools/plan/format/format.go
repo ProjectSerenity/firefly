@@ -102,6 +102,14 @@ func SortFields(file *ast.File, arch types.Arch) error {
 		"arg6":    25,
 		"result1": 26,
 		"result2": 27,
+		// The group fields are identical priority
+		// so that they remain in their original
+		// order.
+		"integer":     40,
+		"enumeration": 40,
+		"bitfield":    40,
+		"structure":   40,
+		"syscall":     40,
 	}
 
 	sortList := func(typ string, list *ast.List) {
@@ -138,6 +146,10 @@ func SortFields(file *ast.File, arch types.Arch) error {
 		for _, field := range structure.Fields {
 			sortList("field", field.Node)
 		}
+	}
+
+	for _, group := range prog.Groups {
+		sortList("group", group.Node)
 	}
 
 	for _, syscall := range prog.Syscalls {
