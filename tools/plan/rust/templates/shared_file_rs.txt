@@ -22,4 +22,10 @@
 ///
 pub const SYSCALLS: [Syscalls; {{ len .Syscalls }}] = [{{ range .Syscalls }}
     Syscalls::{{ .Name.PascalCase }},{{ end }}
-];
+];{{ range .Groups }}
+
+/// The set of syscalls in the `{{ .Name.Spaced }}` item group.
+///
+pub const {{ .Name.ScreamCase }}: [Syscalls; {{ len .Syscalls }}] = [{{ range .Syscalls }}
+    Syscalls::{{ .Name.PascalCase }},{{ end }}
+];{{ end }}

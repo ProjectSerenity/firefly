@@ -637,6 +637,17 @@ func (g *Group) String() string {
 	return fmt.Sprintf("group %s", g.Name.Spaced())
 }
 
+func (g *Group) Syscalls() []*Syscall {
+	out := make([]*Syscall, 0, len(g.List))
+	for _, item := range g.List {
+		if syscall, ok := item.Underlying.(*Syscall); ok {
+			out = append(out, syscall)
+		}
+	}
+
+	return out
+}
+
 // Parameter represents a single argument
 // or result in a function call.
 //
