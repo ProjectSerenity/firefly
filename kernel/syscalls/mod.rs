@@ -60,7 +60,7 @@ impl SyscallABI for FireflyABI {
     ///
     #[inline]
     fn exit_thread(_registers: *mut SavedRegisters) -> Error {
-        println!("Exiting user thread.");
+        println!("Exiting user thread {:?}.", thread::name());
         thread::exit();
     }
 

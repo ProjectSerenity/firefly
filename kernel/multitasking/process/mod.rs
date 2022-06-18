@@ -478,6 +478,9 @@ impl Drop for Process {
             allocator.deallocate_phys_frame(self.page_table);
         }
 
-        println!("Exiting process {}", self.kernel_process_id.0);
+        println!(
+            "Exiting process {:?} ({})",
+            self.name, self.kernel_process_id.0
+        );
     }
 }

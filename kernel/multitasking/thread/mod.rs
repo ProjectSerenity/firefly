@@ -269,6 +269,13 @@ pub fn exit() -> ! {
     unreachable!("Exited thread was re-scheduled somehow");
 }
 
+/// Returns a copy of the current thread's name.
+///
+pub fn name() -> String {
+    let current = current_thread();
+    current.name.clone()
+}
+
 /// Prints debug info about the currently executing thread.
 ///
 /// Note: to debug a different thread, call its [`debug`](Thread::debug)
