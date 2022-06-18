@@ -8,6 +8,7 @@
 use crate::thread::{KernelThreadId, Thread};
 use crate::PROCESSES;
 use alloc::collections::btree_map::{BTreeMap, Iter};
+use alloc::string::String;
 use alloc::vec::Vec;
 use core::cmp::min;
 use core::ptr::write_bytes;
@@ -87,6 +88,9 @@ pub struct Process {
     /// This process's unique id.
     kernel_process_id: KernelProcessId,
 
+    /// The process's name.
+    name: String,
+
     /// The physical frame where the process's level
     /// 4 page table resides.
     page_table: PhysFrame,
@@ -115,10 +119,12 @@ impl Process {
         binary: &[u8],
     ) -> Result<(KernelProcessId, KernelThreadId), Error> {
         let mut bin = Binary::parse(name, binary).map_err(Error::BadBinary)?;
+        let name = String::from(name);
 
         let kernel_process_id = KernelProcessId::new();
         let mut process = Process {
             kernel_process_id,
+            name,
             page_table: new_page_table(),
             tracker: lock!(ALLOCATOR).new_tracker(),
             next_thread_id: ProcessThreadId(0),
@@ -369,6 +375,12 @@ impl Process {
     ///
     pub fn kernel_process_id(&self) -> KernelProcessId {
         self.kernel_process_id
+    }
+
+    /// Returns the process name.
+    ///
+    pub fn name(&self) -> &str {
+        self.name.as_str()
     }
 
     /// Returns the level 4 page table for this process.
