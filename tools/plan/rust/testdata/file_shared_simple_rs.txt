@@ -18,6 +18,17 @@
 #![deny(unused_crate_dependencies)]
 #![forbid(unsafe_code)]
 
+/// The set of all syscalls.
+///
+pub const SYSCALLS: [Syscalls; 6] = [
+    Syscalls::DenySyscalls,
+    Syscalls::Exit,
+    Syscalls::GetProcessId,
+    Syscalls::ThreeArgsTwoResults,
+    Syscalls::GetFileInfo,
+    Syscalls::GetColour,
+];
+
 /// An enumeration describing the set of system calls.
 ///
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

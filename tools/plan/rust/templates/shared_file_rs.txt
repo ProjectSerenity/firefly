@@ -17,3 +17,9 @@
 #![deny(clippy::wildcard_imports)]
 #![deny(unused_crate_dependencies)]
 #![forbid(unsafe_code)]
+
+/// The set of all syscalls.
+///
+pub const SYSCALLS: [Syscalls; {{ len .Syscalls }}] = [{{ range .Syscalls }}
+    Syscalls::{{ .Name.PascalCase }},{{ end }}
+];
