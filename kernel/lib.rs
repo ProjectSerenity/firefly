@@ -62,6 +62,7 @@ extern crate alloc;
 
 pub mod syscalls;
 
+use alloc::string::ToString;
 use bootinfo::BootInfo;
 use core::include_str;
 use interrupts::{register_irq, Irq};
@@ -152,7 +153,7 @@ pub fn init(boot_info: &'static BootInfo) {
     // the random subsystem's helper thread to
     // keep the entropy pool fresh.
     random::init();
-    Thread::start_kernel_thread(entropy_reseed_helper);
+    Thread::start_kernel_thread(entropy_reseed_helper, "entropy reseed helper".to_string());
 
     // The kernel is now fully initialised, so we
     // freeze the kernel page mappings. This means

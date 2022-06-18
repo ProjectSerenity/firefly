@@ -21,6 +21,7 @@
 
 extern crate alloc;
 
+use alloc::string::ToString;
 use alloc::{format, vec};
 use bootinfo::{entry_point, BootInfo};
 use core::panic::PanicInfo;
@@ -57,7 +58,8 @@ fn kmain(boot_info: &'static BootInfo) -> ! {
 
     // Set up our initial workload for when
     // we get a DHCP configuration.
-    let workload = Thread::create_kernel_thread(initial_workload);
+    let workload =
+        Thread::create_kernel_thread(initial_workload, "initial workload starter".to_string());
     network::register_workload(workload.waker());
 
     // Hand over to the scheduler.

@@ -54,6 +54,7 @@ use crate::features::{Network, Reserved};
 use crate::{transports, Buffer, InterruptStatus};
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
+use alloc::string::ToString;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::bitflags;
@@ -581,7 +582,8 @@ pub fn install_pci_device(device: pci::Device) {
 
     // Create the background thread that performs
     // network activity.
-    let thread_id = Thread::create_kernel_thread(network_entry_point);
+    let name = "virtio/network background worker".to_string();
+    let thread_id = Thread::create_kernel_thread(network_entry_point, name);
     lock!(INTERFACE_HANDLES).insert(thread_id, handle);
     scheduler::resume(thread_id);
 }

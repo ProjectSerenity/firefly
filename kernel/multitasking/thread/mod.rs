@@ -31,6 +31,7 @@ use crate::scheduler::timers;
 use crate::switch::{start_kernel_thread, start_user_thread};
 use crate::thread::stacks::{free_kernel_stack, new_kernel_stack, StackBounds};
 use crate::{scheduler, CURRENT_THREADS, IDLE_THREADS, SCHEDULER, THREADS};
+use alloc::string::{String, ToString};
 use alloc::sync::Arc;
 use alloc::task::Wake;
 use core::arch::asm;
@@ -415,6 +416,9 @@ pub struct Thread {
     // thread id.
     process_id: Option<ProcessThreadId>,
 
+    // The thread's name.
+    name: String,
+
     // The process that owns this thread. Kernel threads
     // have no owning process.
     process: Option<KernelProcessId>,
@@ -492,6 +496,7 @@ impl Thread {
         let process_id = None;
         let process = None;
         let page_table = None;
+        let name = "idle".to_string();
 
         // The initial stack pointer is 0, as the idle
         // thread inherits the kernel's initial stack.
@@ -514,6 +519,7 @@ impl Thread {
         Arc::new(Thread {
             kernel_id,
             process_id,
+            name,
             process,
             page_table,
             state: UnsafeCell::new(ThreadState::Runnable),
@@ -535,7 +541,7 @@ impl Thread {
     /// When the thread runs, it will start by enabling
     /// interrupts and calling `entry_point`.
     ///
-    pub fn create_kernel_thread(entry_point: fn() -> !) -> KernelThreadId {
+    pub fn create_kernel_thread(entry_point: fn() -> !, name: String) -> KernelThreadId {
         // Allocate and prepare the stack pointer.
         let stack = new_kernel_stack(KERNEL_STACK_PAGES)
             .expect("failed to allocate stack for new kernel thread");
@@ -565,6 +571,7 @@ impl Thread {
         let thread = Arc::new(Thread {
             kernel_id,
             process_id,
+            name,
             process,
             page_table,
             state: UnsafeCell::new(ThreadState::BeingCreated),
@@ -589,8 +596,8 @@ impl Thread {
     /// When the thread runs, it will start by enabling
     /// interrupts and calling `entry_point`.
     ///
-    pub fn start_kernel_thread(entry_point: fn() -> !) -> KernelThreadId {
-        let kernel_id = Thread::create_kernel_thread(entry_point);
+    pub fn start_kernel_thread(entry_point: fn() -> !, name: String) -> KernelThreadId {
+        let kernel_id = Thread::create_kernel_thread(entry_point, name);
         kernel_id.resume();
 
         kernel_id
@@ -609,6 +616,7 @@ impl Thread {
         entry_point: VirtAddr,
         process: &mut Process,
         process_id: ProcessThreadId,
+        name: String,
     ) -> KernelThreadId {
         // Allocate and prepare the stack pointer.
         // We place the stack at the end of userspace, growing
@@ -674,6 +682,7 @@ impl Thread {
         let thread = Arc::new(Thread {
             kernel_id,
             process_id: Some(process_id),
+            name,
             process: Some(process.kernel_process_id()),
             page_table: Some(process.page_table()),
             state: UnsafeCell::new(ThreadState::BeingCreated),
@@ -716,6 +725,13 @@ impl Thread {
     ///
     pub fn kernel_process_id(&self) -> Option<KernelProcessId> {
         self.process
+    }
+
+    /// Returns the thread's name, which is not guaranteed
+    /// to be unique.
+    ///
+    pub fn name(&self) -> &str {
+        self.name.as_str()
     }
 
     /// Returns this thread's level 4 page table, or

@@ -365,7 +365,9 @@ impl Process {
         let process_thread_id = self.next_thread_id;
         self.next_thread_id = ProcessThreadId(process_thread_id.0 + 1);
 
-        let kernel_thread_id = Thread::create_user_thread(entry_point, self, process_thread_id);
+        let name = self.name.clone();
+        let kernel_thread_id =
+            Thread::create_user_thread(entry_point, self, process_thread_id, name);
         self.threads.insert(process_thread_id, kernel_thread_id);
 
         kernel_thread_id
