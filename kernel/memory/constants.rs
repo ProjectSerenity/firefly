@@ -31,6 +31,9 @@
 //! | ---------------------- | ----------------------: | ----------------------: | --------------------: | --------: |
 //! | [`NULL_PAGE`]          |                   `0x0` |             `0x1f_ffff` |            not mapped |     2 MiB |
 //! | [`USERSPACE`]          |             `0x20_0000` |      `0x7fff_ffff_ffff` |        rest of memory | < 128 TiB |
+//! | [`USER_BINARY`]        |             `0x20_0000` |      `0x1fff_ffff_ffff` |     randomised subset |  < 32 TiB |
+//! | [`USER_HEAP`]          |      `0x2000_0000_0000` |      `0x5fff_ffff_ffff` |    randomised subsets |    64 TiB |
+//! | [`USER_STACK`]         |      `0x6000_0000_0000` |      `0x7fff_ffff_ffff` |     randomised subset |    32 TiB |
 //! | [`KERNELSPACE`]        | `0xffff_8000_0000_0000` | `0xffff_ffff_ffff_ffff` | higher half of memory |   128 TiB |
 //! | [`KERNEL_BINARY`]      | `0xffff_8000_0000_0000` | `0xffff_8000_3fff_ffff` | up to 512x 2 MiB page |     1 GiB |
 //! | [`BOOT_INFO`]          | `0xffff_8000_4000_0000` | `0xffff_8000_4000_0fff` |         1x 4 KiB page |     4 KiB |
@@ -55,6 +58,27 @@ const NULL_PAGE_END: VirtAddr = VirtAddr::new(0x1f_ffff_usize);
 pub const USERSPACE: VirtAddrRange = VirtAddrRange::new(USERSPACE_START, USERSPACE_END);
 const USERSPACE_START: VirtAddr = VirtAddr::new(0x20_0000_usize);
 const USERSPACE_END: VirtAddr = VirtAddr::new(0x7fff_ffff_ffff_usize);
+
+/// The user binary is mapped within this range.
+///
+pub const USER_BINARY: VirtAddrRange = VirtAddrRange::new(USER_BINARY_START, USER_BINARY_END);
+const USER_BINARY_START: VirtAddr = VirtAddr::new(0x20_0000_usize);
+const USER_BINARY_END: VirtAddr = VirtAddr::new(0x1fff_ffff_ffff_usize);
+
+/// The region used for user processes' heaps.
+///
+pub const USER_HEAP: VirtAddrRange = VirtAddrRange::new(USER_HEAP_START, USER_HEAP_END);
+const USER_HEAP_START: VirtAddr = VirtAddr::new(0x2000_0000_0000_usize);
+const USER_HEAP_END: VirtAddr = VirtAddr::new(0x5fff_ffff_ffff_usize);
+
+/// The region used for user processes' stacks.
+///
+/// Note that even though the stack counts downwards, we use the smaller address as
+/// the start address and the larger address as the end address.
+///
+pub const USER_STACK: VirtAddrRange = VirtAddrRange::new(USER_STACK_START, USER_STACK_END);
+const USER_STACK_START: VirtAddr = VirtAddr::new(0x6000_0000_0000_usize);
+const USER_STACK_END: VirtAddr = VirtAddr::new(0x7fff_ffff_ffff_usize);
 
 /// The higher half of virtual memory, which is used by the kernel.
 ///
@@ -147,7 +171,9 @@ mod tests {
         // There must be no overlap between regions.
         let regions = [
             (NULL_PAGE, "null page"),
-            (USERSPACE, "userspace"),
+            (USER_BINARY, "user binary"),
+            (USER_HEAP, "user heap"),
+            (USER_STACK, "user stack"),
             (KERNEL_BINARY, "kernel binary"),
             (BOOT_INFO, "boot info"),
             (KERNEL_HEAP, "kernel heap"),
