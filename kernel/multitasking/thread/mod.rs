@@ -39,7 +39,7 @@ use core::cell::UnsafeCell;
 use core::ptr::write_bytes;
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::task::Waker;
-use memory::constants::{KERNEL_STACK, KERNEL_STACK_GUARD, USERSPACE};
+use memory::constants::{KERNEL_STACK, KERNEL_STACK_GUARD, USER_STACK};
 use memory::{
     phys_to_virt_addr, PageTableFlags, PhysFrame, VirtAddr, VirtAddrRange, VirtPage, VirtPageSize,
 };
@@ -632,7 +632,7 @@ impl Thread {
         // address.
         //
         // TODO: Support binaries that place binary segments in this space.
-        let stack_top = USERSPACE.end() - random_stack_offset();
+        let stack_top = USER_STACK.end() - random_stack_offset();
         let stack_bottom =
             stack_top - (Thread::DEFAULT_USER_STACK_PAGES * VirtPageSize::Size4KiB.bytes()) + 1;
         let stack_top_page = VirtPage::containing_address(stack_top, VirtPageSize::Size4KiB);

@@ -15,7 +15,7 @@ use core::ptr::write_bytes;
 use core::slice;
 use core::sync::atomic::{AtomicU64, Ordering};
 use loader::Binary;
-use memory::constants::USERSPACE;
+use memory::constants::{USERSPACE, USER_BINARY};
 use memory::{
     phys_to_virt_addr, PageMappingError, PageTable, PageTableFlags, PhysAddr, PhysFrame,
     PhysFrameAllocator, PhysFrameDeallocator, VirtAddr, VirtPage, VirtPageRange, VirtPageSize,
@@ -150,7 +150,7 @@ impl Process {
             read_random(&mut entropy[4..]);
 
             // Calculate the offset.
-            let offset = USERSPACE.start().as_usize()
+            let offset = USER_BINARY.start().as_usize()
                 + (usize::from_be_bytes(entropy) & MASK)
                     .checked_mul(max_align)
                     .ok_or(Error::BadBinary("excessive segment alignment"))?;
@@ -160,7 +160,7 @@ impl Process {
                 .entry_point
                 .checked_add(offset)
                 .ok_or(Error::BadBinary("entry point made invalid by ASLR offset"))?;
-            if !USERSPACE.contains_addr(bin.entry_point) {
+            if !USER_BINARY.contains_addr(bin.entry_point) {
                 return Err(Error::BadBinary(
                     "entry point not in userspace after applying ASLR",
                 ));
@@ -171,7 +171,7 @@ impl Process {
                 segment.start = segment.start.checked_add(offset).ok_or(Error::BadBinary(
                     "segment start made invalid by ASLR offset",
                 ))?;
-                if !USERSPACE.contains_addr(segment.start) {
+                if !USER_BINARY.contains_addr(segment.start) {
                     return Err(Error::BadBinary(
                         "segment start not in userspace after applying ASLR",
                     ));
@@ -181,7 +181,7 @@ impl Process {
                     .end
                     .checked_add(offset)
                     .ok_or(Error::BadBinary("segment end made invalid by ASLR offset"))?;
-                if !USERSPACE.contains_addr(segment.end) {
+                if !USER_BINARY.contains_addr(segment.end) {
                     return Err(Error::BadBinary(
                         "segment end not in userspace after applying ASLR",
                     ));
@@ -195,7 +195,7 @@ impl Process {
                 relocation.addr = relocation.addr.checked_add(offset).ok_or(Error::BadBinary(
                     "relocation address made invalid by ASLR offset",
                 ))?;
-                if !USERSPACE.contains_addr(relocation.addr) {
+                if !USER_BINARY.contains_addr(relocation.addr) {
                     return Err(Error::BadBinary(
                         "relocation address not in userspace after applying ASLR",
                     ));
