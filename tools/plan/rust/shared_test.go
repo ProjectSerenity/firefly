@@ -59,7 +59,11 @@ func TestGenerateSharedCode(t *testing.T) {
 			           (field
 			               (name permissions)
 			               (docs "The actions that can be performed on the file.")
-			               (type permissions)))
+			               (type permissions))
+			           (field
+			               (name padding2)
+			               (docs "")
+			               (padding 7)))
 
 			       (enumeration
 			           (name error)

@@ -36,13 +36,21 @@ func TestGenerateUserCode(t *testing.T) {
 			               (docs "The pointer to the file's name contents.")
 			               (type *constant byte))
 			           (field
+			               (name padding)
+			               (docs "")
+			               (padding 4))
+			           (field
 			               (name name size)
 			               (docs "The number of bytes at" (code "name pointer") ".")
 			               (type uint32))
 			           (field
 			               (name permissions)
 			               (docs "The actions that can be performed on the file.")
-			               (type permissions)))
+			               (type permissions))
+			           (field
+			               (name padding2)
+			               (docs "")
+			               (padding 7)))
 
 			       (enumeration
 			           (name error)

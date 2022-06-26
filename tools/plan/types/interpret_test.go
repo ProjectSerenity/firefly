@@ -730,7 +730,10 @@ func TestInterpreter(t *testing.T) {
 		},
 		{
 			Name: "Nonsequential type reference",
-			Source: `(structure (name two)  (docs "abc") (field (name first) (docs "x") (type *mutable blah)) (field (name flags) (docs "") (type flag set)))
+			Source: `(structure (name two)  (docs "abc")
+			             (field (name first) (docs "x") (type *mutable blah))
+			             (field (name flags) (docs "") (type flag set))
+			             (field (name pad) (docs "") (padding 4)))
 			         (array (name flag set) (docs "A set of flags") (size 10) (type flags))
 			         (structure (name blah) (docs (reference func)) (field (name foo) (docs "bar") (type *constant baz)))
 			         (syscall (name func) (docs "xyz") (arg1 (name fd) (docs "") (type fd)) (result1 (name error) (docs "") (type error)))
@@ -916,6 +919,11 @@ func TestInterpreter(t *testing.T) {
 									},
 								},
 							},
+							{
+								Name: Name{"pad"},
+								Docs: Docs{},
+								Type: Padding(4),
+							},
 						},
 					},
 					{
@@ -1026,7 +1034,10 @@ func TestInterpreter(t *testing.T) {
 		},
 		{
 			Name: "Item group",
-			Source: `(structure (name two)  (docs "abc") (field (name first) (docs "x") (type *mutable blah)) (field (name flag) (docs "") (type flags)))
+			Source: `(structure (name two)  (docs "abc")
+			             (field (name first) (docs "x") (type *mutable blah))
+			             (field (name flag) (docs "") (type flags))
+			             (field (name pad) (docs "") (padding 6)))
 			         (structure (name blah) (docs (reference func)) (field (name foo) (docs "bar") (type *constant baz)))
 			         (syscall (name func) (docs "xyz") (arg1 (name fd) (docs "") (type fd)) (result1 (name error) (docs "") (type error)))
 			         (integer (name fd) (docs "file descriptor") (type uint32))
@@ -1208,6 +1219,11 @@ func TestInterpreter(t *testing.T) {
 										},
 									},
 								},
+							},
+							{
+								Name: Name{"pad"},
+								Docs: Docs{},
+								Type: Padding(6),
 							},
 						},
 					},

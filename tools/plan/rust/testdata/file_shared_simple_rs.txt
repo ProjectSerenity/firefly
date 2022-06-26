@@ -150,6 +150,9 @@ pub struct FileInfo {
     /// The actions that can be performed on the file.
     ///
     pub permissions: Permissions,
+
+    #[allow(dead_code)]
+    _padding2: [u8; 7],
 }
 
 /// A general purpose error.

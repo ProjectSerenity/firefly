@@ -266,6 +266,12 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 			offset += field.Type.Size(i.arch)
 		}
 
+		align := structure.Alignment(i.arch)
+		if offset%align != 0 {
+			name := structure.Name.Spaced()
+			return i.errorf(structure.Node, "structure %q is not aligned: %d-aligned structure ends at offset %d", name, align, offset)
+		}
+
 		if !nonPadding {
 			return i.errorf(structure.Node, "structure has no non-padding fields")
 		}
