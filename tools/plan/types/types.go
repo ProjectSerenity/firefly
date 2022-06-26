@@ -831,10 +831,6 @@ func (p *Parameter) Enumeration() *Enumeration {
 	return Underlying(p.Type).(*Enumeration)
 }
 
-func (p *Parameter) Size(a Arch) int {
-	return p.Type.Size(a)
-}
-
 func (p *Parameter) String() string {
 	return fmt.Sprintf("parameter %s: %s", p.Name.Spaced(), p.Type.String())
 }
