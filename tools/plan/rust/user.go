@@ -24,7 +24,7 @@ import (
 // the Plan document to w, using the rustfmt tool at the
 // given path.
 //
-func GenerateUserCode(w io.Writer, file *types.File, rustfmt string) error {
+func GenerateUserCode(w io.Writer, file *types.File, arch types.Arch, rustfmt string) error {
 	// Start with the prelude.
 	var buf bytes.Buffer
 	err := userTemplates.ExecuteTemplate(&buf, userFileTemplate, file)

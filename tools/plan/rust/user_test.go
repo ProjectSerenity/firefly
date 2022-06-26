@@ -160,7 +160,7 @@ func TestGenerateUserCode(t *testing.T) {
 				t.Fatalf("failed to interpret: %v", err)
 			}
 
-			err = GenerateUserCode(&buf, typed, rustfmt)
+			err = GenerateUserCode(&buf, typed, test.Arch, rustfmt)
 			if err != nil {
 				t.Fatalf("failed to translate: %v", err)
 			}

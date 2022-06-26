@@ -26,7 +26,7 @@ import (
 // of the Plan document to w, using the rustfmt tool at the
 // given path.
 //
-func GenerateSharedCode(w io.Writer, file *types.File, rustfmt string) error {
+func GenerateSharedCode(w io.Writer, file *types.File, arch types.Arch, rustfmt string) error {
 	// Start with the prelude.
 	var buf bytes.Buffer
 	err := sharedTemplates.ExecuteTemplate(&buf, sharedFileTemplate, file)

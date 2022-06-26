@@ -94,7 +94,7 @@ func cmdBuild(ctx context.Context, w io.Writer, args []string) error {
 			return fmt.Errorf("failed to create Rust userspace file %s: %v", rustUserPath, err)
 		}
 
-		err = rust.GenerateUserCode(out, file, rustfmtPath)
+		err = rust.GenerateUserCode(out, file, arch, rustfmtPath)
 		if err != nil {
 			out.Close()
 			return fmt.Errorf("failed to write Rust userspace file %s: %v", rustUserPath, err)
@@ -112,7 +112,7 @@ func cmdBuild(ctx context.Context, w io.Writer, args []string) error {
 			return fmt.Errorf("failed to create Rust kernelspace file %s: %v", rustKernelPath, err)
 		}
 
-		err = rust.GenerateKernelCode(out, file, rustfmtPath)
+		err = rust.GenerateKernelCode(out, file, arch, rustfmtPath)
 		if err != nil {
 			out.Close()
 			return fmt.Errorf("failed to write Rust kernelspace file %s: %v", rustKernelPath, err)
@@ -130,7 +130,7 @@ func cmdBuild(ctx context.Context, w io.Writer, args []string) error {
 			return fmt.Errorf("failed to create Rust shared file %s: %v", rustSharedPath, err)
 		}
 
-		err = rust.GenerateSharedCode(out, file, rustfmtPath)
+		err = rust.GenerateSharedCode(out, file, arch, rustfmtPath)
 		if err != nil {
 			out.Close()
 			return fmt.Errorf("failed to write Rust shared file %s: %v", rustSharedPath, err)

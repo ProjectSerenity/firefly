@@ -218,7 +218,7 @@ func TestGenerateKernelCode(t *testing.T) {
 				t.Fatalf("failed to interpret: %v", err)
 			}
 
-			err = GenerateKernelCode(&buf, typed, rustfmt)
+			err = GenerateKernelCode(&buf, typed, test.Arch, rustfmt)
 			if err != nil {
 				t.Fatalf("failed to translate: %v", err)
 			}

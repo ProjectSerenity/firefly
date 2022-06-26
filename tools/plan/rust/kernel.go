@@ -22,7 +22,7 @@ import (
 // of the Plan document to w, using the rustfmt tool at the
 // given path.
 //
-func GenerateKernelCode(w io.Writer, file *types.File, rustfmt string) error {
+func GenerateKernelCode(w io.Writer, file *types.File, arch types.Arch, rustfmt string) error {
 	// Start with the prelude.
 	var buf bytes.Buffer
 	err := kernelTemplates.ExecuteTemplate(&buf, kernelFileTemplate, file)
