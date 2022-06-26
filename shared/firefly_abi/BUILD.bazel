@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library")
+load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rust_test")
 load("//tools/plan:defs.bzl", "plan_rust_shared")
 
 plan_rust_shared(
@@ -30,5 +30,11 @@ rust_clippy(
 
 rust_doc(
     name = "docs",
+    crate = ":firefly_abi",
+)
+
+rust_test(
+    name = "firefly_abi_test",
+    size = "small",
     crate = ":firefly_abi",
 )

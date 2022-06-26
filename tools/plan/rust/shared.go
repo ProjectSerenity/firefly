@@ -107,6 +107,28 @@ func GenerateSharedCode(w io.Writer, file *types.File, arch types.Arch, rustfmt 
 		}
 	}
 
+	// Add the tests for each type's
+	// alignment and size.
+	layoutData := struct {
+		Arch  types.Arch
+		Items []types.Type
+	}{
+		Arch:  arch,
+		Items: make([]types.Type, 0, len(items)),
+	}
+
+	for _, item := range items {
+		typ, ok := item.(types.Type)
+		if ok {
+			layoutData.Items = append(layoutData.Items, typ)
+		}
+	}
+
+	err = sharedTemplates.ExecuteTemplate(&buf, layoutTemplate, layoutData)
+	if err != nil {
+		return fmt.Errorf("failed to execute template %q with %T: %v", layoutTemplate, layoutData, err)
+	}
+
 	// Make sure rustfmt is happy.
 	var out bytes.Buffer
 	cmd := exec.Command(rustfmt)
@@ -155,6 +177,7 @@ var sharedTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 
 const (
 	sharedFileTemplate  = "shared_file_rs.txt"
+	layoutTemplate      = "shared_layout_rs.txt"
 	integerTemplate     = "shared_integer_rs.txt"
 	enumerationTemplate = "shared_enumeration_rs.txt"
 	bitfieldTemplate    = "shared_bitfield_rs.txt"

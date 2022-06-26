@@ -336,3 +336,36 @@ pub type Ipv4Address = [u8; 4];
 /// An IPv6 address.
 ///
 pub type Ipv6Address = [u8; 16];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core::mem::{align_of, size_of};
+
+    #[test]
+    fn test_layout() {
+        assert_eq!(align_of::<Colour>(), 1, "alignment of Colour");
+        assert_eq!(size_of::<Colour>(), 1, "size of Colour");
+
+        assert_eq!(align_of::<FileInfo>(), 8, "alignment of FileInfo");
+        assert_eq!(size_of::<FileInfo>(), 24, "size of FileInfo");
+
+        assert_eq!(align_of::<Error>(), 8, "alignment of Error");
+        assert_eq!(size_of::<Error>(), 8, "size of Error");
+
+        assert_eq!(align_of::<IoError>(), 8, "alignment of IoError");
+        assert_eq!(size_of::<IoError>(), 8, "size of IoError");
+
+        assert_eq!(align_of::<Permissions>(), 1, "alignment of Permissions");
+        assert_eq!(size_of::<Permissions>(), 1, "size of Permissions");
+
+        assert_eq!(align_of::<PortNumber>(), 2, "alignment of PortNumber");
+        assert_eq!(size_of::<PortNumber>(), 2, "size of PortNumber");
+
+        assert_eq!(align_of::<Ipv4Address>(), 1, "alignment of Ipv4Address");
+        assert_eq!(size_of::<Ipv4Address>(), 4, "size of Ipv4Address");
+
+        assert_eq!(align_of::<Ipv6Address>(), 1, "alignment of Ipv6Address");
+        assert_eq!(size_of::<Ipv6Address>(), 16, "size of Ipv6Address");
+    }
+}
