@@ -1,0 +1,2 @@
+{{ toDocs 0 .Docs }}
+pub type {{ .Name.PascalCase }} = [{{ toString .Type }}; {{ .Count }}];

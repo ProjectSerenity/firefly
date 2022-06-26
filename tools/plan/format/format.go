@@ -89,9 +89,10 @@ func SortFields(file *ast.File, arch types.Arch) error {
 		// These fields are present in some
 		// types but not others.
 		"field":   3,
-		"type":    4,
-		"padding": 5,
-		"value":   6,
+		"size":    4,
+		"type":    5,
+		"padding": 6,
+		"value":   7,
 		// Leave some space before these, which
 		// always come last.
 		"arg1":    20,
@@ -108,6 +109,7 @@ func SortFields(file *ast.File, arch types.Arch) error {
 		"integer":     40,
 		"enumeration": 40,
 		"bitfield":    40,
+		"array":       40,
 		"structure":   40,
 		"syscall":     40,
 	}
@@ -139,6 +141,10 @@ func SortFields(file *ast.File, arch types.Arch) error {
 
 	for _, bitfield := range prog.Bitfields {
 		sortList("bitfield", bitfield.Node)
+	}
+
+	for _, array := range prog.Arrays {
+		sortList("array", array.Node)
 	}
 
 	for _, structure := range prog.Structures {

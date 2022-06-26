@@ -20,6 +20,10 @@ a {
 	color: #4e4ed3; /* Dark blue */
 }
 
+.array {
+	color: #4ed34e; /* Dark green */
+}
+
 .structure {
 	color: #4ed34e; /* Dark green */
 }
@@ -48,6 +52,10 @@ a {
 
 	.bitfield {
 		color: #b0bee5; /* Light blue */
+	}
+
+	.array {
+		color: #bee5b0; /* Light green */
 	}
 
 	.structure {

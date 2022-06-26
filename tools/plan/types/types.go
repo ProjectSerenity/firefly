@@ -465,6 +465,42 @@ func (p *Pointer) String() string {
 	return fmt.Sprintf("*constant %s", p.Underlying.String())
 }
 
+// Array represents a fixed-size
+// sequence of another data type.
+//
+type Array struct {
+	Name   Name
+	Node   *ast.List
+	Docs   Docs
+	Groups []Name
+	Count  uint64
+	Type   Type
+}
+
+var (
+	_ Type     = (*Array)(nil)
+	_ ast.Node = (*Array)(nil)
+)
+
+func (a *Array) Pos() token.Position { return a.Node.Pos() }
+func (a *Array) End() token.Position { return a.Node.End() }
+
+func (a *Array) Register(arch Arch) bool {
+	// Even though an array may be small
+	// enough to fit in a register, we
+	// store it separately in case the
+	// array's type/size changes later.
+	return false
+}
+
+func (a *Array) Size(arch Arch) int {
+	return a.Type.Size(arch)
+}
+
+func (a *Array) String() string {
+	return fmt.Sprintf("array(%d x %s)", a.Count, a.Type.String())
+}
+
 // Reference represents a name used to reference a
 // type that has already been defined elsewhere.
 //
@@ -759,6 +795,7 @@ type File struct {
 	NewIntegers  []*NewInteger
 	Enumerations []*Enumeration
 	Bitfields    []*Bitfield
+	Arrays       []*Array
 	Structures   []*Structure
 
 	// System calls.
@@ -811,6 +848,9 @@ func (f *File) DropAST() {
 		for _, value := range bitfield.Values {
 			value.Node = nil
 		}
+	}
+	for _, array := range f.Arrays {
+		array.Node = nil
 	}
 	for _, structure := range f.Structures {
 		structure.Node = nil

@@ -50,6 +50,20 @@ func TestInterpreter(t *testing.T) {
 			},
 		},
 		{
+			Name:   "Simple array",
+			Source: `(array (name blah) (docs "xyz" "" "abc\n" "") (size 1024) (type byte))`,
+			Want: &File{
+				Arrays: []*Array{
+					{
+						Name:  Name{"blah"},
+						Docs:  Docs{Text("xyz"), Newline{}, Text("abc")},
+						Count: 1024,
+						Type:  Byte,
+					},
+				},
+			},
+		},
+		{
 			Name:   "Simple structure",
 			Source: `(structure (name blah) (docs "xyz" "" "abc\n" "") (field (name foo) (docs "foo" "bar") (type *constant byte)))`,
 			Want: &File{
@@ -716,7 +730,8 @@ func TestInterpreter(t *testing.T) {
 		},
 		{
 			Name: "Nonsequential type reference",
-			Source: `(structure (name two)  (docs "abc") (field (name first) (docs "x") (type *mutable blah)) (field (name flag) (docs "") (type flags)))
+			Source: `(structure (name two)  (docs "abc") (field (name first) (docs "x") (type *mutable blah)) (field (name flags) (docs "") (type flag set)))
+			         (array (name flag set) (docs "A set of flags") (size 10) (type flags))
 			         (structure (name blah) (docs (reference func)) (field (name foo) (docs "bar") (type *constant baz)))
 			         (syscall (name func) (docs "xyz") (arg1 (name fd) (docs "") (type fd)) (result1 (name error) (docs "") (type error)))
 			         (integer (name fd) (docs "file descriptor") (type uint32))
@@ -804,6 +819,27 @@ func TestInterpreter(t *testing.T) {
 						},
 					},
 				},
+				Arrays: []*Array{
+					{
+						Name:  Name{"flag", "set"},
+						Docs:  Docs{Text("A set of flags")},
+						Count: 10,
+						Type: &Reference{
+							Name: Name{"flags"},
+							Underlying: &Bitfield{
+								Name: Name{"flags"},
+								Docs: Docs{Text("Flags")},
+								Type: Uint16,
+								Values: []*Value{
+									{
+										Name: Name{"on"},
+										Docs: Docs{Text("On")},
+									},
+								},
+							},
+						},
+					},
+				},
 				Structures: []*Structure{
 					{
 						Name: Name{"two"},
@@ -855,18 +891,26 @@ func TestInterpreter(t *testing.T) {
 								},
 							},
 							{
-								Name: Name{"flag"},
+								Name: Name{"flags"},
 								Docs: Docs{},
 								Type: &Reference{
-									Name: Name{"flags"},
-									Underlying: &Bitfield{
-										Name: Name{"flags"},
-										Docs: Docs{Text("Flags")},
-										Type: Uint16,
-										Values: []*Value{
-											{
-												Name: Name{"on"},
-												Docs: Docs{Text("On")},
+									Name: Name{"flag", "set"},
+									Underlying: &Array{
+										Name:  Name{"flag", "set"},
+										Docs:  Docs{Text("A set of flags")},
+										Count: 10,
+										Type: &Reference{
+											Name: Name{"flags"},
+											Underlying: &Bitfield{
+												Name: Name{"flags"},
+												Docs: Docs{Text("Flags")},
+												Type: Uint16,
+												Values: []*Value{
+													{
+														Name: Name{"on"},
+														Docs: Docs{Text("On")},
+													},
+												},
 											},
 										},
 									},
@@ -992,9 +1036,11 @@ func TestInterpreter(t *testing.T) {
 			             (integer fd)
 			             (structure blah)
 			             (syscall func)
+			             (array ipv4 address)
 			             (enumeration baz)
 			             (bitfield flags))
 			         (bitfield (name flags) (docs "Flags") (type uint16) (value (name on) (docs "On")))
+			         (array (name ipv4 address) (docs "IPv4 address") (size 4) (type byte))
 			         (enumeration (name baz) (docs "foo") (type byte) (value (name one) (docs "1")))
 			         (enumeration (name error) (docs "") (type uint8)
 			             (value (name no error) (docs ""))
@@ -1079,6 +1125,17 @@ func TestInterpreter(t *testing.T) {
 								Docs: Docs{Text("On")},
 							},
 						},
+					},
+				},
+				Arrays: []*Array{
+					{
+						Name: Name{"ipv4", "address"},
+						Docs: Docs{Text("IPv4 address")},
+						Groups: []Name{
+							{"fun", "features"},
+						},
+						Count: 4,
+						Type:  Byte,
 					},
 				},
 				Structures: []*Structure{
@@ -1388,6 +1445,19 @@ func TestInterpreter(t *testing.T) {
 											},
 										},
 									},
+								},
+							},
+							{
+								Type: "array",
+								Name: Name{"ipv4", "address"},
+								Underlying: &Array{
+									Name: Name{"ipv4", "address"},
+									Docs: Docs{Text("IPv4 address")},
+									Groups: []Name{
+										{"fun", "features"},
+									},
+									Count: 4,
+									Type:  Byte,
 								},
 							},
 							{
@@ -1974,6 +2044,113 @@ func TestInterpreterErrors(t *testing.T) {
 			Name: "duplicate bitfield",
 			Source: `(bitfield (name blah) (docs "xyz") (type byte) (value (name foo) (docs "bar")))
 			         (bitfield (name blah) (docs "abc") (type sint8) (value (name this) (docs "some")))`,
+			Want: `test.plan:2:13: type "blah" is already defined`,
+		},
+		// Array errors.
+		{
+			Name:   "array with identifier element",
+			Source: `(array foo)`,
+			Want:   `test.plan:1:8: invalid array: expected a list, found identifier`,
+		},
+		{
+			Name:   "array with empty definition",
+			Source: `(array ())`,
+			Want:   `test.plan:1:8: empty definition`,
+		},
+		{
+			Name:   "array with bad definition",
+			Source: `(array ("foo"))`,
+			Want:   `test.plan:1:9: definition kind must be an identifier, found string`,
+		},
+		{
+			Name:   "array with short definition",
+			Source: `(array (foo))`,
+			Want:   `test.plan:1:9: definition must have at least one field, found none`,
+		},
+		{
+			Name:   "array with unrecognised definition",
+			Source: `(array (foo bar))`,
+			Want:   `test.plan:1:9: unrecognised array definition kind "foo"`,
+		},
+		{
+			Name:   "array with invalid name",
+			Source: `(array (name "bar"))`,
+			Want:   `test.plan:1:14: invalid array name: expected an identifier, found string`,
+		},
+		{
+			Name:   "array with duplicate name",
+			Source: `(array (name bar) (name baz))`,
+			Want:   `test.plan:1:20: invalid array definition: name already defined`,
+		},
+		{
+			Name:   "array with invalid docs",
+			Source: `(array (docs bar))`,
+			Want:   `test.plan:1:14: invalid array docs: expected a string or formatting expression, found identifier`,
+		},
+		{
+			Name:   "array with duplicate docs",
+			Source: `(array (docs "bar") (docs "baz"))`,
+			Want:   `test.plan:1:22: invalid array definition: docs already defined`,
+		},
+		{
+			Name:   "array with invalid size",
+			Source: `(array (size bar))`,
+			Want:   `test.plan:1:14: invalid array size definition: expected a number, found identifier`,
+		},
+		{
+			Name:   "array with excessive size",
+			Source: `(array (size 99999999999999999999999999))`,
+			Want:   `test.plan:1:14: invalid array size definition: invalid size: value out of range`,
+		},
+		{
+			Name:   "array with zero size",
+			Source: `(array (size 0))`,
+			Want:   `test.plan:1:14: invalid array size definition: size must be larger than zero`,
+		},
+		{
+			Name:   "array with extra field after size",
+			Source: `(array (size 1 bar))`,
+			Want:   `test.plan:1:16: invalid array size definition: unexpected identifier after size`,
+		},
+		{
+			Name:   "array with duplicate size",
+			Source: `(array (size 1) (size 2))`,
+			Want:   `test.plan:1:18: invalid array definition: size already defined`,
+		},
+		{
+			Name:   "array with invalid type",
+			Source: `(array (type ()))`,
+			Want:   `test.plan:1:14: invalid array element type: expected a type definition, found list`,
+		},
+		{
+			Name:   "array with duplicate type",
+			Source: `(array (type uint16) (type byte))`,
+			Want:   `test.plan:1:23: invalid array definition: type already defined`,
+		},
+		{
+			Name:   "array with missing name",
+			Source: `(array (docs "blah") (size 1) (type byte))`,
+			Want:   `test.plan:1:1: array has no name definition`,
+		},
+		{
+			Name:   "array with missing docs",
+			Source: `(array (name blah) (size 1) (type byte))`,
+			Want:   `test.plan:1:1: array has no docs definition`,
+		},
+		{
+			Name:   "array with missing size",
+			Source: `(array (name blah) (docs "foo") (type byte))`,
+			Want:   `test.plan:1:1: array has no size definition`,
+		},
+		{
+			Name:   "array with missing type",
+			Source: `(array (name blah) (docs "foo") (size 1))`,
+			Want:   `test.plan:1:1: array has no type definition`,
+		},
+		{
+			Name: "duplicate array",
+			Source: `(array (name blah) (docs "xyz") (size 1) (type byte))
+			         (array (name blah) (docs "abc") (size 2) (type *constant uint32))`,
 			Want: `test.plan:2:13: type "blah" is already defined`,
 		},
 		// Structure errors.

@@ -321,3 +321,11 @@ bitflags::bitflags! {
 /// The number of a TCP or UDP port.
 ///
 pub struct PortNumber(pub u16);
+
+/// An IPv4 address.
+///
+pub type Ipv4Address = [u8; 4];
+
+/// An IPv6 address.
+///
+pub type Ipv6Address = [u8; 16];

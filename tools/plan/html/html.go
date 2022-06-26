@@ -80,6 +80,19 @@ func GenerateDocs(dir string, file *types.File) error {
 		}
 	}
 
+	arrayDir := filepath.Join(dir, "arrays")
+	err = mkdir(arrayDir)
+	if err != nil {
+		return err
+	}
+
+	for _, array := range file.Arrays {
+		err = generateItemHTML(filepath.Join(arrayDir, array.Name.SnakeCase()+".html"), arrayTemplate, array, true)
+		if err != nil {
+			return err
+		}
+	}
+
 	structDir := filepath.Join(dir, "structures")
 	err = mkdir(structDir)
 	if err != nil {
@@ -188,6 +201,7 @@ const (
 	integerTemplate     = "integer_html.txt"
 	enumerationTemplate = "enumeration_html.txt"
 	bitfieldTemplate    = "bitfield_html.txt"
+	arrayTemplate       = "array_html.txt"
 	structureTemplate   = "structure_html.txt"
 	syscallTemplate     = "syscall_html.txt"
 	groupTemplate       = "group_html.txt"
@@ -224,6 +238,8 @@ func toItemClass(item any) string {
 		return "enumeration"
 	case *types.Bitfield:
 		return "bitfield"
+	case *types.Array:
+		return "array"
 	case *types.Structure:
 		return "structure"
 	case *types.Syscall:
@@ -243,6 +259,8 @@ func toItemGroups(item any) []types.Name {
 		return item.Groups
 	case *types.Bitfield:
 		return item.Groups
+	case *types.Array:
+		return item.Groups
 	case *types.Structure:
 		return item.Groups
 	case *types.Syscall:
@@ -259,6 +277,8 @@ func toItemName(item any) string {
 	case *types.Enumeration:
 		return item.Name.Spaced()
 	case *types.Bitfield:
+		return item.Name.Spaced()
+	case *types.Array:
 		return item.Name.Spaced()
 	case *types.Structure:
 		return item.Name.Spaced()
@@ -279,6 +299,8 @@ func toItemTitle(item any) string {
 		return "Enumeration"
 	case *types.Bitfield:
 		return "Bitfield"
+	case *types.Array:
+		return "Array"
 	case *types.Structure:
 		return "Structure"
 	case *types.Syscall:
@@ -303,6 +325,8 @@ func toItemUnderlyingType(item any) template.HTML {
 		return prefix + toString(item.Type) + suffix
 	case *types.Bitfield:
 		return prefix + toString(item.Type) + suffix
+	case *types.Array:
+		return template.HTML(fmt.Sprintf("%s%dx %s%s", prefix, item.Count, toString(item.Type), suffix))
 	default:
 		return ""
 	}
@@ -324,6 +348,8 @@ func toString(t types.Type) template.HTML {
 		return template.HTML(fmt.Sprintf(`<a href="../enumerations/%s.html" class="enumeration">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
 	case *types.Bitfield:
 		return template.HTML(fmt.Sprintf(`<a href="../bitfields/%s.html" class="bitfield">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
+	case *types.Array:
+		return template.HTML(fmt.Sprintf(`<a href="../arrays/%s.html" class="array">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
 	case *types.Structure:
 		return template.HTML(fmt.Sprintf(`<a href="../structures/%s.html" class="structure">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
 	case *types.SyscallReference:

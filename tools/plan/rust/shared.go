@@ -62,6 +62,9 @@ func GenerateSharedCode(w io.Writer, file *types.File, rustfmt string) error {
 	for _, bitfield := range file.Bitfields {
 		items = append(items, bitfield)
 	}
+	for _, array := range file.Arrays {
+		items = append(items, array)
+	}
 	for _, structure := range file.Structures {
 		items = append(items, structure)
 	}
@@ -87,6 +90,8 @@ func GenerateSharedCode(w io.Writer, file *types.File, rustfmt string) error {
 			template = enumerationTemplate
 		case *types.Bitfield:
 			template = bitfieldTemplate
+		case *types.Array:
+			template = arrayTemplate
 		case *types.Structure:
 			template = structureTemplate
 		case *types.Syscall:
@@ -153,6 +158,7 @@ const (
 	integerTemplate     = "shared_integer_rs.txt"
 	enumerationTemplate = "shared_enumeration_rs.txt"
 	bitfieldTemplate    = "shared_bitfield_rs.txt"
+	arrayTemplate       = "shared_array_rs.txt"
 	structureTemplate   = "shared_structure_rs.txt"
 )
 
@@ -338,6 +344,8 @@ func sharedToString(t types.Type) string {
 	case *types.Enumeration:
 		return t.Name.PascalCase()
 	case *types.Bitfield:
+		return t.Name.PascalCase()
+	case *types.Array:
 		return t.Name.PascalCase()
 	case *types.Structure:
 		return t.Name.PascalCase()

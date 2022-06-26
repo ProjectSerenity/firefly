@@ -154,6 +154,13 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 			}
 
 			i.out.Bitfields = append(i.out.Bitfields, bitfield)
+		case "array":
+			array, err := i.interpretArray(list)
+			if err != nil {
+				return err
+			}
+
+			i.out.Arrays = append(i.out.Arrays, array)
 		case "structure":
 			structure, err := i.interpretStructure(list)
 			if err != nil {
@@ -337,6 +344,9 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 				typ.Groups = append(typ.Groups, group.Name)
 			case *Bitfield:
 				want = "bitfield"
+				typ.Groups = append(typ.Groups, group.Name)
+			case *Array:
+				want = "array"
 				typ.Groups = append(typ.Groups, group.Name)
 			case *Structure:
 				want = "structure"
@@ -754,6 +764,122 @@ func (i *interpreter) interpretBitfield(list *ast.List) (*Bitfield, *positionalE
 	return bitfield, nil
 }
 
+// interpretArray parses the list elements as
+// an array definition.
+//
+func (i *interpreter) interpretArray(list *ast.List) (*Array, *positionalError) {
+	// Skip the first element, which is the 'array'
+	// identifier.
+	parts, err := i.interpretLists(list.Elements[1:])
+	if err != nil {
+		return nil, err.Context("invalid array")
+	}
+
+	array := &Array{
+		Node: list,
+	}
+
+	for _, part := range parts {
+		def, elts, err := i.interpretDefinition(part)
+		if err != nil {
+			return nil, err
+		}
+
+		switch def.Name {
+		case "name":
+			name, err := i.interpretName(elts)
+			if err != nil {
+				return nil, err.Context("invalid array name")
+			}
+
+			if array.Name != nil {
+				return nil, i.errorf(def, "invalid array definition: name already defined")
+			}
+
+			array.Name = name
+		case "docs":
+			docs, err := i.interpretDocs(elts)
+			if err != nil {
+				return nil, err.Context("invalid array docs")
+			}
+
+			if array.Docs != nil {
+				return nil, i.errorf(def, "invalid array definition: docs already defined")
+			}
+
+			array.Docs = docs
+		case "size":
+			num, ok := elts[0].(*ast.Number)
+			if !ok {
+				return nil, i.errorf(elts[0], "invalid array size definition: expected a number, found %s", elts[0])
+			}
+
+			if len(elts) > 1 {
+				return nil, i.errorf(elts[1], "invalid array size definition: unexpected %s after size", elts[1])
+			}
+
+			size, err := strconv.ParseUint(num.Value, 10, 64)
+			if err != nil {
+				// Unwrap the error if possible.
+				if e, ok := err.(interface{ Unwrap() error }); ok {
+					err = e.Unwrap()
+				}
+
+				return nil, i.errorf(num, "invalid array size definition: invalid size: %v", err)
+			}
+
+			if size == 0 {
+				return nil, i.errorf(num, "invalid array size definition: size must be larger than zero")
+			}
+
+			if array.Count != 0 {
+				return nil, i.errorf(def, "invalid array definition: size already defined")
+			}
+
+			array.Count = size
+		case "type":
+			typ, err := i.interpretType(elts)
+			if err != nil {
+				return nil, err.Context("invalid array element type")
+			}
+
+			if array.Type != nil {
+				return nil, i.errorf(def, "invalid array definition: type already defined")
+			}
+
+			array.Type = typ
+		default:
+			return nil, i.errorf(def, "unrecognised array definition kind %q", def.Name)
+		}
+	}
+
+	// Make sure the array is complete.
+	if array.Name == nil {
+		return nil, i.errorf(list, "array has no name definition")
+	} else if array.Docs == nil {
+		return nil, i.errorf(list, "array has no docs definition")
+	} else if array.Count == 0 {
+		return nil, i.errorf(list, "array has no size definition")
+	} else if array.Type == nil {
+		return nil, i.errorf(list, "array has no type definition")
+	}
+
+	// Track the type definition.
+	typename := array.Name.Spaced()
+	if i.typedefs[typename] != nil {
+		return nil, i.errorf(array.Node, "type %q is already defined", typename)
+	}
+
+	// Complete any references to the type.
+	i.typedefs[typename] = array
+	for _, ref := range i.typeuses[typename] {
+		ref.Underlying = array
+	}
+	i.typeuses[typename] = nil
+
+	return array, nil
+}
+
 // interpretStructure parses the list elements as
 // a struct definition.
 //
@@ -1018,7 +1144,7 @@ func (i *interpreter) interpretGroup(list *ast.List) (*Group, *positionalError) 
 			}
 
 			group.Docs = docs
-		case "integer", "enumeration", "bitfield", "structure", "syscall":
+		case "integer", "enumeration", "bitfield", "array", "structure", "syscall":
 			name, err := i.interpretName(elts)
 			if err != nil {
 				return nil, err

@@ -147,6 +147,18 @@ func TestGenerateSharedCode(t *testing.T) {
 			           (docs "The number of a TCP or UDP port.")
 			           (type uint16))
 
+			       (array
+			           (name ipv4 address)
+			           (docs "An IPv4 address.")
+			           (size 4)
+			           (type byte))
+
+			       (array
+			           (name ipv6 address)
+			           (docs "An IPv6 address.")
+			           (size 16)
+			           (type byte))
+
 			       (syscall
 			           (name three args two results)
 			           (docs "Docs on" "" "two lines")

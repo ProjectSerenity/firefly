@@ -59,6 +59,16 @@
 				</li>
 			{{ end }}
 		</ul>
+		<h2>Arrays</h2>
+		<ul>
+			{{ range .Arrays }}
+				<li>
+					<code class="inline-code">
+						<a href="arrays/{{ .Name.SnakeCase }}.html" class="array">{{ .Name.Spaced }}</a>
+					</code>
+				</li>
+			{{ end }}
+		</ul>
 		<h2>Structures</h2>
 		<ul>
 			{{ range .Structures }}

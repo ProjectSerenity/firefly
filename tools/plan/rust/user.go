@@ -52,6 +52,9 @@ func GenerateUserCode(w io.Writer, file *types.File, rustfmt string) error {
 	for _, bitfield := range file.Bitfields {
 		items = append(items, bitfield)
 	}
+	for _, array := range file.Arrays {
+		items = append(items, array)
+	}
 	for _, structure := range file.Structures {
 		items = append(items, structure)
 	}
@@ -71,7 +74,7 @@ func GenerateUserCode(w io.Writer, file *types.File, rustfmt string) error {
 
 		var template string
 		switch item := item.(type) {
-		case *types.NewInteger, *types.Enumeration, *types.Bitfield, *types.Structure:
+		case *types.NewInteger, *types.Enumeration, *types.Bitfield, *types.Array, *types.Structure:
 			// We import these, so nothing to do here.
 			continue
 		case *types.Syscall:
