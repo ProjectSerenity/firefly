@@ -222,6 +222,12 @@ type Type interface {
 	// memory.
 	Size(Arch) int
 
+	// Register returns whether the type
+	// can be stored in a register and
+	// therefore passed in a syscall
+	// parameter.
+	Register(Arch) bool
+
 	// String returns a brief textual
 	// representation for the type.
 	String() string
@@ -272,6 +278,8 @@ var integers = map[string]Integer{
 	"sint32": Sint32,
 	"sint64": Sint64,
 }
+
+func (b Integer) Register(a Arch) bool { return true }
 
 func (b Integer) Docs() Docs {
 	docs := map[Integer]Text{
@@ -416,9 +424,10 @@ var (
 	_ ast.Node = (*NewInteger)(nil)
 )
 
-func (i *NewInteger) Pos() token.Position { return i.Node.Pos() }
-func (i *NewInteger) End() token.Position { return i.Node.End() }
-func (i *NewInteger) Size(a Arch) int     { return i.Type.Size(a) }
+func (i *NewInteger) Pos() token.Position  { return i.Node.Pos() }
+func (i *NewInteger) End() token.Position  { return i.Node.End() }
+func (i *NewInteger) Register(a Arch) bool { return true }
+func (i *NewInteger) Size(a Arch) int      { return i.Type.Size(a) }
 
 func (i *NewInteger) String() string {
 	return fmt.Sprintf("%s (%s)", i.Name.Spaced(), i.Type)
@@ -433,6 +442,8 @@ type Pointer struct {
 }
 
 var _ Type = (*Pointer)(nil)
+
+func (p *Pointer) Register(a Arch) bool { return true }
 
 func (p *Pointer) Size(a Arch) int {
 	sizes := [...]int{
@@ -464,6 +475,10 @@ type Reference struct {
 
 var _ Type = (*Reference)(nil)
 
+func (r *Reference) Register(a Arch) bool {
+	return r.Underlying.Register(a)
+}
+
 func (r *Reference) Size(a Arch) int {
 	return r.Underlying.Size(a)
 }
@@ -479,6 +494,15 @@ func (r *Reference) String() string {
 type Padding uint16
 
 var _ Type = Padding(0)
+
+func (p Padding) Register(a Arch) bool {
+	// Padding can only be used within a
+	// structure to manage alignment, so
+	// even if the padding is small enough
+	// to fit in a register, we don't allow
+	// it to be passed in one.
+	return false
+}
 
 func (p Padding) Size(a Arch) int {
 	return int(p)
@@ -496,6 +520,12 @@ type Field struct {
 	Node *ast.List
 	Docs Docs
 	Type Type
+}
+
+func (f *Field) Register(a Arch) bool {
+	// Fields can only be used within a
+	// larger structure.
+	return false
 }
 
 func (f *Field) Size(a Arch) int {
@@ -534,8 +564,9 @@ var (
 	_ ast.Node = (*Enumeration)(nil)
 )
 
-func (e *Enumeration) Pos() token.Position { return e.Node.Pos() }
-func (e *Enumeration) End() token.Position { return e.Node.End() }
+func (e *Enumeration) Pos() token.Position  { return e.Node.Pos() }
+func (e *Enumeration) End() token.Position  { return e.Node.End() }
+func (e *Enumeration) Register(a Arch) bool { return true }
 
 func (e *Enumeration) Size(a Arch) int {
 	return e.Type.Size(a)
@@ -568,15 +599,16 @@ var (
 	_ ast.Node = (*Bitfield)(nil)
 )
 
-func (e *Bitfield) Pos() token.Position { return e.Node.Pos() }
-func (e *Bitfield) End() token.Position { return e.Node.End() }
+func (b *Bitfield) Pos() token.Position  { return b.Node.Pos() }
+func (b *Bitfield) End() token.Position  { return b.Node.End() }
+func (b *Bitfield) Register(a Arch) bool { return true }
 
 func (e *Bitfield) Size(a Arch) int {
 	return e.Type.Size(a)
 }
 
-func (e *Bitfield) String() string {
-	return fmt.Sprintf("bitfield %s (%s)", e.Name.Spaced(), e.Type.String())
+func (b *Bitfield) String() string {
+	return fmt.Sprintf("bitfield %s (%s)", b.Name.Spaced(), b.Type.String())
 }
 
 // Structure represents a structure defined
@@ -597,6 +629,14 @@ var (
 
 func (s *Structure) Pos() token.Position { return s.Node.Pos() }
 func (s *Structure) End() token.Position { return s.Node.End() }
+
+func (s *Structure) Register(a Arch) bool {
+	// Even when a structure consists of a single
+	// field, which would fit in a register, we
+	// still reject it so that the structure can
+	// change without that changing the answer.
+	return false
+}
 
 func (s *Structure) Size(a Arch) int {
 	// We assume the structure is already
@@ -708,8 +748,9 @@ type SyscallReference struct {
 
 var _ Type = (*SyscallReference)(nil)
 
-func (r *SyscallReference) Size(a Arch) int { return 0 }
-func (r *SyscallReference) String() string  { return fmt.Sprintf("syscall %s", r.Name.Spaced()) }
+func (r *SyscallReference) Register(a Arch) bool { return false }
+func (r *SyscallReference) Size(a Arch) int      { return 0 }
+func (r *SyscallReference) String() string       { return fmt.Sprintf("syscall %s", r.Name.Spaced()) }
 
 // File represents a parsed syscalls plan.
 //

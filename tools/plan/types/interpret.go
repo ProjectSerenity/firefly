@@ -270,11 +270,9 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 	for _, syscall := range i.out.Syscalls {
 		for j, arg := range syscall.Args {
 			argType := Underlying(arg.Type)
-			switch argType.(type) {
-			case Integer, *NewInteger, *Enumeration, *Bitfield, *Pointer:
-			case nil:
+			if argType == nil {
 				return i.errorf(arg.Node, "arg%d %q is an invalid type reference", j, arg.Name.Spaced())
-			default:
+			} else if !argType.Register(i.arch) {
 				name := arg.Name.Spaced()
 				return i.errorf(arg.Node, "arg%d %q has invalid type: %s cannot be stored in a register", j+1, name, argType)
 			}
@@ -282,11 +280,9 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 
 		for j, result := range syscall.Results {
 			resultType := Underlying(result.Type)
-			switch resultType.(type) {
-			case Integer, *NewInteger, *Enumeration, *Bitfield, *Pointer:
-			case nil:
+			if resultType == nil {
 				return i.errorf(result.Node, "result%d %q is an invalid type reference", j, result.Name.Spaced())
-			default:
+			} else if !resultType.Register(i.arch) {
 				name := result.Name.Spaced()
 				return i.errorf(result.Node, "result%d %q has invalid type: %s cannot be stored in a register", j+1, name, resultType)
 			}
