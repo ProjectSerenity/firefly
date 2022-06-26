@@ -290,16 +290,21 @@ func toItemTitle(item any) string {
 	}
 }
 
-func toItemUnderlyingType(item any) types.Type {
+func toItemUnderlyingType(item any) template.HTML {
+	const (
+		prefix = ` (<code class="inline-code">`
+		suffix = `</code>)`
+	)
+
 	switch item := item.(type) {
 	case *types.NewInteger:
-		return item.Type
+		return prefix + toString(item.Type) + suffix
 	case *types.Enumeration:
-		return item.Type
+		return prefix + toString(item.Type) + suffix
 	case *types.Bitfield:
-		return item.Type
+		return prefix + toString(item.Type) + suffix
 	default:
-		return nil
+		return ""
 	}
 }
 
