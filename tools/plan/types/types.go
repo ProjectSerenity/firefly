@@ -387,16 +387,23 @@ func (b Integer) Max() uint64 {
 }
 
 func (b Integer) Alignment(a Arch) int {
-	aligns := map[Integer]int{
-		Byte:   1,
-		Uint8:  1,
-		Uint16: 2,
-		Uint32: 4,
-		Uint64: 4,
-		Sint8:  1,
-		Sint16: 2,
-		Sint32: 4,
-		Sint64: 4,
+	alignments := map[Arch]map[Integer]int{
+		X86_64: {
+			Byte:   1,
+			Uint8:  1,
+			Uint16: 2,
+			Uint32: 4,
+			Uint64: 8,
+			Sint8:  1,
+			Sint16: 2,
+			Sint32: 4,
+			Sint64: 8,
+		},
+	}
+
+	aligns, ok := alignments[a]
+	if !ok {
+		panic(fmt.Sprintf("unrecognised architecture %d", a))
 	}
 
 	align, ok := aligns[b]
