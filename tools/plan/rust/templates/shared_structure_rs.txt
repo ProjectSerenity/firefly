@@ -1,5 +1,5 @@
 {{ toDocs 0 .Docs }}
-#[repr(packed)]
+#[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct {{ .Name.PascalCase }} {
 {{- range $i, $field := .Fields }}

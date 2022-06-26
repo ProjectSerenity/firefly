@@ -2,7 +2,7 @@
 ///
 /// one file in a filesystem.
 ///
-#[repr(packed)]
+#[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct FileInfo {
     /// The name of the file.

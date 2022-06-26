@@ -3,6 +3,7 @@
 {{- $type := toString .Type -}}
 
 {{- toDocs 0 .Docs }}
+#[repr({{ $type }})]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum {{ $name }} {
     {{- /* For each value in the enumeration, we print the value's documentation and name */ -}}

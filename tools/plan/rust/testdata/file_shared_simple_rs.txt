@@ -31,6 +31,7 @@ pub const SYSCALLS: [Syscalls; 6] = [
 
 /// An enumeration describing the set of system calls.
 ///
+#[repr(u64)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Syscalls {
     /// Denies the process access to the specified syscalls.
@@ -95,6 +96,7 @@ impl Syscalls {
 
 /// A colour.
 ///
+#[repr(i8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Colour {
     /// The colour red.
@@ -133,7 +135,7 @@ impl Colour {
 
 /// Information about a file in a filesystem.
 ///
-#[repr(packed)]
+#[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct FileInfo {
     /// The pointer to the file's name contents.
@@ -157,6 +159,7 @@ pub struct FileInfo {
 
 /// A general purpose error.
 ///
+#[repr(u64)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     /// No error occurred.
@@ -231,6 +234,7 @@ impl Error {
 
 /// An I/O error returned by [`get_file_info`](Syscalls::GetFileInfo).
 ///
+#[repr(u64)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum IoError {
     /// No error occurred.
