@@ -217,9 +217,30 @@ func (a Arch) String() string {
 // complex structure types.
 //
 type Type interface {
+	// Alignment returns the memory alignment
+	// of the type on the specified architecture.
+	//
+	// That is, the offset in bytes into a
+	// structure at which a field of this type
+	// appears must be an exact multiple of its
+	// alignment. For example, if type `A` has
+	// an alignment of `8`, then any structure
+	// fields of type `A` must have an offset
+	// into the structure that is a multiple of
+	// `8`.
+	//
+	// Alignment values must be larger than
+	// `0`, and must be an exact multiple of
+	// `2`.
+	Alignment(Arch) int
+
 	// Size returns the number of bytes that
 	// a value of the type will consume in
 	// memory.
+	//
+	// Size values must be an exact multiple
+	// of the type's alignment, and must be
+	// non-negative.
 	Size(Arch) int
 
 	// Register returns whether the type
@@ -365,6 +386,27 @@ func (b Integer) Max() uint64 {
 	return max
 }
 
+func (b Integer) Alignment(a Arch) int {
+	aligns := map[Integer]int{
+		Byte:   1,
+		Uint8:  1,
+		Uint16: 2,
+		Uint32: 4,
+		Uint64: 4,
+		Sint8:  1,
+		Sint16: 2,
+		Sint32: 4,
+		Sint64: 4,
+	}
+
+	align, ok := aligns[b]
+	if !ok {
+		panic(fmt.Sprintf("unrecognised integer type %d", b))
+	}
+
+	return align
+}
+
 func (b Integer) Size(a Arch) int {
 	sizes := map[Integer]int{
 		Byte:   1,
@@ -427,6 +469,7 @@ var (
 func (i *NewInteger) Pos() token.Position  { return i.Node.Pos() }
 func (i *NewInteger) End() token.Position  { return i.Node.End() }
 func (i *NewInteger) Register(a Arch) bool { return true }
+func (i *NewInteger) Alignment(a Arch) int { return i.Type.Alignment(a) }
 func (i *NewInteger) Size(a Arch) int      { return i.Type.Size(a) }
 
 func (i *NewInteger) String() string {
@@ -445,16 +488,30 @@ var _ Type = (*Pointer)(nil)
 
 func (p *Pointer) Register(a Arch) bool { return true }
 
-func (p *Pointer) Size(a Arch) int {
-	sizes := [...]int{
+func (p *Pointer) Alignment(a Arch) int {
+	aligns := map[Arch]int{
 		X86_64: 8,
 	}
 
-	if int(a) >= len(sizes) {
+	align, ok := aligns[a]
+	if !ok {
 		panic(fmt.Sprintf("unrecognised architecture %d", a))
 	}
 
-	return sizes[a]
+	return align
+}
+
+func (p *Pointer) Size(a Arch) int {
+	sizes := map[Arch]int{
+		X86_64: 8,
+	}
+
+	size, ok := sizes[a]
+	if !ok {
+		panic(fmt.Sprintf("unrecognised architecture %d", a))
+	}
+
+	return size
 }
 
 func (p *Pointer) String() string {
@@ -493,8 +550,12 @@ func (a *Array) Register(arch Arch) bool {
 	return false
 }
 
+func (a *Array) Alignment(arch Arch) int {
+	return a.Type.Alignment(arch)
+}
+
 func (a *Array) Size(arch Arch) int {
-	return a.Type.Size(arch)
+	return int(a.Count) * a.Type.Size(arch)
 }
 
 func (a *Array) String() string {
@@ -513,6 +574,10 @@ var _ Type = (*Reference)(nil)
 
 func (r *Reference) Register(a Arch) bool {
 	return r.Underlying.Register(a)
+}
+
+func (r *Reference) Alignment(a Arch) int {
+	return r.Underlying.Alignment(a)
 }
 
 func (r *Reference) Size(a Arch) int {
@@ -540,6 +605,10 @@ func (p Padding) Register(a Arch) bool {
 	return false
 }
 
+func (p Padding) Alignment(a Arch) int {
+	return 1
+}
+
 func (p Padding) Size(a Arch) int {
 	return int(p)
 }
@@ -562,6 +631,10 @@ func (f *Field) Register(a Arch) bool {
 	// Fields can only be used within a
 	// larger structure.
 	return false
+}
+
+func (f *Field) Alignment(a Arch) int {
+	return f.Type.Alignment(a)
 }
 
 func (f *Field) Size(a Arch) int {
@@ -604,6 +677,10 @@ func (e *Enumeration) Pos() token.Position  { return e.Node.Pos() }
 func (e *Enumeration) End() token.Position  { return e.Node.End() }
 func (e *Enumeration) Register(a Arch) bool { return true }
 
+func (e *Enumeration) Alignment(a Arch) int {
+	return e.Type.Alignment(a)
+}
+
 func (e *Enumeration) Size(a Arch) int {
 	return e.Type.Size(a)
 }
@@ -639,6 +716,10 @@ func (b *Bitfield) Pos() token.Position  { return b.Node.Pos() }
 func (b *Bitfield) End() token.Position  { return b.Node.End() }
 func (b *Bitfield) Register(a Arch) bool { return true }
 
+func (e *Bitfield) Alignment(a Arch) int {
+	return e.Type.Alignment(a)
+}
+
 func (e *Bitfield) Size(a Arch) int {
 	return e.Type.Size(a)
 }
@@ -672,6 +753,18 @@ func (s *Structure) Register(a Arch) bool {
 	// still reject it so that the structure can
 	// change without that changing the answer.
 	return false
+}
+
+func (s *Structure) Alignment(a Arch) int {
+	maxAlign := 1
+	for _, field := range s.Fields {
+		align := field.Alignment(a)
+		if maxAlign < align {
+			maxAlign = align
+		}
+	}
+
+	return maxAlign
 }
 
 func (s *Structure) Size(a Arch) int {
@@ -785,6 +878,7 @@ type SyscallReference struct {
 var _ Type = (*SyscallReference)(nil)
 
 func (r *SyscallReference) Register(a Arch) bool { return false }
+func (r *SyscallReference) Alignment(a Arch) int { return 1 }
 func (r *SyscallReference) Size(a Arch) int      { return 0 }
 func (r *SyscallReference) String() string       { return fmt.Sprintf("syscall %s", r.Name.Spaced()) }
 

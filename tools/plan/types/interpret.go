@@ -256,10 +256,10 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 				nonPadding = true
 
 				// Check alignment.
-				size := typ.Size(i.arch)
-				if offset%size != 0 {
+				align := typ.Alignment(i.arch)
+				if offset%align != 0 {
 					name := field.Name.Spaced()
-					return i.errorf(field.Node, "field %q is not aligned: %d-byte field found at offset %d", name, size, offset)
+					return i.errorf(field.Node, "field %q is not aligned: %d-aligned field found at offset %d", name, align, offset)
 				}
 			}
 

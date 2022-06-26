@@ -2693,7 +2693,7 @@ func TestInterpreterErrors(t *testing.T) {
 			                 (name bar ber)
 			                 (docs "foo")
 			                 (type sint16)))`,
-			Want: `test.plan:8:17: field "bar ber" is not aligned: 2-byte field found at offset 1`,
+			Want: `test.plan:8:17: field "bar ber" is not aligned: 2-aligned field found at offset 1`,
 		},
 		{
 			Name:   "syscall with undefined arg type",
