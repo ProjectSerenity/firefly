@@ -10,6 +10,8 @@ go_library(
     name = "types",
     srcs = [
         "interpret.go",
+        "interpret_subtypes.go",
+        "subtypes.go",
         "types.go",
     ],
     importpath = "firefly-os.dev/tools/plan/types",
@@ -30,7 +32,7 @@ go_test(
     size = "small",
     srcs = [
         "interpret_test.go",
-        "types_test.go",
+        "subtypes_test.go",
     ],
     embed = [":types"],
     deps = [
