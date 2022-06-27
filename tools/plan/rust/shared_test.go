@@ -264,15 +264,29 @@ func TestSubTemplates(t *testing.T) {
 		Type any
 	}{
 		{
-			Name: "port number integer",
-			Want: "integer_rs_port_number",
-			Tmpl: integerTemplate,
-			Type: &types.NewInteger{
-				Name: types.Name{"port", "number"},
+			Name: "access control bitfield",
+			Want: "bitfield_rs_access_control",
+			Tmpl: bitfieldTemplate,
+			Type: &types.Bitfield{
+				Name: types.Name{"access", "control"},
 				Docs: types.Docs{
-					types.Text("The number of a TCP or UDP port."),
+					types.Text("The permissions available on a resource."),
 				},
 				Type: types.Uint16,
+				Values: []*types.Value{
+					{
+						Name: types.Name{"read", "access"},
+						Docs: types.Docs{types.Text("The data can be read.")},
+					},
+					{
+						Name: types.Name{"write", "access"},
+						Docs: types.Docs{types.Text("The data can be written.")},
+					},
+					{
+						Name: types.Name{"execute", "access"},
+						Docs: types.Docs{types.Text("The data can be executed.")},
+					},
+				},
 			},
 		},
 		{
@@ -304,29 +318,15 @@ func TestSubTemplates(t *testing.T) {
 			},
 		},
 		{
-			Name: "access control bitfield",
-			Want: "bitfield_rs_access_control",
-			Tmpl: bitfieldTemplate,
-			Type: &types.Bitfield{
-				Name: types.Name{"access", "control"},
+			Name: "port number integer",
+			Want: "integer_rs_port_number",
+			Tmpl: integerTemplate,
+			Type: &types.NewInteger{
+				Name: types.Name{"port", "number"},
 				Docs: types.Docs{
-					types.Text("The permissions available on a resource."),
+					types.Text("The number of a TCP or UDP port."),
 				},
 				Type: types.Uint16,
-				Values: []*types.Value{
-					{
-						Name: types.Name{"read", "access"},
-						Docs: types.Docs{types.Text("The data can be read.")},
-					},
-					{
-						Name: types.Name{"write", "access"},
-						Docs: types.Docs{types.Text("The data can be written.")},
-					},
-					{
-						Name: types.Name{"execute", "access"},
-						Docs: types.Docs{types.Text("The data can be executed.")},
-					},
-				},
 			},
 		},
 		{

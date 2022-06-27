@@ -71,6 +71,120 @@ func Underlying(typ Type) Type {
 	}
 }
 
+// Array represents a fixed-size
+// sequence of another data type.
+//
+type Array struct {
+	Name   Name
+	Node   *ast.List
+	Docs   Docs
+	Groups []Name
+	Count  uint64
+	Type   Type
+}
+
+var (
+	_ Type     = (*Array)(nil)
+	_ ast.Node = (*Array)(nil)
+)
+
+func (a *Array) Pos() token.Position { return a.Node.Pos() }
+func (a *Array) End() token.Position { return a.Node.End() }
+
+func (a *Array) Register(arch Arch) bool {
+	// Even though an array may be small
+	// enough to fit in a register, we
+	// store it separately in case the
+	// array's type/size changes later.
+	return false
+}
+
+func (a *Array) Alignment(arch Arch) int {
+	return a.Type.Alignment(arch)
+}
+
+func (a *Array) Size(arch Arch) int {
+	return int(a.Count) * a.Type.Size(arch)
+}
+
+func (a *Array) String() string {
+	return fmt.Sprintf("array(%d x %s)", a.Count, a.Type.String())
+}
+
+// Bitfield represents a numerical type
+// with a constrained set of valid values
+// in a syscalls plan. The values can be
+// combined together, but each value uses
+// one bit in the underlying integer,
+// resulting in a smaller number of
+// individual values than an enumeration
+// of the same size.
+//
+type Bitfield struct {
+	Name   Name
+	Node   *ast.List
+	Docs   Docs
+	Groups []Name
+	Type   Integer
+	Values []*Value
+}
+
+var (
+	_ Type     = (*Bitfield)(nil)
+	_ ast.Node = (*Bitfield)(nil)
+)
+
+func (b *Bitfield) Pos() token.Position  { return b.Node.Pos() }
+func (b *Bitfield) End() token.Position  { return b.Node.End() }
+func (b *Bitfield) Register(a Arch) bool { return true }
+
+func (e *Bitfield) Alignment(a Arch) int {
+	return e.Type.Alignment(a)
+}
+
+func (e *Bitfield) Size(a Arch) int {
+	return e.Type.Size(a)
+}
+
+func (b *Bitfield) String() string {
+	return fmt.Sprintf("bitfield %s (%s)", b.Name.Spaced(), b.Type.String())
+}
+
+// Enumeration represents a numerical type
+// with a constrained set of valid values
+// in a syscalls plan.
+//
+type Enumeration struct {
+	Name   Name
+	Node   *ast.List
+	Docs   Docs
+	Groups []Name
+	Type   Integer
+	Embeds []*Enumeration
+	Values []*Value
+}
+
+var (
+	_ Type     = (*Enumeration)(nil)
+	_ ast.Node = (*Enumeration)(nil)
+)
+
+func (e *Enumeration) Pos() token.Position  { return e.Node.Pos() }
+func (e *Enumeration) End() token.Position  { return e.Node.End() }
+func (e *Enumeration) Register(a Arch) bool { return true }
+
+func (e *Enumeration) Alignment(a Arch) int {
+	return e.Type.Alignment(a)
+}
+
+func (e *Enumeration) Size(a Arch) int {
+	return e.Type.Size(a)
+}
+
+func (e *Enumeration) String() string {
+	return fmt.Sprintf("enumeration %s (%s)", e.Name.Spaced(), e.Type.String())
+}
+
 // Integer represents a primitive integer,
 // type.
 //
@@ -259,6 +373,8 @@ func (b Integer) String() string {
 	return s
 }
 
+// Keep the integer types together.
+
 // NewInteger represents a new type
 // that has been defined, with an
 // underlying integer type.
@@ -284,6 +400,35 @@ func (i *NewInteger) Size(a Arch) int      { return i.Type.Size(a) }
 
 func (i *NewInteger) String() string {
 	return fmt.Sprintf("%s (%s)", i.Name.Spaced(), i.Type)
+}
+
+// Padding represents unused space that is included
+// after a field in a structure to ensure the fields
+// and structure remain correctly aligned.
+//
+type Padding uint16
+
+var _ Type = Padding(0)
+
+func (p Padding) Register(a Arch) bool {
+	// Padding can only be used within a
+	// structure to manage alignment, so
+	// even if the padding is small enough
+	// to fit in a register, we don't allow
+	// it to be passed in one.
+	return false
+}
+
+func (p Padding) Alignment(a Arch) int {
+	return 1
+}
+
+func (p Padding) Size(a Arch) int {
+	return int(p)
+}
+
+func (p Padding) String() string {
+	return fmt.Sprintf("%d padding bytes", p)
 }
 
 // Pointer represents a pointer to
@@ -332,46 +477,6 @@ func (p *Pointer) String() string {
 	return fmt.Sprintf("*constant %s", p.Underlying.String())
 }
 
-// Array represents a fixed-size
-// sequence of another data type.
-//
-type Array struct {
-	Name   Name
-	Node   *ast.List
-	Docs   Docs
-	Groups []Name
-	Count  uint64
-	Type   Type
-}
-
-var (
-	_ Type     = (*Array)(nil)
-	_ ast.Node = (*Array)(nil)
-)
-
-func (a *Array) Pos() token.Position { return a.Node.Pos() }
-func (a *Array) End() token.Position { return a.Node.End() }
-
-func (a *Array) Register(arch Arch) bool {
-	// Even though an array may be small
-	// enough to fit in a register, we
-	// store it separately in case the
-	// array's type/size changes later.
-	return false
-}
-
-func (a *Array) Alignment(arch Arch) int {
-	return a.Type.Alignment(arch)
-}
-
-func (a *Array) Size(arch Arch) int {
-	return int(a.Count) * a.Type.Size(arch)
-}
-
-func (a *Array) String() string {
-	return fmt.Sprintf("array(%d x %s)", a.Count, a.Type.String())
-}
-
 // Reference represents a name used to reference a
 // type that has already been defined elsewhere.
 //
@@ -396,109 +501,6 @@ func (r *Reference) Size(a Arch) int {
 
 func (r *Reference) String() string {
 	return r.Name.Spaced()
-}
-
-// Padding represents unused space that is included
-// after a field in a structure to ensure the fields
-// and structure remain correctly aligned.
-//
-type Padding uint16
-
-var _ Type = Padding(0)
-
-func (p Padding) Register(a Arch) bool {
-	// Padding can only be used within a
-	// structure to manage alignment, so
-	// even if the padding is small enough
-	// to fit in a register, we don't allow
-	// it to be passed in one.
-	return false
-}
-
-func (p Padding) Alignment(a Arch) int {
-	return 1
-}
-
-func (p Padding) Size(a Arch) int {
-	return int(p)
-}
-
-func (p Padding) String() string {
-	return fmt.Sprintf("%d padding bytes", p)
-}
-
-// Enumeration represents a numerical type
-// with a constrained set of valid values
-// in a syscalls plan.
-//
-type Enumeration struct {
-	Name   Name
-	Node   *ast.List
-	Docs   Docs
-	Groups []Name
-	Type   Integer
-	Embeds []*Enumeration
-	Values []*Value
-}
-
-var (
-	_ Type     = (*Enumeration)(nil)
-	_ ast.Node = (*Enumeration)(nil)
-)
-
-func (e *Enumeration) Pos() token.Position  { return e.Node.Pos() }
-func (e *Enumeration) End() token.Position  { return e.Node.End() }
-func (e *Enumeration) Register(a Arch) bool { return true }
-
-func (e *Enumeration) Alignment(a Arch) int {
-	return e.Type.Alignment(a)
-}
-
-func (e *Enumeration) Size(a Arch) int {
-	return e.Type.Size(a)
-}
-
-func (e *Enumeration) String() string {
-	return fmt.Sprintf("enumeration %s (%s)", e.Name.Spaced(), e.Type.String())
-}
-
-// Bitfield represents a numerical type
-// with a constrained set of valid values
-// in a syscalls plan. The values can be
-// combined together, but each value uses
-// one bit in the underlying integer,
-// resulting in a smaller number of
-// individual values than an enumeration
-// of the same size.
-//
-type Bitfield struct {
-	Name   Name
-	Node   *ast.List
-	Docs   Docs
-	Groups []Name
-	Type   Integer
-	Values []*Value
-}
-
-var (
-	_ Type     = (*Bitfield)(nil)
-	_ ast.Node = (*Bitfield)(nil)
-)
-
-func (b *Bitfield) Pos() token.Position  { return b.Node.Pos() }
-func (b *Bitfield) End() token.Position  { return b.Node.End() }
-func (b *Bitfield) Register(a Arch) bool { return true }
-
-func (e *Bitfield) Alignment(a Arch) int {
-	return e.Type.Alignment(a)
-}
-
-func (e *Bitfield) Size(a Arch) int {
-	return e.Type.Size(a)
-}
-
-func (b *Bitfield) String() string {
-	return fmt.Sprintf("bitfield %s (%s)", b.Name.Spaced(), b.Type.String())
 }
 
 // Structure represents a structure defined
@@ -596,10 +598,10 @@ func (r *SyscallReference) String() string       { return fmt.Sprintf("syscall %
 //
 type File struct {
 	// Data structures.
-	NewIntegers  []*NewInteger
-	Enumerations []*Enumeration
-	Bitfields    []*Bitfield
 	Arrays       []*Array
+	Bitfields    []*Bitfield
+	Enumerations []*Enumeration
+	NewIntegers  []*NewInteger
 	Structures   []*Structure
 
 	// System calls.
@@ -638,14 +640,8 @@ func (f *File) SyscallsEnumeration() *Enumeration {
 // in tests.
 //
 func (f *File) DropAST() {
-	for _, integer := range f.NewIntegers {
-		integer.Node = nil
-	}
-	for _, enumeration := range f.Enumerations {
-		enumeration.Node = nil
-		for _, value := range enumeration.Values {
-			value.Node = nil
-		}
+	for _, array := range f.Arrays {
+		array.Node = nil
 	}
 	for _, bitfield := range f.Bitfields {
 		bitfield.Node = nil
@@ -653,8 +649,14 @@ func (f *File) DropAST() {
 			value.Node = nil
 		}
 	}
-	for _, array := range f.Arrays {
-		array.Node = nil
+	for _, enumeration := range f.Enumerations {
+		enumeration.Node = nil
+		for _, value := range enumeration.Values {
+			value.Node = nil
+		}
+	}
+	for _, integer := range f.NewIntegers {
+		integer.Node = nil
 	}
 	for _, structure := range f.Structures {
 		structure.Node = nil

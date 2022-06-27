@@ -106,10 +106,10 @@ func SortFields(file *ast.File, arch types.Arch) error {
 		// The group fields are identical priority
 		// so that they remain in their original
 		// order.
-		"integer":     40,
-		"enumeration": 40,
-		"bitfield":    40,
 		"array":       40,
+		"bitfield":    40,
+		"enumeration": 40,
+		"integer":     40,
 		"structure":   40,
 		"syscall":     40,
 	}
@@ -131,20 +131,20 @@ func SortFields(file *ast.File, arch types.Arch) error {
 		})
 	}
 
-	for _, integer := range prog.NewIntegers {
-		sortList("integer", integer.Node)
-	}
-
-	for _, enumeration := range prog.Enumerations {
-		sortList("enumeration", enumeration.Node)
+	for _, array := range prog.Arrays {
+		sortList("array", array.Node)
 	}
 
 	for _, bitfield := range prog.Bitfields {
 		sortList("bitfield", bitfield.Node)
 	}
 
-	for _, array := range prog.Arrays {
-		sortList("array", array.Node)
+	for _, enumeration := range prog.Enumerations {
+		sortList("enumeration", enumeration.Node)
+	}
+
+	for _, integer := range prog.NewIntegers {
+		sortList("integer", integer.Node)
 	}
 
 	for _, structure := range prog.Structures {

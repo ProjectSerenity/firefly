@@ -37,19 +37,6 @@ func TestInterpreter(t *testing.T) {
 		Want   *File
 	}{
 		{
-			Name:   "Simple new integer",
-			Source: `(integer (name blah) (docs "xyz") (type byte))`,
-			Want: &File{
-				NewIntegers: []*NewInteger{
-					{
-						Name: Name{"blah"},
-						Docs: Docs{Text("xyz")},
-						Type: Byte,
-					},
-				},
-			},
-		},
-		{
 			Name:   "Simple array",
 			Source: `(array (name blah) (docs "xyz" "" "abc\n" "") (size 1024) (type byte))`,
 			Want: &File{
@@ -59,6 +46,129 @@ func TestInterpreter(t *testing.T) {
 						Docs:  Docs{Text("xyz"), Newline{}, Text("abc")},
 						Count: 1024,
 						Type:  Byte,
+					},
+				},
+			},
+		},
+		{
+			Name:   "Simple bitfield",
+			Source: `(bitfield (name blah) (docs "xyz") (type byte) (value (name foo) (docs "bar")) (value (name bar) (docs "abc")))`,
+			Want: &File{
+				Bitfields: []*Bitfield{
+					{
+						Name: Name{"blah"},
+						Docs: Docs{Text("xyz")},
+						Type: Byte,
+						Values: []*Value{
+							{
+								Name: Name{"foo"},
+								Docs: Docs{Text("bar")},
+							},
+							{
+								Name: Name{"bar"},
+								Docs: Docs{Text("abc")},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name:   "Simple enumeration",
+			Source: `(enumeration (name blah) (docs "xyz") (type byte) (value (name foo) (docs "bar")) (value (name bar) (docs "abc")))`,
+			Want: &File{
+				Enumerations: []*Enumeration{
+					{
+						Name: Name{"blah"},
+						Docs: Docs{Text("xyz")},
+						Type: Byte,
+						Values: []*Value{
+							{
+								Name: Name{"foo"},
+								Docs: Docs{Text("bar")},
+							},
+							{
+								Name: Name{"bar"},
+								Docs: Docs{Text("abc")},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "Embedded enumeration",
+			Source: `(enumeration (name blah) (docs "xyz") (type byte) (value (name foo) (docs "bar")) (value (name bar) (docs "abc")))
+			         (enumeration (name two) (docs "abc") (type sint8) (value (name first) (docs "1")) (embed blah) (value (name four) (docs "4")))`,
+			Want: &File{
+				Enumerations: []*Enumeration{
+					{
+						Name: Name{"blah"},
+						Docs: Docs{Text("xyz")},
+						Type: Byte,
+						Values: []*Value{
+							{
+								Name: Name{"foo"},
+								Docs: Docs{Text("bar")},
+							},
+							{
+								Name: Name{"bar"},
+								Docs: Docs{Text("abc")},
+							},
+						},
+					},
+					{
+						Name: Name{"two"},
+						Docs: Docs{Text("abc")},
+						Type: Sint8,
+						Embeds: []*Enumeration{
+							{
+								Name: Name{"blah"},
+								Docs: Docs{Text("xyz")},
+								Type: Byte,
+								Values: []*Value{
+									{
+										Name: Name{"foo"},
+										Docs: Docs{Text("bar")},
+									},
+									{
+										Name: Name{"bar"},
+										Docs: Docs{Text("abc")},
+									},
+								},
+							},
+						},
+						Values: []*Value{
+							{
+								Name: Name{"first"},
+								Docs: Docs{Text("1")},
+							},
+							{
+								Name: Name{"foo"},
+								Docs: Docs{Text("bar")},
+							},
+							{
+								Name: Name{"bar"},
+								Docs: Docs{Text("abc")},
+							},
+							{
+								Name: Name{"four"},
+								Docs: Docs{Text("4")},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name:   "Simple new integer",
+			Source: `(integer (name blah) (docs "xyz") (type byte))`,
+			Want: &File{
+				NewIntegers: []*NewInteger{
+					{
+						Name: Name{"blah"},
+						Docs: Docs{Text("xyz")},
+						Type: Byte,
 					},
 				},
 			},
@@ -116,6 +226,48 @@ func TestInterpreter(t *testing.T) {
 										Type: Uint64,
 									},
 								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Name: "Padded structure",
+			Source: `(structure
+			             (name blah)
+			             (docs "xyz")
+			             (field
+			                 (name foo)
+			                 (docs "bar" (code "foo") "baz")
+			                 (type *constant byte))
+			             (field
+			                 (name bar)
+			                 (docs "padding")
+			                 (padding 8)))`,
+			Want: &File{
+				Structures: []*Structure{
+					{
+						Name: Name{"blah"},
+						Docs: Docs{Text("xyz")},
+						Fields: []*Field{
+							{
+								Name: Name{"foo"},
+								Docs: Docs{
+									Text("bar"),
+									Text(" "),
+									CodeText("foo"),
+									Text(" "),
+									Text("baz"),
+								},
+								Type: &Pointer{
+									Underlying: Byte,
+								},
+							},
+							{
+								Name: Name{"bar"},
+								Docs: Docs{Text("padding")},
+								Type: Padding(8),
 							},
 						},
 					},
@@ -233,116 +385,6 @@ func TestInterpreter(t *testing.T) {
 								Type: &Pointer{
 									Underlying: Byte,
 								},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			Name:   "Simple enumeration",
-			Source: `(enumeration (name blah) (docs "xyz") (type byte) (value (name foo) (docs "bar")) (value (name bar) (docs "abc")))`,
-			Want: &File{
-				Enumerations: []*Enumeration{
-					{
-						Name: Name{"blah"},
-						Docs: Docs{Text("xyz")},
-						Type: Byte,
-						Values: []*Value{
-							{
-								Name: Name{"foo"},
-								Docs: Docs{Text("bar")},
-							},
-							{
-								Name: Name{"bar"},
-								Docs: Docs{Text("abc")},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			Name: "Embedded enumeration",
-			Source: `(enumeration (name blah) (docs "xyz") (type byte) (value (name foo) (docs "bar")) (value (name bar) (docs "abc")))
-			         (enumeration (name two) (docs "abc") (type sint8) (value (name first) (docs "1")) (embed blah) (value (name four) (docs "4")))`,
-			Want: &File{
-				Enumerations: []*Enumeration{
-					{
-						Name: Name{"blah"},
-						Docs: Docs{Text("xyz")},
-						Type: Byte,
-						Values: []*Value{
-							{
-								Name: Name{"foo"},
-								Docs: Docs{Text("bar")},
-							},
-							{
-								Name: Name{"bar"},
-								Docs: Docs{Text("abc")},
-							},
-						},
-					},
-					{
-						Name: Name{"two"},
-						Docs: Docs{Text("abc")},
-						Type: Sint8,
-						Embeds: []*Enumeration{
-							{
-								Name: Name{"blah"},
-								Docs: Docs{Text("xyz")},
-								Type: Byte,
-								Values: []*Value{
-									{
-										Name: Name{"foo"},
-										Docs: Docs{Text("bar")},
-									},
-									{
-										Name: Name{"bar"},
-										Docs: Docs{Text("abc")},
-									},
-								},
-							},
-						},
-						Values: []*Value{
-							{
-								Name: Name{"first"},
-								Docs: Docs{Text("1")},
-							},
-							{
-								Name: Name{"foo"},
-								Docs: Docs{Text("bar")},
-							},
-							{
-								Name: Name{"bar"},
-								Docs: Docs{Text("abc")},
-							},
-							{
-								Name: Name{"four"},
-								Docs: Docs{Text("4")},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			Name:   "Simple bitfield",
-			Source: `(bitfield (name blah) (docs "xyz") (type byte) (value (name foo) (docs "bar")) (value (name bar) (docs "abc")))`,
-			Want: &File{
-				Bitfields: []*Bitfield{
-					{
-						Name: Name{"blah"},
-						Docs: Docs{Text("xyz")},
-						Type: Byte,
-						Values: []*Value{
-							{
-								Name: Name{"foo"},
-								Docs: Docs{Text("bar")},
-							},
-							{
-								Name: Name{"bar"},
-								Docs: Docs{Text("abc")},
 							},
 						},
 					},
@@ -617,48 +659,6 @@ func TestInterpreter(t *testing.T) {
 			},
 		},
 		{
-			Name: "Padded structure",
-			Source: `(structure
-			             (name blah)
-			             (docs "xyz")
-			             (field
-			                 (name foo)
-			                 (docs "bar" (code "foo") "baz")
-			                 (type *constant byte))
-			             (field
-			                 (name bar)
-			                 (docs "padding")
-			                 (padding 8)))`,
-			Want: &File{
-				Structures: []*Structure{
-					{
-						Name: Name{"blah"},
-						Docs: Docs{Text("xyz")},
-						Fields: []*Field{
-							{
-								Name: Name{"foo"},
-								Docs: Docs{
-									Text("bar"),
-									Text(" "),
-									CodeText("foo"),
-									Text(" "),
-									Text("baz"),
-								},
-								Type: &Pointer{
-									Underlying: Byte,
-								},
-							},
-							{
-								Name: Name{"bar"},
-								Docs: Docs{Text("padding")},
-								Type: Padding(8),
-							},
-						},
-					},
-				},
-			},
-		},
-		{
 			Name: "Sequential type reference",
 			Source: `(structure (name blah) (docs "xyz") (field (name foo) (docs "bar") (type *constant byte)))
 			         (structure (name two)  (docs "abc") (field (name first) (docs (reference blah)) (type *mutable blah)))`,
@@ -750,11 +750,38 @@ func TestInterpreter(t *testing.T) {
 			             (value (name illegal arg5) (docs ""))
 			             (value (name illegal arg6) (docs "")))`,
 			Want: &File{
-				NewIntegers: []*NewInteger{
+				Arrays: []*Array{
 					{
-						Name: Name{"fd"},
-						Docs: Docs{Text("file descriptor")},
-						Type: Uint32,
+						Name:  Name{"flag", "set"},
+						Docs:  Docs{Text("A set of flags")},
+						Count: 10,
+						Type: &Reference{
+							Name: Name{"flags"},
+							Underlying: &Bitfield{
+								Name: Name{"flags"},
+								Docs: Docs{Text("Flags")},
+								Type: Uint16,
+								Values: []*Value{
+									{
+										Name: Name{"on"},
+										Docs: Docs{Text("On")},
+									},
+								},
+							},
+						},
+					},
+				},
+				Bitfields: []*Bitfield{
+					{
+						Name: Name{"flags"},
+						Docs: Docs{Text("Flags")},
+						Type: Uint16,
+						Values: []*Value{
+							{
+								Name: Name{"on"},
+								Docs: Docs{Text("On")},
+							},
+						},
 					},
 				},
 				Enumerations: []*Enumeration{
@@ -809,38 +836,11 @@ func TestInterpreter(t *testing.T) {
 						},
 					},
 				},
-				Bitfields: []*Bitfield{
+				NewIntegers: []*NewInteger{
 					{
-						Name: Name{"flags"},
-						Docs: Docs{Text("Flags")},
-						Type: Uint16,
-						Values: []*Value{
-							{
-								Name: Name{"on"},
-								Docs: Docs{Text("On")},
-							},
-						},
-					},
-				},
-				Arrays: []*Array{
-					{
-						Name:  Name{"flag", "set"},
-						Docs:  Docs{Text("A set of flags")},
-						Count: 10,
-						Type: &Reference{
-							Name: Name{"flags"},
-							Underlying: &Bitfield{
-								Name: Name{"flags"},
-								Docs: Docs{Text("Flags")},
-								Type: Uint16,
-								Values: []*Value{
-									{
-										Name: Name{"on"},
-										Docs: Docs{Text("On")},
-									},
-								},
-							},
-						},
+						Name: Name{"fd"},
+						Docs: Docs{Text("file descriptor")},
+						Type: Uint32,
 					},
 				},
 				Structures: []*Structure{
@@ -1063,12 +1063,29 @@ func TestInterpreter(t *testing.T) {
 			             (value (name illegal arg5) (docs ""))
 			             (value (name illegal arg6) (docs "")))`,
 			Want: &File{
-				NewIntegers: []*NewInteger{
+				Arrays: []*Array{
 					{
-						Name:   Name{"fd"},
-						Docs:   Docs{Text("file descriptor")},
+						Name: Name{"ipv4", "address"},
+						Docs: Docs{Text("IPv4 address")},
+						Groups: []Name{
+							{"fun", "features"},
+						},
+						Count: 4,
+						Type:  Byte,
+					},
+				},
+				Bitfields: []*Bitfield{
+					{
+						Name:   Name{"flags"},
+						Docs:   Docs{Text("Flags")},
 						Groups: []Name{{"fun", "features"}},
-						Type:   Uint32,
+						Type:   Uint16,
+						Values: []*Value{
+							{
+								Name: Name{"on"},
+								Docs: Docs{Text("On")},
+							},
+						},
 					},
 				},
 				Enumerations: []*Enumeration{
@@ -1124,29 +1141,12 @@ func TestInterpreter(t *testing.T) {
 						},
 					},
 				},
-				Bitfields: []*Bitfield{
+				NewIntegers: []*NewInteger{
 					{
-						Name:   Name{"flags"},
-						Docs:   Docs{Text("Flags")},
+						Name:   Name{"fd"},
+						Docs:   Docs{Text("file descriptor")},
 						Groups: []Name{{"fun", "features"}},
-						Type:   Uint16,
-						Values: []*Value{
-							{
-								Name: Name{"on"},
-								Docs: Docs{Text("On")},
-							},
-						},
-					},
-				},
-				Arrays: []*Array{
-					{
-						Name: Name{"ipv4", "address"},
-						Docs: Docs{Text("IPv4 address")},
-						Groups: []Name{
-							{"fun", "features"},
-						},
-						Count: 4,
-						Type:  Byte,
+						Type:   Uint32,
 					},
 				},
 				Structures: []*Structure{
@@ -1571,106 +1571,289 @@ func TestInterpreterErrors(t *testing.T) {
 			Source: `(foo bar)`,
 			Want:   `test.plan:1:2: unrecognised definition kind "foo"`,
 		},
-		// NewInteger errors.
+		// Array errors.
 		{
-			Name:   "new integer with identifier element",
-			Source: `(integer foo)`,
-			Want:   `test.plan:1:10: invalid integer: expected a list, found identifier`,
+			Name:   "array with identifier element",
+			Source: `(array foo)`,
+			Want:   `test.plan:1:8: invalid array: expected a list, found identifier`,
 		},
 		{
-			Name:   "new integer with empty definition",
-			Source: `(integer ())`,
-			Want:   `test.plan:1:10: empty definition`,
+			Name:   "array with empty definition",
+			Source: `(array ())`,
+			Want:   `test.plan:1:8: empty definition`,
 		},
 		{
-			Name:   "new integer with bad definition",
-			Source: `(integer ("foo"))`,
-			Want:   `test.plan:1:11: definition kind must be an identifier, found string`,
+			Name:   "array with bad definition",
+			Source: `(array ("foo"))`,
+			Want:   `test.plan:1:9: definition kind must be an identifier, found string`,
 		},
 		{
-			Name:   "new integer with short definition",
-			Source: `(integer (foo))`,
-			Want:   `test.plan:1:11: definition must have at least one field, found none`,
+			Name:   "array with short definition",
+			Source: `(array (foo))`,
+			Want:   `test.plan:1:9: definition must have at least one field, found none`,
 		},
 		{
-			Name:   "new integer with unrecognised definition",
-			Source: `(integer (foo bar))`,
-			Want:   `test.plan:1:11: unrecognised integer definition kind "foo"`,
+			Name:   "array with unrecognised definition",
+			Source: `(array (foo bar))`,
+			Want:   `test.plan:1:9: unrecognised array definition kind "foo"`,
 		},
 		{
-			Name:   "new integer with invalid name",
-			Source: `(integer (name "bar"))`,
-			Want:   `test.plan:1:16: invalid integer name: expected an identifier, found string`,
+			Name:   "array with invalid name",
+			Source: `(array (name "bar"))`,
+			Want:   `test.plan:1:14: invalid array name: expected an identifier, found string`,
 		},
 		{
-			Name:   "new integer with duplicate name",
-			Source: `(integer (name bar) (name baz))`,
-			Want:   `test.plan:1:22: invalid integer definition: name already defined`,
+			Name:   "array with duplicate name",
+			Source: `(array (name bar) (name baz))`,
+			Want:   `test.plan:1:20: invalid array definition: name already defined`,
 		},
 		{
-			Name:   "new integer with invalid docs",
-			Source: `(integer (docs bar))`,
-			Want:   `test.plan:1:16: invalid integer docs: expected a string or formatting expression, found identifier`,
+			Name:   "array with invalid docs",
+			Source: `(array (docs bar))`,
+			Want:   `test.plan:1:14: invalid array docs: expected a string or formatting expression, found identifier`,
 		},
 		{
-			Name:   "new integer with invalid docs formatting expression",
-			Source: `(integer (docs (bar)))`,
-			Want:   `test.plan:1:17: invalid integer docs: invalid formatting expression: definition must have at least one field, found none`,
+			Name:   "array with duplicate docs",
+			Source: `(array (docs "bar") (docs "baz"))`,
+			Want:   `test.plan:1:22: invalid array definition: docs already defined`,
 		},
 		{
-			Name:   "new integer with unsupported docs formatting expression",
-			Source: `(integer (docs (bar foo)))`,
-			Want:   `test.plan:1:17: invalid integer docs: unrecognised formatting expression kind "bar"`,
+			Name:   "array with invalid size",
+			Source: `(array (size bar))`,
+			Want:   `test.plan:1:14: invalid array size definition: expected a number, found identifier`,
 		},
 		{
-			Name:   "new integer with invalid docs code formatting expression",
-			Source: `(integer (docs (code foo)))`,
-			Want:   `test.plan:1:22: invalid integer docs: invalid formatting expression: expected a string, found identifier`,
+			Name:   "array with excessive size",
+			Source: `(array (size 99999999999999999999999999))`,
+			Want:   `test.plan:1:14: invalid array size definition: invalid size: value out of range`,
 		},
 		{
-			Name:   "new integer with invalid docs reference formatting expression",
-			Source: `(integer (docs (reference "baz") "bar"))`,
-			Want:   `test.plan:1:27: invalid integer docs: invalid reference formatting expression: invalid type reference: expected an identifier, found string`,
+			Name:   "array with zero size",
+			Source: `(array (size 0))`,
+			Want:   `test.plan:1:14: invalid array size definition: size must be larger than zero`,
 		},
 		{
-			Name:   "new integer with duplicate docs",
-			Source: `(integer (docs "bar") (docs "baz"))`,
-			Want:   `test.plan:1:24: invalid integer definition: docs already defined`,
+			Name:   "array with extra field after size",
+			Source: `(array (size 1 bar))`,
+			Want:   `test.plan:1:16: invalid array size definition: unexpected identifier after size`,
 		},
 		{
-			Name:   "new integer with invalid type",
-			Source: `(integer (type "foo"))`,
-			Want:   `test.plan:1:16: invalid integer type: expected a type definition, found string`,
+			Name:   "array with duplicate size",
+			Source: `(array (size 1) (size 2))`,
+			Want:   `test.plan:1:18: invalid array definition: size already defined`,
 		},
 		{
-			Name:   "new integer with complex type",
-			Source: `(integer (type *constant byte))`,
-			Want:   `test.plan:1:16: invalid integer type: must be an integer type, found *constant byte`,
+			Name:   "array with invalid type",
+			Source: `(array (type ()))`,
+			Want:   `test.plan:1:14: invalid array element type: expected a type definition, found list`,
 		},
 		{
-			Name:   "new integer with duplicate type",
-			Source: `(integer (type byte) (type sint8))`,
-			Want:   `test.plan:1:23: invalid integer definition: type already defined`,
+			Name:   "array with duplicate type",
+			Source: `(array (type uint16) (type byte))`,
+			Want:   `test.plan:1:23: invalid array definition: type already defined`,
 		},
 		{
-			Name:   "new integer with missing name",
-			Source: `(integer (type byte) (docs "blah"))`,
-			Want:   `test.plan:1:1: integer has no name definition`,
+			Name:   "array with missing name",
+			Source: `(array (docs "blah") (size 1) (type byte))`,
+			Want:   `test.plan:1:1: array has no name definition`,
 		},
 		{
-			Name:   "new integer with missing docs",
-			Source: `(integer (name blah) (type byte))`,
-			Want:   `test.plan:1:1: integer has no docs definition`,
+			Name:   "array with missing docs",
+			Source: `(array (name blah) (size 1) (type byte))`,
+			Want:   `test.plan:1:1: array has no docs definition`,
 		},
 		{
-			Name:   "new integer with missing type",
-			Source: `(integer (name blah) (docs "abc"))`,
-			Want:   `test.plan:1:1: integer has no type definition`,
+			Name:   "array with missing size",
+			Source: `(array (name blah) (docs "foo") (type byte))`,
+			Want:   `test.plan:1:1: array has no size definition`,
 		},
 		{
-			Name: "duplicate integer",
-			Source: `(integer (name blah) (docs "xyz") (type byte))
-			         (integer (name blah) (docs "abc") (type sint8))`,
+			Name:   "array with missing type",
+			Source: `(array (name blah) (docs "foo") (size 1))`,
+			Want:   `test.plan:1:1: array has no type definition`,
+		},
+		{
+			Name: "duplicate array",
+			Source: `(array (name blah) (docs "xyz") (size 1) (type byte))
+			         (array (name blah) (docs "abc") (size 2) (type *constant uint32))`,
+			Want: `test.plan:2:13: type "blah" is already defined`,
+		},
+		// Bitfield errors.
+		{
+			Name:   "bitfield with identifier element",
+			Source: `(bitfield foo)`,
+			Want:   `test.plan:1:11: invalid bitfield: expected a list, found identifier`,
+		},
+		{
+			Name:   "bitfield with empty definition",
+			Source: `(bitfield ())`,
+			Want:   `test.plan:1:11: empty definition`,
+		},
+		{
+			Name:   "bitfield with bad definition",
+			Source: `(bitfield ("foo"))`,
+			Want:   `test.plan:1:12: definition kind must be an identifier, found string`,
+		},
+		{
+			Name:   "bitfield with short definition",
+			Source: `(bitfield (foo))`,
+			Want:   `test.plan:1:12: definition must have at least one field, found none`,
+		},
+		{
+			Name:   "bitfield with unrecognised definition",
+			Source: `(bitfield (foo bar))`,
+			Want:   `test.plan:1:12: unrecognised bitfield definition kind "foo"`,
+		},
+		{
+			Name:   "bitfield with invalid name",
+			Source: `(bitfield (name "bar"))`,
+			Want:   `test.plan:1:17: invalid bitfield name: expected an identifier, found string`,
+		},
+		{
+			Name:   "bitfield with duplicate name",
+			Source: `(bitfield (name bar) (name baz))`,
+			Want:   `test.plan:1:23: invalid bitfield definition: name already defined`,
+		},
+		{
+			Name:   "bitfield with invalid docs",
+			Source: `(bitfield (docs bar))`,
+			Want:   `test.plan:1:17: invalid bitfield docs: expected a string or formatting expression, found identifier`,
+		},
+		{
+			Name:   "bitfield with invalid docs formatting expression",
+			Source: `(bitfield (docs (bar)))`,
+			Want:   `test.plan:1:18: invalid bitfield docs: invalid formatting expression: definition must have at least one field, found none`,
+		},
+		{
+			Name:   "bitfield with unsupported docs formatting expression",
+			Source: `(bitfield (docs (bar foo)))`,
+			Want:   `test.plan:1:18: invalid bitfield docs: unrecognised formatting expression kind "bar"`,
+		},
+		{
+			Name:   "bitfield with invalid docs code formatting expression",
+			Source: `(bitfield (docs (code foo)))`,
+			Want:   `test.plan:1:23: invalid bitfield docs: invalid formatting expression: expected a string, found identifier`,
+		},
+		{
+			Name:   "bitfield with invalid docs reference formatting expression",
+			Source: `(bitfield (docs (reference "baz") "bar"))`,
+			Want:   `test.plan:1:28: invalid bitfield docs: invalid reference formatting expression: invalid type reference: expected an identifier, found string`,
+		},
+		{
+			Name:   "bitfield with duplicate docs",
+			Source: `(bitfield (docs "bar") (docs "baz"))`,
+			Want:   `test.plan:1:25: invalid bitfield definition: docs already defined`,
+		},
+		{
+			Name:   "bitfield with invalid type",
+			Source: `(bitfield (type "foo"))`,
+			Want:   `test.plan:1:17: invalid bitfield type: expected a type definition, found string`,
+		},
+		{
+			Name:   "bitfield with complex type",
+			Source: `(bitfield (type *constant byte))`,
+			Want:   `test.plan:1:17: invalid bitfield type: must be an integer type, found *constant byte`,
+		},
+		{
+			Name:   "bitfield with duplicate type",
+			Source: `(bitfield (type byte) (type sint8))`,
+			Want:   `test.plan:1:24: invalid bitfield definition: type already defined`,
+		},
+		{
+			Name:   "bitfield with invalid value",
+			Source: `(bitfield (value bar))`,
+			Want:   `test.plan:1:18: invalid value definition: expected a list, found identifier`,
+		},
+		{
+			Name:   "bitfield with empty value element",
+			Source: `(bitfield (value ()))`,
+			Want:   `test.plan:1:18: invalid value definition: empty definition`,
+		},
+		{
+			Name:   "bitfield with bad value element",
+			Source: `(bitfield (value ("foo")))`,
+			Want:   `test.plan:1:19: invalid value definition: definition kind must be an identifier, found string`,
+		},
+		{
+			Name:   "bitfield with short value element",
+			Source: `(bitfield (value (foo)))`,
+			Want:   `test.plan:1:19: invalid value definition: definition must have at least one field, found none`,
+		},
+		{
+			Name:   "bitfield with unrecognised value element",
+			Source: `(bitfield (value (foo bar)))`,
+			Want:   `test.plan:1:19: unrecognised value definition kind "foo"`,
+		},
+		{
+			Name:   "bitfield with invalid value name",
+			Source: `(bitfield (value (name 123)))`,
+			Want:   `test.plan:1:24: invalid value name: expected an identifier, found number`,
+		},
+		{
+			Name:   "bitfield with duplicate value name",
+			Source: `(bitfield (value (name bar) (name baz)))`,
+			Want:   `test.plan:1:30: invalid value definition: name already defined`,
+		},
+		{
+			Name:   "bitfield with invalid value docs",
+			Source: `(bitfield (value (docs bar)))`,
+			Want:   `test.plan:1:24: invalid value docs: expected a string or formatting expression, found identifier`,
+		},
+		{
+			Name:   "bitfield with duplicate value docs",
+			Source: `(bitfield (value (docs "bar") (docs "baz")))`,
+			Want:   `test.plan:1:32: invalid value definition: docs already defined`,
+		},
+		{
+			Name:   "bitfield with value missing name",
+			Source: `(bitfield (value (docs "bar")))`,
+			Want:   `test.plan:1:11: value has no name definition`,
+		},
+		{
+			Name:   "bitfield with value missing docs",
+			Source: `(bitfield (value (name bar)))`,
+			Want:   `test.plan:1:11: value has no docs definition`,
+		},
+		{
+			Name:   "bitfield with duplicate value",
+			Source: `(bitfield (type byte) (value (name bar ber) (docs "baz")) (value (name bar ber) (docs "foo")))`,
+			Want:   `test.plan:1:59: value "bar ber" already defined at test.plan:1:23`,
+		},
+		{
+			Name:   "bitfield with missing name",
+			Source: `(bitfield (type byte) (docs "blah") (value (name foo) (docs "bar")))`,
+			Want:   `test.plan:1:1: bitfield has no name definition`,
+		},
+		{
+			Name:   "bitfield with missing docs",
+			Source: `(bitfield (name blah) (type byte) (value (name foo) (docs "bar")))`,
+			Want:   `test.plan:1:1: bitfield has no docs definition`,
+		},
+		{
+			Name:   "bitfield with missing type",
+			Source: `(bitfield (name blah) (docs "abc") (value (name foo) (docs "bar")))`,
+			Want:   `test.plan:1:1: bitfield has no type definition`,
+		},
+		{
+			Name:   "bitfield with missing values",
+			Source: `(bitfield (name blah) (docs "foo") (type byte))`,
+			Want:   `test.plan:1:1: bitfield has no value definitions`,
+		},
+		{
+			Name: "bitfield with too many values",
+			Source: `(bitfield (name blah) (docs "foo") (type uint8)` + func() string {
+				var buf strings.Builder
+				for i := 0; i < 9; i++ {
+					fmt.Fprintf(&buf, `(value (name foo%d) (docs "bar"))`, i+1)
+				}
+				return buf.String()
+			}() + `)`,
+			Want: `test.plan:1:1: bitfield has 9 values, which exceeds capacity of uint8 (max 8)`,
+		},
+		{
+			Name: "duplicate bitfield",
+			Source: `(bitfield (name blah) (docs "xyz") (type byte) (value (name foo) (docs "bar")))
+			         (bitfield (name blah) (docs "abc") (type sint8) (value (name this) (docs "some")))`,
 			Want: `test.plan:2:13: type "blah" is already defined`,
 		},
 		// Enumeration errors.
@@ -1884,289 +2067,106 @@ func TestInterpreterErrors(t *testing.T) {
 			         (enumeration (name blah) (docs "abc") (type sint8) (value (name this) (docs "some")))`,
 			Want: `test.plan:2:13: type "blah" is already defined`,
 		},
-		// Bitfield errors.
+		// NewInteger errors.
 		{
-			Name:   "bitfield with identifier element",
-			Source: `(bitfield foo)`,
-			Want:   `test.plan:1:11: invalid bitfield: expected a list, found identifier`,
+			Name:   "new integer with identifier element",
+			Source: `(integer foo)`,
+			Want:   `test.plan:1:10: invalid integer: expected a list, found identifier`,
 		},
 		{
-			Name:   "bitfield with empty definition",
-			Source: `(bitfield ())`,
-			Want:   `test.plan:1:11: empty definition`,
+			Name:   "new integer with empty definition",
+			Source: `(integer ())`,
+			Want:   `test.plan:1:10: empty definition`,
 		},
 		{
-			Name:   "bitfield with bad definition",
-			Source: `(bitfield ("foo"))`,
-			Want:   `test.plan:1:12: definition kind must be an identifier, found string`,
+			Name:   "new integer with bad definition",
+			Source: `(integer ("foo"))`,
+			Want:   `test.plan:1:11: definition kind must be an identifier, found string`,
 		},
 		{
-			Name:   "bitfield with short definition",
-			Source: `(bitfield (foo))`,
-			Want:   `test.plan:1:12: definition must have at least one field, found none`,
+			Name:   "new integer with short definition",
+			Source: `(integer (foo))`,
+			Want:   `test.plan:1:11: definition must have at least one field, found none`,
 		},
 		{
-			Name:   "bitfield with unrecognised definition",
-			Source: `(bitfield (foo bar))`,
-			Want:   `test.plan:1:12: unrecognised bitfield definition kind "foo"`,
+			Name:   "new integer with unrecognised definition",
+			Source: `(integer (foo bar))`,
+			Want:   `test.plan:1:11: unrecognised integer definition kind "foo"`,
 		},
 		{
-			Name:   "bitfield with invalid name",
-			Source: `(bitfield (name "bar"))`,
-			Want:   `test.plan:1:17: invalid bitfield name: expected an identifier, found string`,
+			Name:   "new integer with invalid name",
+			Source: `(integer (name "bar"))`,
+			Want:   `test.plan:1:16: invalid integer name: expected an identifier, found string`,
 		},
 		{
-			Name:   "bitfield with duplicate name",
-			Source: `(bitfield (name bar) (name baz))`,
-			Want:   `test.plan:1:23: invalid bitfield definition: name already defined`,
+			Name:   "new integer with duplicate name",
+			Source: `(integer (name bar) (name baz))`,
+			Want:   `test.plan:1:22: invalid integer definition: name already defined`,
 		},
 		{
-			Name:   "bitfield with invalid docs",
-			Source: `(bitfield (docs bar))`,
-			Want:   `test.plan:1:17: invalid bitfield docs: expected a string or formatting expression, found identifier`,
+			Name:   "new integer with invalid docs",
+			Source: `(integer (docs bar))`,
+			Want:   `test.plan:1:16: invalid integer docs: expected a string or formatting expression, found identifier`,
 		},
 		{
-			Name:   "bitfield with invalid docs formatting expression",
-			Source: `(bitfield (docs (bar)))`,
-			Want:   `test.plan:1:18: invalid bitfield docs: invalid formatting expression: definition must have at least one field, found none`,
+			Name:   "new integer with invalid docs formatting expression",
+			Source: `(integer (docs (bar)))`,
+			Want:   `test.plan:1:17: invalid integer docs: invalid formatting expression: definition must have at least one field, found none`,
 		},
 		{
-			Name:   "bitfield with unsupported docs formatting expression",
-			Source: `(bitfield (docs (bar foo)))`,
-			Want:   `test.plan:1:18: invalid bitfield docs: unrecognised formatting expression kind "bar"`,
+			Name:   "new integer with unsupported docs formatting expression",
+			Source: `(integer (docs (bar foo)))`,
+			Want:   `test.plan:1:17: invalid integer docs: unrecognised formatting expression kind "bar"`,
 		},
 		{
-			Name:   "bitfield with invalid docs code formatting expression",
-			Source: `(bitfield (docs (code foo)))`,
-			Want:   `test.plan:1:23: invalid bitfield docs: invalid formatting expression: expected a string, found identifier`,
+			Name:   "new integer with invalid docs code formatting expression",
+			Source: `(integer (docs (code foo)))`,
+			Want:   `test.plan:1:22: invalid integer docs: invalid formatting expression: expected a string, found identifier`,
 		},
 		{
-			Name:   "bitfield with invalid docs reference formatting expression",
-			Source: `(bitfield (docs (reference "baz") "bar"))`,
-			Want:   `test.plan:1:28: invalid bitfield docs: invalid reference formatting expression: invalid type reference: expected an identifier, found string`,
+			Name:   "new integer with invalid docs reference formatting expression",
+			Source: `(integer (docs (reference "baz") "bar"))`,
+			Want:   `test.plan:1:27: invalid integer docs: invalid reference formatting expression: invalid type reference: expected an identifier, found string`,
 		},
 		{
-			Name:   "bitfield with duplicate docs",
-			Source: `(bitfield (docs "bar") (docs "baz"))`,
-			Want:   `test.plan:1:25: invalid bitfield definition: docs already defined`,
+			Name:   "new integer with duplicate docs",
+			Source: `(integer (docs "bar") (docs "baz"))`,
+			Want:   `test.plan:1:24: invalid integer definition: docs already defined`,
 		},
 		{
-			Name:   "bitfield with invalid type",
-			Source: `(bitfield (type "foo"))`,
-			Want:   `test.plan:1:17: invalid bitfield type: expected a type definition, found string`,
+			Name:   "new integer with invalid type",
+			Source: `(integer (type "foo"))`,
+			Want:   `test.plan:1:16: invalid integer type: expected a type definition, found string`,
 		},
 		{
-			Name:   "bitfield with complex type",
-			Source: `(bitfield (type *constant byte))`,
-			Want:   `test.plan:1:17: invalid bitfield type: must be an integer type, found *constant byte`,
+			Name:   "new integer with complex type",
+			Source: `(integer (type *constant byte))`,
+			Want:   `test.plan:1:16: invalid integer type: must be an integer type, found *constant byte`,
 		},
 		{
-			Name:   "bitfield with duplicate type",
-			Source: `(bitfield (type byte) (type sint8))`,
-			Want:   `test.plan:1:24: invalid bitfield definition: type already defined`,
+			Name:   "new integer with duplicate type",
+			Source: `(integer (type byte) (type sint8))`,
+			Want:   `test.plan:1:23: invalid integer definition: type already defined`,
 		},
 		{
-			Name:   "bitfield with invalid value",
-			Source: `(bitfield (value bar))`,
-			Want:   `test.plan:1:18: invalid value definition: expected a list, found identifier`,
+			Name:   "new integer with missing name",
+			Source: `(integer (type byte) (docs "blah"))`,
+			Want:   `test.plan:1:1: integer has no name definition`,
 		},
 		{
-			Name:   "bitfield with empty value element",
-			Source: `(bitfield (value ()))`,
-			Want:   `test.plan:1:18: invalid value definition: empty definition`,
+			Name:   "new integer with missing docs",
+			Source: `(integer (name blah) (type byte))`,
+			Want:   `test.plan:1:1: integer has no docs definition`,
 		},
 		{
-			Name:   "bitfield with bad value element",
-			Source: `(bitfield (value ("foo")))`,
-			Want:   `test.plan:1:19: invalid value definition: definition kind must be an identifier, found string`,
+			Name:   "new integer with missing type",
+			Source: `(integer (name blah) (docs "abc"))`,
+			Want:   `test.plan:1:1: integer has no type definition`,
 		},
 		{
-			Name:   "bitfield with short value element",
-			Source: `(bitfield (value (foo)))`,
-			Want:   `test.plan:1:19: invalid value definition: definition must have at least one field, found none`,
-		},
-		{
-			Name:   "bitfield with unrecognised value element",
-			Source: `(bitfield (value (foo bar)))`,
-			Want:   `test.plan:1:19: unrecognised value definition kind "foo"`,
-		},
-		{
-			Name:   "bitfield with invalid value name",
-			Source: `(bitfield (value (name 123)))`,
-			Want:   `test.plan:1:24: invalid value name: expected an identifier, found number`,
-		},
-		{
-			Name:   "bitfield with duplicate value name",
-			Source: `(bitfield (value (name bar) (name baz)))`,
-			Want:   `test.plan:1:30: invalid value definition: name already defined`,
-		},
-		{
-			Name:   "bitfield with invalid value docs",
-			Source: `(bitfield (value (docs bar)))`,
-			Want:   `test.plan:1:24: invalid value docs: expected a string or formatting expression, found identifier`,
-		},
-		{
-			Name:   "bitfield with duplicate value docs",
-			Source: `(bitfield (value (docs "bar") (docs "baz")))`,
-			Want:   `test.plan:1:32: invalid value definition: docs already defined`,
-		},
-		{
-			Name:   "bitfield with value missing name",
-			Source: `(bitfield (value (docs "bar")))`,
-			Want:   `test.plan:1:11: value has no name definition`,
-		},
-		{
-			Name:   "bitfield with value missing docs",
-			Source: `(bitfield (value (name bar)))`,
-			Want:   `test.plan:1:11: value has no docs definition`,
-		},
-		{
-			Name:   "bitfield with duplicate value",
-			Source: `(bitfield (type byte) (value (name bar ber) (docs "baz")) (value (name bar ber) (docs "foo")))`,
-			Want:   `test.plan:1:59: value "bar ber" already defined at test.plan:1:23`,
-		},
-		{
-			Name:   "bitfield with missing name",
-			Source: `(bitfield (type byte) (docs "blah") (value (name foo) (docs "bar")))`,
-			Want:   `test.plan:1:1: bitfield has no name definition`,
-		},
-		{
-			Name:   "bitfield with missing docs",
-			Source: `(bitfield (name blah) (type byte) (value (name foo) (docs "bar")))`,
-			Want:   `test.plan:1:1: bitfield has no docs definition`,
-		},
-		{
-			Name:   "bitfield with missing type",
-			Source: `(bitfield (name blah) (docs "abc") (value (name foo) (docs "bar")))`,
-			Want:   `test.plan:1:1: bitfield has no type definition`,
-		},
-		{
-			Name:   "bitfield with missing values",
-			Source: `(bitfield (name blah) (docs "foo") (type byte))`,
-			Want:   `test.plan:1:1: bitfield has no value definitions`,
-		},
-		{
-			Name: "bitfield with too many values",
-			Source: `(bitfield (name blah) (docs "foo") (type uint8)` + func() string {
-				var buf strings.Builder
-				for i := 0; i < 9; i++ {
-					fmt.Fprintf(&buf, `(value (name foo%d) (docs "bar"))`, i+1)
-				}
-				return buf.String()
-			}() + `)`,
-			Want: `test.plan:1:1: bitfield has 9 values, which exceeds capacity of uint8 (max 8)`,
-		},
-		{
-			Name: "duplicate bitfield",
-			Source: `(bitfield (name blah) (docs "xyz") (type byte) (value (name foo) (docs "bar")))
-			         (bitfield (name blah) (docs "abc") (type sint8) (value (name this) (docs "some")))`,
-			Want: `test.plan:2:13: type "blah" is already defined`,
-		},
-		// Array errors.
-		{
-			Name:   "array with identifier element",
-			Source: `(array foo)`,
-			Want:   `test.plan:1:8: invalid array: expected a list, found identifier`,
-		},
-		{
-			Name:   "array with empty definition",
-			Source: `(array ())`,
-			Want:   `test.plan:1:8: empty definition`,
-		},
-		{
-			Name:   "array with bad definition",
-			Source: `(array ("foo"))`,
-			Want:   `test.plan:1:9: definition kind must be an identifier, found string`,
-		},
-		{
-			Name:   "array with short definition",
-			Source: `(array (foo))`,
-			Want:   `test.plan:1:9: definition must have at least one field, found none`,
-		},
-		{
-			Name:   "array with unrecognised definition",
-			Source: `(array (foo bar))`,
-			Want:   `test.plan:1:9: unrecognised array definition kind "foo"`,
-		},
-		{
-			Name:   "array with invalid name",
-			Source: `(array (name "bar"))`,
-			Want:   `test.plan:1:14: invalid array name: expected an identifier, found string`,
-		},
-		{
-			Name:   "array with duplicate name",
-			Source: `(array (name bar) (name baz))`,
-			Want:   `test.plan:1:20: invalid array definition: name already defined`,
-		},
-		{
-			Name:   "array with invalid docs",
-			Source: `(array (docs bar))`,
-			Want:   `test.plan:1:14: invalid array docs: expected a string or formatting expression, found identifier`,
-		},
-		{
-			Name:   "array with duplicate docs",
-			Source: `(array (docs "bar") (docs "baz"))`,
-			Want:   `test.plan:1:22: invalid array definition: docs already defined`,
-		},
-		{
-			Name:   "array with invalid size",
-			Source: `(array (size bar))`,
-			Want:   `test.plan:1:14: invalid array size definition: expected a number, found identifier`,
-		},
-		{
-			Name:   "array with excessive size",
-			Source: `(array (size 99999999999999999999999999))`,
-			Want:   `test.plan:1:14: invalid array size definition: invalid size: value out of range`,
-		},
-		{
-			Name:   "array with zero size",
-			Source: `(array (size 0))`,
-			Want:   `test.plan:1:14: invalid array size definition: size must be larger than zero`,
-		},
-		{
-			Name:   "array with extra field after size",
-			Source: `(array (size 1 bar))`,
-			Want:   `test.plan:1:16: invalid array size definition: unexpected identifier after size`,
-		},
-		{
-			Name:   "array with duplicate size",
-			Source: `(array (size 1) (size 2))`,
-			Want:   `test.plan:1:18: invalid array definition: size already defined`,
-		},
-		{
-			Name:   "array with invalid type",
-			Source: `(array (type ()))`,
-			Want:   `test.plan:1:14: invalid array element type: expected a type definition, found list`,
-		},
-		{
-			Name:   "array with duplicate type",
-			Source: `(array (type uint16) (type byte))`,
-			Want:   `test.plan:1:23: invalid array definition: type already defined`,
-		},
-		{
-			Name:   "array with missing name",
-			Source: `(array (docs "blah") (size 1) (type byte))`,
-			Want:   `test.plan:1:1: array has no name definition`,
-		},
-		{
-			Name:   "array with missing docs",
-			Source: `(array (name blah) (size 1) (type byte))`,
-			Want:   `test.plan:1:1: array has no docs definition`,
-		},
-		{
-			Name:   "array with missing size",
-			Source: `(array (name blah) (docs "foo") (type byte))`,
-			Want:   `test.plan:1:1: array has no size definition`,
-		},
-		{
-			Name:   "array with missing type",
-			Source: `(array (name blah) (docs "foo") (size 1))`,
-			Want:   `test.plan:1:1: array has no type definition`,
-		},
-		{
-			Name: "duplicate array",
-			Source: `(array (name blah) (docs "xyz") (size 1) (type byte))
-			         (array (name blah) (docs "abc") (size 2) (type *constant uint32))`,
+			Name: "duplicate integer",
+			Source: `(integer (name blah) (docs "xyz") (type byte))
+			         (integer (name blah) (docs "abc") (type sint8))`,
 			Want: `test.plan:2:13: type "blah" is already defined`,
 		},
 		// Structure errors.

@@ -43,17 +43,17 @@ func GenerateUserCode(w io.Writer, file *types.File, arch types.Arch, rustfmt st
 
 	numItems := len(file.NewIntegers) + len(file.Enumerations) + len(file.Bitfields) + len(file.Structures) + len(file.Syscalls)
 	items := make([]ast.Node, 0, numItems)
-	for _, integer := range file.NewIntegers {
-		items = append(items, integer)
-	}
-	for _, enumeration := range file.Enumerations {
-		items = append(items, enumeration)
+	for _, array := range file.Arrays {
+		items = append(items, array)
 	}
 	for _, bitfield := range file.Bitfields {
 		items = append(items, bitfield)
 	}
-	for _, array := range file.Arrays {
-		items = append(items, array)
+	for _, enumeration := range file.Enumerations {
+		items = append(items, enumeration)
+	}
+	for _, integer := range file.NewIntegers {
+		items = append(items, integer)
 	}
 	for _, structure := range file.Structures {
 		items = append(items, structure)

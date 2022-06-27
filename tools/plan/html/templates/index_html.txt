@@ -29,22 +29,12 @@
 	</head>
 	<body>
 		<h1>Firefly system call ABI</h1>
-		<h2>Integers</h2>
+		<h2>Arrays</h2>
 		<ul>
-			{{ range .NewIntegers }}
+			{{ range .Arrays }}
 				<li>
 					<code class="inline-code">
-						<a href="integers/{{ .Name.SnakeCase }}.html" class="integer">{{ .Name.Spaced }}</a>
-					</code>
-				</li>
-			{{ end }}
-		</ul>
-		<h2>Enumerations</h2>
-		<ul>
-			{{ range .Enumerations }}
-				<li>
-					<code class="inline-code">
-						<a href="enumerations/{{ .Name.SnakeCase }}.html" class="enumeration">{{ .Name.Spaced }}</a>
+						<a href="arrays/{{ .Name.SnakeCase }}.html" class="array">{{ .Name.Spaced }}</a>
 					</code>
 				</li>
 			{{ end }}
@@ -59,12 +49,22 @@
 				</li>
 			{{ end }}
 		</ul>
-		<h2>Arrays</h2>
+		<h2>Enumerations</h2>
 		<ul>
-			{{ range .Arrays }}
+			{{ range .Enumerations }}
 				<li>
 					<code class="inline-code">
-						<a href="arrays/{{ .Name.SnakeCase }}.html" class="array">{{ .Name.Spaced }}</a>
+						<a href="enumerations/{{ .Name.SnakeCase }}.html" class="enumeration">{{ .Name.Spaced }}</a>
+					</code>
+				</li>
+			{{ end }}
+		</ul>
+		<h2>Integers</h2>
+		<ul>
+			{{ range .NewIntegers }}
+				<li>
+					<code class="inline-code">
+						<a href="integers/{{ .Name.SnakeCase }}.html" class="integer">{{ .Name.Spaced }}</a>
 					</code>
 				</li>
 			{{ end }}

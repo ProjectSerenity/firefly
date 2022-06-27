@@ -248,6 +248,30 @@ type Value struct {
 	Docs Docs
 }
 
+// Parameter represents a single argument
+// or result in a function call.
+//
+type Parameter struct {
+	Name Name
+	Node *ast.List
+	Docs Docs
+	Type Type
+}
+
+func (p *Parameter) Enumeration() *Enumeration {
+	return Underlying(p.Type).(*Enumeration)
+}
+
+func (p *Parameter) String() string {
+	return fmt.Sprintf("parameter %s: %s", p.Name.Spaced(), p.Type.String())
+}
+
+// Parameters is an ordered set of function
+// parameters, such as its arguments or
+// results.
+//
+type Parameters []*Parameter
+
 // ItemReference is like Reference, but it
 // names the type of item in Underlying.
 //
@@ -282,27 +306,3 @@ func (g *Group) Syscalls() []*Syscall {
 
 	return out
 }
-
-// Parameter represents a single argument
-// or result in a function call.
-//
-type Parameter struct {
-	Name Name
-	Node *ast.List
-	Docs Docs
-	Type Type
-}
-
-func (p *Parameter) Enumeration() *Enumeration {
-	return Underlying(p.Type).(*Enumeration)
-}
-
-func (p *Parameter) String() string {
-	return fmt.Sprintf("parameter %s: %s", p.Name.Spaced(), p.Type.String())
-}
-
-// Parameters is an ordered set of function
-// parameters, such as its arguments or
-// results.
-//
-type Parameters []*Parameter

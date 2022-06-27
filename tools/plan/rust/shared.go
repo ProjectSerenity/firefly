@@ -53,17 +53,17 @@ func GenerateSharedCode(w io.Writer, file *types.File, arch types.Arch, rustfmt 
 
 	numItems := len(file.NewIntegers) + len(file.Enumerations) + len(file.Bitfields) + len(file.Structures) + len(file.Syscalls)
 	items := make([]ast.Node, 0, numItems)
-	for _, integer := range file.NewIntegers {
-		items = append(items, integer)
-	}
-	for _, enumeration := range file.Enumerations {
-		items = append(items, enumeration)
+	for _, array := range file.Arrays {
+		items = append(items, array)
 	}
 	for _, bitfield := range file.Bitfields {
 		items = append(items, bitfield)
 	}
-	for _, array := range file.Arrays {
-		items = append(items, array)
+	for _, enumeration := range file.Enumerations {
+		items = append(items, enumeration)
+	}
+	for _, integer := range file.NewIntegers {
+		items = append(items, integer)
 	}
 	for _, structure := range file.Structures {
 		items = append(items, structure)
@@ -84,14 +84,14 @@ func GenerateSharedCode(w io.Writer, file *types.File, arch types.Arch, rustfmt 
 
 		var template string
 		switch item := item.(type) {
-		case *types.NewInteger:
-			template = integerTemplate
-		case *types.Enumeration:
-			template = enumerationTemplate
-		case *types.Bitfield:
-			template = bitfieldTemplate
 		case *types.Array:
 			template = arrayTemplate
+		case *types.Bitfield:
+			template = bitfieldTemplate
+		case *types.Enumeration:
+			template = enumerationTemplate
+		case *types.NewInteger:
+			template = integerTemplate
 		case *types.Structure:
 			template = structureTemplate
 		case *types.Syscall:
@@ -178,10 +178,10 @@ var sharedTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 const (
 	sharedFileTemplate  = "shared_file_rs.txt"
 	layoutTemplate      = "shared_layout_rs.txt"
-	integerTemplate     = "shared_integer_rs.txt"
-	enumerationTemplate = "shared_enumeration_rs.txt"
-	bitfieldTemplate    = "shared_bitfield_rs.txt"
 	arrayTemplate       = "shared_array_rs.txt"
+	bitfieldTemplate    = "shared_bitfield_rs.txt"
+	enumerationTemplate = "shared_enumeration_rs.txt"
+	integerTemplate     = "shared_integer_rs.txt"
 	structureTemplate   = "shared_structure_rs.txt"
 )
 
@@ -335,6 +335,12 @@ func sharedToDocs(indent int, d types.Docs) string {
 
 func sharedToString(t types.Type) string {
 	switch t := types.Underlying(t).(type) {
+	case *types.Array:
+		return t.Name.PascalCase()
+	case *types.Bitfield:
+		return t.Name.PascalCase()
+	case *types.Enumeration:
+		return t.Name.PascalCase()
 	case types.Integer:
 		ss := map[types.Integer]string{
 			types.Byte:   "u8",
@@ -354,26 +360,20 @@ func sharedToString(t types.Type) string {
 		}
 
 		return s
+	case *types.NewInteger:
+		return t.Name.PascalCase()
+	case *types.Structure:
+		return t.Name.PascalCase()
+	case *types.SyscallReference:
+		return t.Name.SnakeCase()
+	case types.Padding:
+		return fmt.Sprintf("[u8; %d]", t)
 	case *types.Pointer:
 		if t.Mutable {
 			return "*mut " + sharedToString(t.Underlying)
 		} else {
 			return "*const " + sharedToString(t.Underlying)
 		}
-	case types.Padding:
-		return fmt.Sprintf("[u8; %d]", t)
-	case *types.NewInteger:
-		return t.Name.PascalCase()
-	case *types.Enumeration:
-		return t.Name.PascalCase()
-	case *types.Bitfield:
-		return t.Name.PascalCase()
-	case *types.Array:
-		return t.Name.PascalCase()
-	case *types.Structure:
-		return t.Name.PascalCase()
-	case *types.SyscallReference:
-		return t.Name.SnakeCase()
 	default:
 		panic(fmt.Sprintf("sharedToString(%T): unexpected type", t))
 	}

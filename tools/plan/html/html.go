@@ -18,17 +18,6 @@ import (
 	"firefly-os.dev/tools/plan/types"
 )
 
-const dirMode = 0777
-
-func mkdir(dir string) error {
-	err := os.MkdirAll(dir, dirMode)
-	if err != nil {
-		return fmt.Errorf("failed to create directory %q: %v", dir, err)
-	}
-
-	return nil
-}
-
 // GenerateDocs produces HTML documentation for
 // the given Plan document, writing HTML files
 // to the given directory.
@@ -41,94 +30,130 @@ func GenerateDocs(dir string, file *types.File) error {
 	}
 
 	// Then the sub-folders.
-	intDir := filepath.Join(dir, "integers")
-	err = mkdir(intDir)
-	if err != nil {
-		return err
+	type Item struct {
+		Name string
+		Item any
 	}
 
-	for _, integer := range file.NewIntegers {
-		err = generateItemHTML(filepath.Join(intDir, integer.Name.SnakeCase()+".html"), integerTemplate, integer, true)
-		if err != nil {
-			return err
+	type Type struct {
+		Name     string
+		Template string
+		Items    []Item
+	}
+
+	var types []Type
+
+	arrayItems := make([]Item, len(file.Arrays))
+	for i, array := range file.Arrays {
+		arrayItems[i] = Item{
+			Name: array.Name.SnakeCase(),
+			Item: array,
 		}
 	}
 
-	enumDir := filepath.Join(dir, "enumerations")
-	err = mkdir(enumDir)
-	if err != nil {
-		return err
-	}
+	types = append(types, Type{
+		Name:     "arrays",
+		Template: arrayTemplate,
+		Items:    arrayItems,
+	})
 
-	for _, enumeration := range file.Enumerations {
-		err = generateItemHTML(filepath.Join(enumDir, enumeration.Name.SnakeCase()+".html"), enumerationTemplate, enumeration, true)
-		if err != nil {
-			return err
+	bitfieldItems := make([]Item, len(file.Bitfields))
+	for i, bitfield := range file.Bitfields {
+		bitfieldItems[i] = Item{
+			Name: bitfield.Name.SnakeCase(),
+			Item: bitfield,
 		}
 	}
 
-	bitsDir := filepath.Join(dir, "bitfields")
-	err = mkdir(bitsDir)
-	if err != nil {
-		return err
-	}
+	types = append(types, Type{
+		Name:     "bitfields",
+		Template: bitfieldTemplate,
+		Items:    bitfieldItems,
+	})
 
-	for _, bitfield := range file.Bitfields {
-		err = generateItemHTML(filepath.Join(bitsDir, bitfield.Name.SnakeCase()+".html"), bitfieldTemplate, bitfield, true)
-		if err != nil {
-			return err
+	enumerationItems := make([]Item, len(file.Enumerations))
+	for i, enumeration := range file.Enumerations {
+		enumerationItems[i] = Item{
+			Name: enumeration.Name.SnakeCase(),
+			Item: enumeration,
 		}
 	}
 
-	arrayDir := filepath.Join(dir, "arrays")
-	err = mkdir(arrayDir)
-	if err != nil {
-		return err
-	}
+	types = append(types, Type{
+		Name:     "enumerations",
+		Template: enumerationTemplate,
+		Items:    enumerationItems,
+	})
 
-	for _, array := range file.Arrays {
-		err = generateItemHTML(filepath.Join(arrayDir, array.Name.SnakeCase()+".html"), arrayTemplate, array, true)
-		if err != nil {
-			return err
+	integerItems := make([]Item, len(file.NewIntegers))
+	for i, integer := range file.NewIntegers {
+		integerItems[i] = Item{
+			Name: integer.Name.SnakeCase(),
+			Item: integer,
 		}
 	}
 
-	structDir := filepath.Join(dir, "structures")
-	err = mkdir(structDir)
-	if err != nil {
-		return err
-	}
+	types = append(types, Type{
+		Name:     "integers",
+		Template: integerTemplate,
+		Items:    integerItems,
+	})
 
-	for _, structure := range file.Structures {
-		err = generateItemHTML(filepath.Join(structDir, structure.Name.SnakeCase()+".html"), structureTemplate, structure, true)
-		if err != nil {
-			return err
+	structureItems := make([]Item, len(file.Structures))
+	for i, structure := range file.Structures {
+		structureItems[i] = Item{
+			Name: structure.Name.SnakeCase(),
+			Item: structure,
 		}
 	}
 
-	syscallDir := filepath.Join(dir, "syscalls")
-	err = mkdir(syscallDir)
-	if err != nil {
-		return err
-	}
+	types = append(types, Type{
+		Name:     "structures",
+		Template: structureTemplate,
+		Items:    structureItems,
+	})
 
-	for _, syscall := range file.Syscalls {
-		err = generateItemHTML(filepath.Join(syscallDir, syscall.Name.SnakeCase()+".html"), syscallTemplate, syscall, true)
-		if err != nil {
-			return err
+	syscallItems := make([]Item, len(file.Syscalls))
+	for i, syscall := range file.Syscalls {
+		syscallItems[i] = Item{
+			Name: syscall.Name.SnakeCase(),
+			Item: syscall,
 		}
 	}
 
-	groupDir := filepath.Join(dir, "groups")
-	err = mkdir(groupDir)
-	if err != nil {
-		return err
+	types = append(types, Type{
+		Name:     "syscalls",
+		Template: syscallTemplate,
+		Items:    syscallItems,
+	})
+
+	groupItems := make([]Item, len(file.Groups))
+	for i, group := range file.Groups {
+		groupItems[i] = Item{
+			Name: group.Name.SnakeCase(),
+			Item: group,
+		}
 	}
 
-	for _, group := range file.Groups {
-		err = generateItemHTML(filepath.Join(groupDir, group.Name.SnakeCase()+".html"), groupTemplate, group, true)
+	types = append(types, Type{
+		Name:     "groups",
+		Template: groupTemplate,
+		Items:    groupItems,
+	})
+
+	for _, typ := range types {
+		const dirMode = 0777
+		typeDir := filepath.Join(dir, typ.Name)
+		err := os.MkdirAll(typeDir, dirMode)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create directory %q: %v", typeDir, err)
+		}
+
+		for _, item := range typ.Items {
+			err = generateItemHTML(filepath.Join(typeDir, item.Name+".html"), typ.Template, item.Item, true)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -196,16 +221,17 @@ var templates = template.Must(template.New("").Funcs(template.FuncMap{
 }).ParseFS(templatesFS, "templates/*_html.txt", "templates/css/*_css.txt"))
 
 const (
-	itemPrefixTemplate  = "item-prefix_html.txt"
-	itemSuffixTemplate  = "item-suffix_html.txt"
-	integerTemplate     = "integer_html.txt"
-	enumerationTemplate = "enumeration_html.txt"
-	bitfieldTemplate    = "bitfield_html.txt"
+	indexTemplate      = "index_html.txt"
+	itemPrefixTemplate = "item-prefix_html.txt"
+	itemSuffixTemplate = "item-suffix_html.txt"
+
 	arrayTemplate       = "array_html.txt"
+	bitfieldTemplate    = "bitfield_html.txt"
+	enumerationTemplate = "enumeration_html.txt"
+	integerTemplate     = "integer_html.txt"
 	structureTemplate   = "structure_html.txt"
 	syscallTemplate     = "syscall_html.txt"
 	groupTemplate       = "group_html.txt"
-	indexTemplate       = "index_html.txt"
 )
 
 func addOne(i int) int {
@@ -232,14 +258,14 @@ func plainDocs(docs types.Docs) string {
 
 func toItemClass(item any) string {
 	switch item.(type) {
-	case *types.NewInteger:
-		return "integer"
-	case *types.Enumeration:
-		return "enumeration"
-	case *types.Bitfield:
-		return "bitfield"
 	case *types.Array:
 		return "array"
+	case *types.Bitfield:
+		return "bitfield"
+	case *types.Enumeration:
+		return "enumeration"
+	case *types.NewInteger:
+		return "integer"
 	case *types.Structure:
 		return "structure"
 	case *types.Syscall:
@@ -253,13 +279,13 @@ func toItemClass(item any) string {
 
 func toItemGroups(item any) []types.Name {
 	switch item := item.(type) {
-	case *types.NewInteger:
-		return item.Groups
-	case *types.Enumeration:
+	case *types.Array:
 		return item.Groups
 	case *types.Bitfield:
 		return item.Groups
-	case *types.Array:
+	case *types.Enumeration:
+		return item.Groups
+	case *types.NewInteger:
 		return item.Groups
 	case *types.Structure:
 		return item.Groups
@@ -272,13 +298,13 @@ func toItemGroups(item any) []types.Name {
 
 func toItemName(item any) string {
 	switch item := item.(type) {
-	case *types.NewInteger:
-		return item.Name.Spaced()
-	case *types.Enumeration:
+	case *types.Array:
 		return item.Name.Spaced()
 	case *types.Bitfield:
 		return item.Name.Spaced()
-	case *types.Array:
+	case *types.Enumeration:
+		return item.Name.Spaced()
+	case *types.NewInteger:
 		return item.Name.Spaced()
 	case *types.Structure:
 		return item.Name.Spaced()
@@ -293,14 +319,14 @@ func toItemName(item any) string {
 
 func toItemTitle(item any) string {
 	switch item.(type) {
-	case *types.NewInteger:
-		return "Integer"
-	case *types.Enumeration:
-		return "Enumeration"
-	case *types.Bitfield:
-		return "Bitfield"
 	case *types.Array:
 		return "Array"
+	case *types.Bitfield:
+		return "Bitfield"
+	case *types.Enumeration:
+		return "Enumeration"
+	case *types.NewInteger:
+		return "Integer"
 	case *types.Structure:
 		return "Structure"
 	case *types.Syscall:
@@ -319,14 +345,14 @@ func toItemUnderlyingType(item any) template.HTML {
 	)
 
 	switch item := item.(type) {
-	case *types.NewInteger:
+	case *types.Array:
+		return template.HTML(fmt.Sprintf("%s%dx %s%s", prefix, item.Count, toString(item.Type), suffix))
+	case *types.Bitfield:
 		return prefix + toString(item.Type) + suffix
 	case *types.Enumeration:
 		return prefix + toString(item.Type) + suffix
-	case *types.Bitfield:
+	case *types.NewInteger:
 		return prefix + toString(item.Type) + suffix
-	case *types.Array:
-		return template.HTML(fmt.Sprintf("%s%dx %s%s", prefix, item.Count, toString(item.Type), suffix))
 	default:
 		return ""
 	}
@@ -334,26 +360,27 @@ func toItemUnderlyingType(item any) template.HTML {
 
 func toString(t types.Type) template.HTML {
 	switch t := types.Underlying(t).(type) {
+	case *types.Array:
+		return template.HTML(fmt.Sprintf(`<a href="../arrays/%s.html" class="array">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
+	case *types.Bitfield:
+		return template.HTML(fmt.Sprintf(`<a href="../bitfields/%s.html" class="bitfield">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
+	case *types.Enumeration:
+		return template.HTML(fmt.Sprintf(`<a href="../enumerations/%s.html" class="enumeration">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
 	case types.Integer:
 		return template.HTML(fmt.Sprintf(`<span title="%s">%s</span>`, plainDocs(t.Docs()), t))
+	case *types.Structure:
+		return template.HTML(fmt.Sprintf(`<a href="../structures/%s.html" class="structure">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
+	case *types.SyscallReference:
+		return template.HTML(fmt.Sprintf(`<a href="../syscalls/%s.html" class="syscall">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
+
+	case types.Padding:
+		return template.HTML(fmt.Sprintf("%d-byte padding", t))
 	case *types.Pointer:
 		if t.Mutable {
 			return `<span title="A pointer to writable memory.">*mutable</span> ` + toString(t.Underlying)
 		} else {
 			return `<span title="A pointer to readable memory.">*constant</span> ` + toString(t.Underlying)
 		}
-	case types.Padding:
-		return template.HTML(fmt.Sprintf("%d-byte padding", t))
-	case *types.Enumeration:
-		return template.HTML(fmt.Sprintf(`<a href="../enumerations/%s.html" class="enumeration">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
-	case *types.Bitfield:
-		return template.HTML(fmt.Sprintf(`<a href="../bitfields/%s.html" class="bitfield">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
-	case *types.Array:
-		return template.HTML(fmt.Sprintf(`<a href="../arrays/%s.html" class="array">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
-	case *types.Structure:
-		return template.HTML(fmt.Sprintf(`<a href="../structures/%s.html" class="structure">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
-	case *types.SyscallReference:
-		return template.HTML(fmt.Sprintf(`<a href="../syscalls/%s.html" class="syscall">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
 	default:
 		panic(fmt.Sprintf("toString(%T): unexpected type", t))
 	}

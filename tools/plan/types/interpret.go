@@ -3,8 +3,8 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-// Package interpreter contains the Plan interpreter, which is used
-// to validate a Plan source file's structure and contents, then store
+// Package types contains the Plan interpreter, which is used to
+// validate a Plan source file's structure and contents, then store
 // the result in a more constrained representation.
 //
 package types
@@ -132,27 +132,6 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 		}
 
 		switch def.Name {
-		case "integer":
-			integer, err := i.interpretNewInteger(list)
-			if err != nil {
-				return err
-			}
-
-			i.out.NewIntegers = append(i.out.NewIntegers, integer)
-		case "enumeration":
-			enumeration, err := i.interpretEnumeration(list)
-			if err != nil {
-				return err
-			}
-
-			i.out.Enumerations = append(i.out.Enumerations, enumeration)
-		case "bitfield":
-			bitfield, err := i.interpretBitfield(list)
-			if err != nil {
-				return err
-			}
-
-			i.out.Bitfields = append(i.out.Bitfields, bitfield)
 		case "array":
 			array, err := i.interpretArray(list)
 			if err != nil {
@@ -160,6 +139,27 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 			}
 
 			i.out.Arrays = append(i.out.Arrays, array)
+		case "bitfield":
+			bitfield, err := i.interpretBitfield(list)
+			if err != nil {
+				return err
+			}
+
+			i.out.Bitfields = append(i.out.Bitfields, bitfield)
+		case "enumeration":
+			enumeration, err := i.interpretEnumeration(list)
+			if err != nil {
+				return err
+			}
+
+			i.out.Enumerations = append(i.out.Enumerations, enumeration)
+		case "integer":
+			integer, err := i.interpretNewInteger(list)
+			if err != nil {
+				return err
+			}
+
+			i.out.NewIntegers = append(i.out.NewIntegers, integer)
 		case "structure":
 			structure, err := i.interpretStructure(list)
 			if err != nil {
@@ -341,17 +341,17 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 
 			var want string
 			switch typ := typ.(type) {
-			case *NewInteger:
-				want = "integer"
-				typ.Groups = append(typ.Groups, group.Name)
-			case *Enumeration:
-				want = "enumeration"
+			case *Array:
+				want = "array"
 				typ.Groups = append(typ.Groups, group.Name)
 			case *Bitfield:
 				want = "bitfield"
 				typ.Groups = append(typ.Groups, group.Name)
-			case *Array:
-				want = "array"
+			case *Enumeration:
+				want = "enumeration"
+				typ.Groups = append(typ.Groups, group.Name)
+			case *NewInteger:
+				want = "integer"
 				typ.Groups = append(typ.Groups, group.Name)
 			case *Structure:
 				want = "structure"
@@ -398,16 +398,20 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 		})
 	}
 
-	for _, integer := range i.out.NewIntegers {
-		sortGroups(integer.Groups)
+	for _, array := range i.out.Arrays {
+		sortGroups(array.Groups)
+	}
+
+	for _, bitfield := range i.out.Bitfields {
+		sortGroups(bitfield.Groups)
 	}
 
 	for _, enumeration := range i.out.Enumerations {
 		sortGroups(enumeration.Groups)
 	}
 
-	for _, bitfield := range i.out.Bitfields {
-		sortGroups(bitfield.Groups)
+	for _, integer := range i.out.NewIntegers {
+		sortGroups(integer.Groups)
 	}
 
 	for _, structure := range i.out.Structures {
@@ -421,18 +425,18 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 	return nil
 }
 
-// interpretNewInteger parses the list elements as a
-// new integer definition.
+// interpretArray parses the list elements as
+// an array definition.
 //
-func (i *interpreter) interpretNewInteger(list *ast.List) (*NewInteger, *positionalError) {
-	// Skip the first element, which is the 'integer'
+func (i *interpreter) interpretArray(list *ast.List) (*Array, *positionalError) {
+	// Skip the first element, which is the 'array'
 	// identifier.
 	parts, err := i.interpretLists(list.Elements[1:])
 	if err != nil {
-		return nil, err.Context("invalid integer")
+		return nil, err.Context("invalid array")
 	}
 
-	newInteger := &NewInteger{
+	array := &Array{
 		Node: list,
 	}
 
@@ -446,69 +450,208 @@ func (i *interpreter) interpretNewInteger(list *ast.List) (*NewInteger, *positio
 		case "name":
 			name, err := i.interpretName(elts)
 			if err != nil {
-				return nil, err.Context("invalid integer name")
+				return nil, err.Context("invalid array name")
 			}
 
-			if newInteger.Name != nil {
-				return nil, i.errorf(def, "invalid integer definition: name already defined")
+			if array.Name != nil {
+				return nil, i.errorf(def, "invalid array definition: name already defined")
 			}
 
-			newInteger.Name = name
+			array.Name = name
 		case "docs":
 			docs, err := i.interpretDocs(elts)
 			if err != nil {
-				return nil, err.Context("invalid integer docs")
+				return nil, err.Context("invalid array docs")
 			}
 
-			if newInteger.Docs != nil {
-				return nil, i.errorf(def, "invalid integer definition: docs already defined")
+			if array.Docs != nil {
+				return nil, i.errorf(def, "invalid array definition: docs already defined")
 			}
 
-			newInteger.Docs = docs
+			array.Docs = docs
+		case "size":
+			num, ok := elts[0].(*ast.Number)
+			if !ok {
+				return nil, i.errorf(elts[0], "invalid array size definition: expected a number, found %s", elts[0])
+			}
+
+			if len(elts) > 1 {
+				return nil, i.errorf(elts[1], "invalid array size definition: unexpected %s after size", elts[1])
+			}
+
+			size, err := strconv.ParseUint(num.Value, 10, 64)
+			if err != nil {
+				// Unwrap the error if possible.
+				if e, ok := err.(interface{ Unwrap() error }); ok {
+					err = e.Unwrap()
+				}
+
+				return nil, i.errorf(num, "invalid array size definition: invalid size: %v", err)
+			}
+
+			if size == 0 {
+				return nil, i.errorf(num, "invalid array size definition: size must be larger than zero")
+			}
+
+			if array.Count != 0 {
+				return nil, i.errorf(def, "invalid array definition: size already defined")
+			}
+
+			array.Count = size
 		case "type":
 			typ, err := i.interpretType(elts)
 			if err != nil {
-				return nil, err.Context("invalid integer type")
+				return nil, err.Context("invalid array element type")
+			}
+
+			if array.Type != nil {
+				return nil, i.errorf(def, "invalid array definition: type already defined")
+			}
+
+			array.Type = typ
+		default:
+			return nil, i.errorf(def, "unrecognised array definition kind %q", def.Name)
+		}
+	}
+
+	// Make sure the array is complete.
+	if array.Name == nil {
+		return nil, i.errorf(list, "array has no name definition")
+	} else if array.Docs == nil {
+		return nil, i.errorf(list, "array has no docs definition")
+	} else if array.Count == 0 {
+		return nil, i.errorf(list, "array has no size definition")
+	} else if array.Type == nil {
+		return nil, i.errorf(list, "array has no type definition")
+	}
+
+	// Track the type definition.
+	typename := array.Name.Spaced()
+	if i.typedefs[typename] != nil {
+		return nil, i.errorf(array.Node, "type %q is already defined", typename)
+	}
+
+	// Complete any references to the type.
+	i.typedefs[typename] = array
+	for _, ref := range i.typeuses[typename] {
+		ref.Underlying = array
+	}
+	i.typeuses[typename] = nil
+
+	return array, nil
+}
+
+// interpretBitfield parses the list elements as a
+// bitfield definition.
+//
+func (i *interpreter) interpretBitfield(list *ast.List) (*Bitfield, *positionalError) {
+	// Skip the first element, which is the 'bitfield'
+	// identifier.
+	parts, err := i.interpretLists(list.Elements[1:])
+	if err != nil {
+		return nil, err.Context("invalid bitfield")
+	}
+
+	bitfield := &Bitfield{
+		Node: list,
+	}
+
+	values := make(map[string]*Value)
+	for _, part := range parts {
+		def, elts, err := i.interpretDefinition(part)
+		if err != nil {
+			return nil, err
+		}
+
+		switch def.Name {
+		case "name":
+			name, err := i.interpretName(elts)
+			if err != nil {
+				return nil, err.Context("invalid bitfield name")
+			}
+
+			if bitfield.Name != nil {
+				return nil, i.errorf(def, "invalid bitfield definition: name already defined")
+			}
+
+			bitfield.Name = name
+		case "docs":
+			docs, err := i.interpretDocs(elts)
+			if err != nil {
+				return nil, err.Context("invalid bitfield docs")
+			}
+
+			if bitfield.Docs != nil {
+				return nil, i.errorf(def, "invalid bitfield definition: docs already defined")
+			}
+
+			bitfield.Docs = docs
+		case "type":
+			typ, err := i.interpretType(elts)
+			if err != nil {
+				return nil, err.Context("invalid bitfield type")
 			}
 
 			integer, ok := typ.(Integer)
 			if !ok {
-				return nil, i.errorf(elts[0], "invalid integer type: must be an integer type, found %s", typ)
+				return nil, i.errorf(elts[0], "invalid bitfield type: must be an integer type, found %s", typ)
 			}
 
-			if newInteger.Type != InvalidInteger {
-				return nil, i.errorf(def, "invalid integer definition: type already defined")
+			if bitfield.Type != InvalidInteger {
+				return nil, i.errorf(def, "invalid bitfield definition: type already defined")
 			}
 
-			newInteger.Type = integer
+			bitfield.Type = integer
+		case "value":
+			value, err := i.interpretValue(part)
+			if err != nil {
+				return nil, err
+			}
+
+			// Make sure the value isn't a duplicate.
+			name := value.Name.Spaced()
+			if other, ok := values[name]; ok {
+				return nil, i.errorf(part, "value %q already defined at %s", name, i.pos(other.Node))
+			}
+
+			values[name] = value
+			bitfield.Values = append(bitfield.Values, value)
 		default:
-			return nil, i.errorf(def, "unrecognised integer definition kind %q", def.Name)
+			return nil, i.errorf(def, "unrecognised bitfield definition kind %q", def.Name)
 		}
 	}
 
-	// Make sure the integer is complete.
-	if newInteger.Name == nil {
-		return nil, i.errorf(list, "integer has no name definition")
-	} else if newInteger.Docs == nil {
-		return nil, i.errorf(list, "integer has no docs definition")
-	} else if newInteger.Type == InvalidInteger {
-		return nil, i.errorf(list, "integer has no type definition")
+	// Make sure the bitfield is complete.
+	if bitfield.Name == nil {
+		return nil, i.errorf(list, "bitfield has no name definition")
+	} else if bitfield.Docs == nil {
+		return nil, i.errorf(list, "bitfield has no docs definition")
+	} else if bitfield.Type == InvalidInteger {
+		return nil, i.errorf(list, "bitfield has no type definition")
+	} else if bitfield.Values == nil {
+		return nil, i.errorf(list, "bitfield has no value definitions")
+	}
+
+	if len(bitfield.Values) > bitfield.Type.Bits() {
+		got := len(bitfield.Values)
+		max := bitfield.Type.Bits()
+		return nil, i.errorf(list, "bitfield has %d values, which exceeds capacity of %s (max %d)", got, bitfield.Type, max)
 	}
 
 	// Track the type definition.
-	typename := newInteger.Name.Spaced()
+	typename := bitfield.Name.Spaced()
 	if i.typedefs[typename] != nil {
-		return nil, i.errorf(newInteger.Node, "type %q is already defined", typename)
+		return nil, i.errorf(bitfield.Node, "type %q is already defined", typename)
 	}
 
 	// Complete any references to the type.
-	i.typedefs[typename] = newInteger
+	i.typedefs[typename] = bitfield
 	for _, ref := range i.typeuses[typename] {
-		ref.Underlying = newInteger
+		ref.Underlying = bitfield
 	}
 	i.typeuses[typename] = nil
 
-	return newInteger, nil
+	return bitfield, nil
 }
 
 // interpretEnumeration parses the list elements as
@@ -656,22 +799,21 @@ func (i *interpreter) interpretEnumeration(list *ast.List) (*Enumeration, *posit
 	return enumeration, nil
 }
 
-// interpretBitfield parses the list elements as a
-// bitfield definition.
+// interpretNewInteger parses the list elements as a
+// new integer definition.
 //
-func (i *interpreter) interpretBitfield(list *ast.List) (*Bitfield, *positionalError) {
-	// Skip the first element, which is the 'bitfield'
+func (i *interpreter) interpretNewInteger(list *ast.List) (*NewInteger, *positionalError) {
+	// Skip the first element, which is the 'integer'
 	// identifier.
 	parts, err := i.interpretLists(list.Elements[1:])
 	if err != nil {
-		return nil, err.Context("invalid bitfield")
+		return nil, err.Context("invalid integer")
 	}
 
-	bitfield := &Bitfield{
+	newInteger := &NewInteger{
 		Node: list,
 	}
 
-	values := make(map[string]*Value)
 	for _, part := range parts {
 		def, elts, err := i.interpretDefinition(part)
 		if err != nil {
@@ -682,207 +824,69 @@ func (i *interpreter) interpretBitfield(list *ast.List) (*Bitfield, *positionalE
 		case "name":
 			name, err := i.interpretName(elts)
 			if err != nil {
-				return nil, err.Context("invalid bitfield name")
+				return nil, err.Context("invalid integer name")
 			}
 
-			if bitfield.Name != nil {
-				return nil, i.errorf(def, "invalid bitfield definition: name already defined")
+			if newInteger.Name != nil {
+				return nil, i.errorf(def, "invalid integer definition: name already defined")
 			}
 
-			bitfield.Name = name
+			newInteger.Name = name
 		case "docs":
 			docs, err := i.interpretDocs(elts)
 			if err != nil {
-				return nil, err.Context("invalid bitfield docs")
+				return nil, err.Context("invalid integer docs")
 			}
 
-			if bitfield.Docs != nil {
-				return nil, i.errorf(def, "invalid bitfield definition: docs already defined")
+			if newInteger.Docs != nil {
+				return nil, i.errorf(def, "invalid integer definition: docs already defined")
 			}
 
-			bitfield.Docs = docs
+			newInteger.Docs = docs
 		case "type":
 			typ, err := i.interpretType(elts)
 			if err != nil {
-				return nil, err.Context("invalid bitfield type")
+				return nil, err.Context("invalid integer type")
 			}
 
 			integer, ok := typ.(Integer)
 			if !ok {
-				return nil, i.errorf(elts[0], "invalid bitfield type: must be an integer type, found %s", typ)
+				return nil, i.errorf(elts[0], "invalid integer type: must be an integer type, found %s", typ)
 			}
 
-			if bitfield.Type != InvalidInteger {
-				return nil, i.errorf(def, "invalid bitfield definition: type already defined")
+			if newInteger.Type != InvalidInteger {
+				return nil, i.errorf(def, "invalid integer definition: type already defined")
 			}
 
-			bitfield.Type = integer
-		case "value":
-			value, err := i.interpretValue(part)
-			if err != nil {
-				return nil, err
-			}
-
-			// Make sure the value isn't a duplicate.
-			name := value.Name.Spaced()
-			if other, ok := values[name]; ok {
-				return nil, i.errorf(part, "value %q already defined at %s", name, i.pos(other.Node))
-			}
-
-			values[name] = value
-			bitfield.Values = append(bitfield.Values, value)
+			newInteger.Type = integer
 		default:
-			return nil, i.errorf(def, "unrecognised bitfield definition kind %q", def.Name)
+			return nil, i.errorf(def, "unrecognised integer definition kind %q", def.Name)
 		}
 	}
 
-	// Make sure the bitfield is complete.
-	if bitfield.Name == nil {
-		return nil, i.errorf(list, "bitfield has no name definition")
-	} else if bitfield.Docs == nil {
-		return nil, i.errorf(list, "bitfield has no docs definition")
-	} else if bitfield.Type == InvalidInteger {
-		return nil, i.errorf(list, "bitfield has no type definition")
-	} else if bitfield.Values == nil {
-		return nil, i.errorf(list, "bitfield has no value definitions")
-	}
-
-	if len(bitfield.Values) > bitfield.Type.Bits() {
-		got := len(bitfield.Values)
-		max := bitfield.Type.Bits()
-		return nil, i.errorf(list, "bitfield has %d values, which exceeds capacity of %s (max %d)", got, bitfield.Type, max)
+	// Make sure the integer is complete.
+	if newInteger.Name == nil {
+		return nil, i.errorf(list, "integer has no name definition")
+	} else if newInteger.Docs == nil {
+		return nil, i.errorf(list, "integer has no docs definition")
+	} else if newInteger.Type == InvalidInteger {
+		return nil, i.errorf(list, "integer has no type definition")
 	}
 
 	// Track the type definition.
-	typename := bitfield.Name.Spaced()
+	typename := newInteger.Name.Spaced()
 	if i.typedefs[typename] != nil {
-		return nil, i.errorf(bitfield.Node, "type %q is already defined", typename)
+		return nil, i.errorf(newInteger.Node, "type %q is already defined", typename)
 	}
 
 	// Complete any references to the type.
-	i.typedefs[typename] = bitfield
+	i.typedefs[typename] = newInteger
 	for _, ref := range i.typeuses[typename] {
-		ref.Underlying = bitfield
+		ref.Underlying = newInteger
 	}
 	i.typeuses[typename] = nil
 
-	return bitfield, nil
-}
-
-// interpretArray parses the list elements as
-// an array definition.
-//
-func (i *interpreter) interpretArray(list *ast.List) (*Array, *positionalError) {
-	// Skip the first element, which is the 'array'
-	// identifier.
-	parts, err := i.interpretLists(list.Elements[1:])
-	if err != nil {
-		return nil, err.Context("invalid array")
-	}
-
-	array := &Array{
-		Node: list,
-	}
-
-	for _, part := range parts {
-		def, elts, err := i.interpretDefinition(part)
-		if err != nil {
-			return nil, err
-		}
-
-		switch def.Name {
-		case "name":
-			name, err := i.interpretName(elts)
-			if err != nil {
-				return nil, err.Context("invalid array name")
-			}
-
-			if array.Name != nil {
-				return nil, i.errorf(def, "invalid array definition: name already defined")
-			}
-
-			array.Name = name
-		case "docs":
-			docs, err := i.interpretDocs(elts)
-			if err != nil {
-				return nil, err.Context("invalid array docs")
-			}
-
-			if array.Docs != nil {
-				return nil, i.errorf(def, "invalid array definition: docs already defined")
-			}
-
-			array.Docs = docs
-		case "size":
-			num, ok := elts[0].(*ast.Number)
-			if !ok {
-				return nil, i.errorf(elts[0], "invalid array size definition: expected a number, found %s", elts[0])
-			}
-
-			if len(elts) > 1 {
-				return nil, i.errorf(elts[1], "invalid array size definition: unexpected %s after size", elts[1])
-			}
-
-			size, err := strconv.ParseUint(num.Value, 10, 64)
-			if err != nil {
-				// Unwrap the error if possible.
-				if e, ok := err.(interface{ Unwrap() error }); ok {
-					err = e.Unwrap()
-				}
-
-				return nil, i.errorf(num, "invalid array size definition: invalid size: %v", err)
-			}
-
-			if size == 0 {
-				return nil, i.errorf(num, "invalid array size definition: size must be larger than zero")
-			}
-
-			if array.Count != 0 {
-				return nil, i.errorf(def, "invalid array definition: size already defined")
-			}
-
-			array.Count = size
-		case "type":
-			typ, err := i.interpretType(elts)
-			if err != nil {
-				return nil, err.Context("invalid array element type")
-			}
-
-			if array.Type != nil {
-				return nil, i.errorf(def, "invalid array definition: type already defined")
-			}
-
-			array.Type = typ
-		default:
-			return nil, i.errorf(def, "unrecognised array definition kind %q", def.Name)
-		}
-	}
-
-	// Make sure the array is complete.
-	if array.Name == nil {
-		return nil, i.errorf(list, "array has no name definition")
-	} else if array.Docs == nil {
-		return nil, i.errorf(list, "array has no docs definition")
-	} else if array.Count == 0 {
-		return nil, i.errorf(list, "array has no size definition")
-	} else if array.Type == nil {
-		return nil, i.errorf(list, "array has no type definition")
-	}
-
-	// Track the type definition.
-	typename := array.Name.Spaced()
-	if i.typedefs[typename] != nil {
-		return nil, i.errorf(array.Node, "type %q is already defined", typename)
-	}
-
-	// Complete any references to the type.
-	i.typedefs[typename] = array
-	for _, ref := range i.typeuses[typename] {
-		ref.Underlying = array
-	}
-	i.typeuses[typename] = nil
-
-	return array, nil
+	return newInteger, nil
 }
 
 // interpretStructure parses the list elements as
@@ -1149,7 +1153,7 @@ func (i *interpreter) interpretGroup(list *ast.List) (*Group, *positionalError) 
 			}
 
 			group.Docs = docs
-		case "integer", "enumeration", "bitfield", "array", "structure", "syscall":
+		case "array", "bitfield", "enumeration", "integer", "structure", "syscall":
 			name, err := i.interpretName(elts)
 			if err != nil {
 				return nil, err
