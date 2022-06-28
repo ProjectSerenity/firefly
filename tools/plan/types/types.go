@@ -27,14 +27,13 @@ type Type interface {
 	// structure at which a field of this type
 	// appears must be an exact multiple of its
 	// alignment. For example, if type `A` has
-	// an alignment of `8`, then any structure
+	// an alignment of 8, then any structure
 	// fields of type `A` must have an offset
 	// into the structure that is a multiple of
-	// `8`.
+	// 8.
 	//
 	// Alignment values must be larger than
-	// `0`, and must be an exact multiple of
-	// `2`.
+	// 0, and must be an exact power of 2.
 	Alignment(Arch) int
 
 	// Size returns the number of bytes that
