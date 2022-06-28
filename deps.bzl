@@ -170,7 +170,7 @@ rust = [
     ),
     crate(
         name = "rustversion",
-        version = "1.0.6",
+        version = "1.0.7",
         edition = "2018",
         proc_macro = True,
         build_script = "build/build.rs",
@@ -336,7 +336,7 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.0.0-20220525230936-793ad666bf5e",
+        version = "v0.0.0-20220622213112-05595931fe9d",
         packages = [
             package(
                 name = "golang.org/x/crypto/ed25519",
@@ -404,7 +404,7 @@ go = [
     ),
     module(
         name = "golang.org/x/time",
-        version = "v0.0.0-20220411224347-583f2d630306",
+        version = "v0.0.0-20220609170525-579cf78fd858",
         packages = [
             package(
                 name = "golang.org/x/time/rate",
@@ -413,7 +413,7 @@ go = [
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.1.10",
+        version = "v0.1.11",
         packages = [
             package(
                 name = "golang.org/x/tools/txtar",
@@ -422,7 +422,7 @@ go = [
     ),
     module(
         name = "golang.org/x/vuln",
-        version = "v0.0.0-20220606135952-b5c0ef50b988",
+        version = "v0.0.0-20220613164644-4eb5ba49563c",
         packages = [
             package(
                 name = "golang.org/x/vuln/osv",
@@ -434,7 +434,7 @@ go = [
     ),
     module(
         name = "golang.org/x/xerrors",
-        version = "v0.0.0-20220517211312-f3a8303e98df",
+        version = "v0.0.0-20220609144429-65e65417b02f",
         packages = [
             package(
                 name = "golang.org/x/xerrors",

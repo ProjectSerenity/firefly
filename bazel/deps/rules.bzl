@@ -50,8 +50,8 @@ RULES_PROTOBUF = struct(
     name = "com_google_protobuf",
     repo = "protocolbuffers/protobuf",
     archive = "https://github.com/protocolbuffers/protobuf/archive/v{v}.zip",
-    version = "21.1",
-    sha256 = "6a2a9b6d00e9a5a28d251f4dc5f2a7e72684a699206ec286ea02ac0b02c22e77",
+    version = "21.2",
+    sha256 = "3307728c339867a7b31f8b4d80501225853b364ce57f35dc2b5d154033ecbe53",
 )
 
 RULES_RUST = struct(
@@ -59,8 +59,8 @@ RULES_RUST = struct(
     repo = "bazelbuild/rules_rust",
     branch = "main",
     archive = "https://github.com/bazelbuild/rules_rust/archive/{v}.tar.gz",
-    version = "521e649ff44e9711fe3c45b0ec1e792f7e1d361e",
-    sha256 = "c181738e13abc7a92c9ab38f820f7902353c2a824085747f25943baeb14db182",
+    version = "5a9d999db91dd6415949ef3e74a48221c7cdb048",
+    sha256 = "0715bd2691c3aaf8faa399b27e63a45ea2fa05a1a63f84a29cdcd51b7d260f7d",
 )
 
 RULES_SKYLIB = struct(

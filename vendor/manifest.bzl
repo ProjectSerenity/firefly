@@ -113,8 +113,8 @@ rust = [
     ),
     crate(
         name = "rustversion",
-        version = "1.0.6",
-        digest = "sha256:788c3655552cde7b1ec0c9803f6b25461d534e9571883f5d2b3f021267cbeff0",
+        version = "1.0.7",
+        digest = "sha256:6380c40815fadb3ffa7dd82f925ff7d522c5941f725836603d51c92b33b818e2",
     ),
     crate(
         name = "scopeguard",
@@ -191,7 +191,7 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.0.0-20220525230936-793ad666bf5e",
+        version = "v0.0.0-20220622213112-05595931fe9d",
         digest = "sha256:9cf21739f383c79039d1854b58da3c9215040756ab8028199ff8b57bef653471",
     ),
     module(
@@ -201,23 +201,23 @@ go = [
     ),
     module(
         name = "golang.org/x/time",
-        version = "v0.0.0-20220411224347-583f2d630306",
-        digest = "sha256:4697326326ec34eebe807c4225b069d34bc605e2555e3096b5ee050eec9f639a",
+        version = "v0.0.0-20220609170525-579cf78fd858",
+        digest = "sha256:6b55972591fc35d681c5a74f789a2d0c030449107ab19a8c9569539c7d0f1a4c",
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.1.10",
-        digest = "sha256:f6f026b67b413d78ce4051bc75e7c44b737331a392c34e3df113876a85b6327f",
+        version = "v0.1.11",
+        digest = "sha256:4ad8715f4477ca04f02a7cc3832ff8bf72e7395e0caf9a9880a043e5a1fb09a2",
     ),
     module(
         name = "golang.org/x/vuln",
-        version = "v0.0.0-20220606135952-b5c0ef50b988",
+        version = "v0.0.0-20220613164644-4eb5ba49563c",
         digest = "sha256:0d7efd5296a286d517e7d0d182efbc051f8f700195c7b7e684314c2a240c3bcc",
     ),
     module(
         name = "golang.org/x/xerrors",
-        version = "v0.0.0-20220517211312-f3a8303e98df",
-        digest = "sha256:7362d2c0d94b3be18fc502ec3decb3eb914da3d64562340ed18e86ede2548b46",
+        version = "v0.0.0-20220609144429-65e65417b02f",
+        digest = "sha256:c0b0541a468b065940c635cb07ee30da788c8b01ecde1655caaa503ce05840d5",
     ),
     module(
         name = "rsc.io/diff",
