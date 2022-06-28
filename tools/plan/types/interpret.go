@@ -284,9 +284,9 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 			argType := Underlying(arg.Type)
 			if argType == nil {
 				return i.errorf(arg.Node, "arg%d %q is an invalid type reference", j, arg.Name.Spaced())
-			} else if !argType.Register(i.arch) {
+			} else if !argType.Parameter(i.arch) {
 				name := arg.Name.Spaced()
-				return i.errorf(arg.Node, "arg%d %q has invalid type: %s cannot be stored in a register", j+1, name, argType)
+				return i.errorf(arg.Node, "arg%d %q has invalid type: %s cannot be stored in a parameter", j+1, name, argType)
 			}
 		}
 
@@ -294,9 +294,9 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 			resultType := Underlying(result.Type)
 			if resultType == nil {
 				return i.errorf(result.Node, "result%d %q is an invalid type reference", j, result.Name.Spaced())
-			} else if !resultType.Register(i.arch) {
+			} else if !resultType.Parameter(i.arch) {
 				name := result.Name.Spaced()
-				return i.errorf(result.Node, "result%d %q has invalid type: %s cannot be stored in a register", j+1, name, resultType)
+				return i.errorf(result.Node, "result%d %q has invalid type: %s cannot be stored in a parameter", j+1, name, resultType)
 			}
 		}
 

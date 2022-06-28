@@ -45,11 +45,9 @@ type Type interface {
 	// non-negative.
 	Size(Arch) int
 
-	// Register returns whether the type
-	// can be stored in a register and
-	// therefore passed in a syscall
-	// parameter.
-	Register(Arch) bool
+	// Parameter returns whether the type
+	// can be passed in a syscall parameter.
+	Parameter(Arch) bool
 
 	// String returns a brief textual
 	// representation for the type.
@@ -90,7 +88,7 @@ var (
 func (a *Array) Pos() token.Position { return a.Node.Pos() }
 func (a *Array) End() token.Position { return a.Node.End() }
 
-func (a *Array) Register(arch Arch) bool {
+func (a *Array) Parameter(arch Arch) bool {
 	// Even though an array may be small
 	// enough to fit in a register, we
 	// store it separately in case the
@@ -133,9 +131,9 @@ var (
 	_ ast.Node = (*Bitfield)(nil)
 )
 
-func (b *Bitfield) Pos() token.Position  { return b.Node.Pos() }
-func (b *Bitfield) End() token.Position  { return b.Node.End() }
-func (b *Bitfield) Register(a Arch) bool { return true }
+func (b *Bitfield) Pos() token.Position   { return b.Node.Pos() }
+func (b *Bitfield) End() token.Position   { return b.Node.End() }
+func (b *Bitfield) Parameter(a Arch) bool { return true }
 
 func (e *Bitfield) Alignment(a Arch) int {
 	return e.Type.Alignment(a)
@@ -168,9 +166,9 @@ var (
 	_ ast.Node = (*Enumeration)(nil)
 )
 
-func (e *Enumeration) Pos() token.Position  { return e.Node.Pos() }
-func (e *Enumeration) End() token.Position  { return e.Node.End() }
-func (e *Enumeration) Register(a Arch) bool { return true }
+func (e *Enumeration) Pos() token.Position   { return e.Node.Pos() }
+func (e *Enumeration) End() token.Position   { return e.Node.End() }
+func (e *Enumeration) Parameter(a Arch) bool { return true }
 
 func (e *Enumeration) Alignment(a Arch) int {
 	return e.Type.Alignment(a)
@@ -216,7 +214,7 @@ var integers = map[string]Integer{
 	"sint64": Sint64,
 }
 
-func (b Integer) Register(a Arch) bool { return true }
+func (b Integer) Parameter(a Arch) bool { return true }
 
 func (b Integer) Docs() Docs {
 	docs := map[Integer]Text{
@@ -391,11 +389,11 @@ var (
 	_ ast.Node = (*NewInteger)(nil)
 )
 
-func (i *NewInteger) Pos() token.Position  { return i.Node.Pos() }
-func (i *NewInteger) End() token.Position  { return i.Node.End() }
-func (i *NewInteger) Register(a Arch) bool { return true }
-func (i *NewInteger) Alignment(a Arch) int { return i.Type.Alignment(a) }
-func (i *NewInteger) Size(a Arch) int      { return i.Type.Size(a) }
+func (i *NewInteger) Pos() token.Position   { return i.Node.Pos() }
+func (i *NewInteger) End() token.Position   { return i.Node.End() }
+func (i *NewInteger) Parameter(a Arch) bool { return true }
+func (i *NewInteger) Alignment(a Arch) int  { return i.Type.Alignment(a) }
+func (i *NewInteger) Size(a Arch) int       { return i.Type.Size(a) }
 
 func (i *NewInteger) String() string {
 	return fmt.Sprintf("%s (%s)", i.Name.Spaced(), i.Type)
@@ -409,7 +407,7 @@ type Padding uint16
 
 var _ Type = Padding(0)
 
-func (p Padding) Register(a Arch) bool {
+func (p Padding) Parameter(a Arch) bool {
 	// Padding can only be used within a
 	// structure to manage alignment, so
 	// even if the padding is small enough
@@ -440,7 +438,7 @@ type Pointer struct {
 
 var _ Type = (*Pointer)(nil)
 
-func (p *Pointer) Register(a Arch) bool { return true }
+func (p *Pointer) Parameter(a Arch) bool { return true }
 
 func (p *Pointer) Alignment(a Arch) int {
 	aligns := map[Arch]int{
@@ -486,8 +484,8 @@ type Reference struct {
 
 var _ Type = (*Reference)(nil)
 
-func (r *Reference) Register(a Arch) bool {
-	return r.Underlying.Register(a)
+func (r *Reference) Parameter(a Arch) bool {
+	return r.Underlying.Parameter(a)
 }
 
 func (r *Reference) Alignment(a Arch) int {
@@ -521,7 +519,7 @@ var (
 func (s *Structure) Pos() token.Position { return s.Node.Pos() }
 func (s *Structure) End() token.Position { return s.Node.End() }
 
-func (s *Structure) Register(a Arch) bool {
+func (s *Structure) Parameter(a Arch) bool {
 	// Even when a structure consists of a single
 	// field, which would fit in a register, we
 	// still reject it so that the structure can
@@ -588,10 +586,10 @@ type SyscallReference struct {
 
 var _ Type = (*SyscallReference)(nil)
 
-func (r *SyscallReference) Register(a Arch) bool { return false }
-func (r *SyscallReference) Alignment(a Arch) int { return 1 }
-func (r *SyscallReference) Size(a Arch) int      { return 0 }
-func (r *SyscallReference) String() string       { return fmt.Sprintf("syscall %s", r.Name.Spaced()) }
+func (r *SyscallReference) Parameter(a Arch) bool { return false }
+func (r *SyscallReference) Alignment(a Arch) int  { return 1 }
+func (r *SyscallReference) Size(a Arch) int       { return 0 }
+func (r *SyscallReference) String() string        { return fmt.Sprintf("syscall %s", r.Name.Spaced()) }
 
 // File represents a parsed syscalls plan.
 //

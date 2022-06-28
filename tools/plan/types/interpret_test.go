@@ -2720,13 +2720,13 @@ func TestInterpreterErrors(t *testing.T) {
 			Name: "syscall with complex arg",
 			Source: `(structure (name blah) (docs "xyz") (field (name foo) (docs "bar") (type byte)))
 			         (syscall (name baz) (docs "abc") (arg1 (name foo) (docs "bar") (type blah)))`,
-			Want: `test.plan:2:46: arg1 "foo" has invalid type: structure blah cannot be stored in a register`,
+			Want: `test.plan:2:46: arg1 "foo" has invalid type: structure blah cannot be stored in a parameter`,
 		},
 		{
 			Name: "syscall with complex result",
 			Source: `(structure (name blah) (docs "xyz") (field (name foo) (docs "bar") (type byte)))
 			         (syscall (name baz) (docs "abc") (result1 (name foo) (docs "bar") (type blah)))`,
-			Want: `test.plan:2:46: result1 "foo" has invalid type: structure blah cannot be stored in a register`,
+			Want: `test.plan:2:46: result1 "foo" has invalid type: structure blah cannot be stored in a parameter`,
 		},
 		{
 			Name:   "syscall with args but no results",
