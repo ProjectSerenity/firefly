@@ -1,0 +1,85 @@
+# Copyright 2022 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rust_test")
+load("//bazel/gofmt:gofmt.bzl", "gofmt")
+
+go_library(
+    name = "gentests_lib",
+    srcs = [
+        "generate.go",
+    ],
+    importpath = "firefly-os.dev/tools/plan/gentests",
+    deps = [
+        "//tools/plan/parser",
+        "//tools/plan/rust",
+        "//tools/plan/types",
+    ],
+)
+
+gofmt(
+    name = "gofmt",
+    embed = [":gentests_lib"],
+)
+
+go_binary(
+    name = "gentests",
+    embed = [":gentests_lib"],
+)
+
+# Generate the sample outputs.
+
+genrule(
+    name = "generate",
+    srcs = [
+        "testdata/x86_64.plan",
+        "testdata/x86_64_rs.txt",
+    ],
+    outs = [
+        "lib.rs",
+    ],
+    cmd = """
+        gentests="$(location :gentests)"
+        rustfmt="$(location @rust_linux_x86_64//:rustfmt)"
+        rustplan="$(location testdata/x86_64.plan)"
+        rusttests="$(location testdata/x86_64_rs.txt)"
+        rustout="$$(realpath $(location lib.rs))"
+        arch="x86-64"
+
+        $$gentests -rustfmt="$$rustfmt" -rust-path="$$rustplan" -rust-tests="$$rusttests" -rust-out="$$rustout" -arch="$$arch"
+    """,
+    message = "Generating sample code and tests.",
+    tools = [
+        ":gentests",
+        "@rust_linux_x86_64//:rustfmt",
+    ],
+)
+
+rust_library(
+    name = "rust",
+    srcs = ["lib.rs"],
+    crate_name = "rust_sample",
+    edition = "2021",
+    deps = [
+        "//vendor/rust/bitflags",
+    ],
+)
+
+rust_clippy(
+    name = "clippy",
+    deps = [":rust"],
+)
+
+rust_doc(
+    name = "docs",
+    crate = ":rust",
+)
+
+rust_test(
+    name = "rust_test",
+    size = "small",
+    crate = ":rust",
+)
