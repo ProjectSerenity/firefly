@@ -142,8 +142,9 @@ pub struct FileInfo {
     ///
     pub name_pointer: *const u8,
 
+    #[doc(hidden)]
     #[allow(dead_code)]
-    _padding: [u8; 4],
+    pub _padding: [u8; 4],
 
     /// The number of bytes at 'name pointer'.
     ///
@@ -153,8 +154,9 @@ pub struct FileInfo {
     ///
     pub permissions: Permissions,
 
+    #[doc(hidden)]
     #[allow(dead_code)]
-    _padding2: [u8; 7],
+    pub _padding2: [u8; 7],
 }
 
 /// A general purpose error.

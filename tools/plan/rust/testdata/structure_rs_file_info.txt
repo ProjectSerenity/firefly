@@ -15,8 +15,9 @@ pub struct FileInfo {
 
     /// Padding to align the structure.
     ///
+    #[doc(hidden)]
     #[allow(dead_code)]
-    _padding1: [u8; 7],
+    pub _padding1: [u8; 7],
 
     /// The size of the file in bytes.
     ///

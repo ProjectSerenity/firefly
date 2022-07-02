@@ -8,8 +8,9 @@ pub struct {{ .Name.PascalCase }} {
 {{ end }}
     {{ toDocs 1 .Docs }}
     {{ if isPadding .Type -}}
+    #[doc(hidden)]
     #[allow(dead_code)]
-    _
+    pub _
     {{- else }}pub {{ end -}}
     {{ .Name.SnakeCase }}: {{ toString .Type }},
 {{- end }}
