@@ -1,0 +1,25 @@
+# Copyright 2022 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_library", "rust_test")
+
+rust_library(
+    name = "rust",
+    srcs = ["lib.rs"],
+    crate_name = "rust",
+    edition = "2021",
+    deps = ["//tools/plan/gentests:gentests_rust"],
+)
+
+rust_clippy(
+    name = "clippy",
+    deps = [":rust"],
+)
+
+rust_test(
+    name = "rust_test",
+    size = "small",
+    crate = ":rust",
+)
