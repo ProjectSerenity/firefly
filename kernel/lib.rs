@@ -56,6 +56,7 @@
 #![deny(deprecated_in_future)]
 #![deny(keyword_idents)]
 #![deny(macro_use_extern_crate)]
+#![deny(missing_abi)]
 #![allow(unsafe_code)]
 #![allow(unused_crate_dependencies)] // This is to allow the doc references above.
 #![feature(alloc_error_handler)]

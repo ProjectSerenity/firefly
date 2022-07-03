@@ -32,6 +32,7 @@ var lints = []string{
 	"deprecated_in_future",
 	"keyword_idents",
 	"macro_use_extern_crate",
+	"missing_abi",
 	"unused_crate_dependencies",
 	"unsafe_code",
 }

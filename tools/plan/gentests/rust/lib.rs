@@ -14,6 +14,7 @@
 #![deny(deprecated_in_future)]
 #![deny(keyword_idents)]
 #![deny(macro_use_extern_crate)]
+#![deny(missing_abi)]
 #![allow(unsafe_code)] // Testss use `transmute`.
 #![deny(unused_crate_dependencies)]
 

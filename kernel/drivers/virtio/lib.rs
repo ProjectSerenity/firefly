@@ -55,6 +55,7 @@
 #![deny(deprecated_in_future)]
 #![deny(keyword_idents)]
 #![deny(macro_use_extern_crate)]
+#![deny(missing_abi)]
 #![allow(unsafe_code)]
 #![deny(unused_crate_dependencies)]
 #![feature(const_btree_new)]
