@@ -11,6 +11,7 @@
 #![deny(clippy::return_self_not_must_use)]
 #![deny(clippy::single_char_lifetime_names)]
 #![allow(clippy::wildcard_imports)] // To import the generated structures.
+#![deny(deprecated_in_future)]
 #![deny(unused_crate_dependencies)]
 #![allow(unsafe_code)] // Testss use `transmute`.
 
