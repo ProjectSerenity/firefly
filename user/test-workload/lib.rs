@@ -4,6 +4,7 @@
 // license that can be found in the LICENSE file.
 
 #![no_std]
+#![allow(clippy::float_arithmetic)] // Allowed in userspace.
 #![deny(clippy::inline_asm_x86_att_syntax)]
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::panic)]
