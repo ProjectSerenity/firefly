@@ -20,6 +20,7 @@
 #![deny(clippy::wildcard_imports)]
 #![deny(deprecated_in_future)]
 #![deny(improper_ctypes)]
+#![deny(keyword_idents)]
 #![forbid(unsafe_code)]
 #![deny(unused_crate_dependencies)]
 

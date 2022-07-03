@@ -74,6 +74,7 @@
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
 #![deny(deprecated_in_future)]
+#![deny(keyword_idents)]
 #![allow(unsafe_code)]
 #![deny(unused_crate_dependencies)]
 #![feature(abi_x86_interrupt)]

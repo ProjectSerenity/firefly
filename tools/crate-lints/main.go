@@ -30,6 +30,7 @@ var lints = []string{
 	"clippy::single_char_lifetime_names",
 	"clippy::wildcard_imports",
 	"deprecated_in_future",
+	"keyword_idents",
 	"unused_crate_dependencies",
 	"unsafe_code",
 }
