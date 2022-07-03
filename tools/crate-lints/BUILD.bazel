@@ -1,0 +1,27 @@
+# Copyright 2022 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("//bazel/gofmt:gofmt.bzl", "gofmt")
+
+go_library(
+    name = "crate-lints_lib",
+    srcs = [
+        "main.go",
+    ],
+    importpath = "firefly-os.dev/tools/crate-lints",
+    visibility = ["//visibility:private"],
+)
+
+gofmt(
+    name = "gofmt",
+    embed = [":crate-lints_lib"],
+)
+
+go_binary(
+    name = "crate-lints",
+    embed = [":crate-lints_lib"],
+    visibility = ["//visibility:public"],
+)
