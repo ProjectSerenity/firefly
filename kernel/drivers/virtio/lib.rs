@@ -54,6 +54,7 @@
 #![deny(clippy::wildcard_imports)]
 #![deny(deprecated_in_future)]
 #![deny(keyword_idents)]
+#![deny(macro_use_extern_crate)]
 #![allow(unsafe_code)]
 #![deny(unused_crate_dependencies)]
 #![feature(const_btree_new)]

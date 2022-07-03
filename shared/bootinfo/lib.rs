@@ -21,6 +21,7 @@
 #![deny(deprecated_in_future)]
 #![deny(improper_ctypes)]
 #![deny(keyword_idents)]
+#![deny(macro_use_extern_crate)]
 #![forbid(unsafe_code)]
 #![deny(unused_crate_dependencies)]
 

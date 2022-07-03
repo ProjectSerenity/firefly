@@ -31,6 +31,7 @@ var lints = []string{
 	"clippy::wildcard_imports",
 	"deprecated_in_future",
 	"keyword_idents",
+	"macro_use_extern_crate",
 	"unused_crate_dependencies",
 	"unsafe_code",
 }

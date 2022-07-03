@@ -13,6 +13,7 @@
 #![deny(clippy::wildcard_imports)]
 #![deny(deprecated_in_future)]
 #![deny(keyword_idents)]
+#![deny(macro_use_extern_crate)]
 #![forbid(unsafe_code)]
 #![deny(unused_crate_dependencies)]
 

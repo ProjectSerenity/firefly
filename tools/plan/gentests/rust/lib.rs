@@ -13,6 +13,7 @@
 #![allow(clippy::wildcard_imports)] // To import the generated structures.
 #![deny(deprecated_in_future)]
 #![deny(keyword_idents)]
+#![deny(macro_use_extern_crate)]
 #![allow(unsafe_code)] // Testss use `transmute`.
 #![deny(unused_crate_dependencies)]
 
