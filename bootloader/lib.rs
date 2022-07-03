@@ -24,8 +24,8 @@
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
 #![deny(deprecated_in_future)]
-#![deny(unused_crate_dependencies)]
 #![allow(unsafe_code)]
+#![deny(unused_crate_dependencies)]
 
 use bootinfo::{BootInfo, FrameRange, MemoryRegion, MemoryRegionType};
 use core::arch::{asm, global_asm};

@@ -58,6 +58,7 @@ func (c *LintChecker) Check(fsys fs.FS, name string) error {
 		missing[lint] = true
 	}
 
+	found := make([]string, 0, len(lints))
 	s := bufio.NewScanner(f)
 	for s.Scan() {
 		const (
@@ -95,6 +96,7 @@ func (c *LintChecker) Check(fsys fs.FS, name string) error {
 		}
 
 		attribute = strings.TrimSuffix(attribute, innerAttributeSuffix)
+		found = append(found, attribute)
 		if !missing[attribute] {
 			log.Printf("WARN:  %s: unexpected inner attribute: %q", name, attribute)
 			continue
@@ -105,6 +107,10 @@ func (c *LintChecker) Check(fsys fs.FS, name string) error {
 
 	if err := s.Err(); err != nil {
 		return err
+	}
+
+	if !sort.StringsAreSorted(found) {
+		log.Printf("WARN:  %s: attributes not sorted", name)
 	}
 
 	if len(missing) == 0 {

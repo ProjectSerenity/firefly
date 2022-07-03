@@ -12,8 +12,8 @@
 #![deny(clippy::single_char_lifetime_names)]
 #![allow(clippy::wildcard_imports)] // To import the generated structures.
 #![deny(deprecated_in_future)]
-#![deny(unused_crate_dependencies)]
 #![allow(unsafe_code)] // Testss use `transmute`.
+#![deny(unused_crate_dependencies)]
 
 #[cfg(not(test))]
 use gentests as _; // Ignore the unused crate dependency outside test mode.

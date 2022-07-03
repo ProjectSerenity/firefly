@@ -20,8 +20,8 @@
 #![deny(clippy::wildcard_imports)]
 #![deny(deprecated_in_future)]
 #![deny(improper_ctypes)]
-#![deny(unused_crate_dependencies)]
 #![forbid(unsafe_code)]
+#![deny(unused_crate_dependencies)]
 
 mod memory_map;
 

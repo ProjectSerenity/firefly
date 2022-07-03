@@ -54,8 +54,8 @@
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
 #![deny(deprecated_in_future)]
-#![allow(unused_crate_dependencies)] // This is to allow the doc references above.
 #![allow(unsafe_code)]
+#![allow(unused_crate_dependencies)] // This is to allow the doc references above.
 #![feature(alloc_error_handler)]
 #![feature(const_btree_new)]
 

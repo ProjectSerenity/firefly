@@ -56,8 +56,8 @@
 #![deny(clippy::single_char_lifetime_names)]
 #![deny(clippy::wildcard_imports)]
 #![deny(deprecated_in_future)]
-#![deny(unused_crate_dependencies)]
 #![forbid(unsafe_code)]
+#![deny(unused_crate_dependencies)]
 
 use core::cmp::min;
 use core::default::Default;
