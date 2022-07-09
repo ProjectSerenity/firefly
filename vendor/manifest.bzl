@@ -73,8 +73,8 @@ rust = [
     ),
     crate(
         name = "linked_list_allocator",
-        version = "0.9.1",
-        digest = "sha256:a5c951461498ce8e568a9bae57e35162a7fde5f762fe582242f59ee1de6f5d4c",
+        version = "0.10.1",
+        digest = "sha256:a937cbedec34cca9f72db51a04dd1654dc53ff3a8b3b5d94e1e1a39e4637d9d0",
     ),
     crate(
         name = "lock_api",
@@ -211,7 +211,7 @@ go = [
     ),
     module(
         name = "golang.org/x/vuln",
-        version = "v0.0.0-20220613164644-4eb5ba49563c",
+        version = "v0.0.0-20220708185735-a7e5c096cfa7",
         digest = "sha256:0d7efd5296a286d517e7d0d182efbc051f8f700195c7b7e684314c2a240c3bcc",
     ),
     module(

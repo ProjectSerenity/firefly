@@ -87,7 +87,8 @@ impl FixedSizeBlockAllocator {
     // in tests, where we don't use the global allocator.
     #[cfg_attr(test, allow(dead_code))]
     pub unsafe fn init(&mut self, heap_start: usize, heap_size: usize) {
-        self.fallback_allocator.init(heap_start, heap_size);
+        self.fallback_allocator
+            .init(heap_start as *mut u8, heap_size);
     }
 
     /// Allocates using the fallback allocator.

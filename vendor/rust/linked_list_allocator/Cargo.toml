@@ -11,23 +11,35 @@
 
 [package]
 name = "linked_list_allocator"
-version = "0.9.1"
+version = "0.10.1"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 description = "Simple allocator usable for no_std systems. It builds a linked list from the freed blocks and thus needs no additional data structures."
 homepage = "http://os.phil-opp.com/kernel-heap.html#a-better-allocator"
 documentation = "https://docs.rs/crate/linked_list_allocator"
-keywords = ["allocator", "no_std", "malloc", "heap", "kernel"]
+readme = "README.md"
+keywords = [
+    "allocator",
+    "no_std",
+    "malloc",
+    "heap",
+    "kernel",
+]
 license = "Apache-2.0/MIT"
 repository = "https://github.com/phil-opp/linked-list-allocator"
+
 [package.metadata.release]
-no-dev-version = true
+dev-version = false
 pre-release-commit-message = "Release version {{version}}"
 
 [[package.metadata.release.pre-release-replacements]]
-exactly = 1
 file = "Changelog.md"
-replace = "# Unreleased\n\n# {{version}} – {{date}}"
 search = "# Unreleased"
+replace = """
+# Unreleased
+
+# {{version}} – {{date}}"""
+exactly = 1
+
 [dependencies.spinning_top]
 version = "0.2.3"
 optional = true
@@ -37,4 +49,8 @@ alloc_ref = []
 const_mut_refs = []
 default = ["use_spin_nightly"]
 use_spin = ["spinning_top"]
-use_spin_nightly = ["use_spin", "spinning_top/nightly", "const_mut_refs"]
+use_spin_nightly = [
+    "use_spin",
+    "spinning_top/nightly",
+    "const_mut_refs",
+]

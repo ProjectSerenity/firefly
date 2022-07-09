@@ -1,5 +1,19 @@
 # Unreleased
 
+# 0.10.1 – 2022-07-07
+
+- Fixed logic for freeing nodes ([#64])
+
+[#64]: https://github.com/rust-osdev/linked-list-allocator/pull/64
+
+# 0.10.0 – 2022-06-27
+
+- Changed constructor to take `*mut u8` instead of `usize` ([#62])
+    - NOTE: Breaking API change
+- Reworked internals to pass Miri tests ([#62])
+
+[#62]: https://github.com/phil-opp/linked-list-allocator/pull/62
+
 # 0.9.1 – 2021-10-17
 
 - Add safe constructor and initialization for `Heap` ([#55](https://github.com/phil-opp/linked-list-allocator/pull/55))

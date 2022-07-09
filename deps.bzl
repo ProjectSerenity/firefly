@@ -103,7 +103,7 @@ rust = [
     ),
     crate(
         name = "linked_list_allocator",
-        version = "0.9.1",
+        version = "0.10.1",
         features = ["const_mut_refs"],
     ),
     crate(
@@ -422,7 +422,7 @@ go = [
     ),
     module(
         name = "golang.org/x/vuln",
-        version = "v0.0.0-20220613164644-4eb5ba49563c",
+        version = "v0.0.0-20220708185735-a7e5c096cfa7",
         packages = [
             package(
                 name = "golang.org/x/vuln/osv",

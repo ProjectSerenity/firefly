@@ -59,8 +59,8 @@ RULES_RUST = struct(
     repo = "bazelbuild/rules_rust",
     branch = "main",
     archive = "https://github.com/bazelbuild/rules_rust/archive/{v}.tar.gz",
-    version = "5a9d999db91dd6415949ef3e74a48221c7cdb048",
-    sha256 = "0715bd2691c3aaf8faa399b27e63a45ea2fa05a1a63f84a29cdcd51b7d260f7d",
+    version = "b22a6e14164db2d85a0589af15218d4c88d398d8",
+    sha256 = "3bbcb3d0dc097ee342a5571fa4ce23dd881a86d11655f7c961495bc16463a48b",
 )
 
 RULES_SKYLIB = struct(
