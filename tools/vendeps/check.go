@@ -203,6 +203,7 @@ func CheckDependencies(fsys fs.FS) error {
 	}
 
 	now := time.Now()
+	vulnsFound := 0
 	for _, advisory := range vulns.Rust {
 		if advisory.Withdrawn != nil && !advisory.Withdrawn.IsZero() && advisory.Withdrawn.Before(now) {
 			continue
@@ -238,6 +239,11 @@ func CheckDependencies(fsys fs.FS) error {
 			log.Printf("  ID:      %s (%s)", advisory.ID, strings.Join(advisory.Aliases, ", "))
 		}
 		log.Printf("  Details: %s", strings.Join(strings.Split(advisory.Details, "\n"), "\n           "))
+		vulnsFound++
+	}
+
+	if vulnsFound == 0 {
+		fmt.Printf("No vulnerabilities found in Rust crates.\n")
 	}
 
 	if len(directOnly) == 0 {
