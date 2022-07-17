@@ -161,6 +161,7 @@ var sharedTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 	"fromU64":            sharedFromU64,
 	"isEnumeration":      sharedIsEnumeration,
 	"isInteger":          sharedIsInteger,
+	"isNewInteger":       sharedIsNewInteger,
 	"isPadding":          sharedIsPadding,
 	"isPointer":          sharedIsPointer,
 	"isSigned":           sharedIsSigned,
@@ -209,6 +210,11 @@ func sharedIsEnumeration(typ types.Type) bool {
 
 func sharedIsInteger(typ types.Type) bool {
 	_, ok := types.Underlying(typ).(types.Integer)
+	return ok
+}
+
+func sharedIsNewInteger(typ types.Type) bool {
+	_, ok := types.Underlying(typ).(*types.NewInteger)
 	return ok
 }
 
@@ -382,6 +388,10 @@ func sharedToString(t types.Type) string {
 func sharedToU64(t types.Type) string {
 	if integer, ok := types.Underlying(t).(types.Integer); ok && integer == types.Uint64 {
 		return ""
+	}
+
+	if _, ok := types.Underlying(t).(*types.NewInteger); ok {
+		return ".0 as u64"
 	}
 
 	return " as u64"

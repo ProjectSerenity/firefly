@@ -119,6 +119,7 @@ var userTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 	"errorEnumeration":   sharedErrorEnumeration,
 	"fromU64":            sharedFromU64,
 	"isEnumeration":      sharedIsEnumeration,
+	"isNewInteger":       sharedIsNewInteger,
 	"isPadding":          sharedIsPadding,
 	"oneResult":          sharedOneResult,
 	"paramNamesAndTypes": sharedParamNamesAndTypes,

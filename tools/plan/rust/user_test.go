@@ -212,6 +212,45 @@ func TestUserSyscallTemplates(t *testing.T) {
 			},
 		},
 		{
+			Name: "simple syscall with no args and new integer result",
+			Want: "syscall_rs_no_args_new_integer_result",
+			Tmpl: userSyscallTemplate,
+			Type: &types.Syscall{
+				Name: types.Name{"simple", "syscall"},
+				Docs: types.Docs{
+					types.Text("A simple function that takes no arguments and"),
+					types.Newline{},
+					types.Text("returns no results."),
+				},
+				Results: []*types.Parameter{
+					{
+						Name: types.Name{"thread", "id"},
+						Type: &types.Reference{
+							Name: types.Name{"thread", "id"},
+							Underlying: &types.NewInteger{
+								Name: types.Name{"thread", "id"},
+								Type: types.Uint64,
+							},
+						},
+					},
+					{
+						Name: types.Name{"error"},
+						Type: &types.Reference{
+							Name: types.Name{"error"},
+							Underlying: &types.Enumeration{
+								Name: types.Name{"error"},
+								Type: types.Uint8,
+								Values: []*types.Value{
+									{Name: types.Name{"no", "error"}},
+									{Name: types.Name{"end", "of", "file"}},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			Name: "simple syscall with no args and both results",
 			Want: "syscall_rs_no_args_both_results",
 			Tmpl: userSyscallTemplate,

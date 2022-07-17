@@ -29,6 +29,8 @@ pub fn {{ .Name.SnakeCase }}({{ paramNamesAndTypes .Args }}) -> {{ if oneResult 
                 {{ toString $result1.Type }}::from_{{ toString $result1.Enumeration.Type }}(
                     result1{{ fromU64 $result1.Enumeration.Type }}).expect("invalid {{ toString $result1.Type }}"
                 )
+            {{- else if isNewInteger $result1.Type -}}
+                {{ toString $result1.Type }}(result1)
             {{- else -}}
                 result1{{ fromU64 $result1.Type }}
             {{- end }}),
