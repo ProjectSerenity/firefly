@@ -3,4 +3,5 @@
 {{- $type := toString .Type -}}
 
 {{ toDocs 0 .Docs }}
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct {{ $name }}(pub {{ $type }});
