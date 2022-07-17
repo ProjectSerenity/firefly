@@ -397,3 +397,22 @@
 	(name port number)
 	(docs "The number for a TCP or UDP port.")
 	(type uint16))
+
+
+(integer
+	(name thread id)
+	(docs "The unique identifier for a thread of execution.")
+	(type uint64))
+
+
+(syscall
+	(name current thread id)
+	(docs "Returns the" (reference thread id) "of the currently executing thread.")
+	(result1
+		(name thread id)
+		(docs "The current" (reference thread id) ".")
+		(type thread id))
+	(result2
+		(name error)
+		(docs "An error if" (reference current thread id) "has been disabled.")
+		(type error)))

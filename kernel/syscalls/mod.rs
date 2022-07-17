@@ -13,7 +13,7 @@ mod firefly_syscalls {
 
 use core::arch::global_asm;
 use cpu::with_user_memory_access;
-use firefly_abi::{Error, Registers};
+use firefly_abi::{Error, Registers, ThreadId};
 use firefly_syscalls::{SavedRegisters, SyscallABI};
 use multitasking::thread;
 use segmentation::with_segment_data;
@@ -231,6 +231,21 @@ impl SyscallABI for FireflyABI {
         with_user_memory_access(|| random::read(b));
 
         Error::NoError
+    }
+
+    /// Returns the [`ThreadId`] of the currently executing thread.
+    ///
+    /// Note that we return the thread id within the current process,
+    /// not the kernel-wide unique id.
+    ///
+    #[inline]
+    fn current_thread_id(_registers: *mut SavedRegisters) -> Result<ThreadId, Error> {
+        Ok(ThreadId(
+            thread::current_thread()
+                .process_thread_id()
+                .expect("current process thread id")
+                .as_u64(),
+        ))
     }
 }
 

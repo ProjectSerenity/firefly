@@ -22,6 +22,7 @@
 
 use core::fmt;
 use core::fmt::Write;
+use firefly_abi as _;
 use firefly_syscalls as syscalls;
 
 /// Exit the current thread.
@@ -147,4 +148,16 @@ macro_rules! eprint {
 macro_rules! eprintln {
     () => ($crate::eprint!("\n"));
     ($($arg:tt)*) => ($crate::eprint!("{}\n", format_args!($($arg)*)));
+}
+
+/// Returns the current thread id.
+///
+///
+/// # Panics
+///
+/// `current_thread_id` will panic if the
+/// corresponding syscall has been disabled.
+///
+pub fn current_thread_id() -> firefly_abi::ThreadId {
+    syscalls::current_thread_id().unwrap()
 }
