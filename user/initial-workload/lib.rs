@@ -18,7 +18,7 @@
 #![forbid(unsafe_code)]
 #![deny(unused_crate_dependencies)]
 
-use firefly::{println, read_random};
+use firefly::{current_thread_id, println, read_random};
 
 /// The application entry point.
 ///
@@ -26,6 +26,7 @@ use firefly::{println, read_random};
 pub fn main() {
     let mut buf = [0u8; 8];
     read_random(&mut buf[..]);
-    println!("Hello from userland: {:x?}!", &buf[..]);
+    let thread_id = current_thread_id();
+    println!("Hello from userland {:?}: {:x?}!", thread_id, &buf[..]);
     println!("main() is at {:p}", main as *const u8);
 }
