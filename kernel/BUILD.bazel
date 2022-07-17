@@ -9,7 +9,7 @@ load("//tools/plan:defs.bzl", "plan_rust_kernelspace")
 
 plan_rust_kernelspace(
     name = "syscalls",
-    embed = "//shared/syscalls",
+    embed = "//shared/firefly_abi",
     rustfmt = "@rust_linux_x86_64//:rustfmt",
 )
 
@@ -55,7 +55,7 @@ rust_library(
         "//kernel/utils/spin",
         "//kernel/utils/tar",
         "//shared/bootinfo",
-        "//shared/firefly_abi",
+        "//shared/firefly_abi:rust",
         "//vendor/rust/bitflags",
         "//vendor/rust/x86_64",
     ],

@@ -4,16 +4,33 @@
 # license that can be found in the LICENSE file.
 
 load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rust_test")
-load("//tools/plan:defs.bzl", "plan_rust_shared")
+load("//tools/plan:defs.bzl", "plan_docs", "plan_format", "plan_library", "plan_rust_shared")
+
+plan_library(
+    name = "firefly_abi",
+    src = "x86_64.plan",
+    arch = "x86-64",
+    visibility = ["//visibility:public"],
+)
+
+plan_docs(
+    name = "docs",
+    embed = ":firefly_abi",
+)
+
+plan_format(
+    name = "firefly_abi_format",
+    embed = ":firefly_abi",
+)
 
 plan_rust_shared(
     name = "lib",
-    embed = "//shared/syscalls",
+    embed = ":firefly_abi",
     rustfmt = "@rust_linux_x86_64//:rustfmt",
 )
 
 rust_library(
-    name = "firefly_abi",
+    name = "rust",
     srcs = [":lib"],
     crate_name = "firefly_abi",
     edition = "2021",
@@ -24,17 +41,17 @@ rust_library(
 )
 
 rust_clippy(
-    name = "clippy",
-    deps = [":firefly_abi"],
+    name = "rust_clippy",
+    deps = [":rust"],
 )
 
 rust_doc(
-    name = "docs",
-    crate = ":firefly_abi",
+    name = "rust_docs",
+    crate = ":rust",
 )
 
 rust_test(
-    name = "firefly_abi_test",
+    name = "rust_test",
     size = "small",
-    crate = ":firefly_abi",
+    crate = ":rust",
 )

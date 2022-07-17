@@ -8,7 +8,7 @@ load("//tools/plan:defs.bzl", "plan_rust_userspace")
 
 plan_rust_userspace(
     name = "lib",
-    embed = "//shared/syscalls",
+    embed = "//shared/firefly_abi",
     rustfmt = "@rust_linux_x86_64//:rustfmt",
 )
 
@@ -19,7 +19,7 @@ rust_library(
     edition = "2021",
     visibility = ["//visibility:public"],
     deps = [
-        "//shared/firefly_abi",
+        "//shared/firefly_abi:rust",
     ],
 )
 
