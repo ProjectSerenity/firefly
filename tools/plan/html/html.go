@@ -368,6 +368,8 @@ func toString(t types.Type) template.HTML {
 		return template.HTML(fmt.Sprintf(`<a href="../enumerations/%s.html" class="enumeration">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
 	case types.Integer:
 		return template.HTML(fmt.Sprintf(`<span title="%s">%s</span>`, plainDocs(t.Docs()), t))
+	case *types.NewInteger:
+		return template.HTML(fmt.Sprintf(`<a href="../integers/%s.html" class="integer">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
 	case *types.Structure:
 		return template.HTML(fmt.Sprintf(`<a href="../structures/%s.html" class="structure">%s</a>`, t.Name.SnakeCase(), t.Name.Spaced()))
 	case *types.SyscallReference:
