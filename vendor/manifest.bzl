@@ -113,8 +113,8 @@ rust = [
     ),
     crate(
         name = "rustversion",
-        version = "1.0.7",
-        digest = "sha256:6380c40815fadb3ffa7dd82f925ff7d522c5941f725836603d51c92b33b818e2",
+        version = "1.0.8",
+        digest = "sha256:ef57f62b19e1251a573521a8056883f12d6ffd6cab0e7491a9396b371c597e73",
     ),
     crate(
         name = "scopeguard",
@@ -128,8 +128,8 @@ rust = [
     ),
     crate(
         name = "spin",
-        version = "0.5.2",
-        digest = "sha256:ffb64da7cf7ca754fb5e70b554024232bba7b2c94dc1bc5e02d66b01d711069e",
+        version = "0.9.4",
+        digest = "sha256:950ded1cfe90f8fc09fb0260e3184ea50afb95a5f530ad4fe317fbe8ab1ecce8",
     ),
     crate(
         name = "spinning_top",
@@ -163,8 +163,8 @@ rust = [
     ),
     crate(
         name = "x86_64",
-        version = "0.14.9",
-        digest = "sha256:ab65bb9b3a6380642b99ceacd7effd467db7996aadd4689fd325314dacb26e50",
+        version = "0.14.10",
+        digest = "sha256:1aaa83c766b007375e43d85f17528241f22fb8b31b271168498fa99ef252756b",
     ),
     crate(
         name = "xmas-elf",
@@ -181,8 +181,8 @@ rust = [
 go = [
     module(
         name = "github.com/BurntSushi/toml",
-        version = "v1.1.0",
-        digest = "sha256:2d2419b22944a3c77038205bef2ed91e387414df0a77f3355d9cc2c7b8becf90",
+        version = "v1.2.0",
+        digest = "sha256:100ca6584b169504eb8625f39f923db07d4cb936e4cdcf272b1ef6c308cd70ff",
     ),
     module(
         name = "github.com/bazelbuild/buildtools",
@@ -191,8 +191,8 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.0.0-20220622213112-05595931fe9d",
-        digest = "sha256:9cf21739f383c79039d1854b58da3c9215040756ab8028199ff8b57bef653471",
+        version = "v0.0.0-20220722155217-630584e8d5aa",
+        digest = "sha256:9c1ca6648995078cbaa8083af18bec6ca7242b83a4c2a5a7b204559dff835a7d",
     ),
     module(
         name = "golang.org/x/mod",
@@ -201,8 +201,8 @@ go = [
     ),
     module(
         name = "golang.org/x/time",
-        version = "v0.0.0-20220609170525-579cf78fd858",
-        digest = "sha256:6b55972591fc35d681c5a74f789a2d0c030449107ab19a8c9569539c7d0f1a4c",
+        version = "v0.0.0-20220722155302-e5dcc9cfc0b9",
+        digest = "sha256:423a83bf899b93fd6004225201c9faa415872a7cd3813ab236a4f03d916d6fd6",
     ),
     module(
         name = "golang.org/x/tools",
@@ -211,8 +211,8 @@ go = [
     ),
     module(
         name = "golang.org/x/vuln",
-        version = "v0.0.0-20220708185735-a7e5c096cfa7",
-        digest = "sha256:0d7efd5296a286d517e7d0d182efbc051f8f700195c7b7e684314c2a240c3bcc",
+        version = "v0.0.0-20220723112632-348460952d62",
+        digest = "sha256:4162e176dbce79d2e4f26a8a94f1cc9c6457774c61dfc79fe06c951e81a59c2a",
     ),
     module(
         name = "golang.org/x/xerrors",

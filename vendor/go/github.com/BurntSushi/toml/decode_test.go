@@ -1,11 +1,15 @@
 package toml
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -119,6 +123,87 @@ func TestDecodeEmbedded(t *testing.T) {
 		if !reflect.DeepEqual(test.wantDecoded, test.decodeInto) {
 			t.Errorf("%s: want decoded == %+v, got %+v",
 				test.label, test.wantDecoded, test.decodeInto)
+		}
+	}
+}
+
+func TestDecodeErrors(t *testing.T) {
+	tests := []struct {
+		s       interface{}
+		toml    string
+		wantErr string
+	}{
+		{
+			&struct{ V int8 }{},
+			`V = 999`,
+			`toml: line 1 (last key "V"): 999 is out of range for int8`,
+		},
+		{
+			&struct{ V float32 }{},
+			`V = 999999999999999`,
+			`toml: line 1 (last key "V"): 999999999999999 is out of range for float32`,
+		},
+		{
+			&struct{ V string }{},
+			`V = 5`,
+			`toml: line 1 (last key "V"): incompatible types: TOML value has type int64; destination has type string`,
+		},
+		{
+			&struct{ V interface{ ASD() } }{},
+			`V = 999`,
+			`toml: line 1 (last key "V"): unsupported type interface { ASD() }`,
+		},
+		{
+			&struct{ V struct{ V int } }{},
+			`V = 999`,
+			`toml: line 1 (last key "V"): type mismatch for struct { V int }: expected table but found int64`,
+		},
+		{
+			&struct{ V [1]int }{},
+			`V = [1,2,3]`,
+			`toml: line 1 (last key "V"): expected array length 1; got TOML array of length 3`,
+		},
+		{
+			&struct{ V struct{ N int8 } }{},
+			`V.N = 999`,
+			`toml: line 1 (last key "V.N"): 999 is out of range for int8`,
+		},
+		{
+			&struct{ V struct{ N float32 } }{},
+			`V.N = 999999999999999`,
+			`toml: line 1 (last key "V.N"): 999999999999999 is out of range for float32`,
+		},
+		{
+			&struct{ V struct{ N string } }{},
+			`V.N = 5`,
+			`toml: line 1 (last key "V.N"): incompatible types: TOML value has type int64; destination has type string`,
+		},
+		{
+			&struct {
+				V struct{ N interface{ ASD() } }
+			}{},
+			`V.N = 999`,
+			`toml: line 1 (last key "V.N"): unsupported type interface { ASD() }`,
+		},
+		{
+			&struct{ V struct{ N struct{ V int } } }{},
+			`V.N = 999`,
+			`toml: line 1 (last key "V.N"): type mismatch for struct { V int }: expected table but found int64`,
+		},
+		{
+			&struct{ V struct{ N [1]int } }{},
+			`V.N = [1,2,3]`,
+			`toml: line 1 (last key "V.N"): expected array length 1; got TOML array of length 3`,
+		},
+	}
+
+	for _, tt := range tests {
+		_, err := Decode(tt.toml, tt.s)
+		if err == nil {
+			t.Fatal("err is nil")
+		}
+		if err.Error() != tt.wantErr {
+			t.Errorf("\nhave: %q\nwant: %q", err, tt.wantErr)
 		}
 	}
 }
@@ -348,38 +433,56 @@ func TestDecodeSizedInts(t *testing.T) {
 
 type NopUnmarshalTOML int
 
-func (NopUnmarshalTOML) UnmarshalTOML(p interface{}) error { return nil }
+func (n *NopUnmarshalTOML) UnmarshalTOML(p interface{}) error {
+	*n = 42
+	return nil
+}
 
 func TestDecodeTypes(t *testing.T) {
-	type mystr string
+	type (
+		mystr   string
+		myiface interface{}
+	)
 
 	for _, tt := range []struct {
-		v    interface{}
-		want string
+		v       interface{}
+		want    string
+		wantErr string
 	}{
-		{new(map[string]bool), ""},
-		{new(map[mystr]bool), ""},
-		{new(NopUnmarshalTOML), ""},
+		{new(map[string]bool), "&map[F:true]", ""},
+		{new(map[mystr]bool), "&map[F:true]", ""},
+		{new(NopUnmarshalTOML), "42", ""},
+		{new(map[interface{}]bool), "&map[F:true]", ""},
+		{new(map[myiface]bool), "&map[F:true]", ""},
 
-		{3, `toml: cannot decode to non-pointer "int"`},
-		{map[string]interface{}{}, `toml: cannot decode to non-pointer "map[string]interface {}"`},
+		{3, "", `toml: cannot decode to non-pointer "int"`},
+		{map[string]interface{}{}, "", `toml: cannot decode to non-pointer "map[string]interface {}"`},
 
-		{(*int)(nil), `toml: cannot decode to nil value of "*int"`},
-		{(*Unmarshaler)(nil), `toml: cannot decode to nil value of "*toml.Unmarshaler"`},
-		{nil, `toml: cannot decode to non-pointer <nil>`},
+		{(*int)(nil), "", `toml: cannot decode to nil value of "*int"`},
+		{(*Unmarshaler)(nil), "", `toml: cannot decode to nil value of "*toml.Unmarshaler"`},
+		{nil, "", `toml: cannot decode to non-pointer <nil>`},
 
-		{new(map[int]string), "cannot decode to a map with non-string key type"},
-		{new(map[interface{}]string), "cannot decode to a map with non-string key type"},
+		{new(map[int]string), "", "toml: cannot decode to a map with non-string key type"},
 
-		{new(struct{ F int }), `toml: incompatible types: TOML key "F" has type bool; destination has type integer`},
-		{new(map[string]int), `toml: incompatible types: TOML key "F" has type bool; destination has type integer`},
-		{new(int), `toml: cannot decode to type int`},
-		{new([]int), "toml: cannot decode to type []int"},
+		{new(struct{ F int }), "", `toml: line 1 (last key "F"): incompatible types: TOML value has type bool; destination has type integer`},
+		{new(map[string]int), "", `toml: line 1 (last key "F"): incompatible types: TOML value has type bool; destination has type integer`},
+		{new(int), "", `toml: cannot decode to type int`},
+		{new([]int), "", "toml: cannot decode to type []int"},
 	} {
 		t.Run(fmt.Sprintf("%T", tt.v), func(t *testing.T) {
 			_, err := Decode(`F = true`, tt.v)
-			if !errorContains(err, tt.want) {
-				t.Errorf("wrong error\nhave: %q\nwant: %q", err, tt.want)
+			if !errorContains(err, tt.wantErr) {
+				t.Fatalf("wrong error\nhave: %q\nwant: %q", err, tt.wantErr)
+			}
+
+			if err == nil {
+				have := fmt.Sprintf("%v", tt.v)
+				if n, ok := tt.v.(*NopUnmarshalTOML); ok {
+					have = fmt.Sprintf("%v", *n)
+				}
+				if have != tt.want {
+					t.Errorf("\nhave: %s\nwant: %s", have, tt.want)
+				}
 			}
 		})
 	}
@@ -513,8 +616,8 @@ Locations = {NY = {Temp = "not cold", Rating = 4}, MI = {Temp = "freezing", Rati
 	if len(meta.keys) != 12 {
 		t.Errorf("after decode, got %d meta keys; want 12", len(meta.keys))
 	}
-	if len(meta.types) != 12 {
-		t.Errorf("after decode, got %d meta types; want 12", len(meta.types))
+	if len(meta.keyInfo) != 12 {
+		t.Errorf("after decode, got %d meta keyInfo; want 12", len(meta.keyInfo))
 	}
 }
 
@@ -754,6 +857,142 @@ func TestDecodeDatetime(t *testing.T) {
 	}
 }
 
+func TestDecodeTextUnmarshaler(t *testing.T) {
+	tests := []struct {
+		name string
+		t    interface{}
+		toml string
+		want string
+	}{
+		{
+			"time.Time",
+			struct{ Time time.Time }{},
+			"Time = 1987-07-05T05:45:00Z",
+			"map[Time:1987-07-05 05:45:00 +0000 UTC]",
+		},
+		{
+			"*time.Time",
+			struct{ Time *time.Time }{},
+			"Time = 1988-07-05T05:45:00Z",
+			"map[Time:1988-07-05 05:45:00 +0000 UTC]",
+		},
+		{
+			"map[string]time.Time",
+			struct{ Times map[string]time.Time }{},
+			"Times.one = 1989-07-05T05:45:00Z\nTimes.two = 1990-07-05T05:45:00Z",
+			"map[Times:map[one:1989-07-05 05:45:00 +0000 UTC two:1990-07-05 05:45:00 +0000 UTC]]",
+		},
+		{
+			"map[string]*time.Time",
+			struct{ Times map[string]*time.Time }{},
+			"Times.one = 1989-07-05T05:45:00Z\nTimes.two = 1990-07-05T05:45:00Z",
+			"map[Times:map[one:1989-07-05 05:45:00 +0000 UTC two:1990-07-05 05:45:00 +0000 UTC]]",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := Decode(tt.toml, &tt.t)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			have := fmt.Sprintf("%v", tt.t)
+			if have != tt.want {
+				t.Errorf("\nhave: %s\nwant: %s", have, tt.want)
+			}
+		})
+	}
+}
+
+func TestDecodeDuration(t *testing.T) {
+	tests := []struct {
+		in                  interface{}
+		toml, want, wantErr string
+	}{
+		{&struct{ T time.Duration }{}, `t = "0s"`,
+			"&{0s}", ""},
+		{&struct{ T time.Duration }{}, `t = "5m4s"`,
+			"&{5m4s}", ""},
+		{&struct{ T time.Duration }{}, `t = "4.000000002s"`,
+			"&{4.000000002s}", ""},
+
+		{&struct{ T time.Duration }{}, `t = 0`,
+			"&{0s}", ""},
+		{&struct{ T time.Duration }{}, `t = 12345678`,
+			"&{12.345678ms}", ""},
+
+		{&struct{ T *time.Duration }{}, `T = "5s"`,
+			"&{5s}", ""},
+		{&struct{ T *time.Duration }{}, `T = 5`,
+			"&{5ns}", ""},
+
+		{&struct{ T map[string]time.Duration }{}, `T.dur = "5s"`,
+			"&{map[dur:5s]}", ""},
+		{&struct{ T map[string]*time.Duration }{}, `T.dur = "5s"`,
+			"&{map[dur:5s]}", ""},
+
+		{&struct{ T []time.Duration }{}, `T = ["5s"]`,
+			"&{[5s]}", ""},
+		{&struct{ T []*time.Duration }{}, `T = ["5s"]`,
+			"&{[5s]}", ""},
+
+		{&struct{ T time.Duration }{}, `t = "99 bottles of beer"`, "&{0s}", `invalid duration: "99 bottles of beer"`},
+		{&struct{ T time.Duration }{}, `t = "one bottle of beer"`, "&{0s}", `invalid duration: "one bottle of beer"`},
+		{&struct{ T time.Duration }{}, `t = 1.2`, "&{0s}", "incompatible types:"},
+		{&struct{ T time.Duration }{}, `t = {}`, "&{0s}", "incompatible types:"},
+		{&struct{ T time.Duration }{}, `t = []`, "&{0s}", "incompatible types:"},
+	}
+
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			_, err := Decode(tt.toml, tt.in)
+			if !errorContains(err, tt.wantErr) {
+				t.Fatal(err)
+			}
+
+			have := fmt.Sprintf("%s", tt.in)
+			if have != tt.want {
+				t.Errorf("\nhave: %s\nwant: %s", have, tt.want)
+			}
+		})
+	}
+}
+
+func TestDecodeJSONNumber(t *testing.T) {
+	tests := []struct {
+		in                  interface{}
+		toml, want, wantErr string
+	}{
+		{&struct{ D json.Number }{}, `D = 2`, "&{2}", ""},
+		{&struct{ D json.Number }{}, `D = 2.002`, "&{2.002}", ""},
+		{&struct{ D *json.Number }{}, `D = 2`, "&{2}", ""},
+		{&struct{ D *json.Number }{}, `D = 2.002`, "&{2.002}", ""},
+		{&struct{ D []json.Number }{}, `D = [2, 3.03]`, "&{[2 3.03]}", ""},
+		{&struct{ D []*json.Number }{}, `D = [2, 3.03]`, "&{[2 3.03]}", ""},
+		{&struct{ D map[string]json.Number }{}, `D = {a=2, b=3.03}`, "&{map[a:2 b:3.03]}", ""},
+		{&struct{ D map[string]*json.Number }{}, `D = {a=2, b=3.03}`, "&{map[a:2 b:3.03]}", ""},
+
+		{&struct{ D json.Number }{}, `D = {}`, "&{}", "incompatible types"},
+		{&struct{ D json.Number }{}, `D = []`, "&{}", "incompatible types"},
+		{&struct{ D json.Number }{}, `D = "2"`, "&{}", "incompatible types"},
+	}
+
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			_, err := Decode(tt.toml, tt.in)
+			if !errorContains(err, tt.wantErr) {
+				t.Fatal(err)
+			}
+
+			have := fmt.Sprintf("%s", tt.in)
+			if have != tt.want {
+				t.Errorf("\nhave: %s\nwant: %s", have, tt.want)
+			}
+		})
+	}
+}
+
 func TestMetaDotConflict(t *testing.T) {
 	var m map[string]interface{}
 	meta, err := Decode(`
@@ -775,6 +1014,129 @@ func TestMetaDotConflict(t *testing.T) {
 	}
 	if have != want {
 		t.Errorf("\nhave: %s\nwant: %s", have, want)
+	}
+}
+
+type (
+	Outer struct {
+		Int   *InnerInt
+		Enum  *Enum
+		Slice *InnerArrayString
+	}
+	Enum             int
+	InnerString      struct{ value string }
+	InnerInt         struct{ value int }
+	InnerBool        struct{ value bool }
+	InnerArrayString struct{ value []string }
+)
+
+const (
+	NoValue Enum = iota
+	OtherValue
+)
+
+func (e *Enum) Value() string {
+	switch *e {
+	case OtherValue:
+		return "OTHER_VALUE"
+	}
+	return ""
+}
+
+func (e *Enum) MarshalTOML() ([]byte, error) {
+	return []byte(`"` + e.Value() + `"`), nil
+}
+
+func (e *Enum) UnmarshalTOML(value interface{}) error {
+	sValue, ok := value.(string)
+	if !ok {
+		return fmt.Errorf("value %v is not a string type", value)
+	}
+	for _, enum := range []Enum{NoValue, OtherValue} {
+		if enum.Value() == sValue {
+			*e = enum
+			return nil
+		}
+	}
+	return errors.New("invalid enum value")
+}
+
+func (i *InnerInt) MarshalTOML() ([]byte, error) {
+	return []byte(strconv.Itoa(i.value)), nil
+}
+func (i *InnerInt) UnmarshalTOML(value interface{}) error {
+	iValue, ok := value.(int64)
+	if !ok {
+		return fmt.Errorf("value %v is not a int type", value)
+	}
+	i.value = int(iValue)
+	return nil
+}
+
+func (as *InnerArrayString) MarshalTOML() ([]byte, error) {
+	return []byte("[\"" + strings.Join(as.value, "\", \"") + "\"]"), nil
+}
+
+func (as *InnerArrayString) UnmarshalTOML(value interface{}) error {
+	if value != nil {
+		asValue, ok := value.([]interface{})
+		if !ok {
+			return fmt.Errorf("value %v is not a [] type", value)
+		}
+		as.value = []string{}
+		for _, value := range asValue {
+			as.value = append(as.value, value.(string))
+		}
+	}
+	return nil
+}
+
+// Test for #341
+func TestCustomEncode(t *testing.T) {
+	enum := OtherValue
+	outer := Outer{
+		Int:   &InnerInt{value: 10},
+		Enum:  &enum,
+		Slice: &InnerArrayString{value: []string{"text1", "text2"}},
+	}
+
+	var buf bytes.Buffer
+	err := NewEncoder(&buf).Encode(outer)
+	if err != nil {
+		t.Errorf("Encode failed: %s", err)
+	}
+
+	have := strings.TrimSpace(buf.String())
+	want := strings.ReplaceAll(strings.TrimSpace(`
+		Int = 10
+		Enum = "OTHER_VALUE"
+		Slice = ["text1", "text2"]
+	`), "\t", "")
+	if want != have {
+		t.Errorf("\nhave: %s\nwant: %s\n", have, want)
+	}
+}
+
+// Test for #341
+func TestCustomDecode(t *testing.T) {
+	var outer Outer
+	_, err := Decode(`
+		Int = 10
+		Enum = "OTHER_VALUE"
+		Slice = ["text1", "text2"]
+	`, &outer)
+	if err != nil {
+		t.Fatal(fmt.Sprintf("Decode failed: %s", err))
+	}
+
+	if outer.Int.value != 10 {
+		t.Errorf("\nhave:\n%v\nwant:\n%v\n", outer.Int.value, 10)
+	}
+	if *outer.Enum != OtherValue {
+		t.Errorf("\nhave:\n%v\nwant:\n%v\n", outer.Enum, OtherValue)
+	}
+	if fmt.Sprint(outer.Slice.value) != fmt.Sprint([]string{"text1", "text2"}) {
+		t.Errorf("\nhave:\n%v\nwant:\n%v\n", outer.Slice.value, []string{"text1", "text2"})
 	}
 }
 

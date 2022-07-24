@@ -93,6 +93,11 @@ fn test_parse() {
     ];
 
     for (string, expected) in cases {
-        assert_eq!(parse(string).unwrap(), *expected);
+        match parse(string) {
+            ParseResult::Success(version) => assert_eq!(version, *expected),
+            ParseResult::OopsClippy | ParseResult::Unrecognized => {
+                panic!("unrecognized: {:?}", string);
+            }
+        }
     }
 }

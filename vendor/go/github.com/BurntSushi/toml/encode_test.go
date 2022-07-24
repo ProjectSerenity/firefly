@@ -2,10 +2,12 @@ package toml
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"math"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -115,6 +117,70 @@ func TestEncodeArrayHashWithNormalHashOrder(t *testing.T) {
 	encodeExpected(t, "array hash with normal hash order", val, expected, nil)
 }
 
+func TestEncodeOmitEmptyStruct(t *testing.T) {
+	type (
+		T     struct{ Int int }
+		Tpriv struct {
+			Int     int
+			private int
+		}
+		Ttime struct {
+			Time time.Time
+		}
+	)
+
+	tests := []struct {
+		in   interface{}
+		want string
+	}{
+		{struct {
+			F T `toml:"f,omitempty"`
+		}{}, ""},
+		{struct {
+			F T `toml:"f,omitempty"`
+		}{T{1}}, "[f]\n  Int = 1"},
+
+		{struct {
+			F Tpriv `toml:"f,omitempty"`
+		}{}, ""},
+		{struct {
+			F Tpriv `toml:"f,omitempty"`
+		}{Tpriv{1, 0}}, "[f]\n  Int = 1"},
+
+		// Private field being set also counts as "not empty".
+		{struct {
+			F Tpriv `toml:"f,omitempty"`
+		}{Tpriv{0, 1}}, "[f]\n  Int = 0"},
+
+		// time.Time is common use case, so test that explicitly.
+		{struct {
+			F Ttime `toml:"t,omitempty"`
+		}{}, ""},
+		{struct {
+			F Ttime `toml:"t,omitempty"`
+		}{Ttime{time.Time{}.Add(1)}}, "[t]\n  Time = 0001-01-01T00:00:00.000000001Z"},
+
+		// TODO: also test with MarshalText, MarshalTOML returning non-zero
+		// value.
+	}
+
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			buf := new(bytes.Buffer)
+
+			err := NewEncoder(buf).Encode(tt.in)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			have := strings.TrimSpace(buf.String())
+			if have != tt.want {
+				t.Errorf("\nhave:\n%s\nwant:\n%s", have, tt.want)
+			}
+		})
+	}
+}
+
 func TestEncodeWithOmitEmpty(t *testing.T) {
 	type simple struct {
 		Bool   bool              `toml:"bool,omitempty"`
@@ -122,6 +188,7 @@ func TestEncodeWithOmitEmpty(t *testing.T) {
 		Array  [0]byte           `toml:"array,omitempty"`
 		Slice  []int             `toml:"slice,omitempty"`
 		Map    map[string]string `toml:"map,omitempty"`
+		Time   time.Time         `toml:"time,omitempty"`
 	}
 
 	var v simple
@@ -131,10 +198,12 @@ func TestEncodeWithOmitEmpty(t *testing.T) {
 		String: " ",
 		Slice:  []int{2, 3, 4},
 		Map:    map[string]string{"foo": "bar"},
+		Time:   time.Date(1985, 6, 18, 15, 16, 17, 0, time.UTC),
 	}
 	expected := `bool = true
 string = " "
 slice = [2, 3, 4]
+time = 1985-06-18T15:16:17Z
 
 [map]
   foo = "bar"
@@ -177,17 +246,22 @@ func TestEncodeOmitemptyWithEmptyName(t *testing.T) {
 
 func TestEncodeAnonymousStruct(t *testing.T) {
 	type Inner struct{ N int }
-	type Outer0 struct{ Inner }
+	type inner struct{ B int }
+	type Outer0 struct {
+		Inner
+		inner
+	}
 	type Outer1 struct {
 		Inner `toml:"inner"`
+		inner `toml:"innerb"`
 	}
 
-	v0 := Outer0{Inner{3}}
-	expected := "N = 3\n"
+	v0 := Outer0{Inner{3}, inner{4}}
+	expected := "N = 3\nB = 4\n"
 	encodeExpected(t, "embedded anonymous untagged struct", v0, expected, nil)
 
-	v1 := Outer1{Inner{3}}
-	expected = "[inner]\n  N = 3\n"
+	v1 := Outer1{Inner{3}, inner{4}}
+	expected = "[inner]\n  N = 3\n\n[innerb]\n  B = 4\n"
 	encodeExpected(t, "embedded anonymous tagged struct", v1, expected, nil)
 }
 
@@ -244,6 +318,33 @@ func TestEncodeNestedAnonymousStructs(t *testing.T) {
 
 	expected := "A = \"a\"\nB = \"b\"\nC = \"c\"\n"
 	encodeExpected(t, "nested anonymous untagged structs", v, expected, nil)
+}
+
+type InnerForNextTest struct{ N int }
+
+func (InnerForNextTest) F() {}
+func (InnerForNextTest) G() {}
+
+func TestEncodeAnonymousNoStructField(t *testing.T) {
+	type Inner interface{ F() }
+	type inner interface{ G() }
+	type IntS []int
+	type intS []int
+	type Outer0 struct {
+		Inner
+		inner
+		IntS
+		intS
+	}
+
+	v0 := Outer0{
+		Inner: InnerForNextTest{3},
+		inner: InnerForNextTest{4},
+		IntS:  []int{5, 6},
+		intS:  []int{7, 8},
+	}
+	expected := "IntS = [5, 6]\n\n[Inner]\n  N = 3\n"
+	encodeExpected(t, "non struct anonymous field", v0, expected, nil)
 }
 
 func TestEncodeIgnoredFields(t *testing.T) {
@@ -331,11 +432,13 @@ type (
 	food  struct{ F []string }
 	fun   func()
 	cplx  complex128
+	ints  []int
 
 	sound2 struct{ S string }
 	food2  struct{ F []string }
 	fun2   func()
 	cplx2  complex128
+	ints2  []int
 )
 
 // This is intentionally wrong (pointer receiver)
@@ -347,6 +450,26 @@ func (c cplx) MarshalText() ([]byte, error) {
 	return []byte(fmt.Sprintf("(%f+%fi)", real(cplx), imag(cplx))), nil
 }
 
+func intsValue(is []int) []byte {
+	var buf bytes.Buffer
+	buf.WriteByte('<')
+	for i, v := range is {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		buf.WriteString(strconv.Itoa(v))
+	}
+	buf.WriteByte('>')
+	return buf.Bytes()
+}
+
+func (is *ints) MarshalText() ([]byte, error) {
+	if is == nil {
+		return []byte("[]"), nil
+	}
+	return intsValue(*is), nil
+}
+
 func (s *sound2) MarshalTOML() ([]byte, error) { return []byte("\"" + s.S + "\""), nil }
 func (f food2) MarshalTOML() ([]byte, error) {
 	return []byte("[\"" + strings.Join(f.F, "\", \"") + "\"]"), nil
@@ -355,6 +478,13 @@ func (f fun2) MarshalTOML() ([]byte, error) { return []byte("\"why would you do 
 func (c cplx2) MarshalTOML() ([]byte, error) {
 	cplx := complex128(c)
 	return []byte(fmt.Sprintf("\"(%f+%fi)\"", real(cplx), imag(cplx))), nil
+}
+func (is *ints2) MarshalTOML() ([]byte, error) {
+	// MarshalTOML must quote by self
+	if is == nil {
+		return []byte(`"[]"`), nil
+	}
+	return []byte(fmt.Sprintf(`"%s"`, intsValue(*is))), nil
 }
 
 func TestEncodeTextMarshaler(t *testing.T) {
@@ -367,6 +497,8 @@ func TestEncodeTextMarshaler(t *testing.T) {
 		Food2   *food
 		Complex cplx
 		Fun     fun
+		Ints    ints
+		Ints2   *ints2
 	}{
 		Name:   "Goblok",
 		Sound:  sound{"miauw"},
@@ -379,26 +511,28 @@ func TestEncodeTextMarshaler(t *testing.T) {
 		Food2:   &food{[]string{"chicken", "fish"}},
 		Complex: complex(42, 666),
 		Fun:     func() { panic("x") },
+		Ints:    ints{1, 2, 3, 4},
+		Ints2:   &ints2{1, 2, 3, 4},
 	}
 
 	var buf bytes.Buffer
-	if err := NewEncoder(&buf).Encode(x); err != nil {
+	if err := NewEncoder(&buf).Encode(&x); err != nil {
 		t.Fatal(err)
 	}
 
 	want := `Name = "Goblok"
+Sound = "miauw"
 Sound2 = "miauw"
 Food = "chicken, fish"
 Food2 = "chicken, fish"
 Complex = "(42.000000+666.000000i)"
 Fun = "why would you do this?"
+Ints = "<1,2,3,4>"
+Ints2 = "<1,2,3,4>"
 
 [Labels]
   color = "black"
   type = "cat"
-
-[Sound]
-  S = "miauw"
 `
 
 	if buf.String() != want {
@@ -455,6 +589,44 @@ Fun = "why would you do this?"
 	}
 }
 
+type (
+	retNil1 string
+	retNil2 string
+)
+
+func (r retNil1) MarshalText() ([]byte, error) { return nil, nil }
+func (r retNil2) MarshalTOML() ([]byte, error) { return nil, nil }
+
+func TestEncodeEmpty(t *testing.T) {
+	t.Run("text", func(t *testing.T) {
+		var (
+			s   struct{ Text retNil1 }
+			buf bytes.Buffer
+		)
+		err := NewEncoder(&buf).Encode(s)
+		if err == nil {
+			t.Fatalf("no error, but expected an error; output:\n%s", buf.String())
+		}
+		if buf.String() != "" {
+			t.Error("\n" + buf.String())
+		}
+	})
+
+	t.Run("toml", func(t *testing.T) {
+		var (
+			s   struct{ Text retNil2 }
+			buf bytes.Buffer
+		)
+		err := NewEncoder(&buf).Encode(s)
+		if err == nil {
+			t.Fatalf("no error, but expected an error; output:\n%s", buf.String())
+		}
+		if buf.String() != "" {
+			t.Error("\n" + buf.String())
+		}
+	})
+}
+
 // Would previously fail on 32bit architectures; can test with:
 //   GOARCH=386         go test -c &&  ./toml.test
 //   GOARCH=arm GOARM=7 go test -c && qemu-arm ./toml.test
@@ -494,6 +666,467 @@ func TestEncodeSkipInvalidType(t *testing.T) {
 	want := "str = \"a\"\n"
 	if have != want {
 		t.Errorf("\nwant: %q\nhave: %q\n", want, have)
+	}
+}
+
+func TestEncodeDuration(t *testing.T) {
+	tests := []time.Duration{
+		0,
+		time.Second,
+		time.Minute,
+		time.Hour,
+		248*time.Hour + 45*time.Minute + 24*time.Second,
+		12345678 * time.Nanosecond,
+		12345678 * time.Second,
+		4*time.Second + 2*time.Nanosecond,
+	}
+
+	for _, tt := range tests {
+		encodeExpected(t, tt.String(),
+			struct{ Dur time.Duration }{Dur: tt},
+			fmt.Sprintf("Dur = %q", tt), nil)
+	}
+}
+
+type jsonT struct {
+	Num  json.Number
+	NumP *json.Number
+	Arr  []json.Number
+	ArrP []*json.Number
+	Tbl  map[string]json.Number
+	TblP map[string]*json.Number
+}
+
+var (
+	n2, n4, n6 = json.Number("2"), json.Number("4"), json.Number("6")
+	f2, f4, f6 = json.Number("2.2"), json.Number("4.4"), json.Number("6.6")
+)
+
+func TestEncodeJSONNumber(t *testing.T) {
+	tests := []struct {
+		in   jsonT
+		want string
+	}{
+		{jsonT{}, "Num = 0"},
+		{jsonT{
+			Num:  "1",
+			NumP: &n2,
+			Arr:  []json.Number{"3"},
+			ArrP: []*json.Number{&n4},
+			Tbl:  map[string]json.Number{"k1": "5"},
+			TblP: map[string]*json.Number{"k2": &n6}}, `
+				Num = 1
+				NumP = 2
+				Arr = [3]
+				ArrP = [4]
+
+				[Tbl]
+				  k1 = 5
+
+				[TblP]
+				  k2 = 6
+		`},
+		{jsonT{
+			Num:  "1.1",
+			NumP: &f2,
+			Arr:  []json.Number{"3.3"},
+			ArrP: []*json.Number{&f4},
+			Tbl:  map[string]json.Number{"k1": "5.5"},
+			TblP: map[string]*json.Number{"k2": &f6}}, `
+				Num = 1.1
+				NumP = 2.2
+				Arr = [3.3]
+				ArrP = [4.4]
+
+				[Tbl]
+				  k1 = 5.5
+
+				[TblP]
+				  k2 = 6.6
+		`},
+	}
+
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			var buf bytes.Buffer
+			err := NewEncoder(&buf).Encode(tt.in)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			have := strings.TrimSpace(buf.String())
+			want := strings.ReplaceAll(strings.TrimSpace(tt.want), "\t", "")
+			if have != want {
+				t.Errorf("\nwant:\n%s\nhave:\n%s\n", want, have)
+			}
+		})
+	}
+}
+
+func TestEncode(t *testing.T) {
+	type Embedded struct {
+		Int int `toml:"_int"`
+	}
+	type NonStruct int
+
+	date := time.Date(2014, 5, 11, 19, 30, 40, 0, time.UTC)
+	dateStr := "2014-05-11T19:30:40Z"
+
+	tests := map[string]struct {
+		input      interface{}
+		wantOutput string
+		wantError  error
+	}{
+		"bool field": {
+			input: struct {
+				BoolTrue  bool
+				BoolFalse bool
+			}{true, false},
+			wantOutput: "BoolTrue = true\nBoolFalse = false\n",
+		},
+		"int fields": {
+			input: struct {
+				Int   int
+				Int8  int8
+				Int16 int16
+				Int32 int32
+				Int64 int64
+			}{1, 2, 3, 4, 5},
+			wantOutput: "Int = 1\nInt8 = 2\nInt16 = 3\nInt32 = 4\nInt64 = 5\n",
+		},
+		"uint fields": {
+			input: struct {
+				Uint   uint
+				Uint8  uint8
+				Uint16 uint16
+				Uint32 uint32
+				Uint64 uint64
+			}{1, 2, 3, 4, 5},
+			wantOutput: "Uint = 1\nUint8 = 2\nUint16 = 3\nUint32 = 4" +
+				"\nUint64 = 5\n",
+		},
+		"float fields": {
+			input: struct {
+				Float32 float32
+				Float64 float64
+			}{1.5, 2.5},
+			wantOutput: "Float32 = 1.5\nFloat64 = 2.5\n",
+		},
+		"string field": {
+			input:      struct{ String string }{"foo"},
+			wantOutput: "String = \"foo\"\n",
+		},
+		"string field with \\n escape": {
+			input:      struct{ String string }{"foo\n"},
+			wantOutput: "String = \"foo\\n\"\n",
+		},
+		"string field and unexported field": {
+			input: struct {
+				String     string
+				unexported int
+			}{"foo", 0},
+			wantOutput: "String = \"foo\"\n",
+		},
+		"datetime field in UTC": {
+			input:      struct{ Date time.Time }{date},
+			wantOutput: fmt.Sprintf("Date = %s\n", dateStr),
+		},
+		"datetime field as primitive": {
+			// Using a map here to fail if isStructOrMap() returns true for
+			// time.Time.
+			input: map[string]interface{}{
+				"Date": date,
+				"Int":  1,
+			},
+			wantOutput: fmt.Sprintf("Date = %s\nInt = 1\n", dateStr),
+		},
+		"array fields": {
+			input: struct {
+				IntArray0 [0]int
+				IntArray3 [3]int
+			}{[0]int{}, [3]int{1, 2, 3}},
+			wantOutput: "IntArray0 = []\nIntArray3 = [1, 2, 3]\n",
+		},
+		"slice fields": {
+			input: struct{ IntSliceNil, IntSlice0, IntSlice3 []int }{
+				nil, []int{}, []int{1, 2, 3},
+			},
+			wantOutput: "IntSlice0 = []\nIntSlice3 = [1, 2, 3]\n",
+		},
+		"datetime slices": {
+			input: struct{ DatetimeSlice []time.Time }{
+				[]time.Time{date, date},
+			},
+			wantOutput: fmt.Sprintf("DatetimeSlice = [%s, %s]\n",
+				dateStr, dateStr),
+		},
+		"nested arrays and slices": {
+			input: struct {
+				SliceOfArrays         [][2]int
+				ArrayOfSlices         [2][]int
+				SliceOfArraysOfSlices [][2][]int
+				ArrayOfSlicesOfArrays [2][][2]int
+				SliceOfMixedArrays    [][2]interface{}
+				ArrayOfMixedSlices    [2][]interface{}
+			}{
+				[][2]int{{1, 2}, {3, 4}},
+				[2][]int{{1, 2}, {3, 4}},
+				[][2][]int{
+					{
+						{1, 2}, {3, 4},
+					},
+					{
+						{5, 6}, {7, 8},
+					},
+				},
+				[2][][2]int{
+					{
+						{1, 2}, {3, 4},
+					},
+					{
+						{5, 6}, {7, 8},
+					},
+				},
+				[][2]interface{}{
+					{1, 2}, {"a", "b"},
+				},
+				[2][]interface{}{
+					{1, 2}, {"a", "b"},
+				},
+			},
+			wantOutput: `SliceOfArrays = [[1, 2], [3, 4]]
+ArrayOfSlices = [[1, 2], [3, 4]]
+SliceOfArraysOfSlices = [[[1, 2], [3, 4]], [[5, 6], [7, 8]]]
+ArrayOfSlicesOfArrays = [[[1, 2], [3, 4]], [[5, 6], [7, 8]]]
+SliceOfMixedArrays = [[1, 2], ["a", "b"]]
+ArrayOfMixedSlices = [[1, 2], ["a", "b"]]
+`,
+		},
+		"empty slice": {
+			input:      struct{ Empty []interface{} }{[]interface{}{}},
+			wantOutput: "Empty = []\n",
+		},
+		"(error) slice with element type mismatch (string and integer)": {
+			input:      struct{ Mixed []interface{} }{[]interface{}{1, "a"}},
+			wantOutput: "Mixed = [1, \"a\"]\n",
+		},
+		"(error) slice with element type mismatch (integer and float)": {
+			input:      struct{ Mixed []interface{} }{[]interface{}{1, 2.5}},
+			wantOutput: "Mixed = [1, 2.5]\n",
+		},
+		"slice with elems of differing Go types, same TOML types": {
+			input: struct {
+				MixedInts   []interface{}
+				MixedFloats []interface{}
+			}{
+				[]interface{}{
+					int(1), int8(2), int16(3), int32(4), int64(5),
+					uint(1), uint8(2), uint16(3), uint32(4), uint64(5),
+				},
+				[]interface{}{float32(1.5), float64(2.5)},
+			},
+			wantOutput: "MixedInts = [1, 2, 3, 4, 5, 1, 2, 3, 4, 5]\n" +
+				"MixedFloats = [1.5, 2.5]\n",
+		},
+		"(error) slice w/ element type mismatch (one is nested array)": {
+			input: struct{ Mixed []interface{} }{
+				[]interface{}{1, []interface{}{2}},
+			},
+			wantOutput: "Mixed = [1, [2]]\n",
+		},
+		"(error) slice with 1 nil element": {
+			input:     struct{ NilElement1 []interface{} }{[]interface{}{nil}},
+			wantError: errArrayNilElement,
+		},
+		"(error) slice with 1 nil element (and other non-nil elements)": {
+			input: struct{ NilElement []interface{} }{
+				[]interface{}{1, nil},
+			},
+			wantError: errArrayNilElement,
+		},
+		"simple map": {
+			input:      map[string]int{"a": 1, "b": 2},
+			wantOutput: "a = 1\nb = 2\n",
+		},
+		"map with interface{} value type": {
+			input:      map[string]interface{}{"a": 1, "b": "c"},
+			wantOutput: "a = 1\nb = \"c\"\n",
+		},
+		"map with interface{} value type, some of which are structs": {
+			input: map[string]interface{}{
+				"a": struct{ Int int }{2},
+				"b": 1,
+			},
+			wantOutput: "b = 1\n\n[a]\n  Int = 2\n",
+		},
+		"nested map": {
+			input: map[string]map[string]int{
+				"a": {"b": 1},
+				"c": {"d": 2},
+			},
+			wantOutput: "[a]\n  b = 1\n\n[c]\n  d = 2\n",
+		},
+		"nested struct": {
+			input: struct{ Struct struct{ Int int } }{
+				struct{ Int int }{1},
+			},
+			wantOutput: "[Struct]\n  Int = 1\n",
+		},
+		"nested struct and non-struct field": {
+			input: struct {
+				Struct struct{ Int int }
+				Bool   bool
+			}{struct{ Int int }{1}, true},
+			wantOutput: "Bool = true\n\n[Struct]\n  Int = 1\n",
+		},
+		"2 nested structs": {
+			input: struct{ Struct1, Struct2 struct{ Int int } }{
+				struct{ Int int }{1}, struct{ Int int }{2},
+			},
+			wantOutput: "[Struct1]\n  Int = 1\n\n[Struct2]\n  Int = 2\n",
+		},
+		"deeply nested structs": {
+			input: struct {
+				Struct1, Struct2 struct{ Struct3 *struct{ Int int } }
+			}{
+				struct{ Struct3 *struct{ Int int } }{&struct{ Int int }{1}},
+				struct{ Struct3 *struct{ Int int } }{nil},
+			},
+			wantOutput: "[Struct1]\n  [Struct1.Struct3]\n    Int = 1" +
+				"\n\n[Struct2]\n",
+		},
+		"nested struct with nil struct elem": {
+			input: struct {
+				Struct struct{ Inner *struct{ Int int } }
+			}{
+				struct{ Inner *struct{ Int int } }{nil},
+			},
+			wantOutput: "[Struct]\n",
+		},
+		"nested struct with no fields": {
+			input: struct {
+				Struct struct{ Inner struct{} }
+			}{
+				struct{ Inner struct{} }{struct{}{}},
+			},
+			wantOutput: "[Struct]\n  [Struct.Inner]\n",
+		},
+		"struct with tags": {
+			input: struct {
+				Struct struct {
+					Int int `toml:"_int"`
+				} `toml:"_struct"`
+				Bool bool `toml:"_bool"`
+			}{
+				struct {
+					Int int `toml:"_int"`
+				}{1}, true,
+			},
+			wantOutput: "_bool = true\n\n[_struct]\n  _int = 1\n",
+		},
+		"embedded struct": {
+			input:      struct{ Embedded }{Embedded{1}},
+			wantOutput: "_int = 1\n",
+		},
+		"embedded *struct": {
+			input:      struct{ *Embedded }{&Embedded{1}},
+			wantOutput: "_int = 1\n",
+		},
+		"nested embedded struct": {
+			input: struct {
+				Struct struct{ Embedded } `toml:"_struct"`
+			}{struct{ Embedded }{Embedded{1}}},
+			wantOutput: "[_struct]\n  _int = 1\n",
+		},
+		"nested embedded *struct": {
+			input: struct {
+				Struct struct{ *Embedded } `toml:"_struct"`
+			}{struct{ *Embedded }{&Embedded{1}}},
+			wantOutput: "[_struct]\n  _int = 1\n",
+		},
+		"embedded non-struct": {
+			input:      struct{ NonStruct }{5},
+			wantOutput: "NonStruct = 5\n",
+		},
+		"array of tables": {
+			input: struct {
+				Structs []*struct{ Int int } `toml:"struct"`
+			}{
+				[]*struct{ Int int }{{1}, {3}},
+			},
+			wantOutput: "[[struct]]\n  Int = 1\n\n[[struct]]\n  Int = 3\n",
+		},
+		"array of tables order": {
+			input: map[string]interface{}{
+				"map": map[string]interface{}{
+					"zero": 5,
+					"arr": []map[string]int{
+						{
+							"friend": 5,
+						},
+					},
+				},
+			},
+			wantOutput: "[map]\n  zero = 5\n\n  [[map.arr]]\n    friend = 5\n",
+		},
+		"empty key name": {
+			input:      map[string]int{"": 1},
+			wantOutput: `"" = 1` + "\n",
+		},
+		"key with \\n escape": {
+			input:      map[string]string{"\n": "\n"},
+			wantOutput: `"\n" = "\n"` + "\n",
+		},
+
+		"empty map name": {
+			input: map[string]interface{}{
+				"": map[string]int{"v": 1},
+			},
+			wantOutput: "[\"\"]\n  v = 1\n",
+		},
+		"(error) top-level slice": {
+			input:     []struct{ Int int }{{1}, {2}, {3}},
+			wantError: errNoKey,
+		},
+		"(error) map no string key": {
+			input:     map[int]string{1: ""},
+			wantError: errNonString,
+		},
+
+		"tbl-in-arr-struct": {
+			input: struct {
+				Arr [][]struct{ A, B, C int }
+			}{[][]struct{ A, B, C int }{{{1, 2, 3}, {4, 5, 6}}}},
+			wantOutput: "Arr = [[{A = 1, B = 2, C = 3}, {A = 4, B = 5, C = 6}]]",
+		},
+
+		"tbl-in-arr-map": {
+			input: map[string]interface{}{
+				"arr": []interface{}{[]interface{}{
+					map[string]interface{}{
+						"a": []interface{}{"hello", "world"},
+						"b": []interface{}{1.12, 4.1},
+						"c": 1,
+						"d": map[string]interface{}{"e": "E"},
+						"f": struct{ A, B int }{1, 2},
+						"g": []struct{ A, B int }{{3, 4}, {5, 6}},
+					},
+				}},
+			},
+			wantOutput: `arr = [[{a = ["hello", "world"], b = [1.12, 4.1], c = 1, d = {e = "E"}, f = {A = 1, B = 2}, g = [{A = 3, B = 4}, {A = 5, B = 6}]}]]`,
+		},
+
+		"slice of slice": {
+			input: struct {
+				Slices [][]struct{ Int int }
+			}{
+				[][]struct{ Int int }{{{1}}, {{2}}, {{3}}},
+			},
+			wantOutput: "Slices = [[{Int = 1}], [{Int = 2}], [{Int = 3}]]",
+		},
+	}
+	for label, test := range tests {
+		encodeExpected(t, label, test.input, test.wantOutput, test.wantError)
 	}
 }
 

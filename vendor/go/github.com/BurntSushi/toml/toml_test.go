@@ -97,9 +97,12 @@ var metaTests = map[string]string{
 	`,
 	"key/space": `
 		"a b": Integer
+		" c d ": Integer
+		" tbl ": Hash
+		" tbl "."\ttab\ttab\t": String
 	`,
 	"key/special-chars": "\n" +
-		"\"~!@$^&*()_+-`1234567890[]|/?><.,;:'\": Integer\n",
+		"\"=~!@$^&*()_+-`1234567890[]|/?><.,;:'=\": Integer\n",
 
 	// TODO: "(albums): Hash" is missing; the problem is that this is an
 	// "implied key", which is recorded in the parser in implicits, rather than
@@ -288,6 +291,9 @@ func TestToml(t *testing.T) {
 				// I think it's actually okay to just accept both really.
 				// https://github.com/BurntSushi/toml/issues/320
 				"invalid/datetime/time-no-leads",
+
+				// This test is fine, just doesn't deal well with empty output.
+				"valid/comment/noeol",
 
 				// TODO: fix this.
 				"invalid/table/append-with-dotted*",

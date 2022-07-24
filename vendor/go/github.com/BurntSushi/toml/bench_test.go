@@ -65,6 +65,11 @@ func BenchmarkEncode(b *testing.B) {
 				g = "top"
 			}
 
+			// "next" version of TOML.
+			if path == "valid/string/escape-esc.toml" {
+				return nil
+			}
+
 			var dec map[string]interface{}
 			_, err := toml.Decode(string(d), &dec)
 			if err != nil {
@@ -169,14 +174,14 @@ type (
 		Packages string
 	}
 
-	//duration struct{ time.Duration }
-	fmtTime struct{ time.Time }
+	duration struct{ time.Duration }
+	fmtTime  struct{ time.Time }
 )
 
-//func (d *duration) UnmarshalText(text []byte) (err error) {
-//	d.Duration, err = time.ParseDuration(string(text))
-//	return err
-//}
+func (d *duration) UnmarshalText(text []byte) (err error) {
+	d.Duration, err = time.ParseDuration(string(text))
+	return err
+}
 
 func (t fmtTime) String() string {
 	f := "2006-01-02 15:04:05.999999999"

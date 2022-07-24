@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.57"
 name = "x86_64"
-version = "0.14.9"
+version = "0.14.10"
 authors = [
     "Gerd Zellweger <mail@gerdzellweger.com>",
     "Eric Kidd <git@randomhacks.net>",
@@ -36,11 +36,11 @@ license = "MIT/Apache-2.0"
 repository = "https://github.com/rust-osdev/x86_64"
 
 [package.metadata.release]
-no-dev-version = true
+dev-version = false
 pre-release-commit-message = "Bump version to {{version}}"
-disable-push = true
-disable-publish = true
-disable-tag = true
+push = false
+publish = false
+tag = false
 
 [[package.metadata.release.pre-release-replacements]]
 file = "Changelog.md"

@@ -11,6 +11,11 @@ rust_library(
     name = "spin",
     srcs = glob(["**/*.rs"]),
     compile_data = glob(["**"]),
+    crate_features = [
+        "mutex",
+        "once",
+        "spin_mutex",
+    ],
     crate_name = "spin",
     edition = "2015",
     rustc_flags = [
@@ -23,7 +28,7 @@ rust_library(
     tags = [
         "manual",  # Only build when needed as a dependency.
     ],
-    version = "0.5.2",
+    version = "0.9.4",
     visibility = ["//visibility:public"],
 )
 

@@ -170,7 +170,7 @@ rust = [
     ),
     crate(
         name = "rustversion",
-        version = "1.0.7",
+        version = "1.0.8",
         edition = "2018",
         proc_macro = True,
         build_script = "build/build.rs",
@@ -205,7 +205,12 @@ rust = [
     ),
     crate(
         name = "spin",
-        version = "0.5.2",
+        version = "0.9.4",
+        features = [
+            "mutex",
+            "once",
+            "spin_mutex",
+        ],
     ),
     crate(
         name = "spinning_top",
@@ -249,7 +254,7 @@ rust = [
     ),
     crate(
         name = "x86_64",
-        version = "0.14.9",
+        version = "0.14.10",
         edition = "2018",
         features = [
             "abi_x86_interrupt",
@@ -285,7 +290,7 @@ rust = [
 go = [
     module(
         name = "github.com/BurntSushi/toml",
-        version = "v1.1.0",
+        version = "v1.2.0",
         packages = [
             package(
                 name = "github.com/BurntSushi/toml",
@@ -336,7 +341,7 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.0.0-20220622213112-05595931fe9d",
+        version = "v0.0.0-20220722155217-630584e8d5aa",
         packages = [
             package(
                 name = "golang.org/x/crypto/ed25519",
@@ -404,7 +409,7 @@ go = [
     ),
     module(
         name = "golang.org/x/time",
-        version = "v0.0.0-20220609170525-579cf78fd858",
+        version = "v0.0.0-20220722155302-e5dcc9cfc0b9",
         packages = [
             package(
                 name = "golang.org/x/time/rate",
@@ -422,7 +427,7 @@ go = [
     ),
     module(
         name = "golang.org/x/vuln",
-        version = "v0.0.0-20220708185735-a7e5c096cfa7",
+        version = "v0.0.0-20220723112632-348460952d62",
         packages = [
             package(
                 name = "golang.org/x/vuln/osv",
