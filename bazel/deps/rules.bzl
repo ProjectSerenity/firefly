@@ -41,9 +41,10 @@ RULES_LICENSE = struct(
 RULES_PKG = struct(
     name = "rules_pkg",
     repo = "bazelbuild/rules_pkg",
-    archive = "https://github.com/bazelbuild/rules_pkg/releases/download/{v}/rules_pkg-{v}.tar.gz",
-    version = "0.7.0",
-    sha256 = "8a298e832762eda1830597d64fe7db58178aa84cd5926d76d5b744d6558941c2",
+    branch = "main",
+    archive = "https://github.com/bazelbuild/rules_pkg/archive/{v}.tar.gz",
+    version = "7f7bcf9c93bed9ee693b5bfedde5d72f9a2d6ea4",
+    sha256 = "5909da90955dbb0eb434724f951f1f947a1794c5f33e345175a0193972aac14d",
 )
 
 RULES_PROTOBUF = struct(
@@ -127,5 +128,6 @@ def rules_deps():
     http_archive(
         name = RULES_PKG.name,
         sha256 = RULES_PKG.sha256,
+        strip_prefix = "rules_pkg-{v}".format(v = RULES_PKG.version),
         urls = [RULES_PKG.archive.format(v = RULES_PKG.version)],
     )
