@@ -423,7 +423,7 @@ struct Config {
 pub fn install_pci_device(device: pci::Device) {
     let transport = match transports::pci::Transport::new(device) {
         Err(err) => {
-            println!("Ignoring invalid device: {:?}.", err);
+            println!("Ignoring block device: bad PCI transport: {:?}.", err);
             return;
         }
         Ok(transport) => Arc::new(transport),
