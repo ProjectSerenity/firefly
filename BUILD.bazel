@@ -5,6 +5,7 @@
 
 load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
 load("@io_bazel_rules_go//go:def.bzl", "nogo")
+load("@rules_pkg//:pkg.bzl", "pkg_tar")
 load("//bazel:qemu.bzl", "qemu", "qemu_test")
 
 # Expose the license to the rest of the workspace.
@@ -63,6 +64,15 @@ genrule(
         $$bootimage -bootloader="$$bootloader" -kernel="$$kernel" -out="$$output" """,
     message = "Making bootable image",
     tools = ["//tools/bootimage"],
+    visibility = ["//visibility:public"],
+)
+
+pkg_tar(
+    name = "compressed-image",
+    extension = "tar.gz",
+    files = {
+        ":image": "disk.raw",
+    },
     visibility = ["//visibility:public"],
 )
 
