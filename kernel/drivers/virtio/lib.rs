@@ -110,20 +110,39 @@ pub fn pci_device_check(device: &pci::Device) -> Option<pci::Driver> {
     }
 
     match DeviceId::from_pci_device_id(device.device) {
-        Some(DeviceId::BlockDevice) => {
-            println!("Installing VirtIO block device.");
-            Some(block::install_pci_device)
+        Some((DeviceId::BlockDevice, legacy)) => {
+            if legacy {
+                println!("Ignoring legacy VirtIO block device.");
+                None
+            } else {
+                println!("Installing VirtIO block device.");
+                Some(block::install_pci_device)
+            }
         }
-        Some(DeviceId::EntropySource) => {
-            println!("Installing VirtIO entropy source.");
-            Some(entropy::install_pci_device)
+        Some((DeviceId::EntropySource, legacy)) => {
+            if legacy {
+                println!("Ignoring legacy VirtIO entropy source.");
+                None
+            } else {
+                println!("Installing VirtIO entropy source.");
+                Some(entropy::install_pci_device)
+            }
         }
-        Some(DeviceId::NetworkCard) => {
-            println!("Installing VirtIO network card.");
-            Some(network::install_pci_device)
+        Some((DeviceId::NetworkCard, legacy)) => {
+            if legacy {
+                println!("Ignoring legacy VirtIO network card.");
+                None
+            } else {
+                println!("Installing VirtIO network card.");
+                Some(network::install_pci_device)
+            }
         }
-        Some(other) => {
-            println!("Detected unsupported VirtIO device {:?}.", other);
+        Some((other, legacy)) => {
+            if legacy {
+                println!("Detected unsupported legacy VirtIO device {:?}.", other);
+            } else {
+                println!("Detected unsupported VirtIO device {:?}.", other);
+            }
             None
         }
         _ => None,
@@ -161,32 +180,42 @@ enum DeviceId {
 
 impl DeviceId {
     /// from_pci_device_id returns a virtio device
-    /// id, if the given PCI device id matches.
+    /// id and whether it is a legacy device, if
+    /// the given PCI device id matches.
     ///
-    pub fn from_pci_device_id(device: u16) -> Option<Self> {
+    pub fn from_pci_device_id(device: u16) -> Option<(Self, bool)> {
         match device {
-            0x1041 | 0x1000 => Some(DeviceId::NetworkCard),
-            0x1042 | 0x1001 => Some(DeviceId::BlockDevice),
-            0x1043 | 0x1003 => Some(DeviceId::Console),
-            0x1044 | 0x1005 => Some(DeviceId::EntropySource),
-            0x1045 | 0x1002 => Some(DeviceId::MemoryBallooning),
-            0x1046 => Some(DeviceId::IoMemory),
-            0x1047 => Some(DeviceId::Rpmsg),
-            0x1048 | 0x1004 => Some(DeviceId::ScsiHost),
-            0x1049 | 0x1009 => Some(DeviceId::P9Transport),
-            0x104a => Some(DeviceId::Mac80211Wan),
-            0x104b => Some(DeviceId::RprocSerial),
-            0x104c => Some(DeviceId::VirtIOCaif),
-            0x1050 => Some(DeviceId::MemoryBalloon),
-            0x1051 => Some(DeviceId::GpuDevice),
-            0x1052 => Some(DeviceId::TimerClockDevice),
-            0x1053 => Some(DeviceId::InputDevice),
-            0x1054 => Some(DeviceId::SocketDevice),
-            0x1055 => Some(DeviceId::CryptoDevice),
-            0x1056 => Some(DeviceId::SignalDistributionModule),
-            0x1057 => Some(DeviceId::PstoreDevice),
-            0x1058 => Some(DeviceId::IommuDevice),
-            0x1059 => Some(DeviceId::MemoryDevice),
+            // Legacy devices.
+            0x1000 => Some((DeviceId::NetworkCard, true)),
+            0x1001 => Some((DeviceId::BlockDevice, true)),
+            0x1002 => Some((DeviceId::MemoryBallooning, true)),
+            0x1003 => Some((DeviceId::Console, true)),
+            0x1004 => Some((DeviceId::ScsiHost, true)),
+            0x1005 => Some((DeviceId::EntropySource, true)),
+            0x1009 => Some((DeviceId::P9Transport, true)),
+            // Modern devices.
+            0x1041 => Some((DeviceId::NetworkCard, false)),
+            0x1042 => Some((DeviceId::BlockDevice, false)),
+            0x1043 => Some((DeviceId::Console, false)),
+            0x1044 => Some((DeviceId::EntropySource, false)),
+            0x1045 => Some((DeviceId::MemoryBallooning, false)),
+            0x1046 => Some((DeviceId::IoMemory, false)),
+            0x1047 => Some((DeviceId::Rpmsg, false)),
+            0x1048 => Some((DeviceId::ScsiHost, false)),
+            0x1049 => Some((DeviceId::P9Transport, false)),
+            0x104a => Some((DeviceId::Mac80211Wan, false)),
+            0x104b => Some((DeviceId::RprocSerial, false)),
+            0x104c => Some((DeviceId::VirtIOCaif, false)),
+            0x1050 => Some((DeviceId::MemoryBalloon, false)),
+            0x1051 => Some((DeviceId::GpuDevice, false)),
+            0x1052 => Some((DeviceId::TimerClockDevice, false)),
+            0x1053 => Some((DeviceId::InputDevice, false)),
+            0x1054 => Some((DeviceId::SocketDevice, false)),
+            0x1055 => Some((DeviceId::CryptoDevice, false)),
+            0x1056 => Some((DeviceId::SignalDistributionModule, false)),
+            0x1057 => Some((DeviceId::PstoreDevice, false)),
+            0x1058 => Some((DeviceId::IommuDevice, false)),
+            0x1059 => Some((DeviceId::MemoryDevice, false)),
             _ => None,
         }
     }
