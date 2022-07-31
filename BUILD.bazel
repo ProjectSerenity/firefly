@@ -7,6 +7,7 @@ load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
 load("@io_bazel_rules_go//go:def.bzl", "nogo")
 load("@rules_pkg//:pkg.bzl", "pkg_tar")
 load("//bazel:qemu.bzl", "qemu", "qemu_test")
+load("//tools/bootimage:defs.bzl", "disk_image")
 
 # Expose the license to the rest of the workspace.
 exports_files(
@@ -48,24 +49,12 @@ buildifier(
 )
 
 # Allow the bootable image to be built with `bazel build //:image`.
-genrule(
+disk_image(
     name = "image",
-    srcs = [
-        "//bootloader",
-        "//kernel",
-        "//user/initial-workload:tar",
-    ],
-    outs = ["image.bin"],
-    cmd = """
-        bootimage="$(location //tools/bootimage)"
-        bootloader="$(location //bootloader)"
-        kernel="$(location //kernel)"
-        user="$(location //user/initial-workload:tar)"
-        output="$$(realpath $(location image.bin))"
-
-        $$bootimage -bootloader="$$bootloader" -kernel="$$kernel" -user="$$user" -out="$$output" """,
-    message = "Making bootable image",
-    tools = ["//tools/bootimage"],
+    out = "image.bin",
+    bootloader = "//bootloader",
+    kernel = "//kernel",
+    user = "//user/initial-workload:tar",
     visibility = ["//visibility:public"],
 )
 
@@ -81,7 +70,7 @@ pkg_tar(
 # Allow the image to be run in Qemu with `bazel run //:qemu`.
 qemu(
     name = "qemu",
-    image = ":image.bin",
+    image = ":image",
     options = [
         "-device",
         "virtio-net,netdev=net0,disable-legacy=on,disable-modern=off",
@@ -107,30 +96,18 @@ qemu(
 )
 
 # Allow the bootable image to be built with `bazel build //:image`.
-genrule(
+disk_image(
     name = "test-image",
-    srcs = [
-        "//bootloader",
-        "//kernel",
-        "//user/test-workload:tar",
-    ],
-    outs = ["test-image.bin"],
-    cmd = """
-        bootimage="$(location //tools/bootimage)"
-        bootloader="$(location //bootloader)"
-        kernel="$(location //kernel)"
-        user="$(location //user/test-workload:tar)"
-        output="$$(realpath $(location test-image.bin))"
-
-        $$bootimage -bootloader="$$bootloader" -kernel="$$kernel" -user="$$user" -out="$$output" """,
-    message = "Making bootable image",
-    tools = ["//tools/bootimage"],
+    out = "test-image.bin",
+    bootloader = "//bootloader",
+    kernel = "//kernel",
+    user = "//user/test-workload:tar",
     visibility = ["//visibility:public"],
 )
 
 qemu(
     name = "test",
-    image = ":test-image.bin",
+    image = ":test-image",
     options = [
         "-device",
         "virtio-net,netdev=net0,disable-legacy=on,disable-modern=off",
@@ -156,7 +133,7 @@ qemu(
 qemu_test(
     name = "qemu_test",
     size = "small",
-    image = ":test-image.bin",
+    image = ":test-image",
     options = [
         "-device",
         "virtio-net,netdev=net0,disable-legacy=on,disable-modern=off",
