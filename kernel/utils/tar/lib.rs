@@ -123,6 +123,24 @@ impl<'device> Reader<'device> {
         }
     }
 
+    /// Read the TAR archive data from the given block
+    /// device, starting at the given block offset.
+    ///
+    /// The block device must have a segment size that
+    /// is an exact multiple of 512 bytes.
+    ///
+    pub fn new_at_offset(
+        device: &'device mut Box<dyn block::Device + Send>,
+        offset: usize,
+    ) -> Self {
+        Reader {
+            header: [0u8; BLOCK_SIZE],
+            next_segment: offset,
+            num_segments: device.num_segments(),
+            device,
+        }
+    }
+
     /// Read the contents of the specified file into
     /// the given buffer. The number of bytes read is
     /// returned.
