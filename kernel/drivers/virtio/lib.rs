@@ -307,12 +307,18 @@ pub trait Transport: Send + Sync {
     /// add_status reads the current device status
     /// and sets the given additional bits.
     ///
-    fn add_status(&self, device_status: DeviceStatus);
+    fn add_status(&self, device_status: DeviceStatus) {
+        let current = self.read_status();
+        self.write_status(current | device_status);
+    }
 
     /// has_status returns whether the current device
-    /// status includes all of the given bits.
+    /// status includes the given bits.
     ///
-    fn has_status(&self, device_status: DeviceStatus) -> bool;
+    fn has_status(&self, device_status: DeviceStatus) -> bool {
+        let current = self.read_status();
+        current.contains(device_status)
+    }
 
     /// read_device_features returns the first 64 bits
     /// of the device's features.

@@ -372,22 +372,6 @@ impl crate::Transport for Transport {
         unsafe { write_volatile!(common.device_status, device_status.bits()) };
     }
 
-    /// add_status reads the current device status
-    /// and sets the given additional bits.
-    ///
-    fn add_status(&self, device_status: DeviceStatus) {
-        let current = self.read_status();
-        self.write_status(current | device_status);
-    }
-
-    /// has_status returns whether the current device
-    /// status includes the given bits.
-    ///
-    fn has_status(&self, device_status: DeviceStatus) -> bool {
-        let current = self.read_status();
-        current.contains(device_status)
-    }
-
     /// read_device_features returns the
     /// first 64 of the device's feature bits.
     ///
