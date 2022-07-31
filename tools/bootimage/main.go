@@ -40,10 +40,11 @@ func init() {
 
 func main() {
 	var help bool
-	var bootloaderName, kernelName, outName string
+	var bootloaderName, kernelName, userName, outName string
 	flag.BoolVar(&help, "h", false, "Print this help message and exit.")
 	flag.StringVar(&bootloaderName, "bootloader", "", "Path to the bootloader binary.")
 	flag.StringVar(&kernelName, "kernel", "", "Path to the kernel binary.")
+	flag.StringVar(&userName, "user", "", "Path to the user data.")
 	flag.StringVar(&outName, "out", "", "Path to where the bootable image should be written.")
 	flag.Usage = func() {
 		log.Printf("Usage:\n  %s [OPTIONS]\n\nOptions:", filepath.Base(os.Args[0]))
@@ -65,6 +66,12 @@ func main() {
 
 	if kernelName == "" {
 		log.Println("Missing -kernel argument.")
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	if userName == "" {
+		log.Println("Missing -user argument.")
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -177,6 +184,40 @@ func main() {
 
 	kernelSize := kernelInfo.Size()
 
+	// Round the image size up to the next multiple
+	// of 512.
+	written := int64(buf.Len()) + kernelSize
+	kernelPadding := blockSize - (written % blockSize)
+	if kernelPadding == blockSize {
+		kernelPadding = 0
+	}
+
+	written += kernelPadding
+
+	user, err := os.Open(userName)
+	if err != nil {
+		log.Fatalf("Failed to open user at %s: %v", userName, err)
+	}
+
+	defer user.Close()
+
+	userInfo, err := user.Stat()
+	if err != nil {
+		log.Fatalf("Failed to stat user: %v", err)
+	}
+
+	userSize := userInfo.Size()
+
+	// Round the image size up to the next multiple
+	// of 512.
+	written += userSize
+	userPadding := blockSize - (written % blockSize)
+	if userPadding == blockSize {
+		userPadding = 0
+	}
+
+	written += userPadding
+
 	// Write the kernel's size to the symbol address.
 	// First we work out the virtual address at the
 	// start of the first segment, as we need to
@@ -185,6 +226,13 @@ func main() {
 	// memory.
 	offset := segments[0].Vaddr
 	binary.LittleEndian.PutUint32(buf.Bytes()[kernelSizeSymbol.Value-offset:], uint32(kernelSize))
+
+	// We also write out the offset into the image
+	// where user beings, offset from the end of
+	// the first segment (512 bytes) by 6 bytes.
+	// This makes the 32-bit value the last contents
+	// of the segment, except the 16-bit MBR magic.
+	binary.LittleEndian.PutUint32(buf.Bytes()[512-6:], uint32(written-(userSize+userPadding)))
 
 	// Check that we're putting the kernel where the
 	// bootloader expects it.
@@ -209,12 +257,21 @@ func main() {
 		log.Fatalf("Failed to write kernel to %s: %v", outName, err)
 	}
 
-	// Round the image size up to the next multiple
-	// of 512.
-	written := int64(buf.Len()) + kernelSize
-	remaining := blockSize - (written % blockSize)
-	if remaining != blockSize {
-		_, err = out.Write(zeros[:remaining])
+	if kernelPadding != 0 {
+		_, err = out.Write(zeros[:kernelPadding])
+		if err != nil {
+			log.Fatalf("Failed to write padding to %s: %v", outName, err)
+		}
+	}
+
+	// Then the user.
+	_, err = io.Copy(out, user)
+	if err != nil {
+		log.Fatalf("Failed to write user to %s: %v", outName, err)
+	}
+
+	if userPadding != 0 {
+		_, err = out.Write(zeros[:userPadding])
 		if err != nil {
 			log.Fatalf("Failed to write padding to %s: %v", outName, err)
 		}

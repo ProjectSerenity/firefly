@@ -53,15 +53,17 @@ genrule(
     srcs = [
         "//bootloader",
         "//kernel",
+        "//user/initial-workload:tar",
     ],
     outs = ["image.bin"],
     cmd = """
         bootimage="$(location //tools/bootimage)"
         bootloader="$(location //bootloader)"
         kernel="$(location //kernel)"
+        user="$(location //user/initial-workload:tar)"
         output="$$(realpath $(location image.bin))"
 
-        $$bootimage -bootloader="$$bootloader" -kernel="$$kernel" -out="$$output" """,
+        $$bootimage -bootloader="$$bootloader" -kernel="$$kernel" -user="$$user" -out="$$output" """,
     message = "Making bootable image",
     tools = ["//tools/bootimage"],
     visibility = ["//visibility:public"],
@@ -79,7 +81,6 @@ pkg_tar(
 # Allow the image to be run in Qemu with `bazel run //:qemu`.
 qemu(
     name = "qemu",
-    drive = "//user/initial-workload:tar",
     image = ":image.bin",
     options = [
         "-device",
@@ -90,6 +91,8 @@ qemu(
         "filter-dump,id=filter0,netdev=net0,file=virtio-net.pcap",
         "-device",
         "virtio-rng-pci,disable-legacy=on,disable-modern=off",
+        "-device",
+        "virtio-blk-pci,drive=blk1,disable-legacy=on,disable-modern=off",
         "-serial",
         "stdio",
         "-display",
@@ -103,10 +106,31 @@ qemu(
     qemu = "qemu-system-x86_64",
 )
 
+# Allow the bootable image to be built with `bazel build //:image`.
+genrule(
+    name = "test-image",
+    srcs = [
+        "//bootloader",
+        "//kernel",
+        "//user/test-workload:tar",
+    ],
+    outs = ["test-image.bin"],
+    cmd = """
+        bootimage="$(location //tools/bootimage)"
+        bootloader="$(location //bootloader)"
+        kernel="$(location //kernel)"
+        user="$(location //user/test-workload:tar)"
+        output="$$(realpath $(location test-image.bin))"
+
+        $$bootimage -bootloader="$$bootloader" -kernel="$$kernel" -user="$$user" -out="$$output" """,
+    message = "Making bootable image",
+    tools = ["//tools/bootimage"],
+    visibility = ["//visibility:public"],
+)
+
 qemu(
     name = "test",
-    drive = "//user/test-workload:tar",
-    image = ":image.bin",
+    image = ":test-image.bin",
     options = [
         "-device",
         "virtio-net,netdev=net0,disable-legacy=on,disable-modern=off",
@@ -116,6 +140,8 @@ qemu(
         "filter-dump,id=filter0,netdev=net0,file=virtio-net.pcap",
         "-device",
         "virtio-rng-pci,disable-legacy=on,disable-modern=off",
+        "-device",
+        "virtio-blk-pci,drive=blk1,disable-legacy=on,disable-modern=off",
         "-serial",
         "stdio",
         "-display",
@@ -130,8 +156,7 @@ qemu(
 qemu_test(
     name = "qemu_test",
     size = "small",
-    drive = "//user/test-workload:tar",
-    image = ":image.bin",
+    image = ":test-image.bin",
     options = [
         "-device",
         "virtio-net,netdev=net0,disable-legacy=on,disable-modern=off",
@@ -141,6 +166,8 @@ qemu_test(
         "filter-dump,id=filter0,netdev=net0,file=virtio-net.pcap",
         "-device",
         "virtio-rng-pci,disable-legacy=on,disable-modern=off",
+        "-device",
+        "virtio-blk-pci,drive=blk1,disable-legacy=on,disable-modern=off",
         "-serial",
         "stdio",
         "-display",

@@ -70,7 +70,30 @@ fn initial_workload() -> ! {
     println!("Starting initial workload.");
 
     block::iter_devices(|dev| {
-        let mut reader = tar::Reader::new(dev);
+        // Read the first block to see whether we
+        // need to advance the device.
+        if dev.segment_size() != 512 {
+            return;
+        }
+
+        let mut block = [0u8; 512];
+        if let Ok(n) = dev.read(0, &mut block) {
+            if n != 512 {
+                return;
+            }
+        } else {
+            return;
+        }
+
+        let offset = if block[511] == 0xaa && block[510] == 0x55 {
+            let offset = u32::from_le_bytes([block[506], block[507], block[508], block[509]]);
+            offset as usize / 512
+        } else {
+            0
+        };
+
+        // Read the archive.
+        let mut reader = tar::Reader::new_at_offset(dev, offset);
         let initial_workload = (&mut reader)
             .find(|f| {
                 let info = f.info();
