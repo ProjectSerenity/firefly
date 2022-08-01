@@ -14,6 +14,7 @@ rust_library(
         "features.rs",
         "lib.rs",
         "network/mod.rs",
+        "transports/legacy_pci.rs",
         "transports/mod.rs",
         "transports/pci.rs",
         "virtqueues/mod.rs",

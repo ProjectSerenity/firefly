@@ -81,6 +81,11 @@ bitflags! {
     /// [section 6](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-4100006).
     ///
     pub struct Reserved: u64 {
+        /// This feature indicates that the device accepts
+        /// arbitrary descriptor layouts, as described in
+        /// section 2.6.4.3 Legacy interface: message framing.
+        const ANY_LAYOUT = 1 << 27;
+
         /// Negotiating this feature indicates that the driver
         /// can use descriptors with the VIRTQ_DESC_F_INDIRECT
         /// flag set, as described in 2.6.5.3 Indirect

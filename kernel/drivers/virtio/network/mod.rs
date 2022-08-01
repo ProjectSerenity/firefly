@@ -51,7 +51,7 @@
 //! 2. A companion kernel thread advances the network stack periodically, following the interface's interval recommendations.
 
 use crate::features::{Network, Reserved};
-use crate::{transports, Buffer, InterruptStatus};
+use crate::{transports, Buffer, InterruptStatus, Transport};
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::string::ToString;
@@ -265,6 +265,7 @@ impl Drop for Driver {
 ///
 pub struct Device {
     driver: Arc<Mutex<Driver>>,
+    legacy: bool,
 }
 
 impl network::Device for Device {
@@ -290,7 +291,11 @@ impl network::Device for Device {
                     // header. We don't use any advanced
                     // features yet, so we just ignore the
                     // header for now.
-                    let offset = mem::size_of::<Header>();
+                    let offset = if self.legacy {
+                        mem::size_of::<LegacyHeader>()
+                    } else {
+                        mem::size_of::<Header>()
+                    };
                     let addr = recv_addr + offset;
                     let len = len - offset;
 
@@ -326,7 +331,11 @@ impl network::Device for Device {
         // Check that the buffer will have
         // enough space for the requested length,
         // plus the virtio network header.
-        let offset = mem::size_of::<Header>();
+        let offset = if self.legacy {
+            mem::size_of::<LegacyHeader>()
+        } else {
+            mem::size_of::<Header>()
+        };
         if len > (PACKET_LEN_MAX - offset) {
             return Err(smoltcp::Error::Truncated);
         }
@@ -351,7 +360,11 @@ impl network::Device for Device {
     fn send_packet(&mut self, addr: PhysAddr, len: usize) -> Result<(), smoltcp::Error> {
         // Go back to where the header starts,
         // before the packet contents.
-        let offset = mem::size_of::<Header>();
+        let offset = if self.legacy {
+            mem::size_of::<LegacyHeader>()
+        } else {
+            mem::size_of::<Header>()
+        };
         let addr = addr - offset;
         let virt_addr = phys_to_virt_addr(addr);
 
@@ -359,14 +372,24 @@ impl network::Device for Device {
         // network header. We don't use any of
         // the advanced features yet, so we can
         // populate the fields with zeros.
-        let mut header = unsafe { *(virt_addr.as_usize() as *mut Header) };
-        header.flags = HeaderFlags::NONE.bits();
-        header.gso_type = GsoType::None as u8;
-        header.header_len = 0u16.to_le();
-        header.gso_size = 0u16.to_le();
-        header.checksum_start = 0u16.to_le();
-        header.checksum_offset = 0u16.to_le();
-        header.num_buffers = 0u16.to_le();
+        if self.legacy {
+            let mut header = unsafe { *(virt_addr.as_usize() as *mut LegacyHeader) };
+            header.flags = HeaderFlags::NONE.bits();
+            header.gso_type = GsoType::None as u8;
+            header.header_len = 0u16.to_le();
+            header.gso_size = 0u16.to_le();
+            header.checksum_start = 0u16.to_le();
+            header.checksum_offset = 0u16.to_le();
+        } else {
+            let mut header = unsafe { *(virt_addr.as_usize() as *mut Header) };
+            header.flags = HeaderFlags::NONE.bits();
+            header.gso_type = GsoType::None as u8;
+            header.header_len = 0u16.to_le();
+            header.gso_size = 0u16.to_le();
+            header.checksum_start = 0u16.to_le();
+            header.checksum_offset = 0u16.to_le();
+            header.num_buffers = 0u16.to_le();
+        }
 
         // Send the packet.
         without_interrupts(|| {
@@ -408,6 +431,20 @@ struct Header {
     checksum_start: u16,
     checksum_offset: u16,
     num_buffers: u16,
+}
+
+/// LegacyHeader represents the header data that must
+/// preceed each buffer sent to the legacy device.
+///
+#[repr(C, packed)]
+#[derive(Clone, Copy)]
+struct LegacyHeader {
+    flags: u8,
+    gso_type: u8,
+    header_len: u16,
+    gso_size: u16,
+    checksum_start: u16,
+    checksum_offset: u16,
 }
 
 bitflags! {
@@ -470,22 +507,59 @@ struct Config {
     mtu: u16,
 }
 
+/// Takes ownership of the given modern PCI device to reset and configure
+/// a virtio network card.
+///
+pub fn install_modern_pci_device(device: pci::Device) {
+    install_pci_device(device, false)
+}
+
+/// Takes ownership of the given legacy PCI device to reset and configure
+/// a virtio network card.
+///
+pub fn install_legacy_pci_device(device: pci::Device) {
+    install_pci_device(device, true)
+}
+
 /// Takes ownership of the given PCI device to reset and configure
 /// a virtio network card.
 ///
 #[allow(clippy::missing_panics_doc)] // Can only panic if we run out of memory or the device misbehaves.
-pub fn install_pci_device(device: pci::Device) {
-    let transport = match transports::pci::Transport::new(device) {
-        Err(err) => {
-            println!("Ignoring network device: bad PCI transport: {:?}.", err);
-            return;
+fn install_pci_device(device: pci::Device, legacy: bool) {
+    let transport = if legacy {
+        match transports::legacy_pci::Transport::new(device) {
+            Err(err) => {
+                println!(
+                    "Ignoring network device: bad legacy PCI transport: {:?}.",
+                    err
+                );
+                return;
+            }
+            Ok(transport) => Arc::new(transport) as Arc<dyn Transport>,
         }
-        Ok(transport) => Arc::new(transport),
+    } else {
+        match transports::pci::Transport::new(device) {
+            Err(err) => {
+                println!("Ignoring network device: bad PCI transport: {:?}.", err);
+                return;
+            }
+            Ok(transport) => Arc::new(transport) as Arc<dyn Transport>,
+        }
     };
 
-    let must_features = Reserved::VERSION_1.bits() | Network::MAC.bits();
-    let like_features = Reserved::RING_EVENT_IDX.bits();
-    let mut driver = match crate::Driver::new(transport, must_features, like_features, 2) {
+    let must_features = if legacy {
+        Network::MAC.bits()
+    } else {
+        Reserved::VERSION_1.bits() | Network::MAC.bits()
+    };
+
+    let like_features = if legacy {
+        (Reserved::RING_EVENT_IDX | Reserved::ANY_LAYOUT).bits()
+    } else {
+        Reserved::RING_EVENT_IDX.bits()
+    };
+
+    let mut driver = match crate::Driver::new(transport, must_features, like_features, 2, legacy) {
         Ok(driver) => driver,
         Err(err) => {
             println!("Failed to initialise network card: {:?}.", err);
@@ -566,6 +640,7 @@ pub fn install_pci_device(device: pci::Device) {
     let driver = Arc::new(Mutex::new(driver));
     let device = Device {
         driver: driver.clone(),
+        legacy,
     };
 
     // Pass the device to the network stack

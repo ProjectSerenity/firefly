@@ -15,4 +15,5 @@
 //! VirtIO [MMIO devices](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html#x1-1440002)
 //! are not yet supported.
 
+pub mod legacy_pci;
 pub mod pci;

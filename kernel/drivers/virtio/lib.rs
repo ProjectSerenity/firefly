@@ -112,29 +112,29 @@ pub fn pci_device_check(device: &pci::Device) -> Option<pci::Driver> {
     match DeviceId::from_pci_device_id(device.device) {
         Some((DeviceId::BlockDevice, legacy)) => {
             if legacy {
-                println!("Ignoring legacy VirtIO block device.");
-                None
+                println!("Installing legacy VirtIO block device.");
+                Some(block::install_legacy_pci_device)
             } else {
                 println!("Installing VirtIO block device.");
-                Some(block::install_pci_device)
+                Some(block::install_modern_pci_device)
             }
         }
         Some((DeviceId::EntropySource, legacy)) => {
             if legacy {
-                println!("Ignoring legacy VirtIO entropy source.");
-                None
+                println!("Installing legacy VirtIO entropy source.");
+                Some(entropy::install_legacy_pci_device)
             } else {
                 println!("Installing VirtIO entropy source.");
-                Some(entropy::install_pci_device)
+                Some(entropy::install_modern_pci_device)
             }
         }
         Some((DeviceId::NetworkCard, legacy)) => {
             if legacy {
-                println!("Ignoring legacy VirtIO network card.");
-                None
+                println!("Installing legacy VirtIO network card.");
+                Some(network::install_legacy_pci_device)
             } else {
                 println!("Installing VirtIO network card.");
-                Some(network::install_pci_device)
+                Some(network::install_modern_pci_device)
             }
         }
         Some((other, legacy)) => {
@@ -487,6 +487,7 @@ impl Driver {
         must_features: u64,
         like_features: u64,
         num_queues: u16,
+        legacy: bool,
     ) -> Result<Self, InitError> {
         // See section 3.1.1 for the driver initialisation
         // process.
@@ -503,9 +504,11 @@ impl Driver {
 
         transport.add_status(DeviceStatus::ACKNOWLEDGE);
         transport.add_status(DeviceStatus::DRIVER);
-        let max_queues = transport.read_num_queues();
-        if max_queues < num_queues {
-            return Err(InitError::TooManyQueues(max_queues));
+        if !legacy {
+            let max_queues = transport.read_num_queues();
+            if max_queues < num_queues {
+                return Err(InitError::TooManyQueues(max_queues));
+            }
         }
 
         // Read the feature set.
@@ -519,22 +522,29 @@ impl Driver {
         // Negotiate our supported features.
         let features = device_features & (must_features | like_features);
         transport.write_driver_features(features);
-        transport.add_status(DeviceStatus::FEATURES_OK);
-        if !transport.has_status(DeviceStatus::FEATURES_OK) {
-            return Err(InitError::DeviceRefusedFeatures);
+        if !legacy {
+            transport.add_status(DeviceStatus::FEATURES_OK);
+            if !transport.has_status(DeviceStatus::FEATURES_OK) {
+                return Err(InitError::DeviceRefusedFeatures);
+            }
         }
 
         // Prepare our virtqueues.
         let mut virtqueues = Vec::new();
         for i in 0..num_queues {
-            virtqueues.push(
-                Box::new(split::Virtqueue::new(i, transport.clone(), features))
-                    as Box<dyn Virtqueue + Send>,
-            );
+            virtqueues.push(Box::new(split::Virtqueue::new(
+                i,
+                transport.clone(),
+                features,
+                legacy,
+            )) as Box<dyn Virtqueue + Send>);
         }
 
         // Finish initialisation.
         transport.add_status(DeviceStatus::DRIVER_OK);
+        if transport.has_status(DeviceStatus::DEVICE_NEEDS_RESET) {
+            return Err(InitError::DeviceRefusedFeatures);
+        }
 
         Ok(Driver {
             transport,

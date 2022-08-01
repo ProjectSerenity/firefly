@@ -131,7 +131,7 @@ qemu(
 )
 
 qemu_test(
-    name = "qemu_test",
+    name = "qemu_modern_virtio_test",
     size = "small",
     image = ":test-image",
     options = [
@@ -145,6 +145,32 @@ qemu_test(
         "virtio-rng-pci,disable-legacy=on,disable-modern=off",
         "-device",
         "virtio-blk-pci,drive=blk1,disable-legacy=on,disable-modern=off",
+        "-serial",
+        "stdio",
+        "-display",
+        "none",
+        "-no-reboot",
+        "-cpu",
+        "Skylake-Server",
+    ],
+    qemu = "qemu-system-x86_64",
+)
+
+qemu_test(
+    name = "qemu_legacy_virtio_test",
+    size = "small",
+    image = ":test-image",
+    options = [
+        "-device",
+        "virtio-net,netdev=net0,disable-legacy=off,disable-modern=on",
+        "-netdev",
+        "user,id=net0",
+        "-object",
+        "filter-dump,id=filter0,netdev=net0,file=virtio-net.pcap",
+        "-device",
+        "virtio-rng-pci,disable-legacy=off,disable-modern=on",
+        "-device",
+        "virtio-blk-pci,drive=blk1,disable-legacy=off,disable-modern=on",
         "-serial",
         "stdio",
         "-display",

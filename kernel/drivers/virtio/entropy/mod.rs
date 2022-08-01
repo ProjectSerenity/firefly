@@ -26,7 +26,7 @@
 //! ```
 
 use crate::features::Reserved;
-use crate::{transports, Buffer};
+use crate::{transports, Buffer, Transport};
 use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec;
@@ -142,21 +142,58 @@ impl EntropySource for Driver {
     }
 }
 
+/// Takes ownership of the given modern PCI device to reset and configure
+/// a virtio entropy device.
+///
+pub fn install_modern_pci_device(device: pci::Device) {
+    install_pci_device(device, false)
+}
+
+/// Takes ownership of the given legacy PCI device to reset and configure
+/// a virtio entropy device.
+///
+pub fn install_legacy_pci_device(device: pci::Device) {
+    install_pci_device(device, true)
+}
+
 /// Takes ownership of the given PCI device to reset and configure
 /// a virtio entropy device.
 ///
-pub fn install_pci_device(device: pci::Device) {
-    let transport = match transports::pci::Transport::new(device) {
-        Err(err) => {
-            println!("Ignoring entropy device: bad PCI transport: {:?}.", err);
-            return;
+fn install_pci_device(device: pci::Device, legacy: bool) {
+    let transport = if legacy {
+        match transports::legacy_pci::Transport::new(device) {
+            Err(err) => {
+                println!(
+                    "Ignoring entropy device: bad legacy PCI transport: {:?}.",
+                    err
+                );
+                return;
+            }
+            Ok(transport) => Arc::new(transport) as Arc<dyn Transport>,
         }
-        Ok(transport) => Arc::new(transport),
+    } else {
+        match transports::pci::Transport::new(device) {
+            Err(err) => {
+                println!("Ignoring entropy device: bad PCI transport: {:?}.", err);
+                return;
+            }
+            Ok(transport) => Arc::new(transport) as Arc<dyn Transport>,
+        }
     };
 
-    let must_features = Reserved::VERSION_1.bits();
-    let like_features = 0u64;
-    let mut driver = match crate::Driver::new(transport, must_features, like_features, 1) {
+    let must_features = if legacy {
+        Reserved::empty().bits()
+    } else {
+        Reserved::VERSION_1.bits()
+    };
+
+    let like_features = if legacy {
+        Reserved::ANY_LAYOUT.bits()
+    } else {
+        Reserved::empty().bits()
+    };
+
+    let mut driver = match crate::Driver::new(transport, must_features, like_features, 1, legacy) {
         Ok(driver) => driver,
         Err(err) => {
             println!("Failed to initialise entropy device: {:?}.", err);

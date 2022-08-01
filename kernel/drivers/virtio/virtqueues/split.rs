@@ -250,11 +250,23 @@ impl<'desc> Virtqueue<'desc> {
     /// device.
     ///
     #[allow(clippy::missing_panics_doc)] // Can only panic if we run out of memory.
-    pub fn new(queue_index: u16, transport: Arc<dyn Transport>, features: u64) -> Self {
+    pub fn new(
+        queue_index: u16,
+        transport: Arc<dyn Transport>,
+        features: u64,
+        legacy: bool,
+    ) -> Self {
         transport.select_queue(queue_index);
 
-        let num_descriptors = core::cmp::min(transport.queue_size(), MAX_DESCRIPTORS);
-        transport.set_queue_size(num_descriptors);
+        let num_descriptors = if legacy {
+            // Legacy devices cannot negotiate the queue
+            // size.
+            transport.queue_size()
+        } else {
+            let size = core::cmp::min(transport.queue_size(), MAX_DESCRIPTORS);
+            transport.set_queue_size(size);
+            size
+        };
 
         // Calculate the size of each section of the
         // virtqueue, with the alignment requirements
@@ -272,6 +284,11 @@ impl<'desc> Virtqueue<'desc> {
         // the first has an offset of the previous
         // area's offset, plus its size, aligned up
         // if necessary.
+        //
+        // Legacy devices have extra padding between
+        // the driver area and the device area so that
+        // the device area is in a different physical
+        // frame from the driver area. See section 2.6.2.
 
         let queue_size = num_descriptors as usize;
         let descriptors_offset = 0; // Offset from frame start.
@@ -280,7 +297,11 @@ impl<'desc> Virtqueue<'desc> {
         let driver_offset = align_up_usize(descriptors_end, 2);
         let driver_size = 6 + 2 * queue_size;
         let driver_end = driver_offset + driver_size;
-        let device_offset = align_up_usize(driver_end, 4);
+        let device_offset = if legacy {
+            align_up_usize(driver_end, 4096)
+        } else {
+            align_up_usize(driver_end, 4)
+        };
         let device_size = 6 + 8 * queue_size;
         let device_end = device_offset + device_size;
 
@@ -299,10 +320,14 @@ impl<'desc> Virtqueue<'desc> {
         unsafe { start_virt.write_bytes(0u8, device_end as usize) };
 
         // Inform the device of the virtqueue.
-        transport.set_queue_descriptor_area(descriptors_phys);
-        transport.set_queue_driver_area(driver_phys);
-        transport.set_queue_device_area(device_phys);
-        transport.enable_queue();
+        if legacy {
+            transport.set_queue_descriptor_area(start_phys);
+        } else {
+            transport.set_queue_descriptor_area(descriptors_phys);
+            transport.set_queue_driver_area(driver_phys);
+            transport.set_queue_device_area(device_phys);
+            transport.enable_queue();
+        }
 
         // Prepare the last bits of our state.
         let free_list = Bitmap::new_set(num_descriptors as usize);

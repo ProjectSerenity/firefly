@@ -13,7 +13,7 @@
 mod cache;
 
 use crate::features::{Block, Reserved};
-use crate::{transports, Buffer, InterruptStatus};
+use crate::{transports, Buffer, InterruptStatus, Transport};
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -417,21 +417,58 @@ struct Config {
     unused1: [u8; 3],
 }
 
-/// Takes ownership of the given PCI device to reset and configure
-/// a virtio entropy device.
+/// Takes ownership of the given modern PCI device to reset and configure
+/// a virtio block device.
 ///
-pub fn install_pci_device(device: pci::Device) {
-    let transport = match transports::pci::Transport::new(device) {
-        Err(err) => {
-            println!("Ignoring block device: bad PCI transport: {:?}.", err);
-            return;
+pub fn install_modern_pci_device(device: pci::Device) {
+    install_pci_device(device, false)
+}
+
+/// Takes ownership of the given legacy PCI device to reset and configure
+/// a virtio block device.
+///
+pub fn install_legacy_pci_device(device: pci::Device) {
+    install_pci_device(device, true)
+}
+
+/// Takes ownership of the given PCI device to reset and configure
+/// a virtio block device.
+///
+fn install_pci_device(device: pci::Device, legacy: bool) {
+    let transport = if legacy {
+        match transports::legacy_pci::Transport::new(device) {
+            Err(err) => {
+                println!(
+                    "Ignoring block device: bad legacy PCI transport: {:?}.",
+                    err
+                );
+                return;
+            }
+            Ok(transport) => Arc::new(transport) as Arc<dyn Transport>,
         }
-        Ok(transport) => Arc::new(transport),
+    } else {
+        match transports::pci::Transport::new(device) {
+            Err(err) => {
+                println!("Ignoring block device: bad PCI transport: {:?}.", err);
+                return;
+            }
+            Ok(transport) => Arc::new(transport) as Arc<dyn Transport>,
+        }
     };
 
-    let must_features = Reserved::VERSION_1.bits();
-    let like_features = Reserved::RING_EVENT_IDX.bits() | (Block::RO | Block::FLUSH).bits();
-    let driver = match crate::Driver::new(transport, must_features, like_features, 1) {
+    let must_features = if legacy {
+        Reserved::empty().bits()
+    } else {
+        Reserved::VERSION_1.bits()
+    };
+
+    let like_features = if legacy {
+        (Reserved::RING_EVENT_IDX | Reserved::ANY_LAYOUT).bits() | (Block::RO | Block::FLUSH).bits()
+    } else {
+        Reserved::RING_EVENT_IDX.bits() | (Block::RO | Block::FLUSH).bits()
+    };
+
+    let driver = match crate::Driver::new(transport, must_features, like_features, 1, legacy) {
         Ok(driver) => driver,
         Err(err) => {
             println!("Failed to initialise block device: {:?}.", err);
