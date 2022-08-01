@@ -170,6 +170,24 @@ pub fn shutdown() -> ! {
         unsafe { slice::from_raw_parts(virt.as_usize() as *const u8, dsdt.length as usize) };
     let (sleep_typea, sleep_typeb) = match aml.parse_table(stream) {
         Ok(_) => {
+            // Load the secondary system description tables.
+            // Note that we don't give up if parsing these
+            // fails, we just keep going and hope for the
+            // best.
+            for (i, ssdt) in acpi_tables.ssdts.iter().enumerate() {
+                let phys = PhysAddr::new(ssdt.address);
+                let virt = phys_to_virt_addr(phys);
+                let stream = unsafe {
+                    slice::from_raw_parts(virt.as_usize() as *const u8, ssdt.length as usize)
+                };
+                if let Err(err) = aml.parse_table(stream) {
+                    println!(
+                        "Failed to parse Secondary System Description Table {}: {:?}.",
+                        i, err
+                    );
+                }
+            }
+
             // System state 5 (Soft Off). See section
             // 7.4.2.6.
             let name = AmlName::from_str("\\_S5").unwrap();
