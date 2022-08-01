@@ -120,7 +120,7 @@ pub fn shutdown() -> ! {
     let acpi_tables = match unsafe { AcpiTables::search_for_rsdp_bios(PhysicalOffsetAcpiHandler) } {
         Ok(acpi_tables) => acpi_tables,
         Err(err) => {
-            println!("Failed to find ACPI tables: {:?}", err);
+            println!("Failed to find ACPI tables: {:?}.", err);
             fallback_shutdown();
         }
     };
@@ -132,12 +132,19 @@ pub fn shutdown() -> ! {
     let fadt = if let Some(fadt) = acpi_tables.sdts.get(&Signature::FADT) {
         fadt
     } else {
+        println!("Failed to find Fixed ACPI Description Table.");
         fallback_shutdown();
     };
 
     if !fadt.validated
         || (fadt.length as usize) < POWER_MANAGEMENT_1B_CONTROL_BLOCK + size_of::<u32>()
     {
+        println!(
+            "Fixed ACPI Description Table is invalid (validated: {}, length: {}/{}).",
+            fadt.validated,
+            fadt.length,
+            POWER_MANAGEMENT_1B_CONTROL_BLOCK + size_of::<u32>()
+        );
         fallback_shutdown();
     }
 
@@ -153,6 +160,7 @@ pub fn shutdown() -> ! {
     let dsdt = if let Some(dsdt) = &acpi_tables.dsdt {
         dsdt
     } else {
+        println!("Failed to find Differentiated System Description Table.");
         fallback_shutdown();
     };
 
@@ -165,10 +173,16 @@ pub fn shutdown() -> ! {
             // System state 5 (Soft Off). See section
             // 7.4.2.6.
             let name = AmlName::from_str("\\_S5").unwrap();
-            let s5 = if let Ok(AmlValue::Package(s5)) = aml.namespace.get_by_path(&name) {
-                s5
-            } else {
-                fallback_shutdown();
+            let s5 = match aml.namespace.get_by_path(&name) {
+                Ok(AmlValue::Package(s5)) => s5,
+                Ok(_) => {
+                    println!("Failed to find ACPI system state 5 (Soft Off): unexpected type.");
+                    fallback_shutdown();
+                }
+                Err(err) => {
+                    println!("Failed to find ACPI system state 5 (Soft Off): {:?}.", err);
+                    fallback_shutdown();
+                }
             };
 
             let typea = &s5[0];
@@ -176,6 +190,7 @@ pub fn shutdown() -> ! {
             if let (AmlValue::Integer(typea), AmlValue::Integer(typeb)) = (typea, typeb) {
                 (*typea as u16, *typeb as u16)
             } else {
+                println!("Failed to parse ACPI system state 5 (Soft Off).");
                 fallback_shutdown();
             }
         }
