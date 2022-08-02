@@ -196,8 +196,8 @@ go = [
     ),
     module(
         name = "golang.org/x/mod",
-        version = "v0.5.1",
-        digest = "sha256:d17023cbaeab3774e68abccdee9ba368fe303a02765251adda41ab097d345e51",
+        version = "v0.6.0-dev.0.20220412012744-41445a152478",
+        digest = "sha256:ed2568b61fa50594b640142ec883d17ee5a7edd46fe7c2e40960ab9637adb5ba",
     ),
     module(
         name = "golang.org/x/time",

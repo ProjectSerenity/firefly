@@ -350,7 +350,7 @@ go = [
     ),
     module(
         name = "golang.org/x/mod",
-        version = "v0.5.1",
+        version = "v0.6.0-dev.0.20220412012744-41445a152478",
         packages = [
             package(
                 name = "golang.org/x/mod/internal/lazyregexp",
