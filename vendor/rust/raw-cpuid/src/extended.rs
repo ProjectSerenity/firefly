@@ -808,6 +808,7 @@ impl Associativity {
             0x4 => Associativity::NWay(4),
             0x5 => Associativity::NWay(6), // Reserved on Intel
             0x6 => Associativity::NWay(8),
+            // 0x7 => SDM states: "See CPUID leaf 04H, sub-leaf 2"
             0x8 => Associativity::NWay(16),
             0x9 => Associativity::Unknown, // Intel: Reserved, AMD: Value for all fields should be determined from Fn8000_001D
             0xa => Associativity::NWay(32),
@@ -1044,7 +1045,7 @@ bitflags! {
 ///
 /// # Platforms
 /// ✅ AMD 🟡 Intel
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct ProcessorCapacityAndFeatureInfo {
     eax: u32,
@@ -1240,6 +1241,44 @@ impl ProcessorCapacityAndFeatureInfo {
     /// ✅ AMD ❌ Intel (reserved=0)
     pub fn max_rdpru_id(&self) -> u16 {
         get_bits(self.edx, 16, 31) as u16
+    }
+}
+
+impl Debug for ProcessorCapacityAndFeatureInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ProcessorCapacityAndFeatureInfo")
+            .field("physical_address_bits", &self.physical_address_bits())
+            .field("linear_address_bits", &self.linear_address_bits())
+            .field(
+                "guest_physical_address_bits",
+                &self.guest_physical_address_bits(),
+            )
+            .field("has_cl_zero", &self.has_cl_zero())
+            .field("has_inst_ret_cntr_msr", &self.has_inst_ret_cntr_msr())
+            .field(
+                "has_restore_fp_error_ptrs",
+                &self.has_restore_fp_error_ptrs(),
+            )
+            .field("has_invlpgb", &self.has_invlpgb())
+            .field("has_rdpru", &self.has_rdpru())
+            .field("has_mcommit", &self.has_mcommit())
+            .field("has_wbnoinvd", &self.has_wbnoinvd())
+            .field("has_int_wbinvd", &self.has_int_wbinvd())
+            .field(
+                "has_unsupported_efer_lmsle",
+                &self.has_unsupported_efer_lmsle(),
+            )
+            .field("has_invlpgb_nested", &self.has_invlpgb_nested())
+            .field("perf_tsc_size", &self.perf_tsc_size())
+            .field("apic_id_size", &self.apic_id_size())
+            .field(
+                "maximum_logical_processors",
+                &self.maximum_logical_processors(),
+            )
+            .field("num_phys_threads", &self.num_phys_threads())
+            .field("invlpgb_max_pages", &self.invlpgb_max_pages())
+            .field("max_rdpru_id", &self.max_rdpru_id())
+            .finish()
     }
 }
 

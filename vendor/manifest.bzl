@@ -8,8 +8,8 @@
 rust = [
     crate(
         name = "acpi",
-        version = "4.1.0",
-        digest = "sha256:331bcc73d10afc858c4f697cf729933860abe2052819df13511fc69bf5323f31",
+        version = "4.1.1",
+        digest = "sha256:0da455b9606168cf46238320e44bb70abeb34d4d57aefce231808df3bada6af0",
     ),
     crate(
         name = "aml",
@@ -103,8 +103,8 @@ rust = [
     ),
     crate(
         name = "raw-cpuid",
-        version = "10.3.0",
-        digest = "sha256:2c555c7fc14ecf7eecce932fe7f7ba12988391babdf92338926cf62a35cedfac",
+        version = "10.4.0",
+        digest = "sha256:9494038accad129c5b3d9e44bcb142c522bac144fa8a3b69ff9586ed7a30fee4",
     ),
     crate(
         name = "rsdp",
@@ -206,12 +206,12 @@ go = [
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.1.11",
-        digest = "sha256:4ad8715f4477ca04f02a7cc3832ff8bf72e7395e0caf9a9880a043e5a1fb09a2",
+        version = "v0.1.12",
+        digest = "sha256:f9d4c420baf4a0fad2e22a02fee477ab2f450134a5e686e52baac19c7b8028ac",
     ),
     module(
         name = "golang.org/x/vuln",
-        version = "v0.0.0-20220723112632-348460952d62",
+        version = "v0.0.0-20220725105440-4151a5aca1df",
         digest = "sha256:4162e176dbce79d2e4f26a8a94f1cc9c6457774c61dfc79fe06c951e81a59c2a",
     ),
     module(

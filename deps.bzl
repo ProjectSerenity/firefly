@@ -6,7 +6,7 @@
 rust = [
     crate(
         name = "acpi",
-        version = "4.1.0",
+        version = "4.1.1",
         edition = "2018",
         deps = [
             "bit_field",
@@ -153,7 +153,7 @@ rust = [
     ),
     crate(
         name = "raw-cpuid",
-        version = "10.3.0",
+        version = "10.4.0",
         edition = "2018",
         deps = [
             "bitflags",
@@ -418,7 +418,7 @@ go = [
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.1.11",
+        version = "v0.1.12",
         packages = [
             package(
                 name = "golang.org/x/tools/txtar",
@@ -427,7 +427,7 @@ go = [
     ),
     module(
         name = "golang.org/x/vuln",
-        version = "v0.0.0-20220723112632-348460952d62",
+        version = "v0.0.0-20220725105440-4151a5aca1df",
         packages = [
             package(
                 name = "golang.org/x/vuln/osv",

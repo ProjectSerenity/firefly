@@ -309,6 +309,7 @@ const EAX_TIME_STAMP_COUNTER_INFO: u32 = 0x15;
 const EAX_FREQUENCY_INFO: u32 = 0x16;
 const EAX_SOC_VENDOR_INFO: u32 = 0x17;
 const EAX_DETERMINISTIC_ADDRESS_TRANSLATION_INFO: u32 = 0x18;
+const EAX_EXTENDED_TOPOLOGY_INFO_V2: u32 = 0x1F;
 
 /// Hypervisor leaf
 const EAX_HYPERVISOR_INFO: u32 = 0x4000_0000;
@@ -552,6 +553,9 @@ impl CpuId {
 
     /// Information about topology (LEAF=0x0B).
     ///
+    /// Intel SDM suggests software should check support for leaf 0x1F ([`get_extended_topology_info_v2()`]), and
+    /// if supported, enumerate that leaf instead.
+    ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
     pub fn get_extended_topology_info(&self) -> Option<ExtendedTopologyIter> {
@@ -559,6 +563,23 @@ impl CpuId {
             Some(ExtendedTopologyIter {
                 read: self.read,
                 level: 0,
+                is_v2: false,
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Extended information about topology (LEAF=0x1F).
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
+    pub fn get_extended_topology_info_v2(&self) -> Option<ExtendedTopologyIter> {
+        if self.leaf_is_supported(EAX_EXTENDED_TOPOLOGY_INFO_V2) {
+            Some(ExtendedTopologyIter {
+                read: self.read,
+                level: 0,
+                is_v2: true,
             })
         } else {
             None
@@ -3721,6 +3742,7 @@ pub struct ExtendedTopologyIter {
     #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
     level: u32,
+    is_v2: bool,
 }
 
 /// Gives information about the current level in the topology.
@@ -3765,6 +3787,9 @@ impl ExtendedTopologyLevel {
             0 => TopologyType::Invalid,
             1 => TopologyType::SMT,
             2 => TopologyType::Core,
+            3 => TopologyType::Module,
+            4 => TopologyType::Tile,
+            5 => TopologyType::Die,
             _ => unreachable!(),
         }
     }
@@ -3789,6 +3814,9 @@ pub enum TopologyType {
     /// Hyper-thread (Simultaneous multithreading)
     SMT = 1,
     Core = 2,
+    Module = 3,
+    Tile = 4,
+    Die = 5,
 }
 
 impl fmt::Display for TopologyType {
@@ -3797,6 +3825,9 @@ impl fmt::Display for TopologyType {
             TopologyType::Invalid => "Invalid",
             TopologyType::SMT => "SMT",
             TopologyType::Core => "Core",
+            TopologyType::Module => "Module",
+            TopologyType::Tile => "Tile",
+            TopologyType::Die => "Die",
         };
 
         f.write_str(data)
@@ -3807,7 +3838,11 @@ impl Iterator for ExtendedTopologyIter {
     type Item = ExtendedTopologyLevel;
 
     fn next(&mut self) -> Option<ExtendedTopologyLevel> {
-        let res = self.read.cpuid2(EAX_EXTENDED_TOPOLOGY_INFO, self.level);
+        let res = if self.is_v2 {
+            self.read.cpuid2(EAX_EXTENDED_TOPOLOGY_INFO_V2, self.level)
+        } else {
+            self.read.cpuid2(EAX_EXTENDED_TOPOLOGY_INFO, self.level)
+        };
         self.level += 1;
 
         let et = ExtendedTopologyLevel {
@@ -5069,6 +5104,8 @@ impl DatInfo {
             0b00010 => DatType::InstructionTLB,
             0b00011 => DatType::UnifiedTLB,
             0b00000 => DatType::Null, // should never be returned as this indicates invalid struct!
+            0b00100 => DatType::LoadOnly,
+            0b00101 => DatType::StoreOnly,
             _ => DatType::Unknown,
         }
     }
@@ -5111,6 +5148,8 @@ pub enum DatType {
     /// Please see the Intel® 64 and IA-32 Architectures Optimization Reference Manual
     /// for details of a particular product.
     UnifiedTLB = 0b00011,
+    LoadOnly = 0b0100,
+    StoreOnly = 0b0101,
     Unknown,
 }
 
@@ -5121,6 +5160,8 @@ impl fmt::Display for DatType {
             DatType::DataTLB => "Data TLB",
             DatType::InstructionTLB => "Instruction TLB",
             DatType::UnifiedTLB => "Unified TLB",
+            DatType::LoadOnly => "Load Only",
+            DatType::StoreOnly => "Store Only",
             DatType::Unknown => "Unknown",
         };
         f.write_str(t)

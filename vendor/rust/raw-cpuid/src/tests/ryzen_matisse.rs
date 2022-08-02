@@ -1225,4 +1225,5 @@ fn remaining_unsupported_leafs() {
     assert!(cpuid.get_processor_frequency_info().is_none());
     assert!(cpuid.get_deterministic_address_translation_info().is_none());
     assert!(cpuid.get_soc_vendor_info().is_none());
+    assert!(cpuid.get_extended_topology_info_v2().is_none());
 }

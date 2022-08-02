@@ -8,36 +8,36 @@ load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_regi
 
 RUST_VERSION = "nightly"
 
-RUST_ISO_DATE = "2022-07-01"
+RUST_ISO_DATE = "2022-08-01"
 
 LLVM_TOOLS = struct(
     name = "llvm-tools-nightly-x86_64-unknown-linux-gnu",
-    sum = "d4ac6f2a3f63ac3efd96305c7a96938195aa6af3fb455f9ecffaf1b8652792ed",
+    sum = "3e0d745025608e1ae5cacc980328add5cae47ba0bcb4e140f862a3a6510d11f7",
 )
 
 RUST = struct(
     name = "rust-nightly-x86_64-unknown-linux-gnu",
-    sum = "153135ef5bc6f276d84d368e83417f32efdeb684e9ea18280e2be1570ca2fe46",
+    sum = "6ac8ae4b50290ea38ad929c91f3e2a6cd660700a2c0dfb5610cbaba043369c82",
 )
 
 RUST_SRC = struct(
     name = "rust-src-nightly",
-    sum = "3c9d57b8c8591a92f9e17fd2f1cbea511760a897908f25998234e7e12aa6a310",
+    sum = "86922b972ad1a6236d728a2d5191dee72dd4dbe99710f03090a747e56be88231",
 )
 
 RUST_STD = struct(
     name = "rust-std-nightly-x86_64-unknown-linux-gnu",
-    sum = "424f0055b8f838dbe5c97228cea9c0b17faaecd1b76e92eb5d3cd469f0fe7886",
+    sum = "23814d485f5b5d31859f9b7b17f5c8ead83677b654842209dd1deea20862b4f7",
 )
 
 RUST_RUSTFMT = struct(
     name = "rustfmt-nightly-x86_64-unknown-linux-gnu",
-    sum = "d70de1e5ab40f129d839194caccb351bcc056ef91d4abb9d98a4862aef591540",
+    sum = "5cb64b4a894b3f8f5456abacd0ccade03a7dd90a2038ab195c22c9f78bfef8f3",
 )
 
 RUST_NO_STD = struct(
     name = "rust-std-nightly-x86_64-unknown-none",
-    sum = "d786fe0d2d79061e77213e6d535bd7ba7682e164c92df85607eee24346a9a1ed",
+    sum = "66a464458ca02decb0f215a062b386733466235f2ea0b1ce3220269728063aea",
 )
 
 def rust_deps():
