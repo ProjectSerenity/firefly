@@ -399,6 +399,7 @@ go = [
                 deps = [
                     "golang.org/x/mod/module",
                 ],
+                test_size = "medium",
                 test_deps = [
                     "golang.org/x/mod/module",
                     "golang.org/x/mod/sumdb/dirhash",
