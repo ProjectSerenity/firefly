@@ -171,7 +171,7 @@ func LatestGitRelease(baseAPI, repository string) (version string, err error) {
 
 	version = strings.TrimPrefix(release.TagName, "v")
 	if version == "" {
-		return "", fmt.Errorf("Failed to check %s for latest release: failed to find latest version", repository)
+		return "", fmt.Errorf("Failed to check %s for latest release: failed to find latest version: invalid tag %q", repository, release.TagName)
 	}
 
 	return version, nil
