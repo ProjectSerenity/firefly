@@ -43,7 +43,7 @@ pub fn exit_thread() -> ! {
 /// is not a valid byte slice.
 ///
 pub fn read_random(buf: &mut [u8]) {
-    syscalls::read_random((&mut buf[..]).as_mut_ptr(), buf.len() as u64).unwrap();
+    syscalls::read_random((buf[..]).as_mut_ptr(), buf.len() as u64).unwrap();
 }
 
 /// The process's standard output.

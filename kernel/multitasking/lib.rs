@@ -76,7 +76,7 @@ where
     F: FnOnce(&mut BTreeMap<KernelProcessId, Process>) -> R,
 {
     let mut processes = without_interrupts(|| lock!(PROCESSES));
-    f(&mut *processes)
+    f(&mut processes)
 }
 
 type ThreadTable = BTreeMap<KernelThreadId, Arc<Thread>>;
