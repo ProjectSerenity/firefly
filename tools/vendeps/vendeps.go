@@ -113,6 +113,7 @@ type GoPackage struct {
 
 	// Test configuration.
 	NoTests       bool     `bzl:"no_tests"`
+	TestSize      string   `bzl:"test_size"`
 	TestData      []string `bzl:"test_data"`
 	TestDataGlobs []string `bzl:"test_data_globs"`
 	TestDeps      []string `bzl:"test_deps"`

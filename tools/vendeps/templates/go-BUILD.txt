@@ -30,7 +30,7 @@ go_library(
 
 go_test(
     name = "{{ packageName .Name }}_test",
-    size = "small",
+    size = "{{ if .TestSize }}{{ .TestSize }}{{ else }}small{{ end }}",
     srcs = glob(["*_test.go"]),
     data = glob(["testdata/**"]){{ if .TestDataGlobs }} + glob([{{ range .TestDataGlobs }}
         "{{ . }}",{{ end }}
