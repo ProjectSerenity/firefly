@@ -5,7 +5,6 @@
 
 // Package format contains functionality to format a Plan document into the
 // canonical style.
-//
 package format
 
 import (
@@ -24,7 +23,6 @@ import (
 // into a vertical list with all entries after the first
 // indented by one. If the list is narrower than this,
 // it will be printed on one line, separated by a space.
-//
 const maxListWidth = 80
 
 // containsMultipleLists returns whether a set of expressions
@@ -34,7 +32,6 @@ const maxListWidth = 80
 // whether to split a list onto multiple lines. We don't
 // want to have multiple lists on a single line, as it can
 // become quite hard to read.
-//
 func containsMultipleLists(elts []ast.Expr) bool {
 	lists := 0
 	for _, elt := range elts {
@@ -62,7 +59,6 @@ func containsMultipleLists(elts []ast.Expr) bool {
 // - value (enumeration)
 // - argN (syscall)
 // - resultN (syscall)
-//
 func SortFields(file *ast.File, arch types.Arch) error {
 	// Sort the fields before pretty-printing.
 	//
@@ -173,7 +169,6 @@ func SortFields(file *ast.File, arch types.Arch) error {
 
 // Fprint writes the file to w, according to the standard
 // style.
-//
 func Fprint(w io.Writer, file *ast.File) error {
 	allocated := false
 	var buf *bytes.Buffer
@@ -262,7 +257,6 @@ const tabs = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" +
 
 // fprintCommentGroup writes the comment group to buf, using
 // the simplify method to style the comments.
-//
 func fprintCommentGroup(buf *bytes.Buffer, indentation int, group *ast.CommentGroup) {
 	lines := group.Lines()
 	for i, line := range lines {
@@ -283,7 +277,6 @@ func fprintCommentGroup(buf *bytes.Buffer, indentation int, group *ast.CommentGr
 // fprintExpr writes the node to buf, with the given indentation.
 //
 // fprintExpr does not write any spacing around the node.
-//
 func fprintExpr(buf *bytes.Buffer, indentation int, expr ast.Expr) {
 	switch x := expr.(type) {
 	case *ast.Identifier:

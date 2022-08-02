@@ -12,7 +12,6 @@ import (
 
 // Licenses is the set of acceptable software
 // licenses, referenced by their SPDX id.
-//
 var Licenses = map[string]string{
 	"0BSD":         "BSD Zero Clause License",
 	"Apache-2.0":   "Apache License 2.0",
@@ -24,7 +23,6 @@ var Licenses = map[string]string{
 // AcceptableLicense determines whether the
 // given set of licenses includes at least
 // one acceptable license as described above.
-//
 func AcceptableLicense(options string) (license string, ok bool) {
 	licenses := strings.FieldsFunc(options, func(r rune) bool {
 		return r == '/' || unicode.IsSpace(r)

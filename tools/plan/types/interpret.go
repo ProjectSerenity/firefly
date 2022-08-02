@@ -6,7 +6,6 @@
 // Package types contains the Plan interpreter, which is used to
 // validate a Plan source file's structure and contents, then store
 // the result in a more constrained representation.
-//
 package types
 
 import (
@@ -22,7 +21,6 @@ import (
 // but not only, way to do this is to define them
 // for a base error enumeration, then embed that in
 // more complex error enumerations.
-//
 var requiredErrorValues = []Name{
 	{"no", "error"},
 	{"bad", "syscall"},
@@ -37,7 +35,6 @@ var requiredErrorValues = []Name{
 // positionalError represents an error that has
 // occurred at a specific location within a Plan
 // file.
-//
 type positionalError struct {
 	Pos string
 	Msg string
@@ -57,7 +54,6 @@ func (e *positionalError) Context(msg string) *positionalError {
 // interpreter is used to process a Plan source
 // file, producing a structured representation
 // for the interface it defines.
-//
 type interpreter struct {
 	filename string
 	out      *File
@@ -74,7 +70,6 @@ type interpreter struct {
 // Interpret processes a Plan source file,
 // producing a structured representation for
 // the interface it defines.
-//
 func Interpret(filename string, file *ast.File, arch Arch) (*File, error) {
 	i := &interpreter{
 		filename: filename,
@@ -106,14 +101,12 @@ func Interpret(filename string, file *ast.File, arch Arch) (*File, error) {
 
 // pos returns the position of the given node in
 // the file being interpreted.
-//
 func (i *interpreter) pos(node ast.Node) string {
 	return node.Pos().File(i.filename)
 }
 
 // errorf produces a positional error, referring
 // to node.
-//
 func (i *interpreter) errorf(node ast.Node, format string, v ...any) *positionalError {
 	return &positionalError{
 		Pos: i.pos(node),
@@ -123,7 +116,6 @@ func (i *interpreter) errorf(node ast.Node, format string, v ...any) *positional
 
 // interpretFile is the entry point for the
 // interpreter.
-//
 func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 	for _, list := range file.Lists {
 		def, _, err := i.interpretDefinition(list)
@@ -427,7 +419,6 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 
 // interpretArray parses the list elements as
 // an array definition.
-//
 func (i *interpreter) interpretArray(list *ast.List) (*Array, *positionalError) {
 	// Skip the first element, which is the 'array'
 	// identifier.
@@ -543,7 +534,6 @@ func (i *interpreter) interpretArray(list *ast.List) (*Array, *positionalError) 
 
 // interpretBitfield parses the list elements as a
 // bitfield definition.
-//
 func (i *interpreter) interpretBitfield(list *ast.List) (*Bitfield, *positionalError) {
 	// Skip the first element, which is the 'bitfield'
 	// identifier.
@@ -656,7 +646,6 @@ func (i *interpreter) interpretBitfield(list *ast.List) (*Bitfield, *positionalE
 
 // interpretEnumeration parses the list elements as
 // an enum definition.
-//
 func (i *interpreter) interpretEnumeration(list *ast.List) (*Enumeration, *positionalError) {
 	// Skip the first element, which is the 'enumeration'
 	// identifier.
@@ -801,7 +790,6 @@ func (i *interpreter) interpretEnumeration(list *ast.List) (*Enumeration, *posit
 
 // interpretNewInteger parses the list elements as a
 // new integer definition.
-//
 func (i *interpreter) interpretNewInteger(list *ast.List) (*NewInteger, *positionalError) {
 	// Skip the first element, which is the 'integer'
 	// identifier.
@@ -891,7 +879,6 @@ func (i *interpreter) interpretNewInteger(list *ast.List) (*NewInteger, *positio
 
 // interpretStructure parses the list elements as
 // a struct definition.
-//
 func (i *interpreter) interpretStructure(list *ast.List) (*Structure, *positionalError) {
 	// Skip the first element, which is the 'structure'
 	// identifier.
@@ -979,7 +966,6 @@ func (i *interpreter) interpretStructure(list *ast.List) (*Structure, *positiona
 
 // interpretSyscall parses the list elements as
 // a syscall definition.
-//
 func (i *interpreter) interpretSyscall(list *ast.List) (*Syscall, *positionalError) {
 	// Skip the first element, which is the 'syscall'
 	// identifier.
@@ -1111,7 +1097,6 @@ func (i *interpreter) interpretSyscall(list *ast.List) (*Syscall, *positionalErr
 
 // interpretGroup parses the list elements as a
 // group definition.
-//
 func (i *interpreter) interpretGroup(list *ast.List) (*Group, *positionalError) {
 	// Skip the first element, which is the 'group'
 	// identifier.
@@ -1186,7 +1171,6 @@ func (i *interpreter) interpretGroup(list *ast.List) (*Group, *positionalError) 
 
 // interpretType ensures that the given elements form a
 // valid type reference, returning the parsed type.
-//
 func (i *interpreter) interpretType(elts []ast.Expr) (Type, *positionalError) {
 	// For now, we only allow one pointer, which must
 	// be the first part of the type. It must always
@@ -1227,7 +1211,6 @@ func (i *interpreter) interpretType(elts []ast.Expr) (Type, *positionalError) {
 // interpretTypeReference ensures that the given list
 // elements form a valid basic type reference, returning
 // the parsed reference.
-//
 func (i *interpreter) interpretTypeReference(elts []ast.Expr) (Type, *positionalError) {
 	// We don't allow pointer types here, so the list
 	// elements should all be identifiers.

@@ -6,7 +6,6 @@
 // Package token contains constants for the lexical tokens in the
 // Plan interface description language and types to compactly store
 // a position in a Plan source file.
-//
 package token
 
 import (
@@ -14,7 +13,6 @@ import (
 )
 
 // Token is the set of lexical tokens in Plan.
-//
 type Token int
 
 const (
@@ -49,7 +47,6 @@ var tokens = [...]string{
 
 // String returns the textual representation for
 // the token t.
-//
 func (t Token) String() string {
 	if 0 <= t && t < endTokens {
 		return tokens[t]

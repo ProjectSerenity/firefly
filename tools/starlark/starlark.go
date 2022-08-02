@@ -17,7 +17,6 @@ import (
 
 // Format pretty-prints the Starlark content in data.
 // The filename is only used to improve any error messages.
-//
 func Format(filename string, data []byte) ([]byte, error) {
 	// Parse it into a file, so we can auto-format
 	// it.
@@ -32,7 +31,6 @@ func Format(filename string, data []byte) ([]byte, error) {
 
 // Unmarshal parses a Starlark file into structured Go data.
 // The filename is only used to improve any error messages.
-//
 func Unmarshal(filename string, data []byte, v any) error {
 	f, err := build.ParseBzl(filename, data)
 	if err != nil {

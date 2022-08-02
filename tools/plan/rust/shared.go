@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file.
 
 // Package rust uses templates to render a Plan document as Rust code.
-//
 package rust
 
 import (
@@ -25,7 +24,6 @@ import (
 // GenerateSharedCode generates the shared data structures
 // of the Plan document to w, using the rustfmt tool at the
 // given path.
-//
 func GenerateSharedCode(w io.Writer, file *types.File, arch types.Arch, rustfmt string) error {
 	// Start with the prelude.
 	var buf bytes.Buffer

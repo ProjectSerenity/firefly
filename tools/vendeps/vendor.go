@@ -24,7 +24,6 @@ import (
 //
 // Note that Vendor does not perform any of these actions;
 // it only reads data from fsys.
-//
 func Vendor(fsys fs.FS) (actions []Action, err error) {
 	data, err := fs.ReadFile(fsys, depsBzl)
 	if err != nil {

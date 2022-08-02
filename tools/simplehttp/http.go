@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file.
 
 // Package simplehttp is a very simple HTTP client helper library.
-//
 package simplehttp
 
 import (
@@ -19,7 +18,6 @@ import (
 
 // Client is the underlying HTTP client that
 // will be used by Request.
-//
 var Client = &http.Client{
 	Transport: &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
@@ -39,17 +37,14 @@ var Client = &http.Client{
 // should be provided with requests. If
 // UserAgent is empty, Request will return
 // an error.
-//
 var UserAgent string
 
 // RateLimit will be used by Request to ensure
 // we do not overload the servers we use.
-//
 var RateLimit = rate.NewLimiter(rate.Every(time.Second), 1) // 1 request per second.
 
 // Request performs the given HTTP request,
 // returning the response.
-//
 func Request(req *http.Request) (*http.Response, error) {
 	if UserAgent == "" {
 		return nil, errors.New("simplehttp.UserAgent is unset")

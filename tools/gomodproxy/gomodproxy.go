@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file.
 
 // Package gomodproxy simplifies fetching data from a Go module proxy.
-//
 package gomodproxy
 
 import (
@@ -30,7 +29,6 @@ const goModuleProxy = "https://proxy.golang.org"
 
 // Latest returns the latest version of a Go module,
 // using the proxy.golang.org Go module proxy API.
-//
 func Latest(ctx context.Context, modName string) (latest string, err error) {
 	return getLatest(ctx, goModuleProxy, modName)
 }
@@ -83,7 +81,6 @@ func getLatest(ctx context.Context, proxy, modName string) (latest string, err e
 
 // Download fetches a Go module using the
 // proxy.golang.org Go module proxy API.
-//
 func Download(ctx context.Context, modName, version, dir string) error {
 	return download(ctx, goModuleProxy, modName, version, dir)
 }

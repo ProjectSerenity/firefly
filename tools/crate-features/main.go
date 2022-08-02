@@ -5,7 +5,6 @@
 
 // Command crate-features analyses the Rust crates in the
 // repository for unstable features, printing a summary.
-//
 package main
 
 import (
@@ -22,7 +21,6 @@ import (
 
 // Features parses the given file, returning the set
 // of unstable Rust features the crate requires.
-//
 func Features(fsys fs.FS, name string) ([]string, error) {
 	f, err := fsys.Open(name)
 	if err != nil {

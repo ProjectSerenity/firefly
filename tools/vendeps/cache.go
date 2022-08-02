@@ -22,7 +22,6 @@ import (
 //
 // If no actions can be cached, or if there is no
 // cache, the unmodified action sequence is returned.
-//
 func StripCachedActions(fsys fs.FS, actions []Action) []Action {
 	// Start by loading the cache manifest. If we
 	// fail to do so, we just return the unmodified
@@ -172,7 +171,6 @@ func StripCachedActions(fsys fs.FS, actions []Action) []Action {
 // GenerateCacheManifest produces the cache manifest,
 // which describes the set of data cached in the
 // vendor directly.
-//
 func GenerateCacheManifest(fsys fs.FS, deps *Deps) (*Deps, error) {
 	manifest := &Deps{
 		Rust: make([]*RustCrate, len(deps.Rust)),

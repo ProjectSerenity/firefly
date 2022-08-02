@@ -22,7 +22,6 @@ import (
 
 // FetchGoModule downloads a Go module using the
 // proxy.golang.org Go module proxy API.
-//
 func FetchGoModule(ctx context.Context, mod *GoModule, dir string) error {
 	err := gomodproxy.Download(ctx, mod.Name, mod.Version, dir)
 	if err != nil {
@@ -109,7 +108,6 @@ func FetchGoModule(ctx context.Context, mod *GoModule, dir string) error {
 
 // UpdateGoModule checks a Go module for updates,
 // using the proxy.golang.org Go module proxy API.
-//
 func UpdateGoModule(ctx context.Context, mod *UpdateDep) (updated bool, err error) {
 	latest, err := gomodproxy.Latest(ctx, mod.Name)
 	if err != nil {

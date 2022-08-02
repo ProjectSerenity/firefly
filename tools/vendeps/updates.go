@@ -21,7 +21,6 @@ import (
 // Note that UpdateDependencies does not modify
 // the set of vendored dependencies, only the
 // dependency specification.
-//
 func UpdateDependencies(name string) error {
 	data, err := os.ReadFile(name)
 	if err != nil {
@@ -80,7 +79,6 @@ func UpdateDependencies(name string) error {
 // or if both have major version 0 and
 // the newer version has a different
 // minor version.
-//
 func MajorUpdate(current, next string) bool {
 	if semver.Major(current) == "v0" && semver.Major(next) == "v0" {
 		return semver.Compare(current, next) == -1 && semver.MajorMinor(current) != semver.MajorMinor(next)
@@ -92,7 +90,6 @@ func MajorUpdate(current, next string) bool {
 // ParseUpdateDeps parses a deps.bzl file for
 // the set of dependencies so they can be
 // checked for updates.
-//
 func ParseUpdateDeps(filename string, f *build.File) (*UpdateDeps, error) {
 	// pos is a helper for printing file:line prefixes
 	// for error messages.

@@ -18,7 +18,6 @@ import (
 // Type represents any type that can be
 // referenced in a Plan document, including
 // complex structure types.
-//
 type Type interface {
 	// Alignment returns the memory alignment
 	// of the type on the specified architecture.
@@ -56,7 +55,6 @@ type Type interface {
 
 // Underlying returns the base type, dereferencing
 // any References if necessary.
-//
 func Underlying(typ Type) Type {
 	for {
 		ref, ok := typ.(*Reference)
@@ -70,7 +68,6 @@ func Underlying(typ Type) Type {
 
 // Array represents a fixed-size
 // sequence of another data type.
-//
 type Array struct {
 	Name   Name
 	Node   *ast.List
@@ -116,7 +113,6 @@ func (a *Array) String() string {
 // resulting in a smaller number of
 // individual values than an enumeration
 // of the same size.
-//
 type Bitfield struct {
 	Name   Name
 	Node   *ast.List
@@ -150,7 +146,6 @@ func (b *Bitfield) String() string {
 // Enumeration represents a numerical type
 // with a constrained set of valid values
 // in a syscalls plan.
-//
 type Enumeration struct {
 	Name   Name
 	Node   *ast.List
@@ -184,7 +179,6 @@ func (e *Enumeration) String() string {
 
 // Integer represents a primitive integer,
 // type.
-//
 type Integer uint8
 
 var _ Type = Integer(0)
@@ -375,7 +369,6 @@ func (b Integer) String() string {
 // NewInteger represents a new type
 // that has been defined, with an
 // underlying integer type.
-//
 type NewInteger struct {
 	Name   Name
 	Node   *ast.List
@@ -402,7 +395,6 @@ func (i *NewInteger) String() string {
 // Padding represents unused space that is included
 // after a field in a structure to ensure the fields
 // and structure remain correctly aligned.
-//
 type Padding uint16
 
 var _ Type = Padding(0)
@@ -430,7 +422,6 @@ func (p Padding) String() string {
 
 // Pointer represents a pointer to
 // another data type.
-//
 type Pointer struct {
 	Mutable    bool
 	Underlying Type
@@ -476,7 +467,6 @@ func (p *Pointer) String() string {
 
 // Reference represents a name used to reference a
 // type that has already been defined elsewhere.
-//
 type Reference struct {
 	Name       Name
 	Underlying Type
@@ -502,7 +492,6 @@ func (r *Reference) String() string {
 
 // Structure represents a structure defined
 // in a syscalls plan.
-//
 type Structure struct {
 	Name   Name
 	Node   *ast.List
@@ -556,7 +545,6 @@ func (s *Structure) String() string {
 
 // Syscall describes a system call, including
 // its parameters and results.
-//
 type Syscall struct {
 	Name    Name
 	Node    *ast.List
@@ -579,7 +567,6 @@ func (s *Syscall) String() string {
 // references to link to a system call and
 // is used internally to prevent syscalls
 // and types clashing in the name space.
-//
 type SyscallReference struct {
 	Name Name
 }
@@ -592,7 +579,6 @@ func (r *SyscallReference) Size(a Arch) int       { return 0 }
 func (r *SyscallReference) String() string        { return fmt.Sprintf("syscall %s", r.Name.Spaced()) }
 
 // File represents a parsed syscalls plan.
-//
 type File struct {
 	// Data structures.
 	Arrays       []*Array
@@ -613,7 +599,6 @@ type File struct {
 // the set of syscalls. This can be used to
 // iterate over the set of syscalls in a target
 // language.
-//
 func (f *File) SyscallsEnumeration() *Enumeration {
 	enum := &Enumeration{
 		Name:   Name{"syscalls"},
@@ -635,7 +620,6 @@ func (f *File) SyscallsEnumeration() *Enumeration {
 // DropAST can be used to remove the AST nodes
 // from a file, to make it easier to reproduce
 // in tests.
-//
 func (f *File) DropAST() {
 	for _, array := range f.Arrays {
 		array.Node = nil

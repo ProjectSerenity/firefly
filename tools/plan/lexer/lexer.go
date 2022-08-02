@@ -5,7 +5,6 @@
 
 // Package lexer includes functionality for scanning a Plan source file into a
 // sequence of tokens.
-//
 package lexer
 
 import (
@@ -19,7 +18,6 @@ import (
 
 // Lexeme describes a token, its position, and its textual
 // value.
-//
 type Lexeme struct {
 	Token    token.Token
 	Position token.Position
@@ -32,7 +30,6 @@ func (l Lexeme) String() string {
 
 // lexer scans a sequence of bytes, producing a sequence of Plan
 // tokens.
-//
 type lexer struct {
 	// Immutable state.
 	src     []byte
@@ -54,7 +51,6 @@ type lexer struct {
 // Once the end of the file is reached, or an error is encountered,
 // the channel will be closed, resulting in an endless sequence
 // of EndOfFile tokens.
-//
 func Scan(source []byte) <-chan Lexeme {
 	c := make(chan Lexeme)
 	l := &lexer{
@@ -78,7 +74,6 @@ func Scan(source []byte) <-chan Lexeme {
 // until the end of the file is reached or an error is
 // encountered. In either case, the channel of lexemes
 // is then closed.
-//
 func (l *lexer) run() {
 	// Close the channel, producing an endless sequence
 	// of EndOfFile tokens once we're done.
@@ -205,19 +200,16 @@ const (
 
 // eof returns whether the lexer has reached the end
 // of the source.
-//
 func (l *lexer) eof() bool {
 	return l.nextOffset >= len(l.src)
 }
 
 // errorf records the given error message.
-//
 func (l *lexer) errorf(format string, v ...any) {
 	l.lexemes <- Lexeme{Token: token.Error, Position: l.pos, Value: fmt.Sprintf(format, v...)}
 }
 
 // next consumes the next code point, returning it.
-//
 func (l *lexer) next() (r rune) {
 	if l.eof() {
 		l.width = 0
@@ -256,7 +248,6 @@ func (l *lexer) next() (r rune) {
 //
 // If next was not called since the last call to
 // backup, peek, or Init, backup will panic.
-//
 func (l *lexer) backup() {
 	if l.width == 0 && !l.eof() {
 		panic("Lexer.backup() called without preceeding call to Lexer.next()")
@@ -277,7 +268,6 @@ func (l *lexer) backup() {
 
 // peek returns the next rune, without consuming
 // it from the source.
-//
 func (l *lexer) peek() rune {
 	r := l.next()
 	l.backup()
@@ -286,7 +276,6 @@ func (l *lexer) peek() rune {
 }
 
 // advance the source position.
-//
 func (l *lexer) advance() {
 	l.offset = l.nextOffset
 	var err error
@@ -298,7 +287,6 @@ func (l *lexer) advance() {
 
 // lexeme returns a Lexeme from the current position,
 // with the given token type.
-//
 func (l *lexer) lexeme(tok token.Token) {
 	val := string(l.src[l.offset:l.nextOffset])
 	l.lexemes <- Lexeme{Token: tok, Position: l.pos, Value: val}
@@ -307,7 +295,6 @@ func (l *lexer) lexeme(tok token.Token) {
 
 // scanString is called after the opening quote
 // has been scanned.
-//
 func (l *lexer) scanString() {
 	for {
 		r := l.next()

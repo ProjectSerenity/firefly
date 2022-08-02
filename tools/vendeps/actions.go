@@ -21,7 +21,6 @@ import (
 //
 // An action should contain any context necessary to
 // perform its tasks.
-//
 type Action interface {
 	Do(fs.FS) error
 	fmt.Stringer
@@ -30,7 +29,6 @@ type Action interface {
 // RemoveAll deletes a directory, along with any child
 // nodes that exist. If the path does not exist, there
 // is no effect.
-//
 type RemoveAll string
 
 var _ Action = RemoveAll("")
@@ -41,7 +39,6 @@ func (r RemoveAll) String() string      { return fmt.Sprintf("delete %s", string
 // DownloadCrate indicates that the named crate should
 // be downloaded from crates.io and extracted into the
 // given path.
-//
 type DownloadRustCrate struct {
 	Crate *RustCrate
 	Path  string
@@ -75,7 +72,6 @@ func (c DownloadRustCrate) String() string {
 // DownloadModule indicates that the named module should
 // be downloaded from the module proxy and extracted into
 // the given path.
-//
 type DownloadGoModule struct {
 	Module *GoModule
 	Path   string
@@ -108,7 +104,6 @@ func (c DownloadGoModule) String() string {
 
 // CopyBUILD indicates that the named BUILD file
 // should be copied to the given path.
-//
 type CopyBUILD struct {
 	Source string
 	Path   string
@@ -170,7 +165,6 @@ func (c CopyBUILD) String() string {
 // GenerateCrateBUILD indicates that the named crate
 // should have its BUILD file generated and written
 // to the given path.
-//
 type GenerateRustCrateBUILD struct {
 	Crate *RustCrate
 	Path  string
@@ -199,7 +193,6 @@ func (c GenerateRustCrateBUILD) String() string {
 // GeneratePackageBUILD indicates that the named package
 // should have its BUILD file generated and written to
 // the given path.
-//
 type GenerateGoPackageBUILD struct {
 	Package *GoPackage
 	Path    string
@@ -246,7 +239,6 @@ func (c GenerateGoPackageBUILD) String() string {
 // should scan the vendor filesystem, producing the
 // information necessary to avoid unnecessary future work,
 // writing it to the given path.
-//
 type BuildCacheManifest struct {
 	Deps *Deps
 	Path string

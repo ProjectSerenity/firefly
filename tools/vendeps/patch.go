@@ -14,7 +14,6 @@ import (
 
 // ApplyPatches applies the given set of patch files to the
 // directory specified.
-//
 func ApplyPatches(dir string, patchArgs []string, patches []string) error {
 	// TODO: Implement ApplyPatches in Go, rather than shelling out to the patch binary.
 

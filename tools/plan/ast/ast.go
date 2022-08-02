@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file.
 
 // Package ast contains the types representing Plan syntax trees.
-//
 package ast
 
 import (
@@ -18,7 +17,6 @@ import (
 // beginning and and of the node.
 
 // Node represents a node in the syntax tree.
-//
 type Node interface {
 	String() string      // A textual description of the node.
 	Pos() token.Position // Location of the first character of the node.
@@ -26,7 +24,6 @@ type Node interface {
 }
 
 // Expr represents an expression in the syntax tree.
-//
 type Expr interface {
 	Node
 
@@ -131,7 +128,6 @@ func (x *List) Width() int {
 }
 
 // A Comment node represents a single ;-style comment.
-//
 type Comment struct {
 	Semicolon token.Position // Position of ';' starting the comment.
 	Text      string         // Comment text (including the ';', excluding any trailing '\n').
@@ -143,7 +139,6 @@ func (c *Comment) End() token.Position { return c.Semicolon.Advance(len(c.Text))
 
 // A CommentGroup represents a sequence of comments
 // with no other tokens and no empty lines between.
-//
 type CommentGroup struct {
 	List []*Comment // len(List) > 0
 }
@@ -170,7 +165,6 @@ func stripTrailingWhitespace(s string) string {
 // leading and trailing empty lines are removed. Multiple empty
 // lines are reduced to one, and trailing space on lines is trimmed.
 // Unless the result is empty, it is newline-terminated.
-//
 func (g *CommentGroup) Text() string {
 	lines := g.Lines()
 	if len(lines) == 0 {
@@ -191,7 +185,6 @@ func (g *CommentGroup) Text() string {
 // Comment markers (';'), the first space of a line comment, and
 // leading and trailing empty lines are removed. Multiple empty
 // lines are reduced to one, and trailing space on lines is trimmed.
-//
 func (g *CommentGroup) Lines() []string {
 	if g == nil {
 		return nil
@@ -233,7 +226,6 @@ func (g *CommentGroup) Lines() []string {
 }
 
 // File represents a file of Plan source.
-//
 type File struct {
 	Comments []*CommentGroup // All comments in the file.
 	Lists    []*List         // Top-level expressions, or nil.

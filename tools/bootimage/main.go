@@ -13,7 +13,6 @@
 // Finally, we write the modified bootloader's segments and the entire kernel
 // binary to the output file. Note that we strip the ELF headers from the
 // bootloader, just writing the segments that are loaded into memory.
-//
 package main
 
 import (

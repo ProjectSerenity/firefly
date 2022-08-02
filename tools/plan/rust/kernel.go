@@ -21,7 +21,6 @@ import (
 // GenerateKernelCode generates the kernel's implementation,
 // of the Plan document to w, using the rustfmt tool at the
 // given path.
-//
 func GenerateKernelCode(w io.Writer, file *types.File, arch types.Arch, rustfmt string) error {
 	// Start with the prelude.
 	var buf bytes.Buffer
@@ -152,7 +151,6 @@ func kernelToDocs(indent int, d types.Docs) string {
 // then kernelUnusedArgs would return a slice
 // containing the integers 3, 4, 5, 6 to represent
 // the four arguments it does not use.
-//
 func kernelUnusedArgs(params types.Parameters) []int {
 	if len(params) >= 6 {
 		return nil

@@ -17,7 +17,6 @@ import (
 
 // FetchRustCrate downloads a Rust crate using the
 // crates.io API.
-//
 func FetchRustCrate(ctx context.Context, crate *RustCrate, dir string) error {
 	data, err := cratesio.Lookup(ctx, crate.Name)
 	if err != nil {
@@ -40,7 +39,6 @@ func FetchRustCrate(ctx context.Context, crate *RustCrate, dir string) error {
 
 // UpdateRustCrate checks a Rust crate for updates,
 // using the crates.io API.
-//
 func UpdateRustCrate(ctx context.Context, crate *UpdateDep) (updated bool, err error) {
 	data, err := cratesio.Lookup(ctx, crate.Name)
 	if err != nil {

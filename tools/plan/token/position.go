@@ -13,18 +13,15 @@ import (
 
 // Position describes an arbitrary source location
 // within a Plan file.
-//
 type Position uint64
 
 // FileStart records the first position in a file.
-//
 const FileStart = Position(1<<lineShift) | Position(1<<columnShift)
 
 // Position is encoded as a 16-bit line number,
 // a 16-bit column number, and a 32-bit offset
 // into the file. A position is valid if it has
 // a non-zero line number.
-//
 const (
 	lineShift = 16 + 32
 	lineMax   = 0xffff
@@ -41,7 +38,6 @@ const (
 
 // MaxOffset defines the largest offset into a file
 // that can be represented in a Position.
-//
 const MaxOffset = offsetMax
 
 var (
@@ -52,7 +48,6 @@ var (
 
 // NewPosition returns a compact representation
 // for the given position.
-//
 func NewPosition(offset, line, column int) (Position, error) {
 	if offset < 0 || offsetMax < offset {
 		return 0, invalidOffset
@@ -74,7 +69,6 @@ func NewPosition(offset, line, column int) (Position, error) {
 }
 
 // IsValid returns whether p is a valid position.
-//
 func (p Position) IsValid() bool {
 	// A position is valid if it has a non-zero
 	// line number.
@@ -84,7 +78,6 @@ func (p Position) IsValid() bool {
 // Line returns the line number for this position.
 //
 // Line numbers start from 1.
-//
 func (p Position) Line() int {
 	return int((p & lineMask) >> lineShift)
 }
@@ -92,7 +85,6 @@ func (p Position) Line() int {
 // Column returns the column number for this position.
 //
 // Column numbers start from 1.
-//
 func (p Position) Column() int {
 	return int((p & columnMask) >> columnShift)
 }
@@ -100,7 +92,6 @@ func (p Position) Column() int {
 // Offset returns the file offset for this position.
 //
 // Offset numbers start from 0.
-//
 func (p Position) Offset() int {
 	return int(p & offsetMask)
 }
@@ -108,7 +99,6 @@ func (p Position) Offset() int {
 // Advance returns a new position that represents
 // n byte further into the file on the same line
 // as p.
-//
 func (p Position) Advance(n int) Position {
 	offset := p.Offset() + n
 	line := p.Line()
@@ -124,13 +114,12 @@ func (p Position) Advance(n int) Position {
 // File describes this position within the given
 // file, with one of the following forms:
 //
-// 	file:line:column  (Valid position within the file)
-// 	file:line         (Valid position with column 0)
-// 	line:column       (Valid position with filename "")
-// 	line              (Valid position with filename "" and column 0)
-// 	file              (Invalid position)
-// 	?                 (Invalid position with filename "")
-//
+//	file:line:column  (Valid position within the file)
+//	file:line         (Valid position with column 0)
+//	line:column       (Valid position with filename "")
+//	line              (Valid position with filename "" and column 0)
+//	file              (Invalid position)
+//	?                 (Invalid position with filename "")
 func (p Position) File(filename string) string {
 	line := p.Line()
 	col := p.Column()
@@ -163,10 +152,9 @@ func (p Position) File(filename string) string {
 // String describes this position with no filename,
 // with one of the following forms:
 //
-// 	line:column       (Valid position)
-// 	line              (Valid position with column 0)
-// 	?                 (Invalid position)
-//
+//	line:column       (Valid position)
+//	line              (Valid position with column 0)
+//	?                 (Invalid position)
 func (p Position) String() string {
 	line := p.Line()
 	col := p.Column()

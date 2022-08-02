@@ -243,19 +243,19 @@ func TestFetchCrate(t *testing.T) {
 				DownloadPath: "/api/v1/crates/x86_64/0.14.8/download",
 				Downloads:    23040,
 				Features: map[string][]string{
-					"abi_x86_interrupt": []string{},
-					"const_fn":          []string{},
-					"default": []string{
+					"abi_x86_interrupt": {},
+					"const_fn":          {},
+					"default": {
 						"nightly",
 						"instructions",
 					},
-					"doc_cfg": []string{},
-					"external_asm": []string{
+					"doc_cfg": {},
+					"external_asm": {
 						"cc",
 					},
-					"inline_asm":   []string{},
-					"instructions": []string{},
-					"nightly": []string{
+					"inline_asm":   {},
+					"instructions": {},
+					"nightly": {
 						"inline_asm",
 						"const_fn",
 						"abi_x86_interrupt",
@@ -286,19 +286,19 @@ func TestFetchCrate(t *testing.T) {
 				DownloadPath: "/api/v1/crates/x86_64/0.14.7/download",
 				Downloads:    25329,
 				Features: map[string][]string{
-					"abi_x86_interrupt": []string{},
-					"const_fn":          []string{},
-					"default": []string{
+					"abi_x86_interrupt": {},
+					"const_fn":          {},
+					"default": {
 						"nightly",
 						"instructions",
 					},
-					"doc_cfg": []string{},
-					"external_asm": []string{
+					"doc_cfg": {},
+					"external_asm": {
 						"cc",
 					},
-					"inline_asm":   []string{},
-					"instructions": []string{},
-					"nightly": []string{
+					"inline_asm":   {},
+					"instructions": {},
+					"nightly": {
 						"inline_asm",
 						"const_fn",
 						"abi_x86_interrupt",
@@ -329,19 +329,19 @@ func TestFetchCrate(t *testing.T) {
 				DownloadPath: "/api/v1/crates/x86_64/0.14.6/download",
 				Downloads:    44972,
 				Features: map[string][]string{
-					"abi_x86_interrupt": []string{},
-					"const_fn":          []string{},
-					"default": []string{
+					"abi_x86_interrupt": {},
+					"const_fn":          {},
+					"default": {
 						"nightly",
 						"instructions",
 					},
-					"doc_cfg": []string{},
-					"external_asm": []string{
+					"doc_cfg": {},
+					"external_asm": {
 						"cc",
 					},
-					"inline_asm":   []string{},
-					"instructions": []string{},
-					"nightly": []string{
+					"inline_asm":   {},
+					"instructions": {},
+					"nightly": {
 						"inline_asm",
 						"const_fn",
 						"abi_x86_interrupt",
@@ -372,19 +372,19 @@ func TestFetchCrate(t *testing.T) {
 				DownloadPath: "/api/v1/crates/x86_64/0.14.5/download",
 				Downloads:    6883,
 				Features: map[string][]string{
-					"abi_x86_interrupt": []string{},
-					"const_fn":          []string{},
-					"default": []string{
+					"abi_x86_interrupt": {},
+					"const_fn":          {},
+					"default": {
 						"nightly",
 						"instructions",
 					},
-					"doc_cfg": []string{},
-					"external_asm": []string{
+					"doc_cfg": {},
+					"external_asm": {
 						"cc",
 					},
-					"inline_asm":   []string{},
-					"instructions": []string{},
-					"nightly": []string{
+					"inline_asm":   {},
+					"instructions": {},
+					"nightly": {
 						"inline_asm",
 						"const_fn",
 						"abi_x86_interrupt",

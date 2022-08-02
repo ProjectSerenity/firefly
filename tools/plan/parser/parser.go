@@ -5,7 +5,6 @@
 
 // Package parser contains a parser that takes a sequence of Plan tokens and
 // produces an abstract syntax tree.
-//
 package parser
 
 import (
@@ -22,7 +21,6 @@ import (
 // If src != nil, readSource converts src to a []byte if possible;
 // otherwise it returns an error. If src == nil, readSource returns
 // the result of reading the file specified by filename.
-//
 func readSource(filename string, src any) ([]byte, error) {
 	if src != nil {
 		switch s := src.(type) {
@@ -53,7 +51,6 @@ func readSource(filename string, src any) ([]byte, error) {
 // only used when recording position information. The type of the argument
 // for the src parameter must be string, []byte, or io.Reader.
 // If src == nil, ParseFile parses the file specified by filename.
-//
 func ParseFile(filename string, src any) (f *ast.File, err error) {
 	text, err := readSource(filename, src)
 	if err != nil {
@@ -79,7 +76,6 @@ func ParseFile(filename string, src any) (f *ast.File, err error) {
 }
 
 // parser holds the internal state of the parser.
-//
 type parser struct {
 	filename string
 
@@ -108,13 +104,11 @@ func newParser(filename string, src []byte) *parser {
 }
 
 // Advance to the next token.
-//
 func (p *parser) next() {
 	p.lexeme = <-p.lexemes
 }
 
 // A bailout panic is raised to indicate early termination.
-//
 type bailout struct{}
 
 type errorPos token.Position

@@ -5,7 +5,6 @@
 
 // Command plan provides functionality to process syscall and
 // structure information described in Plan documents.
-//
 package main
 
 import (

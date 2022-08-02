@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file.
 
 // Command update-deps helps identify and perform updates to Firefly's dependencies.
-//
 package main
 
 import (
@@ -134,7 +133,6 @@ func main() {
 // UnmarshalFields will return an error if any required
 // fields were unset, or if any additional fields were
 // found in the AST.
-//
 func UnmarshalFields(call *build.CallExpr, v any) error {
 	val := reflect.ValueOf(v)
 	if val.Kind() == reflect.Ptr {
@@ -264,7 +262,6 @@ func UnmarshalFields(call *build.CallExpr, v any) error {
 
 // StringField represents a field in a Starlark
 // function that receives a string literal.
-//
 type StringField struct {
 	// The parsed value.
 	Value string

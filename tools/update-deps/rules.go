@@ -33,7 +33,6 @@ func init() {
 // BazelRuleData contains the data representing
 // a Bazel rule's data specified in a struct in
 // //bazel/deps/rules.bzl.
-//
 type BazelRuleData struct {
 	Name    StringField `bzl:"name"`
 	Repo    StringField `bzl:"repo"`
@@ -46,7 +45,6 @@ type BazelRuleData struct {
 // Parse a rules.bzl, returning the set of imported
 // Bazel rules and the *build.File containing the
 // Starlark file's AST.
-//
 func ParseRulesBzl(name string) (file *build.File, rules []*BazelRuleData, err error) {
 	var allRules = []string{
 		"RULES_BUILDTOOLS",
@@ -122,7 +120,6 @@ func ParseRulesBzl(name string) (file *build.File, rules []*BazelRuleData, err e
 
 // githubAPI calls the requested GitHub API, decoding
 // the response into dst.
-//
 func githubAPI(v any, baseAPI string, args ...string) error {
 	u, err := url.Parse(baseAPI)
 	if err != nil {
@@ -160,7 +157,6 @@ func githubAPI(v any, baseAPI string, args ...string) error {
 
 // LatestGitRelease identifies the latest release of
 // the given rule, returning the version string.
-//
 func LatestGitRelease(baseAPI, repository string) (version string, err error) {
 	type ReleaseData struct {
 		TagName string `json:"tag_name"`
@@ -183,7 +179,6 @@ func LatestGitRelease(baseAPI, repository string) (version string, err error) {
 
 // LatestGitCommit identifies the latest commit hash
 // on the given branch.
-//
 func LatestGitCommit(baseAPI, repository, branch string) (commit string, err error) {
 	type BranchData struct {
 		Commit struct {
@@ -209,7 +204,6 @@ func LatestGitCommit(baseAPI, repository, branch string) (commit string, err err
 // UpdateRepo checks a Git repository (fetched using http_archive)
 // for updates, returning the new version and its checksum if it's
 // updated.
-//
 func UpdateRepo(data *BazelRuleData) (newVersion, checksum string, err error) {
 	const githubAPI = "https://api.github.com"
 

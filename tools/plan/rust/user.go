@@ -23,7 +23,6 @@ import (
 // GenerateUserCode generates the user implementation, of
 // the Plan document to w, using the rustfmt tool at the
 // given path.
-//
 func GenerateUserCode(w io.Writer, file *types.File, arch types.Arch, rustfmt string) error {
 	// Start with the prelude.
 	var buf bytes.Buffer

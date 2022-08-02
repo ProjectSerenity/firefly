@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file.
 
 // Package cratesio simplifies calling the Crates.io API.
-//
 package cratesio
 
 import (
@@ -29,7 +28,6 @@ const cratesIO = "https://crates.io/api/v1/"
 
 // Lookup returns the metadata for a Rust crate using the
 // crates.io API.
-//
 func Lookup(ctx context.Context, crate string) (*Crate, error) {
 	return lookup(ctx, cratesIO, crate)
 }
@@ -76,7 +74,6 @@ func lookup(ctx context.Context, registry, crate string) (*Crate, error) {
 
 // Download fetches the given Rust crate version and writes
 // the contents into the directory dir.
-//
 func Download(ctx context.Context, crate *CrateVersion, dir string) error {
 	return download(ctx, cratesIO, crate, dir)
 }

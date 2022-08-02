@@ -37,7 +37,6 @@ const (
 //
 // The final digest is formatted as the hash algorithm
 // name, a colon (\x3a), and the hexadecimal digest.
-//
 func DigestDirectory(fsys fs.FS, dir string, ignore ...string) (string, error) {
 	lines, err := digestDirectoryLines(fsys, dir, ignore...)
 	if err != nil {
@@ -53,7 +52,6 @@ func DigestDirectory(fsys fs.FS, dir string, ignore ...string) (string, error) {
 }
 
 // digestDirectoryLines produces the lines for DigestDirectory.
-//
 func digestDirectoryLines(fsys fs.FS, dir string, ignore ...string) ([]string, error) {
 	// Start by getting the list of filenames
 	// so we can sort them, then we get the
@@ -96,7 +94,6 @@ func digestDirectoryLines(fsys fs.FS, dir string, ignore ...string) ([]string, e
 //
 // The final digest is formatted as the hash algorithm
 // name, a colon (\x3a), and the hexadecimal digest.
-//
 func DigestFiles(fsys fs.FS, filenames []string) (string, error) {
 	lines, err := digestLines(fsys, "", filenames)
 	if err != nil {

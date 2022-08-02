@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file.
 
 // Package vendeps provides functionality for managing vendored external dependencies.
-//
 package vendeps
 
 import (
@@ -25,7 +24,6 @@ const (
 )
 
 // Deps describes a set of software dependencies.
-//
 type Deps struct {
 	Rust []*RustCrate `bzl:"rust/crate"`
 	Go   []*GoModule  `bzl:"go/module"`
@@ -33,7 +31,6 @@ type Deps struct {
 
 // RustCrate contains the dependency information for
 // a Rust crate.
-//
 type RustCrate struct {
 	// Dependency details.
 	Name    string `bzl:"name"`
@@ -81,7 +78,6 @@ type RustCrate struct {
 // GoModule contains the information necessary
 // to vendor a Go module, specifying the set
 // of packages within the module that are used.
-//
 type GoModule struct {
 	// Dependency details.
 	Name    string `bzl:"name"`
@@ -103,7 +99,6 @@ type GoModule struct {
 
 // GoPackage describes a package within
 // a Go module.
-//
 type GoPackage struct {
 	// Dependency details.
 	Name string `bzl:"name"`
@@ -125,7 +120,6 @@ type GoPackage struct {
 
 // UpdateDeps includes a set of dependencies
 // for the purposes of updating them.
-//
 type UpdateDeps struct {
 	Rust []*UpdateDep
 	Go   []*UpdateDep
@@ -135,7 +129,6 @@ type UpdateDeps struct {
 // necessary to determine a third-party
 // software library. This is used when
 // determining whether updates are available.
-//
 type UpdateDep struct {
 	Name    string
 	Version *string

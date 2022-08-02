@@ -11,7 +11,6 @@ import (
 
 // Crate contains the metadata for a Rust Crate, as provided
 // by the crates.io API.
-//
 type Crate struct {
 	Categories []*CrateCategory `json:"categories"`
 	Crate      CrateData        `json:"crate"`
@@ -21,7 +20,6 @@ type Crate struct {
 
 // CrateCategory includes information about a category of Rust
 // crates, as provided by the crates.io API.
-//
 type CrateCategory struct {
 	Category    string    `json:"category"`
 	CratesCount uint64    `json:"crates_cnt"`
@@ -33,7 +31,6 @@ type CrateCategory struct {
 
 // CrateData includes the metadata about a Rust crate, as
 // provided by the crates.io API.
-//
 type CrateData struct {
 	Id              string     `json:"id"`
 	Name            string     `json:"name"`
@@ -56,7 +53,6 @@ type CrateData struct {
 
 // CrateLinks includes the standard set of hyperlinks for
 // a Rust crate, as provided by the crates.io API.
-//
 type CrateLinks struct {
 	OwnerTeam           string   `json:"owner_team"`
 	OwnerUser           string   `json:"owner_user"`
@@ -69,7 +65,6 @@ type CrateLinks struct {
 // CrateKeyword includes information about a keyword that
 // describes a set of Rust crates, as provided by the
 // crates.io API.
-//
 type CrateKeyword struct {
 	Id          string    `json:"id"`
 	Keyword     string    `json:"keyword"`
@@ -80,7 +75,6 @@ type CrateKeyword struct {
 // CrateVersion includes information about a published
 // version of a Rust crate, as provided by the crates.io
 // API.
-//
 type CrateVersion struct {
 	Crate        string              `json:"crate"`
 	CreatedAt    time.Time           `json:"created_at"`
@@ -101,7 +95,6 @@ type CrateVersion struct {
 // CrateVersionLinks includes the standard set of hyperlinks
 // for a published version of a Rust crate, as provided by
 // the crates.io API.
-//
 type CrateVersionLinks struct {
 	Dependencies     string `json:"dependencies"`
 	VersionDownloads string `json:"version_downloads"`
@@ -109,7 +102,6 @@ type CrateVersionLinks struct {
 
 // CrateUser includes the metadata about a user of crates.io,
 // as provided by the API.
-//
 type CrateUser struct {
 	Avatar string `json:"avatar,omitempty"`
 	Email  string `json:"email,omitempty"`

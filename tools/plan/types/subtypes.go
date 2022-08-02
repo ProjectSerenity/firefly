@@ -19,7 +19,6 @@ import (
 
 // Name represents a name defined in a
 // Plan source file.
-//
 type Name []string
 
 // toTitle returns the word with the first rune
@@ -29,7 +28,6 @@ type Name []string
 // This is similar to strings.Title, but we
 // already know the string is alphanumeric only
 // and contains no UTF-8 encoding errors.
-//
 func toTitle(s string) string {
 	first, width := utf8.DecodeRuneInString(s)
 	rest := s[width:]
@@ -38,14 +36,12 @@ func toTitle(s string) string {
 }
 
 // Spaced returns the name, separated by spaces.
-//
 func (n Name) Spaced() string {
 	return strings.Join(n, " ")
 }
 
 // CamelCase returns the name in 'camel case',
 // such as "camelCase".
-//
 func (n Name) CamelCase() string {
 	if len(n) == 1 {
 		return strings.ToLower(n[0])
@@ -61,7 +57,6 @@ func (n Name) CamelCase() string {
 
 // PascalCase returns the name in 'Pascal case',
 // such as "PascalCase".
-//
 func (n Name) PascalCase() string {
 	if len(n) == 1 {
 		return toTitle(n[0])
@@ -77,7 +72,6 @@ func (n Name) PascalCase() string {
 
 // SnakeCase returns the name in 'snake case',
 // such as "snake_case".
-//
 func (n Name) SnakeCase() string {
 	if len(n) == 1 {
 		return strings.ToLower(n[0])
@@ -93,7 +87,6 @@ func (n Name) SnakeCase() string {
 
 // ScreamCase returns the name in 'scream case',
 // such as "SCREAM_CASE".
-//
 func (n Name) ScreamCase() string {
 	if len(n) == 1 {
 		return strings.ToUpper(n[0])
@@ -109,7 +102,6 @@ func (n Name) ScreamCase() string {
 
 // KebabCase returns the name in 'kebab case',
 // such as "kebab-case".
-//
 func (n Name) KebabCase() string {
 	if len(n) == 1 {
 		return strings.ToLower(n[0])
@@ -125,7 +117,6 @@ func (n Name) KebabCase() string {
 
 // TrainCase returns the name in 'train case',
 // such as "TRAIN-CASE".
-//
 func (n Name) TrainCase() string {
 	if len(n) == 1 {
 		return strings.ToUpper(n[0])
@@ -142,13 +133,11 @@ func (n Name) TrainCase() string {
 // Docs represents a set of documentation
 // for a type Plan a source file. The docs
 // are split into lines.
-//
 type Docs []DocsItem
 
 // DocsItem represents an item in the set
 // of documentation for a type, syscall,
 // or field.
-//
 type DocsItem interface {
 	docsItem()
 }
@@ -190,7 +179,6 @@ func (n Newline) docsItem()       {}
 // Arch represents an instruction set
 // architecture, which is used to customise
 // types for a particular architecture.
-//
 type Arch uint8
 
 const (
@@ -213,7 +201,6 @@ func (a Arch) String() string {
 
 // Field represents a single field in a structure
 // type.
-//
 type Field struct {
 	Name Name
 	Node *ast.List
@@ -241,7 +228,6 @@ func (f *Field) String() string {
 
 // Value represents a single value in an
 // enumeration type.
-//
 type Value struct {
 	Name Name
 	Node *ast.List
@@ -250,7 +236,6 @@ type Value struct {
 
 // Parameter represents a single argument
 // or result in a function call.
-//
 type Parameter struct {
 	Name Name
 	Node *ast.List
@@ -269,12 +254,10 @@ func (p *Parameter) String() string {
 // Parameters is an ordered set of function
 // parameters, such as its arguments or
 // results.
-//
 type Parameters []*Parameter
 
 // ItemReference is like Reference, but it
 // names the type of item in Underlying.
-//
 type ItemReference struct {
 	Type       string
 	Name       Name
@@ -284,7 +267,6 @@ type ItemReference struct {
 
 // Group represents a group of logically
 // related items.
-//
 type Group struct {
 	Name Name
 	Node *ast.List

@@ -31,7 +31,6 @@ func init() {
 // RustToolData contains the data representing
 // a Rust tool's data specified in a struct in
 // //bazel/deps/rust.bzl.
-//
 type RustToolData struct {
 	Name StringField `bzl:"name"`
 	Sum  StringField `bzl:"sum"`
@@ -40,7 +39,6 @@ type RustToolData struct {
 // Parse a rust.bzl, returning the Rust Nightly
 // release date and the set of tools, plus the
 // *build.File containing the Starlark file's AST.
-//
 func ParseRustBzl(name string) (file *build.File, date *StringField, tools []*RustToolData, err error) {
 	const (
 		rustDate = "RUST_ISO_DATE"

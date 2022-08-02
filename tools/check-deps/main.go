@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file.
 
 // Command check-deps uses package vendeps to check external dependencies for issues.
-//
 package main
 
 import (

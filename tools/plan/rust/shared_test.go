@@ -415,7 +415,6 @@ func TestSubTemplates(t *testing.T) {
 
 // getRustfmt returns a path to the rustfmt
 // tool.
-//
 func getRustfmt(t *testing.T) string {
 	t.Helper()
 

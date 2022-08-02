@@ -5,7 +5,6 @@
 
 // Command crate-lints checks that all Rust crates in the repository
 // configure a mandatory set of lints.
-//
 package main
 
 import (
@@ -20,7 +19,6 @@ import (
 
 // The set of lints to require.
 // Please keep the list sorted alphabetically.
-//
 var lints = []string{
 	"clippy::float_arithmetic",
 	"clippy::inline_asm_x86_att_syntax",
@@ -39,7 +37,6 @@ var lints = []string{
 
 // LintChecker tracks whether a set of Rust crates
 // is missing any of the mandatory lints.
-//
 type LintChecker struct {
 	Missing int
 }
@@ -47,7 +44,6 @@ type LintChecker struct {
 // Check parses the given file, printing an error
 // for each missing lint and updating the LintChecker's
 // count of crates with missing lints.
-//
 func (c *LintChecker) Check(fsys fs.FS, name string) error {
 	f, err := fsys.Open(name)
 	if err != nil {

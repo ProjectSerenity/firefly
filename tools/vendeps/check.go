@@ -27,7 +27,6 @@ import (
 
 // CheckDependencies assesses the dependency set for
 // unused dependencies.
-//
 func CheckDependencies(fsys fs.FS) error {
 	data, err := fs.ReadFile(fsys, depsBzl)
 	if err != nil {
@@ -271,7 +270,6 @@ func CheckDependencies(fsys fs.FS) error {
 
 // Vulns describes the set of vulnerability advisory
 // data for a set of software dependencies.
-//
 type Vulns struct {
 	Rust []*osv.Entry
 	Go   []*osv.Entry
@@ -280,7 +278,6 @@ type Vulns struct {
 // fetchVulns fetches/updates the set of vulnerability
 // advisories, then parses them into structured vuln
 // data in OSV format.
-//
 func FetchVulns() (*Vulns, error) {
 	vulns := new(Vulns)
 
@@ -339,7 +336,6 @@ func FetchVulns() (*Vulns, error) {
 
 // fetchGitRepo uses git to clone/update the given Git
 // repository to the directory provided.
-//
 func fetchGitRepo(repo, branch, dir string) error {
 	info, err := os.Stat(dir)
 	if err != nil && errors.Is(err, fs.ErrNotExist) {

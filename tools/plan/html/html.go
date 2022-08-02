@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file.
 
 // Package html uses templates to render a Plan document as HTML documentation.
-//
 package html
 
 import (
@@ -21,7 +20,6 @@ import (
 // GenerateDocs produces HTML documentation for
 // the given Plan document, writing HTML files
 // to the given directory.
-//
 func GenerateDocs(dir string, file *types.File) error {
 	// Start with the index page.
 	err := generateItemHTML(filepath.Join(dir, "index.html"), indexTemplate, file, false)
@@ -163,7 +161,6 @@ func GenerateDocs(dir string, file *types.File) error {
 // generateItemHTML produces HTML content for
 // the item and writes it to a new file with
 // the given name.
-//
 func generateItemHTML(name, template string, item any, isItem bool) error {
 	f, err := os.Create(name)
 	if err != nil {

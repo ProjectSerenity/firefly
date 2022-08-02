@@ -15,7 +15,6 @@ import (
 // interpretDefinition ensures that the given list
 // consists of an identifier followed by at least
 // one further element.
-//
 func (i *interpreter) interpretDefinition(list *ast.List) (kind *ast.Identifier, rest []ast.Expr, err *positionalError) {
 	if len(list.Elements) == 0 {
 		return nil, nil, i.errorf(list, "empty definition")
@@ -37,7 +36,6 @@ func (i *interpreter) interpretDefinition(list *ast.List) (kind *ast.Identifier,
 
 // interpretLists ensures that the given elements
 // are all lists, returning them.
-//
 func (i *interpreter) interpretLists(elts []ast.Expr) ([]*ast.List, *positionalError) {
 	out := make([]*ast.List, len(elts))
 	for j, elt := range elts {
@@ -55,7 +53,6 @@ func (i *interpreter) interpretLists(elts []ast.Expr) ([]*ast.List, *positionalE
 // interpretName ensures that the given elements
 // are all identifiers, returning the name they
 // describe.
-//
 func (i *interpreter) interpretName(elts []ast.Expr) (Name, *positionalError) {
 	out := make(Name, len(elts))
 	for j, elt := range elts {
@@ -73,7 +70,6 @@ func (i *interpreter) interpretName(elts []ast.Expr) (Name, *positionalError) {
 // interpretDocs ensures that the given elements are all
 // strings, returning them. The returned strings are the
 // result of splitting the docs by newlines.
-//
 func (i *interpreter) interpretDocs(elts []ast.Expr) (Docs, *positionalError) {
 	docs := make(Docs, 0, len(elts))
 	spaceNeeded := false
@@ -184,7 +180,6 @@ func (i *interpreter) interpretDocs(elts []ast.Expr) (Docs, *positionalError) {
 
 // interpretField parses the list elements as a
 // field definition.
-//
 func (i *interpreter) interpretField(list *ast.List) (field *Field, err *positionalError) {
 	field = &Field{
 		Node: list,
@@ -281,7 +276,6 @@ func (i *interpreter) interpretField(list *ast.List) (field *Field, err *positio
 
 // interpretParameter parses the list elements as a
 // parameter definition.
-//
 func (i *interpreter) interpretParameter(list *ast.List) (param *Parameter, err *positionalError) {
 	param = &Parameter{
 		Node: list,
@@ -353,7 +347,6 @@ func (i *interpreter) interpretParameter(list *ast.List) (param *Parameter, err 
 
 // interpretValue parses the list elements as an
 // enumeration's value definition.
-//
 func (i *interpreter) interpretValue(list *ast.List) (value *Value, err *positionalError) {
 	value = &Value{
 		Node: list,
