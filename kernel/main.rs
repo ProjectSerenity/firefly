@@ -56,6 +56,18 @@ fn kmain(boot_info: &'static BootInfo) -> ! {
     println!("Kernel booted at {}.", time::boot_time());
     cpu::print_branding();
 
+    // Check that we have the devices necessary
+    // to do something useful.
+    if network::with_interfaces(|i| i.is_empty()) {
+        println!("No network interfaces identified. Shutting down.");
+        power::shutdown();
+    }
+
+    if block::with_devices(|d| d.is_empty()) {
+        println!("No storage devices identified. Shutting down.");
+        power::shutdown();
+    }
+
     // Set up our initial workload for when
     // we get a DHCP configuration.
     let workload =
