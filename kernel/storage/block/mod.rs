@@ -15,6 +15,17 @@ use x86_64::instructions::interrupts::without_interrupts;
 ///
 static DEVICES: Mutex<Vec<Box<dyn Device + Send>>> = Mutex::new(Vec::new());
 
+/// Provides access to the set of all
+/// block storage devices.
+///
+pub fn with_devices<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut Vec<Box<dyn Device + Send>>) -> R,
+{
+    let mut devices = without_interrupts(|| lock!(DEVICES));
+    f(&mut devices)
+}
+
 /// Registers a new block storage device.
 ///
 pub fn add_device(device: Box<dyn Device + Send>) {
