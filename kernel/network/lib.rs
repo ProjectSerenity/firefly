@@ -91,6 +91,16 @@ pub fn register_workload(waker: Waker) {
 ///
 static INTERFACES: Mutex<Vec<Interface>> = Mutex::new(Vec::new());
 
+/// Provides access to the set of all network interfaces.
+///
+pub fn with_interfaces<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut Vec<Interface>) -> R,
+{
+    let mut interfaces = without_interrupts(|| lock!(INTERFACES));
+    f(&mut interfaces)
+}
+
 /// Represents a network interface, which can be used to
 /// send and receive packets.
 ///
