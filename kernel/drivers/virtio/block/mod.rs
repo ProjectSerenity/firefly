@@ -30,7 +30,7 @@ use x86_64::instructions::interrupts::without_interrupts;
 use x86_64::structures::idt::InterruptStackFrame;
 
 /// REQUEST_VIRTQUEUE is the sole virtqueue used
-/// with a virtio entropy device.
+/// with a VirtIO block device.
 ///
 const REQUEST_VIRTQUEUE: u16 = 0;
 
@@ -356,8 +356,7 @@ impl Device for Driver {
 
 /// Config is a helper type that gives the layout
 /// layout of the device-specific config type for
-/// network card devices, as defined in section
-/// 5.1.4:
+/// block devices, as defined in section 5.2.4.
 ///
 /// ```
 /// struct virtio_blk_config {
@@ -502,7 +501,7 @@ fn install_pci_device(device: pci::Device, legacy: bool) {
     // Prepare our request header cache.
     let cache = cache::Allocator::new();
 
-    // Prepare the entropy driver.
+    // Prepare the block driver.
     let irq = driver.irq();
     let handle = Arc::new(Mutex::new(driver));
     let driver = Driver::new(handle.clone(), operations, capacity as usize, cache);
