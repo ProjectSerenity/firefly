@@ -100,12 +100,14 @@ impl Driver {
 
         // Wait for the device to return it.
         loop {
-            // Do a small busy loop so we don't
-            // hammer the MMIO.
-            for _ in 0..1000 {}
-
             match self.driver.recv(REQUEST_VIRTQUEUE) {
-                None => continue,
+                None => {
+                    // Do a small busy loop so we don't
+                    // hammer the MMIO.
+                    for _ in 0..1000 {}
+
+                    continue;
+                }
                 Some(bufs) => {
                     // Check we got the right buffer.
                     let got_addr = match bufs.buffers[0] {
