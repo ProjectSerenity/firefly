@@ -467,6 +467,10 @@ pub enum InitError {
     /// The device rejected the feature set
     /// selected by the driver.
     DeviceRefusedFeatures,
+
+    /// The device failed to reset during
+    /// initialisation.
+    FailedToReset,
 }
 
 /// Driver represents a virtio driver.
@@ -492,13 +496,20 @@ impl Driver {
         // See section 3.1.1 for the driver initialisation
         // process.
         transport.write_status(DeviceStatus::RESET);
+        let mut i = 0u64;
         loop {
             // Section 4.1.4.3.2:
             //   After writing 0 to device_status, the driver MUST
             //   wait for a read of device_status to return 0 before
             //   reinitializing the device.
-            if transport.read_status() == DeviceStatus::RESET {
+            let status = transport.read_status();
+            if status == DeviceStatus::RESET {
                 break;
+            }
+
+            i += 1;
+            if i >= 50 {
+                return Err(InitError::FailedToReset);
             }
         }
 
