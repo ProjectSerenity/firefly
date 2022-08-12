@@ -88,7 +88,8 @@ func SortFields(file *ast.File, arch types.Arch) error {
 		"size":    4,
 		"type":    5,
 		"padding": 6,
-		"value":   7,
+		"embed":   7,
+		"value":   8,
 		// Leave some space before these, which
 		// always come last.
 		"arg1":    20,
