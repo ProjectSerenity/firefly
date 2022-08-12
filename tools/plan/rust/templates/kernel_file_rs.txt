@@ -158,6 +158,34 @@ macro_rules! make {
     (uint64 $arg:ident) => {
         $arg
     };
+
+    // Signed new integer constructor.
+    (new sint $newint:ident, $arg:ident, $error:expr) => {
+        if let Ok(param) = ($arg as i64).try_into() {
+            $newint(param)
+        } else {
+            return SyscallResults::err($error);
+        }
+    };
+
+    // Simple signed new integer constructor.
+    (new sint64 $newint:ident, $arg:ident) => {
+        $newint($arg as i64)
+    };
+
+    // Unsigned integer constructor.
+    (new uint $newint:ident, $arg:ident, $error:expr) => {
+        if let Ok(param) = $arg.try_into() {
+            $newint(param)
+        } else {
+            return SyscallResults::err($error);
+        }
+    };
+
+    // Simple unsigned new integer constructor.
+    (new uint64 $newint:ident, $arg:ident) => {
+        $newint($arg)
+    };
 }
 
 /// Called by syscall_entry to call the relevant
@@ -216,7 +244,22 @@ pub extern "sysv64" fn syscall_handler(
                     {{- else -}}
                         make!(uint {{/* spacer */ -}}
                             arg{{ addOne $i }}, {{/* spacer */ -}}
-                            {{ toString $arg.Type }}, {{/* spacer */ -}}
+                            {{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type -}}
+                        );
+                    {{- end }}
+                {{- else if isNewInteger $arg.Type -}}
+                    {{- if isUint64 $arg.Type -}}
+                        make!(new uint64 {{ toString $arg.Type }}, arg{{ addOne $i }});
+                    {{- else if isSint64 $arg.Type -}}
+                        make!(new sint64 {{ toString $arg.Type }}, arg{{ addOne $i }});
+                    {{- else if isSigned $arg.Type -}}
+                        make!(new sint {{ toString $arg.Type }}, {{/* spacer */ -}}
+                            arg{{ addOne $i }}, {{/* spacer */ -}}
+                            {{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type -}}
+                        );
+                    {{- else -}}
+                        make!(new uint {{ toString $arg.Type }}, {{/* spacer */ -}}
+                            arg{{ addOne $i }}, {{/* spacer */ -}}
                             {{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type -}}
                         );
                     {{- end }}

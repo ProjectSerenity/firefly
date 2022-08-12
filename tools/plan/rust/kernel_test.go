@@ -198,6 +198,23 @@ func TestGenerateKernelCode(t *testing.T) {
 			           (result2
 			               (name error)
 			               (docs "")
+			               (type error)))
+
+			       (integer
+			           (name port number)
+			           (docs "A network port number.")
+			           (type uint16))
+
+			       (syscall
+			           (name close port)
+			           (docs "Closes a network port if open.")
+			           (arg1
+			               (name port)
+			               (docs "The port number.")
+			               (type port number))
+			           (result1
+			               (name error)
+			               (docs "Any error.")
 			               (type error)))`,
 		},
 	}

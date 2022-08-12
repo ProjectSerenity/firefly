@@ -67,6 +67,10 @@ pub trait SyscallABI {
     /// Returns a [`Colour`].
     ///
     fn get_colour(_registers: *mut SavedRegisters) -> Result<Colour, Error>;
+
+    /// Closes a network port if open.
+    ///
+    fn close_port(_registers: *mut SavedRegisters, port: PortNumber) -> Error;
 }
 
 /// The set of saved registers from the user thread that
@@ -181,6 +185,34 @@ macro_rules! make {
     (uint64 $arg:ident) => {
         $arg
     };
+
+    // Signed new integer constructor.
+    (new sint $newint:ident, $arg:ident, $error:expr) => {
+        if let Ok(param) = ($arg as i64).try_into() {
+            $newint(param)
+        } else {
+            return SyscallResults::err($error);
+        }
+    };
+
+    // Simple signed new integer constructor.
+    (new sint64 $newint:ident, $arg:ident) => {
+        $newint($arg as i64)
+    };
+
+    // Unsigned integer constructor.
+    (new uint $newint:ident, $arg:ident, $error:expr) => {
+        if let Ok(param) = $arg.try_into() {
+            $newint(param)
+        } else {
+            return SyscallResults::err($error);
+        }
+    };
+
+    // Simple unsigned new integer constructor.
+    (new uint64 $newint:ident, $arg:ident) => {
+        $newint($arg)
+    };
 }
 
 /// Called by syscall_entry to call the relevant
@@ -293,6 +325,16 @@ pub extern "sysv64" fn syscall_handler(
                 Ok(result) => SyscallResults::val(result.as_i8() as u64),
                 Err(result) => SyscallResults::err(result.as_u64()),
             }
+        }
+        Syscalls::ClosePort => {
+            let param1 = make!(new uint PortNumber, arg1, Error::IllegalArg1.as_u64());
+            ensure_nonzero!(arg2, Error::IllegalArg2.as_u64());
+            ensure_nonzero!(arg3, Error::IllegalArg3.as_u64());
+            ensure_nonzero!(arg4, Error::IllegalArg4.as_u64());
+            ensure_nonzero!(arg5, Error::IllegalArg5.as_u64());
+            ensure_nonzero!(arg6, Error::IllegalArg6.as_u64());
+            let result = <FireflyABI as SyscallABI>::close_port(registers, param1);
+            SyscallResults::err(result.as_u64())
         }
     }
 }

@@ -61,6 +61,7 @@ var kernelTemplates = template.Must(template.New("").Funcs(template.FuncMap{
 	"fromU64":            sharedFromU64,
 	"isEnumeration":      sharedIsEnumeration,
 	"isInteger":          sharedIsInteger,
+	"isNewInteger":       sharedIsNewInteger,
 	"isPadding":          sharedIsPadding,
 	"isPointer":          sharedIsPointer,
 	"isSigned":           sharedIsSigned,
