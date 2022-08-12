@@ -1,4 +1,4 @@
 /// The number of a TCP or UDP port.
 ///
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct PortNumber(pub u16);
