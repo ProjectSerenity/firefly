@@ -132,7 +132,7 @@ macro_rules! make {
     };
 
     // Signed integer constructor.
-    (sint $arg:ident, $type:ty, $error:expr) => {
+    (sint $arg:ident, $error:expr) => {
         if let Ok(param) = ($arg as i64).try_into() {
             param
         } else {
@@ -146,7 +146,7 @@ macro_rules! make {
     };
 
     // Unsigned integer constructor.
-    (uint $arg:ident, $type:ty, $error:expr) => {
+    (uint $arg:ident, $error:expr) => {
         if let Ok(param) = $arg.try_into() {
             param
         } else {
@@ -211,7 +211,6 @@ pub extern "sysv64" fn syscall_handler(
                     {{- else if isSigned $arg.Type -}}
                         make!(sint {{/* spacer */ -}}
                             arg{{ addOne $i }}, {{/* spacer */ -}}
-                            {{ toString $arg.Type }}, {{/* spacer */ -}}
                             {{ toString $error }}::IllegalArg{{ addOne $i }}.as_{{ toString $error.Type }}(){{ fromU64 $error.Type -}}
                         );
                     {{- else -}}

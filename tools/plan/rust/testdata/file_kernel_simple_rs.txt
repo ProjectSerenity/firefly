@@ -155,7 +155,7 @@ macro_rules! make {
     };
 
     // Signed integer constructor.
-    (sint $arg:ident, $type:ty, $error:expr) => {
+    (sint $arg:ident, $error:expr) => {
         if let Ok(param) = ($arg as i64).try_into() {
             param
         } else {
@@ -169,7 +169,7 @@ macro_rules! make {
     };
 
     // Unsigned integer constructor.
-    (uint $arg:ident, $type:ty, $error:expr) => {
+    (uint $arg:ident, $error:expr) => {
         if let Ok(param) = $arg.try_into() {
             param
         } else {
@@ -254,7 +254,7 @@ pub extern "sysv64" fn syscall_handler(
             }
         }
         Syscalls::ThreeArgsTwoResults => {
-            let param1 = make!(uint arg1, u16, Error::IllegalArg1.as_u64());
+            let param1 = make!(uint arg1, Error::IllegalArg1.as_u64());
             let param2 = make!(enum Colour::from_i8(arg2 as i8), Error::IllegalArg2.as_u64());
             let param3 = make!(ptr arg3, *const i8, Error::IllegalArg3.as_u64());
             ensure_nonzero!(arg4, Error::IllegalArg4.as_u64());
