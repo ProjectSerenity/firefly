@@ -222,7 +222,7 @@ pub extern "sysv64" fn syscall_handler(
                         );
                     {{- end }}
                 {{- else -}}
-                    compile_error!("unexpected arg{{ addOne $i }} type {{ toString $arg }}");
+                    compile_error!("unexpected arg{{ addOne $i }} type {{ toString $arg.Type }}");
                 {{- end }}
             {{ end -}}
             {{ range unusedArgs .Args -}}
