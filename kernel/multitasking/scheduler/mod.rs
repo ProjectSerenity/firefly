@@ -26,7 +26,9 @@ use alloc::sync::Arc;
 use core::arch::asm;
 use core::sync::atomic::{AtomicBool, Ordering};
 use cpu::enable_user_memory_access;
+use power::shutdown;
 use segmentation::with_segment_data;
+use serial::println;
 use spin::{lock, Mutex};
 use time::{after, Duration};
 use virtmem::kernel_level4_page_table;
@@ -302,6 +304,10 @@ pub fn switch() {
             let exiting_process = process.thread_iter().len() == 0;
             if exiting_process {
                 processes.remove(&kernel_process_id);
+                if processes.is_empty() {
+                    println!("All user processes have exited. Shutting down.");
+                    shutdown();
+                }
             }
         }
 

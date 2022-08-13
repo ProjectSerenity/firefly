@@ -30,6 +30,7 @@ rust_library(
         "//kernel/memory/segmentation",
         "//kernel/memory/virtmem",
         "//kernel/multitasking/process/loader",
+        "//kernel/power",
         "//kernel/random",
         "//kernel/time",
         "//kernel/utils/pretty",

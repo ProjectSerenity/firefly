@@ -29,7 +29,7 @@ use filesystem::{FileType, Permissions};
 use memory::PageTable;
 use multitasking::process::Process;
 use multitasking::thread::Thread;
-use multitasking::{scheduler, with_processes};
+use multitasking::{scheduler, thread};
 use serial::println;
 use storage::block;
 use x86_64::instructions::{hlt, interrupts};
@@ -136,15 +136,10 @@ fn initial_workload() -> ! {
         }
     });
 
-    // Hand off to the scheduler, until all
-    // processes have exited.
-    loop {
-        scheduler::switch();
-        if with_processes(|p| p.len()) == 0 {
-            println!("All user processes have exited. Shutting down.");
-            power::shutdown();
-        }
-    }
+    // We've started any processes, so we
+    // can stop here and leave the rest
+    // to the scheduler.
+    thread::exit();
 }
 
 #[allow(dead_code)]
