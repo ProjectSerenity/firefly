@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rustfmt_test")
+load("@rules_rust//rust:defs.bzl", "rust_clippy", "rust_doc", "rust_library", "rust_test", "rustfmt_test")
 
 rust_library(
     name = "virtio",
@@ -14,6 +14,7 @@ rust_library(
         "features.rs",
         "lib.rs",
         "network/mod.rs",
+        "scsi/mod.rs",
         "transports/legacy_pci.rs",
         "transports/mod.rs",
         "transports/pci.rs",
@@ -25,6 +26,7 @@ rust_library(
     visibility = ["//kernel:__subpackages__"],
     deps = [
         "//kernel/drivers/pci",
+        "//kernel/drivers/scsi",
         "//kernel/drivers/serial",
         "//kernel/interrupts",
         "//kernel/memory",
@@ -57,4 +59,10 @@ rustfmt_test(
     name = "fmt_test",
     size = "small",
     targets = [":virtio"],
+)
+
+rust_test(
+    name = "virtio_test",
+    size = "small",
+    crate = ":virtio",
 )

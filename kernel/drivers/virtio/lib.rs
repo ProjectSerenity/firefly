@@ -59,6 +59,7 @@
 #![allow(unsafe_code)]
 #![deny(unused_crate_dependencies)]
 #![feature(const_btree_new)]
+#![feature(byte_slice_trim_ascii)]
 
 extern crate alloc;
 
@@ -66,6 +67,7 @@ pub mod block;
 pub mod entropy;
 pub mod features;
 pub mod network;
+pub mod scsi;
 pub mod transports;
 pub mod virtqueues;
 
@@ -135,6 +137,15 @@ pub fn pci_device_check(device: &pci::Device) -> Option<pci::Driver> {
             } else {
                 println!("Installing VirtIO network card.");
                 Some(network::install_modern_pci_device)
+            }
+        }
+        Some((DeviceId::ScsiHost, legacy)) => {
+            if legacy {
+                println!("Installing legacy VirtIO SCSI host.");
+                Some(scsi::install_legacy_pci_device)
+            } else {
+                println!("Installing VirtIO SCSI host.");
+                Some(scsi::install_modern_pci_device)
             }
         }
         Some((other, legacy)) => {
