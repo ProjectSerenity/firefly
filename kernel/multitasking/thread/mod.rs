@@ -114,6 +114,7 @@ pub fn per_cpu_init() {
 
 /// Returns a copy of the currently executing thread.
 ///
+#[track_caller]
 pub fn current_thread() -> Arc<Thread> {
     lock!(CURRENT_THREADS)[cpu::id()].clone()
 }
@@ -121,6 +122,7 @@ pub fn current_thread() -> Arc<Thread> {
 /// Returns the kernel thread id of the currently
 /// executing thread.
 ///
+#[track_caller]
 pub fn current_kernel_thread_id() -> KernelThreadId {
     lock!(CURRENT_THREADS)[cpu::id()].kernel_thread_id()
 }
