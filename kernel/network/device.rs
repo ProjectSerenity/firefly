@@ -13,10 +13,48 @@ use alloc::boxed::Box;
 use alloc::sync::Arc;
 use core::slice;
 use memory::{phys_to_virt_addr, PhysAddr};
+use serial::println;
 use smoltcp::phy::{DeviceCapabilities, RxToken, TxToken};
 use smoltcp::time::Instant;
+use smoltcp::wire::{
+    ArpOperation, ArpPacket, EthernetAddress, EthernetFrame, EthernetProtocol, Ipv4Address,
+    PrettyPrinter,
+};
 use spin::{lock, Mutex};
 use x86_64::instructions::interrupts::without_interrupts;
+
+/// Debug the given packet.
+///
+#[allow(dead_code)]
+fn debug<T: AsRef<[u8]>>(prefix: &'static str, buf: &T) {
+    if EthernetFrame::new_unchecked(buf).ethertype() == EthernetProtocol::Arp {
+        let payload = EthernetFrame::new_unchecked(buf).payload();
+        let arp = ArpPacket::new_unchecked(payload);
+        match arp.operation() {
+            ArpOperation::Request => {
+                println!(
+                    "{}ARP who has {}?",
+                    prefix,
+                    Ipv4Address::from_bytes(arp.target_protocol_addr())
+                );
+            }
+            ArpOperation::Reply => {
+                println!(
+                    "{}ARP {} has {}.",
+                    prefix,
+                    EthernetAddress::from_bytes(arp.source_hardware_addr()),
+                    Ipv4Address::from_bytes(arp.source_protocol_addr())
+                );
+            }
+            _ => {}
+        }
+    } else {
+        println!(
+            "{}",
+            PrettyPrinter::<EthernetFrame<&'static [u8]>>::new(prefix, buf)
+        );
+    }
+}
 
 /// This is our device wrapper which we use to ensure all
 /// our network interfaces are generic over the same type
