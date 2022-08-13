@@ -35,6 +35,21 @@ use virtmem::kernel_level4_page_table;
 use x86_64::instructions::interrupts;
 use x86_64::registers::control::{Cr3, Cr3Flags};
 
+/// Print the current set of threads and their scheduling
+/// state.
+///
+pub fn debug() {
+    let threads = lock!(THREADS);
+    for thread in threads.values() {
+        serial::println!(
+            "{:?} {}: {:?}",
+            thread.kernel_thread_id(),
+            thread.name(),
+            thread.thread_state()
+        );
+    }
+}
+
 /// Scheduler is a basic thread scheduler.
 ///
 /// Currently, it implements a round-robin algorithm.
