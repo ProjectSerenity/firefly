@@ -73,6 +73,7 @@ use interrupts::{register_irq, Irq};
 use memory::PageTable;
 use multitasking::thread::Thread;
 use multitasking::{scheduler, thread};
+use serial::println;
 use x86_64::structures::idt::InterruptStackFrame;
 
 /// The Firefly license text.
@@ -143,13 +144,15 @@ pub fn init(boot_info: &'static BootInfo) {
     syscalls::per_cpu_init();
 
     // Set up our device drivers.
-    for device in pci::scan().into_iter() {
+    'devices: for device in pci::scan().into_iter() {
         for check in PCI_DRIVERS.iter() {
             if let Some(install) = check(&device) {
                 install(device);
-                break;
+                continue 'devices;
             }
         }
+
+        println!("Ignoring unsupported {} PCI device.", device.description());
     }
 
     // Either we have a source of random by now,
