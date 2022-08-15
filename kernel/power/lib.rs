@@ -25,6 +25,7 @@
 
 extern crate alloc;
 
+use acpi::platform::interrupt::{Apic, InterruptModel};
 use acpi::platform::{PlatformInfo, ProcessorState};
 use acpi::sdt::Signature;
 use acpi::{AcpiHandler, AcpiTables, PhysicalMapping};
@@ -107,6 +108,51 @@ pub fn application_processors() -> usize {
         .iter()
         .filter(|ap| ap.state == ProcessorState::WaitingForSipi)
         .count()
+}
+
+/// Detect any Advanced Programmable Interrupt Controller.
+///
+/// # Panics
+///
+/// `apic` panics if no APIC info is available.
+///
+pub fn apic() -> Apic {
+    let acpi_tables = match unsafe { AcpiTables::search_for_rsdp_bios(PhysicalOffsetAcpiHandler) } {
+        Ok(acpi_tables) => acpi_tables,
+        Err(err) => {
+            // We print an error and continue with just
+            // the bootstrap processor.
+            panic!("Failed to find ACPI tables: {:?}", err);
+        }
+    };
+
+    // Parse the fixed ACPI description table (FADT) in the
+    // system description table (SDT) to find the power
+    // management control block.
+
+    let fadt = if let Some(fadt) = acpi_tables.sdts.get(&Signature::FADT) {
+        fadt
+    } else {
+        panic!("Failed to find Fixed ACPI Description Table.");
+    };
+
+    if !fadt.validated
+        || (fadt.length as usize) < POWER_MANAGEMENT_1B_CONTROL_BLOCK + size_of::<u32>()
+    {
+        panic!("Failed to validate or parse Fixed ACPI Description Table.");
+    }
+
+    let platform_info = if let Ok(platform_info) = PlatformInfo::new(&acpi_tables) {
+        platform_info
+    } else {
+        panic!("Failed to parse Fixed or Multiple ACPI Description Table.");
+    };
+
+    if let InterruptModel::Apic(apic) = platform_info.interrupt_model {
+        apic
+    } else {
+        panic!("Failed to find APIC configuration in ACPI.");
+    }
 }
 
 /// Shutdown the machine, terminating execution.
