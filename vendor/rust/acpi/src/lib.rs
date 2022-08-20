@@ -78,7 +78,6 @@ pub use rsdp::{
 use crate::sdt::{SdtHeader, Signature};
 use alloc::{collections::BTreeMap, vec::Vec};
 use core::mem;
-use log::trace;
 use rsdp::Rsdp;
 
 #[derive(Debug)]
@@ -210,7 +209,6 @@ where
 
     fn process_sdt(&mut self, physical_address: usize) -> Result<(), AcpiError> {
         let header = sdt::peek_at_sdt_header(&self.handler, physical_address);
-        trace!("Found ACPI table with signature {:?} and length {:?}", header.signature, { header.length });
 
         match header.signature {
             Signature::FADT => {

@@ -1,0 +1,32 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 7129d2d..8146af3 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -78,7 +78,6 @@ pub use rsdp::{
+ use crate::sdt::{SdtHeader, Signature};
+ use alloc::{collections::BTreeMap, vec::Vec};
+ use core::mem;
+-use log::trace;
+ use rsdp::Rsdp;
+
+ #[derive(Debug)]
+@@ -210,7 +209,6 @@ where
+
+     fn process_sdt(&mut self, physical_address: usize) -> Result<(), AcpiError> {
+         let header = sdt::peek_at_sdt_header(&self.handler, physical_address);
+-        trace!("Found ACPI table with signature {:?} and length {:?}", header.signature, { header.length });
+
+         match header.signature {
+             Signature::FADT => {
+diff --git a/src/madt.rs b/src/madt.rs
+index d532de6..d683b19 100644
+--- a/src/madt.rs
++++ b/src/madt.rs
+@@ -159,7 +159,6 @@ impl Madt {
+                         (true, false) => ProcessorState::WaitingForSipi,
+                         (false, false) => ProcessorState::Running,
+                     };
+-                    log::info!("Found X2APIC in MADT!");
+
+                     let processor = Processor {
+                         processor_uid: entry.processor_uid,

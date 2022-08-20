@@ -27,7 +27,6 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/rust/bit_field",
-        "//vendor/rust/log",
         "//vendor/rust/rsdp",
     ],
 )

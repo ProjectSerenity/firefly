@@ -9,7 +9,14 @@ rust = [
     crate(
         name = "acpi",
         version = "4.1.1",
-        digest = "sha256:0da455b9606168cf46238320e44bb70abeb34d4d57aefce231808df3bada6af0",
+        digest = "sha256:4f5de21400e932fcb3fde688624ee0ae24bc30f5656bc9ca84eb643e33b950ad",
+        patch_args = [
+            "-p1",
+        ],
+        patches = [
+            "third_party/acpi.patch",
+        ],
+        patch_digest = "sha256:f9df2fda59096c2929f0ae7f911a2982d74f1a574cc07938cd803ea14b96aa55",
     ),
     crate(
         name = "aml",

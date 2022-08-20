@@ -10,8 +10,11 @@ rust = [
         edition = "2018",
         deps = [
             "bit_field",
-            "log",
             "rsdp",
+        ],
+        patch_args = ["-p1"],
+        patches = [
+            "third_party/acpi.patch",
         ],
     ),
     crate(
