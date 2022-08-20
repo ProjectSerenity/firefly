@@ -33,11 +33,6 @@ rust = [
         ],
     ),
     crate(
-        name = "autocfg",
-        version = "1.1.0",
-        no_tests = True,  # The tests run rustc and write to arbitrary directories.
-    ),
-    crate(
         name = "bit_field",
         version = "0.10.1",
     ),
@@ -108,18 +103,6 @@ rust = [
         features = ["const_mut_refs"],
     ),
     crate(
-        name = "lock_api",
-        version = "0.4.7",
-        edition = "2018",
-        deps = [
-            "scopeguard",
-        ],
-        build_script = "build.rs",
-        build_script_deps = [
-            "autocfg",
-        ],
-    ),
-    crate(
         name = "managed",
         version = "0.8.0",
         features = [
@@ -170,10 +153,6 @@ rust = [
         build_script = "build/build.rs",
     ),
     crate(
-        name = "scopeguard",
-        version = "1.1.0",
-    ),
-    crate(
         name = "smoltcp",
         version = "0.8.1",
         edition = "2018",
@@ -204,14 +183,6 @@ rust = [
             "mutex",
             "once",
             "spin_mutex",
-        ],
-    ),
-    crate(
-        name = "spinning_top",
-        edition = "2018",
-        version = "0.2.4",
-        deps = [
-            "lock_api",
         ],
     ),
     crate(

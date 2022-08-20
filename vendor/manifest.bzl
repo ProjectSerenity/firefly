@@ -31,11 +31,6 @@ rust = [
         patch_digest = "sha256:7c70572118360eff8a34314870d7864bf999e552612426e08cc9910a17a4ca8c",
     ),
     crate(
-        name = "autocfg",
-        version = "1.1.0",
-        digest = "sha256:12f1f63c021f8e2912aa19a95c3e8f866ad98c9ea91017bb424114efc9184334",
-    ),
-    crate(
         name = "bit_field",
         version = "0.10.1",
         digest = "sha256:29b4061a841923f8aa6f215f81bda81f74c75b5fdd41f543d2ac51b8f5c8f316",
@@ -86,11 +81,6 @@ rust = [
         digest = "sha256:a937cbedec34cca9f72db51a04dd1654dc53ff3a8b3b5d94e1e1a39e4637d9d0",
     ),
     crate(
-        name = "lock_api",
-        version = "0.4.7",
-        digest = "sha256:1e17f46359d88912e76f7748ce30a874e517d2d49bbe24bc19201f3319c9e519",
-    ),
-    crate(
         name = "managed",
         version = "0.8.0",
         digest = "sha256:a4caf9de3ee73c274d82439238c0cbcf9fb50a8369b64f8c4d587cc541af5057",
@@ -128,11 +118,6 @@ rust = [
         digest = "sha256:9b9d5802964a2d192be20052543cdcd5405248ff22738212d7de614c6a725cff",
     ),
     crate(
-        name = "scopeguard",
-        version = "1.1.0",
-        digest = "sha256:69a679946cd73c39bd8cbed4f633c9b3012547bf6014a446c8ee5530a4056aae",
-    ),
-    crate(
         name = "smoltcp",
         version = "0.8.1",
         digest = "sha256:a2acd28879f77e694c9b2d90dfa969ee577214ca862900947427c8baf0eff2d4",
@@ -141,11 +126,6 @@ rust = [
         name = "spin",
         version = "0.9.4",
         digest = "sha256:950ded1cfe90f8fc09fb0260e3184ea50afb95a5f530ad4fe317fbe8ab1ecce8",
-    ),
-    crate(
-        name = "spinning_top",
-        version = "0.2.4",
-        digest = "sha256:5ef1cb7be17d6c8fae84caf919eb065094625e18e9eeaaf1f76465d900ad43ac",
     ),
     crate(
         name = "static_assertions",
