@@ -109,7 +109,14 @@ rust = [
     crate(
         name = "rsdp",
         version = "2.0.0",
-        digest = "sha256:8fe18238ff4464776e36efe4b21daa0ea11f639142e5f4a086e1e26992a14f90",
+        digest = "sha256:4b963102cb1b3e01a489048851de8b21505ef8e4c7cdd7bc2db05b3d97dba8be",
+        patch_args = [
+            "-p1",
+        ],
+        patches = [
+            "third_party/rsdp.patch",
+        ],
+        patch_digest = "sha256:633510063b7cb407b441b18e1ec4b2c85e20511a54a2217b562f82c5e5cf91c2",
     ),
     crate(
         name = "rustversion",

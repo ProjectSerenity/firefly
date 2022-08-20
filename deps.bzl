@@ -164,8 +164,9 @@ rust = [
         name = "rsdp",
         version = "2.0.0",
         edition = "2018",
-        deps = [
-            "log",
+        patch_args = ["-p1"],
+        patches = [
+            "third_party/rsdp.patch",
         ],
     ),
     crate(
