@@ -144,7 +144,7 @@ where
                 })
             }),
         ))
-        .map(|((), buffer)| Ok(AmlValue::Buffer(Arc::new(spinning_top::Spinlock::new(buffer)))))
+        .map(|((), buffer)| Ok(AmlValue::Buffer(Arc::new(spin::Mutex::new(buffer)))))
 }
 
 pub fn def_concat<'a, 'c>() -> impl Parser<'a, 'c, AmlValue>
@@ -168,12 +168,12 @@ where
                         buffer.extend_from_slice(&left.to_le_bytes());
                         buffer.extend_from_slice(&right.to_le_bytes());
 
-                        AmlValue::Buffer(Arc::new(spinning_top::Spinlock::new(buffer)))
+                        AmlValue::Buffer(Arc::new(spin::Mutex::new(buffer)))
                     }
                     AmlValue::Buffer(left) => {
                         let mut new: Vec<u8> = left.lock().deref().clone();
                         new.extend(try_with_context!(context, right.as_buffer(context)).lock().iter());
-                        AmlValue::Buffer(Arc::new(spinning_top::Spinlock::new(new)))
+                        AmlValue::Buffer(Arc::new(spin::Mutex::new(new)))
                     }
                     AmlValue::String(left) => {
                         let right = match right.as_concat_type() {
@@ -249,7 +249,7 @@ where
                         result.iter().fold(0u8, |checksum, byte| checksum.wrapping_add(*byte)).wrapping_neg(),
                     );
 
-                    AmlValue::Buffer(Arc::new(spinning_top::Spinlock::new(result)))
+                    AmlValue::Buffer(Arc::new(spin::Mutex::new(result)))
                 };
 
                 try_with_context!(context, context.store(target, result.clone()));
@@ -465,13 +465,13 @@ where
                             AmlValue::Buffer(bytes) => {
                                 let foo = bytes.lock();
                                 if index >= foo.len() {
-                                    Ok(AmlValue::Buffer(Arc::new(spinning_top::Spinlock::new(vec![]))))
+                                    Ok(AmlValue::Buffer(Arc::new(spin::Mutex::new(vec![]))))
                                 } else if (index + length) >= foo.len() {
-                                    Ok(AmlValue::Buffer(Arc::new(spinning_top::Spinlock::new(
+                                    Ok(AmlValue::Buffer(Arc::new(spin::Mutex::new(
                                         foo[index..].to_vec(),
                                     ))))
                                 } else {
-                                    Ok(AmlValue::Buffer(Arc::new(spinning_top::Spinlock::new(
+                                    Ok(AmlValue::Buffer(Arc::new(spin::Mutex::new(
                                         foo[index..(index + length)].to_vec(),
                                     ))))
                                 }

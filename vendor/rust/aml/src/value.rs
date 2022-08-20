@@ -6,7 +6,6 @@ use alloc::{
 };
 use bit_field::BitField;
 use core::{cmp, fmt, fmt::Debug};
-use spinning_top::Spinlock;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RegionSpace {
@@ -198,9 +197,9 @@ pub enum AmlValue {
         flags: MethodFlags,
         code: MethodCode,
     },
-    Buffer(Arc<Spinlock<Vec<u8>>>),
+    Buffer(Arc<spin::Mutex<Vec<u8>>>),
     BufferField {
-        buffer_data: Arc<Spinlock<Vec<u8>>>,
+        buffer_data: Arc<spin::Mutex<Vec<u8>>>,
         /// In bits.
         offset: u64,
         /// In bits.
@@ -303,7 +302,7 @@ impl AmlValue {
         }
     }
 
-    pub fn as_buffer(&self, context: &AmlContext) -> Result<Arc<Spinlock<Vec<u8>>>, AmlError> {
+    pub fn as_buffer(&self, context: &AmlContext) -> Result<Arc<spin::Mutex<Vec<u8>>>, AmlError> {
         match self {
             AmlValue::Buffer(ref bytes) => Ok(bytes.clone()),
             // TODO: implement conversion of String and Integer to Buffer
@@ -517,7 +516,7 @@ impl AmlValue {
             let bitslice = inner_data.view_bits::<bitvec::order::Lsb0>();
             let bits = &bitslice[offset..(offset + length)];
             if length > 64 {
-                Ok(AmlValue::Buffer(Arc::new(spinning_top::Spinlock::new(bits.as_raw_slice().to_vec()))))
+                Ok(AmlValue::Buffer(Arc::new(spin::Mutex::new(bits.as_raw_slice().to_vec()))))
             } else {
                 let mut value = 0u64;
                 value.view_bits_mut::<bitvec::order::Lsb0>()[0..length].clone_from_bitslice(bits);

@@ -21,14 +21,14 @@ rust = [
     crate(
         name = "aml",
         version = "0.16.1",
-        digest = "sha256:666459fe049b1a133376eb7762cf3ca295456365723d64edc1c94eadeeb414ad",
+        digest = "sha256:828f80a51e5d8279b7651eb9303bcf307d74c7a20265143fb8a99b87aeadd601",
         patch_args = [
             "-p1",
         ],
         patches = [
             "third_party/aml.patch",
         ],
-        patch_digest = "sha256:735f60f983f7b52088489ed5a3a7b930325de4a26ff2bd437c0e63eb09d7195f",
+        patch_digest = "sha256:7c70572118360eff8a34314870d7864bf999e552612426e08cc9910a17a4ca8c",
     ),
     crate(
         name = "autocfg",

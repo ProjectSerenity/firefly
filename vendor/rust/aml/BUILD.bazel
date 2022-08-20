@@ -29,7 +29,7 @@ rust_library(
         "//vendor/rust/bit_field",
         "//vendor/rust/bitvec",
         "//vendor/rust/byteorder",
-        "//vendor/rust/spinning_top",
+        "//vendor/rust/spin",
     ],
 )
 

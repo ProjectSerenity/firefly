@@ -25,7 +25,7 @@ rust = [
             "bit_field",
             "bitvec",
             "byteorder",
-            "spinning_top",
+            "spin",
         ],
         patch_args = ["-p1"],
         patches = [
