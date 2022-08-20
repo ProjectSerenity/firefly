@@ -56,11 +56,6 @@ rust = [
         digest = "sha256:b44b7b8a858e8df3cf7ff4484609b0bf57ee2e0bd23c6a32aa8b9e4c212dbf81",
     ),
     crate(
-        name = "cfg-if",
-        version = "1.0.0",
-        digest = "sha256:5154e65781591457f239de362aae282daf94061304c43e8dbfd64f83d577adb4",
-    ),
-    crate(
         name = "doc-comment",
         version = "0.3.3",
         digest = "sha256:04773b3cadd218cfcd1b522f3ba66abb649d860734ae7ae767a6434db92e5743",
@@ -94,11 +89,6 @@ rust = [
         name = "lock_api",
         version = "0.4.7",
         digest = "sha256:1e17f46359d88912e76f7748ce30a874e517d2d49bbe24bc19201f3319c9e519",
-    ),
-    crate(
-        name = "log",
-        version = "0.4.17",
-        digest = "sha256:c04e87a51c74a6c1c38c8a64808edc0ce818c9f8291962a48ad6f6e91deabbfe",
     ),
     crate(
         name = "managed",

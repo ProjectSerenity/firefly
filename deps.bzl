@@ -69,11 +69,6 @@ rust = [
         no_tests = True,  # The tests depend on quickcheck, which have lots of dependencies.
     ),
     crate(
-        name = "cfg-if",
-        version = "1.0.0",
-        edition = "2018",
-    ),
-    crate(
         name = "doc-comment",
         version = "0.3.3",
         build_script = "build.rs",
@@ -123,14 +118,6 @@ rust = [
         build_script_deps = [
             "autocfg",
         ],
-    ),
-    crate(
-        name = "log",
-        version = "0.4.17",
-        deps = [
-            "cfg-if",
-        ],
-        build_script = "build.rs",
     ),
     crate(
         name = "managed",
