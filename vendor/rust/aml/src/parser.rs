@@ -1,7 +1,6 @@
 use crate::{pkg_length::PkgLength, AmlContext, AmlError, AmlValue, DebugVerbosity};
 use alloc::vec::Vec;
 use core::{convert::TryInto, marker::PhantomData};
-use log::trace;
 
 /// This is the number of spaces added to indent a scope when printing parser debug messages.
 pub const INDENT_PER_SCOPE: usize = 2;
@@ -10,10 +9,7 @@ impl AmlContext {
     /// This is used by the parser to provide debug comments about the current object, which are indented to the
     /// correct level for the current object. We most often need to print these comments from `map_with_context`s,
     /// so it's most convenient to have this method on `AmlContext`.
-    pub(crate) fn comment(&self, verbosity: DebugVerbosity, message: &str) {
-        if verbosity <= self.debug_verbosity {
-            log::trace!("{:indent$}{}", "", message, indent = self.scope_indent);
-        }
+    pub(crate) fn comment(&self, _verbosity: DebugVerbosity, _message: &str) {
     }
 }
 
@@ -259,7 +255,6 @@ where
 {
     move |input, context: &'c mut AmlContext| {
         if verbosity <= context.debug_verbosity {
-            trace!("{:indent$}--> {}", "", scope_name, indent = context.scope_indent);
             context.scope_indent += INDENT_PER_SCOPE;
         }
 
@@ -268,7 +263,6 @@ where
 
         if verbosity <= context.debug_verbosity {
             context.scope_indent -= INDENT_PER_SCOPE;
-            trace!("{:indent$}<-- {}", "", scope_name, indent = context.scope_indent);
         }
 
         Ok((new_input, context, result))

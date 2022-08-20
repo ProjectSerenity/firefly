@@ -22,8 +22,11 @@ rust = [
             "bit_field",
             "bitvec",
             "byteorder",
-            "log",
             "spinning_top",
+        ],
+        patch_args = ["-p1"],
+        patches = [
+            "third_party/aml.patch",
         ],
     ),
     crate(

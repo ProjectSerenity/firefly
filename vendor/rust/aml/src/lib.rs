@@ -63,7 +63,6 @@ pub use crate::{namespace::*, value::AmlValue};
 
 use alloc::{boxed::Box, string::ToString};
 use core::mem;
-use log::{error, warn};
 use misc::{ArgNum, LocalNum};
 use name_object::Target;
 use parser::{Parser, Propagate};
@@ -151,11 +150,9 @@ impl AmlContext {
         match term_object::term_list(table_length).parse(stream, self) {
             Ok(_) => Ok(()),
             Err((_, _, Propagate::Err(err))) => {
-                error!("Failed to parse AML stream. Err = {:?}", err);
                 Err(err)
             }
             Err((_, _, other)) => {
-                error!("AML table evaluated to unexpected result: {:?}", other);
                 Err(AmlError::MalformedStream)
             }
         }
@@ -191,7 +188,6 @@ impl AmlContext {
                             Err((_, _, Propagate::Break)) => Err(AmlError::BreakInInvalidPosition),
                             Err((_, _, Propagate::Continue)) => Err(AmlError::ContinueInInvalidPosition),
                             Err((_, _, Propagate::Err(err))) => {
-                                error!("Failed to execute control method: {:?}", err);
                                 Err(err)
                             }
                         }
@@ -200,7 +196,6 @@ impl AmlContext {
                     MethodCode::Native(ref method) => match (method)(self) {
                         Ok(result) => Ok(result),
                         Err(err) => {
-                            error!("Failed to execute control method: {:?}", err);
                             Err(err)
                         }
                     },
@@ -268,7 +263,6 @@ impl AmlContext {
                  * If the device is present and has an `_INI` method, invoke it.
                  */
                 if status.present && level.values.contains_key(&NameSeg::from_str("_INI").unwrap()) {
-                    log::info!("Invoking _INI at level: {}", path);
                     self.invoke_method(&AmlName::from_str("_INI").unwrap().resolve(&path)?, Args::default())?;
                 }
 
@@ -631,7 +625,6 @@ impl AmlContext {
                         "Linux" => {
                             // TODO: should we allow users to specify that this should be true? Linux has a
                             // command line option for this.
-                            warn!("ACPI evaluated `_OSI(\"Linux\")`. This is a bug. Reporting no support.");
                             false
                         }
 

@@ -29,7 +29,6 @@ rust_library(
         "//vendor/rust/bit_field",
         "//vendor/rust/bitvec",
         "//vendor/rust/byteorder",
-        "//vendor/rust/log",
         "//vendor/rust/spinning_top",
     ],
 )

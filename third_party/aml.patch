@@ -1,0 +1,96 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 6496750..6255a9a 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -63,7 +63,6 @@ pub use crate::{namespace::*, value::AmlValue};
+
+ use alloc::{boxed::Box, string::ToString};
+ use core::mem;
+-use log::{error, warn};
+ use misc::{ArgNum, LocalNum};
+ use name_object::Target;
+ use parser::{Parser, Propagate};
+@@ -151,11 +150,9 @@ impl AmlContext {
+         match term_object::term_list(table_length).parse(stream, self) {
+             Ok(_) => Ok(()),
+             Err((_, _, Propagate::Err(err))) => {
+-                error!("Failed to parse AML stream. Err = {:?}", err);
+                 Err(err)
+             }
+             Err((_, _, other)) => {
+-                error!("AML table evaluated to unexpected result: {:?}", other);
+                 Err(AmlError::MalformedStream)
+             }
+         }
+@@ -191,7 +188,6 @@ impl AmlContext {
+                             Err((_, _, Propagate::Break)) => Err(AmlError::BreakInInvalidPosition),
+                             Err((_, _, Propagate::Continue)) => Err(AmlError::ContinueInInvalidPosition),
+                             Err((_, _, Propagate::Err(err))) => {
+-                                error!("Failed to execute control method: {:?}", err);
+                                 Err(err)
+                             }
+                         }
+@@ -200,7 +196,6 @@ impl AmlContext {
+                     MethodCode::Native(ref method) => match (method)(self) {
+                         Ok(result) => Ok(result),
+                         Err(err) => {
+-                            error!("Failed to execute control method: {:?}", err);
+                             Err(err)
+                         }
+                     },
+@@ -268,7 +263,6 @@ impl AmlContext {
+                  * If the device is present and has an `_INI` method, invoke it.
+                  */
+                 if status.present && level.values.contains_key(&NameSeg::from_str("_INI").unwrap()) {
+-                    log::info!("Invoking _INI at level: {}", path);
+                     self.invoke_method(&AmlName::from_str("_INI").unwrap().resolve(&path)?, Args::default())?;
+                 }
+
+@@ -631,7 +625,6 @@ impl AmlContext {
+                         "Linux" => {
+                             // TODO: should we allow users to specify that this should be true? Linux has a
+                             // command line option for this.
+-                            warn!("ACPI evaluated `_OSI(\"Linux\")`. This is a bug. Reporting no support.");
+                             false
+                         }
+
+diff --git a/src/parser.rs b/src/parser.rs
+index 0a130f3..ec68af7 100644
+--- a/src/parser.rs
++++ b/src/parser.rs
+@@ -1,7 +1,6 @@
+ use crate::{pkg_length::PkgLength, AmlContext, AmlError, AmlValue, DebugVerbosity};
+ use alloc::vec::Vec;
+ use core::{convert::TryInto, marker::PhantomData};
+-use log::trace;
+
+ /// This is the number of spaces added to indent a scope when printing parser debug messages.
+ pub const INDENT_PER_SCOPE: usize = 2;
+@@ -10,10 +9,7 @@ impl AmlContext {
+     /// This is used by the parser to provide debug comments about the current object, which are indented to the
+     /// correct level for the current object. We most often need to print these comments from `map_with_context`s,
+     /// so it's most convenient to have this method on `AmlContext`.
+-    pub(crate) fn comment(&self, verbosity: DebugVerbosity, message: &str) {
+-        if verbosity <= self.debug_verbosity {
+-            log::trace!("{:indent$}{}", "", message, indent = self.scope_indent);
+-        }
++    pub(crate) fn comment(&self, _verbosity: DebugVerbosity, _message: &str) {
+     }
+ }
+
+@@ -259,7 +255,6 @@ where
+ {
+     move |input, context: &'c mut AmlContext| {
+         if verbosity <= context.debug_verbosity {
+-            trace!("{:indent$}--> {}", "", scope_name, indent = context.scope_indent);
+             context.scope_indent += INDENT_PER_SCOPE;
+         }
+
+@@ -268,7 +263,6 @@ where
+
+         if verbosity <= context.debug_verbosity {
+             context.scope_indent -= INDENT_PER_SCOPE;
+-            trace!("{:indent$}<-- {}", "", scope_name, indent = context.scope_indent);
+         }
+
+         Ok((new_input, context, result))
