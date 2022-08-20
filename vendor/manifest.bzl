@@ -103,8 +103,8 @@ rust = [
     ),
     crate(
         name = "raw-cpuid",
-        version = "10.4.0",
-        digest = "sha256:9494038accad129c5b3d9e44bcb142c522bac144fa8a3b69ff9586ed7a30fee4",
+        version = "10.5.0",
+        digest = "sha256:832eaa810b7987147fd31925205583b9d22ade2b2b48cb974ca8478b6184e470",
     ),
     crate(
         name = "rsdp",
@@ -113,8 +113,8 @@ rust = [
     ),
     crate(
         name = "rustversion",
-        version = "1.0.8",
-        digest = "sha256:ef57f62b19e1251a573521a8056883f12d6ffd6cab0e7491a9396b371c597e73",
+        version = "1.0.9",
+        digest = "sha256:9b9d5802964a2d192be20052543cdcd5405248ff22738212d7de614c6a725cff",
     ),
     crate(
         name = "scopeguard",
@@ -186,12 +186,12 @@ go = [
     ),
     module(
         name = "github.com/bazelbuild/buildtools",
-        version = "v0.0.0-20220531122519-a43aed7014c8",
+        version = "v0.0.0-20220817114000-5fa80af1e83e",
         digest = "sha256:5fb158bdff540fc1c984065d1cef4acd4e6f94869a0b5b26f0bd29b4ed192509",
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.0.0-20220722155217-630584e8d5aa",
+        version = "v0.0.0-20220817201139-bc19a97f63c8",
         digest = "sha256:9c1ca6648995078cbaa8083af18bec6ca7242b83a4c2a5a7b204559dff835a7d",
     ),
     module(
@@ -211,8 +211,8 @@ go = [
     ),
     module(
         name = "golang.org/x/vuln",
-        version = "v0.0.0-20220725105440-4151a5aca1df",
-        digest = "sha256:4162e176dbce79d2e4f26a8a94f1cc9c6457774c61dfc79fe06c951e81a59c2a",
+        version = "v0.0.0-20220819162940-6faf8534b80b",
+        digest = "sha256:994a4fa4620e8f298646a17b96f71d336ea0965fcb75bd61a196349df6fc84dd",
     ),
     module(
         name = "golang.org/x/xerrors",

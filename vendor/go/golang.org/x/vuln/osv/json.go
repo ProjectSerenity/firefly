@@ -12,10 +12,10 @@
 package osv
 
 import (
-	"strings"
 	"time"
 
 	"golang.org/x/mod/semver"
+	isem "golang.org/x/vuln/internal/semver"
 )
 
 type AffectsRangeType string
@@ -45,16 +45,6 @@ type AffectsRange struct {
 	Events []RangeEvent     `json:"events"`
 }
 
-// addSemverPrefix adds a 'v' prefix to s if it isn't already prefixed
-// with 'v' or 'go'. This allows us to easily test go-style SEMVER
-// strings against normal SEMVER strings.
-func addSemverPrefix(s string) string {
-	if !strings.HasPrefix(s, "v") && !strings.HasPrefix(s, "go") {
-		return "v" + s
-	}
-	return s
-}
-
 func (ar AffectsRange) containsSemver(v string) bool {
 	if ar.Type != TypeSemver {
 		return false
@@ -65,14 +55,14 @@ func (ar AffectsRange) containsSemver(v string) bool {
 
 	// Strip and then add the semver prefix so we can support bare versions,
 	// versions prefixed with 'v', and versions prefixed with 'go'.
-	v = canonicalizeSemverPrefix(v)
+	v = isem.CanonicalizeSemverPrefix(v)
 
 	var affected bool
 	for _, e := range ar.Events {
 		if !affected && e.Introduced != "" {
-			affected = e.Introduced == "0" || semver.Compare(v, addSemverPrefix(e.Introduced)) >= 0
+			affected = e.Introduced == "0" || semver.Compare(v, isem.CanonicalizeSemverPrefix(e.Introduced)) >= 0
 		} else if e.Fixed != "" {
-			affected = semver.Compare(v, addSemverPrefix(e.Fixed)) < 0
+			affected = semver.Compare(v, isem.CanonicalizeSemverPrefix(e.Fixed)) < 0
 		}
 	}
 
@@ -119,9 +109,19 @@ type DatabaseSpecific struct {
 	URL string `json:"url"`
 }
 
-// EcosystemSpecific contains additional information about the vulnerability
-// for the Go ecosystem.
-type EcosystemSpecific struct {
+// EcosytemSpecificImport contains additional information about an affected package.
+type EcosystemSpecificImport struct {
+	// Path is the package import path.
+	Path string `json:"path,omitempty"`
+
+	// GOOS is the execution operating system where the symbols appear, if
+	// known.
+	GOOS []string `json:"goos,omitempty"`
+
+	// GOARCH specifies the execution architecture where the symbols appear, if
+	// known.
+	GOARCH []string `json:"goarch,omitempty"`
+
 	// Symbols is the collection of functions and methods names affected by
 	// this vulnerability. Methods are listed as <recv>.<method>.
 	//
@@ -132,20 +132,13 @@ type EcosystemSpecific struct {
 	// These should be the symbols initially detected or identified in the CVE
 	// or other source.
 	Symbols []string `json:"symbols,omitempty"`
+}
 
-	// GOOS is the execution operating system where the symbols appear, if
-	// known.
-	//
-	// At the moment, this information is not provided by the Go
-	// vulnerability database.
-	GOOS []string `json:"goos,omitempty"`
-
-	// GOARCH specifies the execution architecture where the symbols appear, if
-	// known.
-	//
-	// At the moment, this information is not provided by the Go
-	// vulnerability database.
-	GOARCH []string `json:"goarch,omitempty"`
+// EcosystemSpecific contains additional information about the vulnerability
+// for the Go ecosystem.
+type EcosystemSpecific struct {
+	// Imports is the list of affected packages within the module.
+	Imports []EcosystemSpecificImport `json:"imports,omitempty"`
 }
 
 // Entry represents a OSV style JSON vulnerability database
@@ -159,20 +152,4 @@ type Entry struct {
 	Details    string      `json:"details"`
 	Affected   []Affected  `json:"affected"`
 	References []Reference `json:"references,omitempty"`
-}
-
-// removeSemverPrefix removes the 'v' or 'go' prefixes from go-style
-// SEMVER strings, for usage in the public vulnerability format.
-func removeSemverPrefix(s string) string {
-	s = strings.TrimPrefix(s, "v")
-	s = strings.TrimPrefix(s, "go")
-	return s
-}
-
-// canonicalizeSemverPrefix turns a SEMVER string into the canonical
-// representation using the 'v' prefix, as used by the OSV format.
-// Input may be a bare SEMVER ("1.2.3"), Go prefixed SEMVER ("go1.2.3"),
-// or already canonical SEMVER ("v1.2.3").
-func canonicalizeSemverPrefix(s string) string {
-	return addSemverPrefix(removeSemverPrefix(s))
 }

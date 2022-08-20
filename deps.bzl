@@ -153,7 +153,7 @@ rust = [
     ),
     crate(
         name = "raw-cpuid",
-        version = "10.4.0",
+        version = "10.5.0",
         edition = "2018",
         deps = [
             "bitflags",
@@ -170,7 +170,7 @@ rust = [
     ),
     crate(
         name = "rustversion",
-        version = "1.0.8",
+        version = "1.0.9",
         edition = "2018",
         proc_macro = True,
         build_script = "build/build.rs",
@@ -324,7 +324,7 @@ go = [
     ),
     module(
         name = "github.com/bazelbuild/buildtools",
-        version = "v0.0.0-20220531122519-a43aed7014c8",
+        version = "v0.0.0-20220817114000-5fa80af1e83e",
         packages = [
             package(
                 name = "github.com/bazelbuild/buildtools/build",
@@ -341,7 +341,7 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.0.0-20220722155217-630584e8d5aa",
+        version = "v0.0.0-20220817201139-bc19a97f63c8",
         packages = [
             package(
                 name = "golang.org/x/crypto/ed25519",
@@ -428,12 +428,16 @@ go = [
     ),
     module(
         name = "golang.org/x/vuln",
-        version = "v0.0.0-20220725105440-4151a5aca1df",
+        version = "v0.0.0-20220819162940-6faf8534b80b",
         packages = [
+            package(
+                name = "golang.org/x/vuln/internal/semver",
+            ),
             package(
                 name = "golang.org/x/vuln/osv",
                 deps = [
                     "golang.org/x/mod/semver",
+                    "golang.org/x/vuln/internal/semver",
                 ],
             ),
         ],

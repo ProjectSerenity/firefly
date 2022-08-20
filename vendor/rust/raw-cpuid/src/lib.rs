@@ -317,7 +317,6 @@ const EAX_HYPERVISOR_INFO: u32 = 0x4000_0000;
 //
 // Extended leafs:
 //
-
 const EAX_EXTENDED_FUNCTION_INFO: u32 = 0x8000_0000;
 const EAX_EXTENDED_PROCESSOR_AND_FEATURE_IDENTIFIERS: u32 = 0x8000_0001;
 const EAX_EXTENDED_BRAND_STRING: u32 = 0x8000_0002;
@@ -325,6 +324,8 @@ const EAX_L1_CACHE_INFO: u32 = 0x8000_0005;
 const EAX_L2_L3_CACHE_INFO: u32 = 0x8000_0006;
 const EAX_ADVANCED_POWER_MGMT_INFO: u32 = 0x8000_0007;
 const EAX_PROCESSOR_CAPACITY_INFO: u32 = 0x8000_0008;
+const EAX_PERFORMANCE_OPTIMIZATION_INFO: u32 = 0x8000_001A;
+const EAX_CACHE_PARAMETERS_AMD: u32 = 0x8000_001D;
 const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
 const EAX_SVM_FEATURES: u32 = 0x8000_000A;
 
@@ -447,18 +448,25 @@ impl CpuId {
         }
     }
 
-    /// Retrieve more elaborate information about caches (LEAF=0x04).
+    /// Retrieve more elaborate information about caches (LEAF=0x04 or 0x8000_001D).
     ///
     /// As opposed to [get_cache_info](CpuId::get_cache_info), this will tell us
     /// about associativity, set size, line size of each level in the cache
     /// hierarchy.
     ///
     /// # Platforms
-    /// ❌ AMD ✅ Intel
+    /// 🟡 AMD ✅ Intel
     pub fn get_cache_parameters(&self) -> Option<CacheParametersIter> {
-        if self.leaf_is_supported(EAX_CACHE_PARAMETERS) {
+        if self.leaf_is_supported(EAX_CACHE_PARAMETERS)
+            || (self.vendor == Vendor::Amd && self.leaf_is_supported(EAX_CACHE_PARAMETERS_AMD))
+        {
             Some(CacheParametersIter {
                 read: self.read,
+                leaf: if self.vendor == Vendor::Amd {
+                    EAX_CACHE_PARAMETERS_AMD
+                } else {
+                    EAX_CACHE_PARAMETERS
+                },
                 current: 0,
             })
         } else {
@@ -553,8 +561,9 @@ impl CpuId {
 
     /// Information about topology (LEAF=0x0B).
     ///
-    /// Intel SDM suggests software should check support for leaf 0x1F ([`get_extended_topology_info_v2()`]), and
-    /// if supported, enumerate that leaf instead.
+    /// Intel SDM suggests software should check support for leaf 0x1F
+    /// ([`CpuId::get_extended_topology_info_v2`]), and if supported, enumerate
+    /// that leaf instead.
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
@@ -844,7 +853,7 @@ impl CpuId {
 
     /// L2/L3 Cache and TLB Information (LEAF=0x8000_0006).
     ///
-    /// # Availability
+    /// # Platforms
     /// ✅ AMD 🟡 Intel
     pub fn get_l2_l3_cache_and_tlb_info(&self) -> Option<L2And3CacheTlbInfo> {
         if self.leaf_is_supported(EAX_L2_L3_CACHE_INFO) {
@@ -858,7 +867,7 @@ impl CpuId {
 
     /// Advanced Power Management Information (LEAF=0x8000_0007).
     ///
-    /// # Availability
+    /// # Platforms
     /// ✅ AMD 🟡 Intel
     pub fn get_advanced_power_mgmt_info(&self) -> Option<ApmInfo> {
         if self.leaf_is_supported(EAX_ADVANCED_POWER_MGMT_INFO) {
@@ -870,7 +879,7 @@ impl CpuId {
 
     /// Processor Capacity Parameters and Extended Feature Identification (LEAF=0x8000_0008).
     ///
-    /// # Availability
+    /// # Platforms
     /// ✅ AMD 🟡 Intel
     pub fn get_processor_capacity_feature_info(&self) -> Option<ProcessorCapacityAndFeatureInfo> {
         if self.leaf_is_supported(EAX_PROCESSOR_CAPACITY_INFO) {
@@ -888,7 +897,7 @@ impl CpuId {
     /// If SVM is not supported if [ExtendedProcessorFeatureIdentifiers::has_svm] is
     /// false, this function is reserved then.
     ///
-    /// # Availability
+    /// # Platforms
     /// ✅ AMD ❌ Intel
     pub fn get_svm_info(&self) -> Option<SvmFeatures> {
         let has_svm = self
@@ -909,6 +918,19 @@ impl CpuId {
         if self.leaf_is_supported(EAX_MEMORY_ENCRYPTION_INFO) {
             Some(MemoryEncryptionInfo::new(
                 self.read.cpuid1(EAX_MEMORY_ENCRYPTION_INFO),
+            ))
+        } else {
+            None
+        }
+    }
+    /// Informations about performance optimization (LEAF=0x8000_001A)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
+    pub fn get_performance_optimization_info(&self) -> Option<PerformanceOptimizationInfo> {
+        if self.leaf_is_supported(EAX_PERFORMANCE_OPTIMIZATION_INFO) {
+            Some(PerformanceOptimizationInfo::new(
+                self.read.cpuid1(EAX_PERFORMANCE_OPTIMIZATION_INFO),
             ))
         } else {
             None
@@ -2499,12 +2521,13 @@ bitflags! {
 /// Yields a [CacheParameter] for each cache.
 ///
 /// # Platforms
-/// ❌ AMD ✅ Intel
+/// 🟡 AMD ✅ Intel
 #[derive(Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParametersIter {
     #[cfg_attr(feature = "serialize", serde(skip))]
     read: CpuIdReader,
+    leaf: u32,
     current: u32,
 }
 
@@ -2517,7 +2540,7 @@ impl Iterator for CacheParametersIter {
     /// cpuid is called every-time we advance the iterator to get information
     /// about the next cache.
     fn next(&mut self) -> Option<CacheParameter> {
-        let res = self.read.cpuid2(EAX_CACHE_PARAMETERS, self.current);
+        let res = self.read.cpuid2(self.leaf, self.current);
         let cp = CacheParameter {
             eax: res.eax,
             ebx: res.ebx,
@@ -2549,7 +2572,7 @@ impl Debug for CacheParametersIter {
 /// Information about an individual cache in the hierarchy.
 ///
 /// # Platforms
-/// ❌ AMD ✅ Intel
+/// 🟡 AMD ✅ Intel
 #[derive(Copy, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct CacheParameter {
@@ -2591,6 +2614,9 @@ impl fmt::Display for CacheType {
 
 impl CacheParameter {
     /// Cache Type
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn cache_type(&self) -> CacheType {
         let typ = get_bits(self.eax, 0, 4) as u8;
         match typ {
@@ -2603,46 +2629,73 @@ impl CacheParameter {
     }
 
     /// Cache Level (starts at 1)
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn level(&self) -> u8 {
         get_bits(self.eax, 5, 7) as u8
     }
 
     /// Self Initializing cache level (does not need SW initialization).
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn is_self_initializing(&self) -> bool {
         get_bits(self.eax, 8, 8) == 1
     }
 
     /// Fully Associative cache
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn is_fully_associative(&self) -> bool {
         get_bits(self.eax, 9, 9) == 1
     }
 
     /// Maximum number of addressable IDs for logical processors sharing this cache
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn max_cores_for_cache(&self) -> usize {
         (get_bits(self.eax, 14, 25) + 1) as usize
     }
 
     /// Maximum number of addressable IDs for processor cores in the physical package
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
     pub fn max_cores_for_package(&self) -> usize {
         (get_bits(self.eax, 26, 31) + 1) as usize
     }
 
     /// System Coherency Line Size (Bits 11-00)
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn coherency_line_size(&self) -> usize {
         (get_bits(self.ebx, 0, 11) + 1) as usize
     }
 
     /// Physical Line partitions (Bits 21-12)
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn physical_line_partitions(&self) -> usize {
         (get_bits(self.ebx, 12, 21) + 1) as usize
     }
 
     /// Ways of associativity (Bits 31-22)
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn associativity(&self) -> usize {
         (get_bits(self.ebx, 22, 31) + 1) as usize
     }
 
     /// Number of Sets (Bits 31-00)
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn sets(&self) -> usize {
         (self.ecx + 1) as usize
     }
@@ -2650,6 +2703,9 @@ impl CacheParameter {
     /// Write-Back Invalidate/Invalidate (Bit 0)
     /// False: WBINVD/INVD from threads sharing this cache acts upon lower level caches for threads sharing this cache.
     /// True: WBINVD/INVD is not guaranteed to act upon lower level caches of non-originating threads sharing this cache.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn is_write_back_invalidate(&self) -> bool {
         get_bits(self.edx, 0, 0) == 1
     }
@@ -2657,6 +2713,9 @@ impl CacheParameter {
     /// Cache Inclusiveness (Bit 1)
     /// False: Cache is not inclusive of lower cache levels.
     /// True: Cache is inclusive of lower cache levels.
+    ///
+    /// # Platforms
+    /// ✅ AMD ✅ Intel
     pub fn is_inclusive(&self) -> bool {
         get_bits(self.edx, 1, 1) == 1
     }
@@ -2664,6 +2723,9 @@ impl CacheParameter {
     /// Complex Cache Indexing (Bit 2)
     /// False: Direct mapped cache.
     /// True: A complex function is used to index the cache, potentially using all address bits.
+    ///
+    /// # Platforms
+    /// ❌ AMD ✅ Intel
     pub fn has_complex_indexing(&self) -> bool {
         get_bits(self.edx, 2, 2) == 1
     }
