@@ -231,11 +231,11 @@ impl Region {
 
     /// Writes a generic value to the given offset into the region.
     ///
-    pub fn write<T: 'static + Copy>(
-        &mut self,
-        offset: usize,
-        val: T,
-    ) -> Result<(), RegionOverflow> {
+    /// Note that `write` does not require a mutable reference, as
+    /// volatile writes to MMIO regions do not affect Rust mutability
+    /// requirements.
+    ///
+    pub fn write<T: 'static + Copy>(&self, offset: usize, val: T) -> Result<(), RegionOverflow> {
         let ptr = self.as_mut_ptr::<T>(offset)?;
         unsafe { ptr.write_volatile(val) };
 
