@@ -42,21 +42,6 @@ rust = [
         no_tests = True,  # The tests have lots of dependencies.
     ),
     crate(
-        name = "bitvec",
-        version = "0.22.3",
-        edition = "2018",
-        deps = [
-            "funty",
-            "radium",
-            "tap",
-            "wyz",
-        ],
-        rustc_env = {
-            "CARGO_PKG_REPOSITORY": "https://github.com/bitvecto-rs/bitvec",
-        },
-        no_tests = True,  # The tests have lots of dependencies.
-    ),
-    crate(
         name = "byteorder",
         version = "1.4.3",
         edition = "2018",
@@ -70,14 +55,6 @@ rust = [
     crate(
         name = "fixedvec",
         version = "0.2.4",
-    ),
-    crate(
-        name = "funty",
-        version = "1.2.0",
-        edition = "2018",
-        test_deps = [
-            "static_assertions",
-        ],
     ),
     crate(
         name = "hex-literal",
@@ -115,15 +92,6 @@ rust = [
         edition = "2018",
         deps = [
             "x86_64",
-        ],
-    ),
-    crate(
-        name = "radium",
-        version = "0.7.0",
-        edition = "2018",
-        build_script = "build.rs",
-        test_deps = [
-            "static_assertions",
         ],
     ),
     crate(
@@ -185,14 +153,6 @@ rust = [
         ],
     ),
     crate(
-        name = "static_assertions",
-        version = "1.1.0",
-    ),
-    crate(
-        name = "tap",
-        version = "1.0.1",
-    ),
-    crate(
         name = "uart_16550",
         version = "0.2.18",
         edition = "2018",
@@ -207,14 +167,6 @@ rust = [
     crate(
         name = "volatile",
         version = "0.4.5",
-    ),
-    crate(
-        name = "wyz",
-        version = "0.5.0",
-        edition = "2018",
-        deps = [
-            "tap",
-        ],
     ),
     crate(
         name = "x86_64",

@@ -41,11 +41,6 @@ rust = [
         digest = "sha256:620bbcf2a88ebee65366673cae085ea8c9945fcef1891d1c2b76a2b23f6b6aa1",
     ),
     crate(
-        name = "bitvec",
-        version = "0.22.3",
-        digest = "sha256:efe6873f249e9c57c52efaad101fc6047a8961c89731658da3f56c13dee7cfc6",
-    ),
-    crate(
         name = "byteorder",
         version = "1.4.3",
         digest = "sha256:b44b7b8a858e8df3cf7ff4484609b0bf57ee2e0bd23c6a32aa8b9e4c212dbf81",
@@ -59,11 +54,6 @@ rust = [
         name = "fixedvec",
         version = "0.2.4",
         digest = "sha256:9eef3fc63f4a7a3ef6670a4d4a01df6a19f09facbb059fb9dff6ce07bf93c4c2",
-    ),
-    crate(
-        name = "funty",
-        version = "1.2.0",
-        digest = "sha256:652a9fc37a47c42afbb3348615711b469fca43decbd0025edacadff9e479b81e",
     ),
     crate(
         name = "hex-literal",
@@ -89,11 +79,6 @@ rust = [
         name = "pic8259",
         version = "0.10.2",
         digest = "sha256:c6a1b19286fd77550b9d94ce44133596188c6d703150351c926fb992848e1910",
-    ),
-    crate(
-        name = "radium",
-        version = "0.7.0",
-        digest = "sha256:4e2e29fe24658d34164ba3f389e1b85c9463aa25b4b8634c1c8c4d68c99992f6",
     ),
     crate(
         name = "raw-cpuid",
@@ -128,16 +113,6 @@ rust = [
         digest = "sha256:950ded1cfe90f8fc09fb0260e3184ea50afb95a5f530ad4fe317fbe8ab1ecce8",
     ),
     crate(
-        name = "static_assertions",
-        version = "1.1.0",
-        digest = "sha256:07527fab0fb8cecae9e3fcd0684883dc8b35ca8512e06ce795327674a63521d5",
-    ),
-    crate(
-        name = "tap",
-        version = "1.0.1",
-        digest = "sha256:7b55bd4fe29a53c3480cbff8ef7b4b8d190302720f3c91c4bace0d48fc3836cb",
-    ),
-    crate(
         name = "uart_16550",
         version = "0.2.18",
         digest = "sha256:f58497bfb4bfba4fce95f5b518db8a162e9d033504eacae78033f1f2c8ada2a7",
@@ -146,11 +121,6 @@ rust = [
         name = "volatile",
         version = "0.4.5",
         digest = "sha256:f583a4d1ff9e541ba7ca79417a1656e96bcefb7afd9646fb437fb88d4018417a",
-    ),
-    crate(
-        name = "wyz",
-        version = "0.5.0",
-        digest = "sha256:16e1ff51208f4ffc717bc9e3bb7642f04c09b59e8289c4e04a7a7ae6adc471a3",
     ),
     crate(
         name = "x86_64",
