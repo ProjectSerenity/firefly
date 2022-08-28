@@ -240,7 +240,7 @@ go = [
     ),
     module(
         name = "github.com/bazelbuild/buildtools",
-        version = "v0.0.0-20220817114000-5fa80af1e83e",
+        version = "v0.0.0-20220822174408-8116150720ab",
         packages = [
             package(
                 name = "github.com/bazelbuild/buildtools/build",
@@ -257,7 +257,7 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.0.0-20220817201139-bc19a97f63c8",
+        version = "v0.0.0-20220826181053-bd7e27e6170d",
         packages = [
             package(
                 name = "golang.org/x/crypto/ed25519",
@@ -344,7 +344,7 @@ go = [
     ),
     module(
         name = "golang.org/x/vuln",
-        version = "v0.0.0-20220819162940-6faf8534b80b",
+        version = "v0.0.0-20220826211405-310b0ec2bf32",
         packages = [
             package(
                 name = "golang.org/x/vuln/internal/semver",

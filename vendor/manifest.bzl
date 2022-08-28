@@ -147,12 +147,12 @@ go = [
     ),
     module(
         name = "github.com/bazelbuild/buildtools",
-        version = "v0.0.0-20220817114000-5fa80af1e83e",
+        version = "v0.0.0-20220822174408-8116150720ab",
         digest = "sha256:5fb158bdff540fc1c984065d1cef4acd4e6f94869a0b5b26f0bd29b4ed192509",
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.0.0-20220817201139-bc19a97f63c8",
+        version = "v0.0.0-20220826181053-bd7e27e6170d",
         digest = "sha256:9c1ca6648995078cbaa8083af18bec6ca7242b83a4c2a5a7b204559dff835a7d",
     ),
     module(
@@ -172,7 +172,7 @@ go = [
     ),
     module(
         name = "golang.org/x/vuln",
-        version = "v0.0.0-20220819162940-6faf8534b80b",
+        version = "v0.0.0-20220826211405-310b0ec2bf32",
         digest = "sha256:994a4fa4620e8f298646a17b96f71d336ea0965fcb75bd61a196349df6fc84dd",
     ),
     module(
