@@ -31,6 +31,11 @@ rust = [
         patch_digest = "sha256:b6d21d2d945311f8f6836e0a511ba3a5cfa60acbb97f6f20d4f502ef837b1e5a",
     ),
     crate(
+        name = "autocfg",
+        version = "1.1.0",
+        digest = "sha256:12f1f63c021f8e2912aa19a95c3e8f866ad98c9ea91017bb424114efc9184334",
+    ),
+    crate(
         name = "bit_field",
         version = "0.10.1",
         digest = "sha256:29b4061a841923f8aa6f215f81bda81f74c75b5fdd41f543d2ac51b8f5c8f316",
@@ -74,6 +79,11 @@ rust = [
         name = "managed",
         version = "0.8.0",
         digest = "sha256:a4caf9de3ee73c274d82439238c0cbcf9fb50a8369b64f8c4d587cc541af5057",
+    ),
+    crate(
+        name = "memoffset",
+        version = "0.6.5",
+        digest = "sha256:f4d3ad4c57a3046bed95c8667ffd9d8ed0073f3925f1b47791820f103fed704d",
     ),
     crate(
         name = "pic8259",

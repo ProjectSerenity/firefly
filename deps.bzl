@@ -32,6 +32,11 @@ rust = [
         ],
     ),
     crate(
+        name = "autocfg",
+        version = "1.1.0",
+        no_tests = True,  # Several tests assume Cargo's management.
+    ),
+    crate(
         name = "bit_field",
         version = "0.10.1",
     ),
@@ -84,6 +89,14 @@ rust = [
         features = [
             "alloc",
             "map",
+        ],
+    ),
+    crate(
+        name = "memoffset",
+        version = "0.6.5",
+        build_script = "build.rs",
+        build_script_deps = [
+            "autocfg",
         ],
     ),
     crate(

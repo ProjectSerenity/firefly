@@ -40,6 +40,7 @@ rust_library(
         "//kernel/utils/bitmap_index",
         "//kernel/utils/spin",
         "//vendor/rust/bitflags",
+        "//vendor/rust/memoffset",
         "//vendor/rust/smoltcp",
         "//vendor/rust/x86_64",
     ],

@@ -20,7 +20,6 @@
 use crate::{DeviceStatus, InterruptStatus};
 use interrupts::Irq;
 use memory::{PhysAddr, PhysFrame, PhysFrameRange, PhysFrameSize};
-use mmio::{read_volatile, write_volatile};
 
 /// CAPABILITY_ID_VENDOR is the unique identifier
 /// for a PCI capability containing vendor-specific
@@ -191,6 +190,16 @@ struct CommonConfig {
     queue_device_hi: u32,
 }
 
+// This is a helper macro for getting
+// the offset of a field in the CommonConfig
+// structure.
+//
+macro_rules! config {
+    ($field:ident) => {
+        memoffset::offset_of!(CommonConfig, $field)
+    };
+}
+
 /// Implements VirtIO configuration for the PCI transport.
 ///
 pub struct Transport {
@@ -322,15 +331,6 @@ impl Transport {
             }
         }
     }
-
-    // common returns the mutable common config, which
-    // can be used to read or write the configuration.
-    //
-    fn common(&self) -> &'static mut CommonConfig {
-        self.common
-            .as_mut::<CommonConfig>(0)
-            .expect("invalid config address space")
-    }
 }
 
 impl crate::Transport for Transport {
@@ -359,33 +359,29 @@ impl crate::Transport for Transport {
     /// read_status returns the device's status.
     ///
     fn read_status(&self) -> DeviceStatus {
-        let common = self.common();
-
-        DeviceStatus::from_bits_truncate(unsafe { read_volatile!(common.device_status) })
+        DeviceStatus::from_bits_truncate(self.common.read(config!(device_status)).unwrap())
     }
 
     /// write_status sets the device's status.
     ///
     fn write_status(&self, device_status: DeviceStatus) {
-        let common = self.common();
-
-        unsafe { write_volatile!(common.device_status, device_status.bits()) };
+        self.common
+            .write(config!(device_status), device_status.bits())
+            .unwrap();
     }
 
     /// read_device_features returns the
     /// first 64 of the device's feature bits.
     ///
     fn read_device_features(&self) -> u64 {
-        let common = self.common();
-
-        let low;
-        let high;
-        unsafe {
-            write_volatile!(common.device_feature_select, 0u32.to_le());
-            low = u32::from_le(read_volatile!(common.device_feature));
-            write_volatile!(common.device_feature_select, 1u32.to_le());
-            high = u32::from_le(read_volatile!(common.device_feature));
-        }
+        self.common
+            .write(config!(device_feature_select), 0u32.to_le())
+            .unwrap();
+        let low = u32::from_le(self.common.read(config!(device_feature)).unwrap());
+        self.common
+            .write(config!(device_feature_select), 1u32.to_le())
+            .unwrap();
+        let high = u32::from_le(self.common.read(config!(device_feature)).unwrap());
 
         ((high as u64) << 32) | (low as u64)
     }
@@ -394,42 +390,40 @@ impl crate::Transport for Transport {
     /// first 64 of the driver's feature bits.
     ///
     fn write_driver_features(&self, features: u64) {
-        let common = self.common();
-
-        unsafe {
-            write_volatile!(common.driver_feature_select, 0u32.to_le());
-            write_volatile!(common.driver_feature, features.to_le() as u32);
-            write_volatile!(common.driver_feature_select, 1u32.to_le());
-            write_volatile!(common.driver_feature, (features.to_le() >> 32) as u32);
-        }
+        self.common
+            .write(config!(driver_feature_select), 0u32.to_le())
+            .unwrap();
+        self.common
+            .write(config!(driver_feature), features.to_le() as u32)
+            .unwrap();
+        self.common
+            .write(config!(driver_feature_select), 1u32.to_le())
+            .unwrap();
+        self.common
+            .write(config!(driver_feature), (features.to_le() >> 32) as u32)
+            .unwrap();
     }
 
     /// read_num_queues returns the maximum number of
     /// virtqueues supported by the device.
     ///
     fn read_num_queues(&self) -> u16 {
-        let common = self.common();
-
-        unsafe { u16::from_le(read_volatile!(common.num_queues)) }
+        u16::from_le(self.common.read(config!(num_queues)).unwrap())
     }
 
     /// select_queue sets the current virtqueue.
     ///
     fn select_queue(&self, index: u16) {
-        let common = self.common();
-
-        unsafe {
-            write_volatile!(common.queue_select, index.to_le());
-        }
+        self.common
+            .write(config!(queue_select), index.to_le())
+            .unwrap();
     }
 
     /// queue_size returns the maximum number of descriptors
     /// supported by the device in any virtqueue.
     ///
     fn queue_size(&self) -> u16 {
-        let common = self.common();
-
-        unsafe { u16::from_le(read_volatile!(common.queue_size)) }
+        u16::from_le(self.common.read(config!(queue_size)).unwrap())
     }
 
     /// set_queue_size notifies the device of the number
@@ -437,11 +431,9 @@ impl crate::Transport for Transport {
     /// current virtqueue (set using select_queue).
     ///
     fn set_queue_size(&self, size: u16) {
-        let common = self.common();
-
-        unsafe {
-            write_volatile!(common.queue_size, size.to_le());
-        }
+        self.common
+            .write(config!(queue_size), size.to_le())
+            .unwrap();
     }
 
     /// notify_queue notifies the device that the
@@ -449,24 +441,18 @@ impl crate::Transport for Transport {
     /// ready in the driver area.
     ///
     fn notify_queue(&self, queue_index: u16) {
-        let common = self.common();
-
-        unsafe {
-            let offset = self.notify_offset_multiplier
-                * u16::from_le(read_volatile!(common.queue_notify_off)) as usize;
-            *self.notify.as_mut(offset).unwrap() = queue_index;
-        }
+        let offset = self.notify_offset_multiplier
+            * u16::from_le(self.common.read(config!(queue_notify_off)).unwrap()) as usize;
+        *self.notify.as_mut(offset).unwrap() = queue_index;
     }
 
     /// enable_queue notifies the device to use the
     /// current virtqueue (set using select_queue).
     ///
     fn enable_queue(&self) {
-        let common = self.common();
-
-        unsafe {
-            write_volatile!(common.queue_enable, 1u16.to_le());
-        }
+        self.common
+            .write(config!(queue_enable), 1u16.to_le())
+            .unwrap();
     }
 
     /// set_queue_descriptor_area notifies the device of
@@ -474,13 +460,13 @@ impl crate::Transport for Transport {
     /// the current virtqueue (set using select_queue).
     ///
     fn set_queue_descriptor_area(&self, area: PhysAddr) {
-        let common = self.common();
         let value = area.as_usize().to_le();
-
-        unsafe {
-            write_volatile!(common.queue_desc_lo, value as u32);
-            write_volatile!(common.queue_desc_hi, (value >> 32) as u32);
-        }
+        self.common
+            .write(config!(queue_desc_lo), value as u32)
+            .unwrap();
+        self.common
+            .write(config!(queue_desc_hi), (value >> 32) as u32)
+            .unwrap();
     }
 
     /// set_queue_driver_area notifies the device of the
@@ -488,13 +474,13 @@ impl crate::Transport for Transport {
     /// virtqueue (set using select_queue).
     ///
     fn set_queue_driver_area(&self, area: PhysAddr) {
-        let common = self.common();
         let value = area.as_usize().to_le();
-
-        unsafe {
-            write_volatile!(common.queue_driver_lo, value as u32);
-            write_volatile!(common.queue_driver_hi, (value >> 32) as u32);
-        }
+        self.common
+            .write(config!(queue_driver_lo), value as u32)
+            .unwrap();
+        self.common
+            .write(config!(queue_driver_hi), (value >> 32) as u32)
+            .unwrap();
     }
 
     /// set_queue_device_area notifies the device of the
@@ -502,12 +488,12 @@ impl crate::Transport for Transport {
     /// virtqueue (set using select_queue).
     ///
     fn set_queue_device_area(&self, area: PhysAddr) {
-        let common = self.common();
         let value = area.as_usize().to_le();
-
-        unsafe {
-            write_volatile!(common.queue_device_lo, value as u32);
-            write_volatile!(common.queue_device_hi, (value >> 32) as u32);
-        }
+        self.common
+            .write(config!(queue_device_lo), value as u32)
+            .unwrap();
+        self.common
+            .write(config!(queue_device_hi), (value >> 32) as u32)
+            .unwrap();
     }
 }
