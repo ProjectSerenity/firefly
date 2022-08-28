@@ -85,7 +85,7 @@ static MMIO_START_ADDRESS: Mutex<VirtAddr> = Mutex::new(MMIO_SPACE.start());
 ///
 #[inline]
 pub fn access_barrier() {
-    atomic::compiler_fence(atomic::Ordering::SeqCst);
+    atomic::fence(atomic::Ordering::SeqCst);
 }
 
 /// reserve_space reserves the given amount of MMIO address space,
