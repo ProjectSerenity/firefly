@@ -321,10 +321,8 @@ func cmdRules(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("Failed to write updated %s: %v", bzlPath, err)
 	}
 
-	if len(updated) == 0 {
-		fmt.Fprintf(w, "Updated %s.\n", updated[0])
-	} else {
-		fmt.Fprintf(w, "Updated:\n  %s\n", strings.Join(updated, "\n  "))
+	for _, update := range updated {
+		fmt.Fprintf(w, "Updated Bazel rule %s.\n", update)
 	}
 
 	return nil
