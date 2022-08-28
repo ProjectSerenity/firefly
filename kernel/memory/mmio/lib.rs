@@ -23,34 +23,6 @@
 //! let second_short: u16 = 0x1234;
 //! mapped.write(2, second_short);
 //! ```
-//!
-//! The [`read_volatile`] and [`write_volatile`] macros  can be used to read
-//! and write MMIO memory without seemingly idempotent accesses being removed
-//! or rearranged by the compiler.
-//!
-//! ```
-//! // Helper type describing the MMIO region data.
-//! #[repr(C, packed)]
-//! struct Config {
-//!    field1: u32,
-//!    field2: u32,
-//! }
-//!
-//! // Map an MMIO region.
-//! let mut region = unsafe { mmio::Range::map(/* ... */) };
-//!
-//! // Load the config data at the start of the region.
-//! let mut config = region.as_mut::<Config>(0);
-//!
-//! // Read the first field twice and write the second
-//! // field once, without the compiler removing or
-//! // re-ordering any of the accesses.
-//! unsafe {
-//!     let _first = mmio::read_volatile!(config.field1);
-//!     let _second = mmio::read_volatile!(config.field1);
-//!     mmio::write_volatile!(config.field2, 1u16);
-//! }
-//! ```
 
 #![no_std]
 #![deny(clippy::float_arithmetic)]
@@ -66,7 +38,6 @@
 #![deny(missing_abi)]
 #![allow(unsafe_code)]
 #![deny(unused_crate_dependencies)]
-#![feature(decl_macro)]
 
 use core::sync::atomic;
 use memory::constants::MMIO_SPACE;
@@ -110,26 +81,6 @@ fn reserve_space(size: usize) -> VirtPageRange {
         .expect("bad MMIO region end virt address");
 
     VirtPage::range_exclusive(start_page, end_page)
-}
-
-/// Returns the referenced field in a way that will not be removed
-/// by the compiler or reordered at runtime.
-///
-pub macro read_volatile($typ:ident.$field:ident) {
-    core::ptr::read_volatile(core::ptr::addr_of!($typ.$field))
-}
-
-/// Writes to the referenced field in a way that will not be removed
-/// by the compiler or reordered at runtime.
-///
-/// # Safety
-///
-/// `write_volatile!` is unsafe, as it bypasses the type system, and
-/// could be used to write to non-mutable data. Using write_volatile
-/// on a `const` value may also result in a general protection fault.
-///
-pub macro write_volatile($typ:ident.$field:ident, $value:expr) {
-    core::ptr::write_volatile(core::ptr::addr_of_mut!($typ.$field), $value)
 }
 
 /// Indicates that a read or write in an MMIO region exceeded the
