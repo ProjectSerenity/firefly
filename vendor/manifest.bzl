@@ -21,14 +21,14 @@ rust = [
     crate(
         name = "aml",
         version = "0.16.1",
-        digest = "sha256:828f80a51e5d8279b7651eb9303bcf307d74c7a20265143fb8a99b87aeadd601",
+        digest = "sha256:b0f0d18cfb9c94ebab52dc9f4a2db9534e5888fd2c8cf1b9181e5ffa08c353b2",
         patch_args = [
             "-p1",
         ],
         patches = [
             "third_party/aml.patch",
         ],
-        patch_digest = "sha256:7c70572118360eff8a34314870d7864bf999e552612426e08cc9910a17a4ca8c",
+        patch_digest = "sha256:b6d21d2d945311f8f6836e0a511ba3a5cfa60acbb97f6f20d4f502ef837b1e5a",
     ),
     crate(
         name = "bit_field",

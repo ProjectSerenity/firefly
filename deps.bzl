@@ -23,7 +23,6 @@ rust = [
         edition = "2018",
         deps = [
             "bit_field",
-            "bitvec",
             "byteorder",
             "spin",
         ],

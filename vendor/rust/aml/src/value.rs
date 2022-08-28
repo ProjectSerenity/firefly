@@ -502,80 +502,18 @@ impl AmlValue {
     }
 
     pub fn read_buffer_field(&self, context: &AmlContext) -> Result<AmlValue, AmlError> {
-        use bitvec::view::BitView;
-
-        if let AmlValue::BufferField { buffer_data, offset, length } = self {
-            let offset = *offset as usize;
-            let length = *length as usize;
-            let inner_data = buffer_data.lock();
-
-            if (offset + length) > (inner_data.len() * 8) {
-                return Err(AmlError::BufferFieldIndexesOutOfBounds);
-            }
-
-            let bitslice = inner_data.view_bits::<bitvec::order::Lsb0>();
-            let bits = &bitslice[offset..(offset + length)];
-            if length > 64 {
-                Ok(AmlValue::Buffer(Arc::new(spin::Mutex::new(bits.as_raw_slice().to_vec()))))
-            } else {
-                let mut value = 0u64;
-                value.view_bits_mut::<bitvec::order::Lsb0>()[0..length].clone_from_bitslice(bits);
-                Ok(AmlValue::Integer(value))
-            }
-        } else {
-            Err(AmlError::IncompatibleValueConversion { current: self.type_of(), target: AmlType::BufferField })
-        }
+        // Patch out this function to avoid a dependency on
+        // the `bitvec` crate.
+        let _ = context;
+        unimplemented!();
     }
 
     pub fn write_buffer_field(&mut self, value: AmlValue, context: &mut AmlContext) -> Result<(), AmlError> {
-        use bitvec::view::BitView;
-
-        if let AmlValue::BufferField { buffer_data, offset, length } = self {
-            let offset = *offset as usize;
-            let length = *length as usize;
-            // TODO: check these against the size of the buffer to be written into
-            let mut inner_data = buffer_data.lock();
-            let bitslice = inner_data.view_bits_mut::<bitvec::order::Lsb0>();
-
-            match value {
-                AmlValue::Integer(value) => {
-                    /*
-                     * When an `Integer` is written into a `BufferField`, the entire contents are overwritten. If
-                     * it's smaller than the length of the buffer field, it's zero-extended. If it's larger, the
-                     * upper bits are truncated.
-                     */
-                    let bits_to_copy = cmp::min(length, 64);
-                    bitslice[offset..(offset + bits_to_copy)]
-                        .copy_from_bitslice(&value.to_le_bytes().view_bits()[..(bits_to_copy as usize)]);
-                    // Zero extend to the end of the buffer field
-                    bitslice[(offset + bits_to_copy)..(offset + length)].set_all(false);
-                    Ok(())
-                }
-                AmlValue::Boolean(value) => {
-                    bitslice.set(offset, value);
-                    Ok(())
-                }
-                AmlValue::Buffer(value) => {
-                    /*
-                     * When a `Buffer` is written into a `BufferField`, the entire contents are copied into the
-                     * field. If the buffer is smaller than the size of the buffer field, it is zero extended. If
-                     * the buffer is larger, the upper bits are truncated.
-                     * XXX: this behaviour is only explicitly defined in ACPI 2.0+. While undefined in ACPI 1.0,
-                     * we produce the same behaviour there.
-                     */
-                    let value_data = value.lock();
-                    let bits_to_copy = cmp::min(length, value_data.len() * 8);
-                    bitslice[offset..(offset + bits_to_copy)]
-                        .copy_from_bitslice(&value_data.view_bits()[..(bits_to_copy as usize)]);
-                    // Zero extend to the end of the buffer field
-                    bitslice[(offset + bits_to_copy)..(offset + length)].set_all(false);
-                    Ok(())
-                }
-                _ => Err(AmlError::TypeCannotBeWrittenToBufferField(value.type_of())),
-            }
-        } else {
-            Err(AmlError::IncompatibleValueConversion { current: self.type_of(), target: AmlType::BufferField })
-        }
+        // Patch out this function to avoid a dependency on
+        // the `bitvec` crate.
+        let _ = value;
+        let _ = context;
+        unimplemented!();
     }
 
     /// Logically compare two `AmlValue`s, according to the rules that govern opcodes like `DefLEqual`, `DefLLess`,
