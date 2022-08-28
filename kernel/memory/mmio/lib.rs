@@ -196,7 +196,22 @@ impl Region {
     /// the region does not contain the null address, `as_mut` will not
     /// panic.
     ///
+    #[inline]
     pub fn as_mut<T: Copy>(&self, offset: usize) -> Result<&'static mut T, RegionOverflow> {
+        unsafe { Ok(self.as_mut_ptr::<T>(offset)?.as_mut().unwrap()) }
+    }
+
+    /// Returns a mutable pointer of the given type at the MMIO memory
+    /// at `offset` into the region.
+    ///
+    /// # Panics
+    ///
+    /// `as_mut_ptr` will panic if the resulting address is null. Provided
+    /// the region does not contain the null address, `as_mut_ptr` will not
+    /// panic.
+    ///
+    #[inline]
+    pub fn as_mut_ptr<T: Copy>(&self, offset: usize) -> Result<*mut T, RegionOverflow> {
         let addr = self.start + offset;
         let size = core::mem::size_of::<T>();
         if (addr + size) > self.end {
@@ -204,14 +219,14 @@ impl Region {
         }
 
         let ptr = addr.as_usize() as *mut T;
-        unsafe { Ok(ptr.as_mut().unwrap()) }
+        Ok(ptr)
     }
 
     /// Returns a generic value at the given offset into the region.
     ///
     pub fn read<T: 'static + Copy>(&self, offset: usize) -> Result<T, RegionOverflow> {
-        let ptr = self.as_mut(offset)?;
-        Ok(*ptr)
+        let ptr = self.as_mut_ptr::<T>(offset)?;
+        Ok(unsafe { ptr.read_volatile() })
     }
 
     /// Writes a generic value to the given offset into the region.
@@ -221,8 +236,8 @@ impl Region {
         offset: usize,
         val: T,
     ) -> Result<(), RegionOverflow> {
-        let ptr = self.as_mut(offset)?;
-        *ptr = val;
+        let ptr = self.as_mut_ptr::<T>(offset)?;
+        unsafe { ptr.write_volatile(val) };
 
         Ok(())
     }
