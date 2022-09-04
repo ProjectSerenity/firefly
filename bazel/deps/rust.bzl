@@ -46,7 +46,7 @@ def rust_deps():
 
     http_archive(
         name = "rust_none_x86_64",
-        build_file = "//third_party:no_std.BUILD",
+        build_file = "//bazel/patches:no_std.BUILD",
         sha256 = RUST_NO_STD.sum,
         strip_prefix = "rust-std-nightly-x86_64-unknown-none",
         type = "tgz",

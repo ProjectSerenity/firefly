@@ -14,7 +14,7 @@ rust = [
         ],
         patch_args = ["-p1"],
         patches = [
-            "third_party/acpi.patch",
+            "bazel/patches/acpi.patch",
         ],
     ),
     crate(
@@ -28,7 +28,7 @@ rust = [
         ],
         patch_args = ["-p1"],
         patches = [
-            "third_party/aml.patch",
+            "bazel/patches/aml.patch",
         ],
     ),
     crate(
@@ -122,7 +122,7 @@ rust = [
         edition = "2018",
         patch_args = ["-p1"],
         patches = [
-            "third_party/rsdp.patch",
+            "bazel/patches/rsdp.patch",
         ],
     ),
     crate(
@@ -257,7 +257,7 @@ go = [
         packages = [
             package(
                 name = "github.com/bazelbuild/buildtools/build",
-                build_file = "third_party/github.com_bazelbuild_buildtools_build.BUILD",
+                build_file = "bazel/patches/github.com_bazelbuild_buildtools_build.BUILD",
             ),
             package(
                 name = "github.com/bazelbuild/buildtools/tables",

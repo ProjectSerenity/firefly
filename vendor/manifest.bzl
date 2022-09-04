@@ -14,9 +14,9 @@ rust = [
             "-p1",
         ],
         patches = [
-            "third_party/acpi.patch",
+            "bazel/patches/acpi.patch",
         ],
-        patch_digest = "sha256:f9df2fda59096c2929f0ae7f911a2982d74f1a574cc07938cd803ea14b96aa55",
+        patch_digest = "sha256:24017f83d85e22a6df87b3f89a6ebe3823ce21096349a21ae254195b5546b735",
     ),
     crate(
         name = "aml",
@@ -26,9 +26,9 @@ rust = [
             "-p1",
         ],
         patches = [
-            "third_party/aml.patch",
+            "bazel/patches/aml.patch",
         ],
-        patch_digest = "sha256:b6d21d2d945311f8f6836e0a511ba3a5cfa60acbb97f6f20d4f502ef837b1e5a",
+        patch_digest = "sha256:2dfe75349c0c71ad6d63964045086db669d6666db105a614f807881aa1b5a97e",
     ),
     crate(
         name = "autocfg",
@@ -103,9 +103,9 @@ rust = [
             "-p1",
         ],
         patches = [
-            "third_party/rsdp.patch",
+            "bazel/patches/rsdp.patch",
         ],
-        patch_digest = "sha256:633510063b7cb407b441b18e1ec4b2c85e20511a54a2217b562f82c5e5cf91c2",
+        patch_digest = "sha256:2a83cc2815e00a34f42fd381ba208f05eca5edd584fc077f883fe354c04d4555",
     ),
     crate(
         name = "rustversion",
