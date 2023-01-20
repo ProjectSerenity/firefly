@@ -11,10 +11,11 @@
 
 [package]
 name = "volatile"
-version = "0.4.5"
+version = "0.4.6"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 description = "A simple volatile wrapper type"
 documentation = "https://docs.rs/volatile"
+readme = "README.md"
 keywords = ["volatile"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-osdev/volatile"

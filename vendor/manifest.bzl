@@ -20,15 +20,15 @@ rust = [
     ),
     crate(
         name = "aml",
-        version = "0.16.1",
-        digest = "sha256:b0f0d18cfb9c94ebab52dc9f4a2db9534e5888fd2c8cf1b9181e5ffa08c353b2",
+        version = "0.16.2",
+        digest = "sha256:e2d44a940c2bef83b6f377fa842c9e8ac7ae4d4c81bb38c96f33cc02b9f323cd",
         patch_args = [
             "-p1",
         ],
         patches = [
             "bazel/patches/aml.patch",
         ],
-        patch_digest = "sha256:2dfe75349c0c71ad6d63964045086db669d6666db105a614f807881aa1b5a97e",
+        patch_digest = "sha256:01e3f3ce57de80d5ffecee75469792ad4f1276ca36617243d7d8161a9b5ef340",
     ),
     crate(
         name = "autocfg",
@@ -72,8 +72,8 @@ rust = [
     ),
     crate(
         name = "linked_list_allocator",
-        version = "0.10.1",
-        digest = "sha256:a937cbedec34cca9f72db51a04dd1654dc53ff3a8b3b5d94e1e1a39e4637d9d0",
+        version = "0.10.4",
+        digest = "sha256:409215c9a19cbdd5fbf1de0d55e3254999f7c0a642308c5f7d63d1dd85521649",
     ),
     crate(
         name = "managed",
@@ -92,8 +92,8 @@ rust = [
     ),
     crate(
         name = "raw-cpuid",
-        version = "10.5.0",
-        digest = "sha256:832eaa810b7987147fd31925205583b9d22ade2b2b48cb974ca8478b6184e470",
+        version = "10.6.0",
+        digest = "sha256:60e7c4793addd1c7c25d0b49cc70b937028bd9edb56ab91a4ac2cb283e50cbe2",
     ),
     crate(
         name = "rsdp",
@@ -109,13 +109,13 @@ rust = [
     ),
     crate(
         name = "rustversion",
-        version = "1.0.9",
-        digest = "sha256:9b9d5802964a2d192be20052543cdcd5405248ff22738212d7de614c6a725cff",
+        version = "1.0.11",
+        digest = "sha256:705392b9b837bd08a11553181951e6f50726f0d4330012504c2f4dadd5c402f2",
     ),
     crate(
         name = "smoltcp",
-        version = "0.8.1",
-        digest = "sha256:a2acd28879f77e694c9b2d90dfa969ee577214ca862900947427c8baf0eff2d4",
+        version = "0.8.2",
+        digest = "sha256:6cbd9e972bbfe6fcc3adec5c7278f23de5b37e3100c63c49fc4609eef90855ab",
     ),
     crate(
         name = "spin",
@@ -129,8 +129,8 @@ rust = [
     ),
     crate(
         name = "volatile",
-        version = "0.4.5",
-        digest = "sha256:f583a4d1ff9e541ba7ca79417a1656e96bcefb7afd9646fb437fb88d4018417a",
+        version = "0.4.6",
+        digest = "sha256:742e3f42c42c44ca1c7d00447f84775de39b7fd036c797825fef6de3c3a1c9bd",
     ),
     crate(
         name = "x86_64",
@@ -139,8 +139,8 @@ rust = [
     ),
     crate(
         name = "xmas-elf",
-        version = "0.8.0",
-        digest = "sha256:7ec4aaf04d8feb3fdb313654ddfcaaad78b0e24b6a15095fed5e6a91dff59396",
+        version = "0.9.0",
+        digest = "sha256:5d45ac6788f9f7abfcc3b3b5fe9b11b8b0dcc17671454db89c91a90678f9c941",
     ),
     crate(
         name = "zero",
@@ -152,43 +152,43 @@ rust = [
 go = [
     module(
         name = "github.com/BurntSushi/toml",
-        version = "v1.2.0",
-        digest = "sha256:100ca6584b169504eb8625f39f923db07d4cb936e4cdcf272b1ef6c308cd70ff",
+        version = "v1.2.1",
+        digest = "sha256:5da765c8ca09f91abd9a423c2268a47ab19e2e5a03b866c0ee4dcb4fd1c1a35f",
     ),
     module(
         name = "github.com/bazelbuild/buildtools",
-        version = "v0.0.0-20220822174408-8116150720ab",
-        digest = "sha256:5fb158bdff540fc1c984065d1cef4acd4e6f94869a0b5b26f0bd29b4ed192509",
+        version = "v0.0.0-20230113180850-180a94ab3a3a",
+        digest = "sha256:0b78247e8d1abe1656e54459a05ca8c3b31b525914b3d6abbff5aff934fd78bf",
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.0.0-20220826181053-bd7e27e6170d",
-        digest = "sha256:9c1ca6648995078cbaa8083af18bec6ca7242b83a4c2a5a7b204559dff835a7d",
+        version = "v0.5.0",
+        digest = "sha256:518abb983d66814bf0bfaccc8cc903ff8dc692c964baa872e9bad4f1d6046c15",
     ),
     module(
         name = "golang.org/x/mod",
-        version = "v0.6.0-dev.0.20220412012744-41445a152478",
-        digest = "sha256:ed2568b61fa50594b640142ec883d17ee5a7edd46fe7c2e40960ab9637adb5ba",
+        version = "v0.7.0",
+        digest = "sha256:117c8e544fd4a58a5e1d56676e6329b020e9d9241adb08b065c5d3050411c5bd",
     ),
     module(
         name = "golang.org/x/time",
-        version = "v0.0.0-20220722155302-e5dcc9cfc0b9",
-        digest = "sha256:423a83bf899b93fd6004225201c9faa415872a7cd3813ab236a4f03d916d6fd6",
+        version = "v0.3.0",
+        digest = "sha256:095869f0370bf4377ec8a38b7ac04bc91c40642a6c85cc87c824b841839bad8f",
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.1.12",
-        digest = "sha256:f9d4c420baf4a0fad2e22a02fee477ab2f450134a5e686e52baac19c7b8028ac",
+        version = "v0.5.0",
+        digest = "sha256:b7e1fe569092d058821a3c822529eb25a79d38a8fb8d041a622693b65e73144f",
     ),
     module(
         name = "golang.org/x/vuln",
-        version = "v0.0.0-20220826211405-310b0ec2bf32",
-        digest = "sha256:994a4fa4620e8f298646a17b96f71d336ea0965fcb75bd61a196349df6fc84dd",
+        version = "v0.0.0-20230118164824-4ec8867cc0e6",
+        digest = "sha256:5294c3d66538b3e7dc3c969f3c833d7f636f2a2761dbafe486f0a9fc275e39a5",
     ),
     module(
         name = "golang.org/x/xerrors",
-        version = "v0.0.0-20220609144429-65e65417b02f",
-        digest = "sha256:c0b0541a468b065940c635cb07ee30da788c8b01ecde1655caaa503ce05840d5",
+        version = "v0.0.0-20220907171357-04be3eba64a2",
+        digest = "sha256:9df13449b145dfcfb97ea22dc88c0fdcb4d847a56de7a693724f62ebf2b23907",
     ),
     module(
         name = "rsc.io/diff",

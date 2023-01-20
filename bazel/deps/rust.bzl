@@ -60,8 +60,7 @@ def rust_deps():
 
     rust_register_toolchains(
         edition = "2021",
-        iso_date = RUST_ISO_DATE,
-        rustfmt_version = RUST_VERSION,
+        rustfmt_version = RUST_VERSION + "/" + RUST_ISO_DATE,
         sha256s = {
             RUST_ISO_DATE + "/" + LLVM_TOOLS.name: LLVM_TOOLS.sum,
             RUST_ISO_DATE + "/" + RUST.name: RUST.sum,
@@ -69,5 +68,5 @@ def rust_deps():
             RUST_ISO_DATE + "/" + RUST_STD.name: RUST_STD.sum,
             RUST_ISO_DATE + "/" + RUST_RUSTFMT.name: RUST_RUSTFMT.sum,
         },
-        version = RUST_VERSION,
+        versions = [RUST_VERSION + "/" + RUST_ISO_DATE],
     )

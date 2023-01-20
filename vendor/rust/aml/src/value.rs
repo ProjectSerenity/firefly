@@ -511,7 +511,6 @@ impl AmlValue {
     pub fn write_buffer_field(&mut self, value: AmlValue, context: &mut AmlContext) -> Result<(), AmlError> {
         // Patch out this function to avoid a dependency on
         // the `bitvec` crate.
-        let _ = value;
         let _ = context;
         unimplemented!();
     }

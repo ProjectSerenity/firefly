@@ -47,18 +47,14 @@ pub struct ElfFile<'a> {
 
 impl<'a> ElfFile<'a> {
     pub fn new(input: &'a [u8]) -> Result<ElfFile<'a>, &'static str> {
-        let header = header::parse_header(input)?;
-        Ok(ElfFile {
-            input: input,
-            header: header,
-        })
+        header::parse_header(input).map(|header| ElfFile {input, header})
     }
 
     pub fn section_header(&self, index: u16) -> Result<SectionHeader<'a>, &'static str> {
         sections::parse_section_header(self.input, self.header, index)
     }
 
-    pub fn section_iter<'b>(&'b self) -> SectionIter<'b, 'a> {
+    pub fn section_iter(&self) -> impl Iterator<Item = SectionHeader<'a>> + '_ {
         SectionIter {
             file: self,
             next_index: 0,
@@ -69,7 +65,7 @@ impl<'a> ElfFile<'a> {
         program::parse_program_header(self.input, self.header, index)
     }
 
-    pub fn program_iter<'b>(&'b self) -> ProgramIter<'b, 'a> {
+    pub fn program_iter(&self) -> impl Iterator<Item = ProgramHeader<'_>> {
         ProgramIter {
             file: self,
             next_index: 0,
@@ -124,6 +120,10 @@ pub trait Extensions<'a> {
     /// Parse and return the value of the .gnu_debuglink section, if it
     /// exists and is well-formed.
     fn get_gnu_debuglink(&self) -> Option<(&'a str, u32)>;
+
+    /// Parse and return the value of the .gnu_debugaltlink section, if it
+    /// exists and is well-formed.
+    fn get_gnu_debugaltlink(&self) -> Option<(&'a str, &'a [u8])>;
 }
 
 impl<'a> Extensions<'a> for ElfFile<'a> {
@@ -151,13 +151,32 @@ impl<'a> Extensions<'a> for ElfFile<'a> {
 
     fn get_gnu_debuglink(&self) -> Option<(&'a str, u32)> {
         self.find_section_by_name(".gnu_debuglink")
-            .map(|header| header.raw_data(self))
-            .and_then(|data| {
+            .and_then(|header| {
+                let data = header.raw_data(self);
                 let file = read_str(data);
                 // Round up to the nearest multiple of 4.
                 let checksum_pos = ((file.len() + 4) / 4) * 4;
-                let checksum: u32 = *read(&data[checksum_pos..]);
-                Some((file, checksum))
+                if checksum_pos + 4 <= data.len() {
+                    let checksum: u32 = *read(&data[checksum_pos..]);
+                    Some((file, checksum))
+                } else {
+                    None
+                }
+            })
+    }
+
+    fn get_gnu_debugaltlink(&self) -> Option<(&'a str, &'a [u8])> {
+        self.find_section_by_name(".gnu_debugaltlink")
+            .map(|header| header.raw_data(self))
+            .and_then(|data| {
+                let file = read_str(data);
+                // The rest of the data is a SHA1 checksum of the debuginfo, no alignment
+                let checksum_pos = file.len() + 1;
+                if checksum_pos <= data.len() {
+                    Some((file, &data[checksum_pos..]))
+                } else {
+                    None
+                }
             })
     }
 }

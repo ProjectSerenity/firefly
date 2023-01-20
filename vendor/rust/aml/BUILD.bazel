@@ -23,7 +23,7 @@ rust_library(
     tags = [
         "manual",  # Only build when needed as a dependency.
     ],
-    version = "0.16.1",
+    version = "0.16.2",
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/rust/bit_field",

@@ -1,7 +1,12 @@
 use super::*;
-use core::alloc::Layout;
-use std::mem::{align_of, size_of, MaybeUninit};
-use std::prelude::v1::*;
+use core::{
+    alloc::Layout,
+    ops::{Deref, DerefMut},
+};
+use std::{
+    mem::{align_of, size_of, MaybeUninit},
+    prelude::v1::*,
+};
 
 #[repr(align(128))]
 struct Chonk<const N: usize> {
@@ -16,30 +21,69 @@ impl<const N: usize> Chonk<N> {
     }
 }
 
-fn new_heap() -> Heap {
+pub struct OwnedHeap<F> {
+    heap: Heap,
+    _drop: F,
+}
+
+impl<F> Deref for OwnedHeap<F> {
+    type Target = Heap;
+
+    fn deref(&self) -> &Self::Target {
+        &self.heap
+    }
+}
+
+impl<F> DerefMut for OwnedHeap<F> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.heap
+    }
+}
+
+pub fn new_heap() -> OwnedHeap<impl Sized> {
     const HEAP_SIZE: usize = 1000;
-    let heap_space = Box::leak(Box::new(Chonk::<HEAP_SIZE>::new()));
+    let mut heap_space = Box::new(Chonk::<HEAP_SIZE>::new());
     let data = &mut heap_space.data;
     let assumed_location = data.as_mut_ptr().cast();
 
-    let heap = Heap::from_slice(data);
-    assert!(heap.bottom() == assumed_location);
-    assert!(heap.size() == HEAP_SIZE);
-    heap
+    let heap = unsafe { Heap::new(data.as_mut_ptr().cast(), data.len()) };
+    assert_eq!(heap.bottom(), assumed_location);
+    assert_eq!(heap.size(), align_down_size(HEAP_SIZE, size_of::<usize>()));
+
+    let drop = move || {
+        let _ = heap_space;
+    };
+    OwnedHeap { heap, _drop: drop }
 }
 
-fn new_max_heap() -> Heap {
+fn new_max_heap() -> OwnedHeap<impl Sized> {
     const HEAP_SIZE: usize = 1024;
     const HEAP_SIZE_MAX: usize = 2048;
-    let heap_space = Box::leak(Box::new(Chonk::<HEAP_SIZE_MAX>::new()));
+    let mut heap_space = Box::new(Chonk::<HEAP_SIZE_MAX>::new());
     let data = &mut heap_space.data;
     let start_ptr = data.as_mut_ptr().cast();
 
     // Unsafe so that we have provenance over the whole allocation.
     let heap = unsafe { Heap::new(start_ptr, HEAP_SIZE) };
-    assert!(heap.bottom() == start_ptr);
-    assert!(heap.size() == HEAP_SIZE);
-    heap
+    assert_eq!(heap.bottom(), start_ptr);
+    assert_eq!(heap.size(), HEAP_SIZE);
+
+    let drop = move || {
+        let _ = heap_space;
+    };
+    OwnedHeap { heap, _drop: drop }
+}
+
+fn new_heap_skip(ct: usize) -> OwnedHeap<impl Sized> {
+    const HEAP_SIZE: usize = 1000;
+    let mut heap_space = Box::new(Chonk::<HEAP_SIZE>::new());
+    let data = &mut heap_space.data[ct..];
+    let heap = unsafe { Heap::new(data.as_mut_ptr().cast(), data.len()) };
+
+    let drop = move || {
+        let _ = heap_space;
+    };
+    OwnedHeap { heap, _drop: drop }
 }
 
 #[test]
@@ -51,7 +95,15 @@ fn empty() {
 
 #[test]
 fn oom() {
-    let mut heap = new_heap();
+    const HEAP_SIZE: usize = 1000;
+    let mut heap_space = Box::new(Chonk::<HEAP_SIZE>::new());
+    let data = &mut heap_space.data;
+    let assumed_location = data.as_mut_ptr().cast();
+
+    let mut heap = unsafe { Heap::new(data.as_mut_ptr().cast(), data.len()) };
+    assert_eq!(heap.bottom(), assumed_location);
+    assert_eq!(heap.size(), align_down_size(HEAP_SIZE, size_of::<usize>()));
+
     let layout = Layout::from_size_align(heap.size() + 1, align_of::<usize>());
     let addr = heap.allocate_first_fit(layout.unwrap());
     assert!(addr.is_err());
@@ -196,11 +248,12 @@ fn allocate_many_size_aligns() {
     const STRATS: Range<usize> = 0..4;
 
     let mut heap = new_heap();
-    assert_eq!(heap.size(), 1000);
+    let aligned_heap_size = align_down_size(1000, size_of::<usize>());
+    assert_eq!(heap.size(), aligned_heap_size);
 
     heap.holes.debug();
 
-    let max_alloc = Layout::from_size_align(1000, 1).unwrap();
+    let max_alloc = Layout::from_size_align(aligned_heap_size, 1).unwrap();
     let full = heap.allocate_first_fit(max_alloc).unwrap();
     unsafe {
         heap.deallocate(full, max_alloc);
@@ -387,14 +440,6 @@ fn allocate_multiple_unaligned() {
     }
 }
 
-fn new_heap_skip(ct: usize) -> Heap {
-    const HEAP_SIZE: usize = 1000;
-    let heap_space = Box::leak(Box::new(Chonk::<HEAP_SIZE>::new()));
-    let data = &mut heap_space.data[ct..];
-    let heap = Heap::from_slice(data);
-    heap
-}
-
 #[test]
 fn allocate_usize() {
     let mut heap = new_heap();
@@ -494,4 +539,51 @@ fn extend_fragmented_heap() {
     // We got additional 1024 bytes hole at the end of the heap
     // Try to allocate there
     assert!(heap.allocate_first_fit(layout_2.clone()).is_ok());
+}
+
+/// Ensures that `Heap::extend` fails for very small sizes.
+///
+/// The size needs to be big enough to hold a hole, otherwise
+/// the hole write would result in an out of bounds write.
+#[test]
+fn small_heap_extension() {
+    // define an array of `u64` instead of `u8` for alignment
+    static mut HEAP: [u64; 5] = [0; 5];
+    unsafe {
+        let mut heap = Heap::new(HEAP.as_mut_ptr().cast(), 32);
+        heap.extend(1);
+        assert_eq!(1, heap.holes.pending_extend);
+    }
+}
+
+/// Ensures that `Heap::extend` fails for sizes that are not a multiple of the hole size.
+#[test]
+fn oddly_sized_heap_extension() {
+    // define an array of `u64` instead of `u8` for alignment
+    static mut HEAP: [u64; 5] = [0; 5];
+    unsafe {
+        let mut heap = Heap::new(HEAP.as_mut_ptr().cast(), 16);
+        heap.extend(17);
+        assert_eq!(1, heap.holes.pending_extend);
+        assert_eq!(16 + 16, heap.size());
+    }
+}
+
+/// Ensures that heap extension fails when trying to extend an oddly-sized heap.
+///
+/// To extend the heap, we need to place a hole at the old top of the heap. This
+/// only works if the top pointer is sufficiently aligned.
+#[test]
+fn extend_odd_size() {
+    // define an array of `u64` instead of `u8` for alignment
+    static mut HEAP: [u64; 6] = [0; 6];
+    unsafe {
+        let mut heap = Heap::new(HEAP.as_mut_ptr().cast(), 17);
+        assert_eq!(1, heap.holes.pending_extend);
+        heap.extend(16);
+        assert_eq!(1, heap.holes.pending_extend);
+        heap.extend(15);
+        assert_eq!(0, heap.holes.pending_extend);
+        assert_eq!(17 + 16 + 15, heap.size());
+    }
 }

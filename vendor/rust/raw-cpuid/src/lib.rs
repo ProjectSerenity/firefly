@@ -324,8 +324,10 @@ const EAX_L1_CACHE_INFO: u32 = 0x8000_0005;
 const EAX_L2_L3_CACHE_INFO: u32 = 0x8000_0006;
 const EAX_ADVANCED_POWER_MGMT_INFO: u32 = 0x8000_0007;
 const EAX_PROCESSOR_CAPACITY_INFO: u32 = 0x8000_0008;
+const EAX_TLB_1GB_PAGE_INFO: u32 = 0x8000_0019;
 const EAX_PERFORMANCE_OPTIMIZATION_INFO: u32 = 0x8000_001A;
 const EAX_CACHE_PARAMETERS_AMD: u32 = 0x8000_001D;
+const EAX_PROCESSOR_TOPOLOGY_INFO: u32 = 0x8000_001E;
 const EAX_MEMORY_ENCRYPTION_INFO: u32 = 0x8000_001F;
 const EAX_SVM_FEATURES: u32 = 0x8000_000A;
 
@@ -892,7 +894,7 @@ impl CpuId {
     }
 
     /// This function provides information about the SVM features that the processory
-    /// supports.
+    /// supports. (LEAF=0x8000_000A)
     ///
     /// If SVM is not supported if [ExtendedProcessorFeatureIdentifiers::has_svm] is
     /// false, this function is reserved then.
@@ -910,19 +912,18 @@ impl CpuId {
         }
     }
 
-    /// Informations about memory encryption support (LEAF=0x8000_001F)
+    /// TLB 1-GiB Pages Information (LEAF=0x8000_0019)
     ///
     /// # Platforms
-    /// ✅ AMD ❌ Intel (reserved)
-    pub fn get_memory_encryption_info(&self) -> Option<MemoryEncryptionInfo> {
-        if self.leaf_is_supported(EAX_MEMORY_ENCRYPTION_INFO) {
-            Some(MemoryEncryptionInfo::new(
-                self.read.cpuid1(EAX_MEMORY_ENCRYPTION_INFO),
-            ))
+    /// ✅ AMD ❌ Intel
+    pub fn get_tlb_1gb_page_info(&self) -> Option<Tlb1gbPageInfo> {
+        if self.leaf_is_supported(EAX_TLB_1GB_PAGE_INFO) {
+            Some(Tlb1gbPageInfo::new(self.read.cpuid1(EAX_TLB_1GB_PAGE_INFO)))
         } else {
             None
         }
     }
+
     /// Informations about performance optimization (LEAF=0x8000_001A)
     ///
     /// # Platforms
@@ -931,6 +932,34 @@ impl CpuId {
         if self.leaf_is_supported(EAX_PERFORMANCE_OPTIMIZATION_INFO) {
             Some(PerformanceOptimizationInfo::new(
                 self.read.cpuid1(EAX_PERFORMANCE_OPTIMIZATION_INFO),
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Informations about processor topology (LEAF=0x8000_001E)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
+    pub fn get_processor_topology_info(&self) -> Option<ProcessorTopologyInfo> {
+        if self.leaf_is_supported(EAX_PROCESSOR_TOPOLOGY_INFO) {
+            Some(ProcessorTopologyInfo::new(
+                self.read.cpuid1(EAX_PROCESSOR_TOPOLOGY_INFO),
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Informations about memory encryption support (LEAF=0x8000_001F)
+    ///
+    /// # Platforms
+    /// ✅ AMD ❌ Intel (reserved)
+    pub fn get_memory_encryption_info(&self) -> Option<MemoryEncryptionInfo> {
+        if self.leaf_is_supported(EAX_MEMORY_ENCRYPTION_INFO) {
+            Some(MemoryEncryptionInfo::new(
+                self.read.cpuid1(EAX_MEMORY_ENCRYPTION_INFO),
             ))
         } else {
             None
@@ -982,6 +1011,29 @@ impl Debug for CpuId {
                 &self.get_extended_processor_and_feature_identifiers(),
             )
             .field("processor_brand_string", &self.get_processor_brand_string())
+            .field("l1_cache_and_tlb_info", &self.get_l1_cache_and_tlb_info())
+            .field(
+                "l2_l3_cache_and_tlb_info",
+                &self.get_l2_l3_cache_and_tlb_info(),
+            )
+            .field(
+                "advanced_power_mgmt_info",
+                &self.get_advanced_power_mgmt_info(),
+            )
+            .field(
+                "processor_capacity_feature_info",
+                &self.get_processor_capacity_feature_info(),
+            )
+            .field("svm_info", &self.get_svm_info())
+            .field("tlb_1gb_page_info", &self.get_tlb_1gb_page_info())
+            .field(
+                "performance_optimization_info",
+                &self.get_performance_optimization_info(),
+            )
+            .field(
+                "processor_topology_info",
+                &self.get_processor_topology_info(),
+            )
             .field("memory_encryption_info", &self.get_memory_encryption_info())
             .finish()
     }
@@ -3198,7 +3250,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
-    pub fn has_fsgsbase(&self) -> bool {
+    #[inline]
+    pub const fn has_fsgsbase(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::FSGSBASE)
     }
 
@@ -3206,7 +3259,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_tsc_adjust_msr(&self) -> bool {
+    #[inline]
+    pub const fn has_tsc_adjust_msr(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::ADJUST_MSR)
     }
 
@@ -3214,7 +3268,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
-    pub fn has_bmi1(&self) -> bool {
+    #[inline]
+    pub const fn has_bmi1(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::BMI1)
     }
 
@@ -3222,7 +3277,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_hle(&self) -> bool {
+    #[inline]
+    pub const fn has_hle(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::HLE)
     }
 
@@ -3230,7 +3286,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
-    pub fn has_avx2(&self) -> bool {
+    #[inline]
+    pub const fn has_avx2(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX2)
     }
 
@@ -3239,7 +3296,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_fdp(&self) -> bool {
+    #[inline]
+    pub const fn has_fdp(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::FDP)
     }
 
@@ -3247,7 +3305,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
-    pub fn has_smep(&self) -> bool {
+    #[inline]
+    pub const fn has_smep(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::SMEP)
     }
 
@@ -3255,7 +3314,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
-    pub fn has_bmi2(&self) -> bool {
+    #[inline]
+    pub const fn has_bmi2(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::BMI2)
     }
 
@@ -3263,7 +3323,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_rep_movsb_stosb(&self) -> bool {
+    #[inline]
+    pub const fn has_rep_movsb_stosb(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::REP_MOVSB_STOSB)
     }
 
@@ -3272,7 +3333,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_invpcid(&self) -> bool {
+    #[inline]
+    pub const fn has_invpcid(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::INVPCID)
     }
 
@@ -3280,7 +3342,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_rtm(&self) -> bool {
+    #[inline]
+    pub const fn has_rtm(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::RTM)
     }
 
@@ -3288,7 +3351,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_rdtm(&self) -> bool {
+    #[inline]
+    pub const fn has_rdtm(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::RDTM)
     }
 
@@ -3296,7 +3360,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_fpu_cs_ds_deprecated(&self) -> bool {
+    #[inline]
+    pub const fn has_fpu_cs_ds_deprecated(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::DEPRECATE_FPU_CS_DS)
     }
 
@@ -3304,7 +3369,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_mpx(&self) -> bool {
+    #[inline]
+    pub const fn has_mpx(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::MPX)
     }
 
@@ -3312,7 +3378,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_rdta(&self) -> bool {
+    #[inline]
+    pub const fn has_rdta(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::RDTA)
     }
 
@@ -3320,7 +3387,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
-    pub fn has_rdseed(&self) -> bool {
+    #[inline]
+    pub const fn has_rdseed(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::RDSEED)
     }
 
@@ -3328,7 +3396,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
-    pub fn has_adx(&self) -> bool {
+    #[inline]
+    pub const fn has_adx(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::ADX)
     }
 
@@ -3337,7 +3406,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
-    pub fn has_smap(&self) -> bool {
+    #[inline]
+    pub const fn has_smap(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::SMAP)
     }
 
@@ -3345,7 +3415,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
-    pub fn has_clflushopt(&self) -> bool {
+    #[inline]
+    pub const fn has_clflushopt(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::CLFLUSHOPT)
     }
 
@@ -3353,7 +3424,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_processor_trace(&self) -> bool {
+    #[inline]
+    pub const fn has_processor_trace(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::PROCESSOR_TRACE)
     }
 
@@ -3361,7 +3433,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_sha(&self) -> bool {
+    #[inline]
+    pub const fn has_sha(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::SHA)
     }
 
@@ -3369,7 +3442,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_sgx(&self) -> bool {
+    #[inline]
+    pub const fn has_sgx(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::SGX)
     }
 
@@ -3377,7 +3451,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_avx512f(&self) -> bool {
+    #[inline]
+    pub const fn has_avx512f(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512F)
     }
 
@@ -3385,7 +3460,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_avx512dq(&self) -> bool {
+    #[inline]
+    pub const fn has_avx512dq(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512DQ)
     }
 
@@ -3393,7 +3469,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_avx512_ifma(&self) -> bool {
+    #[inline]
+    pub const fn has_avx512_ifma(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512_IFMA)
     }
 
@@ -3401,7 +3478,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_avx512pf(&self) -> bool {
+    #[inline]
+    pub const fn has_avx512pf(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512PF)
     }
 
@@ -3409,7 +3487,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_avx512er(&self) -> bool {
+    #[inline]
+    pub const fn has_avx512er(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512ER)
     }
 
@@ -3417,7 +3496,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_avx512cd(&self) -> bool {
+    #[inline]
+    pub const fn has_avx512cd(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512CD)
     }
 
@@ -3425,7 +3505,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_avx512bw(&self) -> bool {
+    #[inline]
+    pub const fn has_avx512bw(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512BW)
     }
 
@@ -3433,7 +3514,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_avx512vl(&self) -> bool {
+    #[inline]
+    pub const fn has_avx512vl(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::AVX512VL)
     }
 
@@ -3441,7 +3523,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
-    pub fn has_clwb(&self) -> bool {
+    #[inline]
+    pub const fn has_clwb(&self) -> bool {
         self.ebx.contains(ExtendedFeaturesEbx::CLWB)
     }
 
@@ -3449,7 +3532,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_prefetchwt1(&self) -> bool {
+    #[inline]
+    pub const fn has_prefetchwt1(&self) -> bool {
         self.ecx.contains(ExtendedFeaturesEcx::PREFETCHWT1)
     }
 
@@ -3457,7 +3541,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_umip(&self) -> bool {
+    #[inline]
+    pub const fn has_umip(&self) -> bool {
         self.ecx.contains(ExtendedFeaturesEcx::UMIP)
     }
 
@@ -3465,7 +3550,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_pku(&self) -> bool {
+    #[inline]
+    pub const fn has_pku(&self) -> bool {
         self.ecx.contains(ExtendedFeaturesEcx::PKU)
     }
 
@@ -3474,16 +3560,102 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_ospke(&self) -> bool {
+    #[inline]
+    pub const fn has_ospke(&self) -> bool {
         self.ecx.contains(ExtendedFeaturesEcx::OSPKE)
+    }
+
+    /// WAITPKG
+    ///
+    /// ❓ AMD ✅ Intel
+    #[inline]
+    pub const fn has_waitpkg(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::WAITPKG)
+    }
+
+    /// AVX512VBMI2
+    ///
+    /// ❓ AMD ✅ Intel
+    #[inline]
+    pub const fn has_av512vbmi2(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::AVX512VBMI2)
+    }
+
+    /// Supports CET shadow stack features. Processors that set this bit define bits 0..2 of the
+    /// IA32_U_CET and IA32_S_CET MSRs. Enumerates support for the following MSRs:
+    /// IA32_INTERRUPT_SPP_TABLE_ADDR, IA32_PL3_SSP, IA32_PL2_SSP, IA32_PL1_SSP, and IA32_PL0_SSP.
+    ///
+    /// ❓ AMD ✅ Intel
+    #[inline]
+    pub const fn has_cet_ss(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::GFNI)
+    }
+
+    /// GFNI
+    ///
+    /// ❓ AMD ✅ Intel
+    #[inline]
+    pub const fn has_gfni(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::GFNI)
+    }
+
+    /// VAES
+    ///
+    /// ❓ AMD ✅ Intel
+    #[inline]
+    pub const fn has_vaes(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::VAES)
+    }
+
+    /// VPCLMULQDQ
+    ///
+    /// ❓ AMD ✅ Intel
+    #[inline]
+    pub const fn has_vpclmulqdq(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::VPCLMULQDQ)
     }
 
     /// AVX512VNNI
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_avx512vnni(&self) -> bool {
+    #[inline]
+    pub const fn has_avx512vnni(&self) -> bool {
         self.ecx.contains(ExtendedFeaturesEcx::AVX512VNNI)
+    }
+
+    /// AVX512BITALG
+    ///
+    /// ❓ AMD ✅ Intel
+    #[inline]
+    pub const fn has_avx512bitalg(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::AVX512BITALG)
+    }
+
+    /// Indicates the following MSRs are supported: IA32_TME_CAPABILITY, IA32_TME_ACTIVATE,
+    /// IA32_TME_EXCLUDE_MASK, and IA32_TME_EXCLUDE_BASE.
+    ///
+    /// ❓ AMD ✅ Intel
+    #[inline]
+    pub const fn has_tme_en(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::TMEEN)
+    }
+
+    /// AVX512VPOPCNTDQ
+    ///
+    /// ❓ AMD ✅ Intel
+    #[inline]
+    pub const fn has_avx512vpopcntdq(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::AVX512VPOPCNTDQ)
+    }
+
+    /// Supports 57-bit linear addresses and five-level paging if 1.
+    ///
+    /// # Platforms
+    /// ❓ AMD ✅ Intel
+    #[inline]
+    pub const fn has_la57(&self) -> bool {
+        self.ecx.contains(ExtendedFeaturesEcx::LA57)
     }
 
     /// RDPID and IA32_TSC_AUX are available.
@@ -3495,7 +3667,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ✅ AMD ✅ Intel
-    pub fn has_rdpid(&self) -> bool {
+    #[inline]
+    pub const fn has_rdpid(&self) -> bool {
         self.ecx.contains(ExtendedFeaturesEcx::RDPID)
     }
 
@@ -3503,7 +3676,8 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
-    pub fn has_sgx_lc(&self) -> bool {
+    #[inline]
+    pub const fn has_sgx_lc(&self) -> bool {
         self.ecx.contains(ExtendedFeaturesEcx::SGX_LC)
     }
 
@@ -3511,6 +3685,7 @@ impl ExtendedFeatures {
     ///
     /// # Platforms
     /// ❌ AMD (reserved) ✅ Intel
+    #[inline]
     pub fn mawau_value(&self) -> u8 {
         get_bits(self.ecx.bits(), 17, 21) as u8
     }
@@ -3600,25 +3775,44 @@ bitflags! {
     struct ExtendedFeaturesEcx: u32 {
         /// Bit 0: Prefetch WT1. (Intel® Xeon Phi™ only).
         const PREFETCHWT1 = 1 << 0;
-
         // Bit 01: AVX512_VBMI
         const AVX512VBMI = 1 << 1;
-
         /// Bit 02: UMIP. Supports user-mode instruction prevention if 1.
         const UMIP = 1 << 2;
-
         /// Bit 03: PKU. Supports protection keys for user-mode pages if 1.
         const PKU = 1 << 3;
-
         /// Bit 04: OSPKE. If 1, OS has set CR4.PKE to enable protection keys (and the RDPKRU/WRPKRU instruc-tions).
         const OSPKE = 1 << 4;
-
+        /// Bit 5: WAITPKG
+        const WAITPKG = 1 >> 5;
+        /// Bit 6: AV512_VBMI2
+        const AVX512VBMI2 = 1 << 6;
+        /// Bit 7: CET_SS. Supports CET shadow stack features if 1. Processors that set this bit define bits 0..2 of the
+        /// IA32_U_CET and IA32_S_CET MSRs. Enumerates support for the following MSRs:
+        /// IA32_INTERRUPT_SPP_TABLE_ADDR, IA32_PL3_SSP, IA32_PL2_SSP, IA32_PL1_SSP, and IA32_PL0_SSP.
+        const CETSS = 1 << 7;
+        /// Bit 8: GFNI
+        const GFNI = 1 << 8;
+        /// Bit 9: VAES
+        const VAES = 1 << 9;
+        /// Bit 10: VPCLMULQDQ
+        const VPCLMULQDQ = 1 << 10;
         /// Bit 11: AVX512_VNNI
         const AVX512VNNI = 1 << 11;
+        /// Bit 12: AVX512_BITALG
+        const AVX512BITALG = 1 << 12;
+        /// Bit 13: TME_EN. If 1, the following MSRs are supported: IA32_TME_CAPABILITY, IA32_TME_ACTIVATE,
+        /// IA32_TME_EXCLUDE_MASK, and IA32_TME_EXCLUDE_BASE.
+        const TMEEN = 1 << 13;
+        /// Bit 14: AVX512_VPOPCNTDQ
+        const AVX512VPOPCNTDQ = 1 << 14;
 
-        // Bits 16 - 5: Reserved.
-        // Bits 21 - 17: The value of MAWAU used by the BNDLDX and BNDSTX instructions in 64-bit mode.
+        // Bit 15: Reserved.
 
+        /// Bit 16: Supports 57-bit linear addresses and five-level paging if 1.
+        const LA57 = 1 << 16;
+
+        // Bits 21 - 17: The value of MAWAU used by the BNDLDX and BNDSTX instructions in 64-bit mode
 
         /// Bit 22: RDPID. RDPID and IA32_TSC_AUX are available if 1.
         const RDPID = 1 << 22;

@@ -19,7 +19,7 @@ rust = [
     ),
     crate(
         name = "aml",
-        version = "0.16.1",
+        version = "0.16.2",
         edition = "2018",
         deps = [
             "bit_field",
@@ -80,7 +80,7 @@ rust = [
     ),
     crate(
         name = "linked_list_allocator",
-        version = "0.10.1",
+        version = "0.10.4",
         features = ["const_mut_refs"],
     ),
     crate(
@@ -109,7 +109,7 @@ rust = [
     ),
     crate(
         name = "raw-cpuid",
-        version = "10.5.0",
+        version = "10.6.0",
         edition = "2018",
         deps = [
             "bitflags",
@@ -127,14 +127,14 @@ rust = [
     ),
     crate(
         name = "rustversion",
-        version = "1.0.9",
+        version = "1.0.11",
         edition = "2018",
         proc_macro = True,
         build_script = "build/build.rs",
     ),
     crate(
         name = "smoltcp",
-        version = "0.8.1",
+        version = "0.8.2",
         edition = "2018",
         features = [
             "alloc",
@@ -179,7 +179,7 @@ rust = [
     ),
     crate(
         name = "volatile",
-        version = "0.4.5",
+        version = "0.4.6",
     ),
     crate(
         name = "x86_64",
@@ -205,7 +205,7 @@ rust = [
     ),
     crate(
         name = "xmas-elf",
-        version = "0.8.0",
+        version = "0.9.0",
         deps = [
             "zero",
         ],
@@ -219,7 +219,7 @@ rust = [
 go = [
     module(
         name = "github.com/BurntSushi/toml",
-        version = "v1.2.0",
+        version = "v1.2.1",
         packages = [
             package(
                 name = "github.com/BurntSushi/toml",
@@ -253,7 +253,7 @@ go = [
     ),
     module(
         name = "github.com/bazelbuild/buildtools",
-        version = "v0.0.0-20220822174408-8116150720ab",
+        version = "v0.0.0-20230113180850-180a94ab3a3a",
         packages = [
             package(
                 name = "github.com/bazelbuild/buildtools/build",
@@ -270,7 +270,7 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.0.0-20220826181053-bd7e27e6170d",
+        version = "v0.5.0",
         packages = [
             package(
                 name = "golang.org/x/crypto/ed25519",
@@ -279,7 +279,7 @@ go = [
     ),
     module(
         name = "golang.org/x/mod",
-        version = "v0.6.0-dev.0.20220412012744-41445a152478",
+        version = "v0.7.0",
         packages = [
             package(
                 name = "golang.org/x/mod/internal/lazyregexp",
@@ -339,7 +339,7 @@ go = [
     ),
     module(
         name = "golang.org/x/time",
-        version = "v0.0.0-20220722155302-e5dcc9cfc0b9",
+        version = "v0.3.0",
         packages = [
             package(
                 name = "golang.org/x/time/rate",
@@ -348,7 +348,7 @@ go = [
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.1.12",
+        version = "v0.5.0",
         packages = [
             package(
                 name = "golang.org/x/tools/txtar",
@@ -357,7 +357,7 @@ go = [
     ),
     module(
         name = "golang.org/x/vuln",
-        version = "v0.0.0-20220826211405-310b0ec2bf32",
+        version = "v0.0.0-20230118164824-4ec8867cc0e6",
         packages = [
             package(
                 name = "golang.org/x/vuln/internal/semver",
@@ -373,7 +373,7 @@ go = [
     ),
     module(
         name = "golang.org/x/xerrors",
-        version = "v0.0.0-20220609144429-65e65417b02f",
+        version = "v0.0.0-20220907171357-04be3eba64a2",
         packages = [
             package(
                 name = "golang.org/x/xerrors",

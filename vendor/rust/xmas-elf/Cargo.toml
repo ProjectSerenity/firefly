@@ -3,21 +3,28 @@
 # When uploading crates to the registry Cargo will automatically
 # "normalize" Cargo.toml files for maximal compatibility
 # with all versions of Cargo and also rewrite `path` dependencies
-# to registry (e.g., crates.io) dependencies
+# to registry (e.g., crates.io) dependencies.
 #
-# If you believe there's an error in this file please file an
-# issue against the rust-lang/cargo repository. If you're
-# editing this file be aware that the upstream Cargo.toml
-# will likely look very different (and much more reasonable)
+# If you are reading this file be aware that the original Cargo.toml
+# will likely look very different (and much more reasonable).
+# See Cargo.toml.orig for the original contents.
 
 [package]
 name = "xmas-elf"
-version = "0.8.0"
+version = "0.9.0"
 authors = ["Nick Cameron <nrc@ncameron.org>"]
 exclude = ["test-data/*"]
 description = "Library for parsing and navigating ELF data; zero-allocation, type-safe."
-keywords = ["elf", "parser", "binary"]
-categories = ["parser-implementations", "os::unix-apis"]
+readme = "README.md"
+keywords = [
+    "elf",
+    "parser",
+    "binary",
+]
+categories = [
+    "parser-implementations",
+    "os::unix-apis",
+]
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/nrc/xmas-elf"
 
@@ -28,6 +35,7 @@ name = "xmas_elf"
 name = "xmas_elf"
 path = "src/bin/main.rs"
 doc = false
+
 [dependencies.flate2]
 version = "1"
 optional = true

@@ -4,7 +4,6 @@ use sections;
 use zero::Pod;
 
 use core::fmt;
-use core::mem;
 
 #[derive(Debug)]
 #[repr(C)]
@@ -156,7 +155,13 @@ pub enum Visibility {
 
 impl Visibility_ {
     pub fn as_visibility(self) -> Visibility {
-        unsafe { mem::transmute(self.0 & 0x3) }
+        match self.0 & 0x3 {
+            x if x == Visibility::Default as _ => Visibility::Default,
+            x if x == Visibility::Internal as _ => Visibility::Internal,
+            x if x == Visibility::Hidden as _ => Visibility::Hidden,
+            x if x == Visibility::Protected as _ => Visibility::Protected,
+            _ => unreachable!(),
+        }
     }
 }
 
@@ -178,8 +183,8 @@ impl Binding_ {
             0 => Ok(Binding::Local),
             1 => Ok(Binding::Global),
             2 => Ok(Binding::Weak),
-            b if b >= 10 && b <= 12 => Ok(Binding::OsSpecific(b)),
-            b if b >= 13 && b <= 15 => Ok(Binding::ProcessorSpecific(b)),
+            b if (10..=12).contains(&b) => Ok(Binding::OsSpecific(b)),
+            b if (13..=15).contains(&b) => Ok(Binding::ProcessorSpecific(b)),
             _ => Err("Invalid value for binding"),
         }
     }
@@ -212,8 +217,8 @@ impl Type_ {
             4 => Ok(Type::File),
             5 => Ok(Type::Common),
             6 => Ok(Type::Tls),
-            b if b >= 10 && b <= 12 => Ok(Type::OsSpecific(b)),
-            b if b >= 13 && b <= 15 => Ok(Type::ProcessorSpecific(b)),
+            b if (10..=12).contains(&b) => Ok(Type::OsSpecific(b)),
+            b if (13..=15).contains(&b) => Ok(Type::ProcessorSpecific(b)),
             _ => Err("Invalid value for type"),
         }
     }

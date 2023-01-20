@@ -24,7 +24,7 @@ rust_proc_macro(
     tags = [
         "manual",  # Only build when needed as a dependency.
     ],
-    version = "1.0.9",
+    version = "1.0.11",
     visibility = ["//visibility:public"],
     deps = [
         ":rustversion_build_script",
@@ -44,7 +44,7 @@ cargo_build_script(
         # https://doc.rust-lang.org/rustc/lints/levels.html
         "--cap-lints=allow",
     ],
-    version = "1.0.9",
+    version = "1.0.11",
     visibility = ["//visibility:private"],
 )
 

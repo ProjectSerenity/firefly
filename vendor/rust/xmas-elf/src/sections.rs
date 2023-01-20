@@ -117,7 +117,7 @@ impl<'a> SectionHeader<'a> {
             }}
         }
 
-        self.get_type().map(|typ| match typ {
+        self.get_type().and_then(|typ| Ok(match typ {
             ShType::Null | ShType::NoBits => SectionData::Empty,
             ShType::ProgBits |
             ShType::ShLib |
@@ -139,8 +139,8 @@ impl<'a> SectionHeader<'a> {
                     let flags: &'a u32 = mem::transmute(&data[0]);
                     let indicies: &'a [u32] = read_array(&data[4..]);
                     SectionData::Group {
-                        flags: flags,
-                        indicies: indicies,
+                        flags,
+                        indicies,
                     }
                 }
             }
@@ -150,20 +150,20 @@ impl<'a> SectionHeader<'a> {
             ShType::Note => {
                 let data = self.raw_data(elf_file);
                 match elf_file.header.pt1.class() {
-                    Class::ThirtyTwo => unimplemented!(),
+                    Class::ThirtyTwo => return Err("32-bit binaries not implemented"),
                     Class::SixtyFour => {
                         let header: &'a NoteHeader = read(&data[0..12]);
                         let index = &data[12..];
                         SectionData::Note64(header, index)
                     }
-                    Class::None | Class::Other(_) => unreachable!(),
+                    Class::None | Class::Other(_) => return Err("Unknown ELF class"),
                 }
             }
             ShType::Hash => {
                 let data = self.raw_data(elf_file);
                 SectionData::HashTable(read(&data[0..12]))
             }
-        })
+        }))
     }
 
     pub fn raw_data(&self, elf_file: &ElfFile<'a>) -> &'a [u8] {
@@ -177,20 +177,27 @@ impl<'a> SectionHeader<'a> {
         Ok(if (self.flags() & SHF_COMPRESSED) == 0 {
             Cow::Borrowed(raw)
         } else {
+            fn read_compression_header<'a, T: Pod + Clone>(raw: &'a [u8]) -> Result<(T, &'a [u8]), &'static str> {
+                if raw.len() < mem::size_of::<T>() {
+                    return Err("Unexpected EOF in compressed section");
+                }
+
+                let (header, rest) = raw.split_at(mem::size_of::<T>());
+                let mut header_bytes = Vec::with_capacity(mem::size_of::<T>());
+                header_bytes.resize(mem::size_of::<T>(), 0);
+                assert!(header_bytes.as_ptr() as usize % mem::align_of::<T>() == 0);
+                header_bytes.copy_from_slice(header);
+                let header: &T = read(&header_bytes);
+                Ok((header.clone(), rest))
+            }
             let (compression_type, size, compressed_data) = match elf_file.header.pt1.class() {
                 Class::ThirtyTwo => {
-                    if raw.len() < 12 {
-                        return Err("Unexpected EOF in compressed section");
-                    }
-                    let header: &'a CompressionHeader32 = read(&raw[..12]);
-                    (header.type_.as_compression_type(), header.size as usize, &raw[12..])
+                    let (header, rest) = read_compression_header::<CompressionHeader32>(raw)?;
+                    (header.type_.as_compression_type(), header.size as usize, rest)
                 },
                 Class::SixtyFour => {
-                    if raw.len() < 24 {
-                        return Err("Unexpected EOF in compressed section");
-                    }
-                    let header: &'a CompressionHeader64 = read(&raw[..24]);
-                    (header.type_.as_compression_type(), header.size as usize, &raw[24..])
+                    let (header, rest) = read_compression_header::<CompressionHeader64>(raw)?;
+                    (header.type_.as_compression_type(), header.size as usize, rest)
                 },
                 Class::None | Class::Other(_) => unreachable!(),
             };
@@ -217,6 +224,8 @@ impl<'a> SectionHeader<'a> {
     getter!(type_, ShType_);
     getter!(link, u32);
     getter!(info, u32);
+    getter!(entry_size, u32);
+    getter!(align, u64);
 }
 
 impl<'a> fmt::Display for SectionHeader<'a> {
@@ -309,9 +318,9 @@ impl ShType_ {
             16 => Ok(ShType::PreInitArray),
             17 => Ok(ShType::Group),
             18 => Ok(ShType::SymTabShIndex),
-            st if st >= SHT_LOOS && st <= SHT_HIOS => Ok(ShType::OsSpecific(st)),
-            st if st >= SHT_LOPROC && st <= SHT_HIPROC => Ok(ShType::ProcessorSpecific(st)),
-            st if st >= SHT_LOUSER && st <= SHT_HIUSER => Ok(ShType::User(st)),
+            st if (SHT_LOOS..=SHT_HIOS).contains(&st) => Ok(ShType::OsSpecific(st)),
+            st if (SHT_LOPROC..=SHT_HIPROC).contains(&st) => Ok(ShType::ProcessorSpecific(st)),
+            st if (SHT_LOUSER..=SHT_HIUSER).contains(&st) => Ok(ShType::User(st)),
             _ => Err("Invalid sh type"),
         }
     }
@@ -429,8 +438,8 @@ impl CompressionType_ {
     fn as_compression_type(&self) -> Result<CompressionType, &'static str> {
         match self.0 {
             1 => Ok(CompressionType::Zlib),
-            ct if ct >= COMPRESS_LOOS && ct <= COMPRESS_HIOS => Ok(CompressionType::OsSpecific(ct)),
-            ct if ct >= COMPRESS_LOPROC && ct <= COMPRESS_HIPROC => {
+            ct if (COMPRESS_LOOS..=COMPRESS_HIOS).contains(&ct) => Ok(CompressionType::OsSpecific(ct)),
+            ct if (COMPRESS_LOPROC..=COMPRESS_HIPROC).contains(&ct) => {
                 Ok(CompressionType::ProcessorSpecific(ct))
             }
             _ => Err("Invalid compression type"),

@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "raw-cpuid"
-version = "10.5.0"
+version = "10.6.0"
 authors = ["Gerd Zellweger <mail@gerdzellweger.com>"]
 description = "A library to parse the x86 CPUID instruction, written in rust with no external dependencies. The implementation closely resembles the Intel CPUID manual description. The library does only depend on libcore."
 homepage = "https://github.com/gz/rust-cpuid"
@@ -55,7 +55,7 @@ version = "1.0"
 optional = true
 
 [dependencies.termimad]
-version = "0.16"
+version = "0.20"
 optional = true
 
 [features]

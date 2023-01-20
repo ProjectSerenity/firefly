@@ -170,7 +170,13 @@ macro_rules! ph_impl {
 
             pub fn raw_data<'a>(&self, elf_file: &ElfFile<'a>) -> &'a [u8] {
                 assert!(self.get_type().map(|typ| typ != Type::Null).unwrap_or(false));
-                &elf_file.input[self.offset as usize..(self.offset + self.file_size) as usize]
+                if self.file_size == 0 {
+                    // When size is 0 it's not guaranteed that offset is not
+                    // outside of elf_file.input range.
+                    &[]
+                } else {
+                    &elf_file.input[self.offset as usize..(self.offset + self.file_size) as usize]
+                }
             }
         }
 
@@ -266,8 +272,8 @@ impl Type_ {
             6 => Ok(Type::Phdr),
             7 => Ok(Type::Tls),
             TYPE_GNU_RELRO => Ok(Type::GnuRelro),
-            t if t >= TYPE_LOOS && t <= TYPE_HIOS => Ok(Type::OsSpecific(t)),
-            t if t >= TYPE_LOPROC && t <= TYPE_HIPROC => Ok(Type::ProcessorSpecific(t)),
+            t if (TYPE_LOOS..=TYPE_HIOS).contains(&t) => Ok(Type::OsSpecific(t)),
+            t if (TYPE_LOPROC..=TYPE_HIPROC).contains(&t) => Ok(Type::ProcessorSpecific(t)),
             _ => Err("Invalid type"),
         }
     }

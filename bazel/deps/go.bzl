@@ -5,7 +5,7 @@
 
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 
-GO_VERSION = "1.19.3"
+GO_VERSION = "1.19.5"
 
 def go_deps():
     go_rules_dependencies()
