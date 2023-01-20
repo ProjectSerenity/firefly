@@ -5,40 +5,6 @@
 
 go = [
     module(
-        name = "github.com/BurntSushi/toml",
-        version = "v1.2.1",
-        packages = [
-            package(
-                name = "github.com/BurntSushi/toml",
-                deps = [
-                    "github.com/BurntSushi/toml/internal",
-                ],
-                test_deps = [
-                    "github.com/BurntSushi/toml/internal/tag",
-                    "github.com/BurntSushi/toml/internal/toml-test",
-                ],
-            ),
-            package(
-                name = "github.com/BurntSushi/toml/internal",
-            ),
-            package(
-                name = "github.com/BurntSushi/toml/internal/tag",
-                deps = [
-                    "github.com/BurntSushi/toml/internal",
-                ],
-            ),
-            package(
-                name = "github.com/BurntSushi/toml/internal/toml-test",
-                deps = [
-                    "github.com/BurntSushi/toml",
-                ],
-                embed_globs = [
-                    "tests/**",
-                ],
-            ),
-        ],
-    ),
-    module(
         name = "github.com/bazelbuild/buildtools",
         version = "v0.0.0-20230113180850-180a94ab3a3a",
         packages = [

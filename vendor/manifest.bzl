@@ -7,11 +7,6 @@
 
 go = [
     module(
-        name = "github.com/BurntSushi/toml",
-        version = "v1.2.1",
-        digest = "sha256:5da765c8ca09f91abd9a423c2268a47ab19e2e5a03b866c0ee4dcb4fd1c1a35f",
-    ),
-    module(
         name = "github.com/bazelbuild/buildtools",
         version = "v0.0.0-20230113180850-180a94ab3a3a",
         digest = "sha256:0b78247e8d1abe1656e54459a05ca8c3b31b525914b3d6abbff5aff934fd78bf",
