@@ -36,19 +36,14 @@ func Vendor(fsys fs.FS) (actions []Action, err error) {
 		return nil, err
 	}
 
-	if len(deps.Rust) == 0 && len(deps.Go) == 0 {
+	if len(deps.Go) == 0 {
 		actions = []Action{RemoveAll(vendor)}
 		return actions, nil
 	}
 
 	// Check that the dependency graph is complete. Start
-	// by making a mapping for crates to make them easier
+	// by making a mapping for modules to make them easier
 	// to look up.
-	crates := make(map[string]*RustCrate)
-	for _, crate := range deps.Rust {
-		crates[crate.Name] = crate
-	}
-
 	packages := make(map[string]*GoPackage)
 	for _, module := range deps.Go {
 		for _, pkg := range module.Packages {
@@ -57,24 +52,6 @@ func Vendor(fsys fs.FS) (actions []Action, err error) {
 	}
 
 	var missingDeps bytes.Buffer
-	for _, crate := range deps.Rust {
-		for _, dep := range crate.Deps {
-			if crates[dep] == nil {
-				fmt.Fprintf(&missingDeps, "Rust crate %s depends on %s, which is not specified.\n", crate.Name, dep)
-			}
-		}
-		for _, dep := range crate.BuildScriptDeps {
-			if crates[dep] == nil {
-				fmt.Fprintf(&missingDeps, "Rust crate %s's build script depends on %s, which is not specified.\n", crate.Name, dep)
-			}
-		}
-		for _, dep := range crate.TestDeps {
-			if crates[dep] == nil {
-				fmt.Fprintf(&missingDeps, "Rust crate %s's tests depends on %s, which is not specified.\n", crate.Name, dep)
-			}
-		}
-	}
-
 	for _, module := range deps.Go {
 		for _, pkg := range module.Packages {
 			for _, dep := range pkg.Deps {
@@ -130,13 +107,6 @@ func Vendor(fsys fs.FS) (actions []Action, err error) {
 	// fully replaced. The caching layer may later strip
 	// some of these actions out if it can prove that
 	// they are unnecessary.
-	if len(deps.Rust) > 0 {
-		actions, err = vendorRust(fsys, actions, deps.Rust)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	if len(deps.Go) > 0 {
 		actions, err = vendorGo(fsys, actions, deps.Go)
 		if err != nil {
@@ -145,61 +115,6 @@ func Vendor(fsys fs.FS) (actions []Action, err error) {
 	}
 
 	actions = append(actions, BuildCacheManifest{Deps: &deps, Path: path.Join(vendor, manifestBzl)})
-
-	return actions, nil
-}
-
-func vendorRust(fsys fs.FS, actions []Action, crates []*RustCrate) ([]Action, error) {
-	// Sanity-check each crate.
-	for i, crate := range crates {
-		if crate.Name == "" {
-			return nil, fmt.Errorf("Rust crate %d has no name", i)
-		}
-
-		if crate.Version == "" {
-			return nil, fmt.Errorf("Rust crate %s has no version", crate.Name)
-		}
-	}
-
-	// Make the rust directory if it does not already
-	// exist.
-	rustDir := path.Join(vendor, "rust")
-	_, err := fs.Stat(fsys, rustDir)
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return nil, fmt.Errorf("failed to stat %q: %v", rustDir, err)
-	}
-
-	// Delete any crates we no longer include.
-	entries, _ := fs.ReadDir(fsys, rustDir)
-	for _, entry := range entries {
-		name := entry.Name()
-		full := path.Join(rustDir, name)
-		ok := false
-		for _, crate := range crates {
-			if name == crate.Name {
-				ok = true
-				break
-			}
-		}
-
-		if !ok {
-			actions = append(actions, RemoveAll(full))
-		}
-	}
-
-	// Now, we download each crate, which will include
-	// deleting any contents previously there. The
-	// cache may strip out the download action if it
-	// can prove that the right data is already there.
-	for _, crate := range crates {
-		full := path.Join(rustDir, crate.Name)
-		actions = append(actions, DownloadRustCrate{Crate: crate, Path: full})
-		if crate.BuildFile != "" {
-			actions = append(actions, CopyBUILD{Source: crate.BuildFile, Path: path.Join(full, buildBazel)})
-		} else {
-			actions = append(actions, GenerateRustCrateBUILD{Crate: crate, Path: path.Join(full, buildBazel)})
-		}
-	}
 
 	return actions, nil
 }

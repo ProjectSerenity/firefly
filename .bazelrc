@@ -1,11 +1,3 @@
-# Detect toolchains using the new automated mechanism.
-# See https://github.com/bazelbuild/bazel/issues/7260
-build --incompatible_enable_cc_toolchain_resolution
-
-# Allow the use of Rust nightly.
-# See https://github.com/bazelbuild/rules_rust/issues/1709
-build --@rules_rust//rust/toolchain/channel=nightly
-
 # Print failed errors, rather than just writing them to logs.
 test --test_output=errors
 

@@ -14,7 +14,6 @@ import (
 	"os"
 
 	"firefly-os.dev/tools/plan/parser"
-	"firefly-os.dev/tools/plan/rust"
 	"firefly-os.dev/tools/plan/types"
 )
 
@@ -27,12 +26,7 @@ func cmdBuild(ctx context.Context, w io.Writer, args []string) error {
 
 	var help bool
 	var arch types.Arch
-	var rustfmtPath, rustUserPath, rustKernelPath, rustSharedPath string
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
-	flags.StringVar(&rustfmtPath, "rustfmt", "rustfmt", "The path to the `rustfmt` binary.")
-	flags.StringVar(&rustUserPath, "rust-user", "", "The path where the Rust userspace module should be written.")
-	flags.StringVar(&rustKernelPath, "rust-kernel", "", "The path where the Rust kernelspace module should be written.")
-	flags.StringVar(&rustSharedPath, "rust-shared", "", "The path where the Rust shared module should be written.")
 	flags.Func("arch", "Instruction set architecture to target (options: x86-64).", func(s string) error {
 		switch s {
 		case "x86-64":
@@ -81,65 +75,9 @@ func cmdBuild(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("failed to parse %s: %v", filename, err)
 	}
 
-	file, err := types.Interpret(filename, syntax, arch)
+	_, err = types.Interpret(filename, syntax, arch)
 	if err != nil {
 		return fmt.Errorf("failed to interpret %s: %v", filename, err)
-	}
-
-	// Do any necessary translations.
-
-	if rustUserPath != "" {
-		out, err := os.Create(rustUserPath)
-		if err != nil {
-			return fmt.Errorf("failed to create Rust userspace file %s: %v", rustUserPath, err)
-		}
-
-		err = rust.GenerateUserCode(out, file, arch, rustfmtPath)
-		if err != nil {
-			out.Close()
-			return fmt.Errorf("failed to write Rust userspace file %s: %v", rustUserPath, err)
-		}
-
-		err = out.Close()
-		if err != nil {
-			return fmt.Errorf("failed to close Rust userspace file %s: %v", rustUserPath, err)
-		}
-	}
-
-	if rustKernelPath != "" {
-		out, err := os.Create(rustKernelPath)
-		if err != nil {
-			return fmt.Errorf("failed to create Rust kernelspace file %s: %v", rustKernelPath, err)
-		}
-
-		err = rust.GenerateKernelCode(out, file, arch, rustfmtPath)
-		if err != nil {
-			out.Close()
-			return fmt.Errorf("failed to write Rust kernelspace file %s: %v", rustKernelPath, err)
-		}
-
-		err = out.Close()
-		if err != nil {
-			return fmt.Errorf("failed to close Rust kernelspace file %s: %v", rustKernelPath, err)
-		}
-	}
-
-	if rustSharedPath != "" {
-		out, err := os.Create(rustSharedPath)
-		if err != nil {
-			return fmt.Errorf("failed to create Rust shared file %s: %v", rustSharedPath, err)
-		}
-
-		err = rust.GenerateSharedCode(out, file, arch, rustfmtPath)
-		if err != nil {
-			out.Close()
-			return fmt.Errorf("failed to write Rust shared file %s: %v", rustSharedPath, err)
-		}
-
-		err = out.Close()
-		if err != nil {
-			return fmt.Errorf("failed to close Rust shared file %s: %v", rustSharedPath, err)
-		}
 	}
 
 	return nil

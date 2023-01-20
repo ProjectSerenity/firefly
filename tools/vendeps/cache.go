@@ -37,17 +37,12 @@ func StripCachedActions(fsys fs.FS, actions []Action) []Action {
 		return actions
 	}
 
-	if len(deps.Rust) == 0 {
+	if len(deps.Go) == 0 {
 		return actions
 	}
 
-	// Copy the crate data into a map to make
+	// Copy the module data into a map to make
 	// lookups quicker.
-	crates := make(map[string]*RustCrate)
-	for _, crate := range deps.Rust {
-		crates[crate.Name] = crate
-	}
-
 	modules := make(map[string]*GoModule)
 	for _, module := range deps.Go {
 		modules[module.Name] = module
@@ -62,51 +57,6 @@ func StripCachedActions(fsys fs.FS, actions []Action) []Action {
 		default:
 			// For other actions, we leave them alone.
 			out = append(out, action)
-			continue
-		case DownloadRustCrate:
-			// Check whether we have this crate in the
-			// cache. If the version in the cache isn't
-			// the same, we ignore it.
-			cached := crates[dl.Crate.Name]
-			if cached == nil || dl.Crate.Version != cached.Version {
-				out = append(out, dl)
-				continue
-			}
-
-			// We have already downloaded the right
-			// version, so now we check that the local
-			// copy hasn't been modified. If the digest
-			// in the filesystem matches, we can skip
-			// this download.
-			gotDigest, err := DigestDirectory(fsys, dl.Path, path.Join(dl.Path, buildBazel))
-			if err != nil {
-				out = append(out, dl)
-				continue
-			}
-
-			if gotDigest != cached.Digest {
-				out = append(out, dl)
-				continue
-			}
-
-			// We also invalidate the download cache
-			// if our patches have changed, as we need
-			// to apply the patches to the fresh data.
-			if len(dl.Crate.Patches) != 0 || len(cached.Patches) != 0 {
-				gotDigest, err := DigestFiles(fsys, dl.Crate.Patches)
-				if err != nil {
-					out = append(out, dl)
-					continue
-				}
-
-				if !reflect.DeepEqual(dl.Crate.PatchArgs, cached.PatchArgs) || gotDigest != cached.PatchDigest {
-					out = append(out, dl)
-					continue
-				}
-			}
-
-			// We've got the right content, so we
-			// drop this action.
 			continue
 		case DownloadGoModule:
 			// Check whether we have this module in the
@@ -173,34 +123,7 @@ func StripCachedActions(fsys fs.FS, actions []Action) []Action {
 // vendor directly.
 func GenerateCacheManifest(fsys fs.FS, deps *Deps) (*Deps, error) {
 	manifest := &Deps{
-		Rust: make([]*RustCrate, len(deps.Rust)),
-		Go:   make([]*GoModule, len(deps.Go)),
-	}
-
-	// Iterate through the crates, storing the cache
-	// digest for each one, ignoring the generated
-	// build file.
-	for i, crate := range deps.Rust {
-		dir := path.Join(vendor, "rust", crate.Name)
-		digest, err := DigestDirectory(fsys, dir, path.Join(dir, buildBazel))
-		if err != nil {
-			return nil, fmt.Errorf("failed to cache Rust crate %s: %v", crate.Name, err)
-		}
-
-		var patchDigest string
-		if len(crate.Patches) > 0 {
-			patchDigest, err = DigestFiles(fsys, crate.Patches)
-			if err != nil {
-				return nil, fmt.Errorf("failed to cache Rust crate %s's patches: %v", crate.Name, err)
-			}
-		}
-
-		out := new(RustCrate)
-		*out = *crate
-		out.Digest = digest
-		out.PatchDigest = patchDigest
-
-		manifest.Rust[i] = out
+		Go: make([]*GoModule, len(deps.Go)),
 	}
 
 	// Iterate through the modules, storing the cache

@@ -39,17 +39,6 @@ func TestVendor(t *testing.T) {
 				"deps.bzl": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte(`
-						rust = [
-							crate(
-								name = "serde",
-								version = "1.2.3",
-							),
-							crate(
-								name = "x86_64",
-								version = "99.88.77",
-								build_file = "third_party/x86_64.BUILD",
-							),
-						]
 						go = [
 							module(
 								name = "rsc.io/quote",
@@ -65,32 +54,6 @@ func TestVendor(t *testing.T) {
 				},
 			},
 			Want: []Action{
-				DownloadRustCrate{
-					Crate: &RustCrate{
-						Name:    "serde",
-						Version: "1.2.3",
-					},
-					Path: "vendor/rust/serde",
-				},
-				GenerateRustCrateBUILD{
-					Crate: &RustCrate{
-						Name:    "serde",
-						Version: "1.2.3",
-					},
-					Path: "vendor/rust/serde/BUILD.bazel",
-				},
-				DownloadRustCrate{
-					Crate: &RustCrate{
-						Name:      "x86_64",
-						Version:   "99.88.77",
-						BuildFile: "third_party/x86_64.BUILD",
-					},
-					Path: "vendor/rust/x86_64",
-				},
-				CopyBUILD{
-					Source: "third_party/x86_64.BUILD",
-					Path:   "vendor/rust/x86_64/BUILD.bazel",
-				},
 				DownloadGoModule{
 					Module: &GoModule{
 						Name:    "rsc.io/quote",
@@ -109,17 +72,6 @@ func TestVendor(t *testing.T) {
 				},
 				BuildCacheManifest{
 					Deps: &Deps{
-						Rust: []*RustCrate{
-							{
-								Name:    "serde",
-								Version: "1.2.3",
-							},
-							{
-								Name:      "x86_64",
-								Version:   "99.88.77",
-								BuildFile: "third_party/x86_64.BUILD",
-							},
-						},
 						Go: []*GoModule{
 							{
 								Name:    "rsc.io/quote",
@@ -140,12 +92,6 @@ func TestVendor(t *testing.T) {
 				"deps.bzl": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte(`
-						rust = [
-							crate(
-								name = "serde",
-								version = "1.2.3",
-							),
-						]
 						go = [
 							module(
 								name = "rsc.io/quote",
@@ -171,29 +117,10 @@ func TestVendor(t *testing.T) {
 					Mode: 0666,
 					Data: []byte{},
 				},
-				"vendor/rust": &fstest.MapFile{
-					Mode: 0666,
-					Data: []byte{},
-				},
 			},
 			Want: []Action{
 				RemoveAll("vendor/parent"),
 				RemoveAll("vendor/random"),
-				RemoveAll("vendor/rust"),
-				DownloadRustCrate{
-					Crate: &RustCrate{
-						Name:    "serde",
-						Version: "1.2.3",
-					},
-					Path: "vendor/rust/serde",
-				},
-				GenerateRustCrateBUILD{
-					Crate: &RustCrate{
-						Name:    "serde",
-						Version: "1.2.3",
-					},
-					Path: "vendor/rust/serde/BUILD.bazel",
-				},
 				DownloadGoModule{
 					Module: &GoModule{
 						Name:    "rsc.io/quote",
@@ -212,12 +139,6 @@ func TestVendor(t *testing.T) {
 				},
 				BuildCacheManifest{
 					Deps: &Deps{
-						Rust: []*RustCrate{
-							{
-								Name:    "serde",
-								Version: "1.2.3",
-							},
-						},
 						Go: []*GoModule{
 							{
 								Name:    "rsc.io/quote",
@@ -238,12 +159,6 @@ func TestVendor(t *testing.T) {
 				"deps.bzl": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte(`
-						rust = [
-							crate(
-								name = "serde",
-								version = "1.2.3",
-							),
-						]
 						go = [
 							module(
 								name = "rsc.io/diff",
@@ -266,14 +181,6 @@ func TestVendor(t *testing.T) {
 						]
 					`),
 				},
-				"vendor/rust/acpi/lib.rs": &fstest.MapFile{
-					Mode: 0666,
-					Data: []byte{1, 2, 3},
-				},
-				"vendor/rust/serde/lib.rs": &fstest.MapFile{
-					Mode: 0666,
-					Data: []byte{1, 2, 3},
-				},
 				"vendor/go/golang.org/x/crypto/crypto.go": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte{1, 2, 3},
@@ -284,22 +191,6 @@ func TestVendor(t *testing.T) {
 				},
 			},
 			Want: []Action{
-				RemoveAll("vendor/rust/acpi"),
-				// Don't remove vendor/rust/serde, as it might be cached.
-				DownloadRustCrate{
-					Crate: &RustCrate{
-						Name:    "serde",
-						Version: "1.2.3",
-					},
-					Path: "vendor/rust/serde",
-				},
-				GenerateRustCrateBUILD{
-					Crate: &RustCrate{
-						Name:    "serde",
-						Version: "1.2.3",
-					},
-					Path: "vendor/rust/serde/BUILD.bazel",
-				},
 				RemoveAll("vendor/go/golang.org"), // Root dir of an old module.
 				RemoveAll("vendor/go/rsc.io/2fa"), // Don't remove all of rsc.io.
 				DownloadGoModule{
@@ -336,12 +227,6 @@ func TestVendor(t *testing.T) {
 				},
 				BuildCacheManifest{
 					Deps: &Deps{
-						Rust: []*RustCrate{
-							{
-								Name:    "serde",
-								Version: "1.2.3",
-							},
-						},
 						Go: []*GoModule{
 							{
 								Name:    "rsc.io/diff",

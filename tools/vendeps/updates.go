@@ -39,15 +39,6 @@ func UpdateDependencies(name string) error {
 
 	anyUpdated := false
 	ctx := context.Background()
-	for _, dep := range deps.Rust {
-		updated, err := UpdateRustCrate(ctx, dep)
-		if err != nil {
-			return err
-		}
-
-		anyUpdated = anyUpdated || updated
-	}
-
 	for _, dep := range deps.Go {
 		updated, err := UpdateGoModule(ctx, dep)
 		if err != nil {

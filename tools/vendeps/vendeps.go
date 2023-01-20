@@ -25,54 +25,7 @@ const (
 
 // Deps describes a set of software dependencies.
 type Deps struct {
-	Rust []*RustCrate `bzl:"rust/crate"`
-	Go   []*GoModule  `bzl:"go/module"`
-}
-
-// RustCrate contains the dependency information for
-// a Rust crate.
-type RustCrate struct {
-	// Dependency details.
-	Name    string `bzl:"name"`
-	Version string `bzl:"version"`
-
-	// Patches to be applied to the
-	// downloaded crate, before the
-	// BUILD file is copied/generated.
-	PatchArgs []string `bzl:"patch_args"`
-	Patches   []string `bzl:"patches"`
-
-	// Manually-managed BUILD file.
-	BuildFile string `bzl:"build_file"`
-
-	// Build configuration
-	Edition       string            `bzl:"edition"`
-	Features      []string          `bzl:"features"`
-	Deps          []string          `bzl:"deps"`
-	ProcMacroDeps []string          `bzl:"proc_macro_deps"`
-	RustcEnv      map[string]string `bzl:"rustc_env"`
-
-	// Whether to create rustdocs.
-	NoDocs bool `bzl:"no_docs"`
-
-	// Whether the crate is a library or
-	// a procedural macro library.
-	ProcMacro bool `bzl:"proc_macro"`
-
-	// Build script configuration.
-	BuildScript     string   `bzl:"build_script"`
-	BuildScriptDeps []string `bzl:"build_script_deps"`
-
-	// Test configuration.
-	NoTests       bool              `bzl:"no_tests"`
-	TestData      []string          `bzl:"test_data"`
-	TestDataGlobs []string          `bzl:"test_data_globs"`
-	TestDeps      []string          `bzl:"test_deps"`
-	TestEnv       map[string]string `bzl:"test_env"`
-
-	// Generation details.
-	Digest      string `bzl:"digest"`
-	PatchDigest string `bzl:"patch_digest"`
+	Go []*GoModule `bzl:"go/module"`
 }
 
 // GoModule contains the information necessary

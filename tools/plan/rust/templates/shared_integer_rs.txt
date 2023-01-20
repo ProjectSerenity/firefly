@@ -1,7 +1,0 @@
-{{/* Variable definitions that simplify declarations later */}}
-{{- $name := .Name.PascalCase -}}
-{{- $type := toString .Type -}}
-
-{{ toDocs 0 .Docs }}
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct {{ $name }}(pub {{ $type }});

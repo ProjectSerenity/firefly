@@ -36,39 +36,6 @@ var _ Action = RemoveAll("")
 func (r RemoveAll) Do(fsys fs.FS) error { return os.RemoveAll(string(r)) }
 func (r RemoveAll) String() string      { return fmt.Sprintf("delete %s", string(r)) }
 
-// DownloadCrate indicates that the named crate should
-// be downloaded from crates.io and extracted into the
-// given path.
-type DownloadRustCrate struct {
-	Crate *RustCrate
-	Path  string
-}
-
-var _ Action = DownloadRustCrate{}
-
-func (c DownloadRustCrate) Do(fsys fs.FS) error {
-	ctx := context.Background()
-	log.Printf("Downloading Rust crate %s.", c.Crate.Name)
-	err := FetchRustCrate(ctx, c.Crate, c.Path)
-	if err != nil {
-		return err
-	}
-
-	if len(c.Crate.Patches) == 0 {
-		return nil
-	}
-
-	return ApplyPatches(c.Path, c.Crate.PatchArgs, c.Crate.Patches)
-}
-func (c DownloadRustCrate) String() string {
-	line := fmt.Sprintf("download crate %s to %s", c.Crate.Name, c.Path)
-	if len(c.Crate.Patches) > 0 {
-		line += fmt.Sprintf(" with %d patches", len(c.Crate.Patches))
-	}
-
-	return line
-}
-
 // DownloadModule indicates that the named module should
 // be downloaded from the module proxy and extracted into
 // the given path.
@@ -93,6 +60,7 @@ func (c DownloadGoModule) Do(fsys fs.FS) error {
 
 	return ApplyPatches(c.Path, c.Module.PatchArgs, c.Module.Patches)
 }
+
 func (c DownloadGoModule) String() string {
 	line := fmt.Sprintf("download module %s to %s", c.Module.Name, c.Path)
 	if len(c.Module.Patches) > 0 {
@@ -158,36 +126,9 @@ func (c CopyBUILD) Do(fsys fs.FS) error {
 
 	return nil
 }
+
 func (c CopyBUILD) String() string {
 	return fmt.Sprintf("copy BUILD file %s to %s", c.Source, c.Path)
-}
-
-// GenerateCrateBUILD indicates that the named crate
-// should have its BUILD file generated and written
-// to the given path.
-type GenerateRustCrateBUILD struct {
-	Crate *RustCrate
-	Path  string
-}
-
-var _ Action = GenerateRustCrateBUILD{}
-
-func (c GenerateRustCrateBUILD) Do(fsys fs.FS) error {
-	// Render the build file.
-	pretty, err := RenderRustCrateBuildFile(c.Path, c.Crate)
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(c.Path, pretty, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write build file to %s: %v", c.Path, err)
-	}
-
-	return nil
-}
-func (c GenerateRustCrateBUILD) String() string {
-	return fmt.Sprintf("generate BUILD file for Rust crate %s to %s", c.Crate.Name, c.Path)
 }
 
 // GeneratePackageBUILD indicates that the named package
@@ -231,6 +172,7 @@ func (c GenerateGoPackageBUILD) Do(fsys fs.FS) error {
 
 	return nil
 }
+
 func (c GenerateGoPackageBUILD) String() string {
 	return fmt.Sprintf("generate BUILD file for Go package %s to %s", c.Package.Name, c.Path)
 }
@@ -264,6 +206,7 @@ func (c BuildCacheManifest) Do(fsys fs.FS) error {
 
 	return nil
 }
+
 func (c BuildCacheManifest) String() string {
 	return fmt.Sprintf("generate cache manifest to %s", c.Path)
 }

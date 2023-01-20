@@ -5,36 +5,23 @@
 
 workspace(name = "firefly")
 
-load("//bazel/deps:rules.bzl", "rules_deps")
-
-# Fetch external dependencies.
-
-rules_deps()
-
 # Initialise external dependencies.
 
-load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-bazel_skylib_workspace()
+http_archive(
+    name = "io_bazel_rules_go",
+    sha256 = "56d8c5a5c91e1af73eca71a6fab2ced959b67c86d12ba37feedb0a2dfea441a6",
+    urls = ["https://github.com/bazelbuild/rules_go/releases/download/v0.37.0/rules_go-v0.37.0.zip"],
+)
 
-load("@rules_cc//cc:repositories.bzl", "rules_cc_dependencies", "rules_cc_toolchains")
+load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 
-rules_cc_dependencies()
+GO_VERSION = "1.19.5"
 
-rules_cc_toolchains()
+go_rules_dependencies()
 
-load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
-
-protobuf_deps()
-
-load("//bazel/deps:defs.bzl", "go_deps", "rust_deps")
-
-rust_deps()
-
-go_deps()
-
-# Register our cross-compiling toolchains.
-register_toolchains(
-    "//bazel/cross-compiling:x86_64_cc_toolchain",
-    "//bazel/cross-compiling:x86_64_rust_toolchain",
+go_register_toolchains(
+    nogo = "@//:nogo",
+    version = GO_VERSION,
 )

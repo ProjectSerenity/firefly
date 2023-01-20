@@ -20,7 +20,6 @@ go_library(
         "//tools/plan/format",
         "//tools/plan/html",
         "//tools/plan/parser",
-        "//tools/plan/rust",
         "//tools/plan/types",
     ],
 )

@@ -7,18 +7,13 @@ package vendeps
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
-	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"sort"
 	"strings"
-	"time"
 
 	"golang.org/x/vuln/osv"
 
@@ -39,7 +34,7 @@ func CheckDependencies(fsys fs.FS) error {
 		return err
 	}
 
-	if len(deps.Rust) == 0 && len(deps.Go) == 0 {
+	if len(deps.Go) == 0 {
 		return nil
 	}
 
@@ -50,34 +45,7 @@ func CheckDependencies(fsys fs.FS) error {
 	// the dependencies that are unused.
 	all := make(map[string][]string)
 	directOnly := make(map[string][]string)
-	crateVersion := make(map[string]string)
-	var rustCrates, goModules, goPackages int
-	for _, dep := range deps.Rust {
-		rustCrates++
-		path := "vendor/rust/" + dep.Name
-		directChildren := make([]string, 0, len(dep.Deps)+len(dep.ProcMacroDeps)+len(dep.BuildScriptDeps))
-		children := make([]string, 0, len(dep.Deps)+len(dep.ProcMacroDeps)+len(dep.BuildScriptDeps)+len(dep.TestDeps))
-		for _, child := range dep.Deps {
-			children = append(children, "vendor/rust/"+child)
-			directChildren = append(directChildren, "vendor/rust/"+child)
-		}
-		for _, child := range dep.ProcMacroDeps {
-			children = append(children, "vendor/rust/"+child)
-			directChildren = append(directChildren, "vendor/rust/"+child)
-		}
-		for _, child := range dep.BuildScriptDeps {
-			children = append(children, "vendor/rust/"+child)
-			directChildren = append(directChildren, "vendor/rust/"+child)
-		}
-		for _, child := range dep.TestDeps {
-			children = append(children, "vendor/rust/"+child)
-		}
-
-		all[path] = children
-		directOnly[path] = directChildren
-		crateVersion[dep.Name] = dep.Version
-	}
-
+	var goModules, goPackages int
 	for _, dep := range deps.Go {
 		goModules++
 		for _, pkg := range dep.Packages {
@@ -102,11 +70,8 @@ func CheckDependencies(fsys fs.FS) error {
 	// Bazel packages that are being used in the
 	// vendored dependencies.
 	var roots = []string{
-		"bootloader",
-		"kernel",
 		"shared",
 		"tools",
-		"user",
 	}
 
 	for i := range roots {
@@ -159,12 +124,10 @@ func CheckDependencies(fsys fs.FS) error {
 
 	// Work out how many dependencies were
 	// not used.
-	var rustUnused, goUnused int
+	var goUnused int
 	unused := make([]string, 0, len(all))
 	for pkg := range all {
-		if strings.HasPrefix(pkg, "vendor/rust/") {
-			rustUnused++
-		} else if strings.HasPrefix(pkg, "vendor/go/") {
+		if strings.HasPrefix(pkg, "vendor/go/") {
 			goUnused++
 		} else {
 			return fmt.Errorf("found unexpected Bazel package //%s", pkg)
@@ -177,12 +140,10 @@ func CheckDependencies(fsys fs.FS) error {
 
 	// Work out how many dependencies were
 	// only used in tests.
-	var rustTestsOnly, goTestsOnly int
+	var goTestsOnly int
 	testsOnly := make([]string, 0, len(directOnly))
 	for pkg := range directOnly {
-		if strings.HasPrefix(pkg, "vendor/rust/") {
-			rustTestsOnly++
-		} else if strings.HasPrefix(pkg, "vendor/go/") {
+		if strings.HasPrefix(pkg, "vendor/go/") {
 			goTestsOnly++
 		} else {
 			return fmt.Errorf("found unexpected Bazel package //%s", pkg)
@@ -193,57 +154,7 @@ func CheckDependencies(fsys fs.FS) error {
 
 	sort.Strings(testsOnly)
 
-	fmt.Printf("Rust crates: %d (%d unused, %d used only in tests)\n", rustCrates, rustUnused, rustTestsOnly)
 	fmt.Printf("Go modules: %d (%d packages, %d unused, %d used only in tests)\n", goModules, goPackages, goUnused, goTestsOnly)
-
-	vulns, err := FetchVulns()
-	if err != nil {
-		return fmt.Errorf("failed to fetch vulnerability data: %v", err)
-	}
-
-	now := time.Now()
-	vulnsFound := 0
-	for _, advisory := range vulns.Rust {
-		if advisory.Withdrawn != nil && !advisory.Withdrawn.IsZero() && advisory.Withdrawn.Before(now) {
-			continue
-		}
-
-		var affected []string
-		for _, affects := range advisory.Affected {
-			version, ok := crateVersion[affects.Package.Name]
-			if !ok {
-				continue
-			}
-
-			if !affects.Ranges.AffectsSemver(version) {
-				continue
-			}
-
-			affected = append(affected, affects.Package.Name)
-		}
-
-		if len(affected) == 0 {
-			continue
-		}
-
-		log.Printf("Potential vulnerability found:")
-		if len(affected) == 1 {
-			log.Printf("  Crate:   %s", affected[0])
-		} else {
-			log.Printf("  Crates:  %s", strings.Join(affected, ", "))
-		}
-		if len(advisory.Aliases) == 0 {
-			log.Printf("  ID:      %s", advisory.ID)
-		} else {
-			log.Printf("  ID:      %s (%s)", advisory.ID, strings.Join(advisory.Aliases, ", "))
-		}
-		log.Printf("  Details: %s", strings.Join(strings.Split(advisory.Details, "\n"), "\n           "))
-		vulnsFound++
-	}
-
-	if vulnsFound == 0 {
-		fmt.Printf("No vulnerabilities found in Rust crates.\n")
-	}
 
 	if len(directOnly) == 0 {
 		// All dependencies are used directly.
@@ -271,8 +182,7 @@ func CheckDependencies(fsys fs.FS) error {
 // Vulns describes the set of vulnerability advisory
 // data for a set of software dependencies.
 type Vulns struct {
-	Rust []*osv.Entry
-	Go   []*osv.Entry
+	Go []*osv.Entry
 }
 
 // fetchVulns fetches/updates the set of vulnerability
@@ -280,54 +190,6 @@ type Vulns struct {
 // data in OSV format.
 func FetchVulns() (*Vulns, error) {
 	vulns := new(Vulns)
-
-	// Rust.
-	rustAdvisories := filepath.Join(os.TempDir(), "rust-advisories")
-	err := fetchGitRepo("https://github.com/rustsec/advisory-db", "osv", rustAdvisories)
-	if err != nil {
-		return nil, err
-	}
-
-	var buf bytes.Buffer
-	fsys := os.DirFS(rustAdvisories)
-	err = fs.WalkDir(fsys, "crates", func(name string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !strings.HasSuffix(name, ".json") {
-			return nil
-		}
-
-		buf.Reset()
-		f, err := fsys.Open(name)
-		if err != nil {
-			return fmt.Errorf("failed to open %s: %v", name, err)
-		}
-
-		_, err = io.Copy(&buf, f)
-		if err != nil {
-			f.Close()
-			return fmt.Errorf("failed to read %s: %v", name, err)
-		}
-
-		err = f.Close()
-		if err != nil {
-			return fmt.Errorf("failed to close %s: %v", name, err)
-		}
-
-		var entry osv.Entry
-		err = json.Unmarshal(buf.Bytes(), &entry)
-		if err != nil {
-			return fmt.Errorf("failed to parse %s: %v", name, err)
-		}
-
-		vulns.Rust = append(vulns.Rust, &entry)
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse Rust advisories: %v", err)
-	}
 
 	// TODO: Fetch and parse Go advisories.
 

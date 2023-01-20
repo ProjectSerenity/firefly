@@ -40,12 +40,6 @@ func TestStripCachedActions(t *testing.T) {
 				"deps.bzl": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte(`
-						rust = [
-							crate(
-								name = "serde",
-								version = "1.2.3",
-							),
-						]
 						go = [
 							module(
 								name = "rsc.io/quote",
@@ -61,20 +55,6 @@ func TestStripCachedActions(t *testing.T) {
 				},
 			},
 			Actions: []Action{
-				DownloadRustCrate{
-					Crate: &RustCrate{
-						Name:    "serde",
-						Version: "1.2.3",
-					},
-					Path: "vendor/rust/serde",
-				},
-				GenerateRustCrateBUILD{
-					Crate: &RustCrate{
-						Name:    "serde",
-						Version: "1.2.3",
-					},
-					Path: "vendor/rust/serde/BUILD.bazel",
-				},
 				DownloadGoModule{
 					Module: &GoModule{
 						Name:    "rsc.io/quote",
@@ -93,12 +73,6 @@ func TestStripCachedActions(t *testing.T) {
 				},
 				BuildCacheManifest{
 					Deps: &Deps{
-						Rust: []*RustCrate{
-							{
-								Name:    "serde",
-								Version: "1.2.3",
-							},
-						},
 						Go: []*GoModule{
 							{
 								Name:    "rsc.io/quote",
@@ -113,20 +87,6 @@ func TestStripCachedActions(t *testing.T) {
 				},
 			},
 			Want: []Action{
-				DownloadRustCrate{
-					Crate: &RustCrate{
-						Name:    "serde",
-						Version: "1.2.3",
-					},
-					Path: "vendor/rust/serde",
-				},
-				GenerateRustCrateBUILD{
-					Crate: &RustCrate{
-						Name:    "serde",
-						Version: "1.2.3",
-					},
-					Path: "vendor/rust/serde/BUILD.bazel",
-				},
 				DownloadGoModule{
 					Module: &GoModule{
 						Name:    "rsc.io/quote",
@@ -145,12 +105,6 @@ func TestStripCachedActions(t *testing.T) {
 				},
 				BuildCacheManifest{
 					Deps: &Deps{
-						Rust: []*RustCrate{
-							{
-								Name:    "serde",
-								Version: "1.2.3",
-							},
-						},
 						Go: []*GoModule{
 							{
 								Name:    "rsc.io/quote",
@@ -171,27 +125,6 @@ func TestStripCachedActions(t *testing.T) {
 				"deps.bzl": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte(`
-						rust = [
-							crate(
-								name = "acpi",
-								version = "4.1.0",
-								deps = [
-									"bit_field",
-								],
-							),
-							crate(
-								name = "bit_field",
-								version = "0.10.1",
-							),
-							crate(
-								name = "bootloader",
-								version = "0.9.22",
-							),
-							crate(
-								name = "serde",
-								version = "1.0.137",
-							),
-						]
 						go = [
 							module(
 								name = "golang.org/x/crypto",
@@ -238,32 +171,6 @@ func TestStripCachedActions(t *testing.T) {
 				"vendor/manifest.bzl": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte(fmt.Sprintf(`
-						rust = [
-							# No cache entry for acpi.
-
-							# Cache entry with wrong version
-							# for bit_field.
-							crate(
-								name = "bit_field",
-								version = "0.10.2",
-								digest = %q,
-							),
-
-							# Cache entry with wrong file
-							# contents for bootloader.
-							crate(
-								name = "bootloader",
-								version = "0.9.22",
-								digest = "sha256:deadbeef",
-							),
-
-							# Valid cache entry for serde.
-							crate(
-								name = "serde",
-								version = "1.0.137",
-								digest = %q,
-							),
-						]
 						go = [
 							# No cache entry for golang.org/x/crypto.
 
@@ -291,18 +198,6 @@ func TestStripCachedActions(t *testing.T) {
 							),
 						]
 					`,
-						digestFor(t, "bit_field", &fstest.MapFS{
-							"bit_field/lib.rs": &fstest.MapFile{
-								Mode: 0666,
-								Data: []byte{1, 2, 3, 4},
-							},
-						}),
-						digestFor(t, "serde", &fstest.MapFS{
-							"serde/lib.rs": &fstest.MapFile{
-								Mode: 0666,
-								Data: []byte{1, 2, 3},
-							},
-						}),
 						digestFor(t, "vendor/go/rsc.io/diff", &fstest.MapFS{
 							"vendor/go/rsc.io/diff/diff.go": &fstest.MapFile{
 								Mode: 0666,
@@ -339,68 +234,6 @@ func TestStripCachedActions(t *testing.T) {
 				},
 			},
 			Actions: []Action{
-				DownloadRustCrate{
-					Crate: &RustCrate{
-						Name:    "acpi",
-						Version: "4.1.0",
-						Deps: []string{
-							"bit_field",
-						},
-					},
-					Path: "vendor/rust/acpi",
-				},
-				GenerateRustCrateBUILD{
-					Crate: &RustCrate{
-						Name:    "acpi",
-						Version: "4.1.0",
-						Deps: []string{
-							"bit_field",
-						},
-					},
-					Path: "vendor/rust/acpi/BUILD.bazel",
-				},
-				DownloadRustCrate{
-					Crate: &RustCrate{
-						Name:    "bit_field",
-						Version: "0.10.1",
-					},
-					Path: "vendor/rust/bit_field",
-				},
-				GenerateRustCrateBUILD{
-					Crate: &RustCrate{
-						Name:    "bit_field",
-						Version: "0.10.1",
-					},
-					Path: "vendor/rust/bit_field/BUILD.bazel",
-				},
-				DownloadRustCrate{
-					Crate: &RustCrate{
-						Name:    "bootloader",
-						Version: "0.9.22",
-					},
-					Path: "vendor/rust/bootloader",
-				},
-				GenerateRustCrateBUILD{
-					Crate: &RustCrate{
-						Name:    "bootloader",
-						Version: "0.9.22",
-					},
-					Path: "vendor/rust/bootloader/BUILD.bazel",
-				},
-				DownloadRustCrate{
-					Crate: &RustCrate{
-						Name:    "serde",
-						Version: "1.0.137",
-					},
-					Path: "vendor/rust/serde",
-				},
-				GenerateRustCrateBUILD{
-					Crate: &RustCrate{
-						Name:    "serde",
-						Version: "1.0.137",
-					},
-					Path: "vendor/rust/serde/BUILD.bazel",
-				},
 				DownloadGoModule{
 					Module: &GoModule{
 						Name:    "golang.org/x/crypto",
@@ -474,27 +307,6 @@ func TestStripCachedActions(t *testing.T) {
 				},
 				BuildCacheManifest{
 					Deps: &Deps{
-						Rust: []*RustCrate{
-							{
-								Name:    "acpi",
-								Version: "4.1.0",
-								Deps: []string{
-									"bit_field",
-								},
-							},
-							{
-								Name:    "bit_field",
-								Version: "0.10.1",
-							},
-							{
-								Name:    "bootloader",
-								Version: "0.9.22",
-							},
-							{
-								Name:    "serde",
-								Version: "1.0.137",
-							},
-						},
 						Go: []*GoModule{
 							{
 								Name:    "golang.org/x/crypto",
@@ -531,62 +343,6 @@ func TestStripCachedActions(t *testing.T) {
 				},
 			},
 			Want: []Action{
-				DownloadRustCrate{
-					Crate: &RustCrate{
-						Name:    "acpi",
-						Version: "4.1.0",
-						Deps: []string{
-							"bit_field",
-						},
-					},
-					Path: "vendor/rust/acpi",
-				},
-				GenerateRustCrateBUILD{
-					Crate: &RustCrate{
-						Name:    "acpi",
-						Version: "4.1.0",
-						Deps: []string{
-							"bit_field",
-						},
-					},
-					Path: "vendor/rust/acpi/BUILD.bazel",
-				},
-				DownloadRustCrate{
-					Crate: &RustCrate{
-						Name:    "bit_field",
-						Version: "0.10.1",
-					},
-					Path: "vendor/rust/bit_field",
-				},
-				GenerateRustCrateBUILD{
-					Crate: &RustCrate{
-						Name:    "bit_field",
-						Version: "0.10.1",
-					},
-					Path: "vendor/rust/bit_field/BUILD.bazel",
-				},
-				DownloadRustCrate{
-					Crate: &RustCrate{
-						Name:    "bootloader",
-						Version: "0.9.22",
-					},
-					Path: "vendor/rust/bootloader",
-				},
-				GenerateRustCrateBUILD{
-					Crate: &RustCrate{
-						Name:    "bootloader",
-						Version: "0.9.22",
-					},
-					Path: "vendor/rust/bootloader/BUILD.bazel",
-				},
-				// Strip the download for serde, as it's cached.
-				GenerateRustCrateBUILD{
-					Crate: &RustCrate{
-						Name:    "serde",
-						Version: "1.0.137",
-					},
-					Path: "vendor/rust/serde/BUILD.bazel",
-				},
 				DownloadGoModule{
 					Module: &GoModule{
 						Name:    "golang.org/x/crypto",
@@ -651,27 +407,6 @@ func TestStripCachedActions(t *testing.T) {
 				},
 				BuildCacheManifest{
 					Deps: &Deps{
-						Rust: []*RustCrate{
-							{
-								Name:    "acpi",
-								Version: "4.1.0",
-								Deps: []string{
-									"bit_field",
-								},
-							},
-							{
-								Name:    "bit_field",
-								Version: "0.10.1",
-							},
-							{
-								Name:    "bootloader",
-								Version: "0.9.22",
-							},
-							{
-								Name:    "serde",
-								Version: "1.0.137",
-							},
-						},
 						Go: []*GoModule{
 							{
 								Name:    "golang.org/x/crypto",
@@ -887,27 +622,6 @@ func TestGenerateCacheManifest(t *testing.T) {
 				},
 			},
 			Deps: &Deps{
-				Rust: []*RustCrate{
-					{
-						Name:    "acpi",
-						Version: "4.1.0",
-						Deps: []string{
-							"bit_field",
-						},
-					},
-					{
-						Name:    "bit_field",
-						Version: "0.10.1",
-					},
-					{
-						Name:    "bootloader",
-						Version: "0.9.22",
-					},
-					{
-						Name:    "serde",
-						Version: "1.0.137",
-					},
-				},
 				Go: []*GoModule{
 					{
 						Name:    "golang.org/x/crypto",
@@ -941,51 +655,6 @@ func TestGenerateCacheManifest(t *testing.T) {
 				},
 			},
 			Want: &Deps{
-				Rust: []*RustCrate{
-					{
-						Name:    "acpi",
-						Version: "4.1.0",
-						Deps: []string{
-							"bit_field",
-						},
-						Digest: digestFor(t, "vendor/rust/acpi", &fstest.MapFS{
-							"vendor/rust/acpi/lib.rs": &fstest.MapFile{
-								Mode: 0666,
-								Data: []byte{1, 2, 3},
-							},
-						}),
-					},
-					{
-						Name:    "bit_field",
-						Version: "0.10.1",
-						Digest: digestFor(t, "vendor/rust/bit_field", &fstest.MapFS{
-							"vendor/rust/bit_field/lib.rs": &fstest.MapFile{
-								Mode: 0666,
-								Data: []byte{4, 5, 6},
-							},
-						}),
-					},
-					{
-						Name:    "bootloader",
-						Version: "0.9.22",
-						Digest: digestFor(t, "vendor/rust/bootloader", &fstest.MapFS{
-							"vendor/rust/bootloader/lib.rs": &fstest.MapFile{
-								Mode: 0666,
-								Data: []byte{7, 8, 9},
-							},
-						}),
-					},
-					{
-						Name:    "serde",
-						Version: "1.0.137",
-						Digest: digestFor(t, "vendor/rust/serde", &fstest.MapFS{
-							"vendor/rust/serde/lib.rs": &fstest.MapFile{
-								Mode: 0666,
-								Data: []byte{1, 2, 3, 4, 5},
-							},
-						}),
-					},
-				},
 				Go: []*GoModule{
 					{
 						Name:    "golang.org/x/crypto",
