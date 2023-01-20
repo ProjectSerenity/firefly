@@ -19,8 +19,8 @@ go_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/go/golang.org/x/mod/module",
-        "//vendor/go/rsc.io/quote",
+        "//vendor/golang.org/x/mod/module",
+        "//vendor/rsc.io/quote",
     ],
 )
 
@@ -33,6 +33,6 @@ go_test(
     ],
     embed = [":zip"],
     deps = [
-        "//vendor/go/rsc.io/diff",
+        "//vendor/rsc.io/diff",
     ],
 )

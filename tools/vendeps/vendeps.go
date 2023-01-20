@@ -75,8 +75,7 @@ type GoPackage struct {
 // UpdateDeps includes a set of dependencies
 // for the purposes of updating them.
 type UpdateDeps struct {
-	Rust []*UpdateDep
-	Go   []*UpdateDep
+	Go []*UpdateDep
 }
 
 // UpdateDep describes the least information

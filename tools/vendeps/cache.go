@@ -130,13 +130,12 @@ func GenerateCacheManifest(fsys fs.FS, deps *Deps) (*Deps, error) {
 	// digest for each one, ignoring the generated
 	// build files.
 	for i, module := range deps.Go {
-		dir := path.Join(vendor, "go", module.Name)
+		dir := path.Join(vendor, module.Name)
 		// First, build up the list of build files
 		// to ignore; one for each package.
 		ignore := make([]string, len(module.Packages))
-		root := path.Join(vendor, "go")
 		for i, pkg := range module.Packages {
-			ignore[i] = path.Join(root, pkg.Name, buildBazel)
+			ignore[i] = path.Join(vendor, pkg.Name, buildBazel)
 		}
 
 		digest, err := DigestDirectory(fsys, dir, ignore...)

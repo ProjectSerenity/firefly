@@ -108,9 +108,7 @@ func ParseUpdateDeps(filename string, f *build.File) (*UpdateDeps, error) {
 			return nil, fmt.Errorf("%s: found assignment to %T, expected identifier", pos(assign.LHS), assign.LHS)
 		}
 
-		switch lhs.Name {
-		case "rust", "go":
-		default:
+		if lhs.Name != "go" {
 			return nil, fmt.Errorf("%s: found assignment to unrecognised identifier %q", pos(assign.LHS), lhs.Name)
 		}
 
@@ -181,14 +179,7 @@ func ParseUpdateDeps(filename string, f *build.File) (*UpdateDeps, error) {
 			dep[i] = &next
 		}
 
-		switch lhs.Name {
-		case "rust":
-			if len(deps.Rust) != 0 {
-				return nil, fmt.Errorf("%s: found %s for the second time", pos(assign.LHS), lhs.Name)
-			}
-
-			deps.Rust = dep
-		case "go":
+		if lhs.Name == "go" {
 			if len(deps.Go) != 0 {
 				return nil, fmt.Errorf("%s: found %s for the second time", pos(assign.LHS), lhs.Name)
 			}

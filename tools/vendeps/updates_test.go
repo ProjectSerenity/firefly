@@ -28,28 +28,6 @@ func TestParseUpdateDeps(t *testing.T) {
 		{
 			Name: "simple",
 			Text: `
-				# Rust contains Rust dependencies.
-
-				rust = [
-					crate(
-						name = "acpi",
-						version = "4.1.0",
-						deps = [
-							"bit_field",
-							"log",
-							"rsdp",
-						],
-					),
-					crate(
-						name = "managed",
-						features = [
-							"alloc",
-							"map",
-						],
-						version = "0.8",
-						digest = "sha256:deadbeef",
-					),
-				]
 				go = [
 					module(
 						name = "rsc.io/quote",
@@ -63,16 +41,6 @@ func TestParseUpdateDeps(t *testing.T) {
 				]
 			`,
 			Want: &UpdateDeps{
-				Rust: []*UpdateDep{
-					{
-						Name:    "acpi",
-						Version: stringPointer("4.1.0"),
-					},
-					{
-						Name:    "managed",
-						Version: stringPointer("0.8"),
-					},
-				},
 				Go: []*UpdateDep{
 					{
 						Name:    "rsc.io/quote",
@@ -199,12 +167,12 @@ func TestParseUpdateDepsErrors(t *testing.T) {
 	}{
 		{
 			Name: "top level function call",
-			Text: `rust()`,
+			Text: `go()`,
 			Want: `unexpected statement type: *build.CallExpr`,
 		},
 		{
 			Name: "top level assignment to string",
-			Text: `"rust" = "bar"`,
+			Text: `"go" = "bar"`,
 			Want: `found assignment to *build.StringExpr, expected identifier`,
 		},
 		{
@@ -214,54 +182,48 @@ func TestParseUpdateDepsErrors(t *testing.T) {
 		},
 		{
 			Name: "invalid input type",
-			Text: `rust = True`,
-			Want: `found assignment of *build.Ident to rust, expected list`,
+			Text: `go = True`,
+			Want: `found assignment of *build.Ident to go, expected list`,
 		},
 		{
 			Name: "invalid list element type",
-			Text: `rust = ["bar"]`,
+			Text: `go = ["bar"]`,
 			Want: `found dependency type *build.StringExpr, expected structure`,
 		},
 		{
 			Name: "invalid dependency type",
-			Text: `rust = [foo("bar")]`,
+			Text: `go = [foo("bar")]`,
 			Want: `found structure entry type *build.StringExpr, expected assignment`,
 		},
 		{
 			Name: "invalid dependency field type",
-			Text: `rust = [foo(True = "bar")]`,
+			Text: `go = [foo(True = "bar")]`,
 			Want: `found structure field assignment to bool, expected identifier`,
 		},
 		{
 			Name: "invalid dependency name type",
-			Text: `rust = [foo(name = True)]`,
+			Text: `go = [foo(name = True)]`,
 			Want: `found assignment of *build.Ident to name, expected string`,
 		},
 		{
 			Name: "dependency with duplicate name",
-			Text: `rust = [foo(name = "a", name = "b")]`,
+			Text: `go = [foo(name = "a", name = "b")]`,
 			Want: `name assigned to for the second time`,
 		},
 		{
 			Name: "dependency with duplicate version",
-			Text: `rust = [foo(version = "a", version = "b")]`,
+			Text: `go = [foo(version = "a", version = "b")]`,
 			Want: `version assigned to for the second time`,
 		},
 		{
 			Name: "dependency with no name",
-			Text: `rust = [foo(version = "a")]`,
+			Text: `go = [foo(version = "a")]`,
 			Want: `dependency has no name`,
 		},
 		{
 			Name: "dependency with no version",
-			Text: `rust = [foo(name = "a")]`,
+			Text: `go = [foo(name = "a")]`,
 			Want: `dependency has no version`,
-		},
-		{
-			Name: "file with duplicate Rust",
-			Text: `rust = [foo(name = "a", version = "b")]` + "\n" +
-				`rust = [bar(name = "c", version = "d")]`,
-			Want: `found rust for the second time`,
 		},
 		{
 			Name: "file with duplicate Go",

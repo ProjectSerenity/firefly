@@ -63,13 +63,13 @@ func TestStripCachedActions(t *testing.T) {
 							{Name: "rsc.io/quote"},
 						},
 					},
-					Path: "vendor/go/rsc.io/quote",
+					Path: "vendor/rsc.io/quote",
 				},
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "rsc.io/quote",
 					},
-					Path: "vendor/go/rsc.io/quote/BUILD.bazel",
+					Path: "vendor/rsc.io/quote/BUILD.bazel",
 				},
 				BuildCacheManifest{
 					Deps: &Deps{
@@ -95,13 +95,13 @@ func TestStripCachedActions(t *testing.T) {
 							{Name: "rsc.io/quote"},
 						},
 					},
-					Path: "vendor/go/rsc.io/quote",
+					Path: "vendor/rsc.io/quote",
 				},
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "rsc.io/quote",
 					},
-					Path: "vendor/go/rsc.io/quote/BUILD.bazel",
+					Path: "vendor/rsc.io/quote/BUILD.bazel",
 				},
 				BuildCacheManifest{
 					Deps: &Deps{
@@ -198,37 +198,25 @@ func TestStripCachedActions(t *testing.T) {
 							),
 						]
 					`,
-						digestFor(t, "vendor/go/rsc.io/diff", &fstest.MapFS{
-							"vendor/go/rsc.io/diff/diff.go": &fstest.MapFile{
+						digestFor(t, "vendor/rsc.io/diff", &fstest.MapFS{
+							"vendor/rsc.io/diff/diff.go": &fstest.MapFile{
 								Mode: 0666,
 								Data: []byte{1, 2, 3, 4},
 							},
 						}),
-						digestFor(t, "vendor/go/rsc.io/quote", &fstest.MapFS{
-							"vendor/go/rsc.io/quote/quote.go": &fstest.MapFile{
+						digestFor(t, "vendor/rsc.io/quote", &fstest.MapFS{
+							"vendor/rsc.io/quote/quote.go": &fstest.MapFile{
 								Mode: 0666,
 								Data: []byte{1, 2, 3},
 							},
 						}),
 					)),
 				},
-				"vendor/rust/bit_field/lib.rs": &fstest.MapFile{
+				"vendor/rsc.io/diff/diff.go": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte{1, 2, 3},
 				},
-				"vendor/rust/bootloader/lib.rs": &fstest.MapFile{
-					Mode: 0666,
-					Data: []byte{1, 2, 3},
-				},
-				"vendor/rust/serde/lib.rs": &fstest.MapFile{
-					Mode: 0666,
-					Data: []byte{1, 2, 3},
-				},
-				"vendor/go/rsc.io/diff/diff.go": &fstest.MapFile{
-					Mode: 0666,
-					Data: []byte{1, 2, 3},
-				},
-				"vendor/go/rsc.io/quote/quote.go": &fstest.MapFile{
+				"vendor/rsc.io/quote/quote.go": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte{1, 2, 3},
 				},
@@ -242,13 +230,13 @@ func TestStripCachedActions(t *testing.T) {
 							{Name: "golang.org/x/crypto"},
 						},
 					},
-					Path: "vendor/go/golang.org/x/crypto",
+					Path: "vendor/golang.org/x/crypto",
 				},
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "golang.org/x/crypto",
 					},
-					Path: "vendor/go/golang.org/x/crypto/BUILD.bazel",
+					Path: "vendor/golang.org/x/crypto/BUILD.bazel",
 				},
 				DownloadGoModule{
 					Module: &GoModule{
@@ -259,19 +247,19 @@ func TestStripCachedActions(t *testing.T) {
 							{Name: "golang.org/x/mod/zip"},
 						},
 					},
-					Path: "vendor/go/golang.org/x/mod",
+					Path: "vendor/golang.org/x/mod",
 				},
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "golang.org/x/mod/module",
 					},
-					Path: "vendor/go/golang.org/x/mod/module/BUILD.bazel",
+					Path: "vendor/golang.org/x/mod/module/BUILD.bazel",
 				},
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "golang.org/x/mod/zip",
 					},
-					Path: "vendor/go/golang.org/x/mod/zip/BUILD.bazel",
+					Path: "vendor/golang.org/x/mod/zip/BUILD.bazel",
 				},
 				DownloadGoModule{
 					Module: &GoModule{
@@ -281,13 +269,13 @@ func TestStripCachedActions(t *testing.T) {
 							{Name: "rsc.io/diff"},
 						},
 					},
-					Path: "vendor/go/rsc.io/diff",
+					Path: "vendor/rsc.io/diff",
 				},
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "rsc.io/diff",
 					},
-					Path: "vendor/go/rsc.io/diff/BUILD.bazel",
+					Path: "vendor/rsc.io/diff/BUILD.bazel",
 				},
 				DownloadGoModule{
 					Module: &GoModule{
@@ -297,13 +285,13 @@ func TestStripCachedActions(t *testing.T) {
 							{Name: "rsc.io/quote"},
 						},
 					},
-					Path: "vendor/go/rsc.io/quote",
+					Path: "vendor/rsc.io/quote",
 				},
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "rsc.io/quote",
 					},
-					Path: "vendor/go/rsc.io/quote/BUILD.bazel",
+					Path: "vendor/rsc.io/quote/BUILD.bazel",
 				},
 				BuildCacheManifest{
 					Deps: &Deps{
@@ -351,13 +339,13 @@ func TestStripCachedActions(t *testing.T) {
 							{Name: "golang.org/x/crypto"},
 						},
 					},
-					Path: "vendor/go/golang.org/x/crypto",
+					Path: "vendor/golang.org/x/crypto",
 				},
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "golang.org/x/crypto",
 					},
-					Path: "vendor/go/golang.org/x/crypto/BUILD.bazel",
+					Path: "vendor/golang.org/x/crypto/BUILD.bazel",
 				},
 				DownloadGoModule{
 					Module: &GoModule{
@@ -368,19 +356,19 @@ func TestStripCachedActions(t *testing.T) {
 							{Name: "golang.org/x/mod/zip"},
 						},
 					},
-					Path: "vendor/go/golang.org/x/mod",
+					Path: "vendor/golang.org/x/mod",
 				},
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "golang.org/x/mod/module",
 					},
-					Path: "vendor/go/golang.org/x/mod/module/BUILD.bazel",
+					Path: "vendor/golang.org/x/mod/module/BUILD.bazel",
 				},
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "golang.org/x/mod/zip",
 					},
-					Path: "vendor/go/golang.org/x/mod/zip/BUILD.bazel",
+					Path: "vendor/golang.org/x/mod/zip/BUILD.bazel",
 				},
 				DownloadGoModule{
 					Module: &GoModule{
@@ -390,20 +378,20 @@ func TestStripCachedActions(t *testing.T) {
 							{Name: "rsc.io/diff"},
 						},
 					},
-					Path: "vendor/go/rsc.io/diff",
+					Path: "vendor/rsc.io/diff",
 				},
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "rsc.io/diff",
 					},
-					Path: "vendor/go/rsc.io/diff/BUILD.bazel",
+					Path: "vendor/rsc.io/diff/BUILD.bazel",
 				},
 				// Strip the download for rsc.io/quote, as it's cached.
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "rsc.io/quote",
 					},
-					Path: "vendor/go/rsc.io/quote/BUILD.bazel",
+					Path: "vendor/rsc.io/quote/BUILD.bazel",
 				},
 				BuildCacheManifest{
 					Deps: &Deps{
@@ -520,27 +508,6 @@ func TestGenerateCacheManifest(t *testing.T) {
 				"deps.bzl": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte(`
-						rust = [
-							crate(
-								name = "acpi",
-								version = "4.1.0",
-								deps = [
-									"bit_field",
-								],
-							),
-							crate(
-								name = "bit_field",
-								version = "0.10.1",
-							),
-							crate(
-								name = "bootloader",
-								version = "0.9.22",
-							),
-							crate(
-								name = "serde",
-								version = "1.0.137",
-							),
-						]
 						go = [
 							module(
 								name = "golang.org/x/crypto",
@@ -584,39 +551,23 @@ func TestGenerateCacheManifest(t *testing.T) {
 						]
 					`),
 				},
-				"vendor/rust/acpi/lib.rs": &fstest.MapFile{
+				"vendor/golang.org/x/crypto/crypto.go": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte{1, 2, 3},
 				},
-				"vendor/rust/bit_field/lib.rs": &fstest.MapFile{
+				"vendor/golang.org/x/mod/module/module.go": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte{4, 5, 6},
 				},
-				"vendor/rust/bootloader/lib.rs": &fstest.MapFile{
+				"vendor/golang.org/x/mod/zip/zip.go": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte{7, 8, 9},
 				},
-				"vendor/rust/serde/lib.rs": &fstest.MapFile{
+				"vendor/rsc.io/diff/diff.go": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte{1, 2, 3, 4, 5},
 				},
-				"vendor/go/golang.org/x/crypto/crypto.go": &fstest.MapFile{
-					Mode: 0666,
-					Data: []byte{1, 2, 3},
-				},
-				"vendor/go/golang.org/x/mod/module/module.go": &fstest.MapFile{
-					Mode: 0666,
-					Data: []byte{4, 5, 6},
-				},
-				"vendor/go/golang.org/x/mod/zip/zip.go": &fstest.MapFile{
-					Mode: 0666,
-					Data: []byte{7, 8, 9},
-				},
-				"vendor/go/rsc.io/diff/diff.go": &fstest.MapFile{
-					Mode: 0666,
-					Data: []byte{1, 2, 3, 4, 5},
-				},
-				"vendor/go/rsc.io/quote/quote.go": &fstest.MapFile{
+				"vendor/rsc.io/quote/quote.go": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte{6, 7, 8, 9, 0},
 				},
@@ -662,8 +613,8 @@ func TestGenerateCacheManifest(t *testing.T) {
 						Packages: []*GoPackage{
 							{Name: "golang.org/x/crypto"},
 						},
-						Digest: digestFor(t, "vendor/go/golang.org/x/crypto", &fstest.MapFS{
-							"vendor/go/golang.org/x/crypto/crypto.go": &fstest.MapFile{
+						Digest: digestFor(t, "vendor/golang.org/x/crypto", &fstest.MapFS{
+							"vendor/golang.org/x/crypto/crypto.go": &fstest.MapFile{
 								Mode: 0666,
 								Data: []byte{1, 2, 3},
 							},
@@ -676,12 +627,12 @@ func TestGenerateCacheManifest(t *testing.T) {
 							{Name: "golang.org/x/mod/module"},
 							{Name: "golang.org/x/mod/zip"},
 						},
-						Digest: digestFor(t, "vendor/go/golang.org/x/mod", &fstest.MapFS{
-							"vendor/go/golang.org/x/mod/module/module.go": &fstest.MapFile{
+						Digest: digestFor(t, "vendor/golang.org/x/mod", &fstest.MapFS{
+							"vendor/golang.org/x/mod/module/module.go": &fstest.MapFile{
 								Mode: 0666,
 								Data: []byte{4, 5, 6},
 							},
-							"vendor/go/golang.org/x/mod/zip/zip.go": &fstest.MapFile{
+							"vendor/golang.org/x/mod/zip/zip.go": &fstest.MapFile{
 								Mode: 0666,
 								Data: []byte{7, 8, 9},
 							},
@@ -693,8 +644,8 @@ func TestGenerateCacheManifest(t *testing.T) {
 						Packages: []*GoPackage{
 							{Name: "rsc.io/diff"},
 						},
-						Digest: digestFor(t, "vendor/go/rsc.io/diff", &fstest.MapFS{
-							"vendor/go/rsc.io/diff/diff.go": &fstest.MapFile{
+						Digest: digestFor(t, "vendor/rsc.io/diff", &fstest.MapFS{
+							"vendor/rsc.io/diff/diff.go": &fstest.MapFile{
 								Mode: 0666,
 								Data: []byte{1, 2, 3, 4, 5},
 							},
@@ -706,8 +657,8 @@ func TestGenerateCacheManifest(t *testing.T) {
 						Packages: []*GoPackage{
 							{Name: "rsc.io/quote"},
 						},
-						Digest: digestFor(t, "vendor/go/rsc.io/quote", &fstest.MapFS{
-							"vendor/go/rsc.io/quote/quote.go": &fstest.MapFile{
+						Digest: digestFor(t, "vendor/rsc.io/quote", &fstest.MapFS{
+							"vendor/rsc.io/quote/quote.go": &fstest.MapFile{
 								Mode: 0666,
 								Data: []byte{6, 7, 8, 9, 0},
 							},

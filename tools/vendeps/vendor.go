@@ -93,12 +93,11 @@ func Vendor(fsys fs.FS) (actions []Action, err error) {
 		switch name {
 		case manifestBzl:
 			// Never remove the cache manifest.
-		case "go", "rust":
+		default:
 			if !entry.IsDir() {
+				// Remove loose files.
 				actions = append(actions, RemoveAll(full))
 			}
-		default:
-			actions = append(actions, RemoveAll(full))
 		}
 	}
 
@@ -145,14 +144,6 @@ func vendorGo(fsys fs.FS, actions []Action, modules []*GoModule) ([]Action, erro
 		}
 	}
 
-	// Make the go directory if it does not already
-	// exist.
-	goDir := path.Join(vendor, "go")
-	_, err := fs.Stat(fsys, goDir)
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return nil, fmt.Errorf("failed to stat %q: %v", goDir, err)
-	}
-
 	// Delete any modules we no longer include.
 	// Sadly, this is more involved a process than
 	// with Rust crates, as each module may have a
@@ -163,7 +154,7 @@ func vendorGo(fsys fs.FS, actions []Action, modules []*GoModule) ([]Action, erro
 	// First, we collect the set of all file paths
 	// under that segment of the file tree.
 	filepaths := make(map[string]bool)
-	err = fs.WalkDir(fsys, goDir, func(name string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(fsys, vendor, func(name string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -172,7 +163,7 @@ func vendorGo(fsys fs.FS, actions []Action, modules []*GoModule) ([]Action, erro
 			// Don't delete folders containing a module
 			// we're including, as we may want to retain
 			// it as a cache.
-			if modulePaths[strings.TrimPrefix(name, goDir+"/")] != nil {
+			if modulePaths[strings.TrimPrefix(name, vendor+"/")] != nil {
 				return fs.SkipDir
 			}
 
@@ -182,14 +173,14 @@ func vendorGo(fsys fs.FS, actions []Action, modules []*GoModule) ([]Action, erro
 		return nil
 	})
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return nil, fmt.Errorf("failed to walk %s: %v", goDir, err)
+		return nil, fmt.Errorf("failed to walk %s: %v", vendor, err)
 	}
 
 	// Now, we eliminate any filepaths that are
 	// a parent directory of, a module we'll be
 	// creating.
 	for _, module := range modules {
-		modname := path.Join(goDir, module.Name)
+		modname := path.Join(vendor, module.Name)
 		for filepath := range filepaths {
 			if strings.HasPrefix(modname, filepath+"/") {
 				delete(filepaths, filepath)
@@ -220,10 +211,10 @@ func vendorGo(fsys fs.FS, actions []Action, modules []*GoModule) ([]Action, erro
 	// cache may strip out the download action if it
 	// can prove that the right data is already there.
 	for _, module := range modules {
-		full := path.Join(goDir, module.Name)
+		full := path.Join(vendor, module.Name)
 		actions = append(actions, DownloadGoModule{Module: module, Path: full})
 		for _, pkg := range module.Packages {
-			full = path.Join(goDir, pkg.Name)
+			full = path.Join(vendor, pkg.Name)
 			if pkg.BuildFile != "" {
 				actions = append(actions, CopyBUILD{Source: pkg.BuildFile, Path: path.Join(full, buildBazel)})
 			} else {

@@ -62,13 +62,13 @@ func TestVendor(t *testing.T) {
 							{Name: "rsc.io/quote"},
 						},
 					},
-					Path: "vendor/go/rsc.io/quote",
+					Path: "vendor/rsc.io/quote",
 				},
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "rsc.io/quote",
 					},
-					Path: "vendor/go/rsc.io/quote/BUILD.bazel",
+					Path: "vendor/rsc.io/quote/BUILD.bazel",
 				},
 				BuildCacheManifest{
 					Deps: &Deps{
@@ -119,8 +119,8 @@ func TestVendor(t *testing.T) {
 				},
 			},
 			Want: []Action{
-				RemoveAll("vendor/parent"),
 				RemoveAll("vendor/random"),
+				RemoveAll("vendor/parent"),
 				DownloadGoModule{
 					Module: &GoModule{
 						Name:    "rsc.io/quote",
@@ -129,13 +129,13 @@ func TestVendor(t *testing.T) {
 							{Name: "rsc.io/quote"},
 						},
 					},
-					Path: "vendor/go/rsc.io/quote",
+					Path: "vendor/rsc.io/quote",
 				},
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "rsc.io/quote",
 					},
-					Path: "vendor/go/rsc.io/quote/BUILD.bazel",
+					Path: "vendor/rsc.io/quote/BUILD.bazel",
 				},
 				BuildCacheManifest{
 					Deps: &Deps{
@@ -181,18 +181,18 @@ func TestVendor(t *testing.T) {
 						]
 					`),
 				},
-				"vendor/go/golang.org/x/crypto/crypto.go": &fstest.MapFile{
+				"vendor/golang.org/x/crypto/crypto.go": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte{1, 2, 3},
 				},
-				"vendor/go/rsc.io/2fa/main.go": &fstest.MapFile{
+				"vendor/rsc.io/2fa/main.go": &fstest.MapFile{
 					Mode: 0666,
 					Data: []byte{1, 2, 3},
 				},
 			},
 			Want: []Action{
-				RemoveAll("vendor/go/golang.org"), // Root dir of an old module.
-				RemoveAll("vendor/go/rsc.io/2fa"), // Don't remove all of rsc.io.
+				RemoveAll("vendor/golang.org"), // Root dir of an old module.
+				RemoveAll("vendor/rsc.io/2fa"), // Don't remove all of rsc.io.
 				DownloadGoModule{
 					Module: &GoModule{
 						Name:    "rsc.io/diff",
@@ -201,13 +201,13 @@ func TestVendor(t *testing.T) {
 							{Name: "rsc.io/diff"},
 						},
 					},
-					Path: "vendor/go/rsc.io/diff",
+					Path: "vendor/rsc.io/diff",
 				},
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "rsc.io/diff",
 					},
-					Path: "vendor/go/rsc.io/diff/BUILD.bazel",
+					Path: "vendor/rsc.io/diff/BUILD.bazel",
 				},
 				DownloadGoModule{
 					Module: &GoModule{
@@ -217,13 +217,13 @@ func TestVendor(t *testing.T) {
 							{Name: "rsc.io/quote"},
 						},
 					},
-					Path: "vendor/go/rsc.io/quote",
+					Path: "vendor/rsc.io/quote",
 				},
 				GenerateGoPackageBUILD{
 					Package: &GoPackage{
 						Name: "rsc.io/quote",
 					},
-					Path: "vendor/go/rsc.io/quote/BUILD.bazel",
+					Path: "vendor/rsc.io/quote/BUILD.bazel",
 				},
 				BuildCacheManifest{
 					Deps: &Deps{

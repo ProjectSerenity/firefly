@@ -24,7 +24,7 @@ go_library(
     ],
     visibility = ["//visibility:public"],{{ if .Deps }}
     deps = [{{ range .Deps }}
-        "//vendor/go/{{ . }}",{{ end }}
+        "//vendor/{{ . }}",{{ end }}
     ],{{ end }}
 ){{ if not .NoTests }}
 
@@ -39,6 +39,6 @@ go_test(
     ]{{ end }},
     embed = [":{{ packageName .Name }}"],{{ if .TestDeps }}
     deps = [{{ range .TestDeps }}
-        "//vendor/go/{{ . }}",{{ end }}
+        "//vendor/{{ . }}",{{ end }}
     ],{{ end }}
 ){{ end }}
