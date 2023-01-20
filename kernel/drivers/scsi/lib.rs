@@ -94,6 +94,7 @@ impl CommandDescriptorBlock for TestUnitReady {
 /// command.
 ///
 #[allow(dead_code)]
+#[derive(Clone, Copy)]
 pub enum PageCode {
     SupportedVPDPages = 0x00,
     UnitSerialNumber = 0x80,
