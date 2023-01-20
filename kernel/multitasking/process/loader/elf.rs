@@ -32,7 +32,7 @@ pub fn is_elf(name: &str, content: &[u8]) -> bool {
 /// segments and the entry point must exist purely
 /// within userspace.
 ///
-pub fn parse_elf<'bin>(binary: &'bin [u8]) -> Result<Binary, &'static str> {
+pub fn parse_elf(binary: &[u8]) -> Result<Binary, &'static str> {
     const GNU_STACK: program::Type = program::Type::OsSpecific(1685382481); // GNU stack segment.
 
     let elf = ElfFile::new(binary)?;
