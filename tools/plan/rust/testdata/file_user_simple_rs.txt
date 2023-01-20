@@ -157,7 +157,7 @@ pub fn deny_syscalls(syscalls: Syscalls) -> Result<(), Error> {
 pub fn stat(name_pointer: *const u8, name_size: u64) -> Result<*mut FileInfo, IoError> {
     let sys = Syscalls::Stat.as_u64();
     let (result1, result2) = unsafe { syscall2(sys, name_pointer as u64, name_size) };
-    match IoError::from_u64(result2 as u64).expect("invalid result from kernel") {
+    match IoError::from_u64(result2).expect("invalid result from kernel") {
         IoError::NoError => Ok(result1 as *mut FileInfo),
         err => Err(err),
     }
