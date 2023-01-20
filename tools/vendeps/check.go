@@ -50,15 +50,15 @@ func CheckDependencies(fsys fs.FS) error {
 		goModules++
 		for _, pkg := range dep.Packages {
 			goPackages++
-			path := "vendor/go/" + pkg.Name
+			path := "vendor/" + pkg.Name
 			directChildren := make([]string, 0, len(pkg.Deps))
 			children := make([]string, 0, len(pkg.Deps)+len(pkg.TestDeps))
 			for _, child := range pkg.Deps {
-				children = append(children, "vendor/go/"+child)
-				directChildren = append(directChildren, "vendor/go/"+child)
+				children = append(children, "vendor/"+child)
+				directChildren = append(directChildren, "vendor/"+child)
 			}
 			for _, child := range pkg.TestDeps {
-				children = append(children, "vendor/go/"+child)
+				children = append(children, "vendor/"+child)
 			}
 
 			all[path] = children
@@ -127,7 +127,7 @@ func CheckDependencies(fsys fs.FS) error {
 	var goUnused int
 	unused := make([]string, 0, len(all))
 	for pkg := range all {
-		if strings.HasPrefix(pkg, "vendor/go/") {
+		if strings.HasPrefix(pkg, "vendor/") {
 			goUnused++
 		} else {
 			return fmt.Errorf("found unexpected Bazel package //%s", pkg)
@@ -143,7 +143,7 @@ func CheckDependencies(fsys fs.FS) error {
 	var goTestsOnly int
 	testsOnly := make([]string, 0, len(directOnly))
 	for pkg := range directOnly {
-		if strings.HasPrefix(pkg, "vendor/go/") {
+		if strings.HasPrefix(pkg, "vendor/") {
 			goTestsOnly++
 		} else {
 			return fmt.Errorf("found unexpected Bazel package //%s", pkg)
