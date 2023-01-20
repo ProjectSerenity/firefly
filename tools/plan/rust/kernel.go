@@ -83,9 +83,12 @@ const (
 
 func kernelNonErrorResult(s *types.Syscall, variable string) string {
 	resultType := types.Underlying(s.Results[0].Type)
-	if enum, ok := resultType.(*types.Enumeration); ok {
-		return fmt.Sprintf("%s.as_%s()%s", variable, sharedToString(enum.Type), sharedToU64(enum.Type))
-	} else {
+	switch t := resultType.(type) {
+	case *types.Enumeration:
+		return fmt.Sprintf("%s.as_%s()%s", variable, sharedToString(t.Type), sharedToU64(t.Type))
+	case *types.NewInteger:
+		return fmt.Sprintf("%s.0%s", variable, sharedToU64(t.Type))
+	default:
 		return variable + sharedToU64(resultType)
 	}
 }

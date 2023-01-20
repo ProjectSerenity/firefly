@@ -934,7 +934,7 @@ fn install_pci_device(device: pci::Device, legacy: bool) {
                         u32::from_be_bytes([res[8], res[9], res[10], res[11]]) as usize;
 
                     // Attempt to determine the block limits.
-                    let cbd = Inquiry::new(Some(PageCode::BlockLimits), DATA_LEN as u16);
+                    let cbd = Inquiry::new(Some(PageCode::BlockLimits), DATA_LEN);
                     let max_transfer_length = match host.recv(*lun, &cbd, &mut data, true) {
                         Ok(data_len) => {
                             let res = &data[0..data_len];

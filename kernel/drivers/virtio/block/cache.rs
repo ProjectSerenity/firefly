@@ -181,7 +181,7 @@ impl Allocator {
             }
 
             let frame_idx = i * BUFFERS_PER_FRAME;
-            let offset = (buffer - start) as usize / BUFFER_SIZE;
+            let offset = (buffer - start) / BUFFER_SIZE;
             self.bitmap.set(frame_idx + offset);
 
             return status;

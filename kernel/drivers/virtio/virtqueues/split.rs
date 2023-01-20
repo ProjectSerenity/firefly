@@ -309,7 +309,7 @@ impl<'desc> Virtqueue<'desc> {
         // in the MMIO address space.
         let num_frames = align_up_usize(device_end, PhysFrameSize::Size4KiB.bytes())
             / PhysFrameSize::Size4KiB.bytes();
-        let frame_range = allocate_n_frames(num_frames as usize)
+        let frame_range = allocate_n_frames(num_frames)
             .expect("failed to allocate physical memory for virtqueue");
         let mmio_region = mmio::Region::map(frame_range);
         let start_phys = frame_range.start_address();
@@ -317,7 +317,7 @@ impl<'desc> Virtqueue<'desc> {
         let descriptors_phys = start_phys + descriptors_offset;
         let driver_phys = start_phys + driver_offset;
         let device_phys = start_phys + device_offset;
-        unsafe { start_virt.write_bytes(0u8, device_end as usize) };
+        unsafe { start_virt.write_bytes(0u8, device_end) };
 
         // Inform the device of the virtqueue.
         if legacy {

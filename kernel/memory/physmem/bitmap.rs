@@ -96,7 +96,7 @@ impl BitmapPool {
             return Some(0);
         }
 
-        Some(((addr - self.start_address) as usize) / PhysFrameSize::Size4KiB.bytes())
+        Some((addr - self.start_address) / PhysFrameSize::Size4KiB.bytes())
     }
 
     /// contains_frame returns whether the pool includes
@@ -305,7 +305,7 @@ impl BitmapFrameAllocator {
 
                 // All frames start out free.
                 free_frames: pool.num_frames,
-                bitmap: Bitmap::new_set(pool.num_frames as usize),
+                bitmap: Bitmap::new_set(pool.num_frames),
             });
         }
 

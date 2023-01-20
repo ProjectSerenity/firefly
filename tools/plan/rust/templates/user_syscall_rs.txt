@@ -23,7 +23,7 @@ pub fn {{ .Name.SnakeCase }}({{ paramNamesAndTypes .Args }}) -> {{ if oneResult 
         Err({{ toString $error }}::from_{{ toString $error.Type }}(result2{{ fromU64 $error.Type }}).expect("invalid {{ toString $error }}"))
     }
     {{- else }}{{ $result1 := index .Results 0 }}
-    match {{ toString $error }}::from_{{ toString $error.Type }}(result2 as {{ toString $error.Type }}).expect("invalid result from kernel") {
+    match {{ toString $error }}::from_{{ toString $error.Type }}(result2{{ toU64 $error.Type }}).expect("invalid result from kernel") {
         {{ toString $error }}::{{ $first_value := index $error.Values 0 }}{{ $first_value.Name.PascalCase }} => Ok(
             {{- if isEnumeration $result1.Type -}}
                 {{ toString $result1.Type }}::from_{{ toString $result1.Enumeration.Type }}(

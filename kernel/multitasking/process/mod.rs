@@ -265,7 +265,7 @@ impl Process {
             let mut idx = 0;
             for (i, frame) in frames.iter().enumerate() {
                 // Work out where we copy to.
-                let start = if i == 0 { offset as usize } else { 0 };
+                let start = if i == 0 { offset } else { 0 };
 
                 let len = min(segment.data.len() - idx, frame.size().bytes() - start);
                 let virt = phys_to_virt_addr(frame.start_address()) + start;
