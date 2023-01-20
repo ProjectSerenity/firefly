@@ -6,11 +6,9 @@
 package parser
 
 import (
-	"encoding/json"
-	"reflect"
 	"testing"
 
-	"rsc.io/diff"
+	"github.com/google/go-cmp/cmp"
 
 	"firefly-os.dev/tools/plan/ast"
 	"firefly-os.dev/tools/plan/token"
@@ -159,20 +157,8 @@ func TestParseFile(t *testing.T) {
 				t.Fatalf("ParseFile(): unexpected error: %v", err)
 			}
 
-			if !reflect.DeepEqual(got, test.want) {
-				// Encoding the values in JSON makes the error
-				// message more useful and legible.
-				gotJSON, err := json.MarshalIndent(got, "", "\t")
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				wantJSON, err := json.MarshalIndent(test.want, "", "\t")
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				t.Fatalf("ParseFile():\n%s", diff.Format(string(gotJSON), string(wantJSON)))
+			if diff := cmp.Diff(got, test.want); diff != "" {
+				t.Fatalf("ParseFile(): (+got, -want)\n%s", diff)
 			}
 		})
 	}

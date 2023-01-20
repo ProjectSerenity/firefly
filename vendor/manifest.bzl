@@ -12,6 +12,11 @@ go = [
         digest = "sha256:0b78247e8d1abe1656e54459a05ca8c3b31b525914b3d6abbff5aff934fd78bf",
     ),
     module(
+        name = "github.com/google/go-cmp",
+        version = "v0.5.9",
+        digest = "sha256:f124ca277a734000353d9dea2d5f72e095847ae0e460a9837014a4af84255cc7",
+    ),
+    module(
         name = "golang.org/x/crypto",
         version = "v0.5.0",
         digest = "sha256:518abb983d66814bf0bfaccc8cc903ff8dc692c964baa872e9bad4f1d6046c15",

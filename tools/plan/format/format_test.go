@@ -7,11 +7,10 @@ package format
 
 import (
 	"bytes"
-	"encoding/json"
-	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"rsc.io/diff"
 
 	"firefly-os.dev/tools/plan/parser"
@@ -234,20 +233,8 @@ func TestFormatFile(t *testing.T) {
 			origInterpreted.DropAST()
 			formattedInterpreted.DropAST()
 
-			if !reflect.DeepEqual(origInterpreted, formattedInterpreted) {
-				// Encoding the values in JSON makes the error
-				// message more useful and legible.
-				gotJSON, err := json.MarshalIndent(origInterpreted, "", "\t")
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				wantJSON, err := json.MarshalIndent(formattedInterpreted, "", "\t")
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				t.Fatalf("Interpret():\n%s", diff.Format(string(gotJSON), string(wantJSON)))
+			if diff := cmp.Diff(origInterpreted, formattedInterpreted); diff != "" {
+				t.Fatalf("Interpret(): (+got, -want)\n%s", diff)
 			}
 
 			// Check that formatting the formatted code results

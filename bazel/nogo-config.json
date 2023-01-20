@@ -20,6 +20,11 @@
 			"(external|vendor)/.*": "Only reject package unsafe in first-party code."
 		}
 	},
+	"structtag": {
+		"exclude_files": {
+			"(external|vendor)/.*": "Only reject package unsafe in first-party code."
+		}
+	},
 	"unsafeptr": {
 		"exclude_files": {
 			"(external|vendor)/.*": "Only reject package unsafe in first-party code."

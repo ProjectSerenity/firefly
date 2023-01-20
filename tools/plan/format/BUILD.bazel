@@ -24,6 +24,7 @@ go_test(
     deps = [
         "//tools/plan/parser",
         "//tools/plan/types",
+        "//vendor/github.com/google/go-cmp/cmp",
         "//vendor/rsc.io/diff",
     ],
 )

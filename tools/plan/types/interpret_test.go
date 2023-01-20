@@ -6,13 +6,11 @@
 package types
 
 import (
-	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 	"testing"
 
-	"rsc.io/diff"
+	"github.com/google/go-cmp/cmp"
 
 	"firefly-os.dev/tools/plan/ast"
 	"firefly-os.dev/tools/plan/parser"
@@ -1535,20 +1533,8 @@ func TestInterpreter(t *testing.T) {
 				got.DropAST()
 			}
 
-			if !reflect.DeepEqual(got, test.Want) {
-				// Encoding the values in JSON makes the error
-				// message more useful and legible.
-				gotJSON, err := json.MarshalIndent(got, "", "\t")
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				wantJSON, err := json.MarshalIndent(test.Want, "", "\t")
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				t.Fatalf("Interpret():\n%s", diff.Format(string(gotJSON), string(wantJSON)))
+			if diff := cmp.Diff(got, test.Want); diff != "" {
+				t.Fatalf("Interpret(): (+got, -want)\n%s", diff)
 			}
 		})
 	}
