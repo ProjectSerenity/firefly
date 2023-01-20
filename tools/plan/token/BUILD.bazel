@@ -4,7 +4,6 @@
 # license that can be found in the LICENSE file.
 
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
-load("//bazel/gofmt:gofmt.bzl", "gofmt")
 
 go_library(
     name = "token",
@@ -14,11 +13,6 @@ go_library(
     ],
     importpath = "firefly-os.dev/tools/plan/token",
     visibility = ["//visibility:public"],
-)
-
-gofmt(
-    name = "gofmt",
-    embed = [":token"],
 )
 
 go_test(

@@ -4,7 +4,6 @@
 # license that can be found in the LICENSE file.
 
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
-load("//bazel/gofmt:gofmt.bzl", "gofmt")
 
 go_library(
     name = "check-deps_lib",
@@ -16,11 +15,6 @@ go_library(
     deps = [
         "//tools/vendeps",
     ],
-)
-
-gofmt(
-    name = "gofmt",
-    embed = [":check-deps_lib"],
 )
 
 go_binary(

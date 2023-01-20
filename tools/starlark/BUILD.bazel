@@ -4,7 +4,6 @@
 # license that can be found in the LICENSE file.
 
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
-load("//bazel/gofmt:gofmt.bzl", "gofmt")
 
 go_library(
     name = "starlark",
@@ -16,11 +15,6 @@ go_library(
     deps = [
         "//vendor/go/github.com/bazelbuild/buildtools/build",
     ],
-)
-
-gofmt(
-    name = "gofmt",
-    embed = [":starlark"],
 )
 
 go_test(

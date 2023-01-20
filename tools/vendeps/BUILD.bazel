@@ -4,7 +4,6 @@
 # license that can be found in the LICENSE file.
 
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
-load("//bazel/gofmt:gofmt.bzl", "gofmt")
 
 go_library(
     name = "vendeps",
@@ -32,11 +31,6 @@ go_library(
         "//vendor/go/golang.org/x/mod/semver",
         "//vendor/go/golang.org/x/vuln/osv",
     ],
-)
-
-gofmt(
-    name = "gofmt",
-    embed = [":vendeps"],
 )
 
 go_test(

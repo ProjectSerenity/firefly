@@ -4,7 +4,6 @@
 # license that can be found in the LICENSE file.
 
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
-load("//bazel/gofmt:gofmt.bzl", "gofmt")
 
 go_library(
     name = "ast",
@@ -14,9 +13,4 @@ go_library(
     deps = [
         "//tools/plan/token",
     ],
-)
-
-gofmt(
-    name = "gofmt",
-    embed = [":ast"],
 )

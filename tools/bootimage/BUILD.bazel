@@ -4,18 +4,12 @@
 # license that can be found in the LICENSE file.
 
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
-load("//bazel/gofmt:gofmt.bzl", "gofmt")
 
 go_library(
     name = "bootimage_lib",
     srcs = ["main.go"],
     importpath = "firefly-os.dev/tools/bootimage",
     visibility = ["//visibility:private"],
-)
-
-gofmt(
-    name = "gofmt",
-    embed = [":bootimage_lib"],
 )
 
 go_binary(
