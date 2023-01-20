@@ -35,7 +35,6 @@
 #![allow(unsafe_code)]
 #![deny(unused_crate_dependencies)]
 #![feature(binary_heap_retain)]
-#![feature(const_btree_new)]
 
 extern crate alloc;
 

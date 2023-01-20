@@ -60,7 +60,6 @@
 #![allow(unsafe_code)]
 #![allow(unused_crate_dependencies)] // This is to allow the doc references above.
 #![feature(alloc_error_handler)]
-#![feature(const_btree_new)]
 
 extern crate alloc;
 

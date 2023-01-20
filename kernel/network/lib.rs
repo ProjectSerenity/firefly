@@ -28,7 +28,6 @@
 #![deny(missing_abi)]
 #![allow(unsafe_code)]
 #![deny(unused_crate_dependencies)]
-#![feature(const_btree_new)]
 
 extern crate alloc;
 
