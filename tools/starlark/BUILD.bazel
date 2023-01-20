@@ -13,7 +13,7 @@ go_library(
     importpath = "firefly-os.dev/tools/starlark",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/go/github.com/bazelbuild/buildtools/build",
+        "//vendor/github.com/bazelbuild/buildtools/build",
     ],
 )
 
@@ -25,6 +25,6 @@ go_test(
     ],
     embed = [":starlark"],
     deps = [
-        "//vendor/go/rsc.io/diff",
+        "//vendor/rsc.io/diff",
     ],
 )

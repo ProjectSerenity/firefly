@@ -16,8 +16,8 @@ go_library(
     deps = [
         "//tools/simplehttp",
         "//tools/vendeps",
-        "//vendor/go/github.com/bazelbuild/buildtools/build",
-        "//vendor/go/golang.org/x/mod/semver",
+        "//vendor/github.com/bazelbuild/buildtools/build",
+        "//vendor/golang.org/x/mod/semver",
     ],
 )
 
@@ -36,7 +36,7 @@ go_test(
     data = glob(["testdata/*"]),
     embed = [":update-deps_lib"],
     deps = [
-        "//vendor/go/github.com/bazelbuild/buildtools/build",
-        "//vendor/go/golang.org/x/time/rate",
+        "//vendor/github.com/bazelbuild/buildtools/build",
+        "//vendor/golang.org/x/time/rate",
     ],
 )

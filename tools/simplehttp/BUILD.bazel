@@ -13,6 +13,6 @@ go_library(
     importpath = "firefly-os.dev/tools/simplehttp",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/go/golang.org/x/time/rate",
+        "//vendor/golang.org/x/time/rate",
     ],
 )

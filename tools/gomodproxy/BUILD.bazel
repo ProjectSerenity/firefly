@@ -15,10 +15,10 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//tools/simplehttp",
-        "//vendor/go/golang.org/x/mod/module",
-        "//vendor/go/golang.org/x/mod/semver",
-        "//vendor/go/golang.org/x/mod/sumdb",
-        "//vendor/go/golang.org/x/mod/sumdb/dirhash",
-        "//vendor/go/golang.org/x/mod/zip",
+        "//vendor/golang.org/x/mod/module",
+        "//vendor/golang.org/x/mod/semver",
+        "//vendor/golang.org/x/mod/sumdb",
+        "//vendor/golang.org/x/mod/sumdb/dirhash",
+        "//vendor/golang.org/x/mod/zip",
     ],
 )

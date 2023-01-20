@@ -8,28 +8,25 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "note",
+    name = "xerrors",
     srcs = glob(
         include = ["*.go"],
         exclude = ["*_test.go"],
     ),
-    importpath = "golang.org/x/mod/sumdb/note",
+    importpath = "golang.org/x/xerrors",
     tags = [
         "manual",  # Only build when needed as a dependency.
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/go/golang.org/x/crypto/ed25519",
+        "//vendor/golang.org/x/xerrors/internal",
     ],
 )
 
 go_test(
-    name = "note_test",
+    name = "xerrors_test",
     size = "small",
     srcs = glob(["*_test.go"]),
     data = glob(["testdata/**"]),
-    embed = [":note"],
-    deps = [
-        "//vendor/go/golang.org/x/crypto/ed25519",
-    ],
+    embed = [":xerrors"],
 )

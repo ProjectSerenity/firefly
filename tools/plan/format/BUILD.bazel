@@ -24,6 +24,6 @@ go_test(
     deps = [
         "//tools/plan/parser",
         "//tools/plan/types",
-        "//vendor/go/rsc.io/diff",
+        "//vendor/rsc.io/diff",
     ],
 )

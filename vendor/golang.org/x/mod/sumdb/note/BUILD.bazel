@@ -8,26 +8,28 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "osv",
+    name = "note",
     srcs = glob(
         include = ["*.go"],
         exclude = ["*_test.go"],
     ),
-    importpath = "golang.org/x/vuln/osv",
+    importpath = "golang.org/x/mod/sumdb/note",
     tags = [
         "manual",  # Only build when needed as a dependency.
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/go/golang.org/x/mod/semver",
-        "//vendor/go/golang.org/x/vuln/internal/semver",
+        "//vendor/golang.org/x/crypto/ed25519",
     ],
 )
 
 go_test(
-    name = "osv_test",
+    name = "note_test",
     size = "small",
     srcs = glob(["*_test.go"]),
     data = glob(["testdata/**"]),
-    embed = [":osv"],
+    embed = [":note"],
+    deps = [
+        "//vendor/golang.org/x/crypto/ed25519",
+    ],
 )

@@ -27,9 +27,9 @@ go_library(
         "//tools/gomodproxy",
         "//tools/simplehttp",
         "//tools/starlark",
-        "//vendor/go/github.com/bazelbuild/buildtools/build",
-        "//vendor/go/golang.org/x/mod/semver",
-        "//vendor/go/golang.org/x/vuln/osv",
+        "//vendor/github.com/bazelbuild/buildtools/build",
+        "//vendor/golang.org/x/mod/semver",
+        "//vendor/golang.org/x/vuln/osv",
     ],
 )
 
@@ -47,6 +47,6 @@ go_test(
     data = glob(["testdata/**"]),
     embed = [":vendeps"],
     deps = [
-        "//vendor/go/rsc.io/diff",
+        "//vendor/rsc.io/diff",
     ],
 )

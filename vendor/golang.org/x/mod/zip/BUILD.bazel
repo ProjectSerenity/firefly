@@ -8,25 +8,30 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "xerrors",
+    name = "zip",
     srcs = glob(
         include = ["*.go"],
         exclude = ["*_test.go"],
     ),
-    importpath = "golang.org/x/xerrors",
+    importpath = "golang.org/x/mod/zip",
     tags = [
         "manual",  # Only build when needed as a dependency.
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/go/golang.org/x/xerrors/internal",
+        "//vendor/golang.org/x/mod/module",
     ],
 )
 
 go_test(
-    name = "xerrors_test",
-    size = "small",
+    name = "zip_test",
+    size = "medium",
     srcs = glob(["*_test.go"]),
     data = glob(["testdata/**"]),
-    embed = [":xerrors"],
+    embed = [":zip"],
+    deps = [
+        "//vendor/golang.org/x/mod/module",
+        "//vendor/golang.org/x/mod/sumdb/dirhash",
+        "//vendor/golang.org/x/tools/txtar",
+    ],
 )

@@ -19,9 +19,9 @@ go_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/go/golang.org/x/mod/internal/lazyregexp",
-        "//vendor/go/golang.org/x/mod/semver",
-        "//vendor/go/golang.org/x/xerrors",
+        "//vendor/golang.org/x/mod/internal/lazyregexp",
+        "//vendor/golang.org/x/mod/semver",
+        "//vendor/golang.org/x/xerrors",
     ],
 )
 

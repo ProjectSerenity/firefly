@@ -23,8 +23,8 @@ go_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/go/github.com/bazelbuild/buildtools/tables",
-        "//vendor/go/github.com/bazelbuild/buildtools/testutils",
+        "//vendor/github.com/bazelbuild/buildtools/tables",
+        "//vendor/github.com/bazelbuild/buildtools/testutils",
     ],
 )
 

@@ -19,10 +19,10 @@ go_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/go/golang.org/x/mod/internal/lazyregexp",
-        "//vendor/go/golang.org/x/mod/module",
-        "//vendor/go/golang.org/x/mod/sumdb/note",
-        "//vendor/go/golang.org/x/mod/sumdb/tlog",
+        "//vendor/golang.org/x/mod/internal/lazyregexp",
+        "//vendor/golang.org/x/mod/module",
+        "//vendor/golang.org/x/mod/sumdb/note",
+        "//vendor/golang.org/x/mod/sumdb/tlog",
     ],
 )
 
@@ -33,7 +33,7 @@ go_test(
     data = glob(["testdata/**"]),
     embed = [":sumdb"],
     deps = [
-        "//vendor/go/golang.org/x/mod/sumdb/note",
-        "//vendor/go/golang.org/x/mod/sumdb/tlog",
+        "//vendor/golang.org/x/mod/sumdb/note",
+        "//vendor/golang.org/x/mod/sumdb/tlog",
     ],
 )
