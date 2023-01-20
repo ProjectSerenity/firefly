@@ -44,7 +44,7 @@ impl fmt::Display for Bytes {
             }
 
             return match width {
-                None => write!(f, "{} {}", b, unit),
+                None => write!(f, "{b} {unit}"),
                 Some(width) => write!(
                     f,
                     "{:width$} {}",
@@ -56,7 +56,7 @@ impl fmt::Display for Bytes {
         }
 
         match width {
-            None => write!(f, "{} ZiB", b),
+            None => write!(f, "{b} ZiB"),
             Some(width) => write!(f, "{:width$} ZiB", b, width = width.saturating_sub(4)),
         }
     }
