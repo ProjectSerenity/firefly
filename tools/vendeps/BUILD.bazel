@@ -10,7 +10,6 @@ go_library(
     srcs = [
         "actions.go",
         "cache.go",
-        "check.go",
         "digest.go",
         "go.go",
         "license.go",
@@ -28,8 +27,6 @@ go_library(
         "//tools/simplehttp",
         "//tools/starlark",
         "//vendor/github.com/bazelbuild/buildtools/build",
-        "//vendor/github.com/google/osv-scanner/pkg/models",
-        "//vendor/github.com/google/osv-scanner/pkg/osv",
         "//vendor/golang.org/x/mod/semver",
     ],
 )

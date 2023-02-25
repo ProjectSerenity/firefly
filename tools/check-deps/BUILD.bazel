@@ -13,7 +13,10 @@ go_library(
     importpath = "firefly-os.dev/tools/check-deps",
     visibility = ["//visibility:private"],
     deps = [
+        "//tools/starlark",
         "//tools/vendeps",
+        "//vendor/github.com/google/osv-scanner/pkg/models",
+        "//vendor/github.com/google/osv-scanner/pkg/osv",
     ],
 )
 
