@@ -7,12 +7,6 @@
 package vendeps
 
 import (
-	"flag"
-	"fmt"
-	"log"
-	"os"
-	"path/filepath"
-
 	"firefly-os.dev/tools/simplehttp"
 )
 
@@ -88,81 +82,5 @@ type UpdateDep struct {
 }
 
 func init() {
-	log.SetFlags(0)
-	log.SetOutput(os.Stderr)
-	log.SetPrefix("")
-
 	simplehttp.UserAgent = "Firefly-dependency-vendoring/1 (github.com/ProjectSerenity/firefly)"
-}
-
-func main() {
-	var help, noCache, dryRun, check, update bool
-	flag.BoolVar(&help, "h", false, "Show this message and exit.")
-	flag.BoolVar(&noCache, "no-cache", false, "Ignore any locally cached dependency data.")
-	flag.BoolVar(&dryRun, "dry-run", false, "Print the set of actions that would be performed, without performing them.")
-	flag.BoolVar(&check, "check", false, "Check the dependency set for unused dependencies.")
-	flag.BoolVar(&update, "update", false, "Check the dependency specification for dependency updates.")
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage\n  %s [OPTIONS]\n\n", filepath.Base(os.Args[0]))
-		fmt.Fprintf(os.Stderr, "Options:\n")
-		flag.PrintDefaults()
-
-		os.Exit(2)
-	}
-
-	flag.Parse()
-
-	// If we're being run with `bazel run`, we're in
-	// a semi-random build directory, and need to move
-	// to the workspace root directory.
-	//
-	workspace := os.Getenv("BUILD_WORKSPACE_DIRECTORY")
-	if workspace != "" {
-		err := os.Chdir(workspace)
-		if err != nil {
-			log.Printf("Failed to change directory to %q: %v", workspace, err)
-		}
-	}
-
-	if check {
-		fsys := os.DirFS(".")
-		err := CheckDependencies(fsys)
-		if err != nil {
-			log.Fatalf("Failed to check dependencies: %v", err)
-		}
-
-		return
-	}
-
-	if update {
-		err := UpdateDependencies(depsBzl)
-		if err != nil {
-			log.Fatalf("Failed to update dependencies: %v", err)
-		}
-
-		return
-	}
-
-	// Start by parsing the dependency manifest.
-	fsys := os.DirFS(".")
-	actions, err := Vendor(fsys)
-	if err != nil {
-		log.Fatalf("Failed to load dependency manifest: %v", err)
-	}
-
-	if !noCache {
-		actions = StripCachedActions(fsys, actions)
-	}
-
-	// Perform/print the actions.
-	for _, action := range actions {
-		if dryRun {
-			fmt.Println(action)
-		} else {
-			err = action.Do(fsys)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	}
 }
