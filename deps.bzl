@@ -87,6 +87,25 @@ go = [
         ],
     ),
     module(
+        name = "github.com/google/osv-scanner",
+        version = "v1.2.0",
+        packages = [
+            package(
+                name = "github.com/google/osv-scanner/pkg/models",
+            ),
+            package(
+                name = "github.com/google/osv-scanner/pkg/osv",
+                deps = [
+                    "github.com/google/osv-scanner/pkg/models",
+                ],
+            ),
+        ],
+        patch_args = ["-p1"],
+        patches = [
+            "bazel/patches/github.com_google_osv-scanner_pkg_osv_osv.go",
+        ],
+    ),
+    module(
         name = "golang.org/x/crypto",
         version = "v0.5.0",
         packages = [
@@ -97,7 +116,7 @@ go = [
     ),
     module(
         name = "golang.org/x/mod",
-        version = "v0.7.0",
+        version = "v0.8.0",
         packages = [
             package(
                 name = "golang.org/x/mod/internal/lazyregexp",
@@ -170,22 +189,6 @@ go = [
         packages = [
             package(
                 name = "golang.org/x/tools/txtar",
-            ),
-        ],
-    ),
-    module(
-        name = "golang.org/x/vuln",
-        version = "v0.0.0-20230118164824-4ec8867cc0e6",
-        packages = [
-            package(
-                name = "golang.org/x/vuln/internal/semver",
-            ),
-            package(
-                name = "golang.org/x/vuln/osv",
-                deps = [
-                    "golang.org/x/mod/semver",
-                    "golang.org/x/vuln/internal/semver",
-                ],
             ),
         ],
     ),

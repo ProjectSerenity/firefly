@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,7 +28,7 @@ func htop(k string, s string) string {
 func TestHash1(t *testing.T) {
 	files := []string{"xyz", "abc"}
 	open := func(name string) (io.ReadCloser, error) {
-		return ioutil.NopCloser(strings.NewReader("data for " + name)), nil
+		return io.NopCloser(strings.NewReader("data for " + name)), nil
 	}
 	want := htop("h1", fmt.Sprintf("%s  %s\n%s  %s\n", h("data for abc"), "abc", h("data for xyz"), "xyz"))
 	out, err := Hash1(files, open)
@@ -47,15 +46,11 @@ func TestHash1(t *testing.T) {
 }
 
 func TestHashDir(t *testing.T) {
-	dir, err := ioutil.TempDir("", "dirhash-test-")
-	if err != nil {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "xyz"), []byte("data for xyz"), 0666); err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(dir)
-	if err := ioutil.WriteFile(filepath.Join(dir, "xyz"), []byte("data for xyz"), 0666); err != nil {
-		t.Fatal(err)
-	}
-	if err := ioutil.WriteFile(filepath.Join(dir, "abc"), []byte("data for abc"), 0666); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "abc"), []byte("data for abc"), 0666); err != nil {
 		t.Fatal(err)
 	}
 	want := htop("h1", fmt.Sprintf("%s  %s\n%s  %s\n", h("data for abc"), "prefix/abc", h("data for xyz"), "prefix/xyz"))
@@ -69,11 +64,10 @@ func TestHashDir(t *testing.T) {
 }
 
 func TestHashZip(t *testing.T) {
-	f, err := ioutil.TempFile("", "dirhash-test-")
+	f, err := os.CreateTemp(t.TempDir(), "dirhash-test-")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(f.Name())
 	defer f.Close()
 
 	z := zip.NewWriter(f)
@@ -105,31 +99,45 @@ func TestHashZip(t *testing.T) {
 }
 
 func TestDirFiles(t *testing.T) {
-	dir, err := ioutil.TempDir("", "dirfiles-test-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
-	if err := ioutil.WriteFile(filepath.Join(dir, "xyz"), []byte("data for xyz"), 0666); err != nil {
-		t.Fatal(err)
-	}
-	if err := ioutil.WriteFile(filepath.Join(dir, "abc"), []byte("data for abc"), 0666); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Mkdir(filepath.Join(dir, "subdir"), 0777); err != nil {
-		t.Fatal(err)
-	}
-	if err := ioutil.WriteFile(filepath.Join(dir, "subdir", "xyz"), []byte("data for subdir xyz"), 0666); err != nil {
-		t.Fatal(err)
-	}
-	prefix := "foo/bar@v2.3.4"
-	out, err := DirFiles(dir, prefix)
-	if err != nil {
-		t.Fatalf("DirFiles: %v", err)
-	}
-	for _, file := range out {
-		if !strings.HasPrefix(file, prefix) {
-			t.Errorf("Dir file = %s, want prefix %s", file, prefix)
+	t.Run("valid directory with files", func(t *testing.T) {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "xyz"), []byte("data for xyz"), 0666); err != nil {
+			t.Fatal(err)
 		}
-	}
+		if err := os.WriteFile(filepath.Join(dir, "abc"), []byte("data for abc"), 0666); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Mkdir(filepath.Join(dir, "subdir"), 0777); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "subdir", "xyz"), []byte("data for subdir xyz"), 0666); err != nil {
+			t.Fatal(err)
+		}
+		prefix := "foo/bar@v2.3.4"
+		out, err := DirFiles(dir, prefix)
+		if err != nil {
+			t.Fatalf("DirFiles: %v", err)
+		}
+		for _, file := range out {
+			if !strings.HasPrefix(file, prefix) {
+				t.Errorf("Dir file = %s, want prefix %s", file, prefix)
+			}
+		}
+	})
+
+	t.Run("invalid directory", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "not-a-directory.txt")
+		if err := os.WriteFile(path, []byte("This is a file."), 0644); err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(path)
+
+		out, err := DirFiles(path, "")
+		if err == nil {
+			t.Errorf("DirFiles(...) = %v, expected an error", err)
+		}
+		if len(out) > 0 {
+			t.Errorf("DirFiles(...) = unexpected files %s", out)
+		}
+	})
 }

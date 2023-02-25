@@ -28,8 +28,9 @@ go_library(
         "//tools/simplehttp",
         "//tools/starlark",
         "//vendor/github.com/bazelbuild/buildtools/build",
+        "//vendor/github.com/google/osv-scanner/pkg/models",
+        "//vendor/github.com/google/osv-scanner/pkg/osv",
         "//vendor/golang.org/x/mod/semver",
-        "//vendor/golang.org/x/vuln/osv",
     ],
 )
 

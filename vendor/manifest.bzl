@@ -17,14 +17,26 @@ go = [
         digest = "sha256:f124ca277a734000353d9dea2d5f72e095847ae0e460a9837014a4af84255cc7",
     ),
     module(
+        name = "github.com/google/osv-scanner",
+        version = "v1.2.0",
+        digest = "sha256:2771f185633706b3197bb1606f81e2928028fa74c5a4bae998574d9c2b2226be",
+        patch_args = [
+            "-p1",
+        ],
+        patches = [
+            "bazel/patches/github.com_google_osv-scanner_pkg_osv_osv.go",
+        ],
+        patch_digest = "sha256:a61855218ea9eb42f5ae7fb32635383c0566e3fa41d0e1feb29ed079b21c8643",
+    ),
+    module(
         name = "golang.org/x/crypto",
         version = "v0.5.0",
         digest = "sha256:518abb983d66814bf0bfaccc8cc903ff8dc692c964baa872e9bad4f1d6046c15",
     ),
     module(
         name = "golang.org/x/mod",
-        version = "v0.7.0",
-        digest = "sha256:117c8e544fd4a58a5e1d56676e6329b020e9d9241adb08b065c5d3050411c5bd",
+        version = "v0.8.0",
+        digest = "sha256:8c8a1264537694d138af18364a3a023097c32abdd84a013e0be1968a24982c7c",
     ),
     module(
         name = "golang.org/x/time",
@@ -35,11 +47,6 @@ go = [
         name = "golang.org/x/tools",
         version = "v0.5.0",
         digest = "sha256:b7e1fe569092d058821a3c822529eb25a79d38a8fb8d041a622693b65e73144f",
-    ),
-    module(
-        name = "golang.org/x/vuln",
-        version = "v0.0.0-20230118164824-4ec8867cc0e6",
-        digest = "sha256:5294c3d66538b3e7dc3c969f3c833d7f636f2a2761dbafe486f0a9fc275e39a5",
     ),
     module(
         name = "golang.org/x/xerrors",

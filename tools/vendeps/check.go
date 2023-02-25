@@ -15,7 +15,8 @@ import (
 	"sort"
 	"strings"
 
-	"golang.org/x/vuln/osv"
+	"github.com/google/osv-scanner/pkg/models"
+	"github.com/google/osv-scanner/pkg/osv"
 
 	"firefly-os.dev/tools/starlark"
 )
@@ -156,6 +157,87 @@ func CheckDependencies(fsys fs.FS) error {
 
 	fmt.Printf("Go modules: %d (%d packages, %d unused, %d used only in tests)\n", goModules, goPackages, goUnused, goTestsOnly)
 
+	// Check for known vulnerabilities.
+	//
+	// Start by building the set of queries.
+	batched := osv.BatchedQuery{
+		Queries: make([]*osv.Query, len(deps.Go)),
+	}
+
+	for i, module := range deps.Go {
+		batched.Queries[i] = &osv.Query{
+			Package: osv.Package{
+				Name:      module.Name,
+				Ecosystem: "Go",
+			},
+			Version: strings.TrimPrefix(module.Version, "v"),
+		}
+	}
+
+	res, err := osv.MakeRequest(batched)
+	if err != nil {
+		return err
+	}
+
+	hydrated, err := osv.Hydrate(res)
+	if err != nil {
+		return err
+	}
+
+	// Group vulns together.
+	var vulns []*models.Vulnerability
+	seen := make(map[string]bool)
+	for _, result := range hydrated.Results {
+		if len(result.Vulns) == 0 {
+			continue
+		}
+
+		for _, vuln := range result.Vulns {
+			if !seen[vuln.ID] {
+				seen[vuln.ID] = true
+				v := vuln
+				vulns = append(vulns, &v)
+			}
+		}
+	}
+
+	sort.Slice(vulns, func(i, j int) bool { return vulns[i].ID < vulns[j].ID })
+
+	var b bytes.Buffer
+	for i, vuln := range vulns {
+		if i > 0 {
+			b.WriteByte('\n')
+		}
+
+		b.WriteString(vuln.ID)
+		if len(vuln.Aliases) > 0 {
+			b.WriteString(" (")
+			b.WriteString(strings.Join(vuln.Aliases, ", "))
+			b.WriteByte(')')
+		}
+
+		b.WriteString("\n\tAffected modules:\n")
+		for _, src := range vuln.Affected {
+			b.WriteString("\t\t")
+			b.WriteString(src.Package.Name)
+			b.WriteByte('\n')
+		}
+
+		if len(vuln.References) > 0 {
+			b.WriteString("\tReferences:\n")
+			for _, ref := range vuln.References {
+				b.WriteString("\t\t")
+				b.WriteString(ref.URL)
+				b.WriteByte('\n')
+			}
+		}
+	}
+
+	if len(vulns) > 0 {
+		os.Stderr.Write(b.Bytes())
+		return fmt.Errorf("Found %d vulnerabilities.", len(vulns))
+	}
+
 	if len(directOnly) == 0 {
 		// All dependencies are used directly.
 		return nil
@@ -177,23 +259,6 @@ func CheckDependencies(fsys fs.FS) error {
 	}
 
 	return nil
-}
-
-// Vulns describes the set of vulnerability advisory
-// data for a set of software dependencies.
-type Vulns struct {
-	Go []*osv.Entry
-}
-
-// fetchVulns fetches/updates the set of vulnerability
-// advisories, then parses them into structured vuln
-// data in OSV format.
-func FetchVulns() (*Vulns, error) {
-	vulns := new(Vulns)
-
-	// TODO: Fetch and parse Go advisories.
-
-	return vulns, nil
 }
 
 // fetchGitRepo uses git to clone/update the given Git

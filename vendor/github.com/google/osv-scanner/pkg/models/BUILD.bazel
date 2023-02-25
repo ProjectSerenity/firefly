@@ -8,12 +8,12 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "semver",
+    name = "models",
     srcs = glob(
         include = ["*.go"],
         exclude = ["*_test.go"],
     ),
-    importpath = "golang.org/x/vuln/internal/semver",
+    importpath = "github.com/google/osv-scanner/pkg/models",
     tags = [
         "manual",  # Only build when needed as a dependency.
     ],
@@ -21,9 +21,9 @@ go_library(
 )
 
 go_test(
-    name = "semver_test",
+    name = "models_test",
     size = "small",
     srcs = glob(["*_test.go"]),
     data = glob(["testdata/**"]),
-    embed = [":semver"],
+    embed = [":models"],
 )

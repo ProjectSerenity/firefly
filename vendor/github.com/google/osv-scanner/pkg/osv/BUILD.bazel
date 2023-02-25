@@ -13,14 +13,13 @@ go_library(
         include = ["*.go"],
         exclude = ["*_test.go"],
     ),
-    importpath = "golang.org/x/vuln/osv",
+    importpath = "github.com/google/osv-scanner/pkg/osv",
     tags = [
         "manual",  # Only build when needed as a dependency.
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/golang.org/x/mod/semver",
-        "//vendor/golang.org/x/vuln/internal/semver",
+        "//vendor/github.com/google/osv-scanner/pkg/models",
     ],
 )
 

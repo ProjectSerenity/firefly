@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base"
+  ],
+  "timezone": "Australia/Sydney",
+  "schedule": ["before 6am on monday"],
+  "labels": ["dependencies"],
+  "postUpdateOptions": ["gomodTidy"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["major"],
+      "groupName": "Major Updates",
+      "enabled": true
+    },
+    {
+      "matchLanguages": ["golang"],
+      "groupName": "osv-scanner minor"
+    },
+    {
+      "matchPaths": [".github/"],
+      "groupName": "workflows"
+    }
+  ]
+}
