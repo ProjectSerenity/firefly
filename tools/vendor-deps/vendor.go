@@ -3,7 +3,7 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-package vendeps
+package main
 
 import (
 	"bytes"
@@ -15,6 +15,14 @@ import (
 	"strings"
 
 	"firefly-os.dev/tools/starlark"
+	"firefly-os.dev/tools/vendeps"
+)
+
+const (
+	buildBazel  = "BUILD.bazel"
+	depsBzl     = "deps.bzl"
+	manifestBzl = "manifest.bzl"
+	vendor      = "vendor"
 )
 
 // Vendor takes a filesystem, parses the set of software
@@ -24,27 +32,27 @@ import (
 //
 // Note that Vendor does not perform any of these actions;
 // it only reads data from fsys.
-func Vendor(fsys fs.FS) (actions []Action, err error) {
+func Vendor(fsys fs.FS) (actions []vendeps.Action, err error) {
 	data, err := fs.ReadFile(fsys, depsBzl)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %s: %v", depsBzl, err)
 	}
 
-	var deps Deps
+	var deps vendeps.Deps
 	err = starlark.Unmarshal(depsBzl, data, &deps)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(deps.Go) == 0 {
-		actions = []Action{RemoveAll(vendor)}
+		actions = []vendeps.Action{vendeps.RemoveAll(vendor)}
 		return actions, nil
 	}
 
 	// Check that the dependency graph is complete. Start
 	// by making a mapping for modules to make them easier
 	// to look up.
-	packages := make(map[string]*GoPackage)
+	packages := make(map[string]*vendeps.GoPackage)
 	for _, module := range deps.Go {
 		for _, pkg := range module.Packages {
 			packages[pkg.Name] = pkg
@@ -96,7 +104,7 @@ func Vendor(fsys fs.FS) (actions []Action, err error) {
 		default:
 			if !entry.IsDir() {
 				// Remove loose files.
-				actions = append(actions, RemoveAll(full))
+				actions = append(actions, vendeps.RemoveAll(full))
 			}
 		}
 	}
@@ -113,16 +121,16 @@ func Vendor(fsys fs.FS) (actions []Action, err error) {
 		}
 	}
 
-	actions = append(actions, BuildCacheManifest{Deps: &deps, Path: path.Join(vendor, manifestBzl)})
+	actions = append(actions, vendeps.BuildCacheManifest{Deps: &deps, Path: path.Join(vendor, manifestBzl)})
 
 	return actions, nil
 }
 
-func vendorGo(fsys fs.FS, actions []Action, modules []*GoModule) ([]Action, error) {
+func vendorGo(fsys fs.FS, actions []vendeps.Action, modules []*vendeps.GoModule) ([]vendeps.Action, error) {
 	// Sanity-check each module and make
 	// a mapping of module names to modules
 	// to simplify looking up module paths.
-	modulePaths := make(map[string]*GoModule)
+	modulePaths := make(map[string]*vendeps.GoModule)
 	for i, module := range modules {
 		modulePaths[module.Name] = module
 		if module.Name == "" {
@@ -203,7 +211,7 @@ func vendorGo(fsys fs.FS, actions []Action, modules []*GoModule) ([]Action, erro
 	sort.Strings(sortedFilepaths)
 
 	for _, filepath := range sortedFilepaths {
-		actions = append(actions, RemoveAll(filepath))
+		actions = append(actions, vendeps.RemoveAll(filepath))
 	}
 
 	// Now, we download each module, which will include
@@ -212,13 +220,13 @@ func vendorGo(fsys fs.FS, actions []Action, modules []*GoModule) ([]Action, erro
 	// can prove that the right data is already there.
 	for _, module := range modules {
 		full := path.Join(vendor, module.Name)
-		actions = append(actions, DownloadGoModule{Module: module, Path: full})
+		actions = append(actions, vendeps.DownloadGoModule{Module: module, Path: full})
 		for _, pkg := range module.Packages {
 			full = path.Join(vendor, pkg.Name)
 			if pkg.BuildFile != "" {
-				actions = append(actions, CopyBUILD{Source: pkg.BuildFile, Path: path.Join(full, buildBazel)})
+				actions = append(actions, vendeps.CopyBUILD{Source: pkg.BuildFile, Path: path.Join(full, buildBazel)})
 			} else {
-				actions = append(actions, GenerateGoPackageBUILD{Package: pkg, Path: path.Join(full, buildBazel)})
+				actions = append(actions, vendeps.GenerateGoPackageBUILD{Package: pkg, Path: path.Join(full, buildBazel)})
 			}
 		}
 	}

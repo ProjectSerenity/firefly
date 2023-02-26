@@ -435,34 +435,8 @@ func TestStripCachedActions(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			// Just check that the test actions are
-			// correct.
-			got, err := Vendor(test.Fsys)
-			if err != nil {
-				t.Fatalf("Vendor(): %v", err)
-			}
-
-			if !reflect.DeepEqual(got, test.Actions) {
-				var buf strings.Builder
-				for _, action := range got {
-					buf.WriteString(action.String())
-					buf.WriteByte('\n')
-				}
-
-				g := buf.String()
-
-				buf.Reset()
-				for _, action := range test.Actions {
-					buf.WriteString(action.String())
-					buf.WriteByte('\n')
-				}
-
-				w := buf.String()
-				t.Fatalf("Vendor(): got mismatch:\n%s", diff.Format(g, w))
-			}
-
 			// Now test the cache.
-			got = StripCachedActions(test.Fsys, test.Actions)
+			got := StripCachedActions(test.Fsys, test.Actions)
 			if !reflect.DeepEqual(got, test.Want) {
 				var buf strings.Builder
 				for _, action := range got {

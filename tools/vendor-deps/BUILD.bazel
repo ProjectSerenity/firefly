@@ -3,17 +3,31 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 
 go_library(
     name = "vendor-deps_lib",
     srcs = [
         "main.go",
+        "vendor.go",
     ],
     importpath = "firefly-os.dev/tools/vendor-deps",
     visibility = ["//visibility:private"],
     deps = [
+        "//tools/starlark",
         "//tools/vendeps",
+    ],
+)
+
+go_test(
+    name = "vendor-deps_test",
+    size = "small",
+    srcs = [
+        "vendor_test.go",
+    ],
+    embed = [":vendor-deps_lib"],
+    deps = [
+        "//vendor/rsc.io/diff",
     ],
 )
 

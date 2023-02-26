@@ -3,7 +3,7 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-package vendeps
+package main
 
 import (
 	"io/fs"
@@ -13,13 +13,15 @@ import (
 	"testing/fstest"
 
 	"rsc.io/diff"
+
+	"firefly-os.dev/tools/vendeps"
 )
 
 func TestVendor(t *testing.T) {
 	tests := []struct {
 		Name string
 		Fsys fs.FS
-		Want []Action
+		Want []vendeps.Action
 	}{
 		{
 			Name: "No deps",
@@ -29,8 +31,8 @@ func TestVendor(t *testing.T) {
 					Data: []byte{},
 				},
 			},
-			Want: []Action{
-				RemoveAll("vendor"),
+			Want: []vendeps.Action{
+				vendeps.RemoveAll("vendor"),
 			},
 		},
 		{
@@ -53,30 +55,30 @@ func TestVendor(t *testing.T) {
 					`),
 				},
 			},
-			Want: []Action{
-				DownloadGoModule{
-					Module: &GoModule{
+			Want: []vendeps.Action{
+				vendeps.DownloadGoModule{
+					Module: &vendeps.GoModule{
 						Name:    "rsc.io/quote",
 						Version: "v1.2.3",
-						Packages: []*GoPackage{
+						Packages: []*vendeps.GoPackage{
 							{Name: "rsc.io/quote"},
 						},
 					},
 					Path: "vendor/rsc.io/quote",
 				},
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
+				vendeps.GenerateGoPackageBUILD{
+					Package: &vendeps.GoPackage{
 						Name: "rsc.io/quote",
 					},
 					Path: "vendor/rsc.io/quote/BUILD.bazel",
 				},
-				BuildCacheManifest{
-					Deps: &Deps{
-						Go: []*GoModule{
+				vendeps.BuildCacheManifest{
+					Deps: &vendeps.Deps{
+						Go: []*vendeps.GoModule{
 							{
 								Name:    "rsc.io/quote",
 								Version: "v1.2.3",
-								Packages: []*GoPackage{
+								Packages: []*vendeps.GoPackage{
 									{Name: "rsc.io/quote"},
 								},
 							},
@@ -118,32 +120,32 @@ func TestVendor(t *testing.T) {
 					Data: []byte{},
 				},
 			},
-			Want: []Action{
-				RemoveAll("vendor/random"),
-				RemoveAll("vendor/parent"),
-				DownloadGoModule{
-					Module: &GoModule{
+			Want: []vendeps.Action{
+				vendeps.RemoveAll("vendor/random"),
+				vendeps.RemoveAll("vendor/parent"),
+				vendeps.DownloadGoModule{
+					Module: &vendeps.GoModule{
 						Name:    "rsc.io/quote",
 						Version: "v1.2.3",
-						Packages: []*GoPackage{
+						Packages: []*vendeps.GoPackage{
 							{Name: "rsc.io/quote"},
 						},
 					},
 					Path: "vendor/rsc.io/quote",
 				},
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
+				vendeps.GenerateGoPackageBUILD{
+					Package: &vendeps.GoPackage{
 						Name: "rsc.io/quote",
 					},
 					Path: "vendor/rsc.io/quote/BUILD.bazel",
 				},
-				BuildCacheManifest{
-					Deps: &Deps{
-						Go: []*GoModule{
+				vendeps.BuildCacheManifest{
+					Deps: &vendeps.Deps{
+						Go: []*vendeps.GoModule{
 							{
 								Name:    "rsc.io/quote",
 								Version: "v1.2.3",
-								Packages: []*GoPackage{
+								Packages: []*vendeps.GoPackage{
 									{Name: "rsc.io/quote"},
 								},
 							},
@@ -190,55 +192,55 @@ func TestVendor(t *testing.T) {
 					Data: []byte{1, 2, 3},
 				},
 			},
-			Want: []Action{
-				RemoveAll("vendor/golang.org"), // Root dir of an old module.
-				RemoveAll("vendor/rsc.io/2fa"), // Don't remove all of rsc.io.
-				DownloadGoModule{
-					Module: &GoModule{
+			Want: []vendeps.Action{
+				vendeps.RemoveAll("vendor/golang.org"), // Root dir of an old module.
+				vendeps.RemoveAll("vendor/rsc.io/2fa"), // Don't remove all of rsc.io.
+				vendeps.DownloadGoModule{
+					Module: &vendeps.GoModule{
 						Name:    "rsc.io/diff",
 						Version: "v1.2.3",
-						Packages: []*GoPackage{
+						Packages: []*vendeps.GoPackage{
 							{Name: "rsc.io/diff"},
 						},
 					},
 					Path: "vendor/rsc.io/diff",
 				},
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
+				vendeps.GenerateGoPackageBUILD{
+					Package: &vendeps.GoPackage{
 						Name: "rsc.io/diff",
 					},
 					Path: "vendor/rsc.io/diff/BUILD.bazel",
 				},
-				DownloadGoModule{
-					Module: &GoModule{
+				vendeps.DownloadGoModule{
+					Module: &vendeps.GoModule{
 						Name:    "rsc.io/quote",
 						Version: "v1.2.3",
-						Packages: []*GoPackage{
+						Packages: []*vendeps.GoPackage{
 							{Name: "rsc.io/quote"},
 						},
 					},
 					Path: "vendor/rsc.io/quote",
 				},
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
+				vendeps.GenerateGoPackageBUILD{
+					Package: &vendeps.GoPackage{
 						Name: "rsc.io/quote",
 					},
 					Path: "vendor/rsc.io/quote/BUILD.bazel",
 				},
-				BuildCacheManifest{
-					Deps: &Deps{
-						Go: []*GoModule{
+				vendeps.BuildCacheManifest{
+					Deps: &vendeps.Deps{
+						Go: []*vendeps.GoModule{
 							{
 								Name:    "rsc.io/diff",
 								Version: "v1.2.3",
-								Packages: []*GoPackage{
+								Packages: []*vendeps.GoPackage{
 									{Name: "rsc.io/diff"},
 								},
 							},
 							{
 								Name:    "rsc.io/quote",
 								Version: "v1.2.3",
-								Packages: []*GoPackage{
+								Packages: []*vendeps.GoPackage{
 									{Name: "rsc.io/quote"},
 								},
 							},

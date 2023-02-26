@@ -51,7 +51,7 @@ func main() {
 
 	// Start by parsing the dependency manifest.
 	fsys := os.DirFS(".")
-	actions, err := vendeps.Vendor(fsys)
+	actions, err := Vendor(fsys)
 	if err != nil {
 		log.Fatalf("Failed to load dependency manifest: %v", err)
 	}
