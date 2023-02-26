@@ -222,6 +222,11 @@ func vendorGo(fsys fs.FS, actions []vendeps.Action, modules []*vendeps.GoModule)
 				actions = append(actions, vendeps.GenerateGoPackageBUILD{Package: pkg, Path: path.Join(full, vendeps.BuildBazel)})
 			}
 		}
+
+		for _, files := range module.Directories {
+			full = path.Join(vendeps.Vendor, files.Name)
+			actions = append(actions, vendeps.GenerateTextFilesBUILD{Files: files, Path: path.Join(full, vendeps.BuildBazel)})
+		}
 	}
 
 	return actions, nil

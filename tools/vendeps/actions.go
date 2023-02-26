@@ -177,6 +177,35 @@ func (c GenerateGoPackageBUILD) String() string {
 	return fmt.Sprintf("generate BUILD file for Go package %s to %s", c.Package.Name, c.Path)
 }
 
+// GenerateTextFilesBUILD indicates that the named directory
+// should have its BUILD file generated and written to
+// the given path.
+type GenerateTextFilesBUILD struct {
+	Files *TextFiles
+	Path  string
+}
+
+var _ Action = GenerateTextFilesBUILD{}
+
+func (c GenerateTextFilesBUILD) Do(fsys fs.FS) error {
+	// Render the build files.
+	pretty, err := RenderTextFilesBuildFile(c.Path, c.Files)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(c.Path, pretty, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write build file to %s: %v", c.Path, err)
+	}
+
+	return nil
+}
+
+func (c GenerateTextFilesBUILD) String() string {
+	return fmt.Sprintf("generate BUILD file for text files %s to %s", c.Files.Name, c.Path)
+}
+
 // BuildCacheManifest indicates that the cache subsystem
 // should scan the vendor filesystem, producing the
 // information necessary to avoid unnecessary future work,

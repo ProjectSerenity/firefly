@@ -39,6 +39,9 @@ type GoModule struct {
 	// Packages that should be used.
 	Packages []*GoPackage `bzl:"packages/package"`
 
+	// Directories containing plain files.
+	Directories []*TextFiles `bzl:"directories/files"`
+
 	// Generation details.
 	Digest      string `bzl:"digest"`
 	PatchDigest string `bzl:"patch_digest"`
@@ -64,6 +67,16 @@ type GoPackage struct {
 	TestData      []string `bzl:"test_data"`
 	TestDataGlobs []string `bzl:"test_data_globs"`
 	TestDeps      []string `bzl:"test_deps"`
+}
+
+// TextFiles contains information necessary
+// to manage text files.
+type TextFiles struct {
+	// Dependency details.
+	Name string `bzl:"name"`
+
+	// Export files publicly.
+	ExportsFiles []string `bzl:"exports_files"`
 }
 
 // UpdateDeps includes a set of dependencies

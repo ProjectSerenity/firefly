@@ -43,6 +43,18 @@ func RenderGoPackageBuildFile(name string, pkg *GoPackage) ([]byte, error) {
 	return starlark.Format(name, buf.Bytes())
 }
 
+// RenderTextFilesBuildFile generates a build file
+// for the given text files.
+func RenderTextFilesBuildFile(name string, files *TextFiles) ([]byte, error) {
+	var buf bytes.Buffer
+	err := templates.ExecuteTemplate(&buf, "files-BUILD.txt", files)
+	if err != nil {
+		return nil, fmt.Errorf("failed to render build file: %v", err)
+	}
+
+	return starlark.Format(name, buf.Bytes())
+}
+
 // RenderManifest generates a dependency manifest
 // from the given set of dependencies.
 func RenderManifest(name string, manifest *Deps) ([]byte, error) {
