@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	buildBazel  = "BUILD.bazel"
-	depsBzl     = "deps.bzl"
-	manifestBzl = "manifest.bzl"
-	vendor      = "vendor"
+	BuildBazel  = "BUILD.bazel"
+	DepsBzl     = "deps.bzl"
+	ManifestBzl = "manifest.bzl"
+	Vendor      = "vendor"
 )
 
 // Deps describes a set of software dependencies.

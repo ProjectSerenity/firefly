@@ -26,13 +26,13 @@ func StripCachedActions(fsys fs.FS, actions []Action) []Action {
 	// Start by loading the cache manifest. If we
 	// fail to do so, we just return the unmodified
 	// action sequence.
-	data, err := fs.ReadFile(fsys, path.Join(vendor, manifestBzl))
+	data, err := fs.ReadFile(fsys, path.Join(Vendor, ManifestBzl))
 	if err != nil {
 		return actions
 	}
 
 	var deps Deps
-	err = starlark.Unmarshal(manifestBzl, data, &deps)
+	err = starlark.Unmarshal(ManifestBzl, data, &deps)
 	if err != nil {
 		return actions
 	}
@@ -79,7 +79,7 @@ func StripCachedActions(fsys fs.FS, actions []Action) []Action {
 			ignore := make([]string, len(dl.Module.Packages))
 			root := strings.TrimSuffix(dl.Path, dl.Module.Name)
 			for i, pkg := range dl.Module.Packages {
-				ignore[i] = path.Join(root, pkg.Name, buildBazel)
+				ignore[i] = path.Join(root, pkg.Name, BuildBazel)
 			}
 
 			gotDigest, err := DigestDirectory(fsys, dl.Path, ignore...)
@@ -130,12 +130,12 @@ func GenerateCacheManifest(fsys fs.FS, deps *Deps) (*Deps, error) {
 	// digest for each one, ignoring the generated
 	// build files.
 	for i, module := range deps.Go {
-		dir := path.Join(vendor, module.Name)
+		dir := path.Join(Vendor, module.Name)
 		// First, build up the list of build files
 		// to ignore; one for each package.
 		ignore := make([]string, len(module.Packages))
 		for i, pkg := range module.Packages {
-			ignore[i] = path.Join(vendor, pkg.Name, buildBazel)
+			ignore[i] = path.Join(Vendor, pkg.Name, BuildBazel)
 		}
 
 		digest, err := DigestDirectory(fsys, dir, ignore...)

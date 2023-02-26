@@ -55,12 +55,12 @@ func TestParseUpdateDeps(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			f, err := build.ParseBzl(depsBzl, []byte(test.Text))
+			f, err := build.ParseBzl(vendeps.DepsBzl, []byte(test.Text))
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			got, err := ParseUpdateDeps(depsBzl, f)
+			got, err := ParseUpdateDeps(vendeps.DepsBzl, f)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -237,12 +237,12 @@ func TestParseUpdateDepsErrors(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			f, err := build.ParseBzl(depsBzl, []byte(test.Text))
+			f, err := build.ParseBzl(vendeps.DepsBzl, []byte(test.Text))
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			got, err := ParseUpdateDeps(depsBzl, f)
+			got, err := ParseUpdateDeps(vendeps.DepsBzl, f)
 			if err == nil {
 				g, err := json.MarshalIndent(got, "", "\t")
 				if err != nil {

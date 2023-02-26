@@ -23,8 +23,6 @@ import (
 	"firefly-os.dev/tools/vendeps"
 )
 
-const depsBzl = "deps.bzl"
-
 func init() {
 	log.SetFlags(0)
 	log.SetOutput(os.Stderr)
@@ -54,13 +52,13 @@ func main() {
 // CheckDependencies assesses the dependency set for
 // unused dependencies.
 func CheckDependencies(fsys fs.FS) error {
-	data, err := fs.ReadFile(fsys, depsBzl)
+	data, err := fs.ReadFile(fsys, vendeps.DepsBzl)
 	if err != nil {
-		return fmt.Errorf("failed to read %s: %v", depsBzl, err)
+		return fmt.Errorf("failed to read %s: %v", vendeps.DepsBzl, err)
 	}
 
 	var deps vendeps.Deps
-	err = starlark.Unmarshal(depsBzl, data, &deps)
+	err = starlark.Unmarshal(vendeps.DepsBzl, data, &deps)
 	if err != nil {
 		return err
 	}

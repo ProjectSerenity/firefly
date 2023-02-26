@@ -18,13 +18,6 @@ import (
 	"firefly-os.dev/tools/vendeps"
 )
 
-const (
-	buildBazel  = "BUILD.bazel"
-	depsBzl     = "deps.bzl"
-	manifestBzl = "manifest.bzl"
-	vendor      = "vendor"
-)
-
 // Vendor takes a filesystem, parses the set of software
 // dependencies in deps.bzl, then produces the sequence of
 // actions necessary to vendor those dependencies into the
@@ -33,19 +26,19 @@ const (
 // Note that Vendor does not perform any of these actions;
 // it only reads data from fsys.
 func Vendor(fsys fs.FS) (actions []vendeps.Action, err error) {
-	data, err := fs.ReadFile(fsys, depsBzl)
+	data, err := fs.ReadFile(fsys, vendeps.DepsBzl)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %s: %v", depsBzl, err)
+		return nil, fmt.Errorf("failed to read %s: %v", vendeps.DepsBzl, err)
 	}
 
 	var deps vendeps.Deps
-	err = starlark.Unmarshal(depsBzl, data, &deps)
+	err = starlark.Unmarshal(vendeps.DepsBzl, data, &deps)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(deps.Go) == 0 {
-		actions = []vendeps.Action{vendeps.RemoveAll(vendor)}
+		actions = []vendeps.Action{vendeps.RemoveAll(vendeps.Vendor)}
 		return actions, nil
 	}
 
@@ -76,13 +69,13 @@ func Vendor(fsys fs.FS) (actions []vendeps.Action, err error) {
 
 	// Start by checking whether the vendor folder exists.
 	// If it does, we will need to check the cache later.
-	info, err := fs.Stat(fsys, vendor)
+	info, err := fs.Stat(fsys, vendeps.Vendor)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return nil, fmt.Errorf("failed to stat %q: %v", vendor, err)
+		return nil, fmt.Errorf("failed to stat %q: %v", vendeps.Vendor, err)
 	}
 
 	if info != nil && !info.IsDir() {
-		return nil, fmt.Errorf("failed to vendor dependencies: %q exists and is not a directory", vendor)
+		return nil, fmt.Errorf("failed to vendor dependencies: %q exists and is not a directory", vendeps.Vendor)
 	}
 
 	// We proceed on the basis that the vendor directory
@@ -90,16 +83,16 @@ func Vendor(fsys fs.FS) (actions []vendeps.Action, err error) {
 	// that exist but wouldn't be created if we were to
 	// start from scratch. These actions are never affected
 	// by the cache.
-	entries, err := fs.ReadDir(fsys, vendor)
+	entries, err := fs.ReadDir(fsys, vendeps.Vendor)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return nil, fmt.Errorf("failed to read files in %q: %v", vendor, err)
+		return nil, fmt.Errorf("failed to read files in %q: %v", vendeps.Vendor, err)
 	}
 
 	for _, entry := range entries {
 		name := entry.Name()
-		full := path.Join(vendor, name)
+		full := path.Join(vendeps.Vendor, name)
 		switch name {
-		case manifestBzl:
+		case vendeps.ManifestBzl:
 			// Never remove the cache manifest.
 		default:
 			if !entry.IsDir() {
@@ -121,7 +114,7 @@ func Vendor(fsys fs.FS) (actions []vendeps.Action, err error) {
 		}
 	}
 
-	actions = append(actions, vendeps.BuildCacheManifest{Deps: &deps, Path: path.Join(vendor, manifestBzl)})
+	actions = append(actions, vendeps.BuildCacheManifest{Deps: &deps, Path: path.Join(vendeps.Vendor, vendeps.ManifestBzl)})
 
 	return actions, nil
 }
@@ -162,7 +155,7 @@ func vendorGo(fsys fs.FS, actions []vendeps.Action, modules []*vendeps.GoModule)
 	// First, we collect the set of all file paths
 	// under that segment of the file tree.
 	filepaths := make(map[string]bool)
-	err := fs.WalkDir(fsys, vendor, func(name string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(fsys, vendeps.Vendor, func(name string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -171,7 +164,7 @@ func vendorGo(fsys fs.FS, actions []vendeps.Action, modules []*vendeps.GoModule)
 			// Don't delete folders containing a module
 			// we're including, as we may want to retain
 			// it as a cache.
-			if modulePaths[strings.TrimPrefix(name, vendor+"/")] != nil {
+			if modulePaths[strings.TrimPrefix(name, vendeps.Vendor+"/")] != nil {
 				return fs.SkipDir
 			}
 
@@ -181,14 +174,14 @@ func vendorGo(fsys fs.FS, actions []vendeps.Action, modules []*vendeps.GoModule)
 		return nil
 	})
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return nil, fmt.Errorf("failed to walk %s: %v", vendor, err)
+		return nil, fmt.Errorf("failed to walk %s: %v", vendeps.Vendor, err)
 	}
 
 	// Now, we eliminate any filepaths that are
 	// a parent directory of, a module we'll be
 	// creating.
 	for _, module := range modules {
-		modname := path.Join(vendor, module.Name)
+		modname := path.Join(vendeps.Vendor, module.Name)
 		for filepath := range filepaths {
 			if strings.HasPrefix(modname, filepath+"/") {
 				delete(filepaths, filepath)
@@ -219,14 +212,14 @@ func vendorGo(fsys fs.FS, actions []vendeps.Action, modules []*vendeps.GoModule)
 	// cache may strip out the download action if it
 	// can prove that the right data is already there.
 	for _, module := range modules {
-		full := path.Join(vendor, module.Name)
+		full := path.Join(vendeps.Vendor, module.Name)
 		actions = append(actions, vendeps.DownloadGoModule{Module: module, Path: full})
 		for _, pkg := range module.Packages {
-			full = path.Join(vendor, pkg.Name)
+			full = path.Join(vendeps.Vendor, pkg.Name)
 			if pkg.BuildFile != "" {
-				actions = append(actions, vendeps.CopyBUILD{Source: pkg.BuildFile, Path: path.Join(full, buildBazel)})
+				actions = append(actions, vendeps.CopyBUILD{Source: pkg.BuildFile, Path: path.Join(full, vendeps.BuildBazel)})
 			} else {
-				actions = append(actions, vendeps.GenerateGoPackageBUILD{Package: pkg, Path: path.Join(full, buildBazel)})
+				actions = append(actions, vendeps.GenerateGoPackageBUILD{Package: pkg, Path: path.Join(full, vendeps.BuildBazel)})
 			}
 		}
 	}

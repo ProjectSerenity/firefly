@@ -17,14 +17,12 @@ import (
 	"firefly-os.dev/tools/vendeps"
 )
 
-const depsBzl = "deps.bzl"
-
 func init() {
 	RegisterCommand("vendored", "Update the vendored dependencies used.", cmdVendored)
 }
 
 func cmdVendored(ctx context.Context, w io.Writer, args []string) error {
-	return UpdateDependencies(depsBzl)
+	return UpdateDependencies(vendeps.DepsBzl)
 }
 
 // UpdateDependencies parses the given set of
