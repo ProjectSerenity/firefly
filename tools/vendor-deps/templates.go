@@ -3,7 +3,7 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-package vendeps
+package main
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ import (
 	"text/template"
 
 	"firefly-os.dev/tools/starlark"
+	"firefly-os.dev/tools/vendeps"
 )
 
 // The templates used to render build files and
@@ -33,7 +34,7 @@ func packageName(name string) string {
 
 // RenderGoPackageBuildFile generates a build file
 // for the given Go package.
-func RenderGoPackageBuildFile(name string, pkg *GoPackage) ([]byte, error) {
+func RenderGoPackageBuildFile(name string, pkg *vendeps.GoPackage) ([]byte, error) {
 	var buf bytes.Buffer
 	err := templates.ExecuteTemplate(&buf, "go-BUILD.txt", pkg)
 	if err != nil {
@@ -45,7 +46,7 @@ func RenderGoPackageBuildFile(name string, pkg *GoPackage) ([]byte, error) {
 
 // RenderTextFilesBuildFile generates a build file
 // for the given text files.
-func RenderTextFilesBuildFile(name string, files *TextFiles) ([]byte, error) {
+func RenderTextFilesBuildFile(name string, files *vendeps.TextFiles) ([]byte, error) {
 	var buf bytes.Buffer
 	err := templates.ExecuteTemplate(&buf, "files-BUILD.txt", files)
 	if err != nil {
@@ -57,7 +58,7 @@ func RenderTextFilesBuildFile(name string, files *TextFiles) ([]byte, error) {
 
 // RenderManifest generates a dependency manifest
 // from the given set of dependencies.
-func RenderManifest(name string, manifest *Deps) ([]byte, error) {
+func RenderManifest(name string, manifest *vendeps.Deps) ([]byte, error) {
 	var buf bytes.Buffer
 	err := templates.ExecuteTemplate(&buf, "manifest.txt", manifest)
 	if err != nil {

@@ -114,7 +114,7 @@ func Vendor(fsys fs.FS) (actions []vendeps.Action, err error) {
 		}
 	}
 
-	actions = append(actions, vendeps.BuildCacheManifest{Deps: &deps, Path: path.Join(vendeps.Vendor, vendeps.ManifestBzl)})
+	actions = append(actions, BuildCacheManifest{Deps: &deps, Path: path.Join(vendeps.Vendor, vendeps.ManifestBzl)})
 
 	return actions, nil
 }
@@ -219,13 +219,13 @@ func vendorGo(fsys fs.FS, actions []vendeps.Action, modules []*vendeps.GoModule)
 			if pkg.BuildFile != "" {
 				actions = append(actions, vendeps.CopyBUILD{Source: pkg.BuildFile, Path: path.Join(full, vendeps.BuildBazel)})
 			} else {
-				actions = append(actions, vendeps.GenerateGoPackageBUILD{Package: pkg, Path: path.Join(full, vendeps.BuildBazel)})
+				actions = append(actions, GenerateGoPackageBUILD{Package: pkg, Path: path.Join(full, vendeps.BuildBazel)})
 			}
 		}
 
 		for _, files := range module.Directories {
 			full = path.Join(vendeps.Vendor, files.Name)
-			actions = append(actions, vendeps.GenerateTextFilesBUILD{Files: files, Path: path.Join(full, vendeps.BuildBazel)})
+			actions = append(actions, GenerateTextFilesBUILD{Files: files, Path: path.Join(full, vendeps.BuildBazel)})
 		}
 	}
 

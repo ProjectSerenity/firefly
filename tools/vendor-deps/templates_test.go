@@ -3,7 +3,7 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-package vendeps
+package main
 
 import (
 	"bytes"
@@ -12,18 +12,20 @@ import (
 	"testing"
 
 	"rsc.io/diff"
+
+	"firefly-os.dev/tools/vendeps"
 )
 
 func TestRenderGoPackageBuildFile(t *testing.T) {
 	tests := []struct {
 		Name    string
 		Want    string
-		Package *GoPackage
+		Package *vendeps.GoPackage
 	}{
 		{
 			Name: "simple package",
 			Want: "simple_package_BUILD.txt",
-			Package: &GoPackage{
+			Package: &vendeps.GoPackage{
 				Name:    "rsc.io/quote",
 				NoTests: true,
 			},
@@ -31,7 +33,7 @@ func TestRenderGoPackageBuildFile(t *testing.T) {
 		{
 			Name: "complex package",
 			Want: "complex_package_BUILD.txt",
-			Package: &GoPackage{
+			Package: &vendeps.GoPackage{
 				Name: "golang.org/x/mod/zip",
 				Deps: []string{
 					"golang.org/x/mod/module",
@@ -71,17 +73,17 @@ func TestRenderManifest(t *testing.T) {
 	tests := []struct {
 		Name string
 		Want string
-		Deps *Deps
+		Deps *vendeps.Deps
 	}{
 		{
 			Name: "simple manifest",
 			Want: "simple_manifest.txt",
-			Deps: &Deps{
-				Go: []*GoModule{
+			Deps: &vendeps.Deps{
+				Go: []*vendeps.GoModule{
 					{
 						Name:    "golang.org/x/crypto",
 						Version: "v1.2.3",
-						Packages: []*GoPackage{
+						Packages: []*vendeps.GoPackage{
 							{Name: "golang.org/x/crypto"},
 						},
 						Digest: "sha256:deadbeef",
@@ -89,7 +91,7 @@ func TestRenderManifest(t *testing.T) {
 					{
 						Name:    "golang.org/x/mod",
 						Version: "v1.2.3",
-						Packages: []*GoPackage{
+						Packages: []*vendeps.GoPackage{
 							{Name: "golang.org/x/mod/module"},
 							{Name: "golang.org/x/mod/zip"},
 						},

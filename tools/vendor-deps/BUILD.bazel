@@ -8,9 +8,12 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 go_library(
     name = "vendor-deps_lib",
     srcs = [
+        "actions.go",
         "main.go",
+        "templates.go",
         "vendor.go",
     ],
+    embedsrcs = glob(["templates/**"]),
     importpath = "firefly-os.dev/tools/vendor-deps",
     visibility = ["//visibility:private"],
     deps = [
@@ -23,8 +26,10 @@ go_test(
     name = "vendor-deps_test",
     size = "small",
     srcs = [
+        "templates_test.go",
         "vendor_test.go",
     ],
+    data = glob(["testdata/**"]),
     embed = [":vendor-deps_lib"],
     deps = [
         "//vendor/rsc.io/diff",

@@ -65,26 +65,6 @@ func TestStripCachedActions(t *testing.T) {
 					},
 					Path: "vendor/rsc.io/quote",
 				},
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
-						Name: "rsc.io/quote",
-					},
-					Path: "vendor/rsc.io/quote/BUILD.bazel",
-				},
-				BuildCacheManifest{
-					Deps: &Deps{
-						Go: []*GoModule{
-							{
-								Name:    "rsc.io/quote",
-								Version: "v1.2.3",
-								Packages: []*GoPackage{
-									{Name: "rsc.io/quote"},
-								},
-							},
-						},
-					},
-					Path: "vendor/manifest.bzl",
-				},
 			},
 			Want: []Action{
 				DownloadGoModule{
@@ -96,26 +76,6 @@ func TestStripCachedActions(t *testing.T) {
 						},
 					},
 					Path: "vendor/rsc.io/quote",
-				},
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
-						Name: "rsc.io/quote",
-					},
-					Path: "vendor/rsc.io/quote/BUILD.bazel",
-				},
-				BuildCacheManifest{
-					Deps: &Deps{
-						Go: []*GoModule{
-							{
-								Name:    "rsc.io/quote",
-								Version: "v1.2.3",
-								Packages: []*GoPackage{
-									{Name: "rsc.io/quote"},
-								},
-							},
-						},
-					},
-					Path: "vendor/manifest.bzl",
 				},
 			},
 		},
@@ -232,12 +192,6 @@ func TestStripCachedActions(t *testing.T) {
 					},
 					Path: "vendor/golang.org/x/crypto",
 				},
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
-						Name: "golang.org/x/crypto",
-					},
-					Path: "vendor/golang.org/x/crypto/BUILD.bazel",
-				},
 				DownloadGoModule{
 					Module: &GoModule{
 						Name:    "golang.org/x/mod",
@@ -249,18 +203,6 @@ func TestStripCachedActions(t *testing.T) {
 					},
 					Path: "vendor/golang.org/x/mod",
 				},
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
-						Name: "golang.org/x/mod/module",
-					},
-					Path: "vendor/golang.org/x/mod/module/BUILD.bazel",
-				},
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
-						Name: "golang.org/x/mod/zip",
-					},
-					Path: "vendor/golang.org/x/mod/zip/BUILD.bazel",
-				},
 				DownloadGoModule{
 					Module: &GoModule{
 						Name:    "rsc.io/diff",
@@ -271,12 +213,6 @@ func TestStripCachedActions(t *testing.T) {
 					},
 					Path: "vendor/rsc.io/diff",
 				},
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
-						Name: "rsc.io/diff",
-					},
-					Path: "vendor/rsc.io/diff/BUILD.bazel",
-				},
 				DownloadGoModule{
 					Module: &GoModule{
 						Name:    "rsc.io/quote",
@@ -286,48 +222,6 @@ func TestStripCachedActions(t *testing.T) {
 						},
 					},
 					Path: "vendor/rsc.io/quote",
-				},
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
-						Name: "rsc.io/quote",
-					},
-					Path: "vendor/rsc.io/quote/BUILD.bazel",
-				},
-				BuildCacheManifest{
-					Deps: &Deps{
-						Go: []*GoModule{
-							{
-								Name:    "golang.org/x/crypto",
-								Version: "v1.2.3",
-								Packages: []*GoPackage{
-									{Name: "golang.org/x/crypto"},
-								},
-							},
-							{
-								Name:    "golang.org/x/mod",
-								Version: "v1.2.3",
-								Packages: []*GoPackage{
-									{Name: "golang.org/x/mod/module"},
-									{Name: "golang.org/x/mod/zip"},
-								},
-							},
-							{
-								Name:    "rsc.io/diff",
-								Version: "v1.2.3",
-								Packages: []*GoPackage{
-									{Name: "rsc.io/diff"},
-								},
-							},
-							{
-								Name:    "rsc.io/quote",
-								Version: "v1.2.3",
-								Packages: []*GoPackage{
-									{Name: "rsc.io/quote"},
-								},
-							},
-						},
-					},
-					Path: "vendor/manifest.bzl",
 				},
 			},
 			Want: []Action{
@@ -341,12 +235,6 @@ func TestStripCachedActions(t *testing.T) {
 					},
 					Path: "vendor/golang.org/x/crypto",
 				},
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
-						Name: "golang.org/x/crypto",
-					},
-					Path: "vendor/golang.org/x/crypto/BUILD.bazel",
-				},
 				DownloadGoModule{
 					Module: &GoModule{
 						Name:    "golang.org/x/mod",
@@ -358,18 +246,6 @@ func TestStripCachedActions(t *testing.T) {
 					},
 					Path: "vendor/golang.org/x/mod",
 				},
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
-						Name: "golang.org/x/mod/module",
-					},
-					Path: "vendor/golang.org/x/mod/module/BUILD.bazel",
-				},
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
-						Name: "golang.org/x/mod/zip",
-					},
-					Path: "vendor/golang.org/x/mod/zip/BUILD.bazel",
-				},
 				DownloadGoModule{
 					Module: &GoModule{
 						Name:    "rsc.io/diff",
@@ -380,55 +256,7 @@ func TestStripCachedActions(t *testing.T) {
 					},
 					Path: "vendor/rsc.io/diff",
 				},
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
-						Name: "rsc.io/diff",
-					},
-					Path: "vendor/rsc.io/diff/BUILD.bazel",
-				},
 				// Strip the download for rsc.io/quote, as it's cached.
-				GenerateGoPackageBUILD{
-					Package: &GoPackage{
-						Name: "rsc.io/quote",
-					},
-					Path: "vendor/rsc.io/quote/BUILD.bazel",
-				},
-				BuildCacheManifest{
-					Deps: &Deps{
-						Go: []*GoModule{
-							{
-								Name:    "golang.org/x/crypto",
-								Version: "v1.2.3",
-								Packages: []*GoPackage{
-									{Name: "golang.org/x/crypto"},
-								},
-							},
-							{
-								Name:    "golang.org/x/mod",
-								Version: "v1.2.3",
-								Packages: []*GoPackage{
-									{Name: "golang.org/x/mod/module"},
-									{Name: "golang.org/x/mod/zip"},
-								},
-							},
-							{
-								Name:    "rsc.io/diff",
-								Version: "v1.2.3",
-								Packages: []*GoPackage{
-									{Name: "rsc.io/diff"},
-								},
-							},
-							{
-								Name:    "rsc.io/quote",
-								Version: "v1.2.3",
-								Packages: []*GoPackage{
-									{Name: "rsc.io/quote"},
-								},
-							},
-						},
-					},
-					Path: "vendor/manifest.bzl",
-				},
 			},
 		},
 	}

@@ -14,10 +14,8 @@ go_library(
         "go.go",
         "license.go",
         "patch.go",
-        "templates.go",
         "vendeps.go",
     ],
-    embedsrcs = glob(["templates/**"]),
     importpath = "firefly-os.dev/tools/vendeps",
     visibility = ["//visibility:public"],
     deps = [
@@ -35,9 +33,7 @@ go_test(
         "cache_test.go",
         "digest_test.go",
         "license_test.go",
-        "templates_test.go",
     ],
-    data = glob(["testdata/**"]),
     embed = [":vendeps"],
     deps = [
         "//vendor/rsc.io/diff",

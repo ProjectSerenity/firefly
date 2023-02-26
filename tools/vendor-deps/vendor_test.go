@@ -66,13 +66,13 @@ func TestVendor(t *testing.T) {
 					},
 					Path: "vendor/rsc.io/quote",
 				},
-				vendeps.GenerateGoPackageBUILD{
+				GenerateGoPackageBUILD{
 					Package: &vendeps.GoPackage{
 						Name: "rsc.io/quote",
 					},
 					Path: "vendor/rsc.io/quote/BUILD.bazel",
 				},
-				vendeps.BuildCacheManifest{
+				BuildCacheManifest{
 					Deps: &vendeps.Deps{
 						Go: []*vendeps.GoModule{
 							{
@@ -133,13 +133,13 @@ func TestVendor(t *testing.T) {
 					},
 					Path: "vendor/rsc.io/quote",
 				},
-				vendeps.GenerateGoPackageBUILD{
+				GenerateGoPackageBUILD{
 					Package: &vendeps.GoPackage{
 						Name: "rsc.io/quote",
 					},
 					Path: "vendor/rsc.io/quote/BUILD.bazel",
 				},
-				vendeps.BuildCacheManifest{
+				BuildCacheManifest{
 					Deps: &vendeps.Deps{
 						Go: []*vendeps.GoModule{
 							{
@@ -205,7 +205,7 @@ func TestVendor(t *testing.T) {
 					},
 					Path: "vendor/rsc.io/diff",
 				},
-				vendeps.GenerateGoPackageBUILD{
+				GenerateGoPackageBUILD{
 					Package: &vendeps.GoPackage{
 						Name: "rsc.io/diff",
 					},
@@ -221,13 +221,13 @@ func TestVendor(t *testing.T) {
 					},
 					Path: "vendor/rsc.io/quote",
 				},
-				vendeps.GenerateGoPackageBUILD{
+				GenerateGoPackageBUILD{
 					Package: &vendeps.GoPackage{
 						Name: "rsc.io/quote",
 					},
 					Path: "vendor/rsc.io/quote/BUILD.bazel",
 				},
-				vendeps.BuildCacheManifest{
+				BuildCacheManifest{
 					Deps: &vendeps.Deps{
 						Go: []*vendeps.GoModule{
 							{
