@@ -24,7 +24,6 @@ go_library(
         "//tools/gomodproxy",
         "//tools/simplehttp",
         "//tools/starlark",
-        "//vendor/github.com/bazelbuild/buildtools/build",
         "//vendor/golang.org/x/mod/semver",
     ],
 )
