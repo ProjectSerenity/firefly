@@ -3,7 +3,7 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-package vendeps
+package main
 
 import (
 	"encoding/json"
@@ -13,6 +13,8 @@ import (
 
 	"github.com/bazelbuild/buildtools/build"
 	"rsc.io/diff"
+
+	"firefly-os.dev/tools/vendeps"
 )
 
 func stringPointer(s string) *string {
@@ -23,7 +25,7 @@ func TestParseUpdateDeps(t *testing.T) {
 	tests := []struct {
 		Name string
 		Text string
-		Want *UpdateDeps
+		Want *vendeps.UpdateDeps
 	}{
 		{
 			Name: "simple",
@@ -40,8 +42,8 @@ func TestParseUpdateDeps(t *testing.T) {
 					),
 				]
 			`,
-			Want: &UpdateDeps{
-				Go: []*UpdateDep{
+			Want: &vendeps.UpdateDeps{
+				Go: []*vendeps.UpdateDep{
 					{
 						Name:    "rsc.io/quote",
 						Version: stringPointer("v1.2.3"),

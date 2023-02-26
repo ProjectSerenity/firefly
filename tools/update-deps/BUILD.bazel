@@ -32,11 +32,13 @@ go_test(
     size = "small",
     srcs = [
         "fields_test.go",
+        "vendored_test.go",
     ],
     data = glob(["testdata/*"]),
     embed = [":update-deps_lib"],
     deps = [
         "//vendor/github.com/bazelbuild/buildtools/build",
         "//vendor/golang.org/x/time/rate",
+        "//vendor/rsc.io/diff",
     ],
 )
