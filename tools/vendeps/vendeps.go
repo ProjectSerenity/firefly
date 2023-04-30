@@ -56,10 +56,14 @@ type GoPackage struct {
 	// Manually-managed BUILD file.
 	BuildFile string `bzl:"build_file"`
 
-	// Build configuration
+	// Build configuration.
 	Deps       []string `bzl:"deps"`
 	Embed      []string `bzl:"embed"`
 	EmbedGlobs []string `bzl:"embed_globs"`
+
+	// Binary configuration.
+	Binary     bool     `bzl:"binary"`
+	BinaryDeps []string `bzl:"binary_deps"`
 
 	// Test configuration.
 	NoTests       bool     `bzl:"no_tests"`

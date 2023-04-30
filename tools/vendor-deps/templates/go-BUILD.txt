@@ -5,10 +5,10 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@io_bazel_rules_go//go:def.bzl", "go_library"{{ if not .NoTests }}, "go_test"{{ end }})
+load("@io_bazel_rules_go//go:def.bzl", {{ if .Binary }}"go_binary", {{ end }}"go_library"{{ if not .NoTests }}, "go_test"{{ end }})
 
 go_library(
-    name = "{{ packageName .Name }}",
+    name = "{{ packageName . }}",
     srcs = glob(
         include = ["*.go"],
         exclude = ["*_test.go"],
@@ -26,10 +26,19 @@ go_library(
     deps = [{{ range .Deps }}
         "//vendor/{{ . }}",{{ end }}
     ],{{ end }}
-){{ if not .NoTests }}
+){{ if .Binary }}
+
+go_binary(
+    name = "{{ binaryName . }}",
+    embed = [":{{ packageName . }}"],
+    visibility = ["//visibility:public"],{{ if .TestDeps }}
+    deps = [{{ range .BinaryDeps }}
+        "//vendor/{{ . }}",{{ end }}
+    ],{{ end }}
+){{ end }}{{ if not .NoTests }}
 
 go_test(
-    name = "{{ packageName .Name }}_test",
+    name = "{{ packageName . }}_test",
     size = "{{ if .TestSize }}{{ .TestSize }}{{ else }}small{{ end }}",
     srcs = glob(["*_test.go"]),
     data = glob(["testdata/**"]){{ if .TestDataGlobs }} + glob([{{ range .TestDataGlobs }}
@@ -37,7 +46,7 @@ go_test(
     ]){{ end }}{{ if .TestData }} + [{{ range .TestData }}
         "{{ . }}",{{ end }}
     ]{{ end }},
-    embed = [":{{ packageName .Name }}"],{{ if .TestDeps }}
+    embed = [":{{ packageName . }}"],{{ if .TestDeps }}
     deps = [{{ range .TestDeps }}
         "//vendor/{{ . }}",{{ end }}
     ],{{ end }}

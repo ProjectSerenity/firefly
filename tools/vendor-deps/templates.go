@@ -23,13 +23,25 @@ import (
 var templatesFS embed.FS
 
 var templates = template.Must(template.New("").Funcs(template.FuncMap{
+	"binaryName":  binaryName,
 	"packageName": packageName,
 }).ParseFS(templatesFS, "templates/*.txt"))
 
+// binaryName return the name in a form suitable
+// for use as a Go binary's package name.
+func binaryName(pkg *vendeps.GoPackage) string {
+	return path.Base(pkg.Name)
+}
+
 // packageName return the name in a form suitable
-// for use as a Go package name
-func packageName(name string) string {
-	return path.Base(name)
+// for use as a Go package name.
+func packageName(pkg *vendeps.GoPackage) string {
+	base := path.Base(pkg.Name)
+	if pkg.Binary {
+		base += "_lib"
+	}
+
+	return base
 }
 
 // RenderGoPackageBuildFile generates a build file
