@@ -66,3 +66,17 @@ genrule(
     tools = ["//tools/ruse/internal/x86/x86spec"],
     visibility = ["//visibility:public"],
 )
+
+genrule(
+    name = "x86-json",
+    srcs = [
+        "x86.csv",
+    ],
+    outs = [
+        "data.go",
+        "x86.json",
+    ],
+    cmd = """./$(location //tools/ruse/internal/x86/x86json) -in=$(location x86.csv) -json-out=$(location x86.json) -go-out=$(location data.go)""",
+    tools = ["//tools/ruse/internal/x86/x86json"],
+    visibility = ["//visibility:public"],
+)
