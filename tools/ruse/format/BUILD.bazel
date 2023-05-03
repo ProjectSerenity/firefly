@@ -1,0 +1,32 @@
+# Copyright 2022 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "format",
+    srcs = ["format.go"],
+    importpath = "firefly-os.dev/tools/ruse/format",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tools/ruse/ast",
+        "//tools/ruse/token",
+    ],
+)
+
+go_test(
+    name = "format_test",
+    size = "small",
+    srcs = ["format_test.go"],
+    embed = [":format"],
+    deps = [
+        "//tools/ruse/ast",
+        "//tools/ruse/parser",
+        "//tools/ruse/token",
+        "//vendor/github.com/google/go-cmp/cmp",
+        "//vendor/github.com/google/go-cmp/cmp/cmpopts",
+        "//vendor/rsc.io/diff",
+    ],
+)
