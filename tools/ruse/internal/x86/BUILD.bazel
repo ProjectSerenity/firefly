@@ -54,6 +54,16 @@ go_test(
     ],
 )
 
+go_library(
+    name = "x86",
+    srcs = [
+        "data.go",
+    ],
+    embed = [":x86-no-data"],
+    importpath = "firefly-os.dev/tools/ruse/internal/x86",
+    visibility = ["//tools/ruse:__subpackages__"],
+)
+
 genrule(
     name = "x86-csv",
     srcs = [
