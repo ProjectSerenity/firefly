@@ -7,6 +7,7 @@ package compiler
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/csv"
 	"encoding/hex"
 	"errors"
@@ -342,7 +343,7 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 		t.Skip("skipping bulk test vector tests")
 	}
 
-	name := filepath.Join("testdata", "x86-tests.csv")
+	name := filepath.Join("testdata", "x86-tests.csv.gz")
 	f, err := os.Open(name)
 	if err != nil {
 		t.Fatalf("failed to open %s: %v", name, err)
@@ -363,7 +364,12 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 		Intel string           // Intel assembly.
 	}
 
-	cr := csv.NewReader(f)
+	r, err := gzip.NewReader(f)
+	if err != nil {
+		t.Fatalf("failed to read gzip header: %v", err)
+	}
+
+	cr := csv.NewReader(r)
 	cr.Comment = '#'
 	header, err := cr.Read()
 	if err != nil {
@@ -424,6 +430,11 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 		default:
 			t.Fatalf("found test with unexpected mode %q: %s", test.Mode, line)
 		}
+	}
+
+	err = r.Close()
+	if err != nil {
+		t.Fatalf("failed to close GZIP reader: %v", err)
 	}
 
 	// The tests map each instruction form

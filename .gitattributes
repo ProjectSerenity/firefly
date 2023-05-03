@@ -1,1 +1,2 @@
 tools/ruse/compiler/testdata/x86-tests.csv filter=lfs diff=lfs merge=lfs -text
+tools/ruse/compiler/testdata/x86-tests.csv.gz filter=lfs diff=lfs merge=lfs -text
