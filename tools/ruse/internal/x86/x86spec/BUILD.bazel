@@ -1,0 +1,36 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "x86spec_lib",
+    srcs = [
+        "cleanup.go",
+        "format.go",
+        "parse.go",
+        "spec.go",
+    ],
+    importpath = "firefly-os.dev/tools/ruse/internal/x86/x86spec",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/rsc.io/pdf",
+    ],
+)
+
+go_binary(
+    name = "x86spec",
+    embed = [":x86spec_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "x86spec_lib_test",
+    size = "small",
+    srcs = [
+        "spec_test.go",
+    ],
+    embed = [":x86spec_lib"],
+)
