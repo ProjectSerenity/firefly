@@ -1,0 +1,32 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "elf",
+    srcs = [
+        "elf.go",
+    ],
+    importpath = "firefly-os.dev/tools/ruse/binary/elf",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tools/ruse/binary",
+        "//tools/ruse/sys",
+    ],
+)
+
+go_test(
+    name = "elf_test",
+    size = "small",
+    srcs = ["elf_test.go"],
+    embed = [":elf"],
+    deps = [
+        "//tools/ruse/binary",
+        "//tools/ruse/sys",
+        "//vendor/github.com/google/go-cmp/cmp",
+        "//vendor/github.com/google/go-cmp/cmp/cmpopts",
+    ],
+)
