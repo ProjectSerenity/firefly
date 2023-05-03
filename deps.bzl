@@ -216,4 +216,13 @@ go = [
             ),
         ],
     ),
+    module(
+        name = "rsc.io/pdf",
+        version = "v0.1.1",
+        packages = [
+            package(
+                name = "rsc.io/pdf",
+            ),
+        ],
+    ),
 ]
