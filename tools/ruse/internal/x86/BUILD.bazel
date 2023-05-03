@@ -53,3 +53,16 @@ go_test(
         "//vendor/github.com/google/go-cmp/cmp",
     ],
 )
+
+genrule(
+    name = "x86-csv",
+    srcs = [
+        "@x86manual//file",
+    ],
+    outs = [
+        "x86.csv",
+    ],
+    cmd = """./$(location //tools/ruse/internal/x86/x86spec) -f=$(location @x86manual//file) > $(location x86.csv)""",
+    tools = ["//tools/ruse/internal/x86/x86spec"],
+    visibility = ["//visibility:public"],
+)
