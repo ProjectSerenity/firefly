@@ -7,7 +7,7 @@ workspace(name = "firefly")
 
 # Initialise external dependencies.
 
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive", "http_file")
 
 http_archive(
     name = "io_bazel_rules_go",
@@ -16,6 +16,13 @@ http_archive(
         "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.39.0/rules_go-v0.39.0.zip",
         "https://github.com/bazelbuild/rules_go/releases/download/v0.39.0/rules_go-v0.39.0.zip",
     ],
+)
+
+# Intel x86 manual, volume 2, version 325383-079US, March 2023.
+http_file(
+    name = "x86manual",
+    sha256 = "bc4348020f5d5a27b0207c61e3c88d4e610eaf428658dc5d08a1cc84f98a719b",
+    url = "https://cdrdv2.intel.com/v1/dl/getContent/671110",
 )
 
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
