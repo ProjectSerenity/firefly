@@ -1,0 +1,43 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "gen-tests_lib",
+    srcs = [
+        "equivalence.go",
+        "fixup.go",
+        "generate.go",
+        "heuristics.go",
+        "main.go",
+    ],
+    importpath = "firefly-os.dev/tools/ruse/internal/x86/gen-tests",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//tools/ruse/internal/x86",
+    ],
+)
+
+go_binary(
+    name = "gen-tests",
+    embed = [":gen-tests_lib"],
+    visibility = ["//visibility:private"],
+)
+
+go_test(
+    name = "gen-tests_test",
+    size = "small",
+    srcs = [
+        "equivalence_test.go",
+        "fixup_test.go",
+        "generate_test.go",
+        "heuristics_test.go",
+    ],
+    embed = [":gen-tests_lib"],
+    deps = [
+        "//vendor/github.com/google/go-cmp/cmp",
+    ],
+)
