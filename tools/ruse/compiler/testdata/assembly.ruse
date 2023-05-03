@@ -1,0 +1,16 @@
+; A simple package with an assembly function.
+
+(package assembly)
+
+'(arch x86-64)
+'(param (sys uint64) rax)
+'(param (arg1 uint64) rdi)
+'(param (arg2 uint64) rsi)
+'(param (arg3 uint64) rdx)
+'(param (arg4 uint64) r10)
+'(param (arg5 uint64) r8)
+'(param (arg6 uint64) r9)
+'(result uint64 rax)
+'(strikes rcx r11)
+(asm-func syscall6
+	(syscall))

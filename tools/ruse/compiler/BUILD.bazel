@@ -1,0 +1,54 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+genrule(
+    name = "assembler",
+    outs = [
+        "x86-generated.go",
+    ],
+    cmd = """./$(location //tools/ruse/internal/x86/gen-assembler) -out=$(location x86-generated.go)""",
+    tools = ["//tools/ruse/internal/x86/gen-assembler"],
+    visibility = ["//visibility:private"],
+)
+
+go_library(
+    name = "compiler",
+    srcs = [
+        "compiler.go",
+        "expr.go",
+        "x86-assemble.go",
+        "x86-encode.go",
+        "x86-generated.go",
+    ],
+    importpath = "firefly-os.dev/tools/ruse/compiler",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tools/ruse/ast",
+        "//tools/ruse/internal/x86",
+        "//tools/ruse/ssafir",
+        "//tools/ruse/sys",
+        "//tools/ruse/token",
+        "//tools/ruse/types",
+    ],
+)
+
+go_test(
+    name = "compiler_test",
+    size = "medium",
+    srcs = [
+        "compiler_test.go",
+        "x86-encode_test.go",
+        "x86_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":compiler"],
+    deps = [
+        "//tools/ruse/parser",
+        "//vendor/github.com/google/go-cmp/cmp",
+        "//vendor/github.com/google/go-cmp/cmp/cmpopts",
+    ],
+)
