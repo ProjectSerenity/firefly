@@ -1,0 +1,31 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "parser",
+    srcs = ["parser.go"],
+    importpath = "firefly-os.dev/tools/ruse/parser",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tools/ruse/ast",
+        "//tools/ruse/lexer",
+        "//tools/ruse/token",
+    ],
+)
+
+go_test(
+    name = "parser_test",
+    size = "small",
+    srcs = ["parser_test.go"],
+    embed = [":parser"],
+    deps = [
+        "//tools/ruse/ast",
+        "//tools/ruse/lexer",
+        "//tools/ruse/token",
+        "//vendor/github.com/google/go-cmp/cmp",
+    ],
+)
