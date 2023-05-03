@@ -1,0 +1,43 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "types",
+    srcs = [
+        "basic.go",
+        "constants.go",
+        "functions.go",
+        "init.go",
+        "object.go",
+        "scope.go",
+        "special-forms.go",
+        "types.go",
+        "utils.go",
+        "variables.go",
+    ],
+    importpath = "firefly-os.dev/tools/ruse/types",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tools/ruse/ast",
+        "//tools/ruse/sys",
+        "//tools/ruse/token",
+    ],
+)
+
+go_test(
+    name = "types_test",
+    size = "small",
+    srcs = ["types_test.go"],
+    data = glob(["testdata/**"]),
+    embed = [":types"],
+    deps = [
+        "//tools/ruse/ast",
+        "//tools/ruse/parser",
+        "//tools/ruse/token",
+        "//vendor/github.com/google/go-cmp/cmp",
+    ],
+)

@@ -1,0 +1,3 @@
+; A simple package with two file that differ in package name.
+
+(package wrong)

@@ -1,0 +1,18 @@
+; A simple package with a set of functions.
+
+(package functions)
+
+(func (nullary-function)
+	(let (_ int8) 0))
+
+(func (unary-function (x byte))
+	(let _ x))
+
+(func (binary-function (x int64) (y string))
+	(let _ (+ x (int->int64 (len y)))))
+
+(func (add1 (x int8) int8)
+	(+ x 1))
+
+(func (product (base uint64) (scalar uint64) uint64)
+	(* base scalar))

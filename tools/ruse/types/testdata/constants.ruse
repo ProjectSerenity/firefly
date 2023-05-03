@@ -1,0 +1,26 @@
+; A simple package with a set of constant declarations.
+
+(package constants)
+
+(let INFERRED-STRING "string 1")
+
+(let InferredInt 123)
+
+(let (big uint64) 1)
+
+(let (NAMED string) "string 2")
+
+(let (SMALL int8) -127)
+
+(let derived (len "foo"))
+
+(let complex-constant-op
+	(+
+		(len "foo")
+		3
+		(len "other")
+		(- 0xff 250 2)
+		(* (- (- 2)) 3 4)
+		(/ 12 6 2)))
+
+(let compound-string (+ NAMED "foo"))
