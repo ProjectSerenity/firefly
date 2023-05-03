@@ -1,0 +1,25 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "gen-assembler_lib",
+    srcs = [
+        "main.go",
+    ],
+    embedsrcs = glob(["templates/**"]),
+    importpath = "firefly-os.dev/tools/ruse/internal/x86/gen-assmebler",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//tools/ruse/internal/x86",
+    ],
+)
+
+go_binary(
+    name = "gen-assembler",
+    embed = [":gen-assembler_lib"],
+    visibility = ["//tools/ruse:__subpackages__"],
+)
