@@ -8,8 +8,8 @@
 go = [
     module(
         name = "github.com/bazelbuild/buildtools",
-        version = "v0.0.0-20230113180850-180a94ab3a3a",
-        digest = "sha256:0b78247e8d1abe1656e54459a05ca8c3b31b525914b3d6abbff5aff934fd78bf",
+        version = "v0.0.0-20230427141602-b182fc414c8b",
+        digest = "sha256:5fffe643ce7150a30b1d65ecc96d10cde7b1a908fc95f1e068ec4e408c30b541",
     ),
     module(
         name = "github.com/google/go-cmp",
@@ -30,13 +30,13 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.5.0",
-        digest = "sha256:518abb983d66814bf0bfaccc8cc903ff8dc692c964baa872e9bad4f1d6046c15",
+        version = "v0.8.0",
+        digest = "sha256:21d1790b219610b35a17d093448c493de3892dedb79532776c18544eaf399f3b",
     ),
     module(
         name = "golang.org/x/mod",
-        version = "v0.8.0",
-        digest = "sha256:8c8a1264537694d138af18364a3a023097c32abdd84a013e0be1968a24982c7c",
+        version = "v0.10.0",
+        digest = "sha256:5b9141e7062f950527184889dd887196c68ce438ef247eb59dd78390c2aa127e",
     ),
     module(
         name = "golang.org/x/time",
@@ -45,8 +45,8 @@ go = [
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.5.0",
-        digest = "sha256:b7e1fe569092d058821a3c822529eb25a79d38a8fb8d041a622693b65e73144f",
+        version = "v0.8.0",
+        digest = "sha256:1decc1dfdd753a4de3d39dec25d70197a57be530ff15d2a19f922041affe3b66",
     ),
     module(
         name = "golang.org/x/xerrors",

@@ -6,7 +6,7 @@
 go = [
     module(
         name = "github.com/bazelbuild/buildtools",
-        version = "v0.0.0-20230113180850-180a94ab3a3a",
+        version = "v0.0.0-20230427141602-b182fc414c8b",
         packages = [
             package(
                 name = "github.com/bazelbuild/buildtools/build",
@@ -107,7 +107,7 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.5.0",
+        version = "v0.8.0",
         packages = [
             package(
                 name = "golang.org/x/crypto/ed25519",
@@ -116,7 +116,7 @@ go = [
     ),
     module(
         name = "golang.org/x/mod",
-        version = "v0.8.0",
+        version = "v0.10.0",
         packages = [
             package(
                 name = "golang.org/x/mod/internal/lazyregexp",
@@ -185,7 +185,7 @@ go = [
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.5.0",
+        version = "v0.8.0",
         packages = [
             package(
                 name = "golang.org/x/tools/txtar",
