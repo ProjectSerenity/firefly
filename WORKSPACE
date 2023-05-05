@@ -27,7 +27,7 @@ http_file(
 
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 
-GO_VERSION = "1.20.2"
+GO_VERSION = "1.20.4"
 
 go_rules_dependencies()
 
