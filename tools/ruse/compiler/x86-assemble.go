@@ -89,37 +89,41 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 	}
 
 	for _, anno := range assembly.Annotations {
-		if len(anno.X.Elements) != 2 {
-			continue
+		if len(anno.X.Elements) == 0 {
+			return nil, ctx.Errorf(anno.X.ParenClose, "invalid annotation: no keyword")
 		}
 
 		ident, ok := anno.X.Elements[0].(*ast.Identifier)
-		if !ok || ident.Name != "mode" {
-			continue
+		if !ok {
+			return nil, ctx.Errorf(anno.X.Elements[0].Pos(), "invalid annotation: bad keyword: %s %s", anno.X.Elements[0].String(), anno.X.Elements[0].Print())
 		}
 
-		mode, ok := anno.X.Elements[1].(*ast.Literal)
-		if !ok || mode.Kind != token.Integer {
-			continue
-		}
+		switch ident.Name {
+		case "mode":
+			mode, ok := anno.X.Elements[1].(*ast.Literal)
+			if !ok || mode.Kind != token.Integer {
+				continue
+			}
 
-		num, err := strconv.Atoi(mode.Value)
-		if err != nil {
-			return nil, fmt.Errorf("invalid mode %q: %v", mode.Value, err)
-		}
+			num, err := strconv.Atoi(mode.Value)
+			if err != nil {
+				return nil, fmt.Errorf("invalid mode %q: %v", mode.Value, err)
+			}
 
-		switch num {
-		case 16:
-			ctx.Mode = x86.Mode16
-		case 32:
-			ctx.Mode = x86.Mode32
-		case 64:
-			ctx.Mode = x86.Mode64
+			switch num {
+			case 16:
+				ctx.Mode = x86.Mode16
+			case 32:
+				ctx.Mode = x86.Mode32
+			case 64:
+				ctx.Mode = x86.Mode64
+			default:
+				return nil, fmt.Errorf("invalid mode %q: %v", mode.Value, err)
+			}
 		default:
-			return nil, fmt.Errorf("invalid mode %q: %v", mode.Value, err)
+			// We can safely ignore unrecognised annotations.
+			continue
 		}
-
-		break
 	}
 
 	fun.Extra = ctx.Mode
