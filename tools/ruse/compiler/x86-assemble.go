@@ -33,9 +33,11 @@ func (ctx *x86Context) Errorf(pos token.Pos, format string, v ...any) error {
 }
 
 type x86InstructionData struct {
+	Op   ssafir.Op
 	Inst *x86.Instruction
 	Args [4]any
 
+	Length    uint8 // Number of bytes of machine code (max 15).
 	REX_W     bool
 	Mask      uint8 // Any EVEX mask register.
 	Zero      bool  // Any EVEX zeroing.
@@ -45,14 +47,8 @@ type x86InstructionData struct {
 }
 
 type x86InstructionCandidate struct {
-	Opcode      ssafir.Op
-	Instruction *x86.Instruction
-}
-
-type x86InstructionOption struct {
-	Opcode ssafir.Op
-	Data   *x86InstructionData
-	Length int
+	Op   ssafir.Op
+	Inst *x86.Instruction
 }
 
 func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, info *types.Info, sizes types.Sizes) (*ssafir.Function, error) {
@@ -131,12 +127,12 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 	var rexwOverride bool
 	var prefixes []x86.Prefix
 	c.AddFunctionPrelude()
-	options := make([]x86InstructionOption, 0, 10)
+	options := make([]*x86InstructionData, 0, 10)
 	for _, expr := range assembly.Elements[2:] {
 		// TODO: handle labels in the generated assembler.
 		list, ok := expr.(*ast.List)
 		if !ok {
-			return nil, ctx.Errorf(expr.Pos(), "invalid assembly directive: expected an expression in list form or a label, found %s", expr.Print())
+			return nil, ctx.Errorf(expr.Pos(), "invalid assembly directive: expected an expression in list form or a label, found %s %s", expr.String(), expr.Print())
 		}
 
 		// Handle innstruction prefixes (see Intel x86-64 manual, volume 2A, chapter 2, golang.org/x/arch/x86/x86asm#Prefix).
@@ -261,28 +257,29 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 			return nil, ctx.Errorf(mnemonic.NamePos, "invalid assembly directive: mnemonic %q not recognised", mnemonic.Name)
 		}
 
+		var code x86.Code
 		params := elts[1:]
 		options = options[:0]
 		rightArity := false
 		for _, candidate := range candidates {
-			if candidate.Instruction.Encoding.NoRepPrefixes && rep {
+			if candidate.Inst.Encoding.NoRepPrefixes && rep {
 				return nil, ctx.Errorf(mnemonic.NamePos, "invalid assembly directive: mnemonic %q cannot be used with repeat prefixes", mnemonic.Name)
 			}
 
-			if matchUID != "" && matchUID != candidate.Instruction.UID {
+			if matchUID != "" && matchUID != candidate.Inst.UID {
 				continue
 			}
 
-			if len(params) != len(candidate.Instruction.Parameters) {
+			if len(params) != len(candidate.Inst.Parameters) {
 				if matchUID != "" {
-					return nil, ctx.Errorf(mnemonic.NamePos, "invalid assembly directive: %s does not match instruction %s: got %d parameters, want %d", list.Print(), matchUID, len(params), len(candidate.Instruction.Parameters))
+					return nil, ctx.Errorf(mnemonic.NamePos, "invalid assembly directive: %s does not match instruction %s: got %d parameters, want %d", list.Print(), matchUID, len(params), len(candidate.Inst.Parameters))
 				}
 
 				continue
 			}
 
 			rightArity = true
-			data, err := ctx.Match(list, params, candidate.Instruction)
+			data, err := ctx.Match(list, params, candidate)
 			if err != nil {
 				return nil, err
 			}
@@ -295,13 +292,17 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 				continue
 			}
 
-			// Fill in the common fields.
+			// Fill in the common fields and
+			// encode the instruction.
 			data.PrefixLen = uint8(copy(data.Prefixes[:], prefixes))
 			data.REX_W = rexwOverride
-			options = append(options, x86InstructionOption{
-				Opcode: candidate.Opcode,
-				Data:   data,
-			})
+			err = data.Encode(&code, ctx.Mode)
+			if err != nil {
+				return nil, err
+			}
+
+			data.Length = uint8(code.Len())
+			options = append(options, data)
 		}
 
 		if len(options) == 0 && matchUID != "" {
@@ -321,7 +322,7 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 			var want []int
 			seenArity := make(map[int]bool)
 			for _, candidate := range candidates {
-				arity := len(candidate.Instruction.Parameters)
+				arity := len(candidate.Inst.Parameters)
 				if !seenArity[arity] {
 					seenArity[arity] = true
 					want = append(want, arity)
@@ -359,16 +360,6 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 		// we sort them by encoded length and pick
 		// the shortest.
 		if len(options) > 1 {
-			var code x86.Code
-			for i, opt := range options {
-				err := opt.Data.Encode(&code, ctx.Mode)
-				if err != nil {
-					return nil, err
-				}
-
-				options[i].Length = code.Len()
-			}
-
 			sort.Slice(options, func(i, j int) bool {
 				// First, prioritise shorter machine
 				// code sequences.
@@ -378,9 +369,9 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 
 				// Next, prefer options with smaller
 				// data operations.
-				if options[i].Data.Inst.DataSize != 0 && options[j].Data.Inst.DataSize != 0 &&
-					options[i].Data.Inst.DataSize != options[j].Data.Inst.DataSize {
-					return options[i].Data.Inst.DataSize < options[j].Data.Inst.DataSize
+				if options[i].Inst.DataSize != 0 && options[j].Inst.DataSize != 0 &&
+					options[i].Inst.DataSize != options[j].Inst.DataSize {
+					return options[i].Inst.DataSize < options[j].Inst.DataSize
 				}
 
 				// If an EVEX encoding is not necessary
@@ -390,21 +381,21 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 				// also match. Prefer VEX over EVEX, as
 				// it's more intuitive and doesn't have
 				// any other effect.
-				enc1 := options[i].Data.Inst.Encoding
-				enc2 := options[j].Data.Inst.Encoding
+				enc1 := options[i].Inst.Encoding
+				enc2 := options[j].Inst.Encoding
 				if enc1.VEX != enc2.VEX || enc1.EVEX != enc2.EVEX {
 					return enc1.VEX
 				}
 
 				// Finally, resort to a comparison of
-				// the encoding strings. It means little,
+				// the opcode constant. It means little,
 				// but it's consistent.
-				return options[i].Data.Inst.Encoding.Syntax < options[j].Data.Inst.Encoding.Syntax
+				return options[i].Op < options[j].Op
 			})
 		}
 
 		option := options[0]
-		c.currentBlock.NewValueExtra(list.ParenOpen, list.ParenClose, option.Opcode, nil, option.Data)
+		c.currentBlock.NewValueExtra(list.ParenOpen, list.ParenClose, option.Op, nil, option)
 	}
 
 	return fun, nil
@@ -464,13 +455,17 @@ func sortPrefixes(s string) string {
 	return hex.EncodeToString(prefixOpcodes) + hex.EncodeToString(prefixes) + rest
 }
 
-func (ctx *x86Context) Match(list *ast.List, args []ast.Expression, inst *x86.Instruction) (data *x86InstructionData, err error) {
-	data = new(x86InstructionData)
-	if len(args) != len(inst.Parameters) ||
-		ctx.Mode.Int == 16 && !inst.Mode16 ||
-		ctx.Mode.Int == 32 && !inst.Mode32 ||
-		ctx.Mode.Int == 64 && !inst.Mode64 {
+func (ctx *x86Context) Match(list *ast.List, args []ast.Expression, inst x86InstructionCandidate) (data *x86InstructionData, err error) {
+	if len(args) != len(inst.Inst.Parameters) ||
+		ctx.Mode.Int == 16 && !inst.Inst.Mode16 ||
+		ctx.Mode.Int == 32 && !inst.Inst.Mode32 ||
+		ctx.Mode.Int == 64 && !inst.Inst.Mode64 {
 		return nil, nil
+	}
+
+	data = &x86InstructionData{
+		Op:   inst.Op,
+		Inst: inst.Inst,
 	}
 
 	// Check any annotations for EVEX parameters.
@@ -502,7 +497,7 @@ func (ctx *x86Context) Match(list *ast.List, args []ast.Expression, inst *x86.In
 			// We now know the mode is valid,
 			// but we can only use them with
 			// EVEX instructions.
-			if !inst.Encoding.EVEX {
+			if !inst.Inst.Encoding.EVEX {
 				return nil, nil
 			}
 		case "mask":
@@ -538,7 +533,7 @@ func (ctx *x86Context) Match(list *ast.List, args []ast.Expression, inst *x86.In
 			// We now know the mask is valid,
 			// but we can only use them with
 			// EVEX instructions.
-			if !inst.Encoding.EVEX {
+			if !inst.Inst.Encoding.EVEX {
 				return nil, nil
 			}
 		case "zero":
@@ -562,7 +557,7 @@ func (ctx *x86Context) Match(list *ast.List, args []ast.Expression, inst *x86.In
 			// We now know the mode is valid,
 			// but we can only use them with
 			// EVEX instructions.
-			if !inst.Encoding.EVEX {
+			if !inst.Inst.Encoding.EVEX {
 				return nil, nil
 			}
 		}
@@ -583,7 +578,7 @@ func (ctx *x86Context) Match(list *ast.List, args []ast.Expression, inst *x86.In
 		panic(v)
 	}()
 
-	for i, param := range inst.Parameters {
+	for i, param := range inst.Inst.Parameters {
 		var arg any
 		switch param.Type {
 		case x86.TypeSignedImmediate:
@@ -616,12 +611,10 @@ func (ctx *x86Context) Match(list *ast.List, args []ast.Expression, inst *x86.In
 
 		data.Args[i] = arg
 		reg, ok := arg.(*x86.Register)
-		if ok && reg.EVEX && !inst.Encoding.EVEX {
+		if ok && reg.EVEX && !inst.Inst.Encoding.EVEX {
 			return nil, nil
 		}
 	}
-
-	data.Inst = inst
 
 	return data, nil
 }

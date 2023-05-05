@@ -11,6 +11,6 @@ import (
 
 var x86MnemonicToCandidates = map[string][]x86InstructionCandidate{ {{- range $mnemonic, $instructions := .Instructions }}
 	"{{ $mnemonic }}": { {{- range $instructions }}
-		{Opcode: ssafir.OpX86{{ .UID }}, Instruction: x86.{{ .UID }}},{{ end }}
+		{Op: ssafir.OpX86{{ .UID }}, Inst: x86.{{ .UID }}},{{ end }}
 	},{{ end }}
 }
