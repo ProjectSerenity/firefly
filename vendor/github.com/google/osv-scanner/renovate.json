@@ -21,5 +21,11 @@
       "matchPaths": [".github/"],
       "groupName": "workflows"
     }
+  ],
+  "ignorePaths": [
+    "**/fixtures/**"
+  ],
+  "ignoreDeps": [
+    "golang.org/x/vuln" 
   ]
 }

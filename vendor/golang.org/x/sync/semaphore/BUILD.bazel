@@ -8,25 +8,25 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "models",
+    name = "semaphore",
     srcs = glob(
         include = ["*.go"],
         exclude = ["*_test.go"],
     ),
-    importpath = "github.com/google/osv-scanner/pkg/models",
+    importpath = "golang.org/x/sync/semaphore",
     tags = [
         "manual",  # Only build when needed as a dependency.
     ],
     visibility = ["//visibility:public"],
-    deps = [
-        "//vendor/golang.org/x/exp/slices",
-    ],
 )
 
 go_test(
-    name = "models_test",
+    name = "semaphore_test",
     size = "small",
     srcs = glob(["*_test.go"]),
     data = glob(["testdata/**"]),
-    embed = [":models"],
+    embed = [":semaphore"],
+    deps = [
+        "//vendor/golang.org/x/sync/errgroup",
+    ],
 )

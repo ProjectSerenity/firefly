@@ -88,15 +88,19 @@ go = [
     ),
     module(
         name = "github.com/google/osv-scanner",
-        version = "v1.2.0",
+        version = "v1.3.2",
         packages = [
             package(
                 name = "github.com/google/osv-scanner/pkg/models",
+                deps = [
+                    "golang.org/x/exp/slices",
+                ],
             ),
             package(
                 name = "github.com/google/osv-scanner/pkg/osv",
                 deps = [
                     "github.com/google/osv-scanner/pkg/models",
+                    "golang.org/x/sync/semaphore",
                 ],
             ),
         ],
@@ -111,6 +115,21 @@ go = [
         packages = [
             package(
                 name = "golang.org/x/crypto/ed25519",
+            ),
+        ],
+    ),
+    module(
+        name = "golang.org/x/exp",
+        version = "v0.0.0-20230425010034-47ecfdc1ba53",
+        packages = [
+            package(
+                name = "golang.org/x/exp/constraints",
+            ),
+            package(
+                name = "golang.org/x/exp/slices",
+                deps = [
+                    "golang.org/x/exp/constraints",
+                ],
             ),
         ],
     ),
@@ -170,6 +189,21 @@ go = [
                     "golang.org/x/mod/module",
                     "golang.org/x/mod/sumdb/dirhash",
                     "golang.org/x/tools/txtar",
+                ],
+            ),
+        ],
+    ),
+    module(
+        name = "golang.org/x/sync",
+        version = "v0.2.0",
+        packages = [
+            package(
+                name = "golang.org/x/sync/errgroup",
+            ),
+            package(
+                name = "golang.org/x/sync/semaphore",
+                test_deps = [
+                    "golang.org/x/sync/errgroup",
                 ],
             ),
         ],
