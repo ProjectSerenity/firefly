@@ -92,7 +92,6 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 	}
 
 	ctx := &x86Context{
-		Mode: x86.Mode64, // Default to 64-bit mode for x86-64.
 		FSet: fset,
 	}
 
@@ -118,6 +117,10 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 				return nil, fmt.Errorf("invalid mode %q: %v", mode.Value, err)
 			}
 
+			if ctx.Mode.Int != 0 {
+				return nil, ctx.Errorf(anno.X.Elements[0].Pos(), "invalid annotation: cannot specify mode more than once")
+			}
+
 			switch num {
 			case 16:
 				ctx.Mode = x86.Mode16
@@ -132,6 +135,11 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 			// We can safely ignore unrecognised annotations.
 			continue
 		}
+	}
+
+	// Default to 64-bit mode for x86-64.
+	if ctx.Mode.Int == 0 {
+		ctx.Mode = x86.Mode64
 	}
 
 	fun.Extra = ctx.Mode
