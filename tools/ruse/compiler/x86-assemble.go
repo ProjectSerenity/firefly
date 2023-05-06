@@ -605,10 +605,7 @@ func (ctx *x86Context) handleInstructionAnnotations(data *x86InstructionData, li
 // an x86 instruction form. If there is no
 // match, Match returns `nil, nil`.
 func (ctx *x86Context) Match(list *ast.List, args []ast.Expression, inst x86InstructionCandidate) (data *x86InstructionData, err error) {
-	if len(args) != len(inst.Inst.Parameters) ||
-		ctx.Mode.Int == 16 && !inst.Inst.Mode16 ||
-		ctx.Mode.Int == 32 && !inst.Inst.Mode32 ||
-		ctx.Mode.Int == 64 && !inst.Inst.Mode64 {
+	if len(args) != len(inst.Inst.Parameters) || !inst.Inst.Supports(ctx.Mode) {
 		return nil, nil
 	}
 

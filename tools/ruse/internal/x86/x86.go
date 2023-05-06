@@ -51,6 +51,21 @@ type Instruction struct {
 	DataSize    int  `json:"dataSize,omitempty"`    // Data operation size in bits.
 }
 
+// Supports returns whether inst is supported
+// in the given CPU mode.
+func (inst *Instruction) Supports(mode Mode) bool {
+	switch mode.Int {
+	case 16:
+		return inst.Mode16
+	case 32:
+		return inst.Mode32
+	case 64:
+		return inst.Mode64
+	default:
+		panic("invalid mode " + mode.String)
+	}
+}
+
 // HasCPUID returns whether inst's CPUID
 // contains the given feature.
 func (inst *Instruction) HasCPUID(feature string) bool {
