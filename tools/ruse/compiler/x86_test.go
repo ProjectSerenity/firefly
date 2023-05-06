@@ -1253,6 +1253,42 @@ func TestEncodeX86(t *testing.T) {
 				0x0f, 0x05, // SYSCALL
 			},
 		},
+		{
+			Name: "backwards jumps",
+			Mode: x86.Mode64,
+			Ruse: []string{
+				"'bar",
+				"(mov cl 1)",
+				"'foo",
+				"(xchg rax rax)",
+				"(je 'foo)",
+				"(jmp 'bar)",
+			},
+			Want: []byte{
+				0xb1, 0x01, // MOV cl, 1
+				0x48, 0x90, // XCHG rax, rax
+				0x74, 0xfc, // JE -4
+				0xeb, 0xf8, // JMP -8
+			},
+		},
+		{
+			Name: "forwards jumps",
+			Mode: x86.Mode64,
+			Ruse: []string{
+				"(je 'foo)",
+				"(jmp 'bar)",
+				"(mov cl 1)",
+				"'bar",
+				"(xchg rax rax)",
+				"'foo",
+			},
+			Want: []byte{
+				0x74, 0x06, // JE +6
+				0xeb, 0x02, // JMP +2
+				0xb1, 0x01, // MOV cl, 1
+				0x48, 0x90, // XCHG rax, rax
+			},
+		},
 	}
 
 	// Use x86-64.

@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -26,8 +27,18 @@ import (
 // while assembling a single x86 assembly
 // function.
 type x86Context struct {
-	Mode x86.Mode // CPU mode.
-	FSet *token.FileSet
+	Func   *ssafir.Function
+	Mode   x86.Mode // CPU mode.
+	FSet   *token.FileSet
+	Labels map[string]*x86Label
+}
+
+// x86Label contains information about a position
+// label, as used in x86 assembly.
+type x86Label struct {
+	Label *ast.QuotedIdentifier // The label itself.
+	Index int                   // The label's position in the instructino stream.
+	Refs  []int                 // The indices of each (jump) instruction that references the label.
 }
 
 // Errorf is a helper function for including
@@ -93,7 +104,9 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 	}
 
 	ctx := &x86Context{
-		FSet: fset,
+		Func:   fun,
+		FSet:   fset,
+		Labels: make(map[string]*x86Label),
 	}
 
 	for _, anno := range assembly.Annotations {
@@ -145,12 +158,49 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 
 	fun.Extra = ctx.Mode
 
+	// We handle position labels in five phases:
+	//
+	// 	1. We identify the set of labels and detect any duplicates.
+	// 	2. We locate each label in the instruction stream (during the main assembly loop).
+	// 	   We also link each label reference to the corresponding label and detect any
+	// 	   references to labels that have not been declared.
+	// 	3. Having assembled the other instructions, we calculate the distance from each
+	// 	   reference to a label, to that label. This allows us to complete the instruction
+	// 	   forms. We do so using 32-bit jumps to start, as these are the largest jump form,
+	// 	   so any subsequent optimisations can only decrease jump distances.
+	// 	4. We conduct an optimisation pass, switching to 16-bit or 8-bit jumps if possible.
+	// 	5. We update all jump distances to account for the optimisations.
+	//
+	// We could conduct further optimisation passes,
+	// but for now, we don't.
+	var labelNames []string // Stored in the order in which they appear.
+	for _, expr := range assembly.Elements[2:] {
+		label, ok := expr.(*ast.QuotedIdentifier)
+		if !ok {
+			continue
+		}
+
+		if prev, ok := ctx.Labels[label.X.Name]; ok {
+			return nil, ctx.Errorf(label.Quote, "invalid assembly label: label %q redefined. Original definition at %s", label.X.Name, ctx.FSet.Position(prev.Label.Quote))
+		}
+
+		ctx.Labels[label.X.Name] = &x86Label{Label: label}
+		labelNames = append(labelNames, label.X.Name)
+	}
+
+	var code x86.Code
 	var rexwOverride bool
 	var prefixes []x86.Prefix
 	c.AddFunctionPrelude()
 	options := make([]*x86InstructionData, 0, 10)
 	for _, expr := range assembly.Elements[2:] {
-		// TODO: handle labels in the generated assembler.
+		// Labels phase 2: store label location.
+		if label, ok := expr.(*ast.QuotedIdentifier); ok {
+			val := ctx.Labels[label.X.Name]
+			val.Index = len(fun.Entry.Values) // The index of the next instruction.
+			continue
+		}
+
 		list, ok := expr.(*ast.List)
 		if !ok {
 			return nil, ctx.Errorf(expr.Pos(), "invalid assembly directive: expected an expression in list form or a label, found %s %s", expr.String(), expr.Print())
@@ -278,7 +328,6 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 			return nil, ctx.Errorf(mnemonic.NamePos, "invalid assembly directive: mnemonic %q not recognised", mnemonic.Name)
 		}
 
-		var code x86.Code
 		params := elts[1:]
 		options = options[:0]
 		rightArity := false
@@ -420,7 +469,124 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 		c.currentBlock.NewValueExtra(list.ParenOpen, list.ParenClose, option.Op, nil, option)
 	}
 
+	// Labels phase 3: calculate jump distances.
+	for _, name := range labelNames {
+		label := ctx.Labels[name]
+		if len(label.Refs) == 0 {
+			return nil, ctx.Errorf(label.Label.Quote, "label %q is not referenced by any instructions", label.Label.X.Name)
+		}
+
+		for _, ref := range label.Refs {
+			data := fun.Entry.Values[ref].Extra.(*x86InstructionData)
+			jumpLength := ctx.calculateJumpDistance(label, ref)
+
+			// First, check we can store the jump in a 32-bit
+			// relative (signed) address.
+			if jumpLength < math.MinInt32 || math.MaxInt32 < jumpLength {
+				return nil, ctx.Errorf(data.Pos, "jump to %q is too far to be encoded", name)
+			}
+
+			data.Args[0] = uint64(jumpLength)
+		}
+	}
+
+	// Label phase 4: optimise to smaller
+	// jump instructions if possible.
+	for _, name := range labelNames {
+		label := ctx.Labels[name]
+		for _, ref := range label.Refs {
+			data := fun.Entry.Values[ref].Extra.(*x86InstructionData)
+			jumpLength := int64(data.Args[0].(uint64))
+
+			// Check whether we can encode the jump in an
+			// 8-bit or 16-bit version of the same jump.
+
+			newUID8 := strings.Replace(data.Inst.UID, "32", "8", 1)
+			inst8, ok := x86.InstructionsByUID[newUID8]
+			if ok && inst8.Supports(ctx.Mode) && math.MinInt8 <= jumpLength && jumpLength <= math.MaxInt8 {
+				data.Inst = inst8
+				err := data.Encode(&code, ctx.Mode)
+				if err != nil {
+					return nil, err
+				}
+
+				data.Length = uint8(code.Len())
+				continue
+			}
+
+			newUID16 := strings.Replace(data.Inst.UID, "32", "16", 1)
+			inst16, ok := x86.InstructionsByUID[newUID16]
+			if ok && inst16.Supports(ctx.Mode) && math.MinInt16 <= jumpLength && jumpLength <= math.MaxInt16 {
+				data.Inst = inst16
+				err := data.Encode(&code, ctx.Mode)
+				if err != nil {
+					return nil, err
+				}
+
+				data.Length = uint8(code.Len())
+				continue
+			}
+		}
+	}
+
+	// Labels phase 5: re-calculate jump distances, after any optimisations.
+	for _, name := range labelNames {
+		label := ctx.Labels[name]
+		for _, ref := range label.Refs {
+			data := fun.Entry.Values[ref].Extra.(*x86InstructionData)
+			jumpLength := ctx.calculateJumpDistance(label, ref)
+			data.Args[0] = uint64(jumpLength + int64(data.Length)) // Offset the subtraction done in the encoding process.
+		}
+	}
+
 	return fun, nil
+}
+
+// calculateJumpDistance calculates the
+// number of machine code bytes between a
+// jump instruction and the location label
+// it jumps to.
+func (ctx *x86Context) calculateJumpDistance(label *x86Label, ref int) int64 {
+	// For each use, calculate the jump distance. For
+	// backwards jumps (where the label is declared
+	// before the jump), we iterate from the instruction
+	// immediately after the label (at label.Index) to
+	// the index of the jump instruction, including all
+	// of the instruction lengths (including the jump).
+	//
+	// For forwards jumps (where the label is declared
+	// after the jump), we iterate from the instruction
+	// after the jump to the instruction before the label,
+	// including all of the instruction lengths.
+	//
+	// Note that in this calculation, we measure from
+	// the first machine code byte after the jump
+	// instruction, which is how the jump distance is
+	// encoded. However, the length of the jump instruction
+	// is subtracted from this when it's stored into the
+	// argument value, as this is then reversed during
+	// the encoding process, so that we handle literal
+	// relative addresses correctly.
+
+	// We store the result in an int64 so we can identify
+	// jumps that exceed 32 bits in length, rather than
+	// wrapping silently.
+	var jumpLength int64
+	if label.Index <= ref {
+		// Backwards jump.
+		for i := label.Index; i <= ref; i++ {
+			data := ctx.Func.Entry.Values[i].Extra.(*x86InstructionData)
+			jumpLength -= int64(data.Length)
+		}
+	} else {
+		// Forwards jump.
+		for i := ref + 1; i < label.Index; i++ {
+			data := ctx.Func.Entry.Values[i].Extra.(*x86InstructionData)
+			jumpLength += int64(data.Length)
+		}
+	}
+
+	return jumpLength
 }
 
 // splitPrefixes takes x86 machine code in
@@ -917,6 +1083,25 @@ func (ctx *x86Context) matchStackIndex(arg ast.Expression, param *x86.Parameter)
 }
 
 func (ctx *x86Context) matchRelativeAddress(arg ast.Expression, param *x86.Parameter) any {
+	// Handle labels. We only accept labels for
+	// 32-bit relative jumps so that optimisations
+	// don't increase any jump distances.
+	if label, ok := arg.(*ast.QuotedIdentifier); ok {
+		if param.Bits < 32 {
+			return nil
+		}
+
+		// Register our use.
+		node, ok := ctx.Labels[label.X.Name]
+		if !ok {
+			panic(ctx.Errorf(label.Quote, "label %q is not defined in function %q", label.X.Name, ctx.Func.Name))
+		}
+
+		node.Refs = append(node.Refs, len(ctx.Func.Entry.Values)) // The index this instruction will have.
+
+		return uint64(0) // A placeholder address, we complete it later.
+	}
+
 	// Relative addresses can't be unsigned.
 	return ctx.matchSint(arg, param.Bits)
 }
