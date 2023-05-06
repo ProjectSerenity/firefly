@@ -22,35 +22,47 @@ import (
 	"firefly-os.dev/tools/ruse/types"
 )
 
+// x86Context is used to propagate the state
+// while assembling a single x86 assembly
+// function.
 type x86Context struct {
 	Mode x86.Mode // CPU mode.
 	FSet *token.FileSet
 }
 
+// Errorf is a helper function for including
+// location information in error messages.
 func (ctx *x86Context) Errorf(pos token.Pos, format string, v ...any) error {
 	position := ctx.FSet.Position(pos)
 	return errors.New(fmt.Sprintf("%s: ", position) + fmt.Sprintf(format, v...))
 }
 
+// x86InstructionData contains the information
+// necessary to fully assemble an x86 instruction.
 type x86InstructionData struct {
 	Op   ssafir.Op
 	Inst *x86.Instruction
-	Args [4]any
+	Args [4]any // Unused args are untyped nil.
 
-	Length    uint8 // Number of bytes of machine code (max 15).
-	REX_W     bool
-	Mask      uint8 // Any EVEX mask register.
-	Zero      bool  // Any EVEX zeroing.
-	Broadcast bool  // Any EVEX memory broadcast.
-	Prefixes  [14]x86.Prefix
+	Length    uint8          // Number of bytes of machine code (max 15).
+	REX_W     bool           // Whether to force a REX prefix, with REX.W set.
+	Mask      uint8          // Any EVEX mask register.
+	Zero      bool           // Any EVEX zeroing.
+	Broadcast bool           // Any EVEX memory broadcast.
+	Prefixes  [14]x86.Prefix // Any optional legacy prefixes specified.
 	PrefixLen uint8
 }
 
+// x86InstructionCandidate includes the
+// information specified for each instruction
+// in the generated instruction set data.
 type x86InstructionCandidate struct {
 	Op   ssafir.Op
 	Inst *x86.Instruction
 }
 
+// assembleX86 assembles a single Ruse assembly
+// function for x86.
 func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, info *types.Info, sizes types.Sizes) (*ssafir.Function, error) {
 	// The asm-func keyword is the first identifier,
 	// and the function name is the second. All the
@@ -455,6 +467,9 @@ func sortPrefixes(s string) string {
 	return hex.EncodeToString(prefixOpcodes) + hex.EncodeToString(prefixes) + rest
 }
 
+// Match matches an assembly instruction to
+// an x86 instruction form. If there is no
+// match, Match returns `nil, nil`.
 func (ctx *x86Context) Match(list *ast.List, args []ast.Expression, inst x86InstructionCandidate) (data *x86InstructionData, err error) {
 	if len(args) != len(inst.Inst.Parameters) ||
 		ctx.Mode.Int == 16 && !inst.Inst.Mode16 ||
