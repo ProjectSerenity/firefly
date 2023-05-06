@@ -467,6 +467,132 @@ func sortPrefixes(s string) string {
 	return hex.EncodeToString(prefixOpcodes) + hex.EncodeToString(prefixes) + rest
 }
 
+// handleInstructionAnnotations processes
+// the annotations for a single instruction,
+// updating `data` if necessary.
+func (ctx *x86Context) handleInstructionAnnotations(data *x86InstructionData, list *ast.List, inst x86InstructionCandidate) (ok bool, err error) {
+	var seenBroadcast, seenMask, seenZero bool
+	for _, anno := range list.Annotations {
+		ident, ok := anno.X.Elements[0].(*ast.Identifier)
+		if !ok {
+			continue
+		}
+
+		switch ident.Name {
+		case "broadcast":
+			if len(anno.X.Elements) != 2 {
+				return false, ctx.Errorf(anno.Quote, "invalid EVEX annotation: expected a broadcast mode, found %d parameters", len(anno.X.Elements)-1)
+			}
+
+			x := anno.X.Elements[1]
+			k, ok := x.(*ast.Identifier)
+			if !ok {
+				return false, ctx.Errorf(x.Pos(), "invalid EVEX annotation: invalid broadcast mode: %s %q", x, x.Print())
+			}
+
+			switch k.Name {
+			case "true", "false":
+				data.Broadcast = k.Name == "true"
+			default:
+				return false, ctx.Errorf(k.NamePos, "invalid EVEX annotation: invalid broadcast mode: %s %q", k, k.Print())
+			}
+
+			// We now know the mode is valid,
+			// but we can only use them with
+			// EVEX instructions.
+			if !inst.Inst.Encoding.EVEX {
+				// Proceed without error but
+				// skip this instruction form.
+				return false, nil
+			}
+
+			if seenBroadcast {
+				return false, ctx.Errorf(k.NamePos, "invalid EVEX annotation: broadcast mode specified twice")
+			}
+
+			seenBroadcast = true
+		case "mask":
+			if len(anno.X.Elements) != 2 {
+				return false, ctx.Errorf(anno.Quote, "invalid EVEX annotation: expected a mask register, found %d parameters", len(anno.X.Elements)-1)
+			}
+
+			// We accept either a mask register
+			// by name (kX) or by number (X),
+			// in the range 1-7. Note that k0
+			// is not valid.
+			switch k := anno.X.Elements[1].(type) {
+			case *ast.Identifier:
+				switch k.Name {
+				case "k1", "k2", "k3", "k4", "k5", "k6", "k7":
+					data.Mask = k.Name[1] - '0'
+				default:
+					return false, ctx.Errorf(k.NamePos, "invalid EVEX annotation: invalid mask register: %s %q", k, k.Print())
+				}
+			case *ast.Literal:
+				if k.Kind != token.Integer {
+					return false, ctx.Errorf(k.ValuePos, "invalid EVEX annotation: invalid mask register: %s %q", k, k.Print())
+				}
+
+				switch k.Value {
+				case "1", "2", "3", "4", "5", "6", "7":
+					data.Mask = k.Value[0] - '0'
+				default:
+					return false, ctx.Errorf(k.ValuePos, "invalid EVEX annotation: invalid mask register: %s %q", k, k.Print())
+				}
+			}
+
+			// We now know the mask is valid,
+			// but we can only use them with
+			// EVEX instructions.
+			if !inst.Inst.Encoding.EVEX {
+				// Proceed without error but
+				// skip this instruction form.
+				return false, nil
+			}
+
+			if seenMask {
+				return false, ctx.Errorf(anno.Quote, "invalid EVEX annotation: mask register specified twice")
+			}
+
+			seenMask = true
+		case "zero":
+			if len(anno.X.Elements) != 2 {
+				return false, ctx.Errorf(anno.Quote, "invalid EVEX annotation: expected a zeroing mode, found %d parameters", len(anno.X.Elements)-1)
+			}
+
+			x := anno.X.Elements[1]
+			k, ok := x.(*ast.Identifier)
+			if !ok {
+				return false, ctx.Errorf(x.Pos(), "invalid EVEX annotation: invalid zeroing mode: %s %q", x, x.Print())
+			}
+
+			switch k.Name {
+			case "true", "false":
+				data.Zero = k.Name == "true"
+			default:
+				return false, ctx.Errorf(k.NamePos, "invalid EVEX annotation: invalid zeroing mode: %s %q", k, k.Print())
+			}
+
+			// We now know the mode is valid,
+			// but we can only use them with
+			// EVEX instructions.
+			if !inst.Inst.Encoding.EVEX {
+				// Proceed without error but
+				// skip this instruction form.
+				return false, nil
+			}
+
+			if seenZero {
+				return false, ctx.Errorf(k.NamePos, "invalid EVEX annotation: zeroing mode specified twice")
+			}
+
+			seenZero = true
+		}
+	}
+
+	return true, nil
+}
+
 // Match matches an assembly instruction to
 // an x86 instruction form. If there is no
 // match, Match returns `nil, nil`.
@@ -484,98 +610,13 @@ func (ctx *x86Context) Match(list *ast.List, args []ast.Expression, inst x86Inst
 	}
 
 	// Check any annotations for EVEX parameters.
-	for _, anno := range list.Annotations {
-		ident, ok := anno.X.Elements[0].(*ast.Identifier)
-		if !ok {
-			continue
-		}
+	ok, err := ctx.handleInstructionAnnotations(data, list, inst)
+	if err != nil {
+		return nil, err
+	}
 
-		switch ident.Name {
-		case "broadcast":
-			if len(anno.X.Elements) != 2 {
-				return nil, ctx.Errorf(anno.Quote, "invalid EVEX annotation: expected a broadcast mode, found %d parameters", len(anno.X.Elements)-1)
-			}
-
-			x := anno.X.Elements[1]
-			k, ok := x.(*ast.Identifier)
-			if !ok {
-				return nil, ctx.Errorf(x.Pos(), "invalid EVEX annotation: invalid broadcast mode: %s %q", x, x.Print())
-			}
-
-			switch k.Name {
-			case "true", "false":
-				data.Broadcast = k.Name == "true"
-			default:
-				return nil, ctx.Errorf(k.NamePos, "invalid EVEX annotation: invalid broadcast mode: %s %q", k, k.Print())
-			}
-
-			// We now know the mode is valid,
-			// but we can only use them with
-			// EVEX instructions.
-			if !inst.Inst.Encoding.EVEX {
-				return nil, nil
-			}
-		case "mask":
-			if len(anno.X.Elements) != 2 {
-				return nil, ctx.Errorf(anno.Quote, "invalid EVEX annotation: expected a mask register, found %d parameters", len(anno.X.Elements)-1)
-			}
-
-			// We accept either a mask register
-			// by name (kX) or by number (X),
-			// in the range 1-7. Note that k0
-			// is not valid.
-			switch k := anno.X.Elements[1].(type) {
-			case *ast.Identifier:
-				switch k.Name {
-				case "k1", "k2", "k3", "k4", "k5", "k6", "k7":
-					data.Mask = k.Name[1] - '0'
-				default:
-					return nil, ctx.Errorf(k.NamePos, "invalid EVEX annotation: invalid mask register: %s %q", k, k.Print())
-				}
-			case *ast.Literal:
-				if k.Kind != token.Integer {
-					return nil, ctx.Errorf(k.ValuePos, "invalid EVEX annotation: invalid mask register: %s %q", k, k.Print())
-				}
-
-				switch k.Value {
-				case "1", "2", "3", "4", "5", "6", "7":
-					data.Mask = k.Value[0] - '0'
-				default:
-					return nil, ctx.Errorf(k.ValuePos, "invalid EVEX annotation: invalid mask register: %s %q", k, k.Print())
-				}
-			}
-
-			// We now know the mask is valid,
-			// but we can only use them with
-			// EVEX instructions.
-			if !inst.Inst.Encoding.EVEX {
-				return nil, nil
-			}
-		case "zero":
-			if len(anno.X.Elements) != 2 {
-				return nil, ctx.Errorf(anno.Quote, "invalid EVEX annotation: expected a zeroing mode, found %d parameters", len(anno.X.Elements)-1)
-			}
-
-			x := anno.X.Elements[1]
-			k, ok := x.(*ast.Identifier)
-			if !ok {
-				return nil, ctx.Errorf(x.Pos(), "invalid EVEX annotation: invalid zeroing mode: %s %q", x, x.Print())
-			}
-
-			switch k.Name {
-			case "true", "false":
-				data.Zero = k.Name == "true"
-			default:
-				return nil, ctx.Errorf(k.NamePos, "invalid EVEX annotation: invalid zeroing mode: %s %q", k, k.Print())
-			}
-
-			// We now know the mode is valid,
-			// but we can only use them with
-			// EVEX instructions.
-			if !inst.Inst.Encoding.EVEX {
-				return nil, nil
-			}
-		}
+	if !ok {
+		return nil, nil
 	}
 
 	defer func() {
