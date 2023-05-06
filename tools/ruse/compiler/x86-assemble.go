@@ -40,6 +40,7 @@ func (ctx *x86Context) Errorf(pos token.Pos, format string, v ...any) error {
 // x86InstructionData contains the information
 // necessary to fully assemble an x86 instruction.
 type x86InstructionData struct {
+	Pos  token.Pos
 	Op   ssafir.Op
 	Inst *x86.Instruction
 	Args [4]any // Unused args are untyped nil.
@@ -314,6 +315,7 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 
 			// Fill in the common fields and
 			// encode the instruction.
+			data.Pos = list.ParenOpen
 			data.PrefixLen = uint8(copy(data.Prefixes[:], prefixes))
 			data.REX_W = rexwOverride
 			err = data.Encode(&code, ctx.Mode)
