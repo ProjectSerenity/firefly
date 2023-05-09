@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"embed"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"go/ast"
 	"go/format"
@@ -35,7 +34,11 @@ import (
 	"firefly-os.dev/tools/ruse/internal/x86/x86csv"
 )
 
-var program = filepath.Base(os.Args[0])
+var (
+	program  = filepath.Base(os.Args[0])
+	data_go  = filepath.Join("tools", "ruse", "internal", "x86", "data.go")
+	x86_json = filepath.Join("tools", "ruse", "internal", "x86", "x86.json")
+)
 
 func init() {
 	log.SetFlags(0)
@@ -43,36 +46,16 @@ func init() {
 	log.SetPrefix(program + ": ")
 }
 
+//go:embed x86.csv
+var x86CSV []byte
+
 //go:embed templates/*.tmpl
 var templatesFS embed.FS
 
 var templates = template.Must(template.New("").ParseFS(templatesFS, "templates/*.tmpl"))
 
 func main() {
-	var help bool
-	var input, jsonOutput, goOutput string
-	flag.BoolVar(&help, "h", false, "Show this message and exit.")
-	flag.StringVar(&input, "in", "", "Path to the Go x86 CSV file")
-	flag.StringVar(&jsonOutput, "json-out", "", "Path to write the x86 JSON file")
-	flag.StringVar(&goOutput, "go-out", "", "Path to write the Go data structures file")
-
-	flag.Usage = func() {
-		log.Printf("Usage:\n  %s OPTIONS\n\n", program)
-		flag.PrintDefaults()
-		os.Exit(2)
-	}
-
-	flag.Parse()
-	if help {
-		flag.Usage()
-	}
-
-	if input == "" || jsonOutput == "" || goOutput == "" {
-		flag.Usage()
-		os.Exit(2)
-	}
-
-	err := GenerateJSON(input, jsonOutput, goOutput)
+	err := GenerateJSON()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -80,16 +63,27 @@ func main() {
 
 // GenerateJSON parses the x86 CSV to gather
 // the set of x86 instructions.
-func GenerateJSON(input, jsonOutput, goOutput string) error {
-	f, err := os.Open(input)
-	if err != nil {
-		return fmt.Errorf("failed to open %s: %v", input, err)
+func GenerateJSON() error {
+	// Start by changing to the workspace
+	// root directory so we can write the
+	// data.go and x86.json data files into
+	// their destination.
+	if workspace := os.Getenv("BUILD_WORKSPACE_DIRECTORY"); workspace != "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to determine current directory: %v", err)
+		}
+
+		defer os.Chdir(cwd) // Move back to where we started once we're finished.
+
+		err = os.Chdir(workspace)
+		if err != nil {
+			return fmt.Errorf("failed to change directory to %q: %v", workspace, err)
+		}
 	}
 
-	defer f.Close()
-
 	// Parse in the existing instructions.
-	insts, err := ParseGoX86CSV(f)
+	insts, err := ParseGoX86CSV(bytes.NewReader(x86CSV))
 	if err != nil {
 		return err
 	}
@@ -175,20 +169,20 @@ func GenerateJSON(input, jsonOutput, goOutput string) error {
 	}
 
 	// Write out the data.
-	f, err = os.Create(jsonOutput)
+	f, err := os.Create(x86_json)
 	if err != nil {
-		return fmt.Errorf("failed to create %q: %v", jsonOutput, err)
+		return fmt.Errorf("failed to create %q: %v", x86_json, err)
 	}
 
 	defer f.Close()
 
 	err = WriteJSON(f, insts)
 	if err != nil {
-		return fmt.Errorf("failed to write instructions to %q: %v", jsonOutput, err)
+		return fmt.Errorf("failed to write instructions to %q: %v", x86_json, err)
 	}
 
 	if err = f.Close(); err != nil {
-		return fmt.Errorf("failed to close %q: %v", jsonOutput, err)
+		return fmt.Errorf("failed to close %q: %v", x86_json, err)
 	}
 
 	var data struct {
@@ -202,7 +196,7 @@ func GenerateJSON(input, jsonOutput, goOutput string) error {
 	var b bytes.Buffer
 	err = templates.ExecuteTemplate(&b, "data.go.tmpl", data)
 	if err != nil {
-		return fmt.Errorf("failed to write instructions to %q: %v", goOutput, err)
+		return fmt.Errorf("failed to write instructions to %q: %v", data_go, err)
 	}
 
 	fail := false
@@ -213,9 +207,9 @@ func GenerateJSON(input, jsonOutput, goOutput string) error {
 		formatted = b.Bytes()
 	}
 
-	err = os.WriteFile(goOutput, formatted, 0644)
+	err = os.WriteFile(data_go, formatted, 0644)
 	if err != nil {
-		return fmt.Errorf("failed to write %s: %v", goOutput, err)
+		return fmt.Errorf("failed to write %s: %v", data_go, err)
 	}
 
 	if fail {

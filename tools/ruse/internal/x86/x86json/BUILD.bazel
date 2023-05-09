@@ -5,6 +5,19 @@
 
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 
+genrule(
+    name = "x86-csv",
+    srcs = [
+        "@x86manual//file",
+    ],
+    outs = [
+        "x86.csv",
+    ],
+    cmd = """./$(location //tools/ruse/internal/x86/x86spec) -f=$(location @x86manual//file) > $(location x86.csv)""",
+    tools = ["//tools/ruse/internal/x86/x86spec"],
+    visibility = ["//visibility:private"],
+)
+
 go_library(
     name = "x86json_lib",
     srcs = [
@@ -15,7 +28,7 @@ go_library(
         "main.go",
         "sort.go",
     ],
-    embedsrcs = glob(["templates/**"]),
+    embedsrcs = glob(["templates/**"]) + ["x86.csv"],
     importpath = "firefly-os.dev/tools/ruse/internal/x86/x86json",
     visibility = ["//visibility:private"],
     deps = [
