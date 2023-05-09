@@ -18,6 +18,9 @@ import (
 )
 
 // Encode writes the binary to w as an ELF binary.
+//
+// Encode also updates the section offsets, taking
+// into account any necessary padding.
 func Encode(w io.Writer, bin *binary.Binary) error {
 	write := false
 	b, ok := w.(*bytes.Buffer)
@@ -118,6 +121,7 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 		}
 
 		base := uint64(section.Address) + progDataOffs
+		section.Offset = uintptr(progDataOffs)  // Update the section data.
 		write(uint32(1))                        // Loadable segment.
 		write(permissions(section.Permissions)) // Section flags.
 		write(progDataOffs)                     // File offset where segment begins.

@@ -23,6 +23,7 @@ type Binary struct {
 type Section struct {
 	Name        string      // The section name.
 	Address     uintptr     // The section's address in memory.
+	Offset      uintptr     // The section's offset in the encoded binary.
 	IsZeroed    bool        // Whether the section's contents are all zeros.
 	Permissions Permissions // The section's runtime permissions.
 	Data        []byte      // The section data.
