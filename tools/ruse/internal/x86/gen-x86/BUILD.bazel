@@ -19,7 +19,7 @@ genrule(
 )
 
 go_library(
-    name = "x86json_lib",
+    name = "gen-x86_lib",
     srcs = [
         "checks.go",
         "combinations.go",
@@ -29,7 +29,7 @@ go_library(
         "sort.go",
     ],
     embedsrcs = glob(["templates/**"]) + ["x86.csv"],
-    importpath = "firefly-os.dev/tools/ruse/internal/x86/x86json",
+    importpath = "firefly-os.dev/tools/ruse/internal/x86/gen-x86",
     visibility = ["//visibility:private"],
     deps = [
         "//tools/ruse/internal/x86:x86-no-data",
@@ -38,18 +38,18 @@ go_library(
 )
 
 go_binary(
-    name = "x86json",
-    embed = [":x86json_lib"],
+    name = "gen-x86",
+    embed = [":gen-x86_lib"],
     visibility = ["//tools/ruse:__subpackages__"],
 )
 
 go_test(
-    name = "x86json_test",
+    name = "gen-x86_test",
     size = "small",
     srcs = [
         "combinations_test.go",
     ],
-    embed = [":x86json_lib"],
+    embed = [":gen-x86_lib"],
     deps = [
         "//vendor/github.com/google/go-cmp/cmp",
     ],

@@ -190,7 +190,7 @@ func GenerateJSON() error {
 		Instructions []*x86.Instruction
 	}
 
-	data.Command = "x86json"
+	data.Command = "//tools/ruse/internal/x86/gen-x86"
 	data.Instructions = insts
 
 	var b bytes.Buffer
