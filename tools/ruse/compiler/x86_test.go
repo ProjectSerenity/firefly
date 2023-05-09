@@ -1294,6 +1294,19 @@ func TestEncodeX86(t *testing.T) {
 				0x48, 0x90, // XCHG rax, rax
 			},
 		},
+		{
+			Name: "string constant length",
+			Ruse: `
+				(let hello-world "Hello, world!")
+
+				'(arch x86-64)
+				(asm-func test
+					(mov ecx (len hello-world)))
+			`,
+			Want: []byte{
+				0xb9, 0x0d, 0x00, 0x00, 0x00, // MOV ecx, 13.
+			},
+		},
 	}
 
 	// Use x86-64.

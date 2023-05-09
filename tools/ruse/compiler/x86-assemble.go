@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"go/constant"
 	"math"
 	"sort"
 	"strconv"
@@ -27,6 +28,7 @@ import (
 // while assembling a single x86 assembly
 // function.
 type x86Context struct {
+	Comp   *compiler
 	Func   *ssafir.Function
 	Mode   x86.Mode // CPU mode.
 	FSet   *token.FileSet
@@ -104,6 +106,7 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 	}
 
 	ctx := &x86Context{
+		Comp:   c,
 		Func:   fun,
 		FSet:   fset,
 		Labels: make(map[string]*x86Label),
@@ -924,6 +927,32 @@ func (ctx *x86Context) rejectedBySizeHint(list *ast.List, bits int) bool {
 }
 
 func (ctx *x86Context) matchUint(arg ast.Expression, bits int) any {
+	if list, ok := arg.(*ast.List); ok {
+		// This is only valid if it's the `len`
+		// special form on a string constant.
+		if len(list.Elements) != 2 {
+			return nil
+		}
+
+		if ident, ok := list.Elements[0].(*ast.Identifier); !ok || ident.Name != "len" {
+			return nil
+		}
+
+		// Get the constant value from the type
+		// info.
+		typeAndValue := ctx.Comp.info.Types[list]
+		if typeAndValue.Type != types.Int {
+			panic("internal error: unexpected result type from len: " + typeAndValue.Type.String())
+		}
+
+		length, ok := constant.Int64Val(typeAndValue.Value)
+		if !ok {
+			panic("internal error: unexpected result value from len: " + typeAndValue.Value.String())
+		}
+
+		return uint64(length)
+	}
+
 	lit, ok := arg.(*ast.Literal)
 	if !ok || lit.Kind != token.Integer {
 		return nil
@@ -948,6 +977,32 @@ func (ctx *x86Context) matchUint(arg ast.Expression, bits int) any {
 }
 
 func (ctx *x86Context) matchSint(arg ast.Expression, bits int) any {
+	if list, ok := arg.(*ast.List); ok {
+		// This is only valid if it's the `len`
+		// special form on a string constant.
+		if len(list.Elements) != 2 {
+			return nil
+		}
+
+		if ident, ok := list.Elements[0].(*ast.Identifier); !ok || ident.Name != "len" {
+			return nil
+		}
+
+		// Get the constant value from the type
+		// info.
+		typeAndValue := ctx.Comp.info.Types[list]
+		if typeAndValue.Type != types.Int {
+			panic("internal error: unexpected result type from len: " + typeAndValue.Type.String())
+		}
+
+		length, ok := constant.Int64Val(typeAndValue.Value)
+		if !ok {
+			panic("internal error: unexpected result value from len: " + typeAndValue.Value.String())
+		}
+
+		return uint64(length)
+	}
+
 	lit, ok := arg.(*ast.Literal)
 	if !ok || lit.Kind != token.Integer {
 		return nil
