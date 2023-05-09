@@ -1235,18 +1235,19 @@ func TestEncodeInstructionX86(t *testing.T) {
 func TestEncodeX86(t *testing.T) {
 	tests := []struct {
 		Name string
-		Mode x86.Mode
-		Ruse []string
+		Ruse string
 		Want []byte
 	}{
 		{
 			Name: "simple",
-			Mode: x86.Mode64,
-			Ruse: []string{
-				"(mov cl 1)",
-				"(xchg rax rax)",
-				"(syscall)",
-			},
+			Ruse: `
+				'(arch x86-64)
+				'(mode 64)
+				(asm-func test
+					(mov cl 1)
+					(xchg rax rax)
+					(syscall))
+			`,
 			Want: []byte{
 				0xb1, 0x01, // MOV cl, 1
 				0x48, 0x90, // XCHG rax, rax
@@ -1255,15 +1256,17 @@ func TestEncodeX86(t *testing.T) {
 		},
 		{
 			Name: "backwards jumps",
-			Mode: x86.Mode64,
-			Ruse: []string{
-				"'bar",
-				"(mov cl 1)",
-				"'foo",
-				"(xchg rax rax)",
-				"(je 'foo)",
-				"(jmp 'bar)",
-			},
+			Ruse: `
+				'(arch x86-64)
+				'(mode 64)
+				(asm-func test
+					'bar
+					(mov cl 1)
+					'foo
+					(xchg rax rax)
+					(je 'foo)
+					(jmp 'bar))
+			`,
 			Want: []byte{
 				0xb1, 0x01, // MOV cl, 1
 				0x48, 0x90, // XCHG rax, rax
@@ -1273,15 +1276,17 @@ func TestEncodeX86(t *testing.T) {
 		},
 		{
 			Name: "forwards jumps",
-			Mode: x86.Mode64,
-			Ruse: []string{
-				"(je 'foo)",
-				"(jmp 'bar)",
-				"(mov cl 1)",
-				"'bar",
-				"(xchg rax rax)",
-				"'foo",
-			},
+			Ruse: `
+				'(arch x86-64)
+				'(mode 64)
+				(asm-func test
+					(je 'foo)
+					(jmp 'bar)
+					(mov cl 1)
+					'bar
+					(xchg rax rax)
+					'foo)
+			`,
 			Want: []byte{
 				0x74, 0x06, // JE +6
 				0xeb, 0x02, // JMP +2
@@ -1299,8 +1304,7 @@ func TestEncodeX86(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			fset := token.NewFileSet()
-			text := fmt.Sprintf("(package test)\n\n'(arch x86-64)\n'(mode %d)\n(asm-func test\n\t%s)", test.Mode.Int, strings.Join(test.Ruse, "\n\t"))
-			file, err := parser.ParseFile(fset, "test.ruse", text, 0)
+			file, err := parser.ParseFile(fset, "test.ruse", "(package test)\n\n"+test.Ruse, 0)
 			if err != nil {
 				t.Fatalf("failed to parse:\n  Ruse: %s\n    %v", test.Ruse, err)
 			}
@@ -1324,7 +1328,6 @@ func TestEncodeX86(t *testing.T) {
 					var b strings.Builder
 					fmt.Fprintf(&b, "failed to compile:\n")
 					fmt.Fprintf(&b, "  Ruse:  %s\n", test.Ruse)
-					fmt.Fprintf(&b, "  Mode:   %d\n", test.Mode.Int)
 					fmt.Fprintf(&b, "    panic: %v\n", v)
 					fmt.Fprintf(&b, "    Want: % x", test.Want)
 					t.Fatal(b.String())
@@ -1336,7 +1339,6 @@ func TestEncodeX86(t *testing.T) {
 				var b strings.Builder
 				fmt.Fprintf(&b, "failed to compile:\n")
 				fmt.Fprintf(&b, "  Ruse:  %s\n", test.Ruse)
-				fmt.Fprintf(&b, "  Mode:   %d\n", test.Mode.Int)
 				fmt.Fprintf(&b, "    %v\n", err)
 				fmt.Fprintf(&b, "    Want: % x", test.Want)
 				t.Fatal(b.String())
@@ -1357,7 +1359,6 @@ func TestEncodeX86(t *testing.T) {
 				var b strings.Builder
 				fmt.Fprintf(&b, "wrong encoding:\n")
 				fmt.Fprintf(&b, "  Ruse:   %s\n", test.Ruse)
-				fmt.Fprintf(&b, "  Mode:    %d\n", test.Mode.Int)
 				fmt.Fprintf(&b, "    %v\n", err)
 				fmt.Fprintf(&b, "    Want: % x", test.Want)
 				t.Fatal(b.String())
@@ -1368,7 +1369,6 @@ func TestEncodeX86(t *testing.T) {
 				var b strings.Builder
 				fmt.Fprintf(&b, "wrong encoding:\n")
 				fmt.Fprintf(&b, "  Ruse:   %s\n", test.Ruse)
-				fmt.Fprintf(&b, "  Mode:    %d\n", test.Mode.Int)
 				fmt.Fprintf(&b, "    Got:  % x\n", got)
 				fmt.Fprintf(&b, "    Want: % x", test.Want)
 				t.Fatal(b.String())
