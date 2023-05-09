@@ -374,7 +374,10 @@ func (c *checker) Check(files []*ast.File) error {
 
 			switch kind.Name {
 			case "asm-func":
-				// Nothing to do in the second pass; assembly functions have no type.
+				err := c.ResolveAsmFuncBody(c.pkg.scope, expr)
+				if err != nil {
+					return err
+				}
 			case "func":
 				_, err := c.ResolveFuncBody(c.pkg.scope, expr)
 				if err != nil {
@@ -726,6 +729,145 @@ func (c *checker) CheckTopLevelFuncDecl(fun *ast.List) error {
 	c.record(name, signature, nil)
 	if other := c.pkg.scope.Insert(function); other != nil {
 		return c.errorf(fun.ParenOpen, "%s redeclared: previous declaration at %s", name.Name, c.fset.Position(other.Pos()))
+	}
+
+	return nil
+}
+
+func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
+	sig := c.funcs[fun.ParenOpen]
+	if sig == nil {
+		return c.errorf(fun.ParenOpen, "internal error: no function signature found")
+	}
+
+	name, ok := c.names[fun.ParenOpen]
+	if !ok {
+		return c.errorf(fun.ParenOpen, "internal error: no function name found")
+	}
+
+	// Fetch the function body's scope.
+	scope = scope.Innermost(fun.Elements[2].Pos())
+	if scope == nil {
+		return c.errorf(fun.Elements[2].Pos(), "internal error: failed to find scope")
+	}
+
+	for _, expr := range fun.Elements[2:] {
+		// Assembly functions are a little odd, in that
+		// most of the syntax isn't checked. This is
+		// because the syntax varies between architectures.
+		//
+		// Instead, we only check a limited set of Ruse
+		// expression forms, which can be used inline in
+		// assembly. We leave it to the assembler to identify
+		// other syntax errors.
+		//
+		// As a result, we generally ignore errors here
+		// and just skip unfamiliar syntax, unlike in the
+		// rest of the type checker.
+		//
+		// Possible inline syntax is one or more lists in
+		// a list. For example, in x86:
+		//
+		// ```
+		// 	(asm-func foo
+		// 		(mov rax (string-pointer bar)))
+		// ```
+		list, ok := expr.(*ast.List)
+		if !ok {
+			// Probably a position label or similar.
+			continue
+		}
+
+		for _, elt := range list.Elements {
+			fun, ok := elt.(*ast.List)
+			if !ok || len(fun.Elements) < 2 {
+				continue
+			}
+
+			ident, ok := fun.Elements[0].(*ast.Identifier)
+			if !ok {
+				continue
+			}
+
+			switch ident.Name {
+			case "func":
+				// Function reference; must consist of an
+				// identifier that is bound to a function.
+				if len(fun.Elements) != 2 {
+					return c.errorf(fun.Elements[2].Pos(), "%s has too many arguments in call to func: expected %d, found %d", name, 1, len(fun.Elements)-1)
+				}
+
+				arg := fun.Elements[1]
+				obj, typ, err := c.ResolveExpression(scope, arg)
+				if err != nil {
+					return err
+				}
+
+				_, ok := obj.(*Function)
+				if !ok {
+					return c.errorf(arg.Pos(), "%s has invalid argument: %s (%s)", name, arg.Print(), typ)
+				}
+
+				c.record(fun, typ, nil)
+			case "len":
+				// String reference: must consist of an
+				// identifier that is bound to a string
+				// constant.
+				if len(fun.Elements) != 2 {
+					return c.errorf(fun.Elements[2].Pos(), "%s has too many arguments in call to len: expected %d, found %d", name, 1, len(fun.Elements)-1)
+				}
+
+				arg := fun.Elements[1]
+				obj, typ, err := c.ResolveExpression(scope, arg)
+				if err != nil {
+					return err
+				}
+
+				// TODO: Add support for more types to special form len.
+				if !AssignableTo(String, typ) {
+					return c.errorf(arg.Pos(), "%s has invalid argument: %s (%s) for len", name, arg.Print(), typ)
+				}
+
+				// Make the length of a constant string also
+				// a constant.
+				con, ok := obj.(*Constant)
+				if !ok {
+					return c.errorf(arg.Pos(), "%s has invalid argument: %s (non-constant string)", name, arg.Print())
+				}
+
+				val := constant.StringVal(con.value)
+				value := constant.MakeInt64(int64(len(val)))
+
+				c.record(fun, Int, value)
+			case "string-pointer":
+				// String reference; must consist of an
+				// identifier that is bound to a string
+				// constant.
+				if len(fun.Elements) != 2 {
+					return c.errorf(fun.Elements[2].Pos(), "%s has too many arguments in call to string-pointer: expected %d, found %d", name, 1, len(fun.Elements)-1)
+				}
+
+				arg := fun.Elements[1]
+				obj, typ, err := c.ResolveExpression(scope, arg)
+				if err != nil {
+					return err
+				}
+
+				if !AssignableTo(String, typ) {
+					return c.errorf(arg.Pos(), "%s has invalid argument: %s (%s) for string-pointer", name, arg.Print(), typ)
+				}
+
+				con, ok := obj.(*Constant)
+				if !ok {
+					return c.errorf(arg.Pos(), "%s has invalid argument: %s (non-constant string)", name, arg.Print())
+				}
+
+				c.record(fun, String, con.value)
+			default:
+				// Ignore unrecognised syntax.
+				continue
+			}
+		}
 	}
 
 	return nil
