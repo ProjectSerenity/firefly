@@ -33,6 +33,8 @@ type x86Context struct {
 	Mode   x86.Mode // CPU mode.
 	FSet   *token.FileSet
 	Labels map[string]*x86Label
+	Links  []*tempLink
+	Link   *tempLink // Any link in the current instruction.
 }
 
 // x86Label contains information about a position
@@ -73,6 +75,14 @@ type x86InstructionData struct {
 type x86InstructionCandidate struct {
 	Op   ssafir.Op
 	Inst *x86.Instruction
+}
+
+// tempLink stores a link-level action that
+// needs to take place, but with some extra
+// context needed during the assembly phase.
+type tempLink struct {
+	Link        *ssafir.Link
+	InnerOffset int // Offset within an instruction.
 }
 
 // assembleX86 assembles a single Ruse assembly
@@ -375,6 +385,29 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 				return nil, err
 			}
 
+			// Handle any link by storing the
+			// offset into the instruction of
+			// any immediate value (as that is
+			// where the link would be inserted).
+			if ctx.Link != nil {
+				if code.ImmediateLen == 0 {
+					panic(ctx.Errorf(ctx.Link.Link.Pos, "internal error: instruction specified a link to %s, but no immediate was produced", ctx.Link.Link.Name))
+				}
+
+				// Update the link's offsets. The
+				// inner offset is the offset within
+				// this instruction. The outer offset
+				// is the instruction's offset into
+				// the function. For now, the latter
+				// is just the instruction index, but
+				// we replace it with the full offset
+				// later.
+				ctx.Link.InnerOffset = code.Len() - code.ImmediateLen
+				ctx.Link.Link.Offset = len(ctx.Func.Entry.Values)
+				ctx.Links = append(ctx.Links, ctx.Link)
+				ctx.Link = nil
+			}
+
 			data.Length = uint8(code.Len())
 			options = append(options, data)
 		}
@@ -539,6 +572,29 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 			data := fun.Entry.Values[ref].Extra.(*x86InstructionData)
 			jumpLength := ctx.calculateJumpDistance(label, ref)
 			data.Args[0] = uint64(jumpLength + int64(data.Length)) // Offset the subtraction done in the encoding process.
+		}
+	}
+
+	// Finally, complete any link references.
+	if len(ctx.Links) > 0 {
+		var offset int
+		fun.Links = make([]*ssafir.Link, len(ctx.Links))
+		for i, j := 0, 0; i < len(fun.Entry.Values) && j < len(ctx.Links); i++ {
+			data, ok := fun.Entry.Values[i].Extra.(*x86InstructionData)
+			if !ok {
+				continue
+			}
+
+			if ctx.Links[j].Link.Offset == i {
+				// Replace the instruction index with
+				// the offset into the function, plus
+				// the offset into the instruction.
+				ctx.Links[j].Link.Offset = offset + ctx.Links[j].InnerOffset
+				fun.Links[j] = ctx.Links[j].Link // Store the final link.
+				j++                              // Move onto the next link.
+			}
+
+			offset += int(data.Length)
 		}
 	}
 
