@@ -214,6 +214,26 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		sym.Address = sym.Offset + bin.Sections[sym.Section].Address
 	}
 
+	// Perform any linkages.
+	for _, fun := range p.Functions {
+		// Get the function base.
+		absFunName := p.Path + "." + fun.Name
+		funSym := symbols[absFunName]
+		if funSym == nil {
+			return fmt.Errorf("internal error: failed to find symbol for %s", absFunName)
+		}
+
+		for _, link := range fun.Links {
+			sym := symbols[link.Name]
+			if sym == nil {
+				return fmt.Errorf("internal error: failed to find symbol for %s", link.Name)
+			}
+
+			offset := int(funSym.Offset) + link.Offset
+			arch.WritePointer(object[offset:], sym.Address)
+		}
+	}
+
 	err = os.WriteFile(out, object, 0755)
 	if err != nil {
 		return fmt.Errorf("failed to write %s: %v", out, err)
