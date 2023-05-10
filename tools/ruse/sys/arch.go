@@ -8,6 +8,7 @@ package sys
 
 import (
 	"encoding/binary"
+	"fmt"
 )
 
 // Arch defines the characteristics of a machine architecture.
@@ -22,6 +23,34 @@ type Arch struct {
 	RegisterSize int
 	MaxAlignment int
 	ByteOrder    binary.ByteOrder
+}
+
+// ReadPointer returns a pointer from the given machine
+// code, according to the architecture's pointer size and
+// byte order.
+func (a *Arch) ReadPointer(b []byte) uintptr {
+	switch a.PointerSize {
+	case 4:
+		return uintptr(a.ByteOrder.Uint32(b))
+	case 8:
+		return uintptr(a.ByteOrder.Uint64(b))
+	default:
+		panic(fmt.Sprintf("architecture %s has unexpected pointer size %d", a.Name, a.PointerSize))
+	}
+}
+
+// WritePointer writes a pointer to the given machine code,
+// according to the architecture's pointer size and byte
+// order.
+func (a *Arch) WritePointer(b []byte, ptr uintptr) {
+	switch a.PointerSize {
+	case 4:
+		a.ByteOrder.PutUint32(b, uint32(ptr))
+	case 8:
+		a.ByteOrder.PutUint64(b, uint64(ptr))
+	default:
+		panic(fmt.Sprintf("architecture %s has unexpected pointer size %d", a.Name, a.PointerSize))
+	}
 }
 
 var X86 = &Arch{
