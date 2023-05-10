@@ -926,15 +926,16 @@ func (ctx *x86Context) rejectedBySizeHint(list *ast.List, bits int) bool {
 	return false
 }
 
-func (ctx *x86Context) matchUint(arg ast.Expression, bits int) any {
-	if list, ok := arg.(*ast.List); ok {
-		// This is only valid if it's the `len`
-		// special form on a string constant.
-		if len(list.Elements) != 2 {
-			return nil
-		}
+func (ctx *x86Context) matchSpecialForm(list *ast.List, param *x86.Parameter) any {
+	ident, ok := list.Elements[0].(*ast.Identifier)
+	if !ok {
+		return nil
+	}
 
-		if ident, ok := list.Elements[0].(*ast.Identifier); !ok || ident.Name != "len" {
+	switch ident.Name {
+	case "len":
+		// This must be an immediate.
+		if param.Encoding != x86.EncodingImmediate {
 			return nil
 		}
 
@@ -951,8 +952,12 @@ func (ctx *x86Context) matchUint(arg ast.Expression, bits int) any {
 		}
 
 		return uint64(length)
+	default:
+		return nil
 	}
+}
 
+func (ctx *x86Context) matchUint(arg ast.Expression, bits int) any {
 	lit, ok := arg.(*ast.Literal)
 	if !ok || lit.Kind != token.Integer {
 		return nil
@@ -977,32 +982,6 @@ func (ctx *x86Context) matchUint(arg ast.Expression, bits int) any {
 }
 
 func (ctx *x86Context) matchSint(arg ast.Expression, bits int) any {
-	if list, ok := arg.(*ast.List); ok {
-		// This is only valid if it's the `len`
-		// special form on a string constant.
-		if len(list.Elements) != 2 {
-			return nil
-		}
-
-		if ident, ok := list.Elements[0].(*ast.Identifier); !ok || ident.Name != "len" {
-			return nil
-		}
-
-		// Get the constant value from the type
-		// info.
-		typeAndValue := ctx.Comp.info.Types[list]
-		if typeAndValue.Type != types.Int {
-			panic("internal error: unexpected result type from len: " + typeAndValue.Type.String())
-		}
-
-		length, ok := constant.Int64Val(typeAndValue.Value)
-		if !ok {
-			panic("internal error: unexpected result value from len: " + typeAndValue.Value.String())
-		}
-
-		return uint64(length)
-	}
-
 	lit, ok := arg.(*ast.Literal)
 	if !ok || lit.Kind != token.Integer {
 		return nil
@@ -1091,10 +1070,30 @@ func (ctx *x86Context) matchSignedImmediate(arg ast.Expression, param *x86.Param
 		return struct{}{}
 	}
 
+	if list, ok := arg.(*ast.List); ok {
+		// This is only valid if it's the `len`
+		// special form on a string constant.
+		if len(list.Elements) != 2 {
+			return nil
+		}
+
+		return ctx.matchSpecialForm(list, param)
+	}
+
 	return ctx.matchSint(arg, param.Bits)
 }
 
 func (ctx *x86Context) matchUnsignedImmediate(arg ast.Expression, param *x86.Parameter) any {
+	if list, ok := arg.(*ast.List); ok {
+		// This is only valid if it's the `len`
+		// special form on a string constant.
+		if len(list.Elements) != 2 {
+			return nil
+		}
+
+		return ctx.matchSpecialForm(list, param)
+	}
+
 	return ctx.matchUint(arg, param.Bits)
 }
 
