@@ -398,6 +398,16 @@ func (e Edge) Index() int { return e.i }
 
 func (e Edge) String() string { return fmt.Sprintf("{%v, %d}", e.b, e.i) }
 
+// Link describes a case where the runtime
+// address of a symbol in a Ruse programme
+// must be inserted into the code of a
+// function during the linking process.
+type Link struct {
+	Pos    token.Pos // The position of the symbol in the Ruse source.
+	Name   string    // The absolute symbol name.
+	Offset int       // The offset into the function code where the symbol must be inserted.
+}
+
 // Function represents a single Ruse function.
 //
 // Each function is compiled separately.
@@ -416,6 +426,9 @@ type Function struct {
 	// Parameters to the function and the values
 	// they become.
 	NamedValues map[*types.Variable][]*Value
+
+	// Linking actions, if any.
+	Links []*Link
 }
 
 // Print returns a textual representation for f.
