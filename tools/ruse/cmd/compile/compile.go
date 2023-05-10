@@ -229,7 +229,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				return fmt.Errorf("internal error: failed to find symbol for %s", link.Name)
 			}
 
-			err := link.Perform(arch, object, int(funSym.Offset), sym.Address)
+			err := link.Perform(arch, object, funSym, sym.Address)
 			if err != nil {
 				return fmt.Errorf("%s: %v", fset.Position(link.Pos), err)
 			}

@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 
+	"firefly-os.dev/tools/ruse/binary"
 	"firefly-os.dev/tools/ruse/sys"
 	"firefly-os.dev/tools/ruse/token"
 	"firefly-os.dev/tools/ruse/types"
@@ -429,11 +430,13 @@ func (t LinkType) String() string {
 
 // Perform completes the link action, writing
 // the address into the binary using the
-// information in l.
-func (l *Link) Perform(arch *sys.Arch, binary []byte, funcOffset int, address uintptr) error {
+// information in `l` and `fun`, which is the
+// symbol for the function into which `address`
+// is written.
+func (l *Link) Perform(arch *sys.Arch, binary []byte, fun *binary.Symbol, address uintptr) error {
 	switch l.Type {
 	case LinkFullAddress:
-		offset := funcOffset + l.Offset
+		offset := int(fun.Offset) + l.Offset
 		arch.WritePointer(binary[offset:], address)
 	default:
 		return fmt.Errorf("cannot link %s at offset %d: unrecognised link type %s", l.Name, l.Offset, l.Type)
