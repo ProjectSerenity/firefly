@@ -200,15 +200,13 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		},
 	}
 
-	f, err := os.OpenFile(out, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
-	if err != nil {
-		return fmt.Errorf("failed to create %s: %v", out, err)
-	}
-
-	err = encode(f, bin)
+	var b bytes.Buffer
+	err = encode(&b, bin)
 	if err != nil {
 		return err
 	}
+
+	object := b.Bytes()
 
 	// Finish the symbol table.
 	for _, sym := range table {
@@ -216,9 +214,9 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		sym.Address = sym.Offset + bin.Sections[sym.Section].Address
 	}
 
-	err = f.Close()
+	err = os.WriteFile(out, object, 0755)
 	if err != nil {
-		return fmt.Errorf("failed to close %s: %v", out, err)
+		return fmt.Errorf("failed to write %s: %v", out, err)
 	}
 
 	return nil
