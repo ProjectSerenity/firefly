@@ -137,12 +137,26 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 	})
 
+	symbols := make(map[string]*binary.Symbol)
+	var table []*binary.Symbol
 	var code, stringsData bytes.Buffer
 	for _, fun := range p.Functions {
+		prev := code.Len()
+		sym := &binary.Symbol{
+			Name:    p.Path + "." + fun.Name,
+			Kind:    binary.SymbolFunction,
+			Section: 0,
+			Offset:  uintptr(prev), // Just the offset within the section for now.
+		}
+
 		err = compiler.EncodeTo(&code, fset, arch, fun)
 		if err != nil {
 			return err
 		}
+
+		sym.Length = code.Len() - prev
+		table = append(table, sym)
+		symbols[sym.Name] = sym
 	}
 
 	for _, con := range p.Constants {
@@ -153,7 +167,17 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		s := constant.StringVal(val)
+		sym := &binary.Symbol{
+			Name:    p.Path + "." + con.Name(),
+			Kind:    binary.SymbolString,
+			Section: 1,
+			Offset:  uintptr(stringsData.Len()), // Just the offset within the section for now.
+			Length:  len(s),
+		}
+
 		stringsData.WriteString(s)
+		table = append(table, sym)
+		symbols[sym.Name] = sym
 	}
 
 	const page4k = 0x1000 // One 4 KiB page.
@@ -184,6 +208,12 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	err = encode(f, bin)
 	if err != nil {
 		return err
+	}
+
+	// Finish the symbol table.
+	for _, sym := range table {
+		sym.Offset += bin.Sections[sym.Section].Offset
+		sym.Address = sym.Offset + bin.Sections[sym.Section].Address
 	}
 
 	err = f.Close()
