@@ -82,8 +82,9 @@ type x86InstructionCandidate struct {
 // needs to take place, but with some extra
 // context needed during the assembly phase.
 type tempLink struct {
-	Link        *ssafir.Link
-	InnerOffset int // Offset within an instruction.
+	Link         *ssafir.Link
+	InnerOffset  int     // Offset within an instruction.
+	InnerAddress uintptr // Address within an instruction.
 }
 
 // assembleX86 assembles a single Ruse assembly
@@ -391,8 +392,8 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 			// any immediate value (as that is
 			// where the link would be inserted).
 			if ctx.Link != nil {
-				if code.ImmediateLen == 0 {
-					panic(ctx.Errorf(ctx.Link.Pos, "internal error: instruction specified a link to %s, but no immediate was produced", ctx.Link.Name))
+				if code.CodeOffsetLen == 0 && code.ImmediateLen == 0 {
+					panic(ctx.Errorf(ctx.Link.Pos, "internal error: instruction specified a link to %s, but no code offset or immediate was produced", ctx.Link.Name))
 				}
 
 				// Update the link's offsets. The
@@ -404,8 +405,9 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 				// we replace it with the full offset
 				// later.
 				link := &tempLink{
-					InnerOffset: code.Len() - code.ImmediateLen,
-					Link:        ctx.Link,
+					InnerOffset:  code.Len() - (code.CodeOffsetLen + code.ImmediateLen),
+					InnerAddress: uintptr(code.Len()), // The instruction is relative to the next instruction.
+					Link:         ctx.Link,
 				}
 
 				link.Link.Offset = len(ctx.Func.Entry.Values)
@@ -600,6 +602,7 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 				// the offset into the function, plus
 				// the offset into the instruction.
 				ctx.Links[j].Link.Offset = offset + ctx.Links[j].InnerOffset
+				ctx.Links[j].Link.Address = uintptr(offset) + ctx.Links[j].InnerAddress
 				fun.Links[j] = ctx.Links[j].Link // Store the final link.
 				j++                              // Move onto the next link.
 			}
@@ -993,6 +996,10 @@ func (ctx *x86Context) rejectedBySizeHint(list *ast.List, bits int) bool {
 }
 
 func (ctx *x86Context) matchSpecialForm(list *ast.List, param *x86.Parameter) any {
+	if len(list.Elements) != 2 {
+		return nil
+	}
+
 	ident, ok := list.Elements[0].(*ast.Identifier)
 	if !ok {
 		return nil
@@ -1001,8 +1008,26 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, param *x86.Parameter) an
 	switch ident.Name {
 	case "func", "string-pointer":
 		// This must be an immediate with
-		// enough space for a pointer.
-		if param.Encoding != x86.EncodingImmediate || param.Bits != int(ctx.Mode.Int) {
+		// enough space for a pointer, or
+		// a relative address with plenty
+		// of space in case the functions
+		// end up far apart.
+		var size uint8
+		var linkType ssafir.LinkType
+		switch param.Encoding {
+		case x86.EncodingImmediate:
+			size = ctx.Mode.Int
+			linkType = ssafir.LinkFullAddress
+			if param.Bits != int(ctx.Mode.Int) {
+				return nil
+			}
+		case x86.EncodingCodeOffset:
+			size = 32
+			linkType = ssafir.LinkRelativeAddress
+			if param.Bits != 32 {
+				return nil
+			}
+		default:
 			return nil
 		}
 
@@ -1019,8 +1044,8 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, param *x86.Parameter) an
 		link := &ssafir.Link{
 			Pos:  ident.NamePos,
 			Name: obj.Package().Path + "." + obj.Name(),
-			Type: ssafir.LinkFullAddress,
-			Size: ctx.Mode.Int,
+			Type: linkType,
+			Size: size,
 		}
 
 		if ctx.Link != nil {
@@ -1028,7 +1053,7 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, param *x86.Parameter) an
 		}
 
 		ctx.Link = link
-		placeholder := uint64(0x1122334455667788) >> (64 - ctx.Mode.Int)
+		placeholder := uint64(0x1122334455667788) >> (64 - size)
 
 		return placeholder
 	case "len":
@@ -1169,12 +1194,6 @@ func (ctx *x86Context) matchSignedImmediate(arg ast.Expression, param *x86.Param
 	}
 
 	if list, ok := arg.(*ast.List); ok {
-		// This is only valid if it's the `len`
-		// special form on a string constant.
-		if len(list.Elements) != 2 {
-			return nil
-		}
-
 		return ctx.matchSpecialForm(list, param)
 	}
 
@@ -1183,12 +1202,6 @@ func (ctx *x86Context) matchSignedImmediate(arg ast.Expression, param *x86.Param
 
 func (ctx *x86Context) matchUnsignedImmediate(arg ast.Expression, param *x86.Parameter) any {
 	if list, ok := arg.(*ast.List); ok {
-		// This is only valid if it's the `len`
-		// special form on a string constant.
-		if len(list.Elements) != 2 {
-			return nil
-		}
-
 		return ctx.matchSpecialForm(list, param)
 	}
 
@@ -1252,6 +1265,10 @@ func (ctx *x86Context) matchRelativeAddress(arg ast.Expression, param *x86.Param
 		node.Refs = append(node.Refs, len(ctx.Func.Entry.Values)) // The index this instruction will have.
 
 		return uint64(0) // A placeholder address, we complete it later.
+	}
+
+	if list, ok := arg.(*ast.List); ok {
+		return ctx.matchSpecialForm(list, param)
 	}
 
 	// Relative addresses can't be unsigned.

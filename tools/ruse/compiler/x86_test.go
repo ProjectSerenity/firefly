@@ -1326,10 +1326,11 @@ func TestEncodeX86(t *testing.T) {
 			},
 			Links: []*ssafir.Link{
 				{
-					Name:   "test.hello-world",
-					Type:   ssafir.LinkFullAddress,
-					Size:   64,
-					Offset: 3,
+					Name:    "test.hello-world",
+					Type:    ssafir.LinkFullAddress,
+					Size:    64,
+					Offset:  3,
+					Address: 11,
 				},
 			},
 		},
@@ -1352,10 +1353,37 @@ func TestEncodeX86(t *testing.T) {
 			},
 			Links: []*ssafir.Link{
 				{
-					Name:   "test.hello-world",
-					Type:   ssafir.LinkFullAddress,
-					Size:   32,
-					Offset: 2,
+					Name:    "test.hello-world",
+					Type:    ssafir.LinkFullAddress,
+					Size:    32,
+					Offset:  2,
+					Address: 6,
+				},
+			},
+		},
+		{
+			Name: "64 bit relative function link",
+			Ruse: `
+				(let hello-world "Hello, world!") ; This should be a function, but we've set up the test to expect only one function.
+
+				'(arch x86-64)
+				(asm-func test
+					(nop)
+					(call (string-pointer hello-world))
+					(nop))
+			`,
+			Want: []byte{
+				0x90,                         // NOP.
+				0xe8, 0x3f, 0x33, 0x22, 0x11, // CALL +0x11223344.
+				0x90, // NOP.
+			},
+			Links: []*ssafir.Link{
+				{
+					Name:    "test.hello-world",
+					Type:    ssafir.LinkRelativeAddress,
+					Size:    32,
+					Offset:  2,
+					Address: 6,
 				},
 			},
 		},
