@@ -1014,6 +1014,7 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, param *x86.Parameter) an
 			Pos:  ident.NamePos,
 			Name: obj.Package().Path + "." + obj.Name(),
 			Type: ssafir.LinkFullAddress,
+			Size: ctx.Mode.Int,
 		}
 
 		if ctx.Link != nil {

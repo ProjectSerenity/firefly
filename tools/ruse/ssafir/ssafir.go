@@ -408,6 +408,7 @@ type Link struct {
 	Pos    token.Pos // The position of the symbol in the Ruse source.
 	Name   string    // The absolute symbol name.
 	Type   LinkType  // The method for writing the address.
+	Size   uint8     // The address size in bits.
 	Offset int       // The offset into the function code where the symbol must be inserted.
 }
 
@@ -433,11 +434,18 @@ func (t LinkType) String() string {
 // information in `l` and `fun`, which is the
 // symbol for the function into which `address`
 // is written.
-func (l *Link) Perform(arch *sys.Arch, binary []byte, fun *binary.Symbol, address uintptr) error {
+func (l *Link) Perform(arch *sys.Arch, object []byte, fun *binary.Symbol, address uintptr) error {
 	switch l.Type {
 	case LinkFullAddress:
 		offset := int(fun.Offset) + l.Offset
-		arch.WritePointer(binary[offset:], address)
+		switch l.Size {
+		case 32:
+			arch.ByteOrder.PutUint32(object[offset:], uint32(address))
+		case 64:
+			arch.ByteOrder.PutUint64(object[offset:], uint64(address))
+		default:
+			return fmt.Errorf("cannot link %s at offset %d: bad link size: %d", l.Name, l.Offset, l.Size)
+		}
 	default:
 		return fmt.Errorf("cannot link %s at offset %d: unrecognised link type %s", l.Name, l.Offset, l.Type)
 	}
