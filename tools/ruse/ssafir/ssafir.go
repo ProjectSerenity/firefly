@@ -405,11 +405,12 @@ func (e Edge) String() string { return fmt.Sprintf("{%v, %d}", e.b, e.i) }
 // must be inserted into the code of a
 // function during the linking process.
 type Link struct {
-	Pos    token.Pos // The position of the symbol in the Ruse source.
-	Name   string    // The absolute symbol name.
-	Type   LinkType  // The method for writing the address.
-	Size   uint8     // The address size in bits.
-	Offset int       // The offset into the function code where the symbol must be inserted.
+	Pos     token.Pos // The position of the symbol in the Ruse source.
+	Name    string    // The absolute symbol name.
+	Type    LinkType  // The method for writing the address.
+	Size    uint8     // The address size in bits.
+	Offset  int       // The offset into the function code where the symbol must be inserted.
+	Address uintptr   // The offset into the function code used to calculate relative addresses.
 }
 
 // LinkType defines how a symbol address is
@@ -417,7 +418,8 @@ type Link struct {
 type LinkType uint8
 
 const (
-	LinkFullAddress LinkType = iota // Copy the address in full.
+	LinkFullAddress     LinkType = iota // Copy the address in full.
+	LinkRelativeAddress                 // Copy the address, relative to the origin.
 )
 
 func (t LinkType) String() string {
@@ -443,6 +445,20 @@ func (l *Link) Perform(arch *sys.Arch, object []byte, fun *binary.Symbol, addres
 			arch.ByteOrder.PutUint32(object[offset:], uint32(address))
 		case 64:
 			arch.ByteOrder.PutUint64(object[offset:], uint64(address))
+		default:
+			return fmt.Errorf("cannot link %s at offset %d: bad link size: %d", l.Name, l.Offset, l.Size)
+		}
+	case LinkRelativeAddress:
+		offset := int(fun.Offset) + l.Offset
+		base := fun.Address + l.Address
+		rel := address - base
+		switch l.Size {
+		case 16:
+			arch.ByteOrder.PutUint16(object[offset:], uint16(rel))
+		case 32:
+			arch.ByteOrder.PutUint32(object[offset:], uint32(rel))
+		case 64:
+			arch.ByteOrder.PutUint64(object[offset:], uint64(rel))
 		default:
 			return fmt.Errorf("cannot link %s at offset %d: bad link size: %d", l.Name, l.Offset, l.Size)
 		}
