@@ -8,6 +8,8 @@
 package binary
 
 import (
+	"fmt"
+
 	"firefly-os.dev/tools/ruse/sys"
 )
 
@@ -16,6 +18,7 @@ type Binary struct {
 	Arch     *sys.Arch
 	BaseAddr uintptr // Binary base address.
 	Sections []*Section
+	Symbols  []*Symbol
 }
 
 // Section describes a single logical section
@@ -56,4 +59,37 @@ func (p Permissions) String() string {
 	}
 
 	return string(s[:])
+}
+
+// Symbol represents a single symbol in a Ruse
+// programme.
+type Symbol struct {
+	Name    string
+	Kind    SymbolKind
+	Section int     // Section index, from zero.
+	Offset  uintptr // Offset in the binary.
+	Address uintptr // Virtual address at runtime.
+	Length  int
+}
+
+// SymbolKind identifies the kind of a Ruse symbol.
+type SymbolKind uint8
+
+const (
+	SymbolInvalid SymbolKind = iota
+	SymbolFunction
+	SymbolString
+)
+
+func (k SymbolKind) String() string {
+	switch k {
+	case SymbolInvalid:
+		return "invalid"
+	case SymbolFunction:
+		return "function"
+	case SymbolString:
+		return "string"
+	default:
+		return fmt.Sprintf("SymbolKind(%d)", k)
+	}
 }
