@@ -1013,6 +1013,7 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, param *x86.Parameter) an
 		link := &ssafir.Link{
 			Pos:  ident.NamePos,
 			Name: obj.Package().Path + "." + obj.Name(),
+			Type: ssafir.LinkFullAddress,
 		}
 
 		if ctx.Link != nil {

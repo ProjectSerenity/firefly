@@ -28,6 +28,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//tools/ruse/ast",
+        "//tools/ruse/sys",
         "//tools/ruse/token",
         "//tools/ruse/types",
     ],

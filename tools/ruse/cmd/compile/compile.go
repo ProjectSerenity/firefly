@@ -229,8 +229,10 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				return fmt.Errorf("internal error: failed to find symbol for %s", link.Name)
 			}
 
-			offset := int(funSym.Offset) + link.Offset
-			arch.WritePointer(object[offset:], sym.Address)
+			err := link.Perform(arch, object, int(funSym.Offset), sym.Address)
+			if err != nil {
+				return fmt.Errorf("%s: %v", fset.Position(link.Pos), err)
+			}
 		}
 	}
 

@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 
+	"firefly-os.dev/tools/ruse/sys"
 	"firefly-os.dev/tools/ruse/token"
 	"firefly-os.dev/tools/ruse/types"
 )
@@ -405,7 +406,40 @@ func (e Edge) String() string { return fmt.Sprintf("{%v, %d}", e.b, e.i) }
 type Link struct {
 	Pos    token.Pos // The position of the symbol in the Ruse source.
 	Name   string    // The absolute symbol name.
+	Type   LinkType  // The method for writing the address.
 	Offset int       // The offset into the function code where the symbol must be inserted.
+}
+
+// LinkType defines how a symbol address is
+// written into a Ruse binary.
+type LinkType uint8
+
+const (
+	LinkFullAddress LinkType = iota // Copy the address in full.
+)
+
+func (t LinkType) String() string {
+	switch t {
+	case LinkFullAddress:
+		return "full address"
+	default:
+		return fmt.Sprintf("LinkType(%d)", t)
+	}
+}
+
+// Perform completes the link action, writing
+// the address into the binary using the
+// information in l.
+func (l *Link) Perform(arch *sys.Arch, binary []byte, funcOffset int, address uintptr) error {
+	switch l.Type {
+	case LinkFullAddress:
+		offset := funcOffset + l.Offset
+		arch.WritePointer(binary[offset:], address)
+	default:
+		return fmt.Errorf("cannot link %s at offset %d: unrecognised link type %s", l.Name, l.Offset, l.Type)
+	}
+
+	return nil
 }
 
 // Function represents a single Ruse function.
