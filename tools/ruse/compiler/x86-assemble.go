@@ -58,7 +58,8 @@ type x86InstructionData struct {
 	Pos  token.Pos
 	Op   ssafir.Op
 	Inst *x86.Instruction
-	Args [4]any // Unused args are untyped nil.
+	Args [4]any    // Unused args are untyped nil.
+	Link *tempLink // Any link action on the instruction.
 
 	Length    uint8          // Number of bytes of machine code (max 15).
 	REX_W     bool           // Whether to force a REX prefix, with REX.W set.
@@ -408,7 +409,7 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 				}
 
 				link.Link.Offset = len(ctx.Func.Entry.Values)
-				ctx.Links = append(ctx.Links, link)
+				data.Link = link
 				ctx.Link = nil
 			}
 
@@ -506,6 +507,11 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 		}
 
 		option := options[0]
+		if option.Link != nil {
+			ctx.Links = append(ctx.Links, option.Link)
+			option.Link = nil
+		}
+
 		c.currentBlock.NewValueExtra(list.ParenOpen, list.ParenClose, option.Op, nil, option)
 	}
 
