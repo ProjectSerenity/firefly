@@ -34,7 +34,7 @@ type x86Context struct {
 	FSet   *token.FileSet
 	Labels map[string]*x86Label
 	Links  []*tempLink
-	Link   *tempLink // Any link in the current instruction.
+	Link   *ssafir.Link // Any link in the current instruction.
 }
 
 // x86Label contains information about a position
@@ -391,7 +391,7 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 			// where the link would be inserted).
 			if ctx.Link != nil {
 				if code.ImmediateLen == 0 {
-					panic(ctx.Errorf(ctx.Link.Link.Pos, "internal error: instruction specified a link to %s, but no immediate was produced", ctx.Link.Link.Name))
+					panic(ctx.Errorf(ctx.Link.Pos, "internal error: instruction specified a link to %s, but no immediate was produced", ctx.Link.Name))
 				}
 
 				// Update the link's offsets. The
@@ -402,9 +402,13 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 				// is just the instruction index, but
 				// we replace it with the full offset
 				// later.
-				ctx.Link.InnerOffset = code.Len() - code.ImmediateLen
-				ctx.Link.Link.Offset = len(ctx.Func.Entry.Values)
-				ctx.Links = append(ctx.Links, ctx.Link)
+				link := &tempLink{
+					InnerOffset: code.Len() - code.ImmediateLen,
+					Link:        ctx.Link,
+				}
+
+				link.Link.Offset = len(ctx.Func.Entry.Values)
+				ctx.Links = append(ctx.Links, link)
 				ctx.Link = nil
 			}
 
@@ -989,6 +993,36 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, param *x86.Parameter) an
 	}
 
 	switch ident.Name {
+	case "func", "string-pointer":
+		// This must be an immediate with
+		// enough space for a pointer.
+		if param.Encoding != x86.EncodingImmediate || param.Bits != int(ctx.Mode.Int) {
+			return nil
+		}
+
+		ident, ok := list.Elements[1].(*ast.Identifier)
+		if !ok {
+			panic("internal error: expected identifier, got " + list.Elements[1].Print())
+		}
+
+		obj := ctx.Comp.info.Uses[ident]
+		if obj == nil {
+			panic("internal error: no use of " + ident.Print())
+		}
+
+		link := &ssafir.Link{
+			Pos:  ident.NamePos,
+			Name: obj.Package().Path + "." + obj.Name(),
+		}
+
+		if ctx.Link != nil {
+			panic(ctx.Errorf(list.Pos(), "cannot use multiple inline Ruse expressions in a single instruction"))
+		}
+
+		ctx.Link = link
+		placeholder := uint64(0x1122334455667788) >> (64 - ctx.Mode.Int)
+
+		return placeholder
 	case "len":
 		// This must be an immediate.
 		if param.Encoding != x86.EncodingImmediate {
