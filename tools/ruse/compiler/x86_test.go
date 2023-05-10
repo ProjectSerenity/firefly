@@ -1234,9 +1234,10 @@ func TestEncodeInstructionX86(t *testing.T) {
 
 func TestEncodeX86(t *testing.T) {
 	tests := []struct {
-		Name string
-		Ruse string
-		Want []byte
+		Name  string
+		Ruse  string
+		Want  []byte
+		Links []*ssafir.Link
 	}{
 		{
 			Name: "simple",
@@ -1307,6 +1308,61 @@ func TestEncodeX86(t *testing.T) {
 				0xb9, 0x0d, 0x00, 0x00, 0x00, // MOV ecx, 13.
 			},
 		},
+		{
+			Name: "64 bit string constant link",
+			Ruse: `
+				(let hello-world "Hello, world!")
+
+				'(arch x86-64)
+				(asm-func test
+					(nop)
+					(mov rcx (string-pointer hello-world))
+					(nop))
+			`,
+			Want: []byte{
+				0x90,                                                       // NOP.
+				0x48, 0xb9, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, // MOV rcx, 0x1122334455667788.
+				0x90, // NOP.
+			},
+			Links: []*ssafir.Link{
+				{
+					Name:   "test.hello-world",
+					Type:   ssafir.LinkFullAddress,
+					Size:   64,
+					Offset: 3,
+				},
+			},
+		},
+		{
+			Name: "32 bit string constant link",
+			Ruse: `
+				(let hello-world "Hello, world!")
+
+				'(arch x86-64)
+				'(mode 32)
+				(asm-func test
+					(nop)
+					(mov ecx (string-pointer hello-world))
+					(nop))
+			`,
+			Want: []byte{
+				0x90,                         // NOP.
+				0xb9, 0x44, 0x33, 0x22, 0x11, // MOV rcx, 0x11223344.
+				0x90, // NOP.
+			},
+			Links: []*ssafir.Link{
+				{
+					Name:   "test.hello-world",
+					Type:   ssafir.LinkFullAddress,
+					Size:   32,
+					Offset: 2,
+				},
+			},
+		},
+	}
+
+	compareOptions := []cmp.Option{
+		cmpopts.IgnoreTypes(token.Pos(0)), // Ignore token.Pos.
 	}
 
 	// Use x86-64.
@@ -1385,6 +1441,10 @@ func TestEncodeX86(t *testing.T) {
 				fmt.Fprintf(&b, "    Got:  % x\n", got)
 				fmt.Fprintf(&b, "    Want: % x", test.Want)
 				t.Fatal(b.String())
+			}
+
+			if diff := cmp.Diff(test.Links, fun.Links, compareOptions...); diff != "" {
+				t.Fatalf("Compile(): (-want, +got)\n%s", diff)
 			}
 		})
 	}
