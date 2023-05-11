@@ -71,7 +71,7 @@ func encodeX86(w io.Writer, fset *token.FileSet, fun *ssafir.Function) error {
 				return fmt.Errorf("%s: internal error: expression compiled to non-instruction value %v", position, v)
 			}
 
-			err := data.Encode(&code, mode)
+			err := x86EncodeInstruction(&code, mode, v.Op, data)
 			if err != nil {
 				return errorf(v.Pos, "%v", err)
 			}
@@ -90,9 +90,9 @@ func encodeX86(w io.Writer, fset *token.FileSet, fun *ssafir.Function) error {
 	return nil
 }
 
-// Encode follows the rules in the x86-64 manual, volume 2A,
-// chapters 2 and 3, to encode an instruction.
-func (data *x86InstructionData) Encode(code *x86.Code, mode x86.Mode) (err error) {
+// x86EncodeInstruction follows the rules in the x86-64 manual,
+// volume 2A, chapters 2 and 3, to encode an instruction.
+func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86InstructionData) (err error) {
 	*code = x86.Code{} // Reset.
 	code.VEX.Default()
 	code.EVEX.Default()

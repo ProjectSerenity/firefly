@@ -379,7 +379,7 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 			data.Pos = list.ParenOpen
 			data.PrefixLen = uint8(copy(data.Prefixes[:], prefixes))
 			data.REX_W = rexwOverride
-			err = data.Encode(&code, ctx.Mode)
+			err = x86EncodeInstruction(&code, ctx.Mode, candidate.Op, data)
 			if err != nil {
 				return nil, err
 			}
@@ -544,7 +544,8 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 	for _, name := range labelNames {
 		label := ctx.Labels[name]
 		for _, ref := range label.Refs {
-			data := fun.Entry.Values[ref].Extra.(*x86InstructionData)
+			v := fun.Entry.Values[ref]
+			data := v.Extra.(*x86InstructionData)
 			jumpLength := int64(data.Args[0].(uint64))
 
 			// Check whether we can encode the jump in an
@@ -554,7 +555,7 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 			inst8, ok := x86.InstructionsByUID[newUID8]
 			if ok && inst8.Supports(ctx.Mode) && math.MinInt8 <= jumpLength && jumpLength <= math.MaxInt8 {
 				data.Inst = inst8
-				err := data.Encode(&code, ctx.Mode)
+				err := x86EncodeInstruction(&code, ctx.Mode, v.Op, data)
 				if err != nil {
 					return nil, err
 				}
@@ -567,7 +568,7 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 			inst16, ok := x86.InstructionsByUID[newUID16]
 			if ok && inst16.Supports(ctx.Mode) && math.MinInt16 <= jumpLength && jumpLength <= math.MaxInt16 {
 				data.Inst = inst16
-				err := data.Encode(&code, ctx.Mode)
+				err := x86EncodeInstruction(&code, ctx.Mode, v.Op, data)
 				if err != nil {
 					return nil, err
 				}

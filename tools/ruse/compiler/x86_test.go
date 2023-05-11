@@ -671,7 +671,7 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 						mode = x86.Mode64
 					}
 
-					err = data.Encode(&code, mode)
+					err = x86EncodeInstruction(&code, mode, v.Op, data)
 					if err != nil {
 						all.Wrong()
 						local.Wrong()
@@ -795,6 +795,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 		Name     string
 		Mode     x86.Mode
 		Assembly string
+		Op       ssafir.Op
 		Data     *x86InstructionData
 		Want     *x86.Code
 	}{
@@ -802,6 +803,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "ret",
 			Mode:     x86.Mode64,
 			Assembly: "(ret)",
+			Op:       ssafir.OpX86RET,
 			Data: &x86InstructionData{
 				Inst: x86.RET,
 			},
@@ -814,6 +816,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "shift right",
 			Mode:     x86.Mode64,
 			Assembly: "(shr ecx 18)",
+			Op:       ssafir.OpX86SHR_Rmr32_Imm8,
 			Data: &x86InstructionData{
 				Inst: x86.SHR_Rmr32_Imm8,
 				Args: [4]any{
@@ -834,6 +837,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "large add",
 			Mode:     x86.Mode64,
 			Assembly: "(add r8 (rdi))",
+			Op:       ssafir.OpX86ADD_R64_M64_REX,
 			Data: &x86InstructionData{
 				Inst: x86.ADD_R64_M64_REX,
 				Args: [4]any{x86.R8, &x86.Memory{Base: x86.RDI}},
@@ -850,6 +854,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "large displaced add",
 			Mode:     x86.Mode64,
 			Assembly: "(add r8 (+ rdi 7))",
+			Op:       ssafir.OpX86ADD_R64_M64_REX,
 			Data: &x86InstructionData{
 				Inst: x86.ADD_R64_M64_REX,
 				Args: [4]any{x86.R8, &x86.Memory{Base: x86.RDI, Displacement: 7}},
@@ -868,6 +873,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "move to from ES segment",
 			Mode:     x86.Mode32,
 			Assembly: "(mov ah (es eax)",
+			Op:       ssafir.OpX86MOV_R8_M8,
 			Data: &x86InstructionData{
 				Inst: x86.MOV_R8_M8,
 				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.ES, Base: x86.EAX}},
@@ -884,6 +890,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "move to from CS segment",
 			Mode:     x86.Mode32,
 			Assembly: "(mov ah (cs eax)",
+			Op:       ssafir.OpX86MOV_R8_M8,
 			Data: &x86InstructionData{
 				Inst: x86.MOV_R8_M8,
 				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.CS, Base: x86.EAX}},
@@ -900,6 +907,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "move to from SS segment",
 			Mode:     x86.Mode32,
 			Assembly: "(mov ah (ss eax)",
+			Op:       ssafir.OpX86MOV_R8_M8,
 			Data: &x86InstructionData{
 				Inst: x86.MOV_R8_M8,
 				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.SS, Base: x86.EAX}},
@@ -916,6 +924,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "move to from DS segment",
 			Mode:     x86.Mode32,
 			Assembly: "(mov ah (ds eax)",
+			Op:       ssafir.OpX86MOV_R8_M8,
 			Data: &x86InstructionData{
 				Inst: x86.MOV_R8_M8,
 				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.DS, Base: x86.EAX}},
@@ -932,6 +941,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "move to from FS segment",
 			Mode:     x86.Mode32,
 			Assembly: "(mov ah (fs eax)",
+			Op:       ssafir.OpX86MOV_R8_M8,
 			Data: &x86InstructionData{
 				Inst: x86.MOV_R8_M8,
 				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.FS, Base: x86.EAX}},
@@ -948,6 +958,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "move to from GS segment",
 			Mode:     x86.Mode32,
 			Assembly: "(mov ah (gs eax)",
+			Op:       ssafir.OpX86MOV_R8_M8,
 			Data: &x86InstructionData{
 				Inst: x86.MOV_R8_M8,
 				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.GS, Base: x86.EAX}},
@@ -964,6 +975,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "size override mov",
 			Mode:     x86.Mode64,
 			Assembly: "(mov eax (edx))",
+			Op:       ssafir.OpX86MOV_R32_M32,
 			Data: &x86InstructionData{
 				Inst: x86.MOV_R32_M32,
 				Args: [4]any{x86.EAX, &x86.Memory{Base: x86.EDX}},
@@ -980,6 +992,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "specialised cmppd",
 			Mode:     x86.Mode16,
 			Assembly: "(cmpeqpd xmm0 (0xb))",
+			Op:       ssafir.OpX86CMPEQPD_XMM1_M128,
 			Data: &x86InstructionData{
 				Inst: x86.CMPEQPD_XMM1_M128,
 				Args: [4]any{x86.XMM0, &x86.Memory{Displacement: 0xb}},
@@ -1000,6 +1013,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "old fsave",
 			Mode:     x86.Mode32,
 			Assembly: "(fsave (ecx))",
+			Op:       ssafir.OpX86FSAVE_M94l108byte,
 			Data: &x86InstructionData{
 				Inst: x86.FSAVE_M94l108byte,
 				Args: [4]any{&x86.Memory{Base: x86.ECX}},
@@ -1016,6 +1030,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "sysret to 32-bit mode",
 			Mode:     x86.Mode64,
 			Assembly: "(sysret)",
+			Op:       ssafir.OpX86SYSRET,
 			Data: &x86InstructionData{
 				Inst: x86.SYSRET,
 			},
@@ -1028,6 +1043,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "sysret to 64-bit mode",
 			Mode:     x86.Mode64,
 			Assembly: "(rex.w sysret)",
+			Op:       ssafir.OpX86SYSRET,
 			Data: &x86InstructionData{
 				Inst: x86.SYSRET,
 
@@ -1043,6 +1059,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "stosb",
 			Mode:     x86.Mode64,
 			Assembly: "(stosb)",
+			Op:       ssafir.OpX86STOSB,
 			Data: &x86InstructionData{
 				Inst: x86.STOSB,
 			},
@@ -1055,6 +1072,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "rep stosb",
 			Mode:     x86.Mode64,
 			Assembly: "(rep stosb)",
+			Op:       ssafir.OpX86STOSB,
 			Data: &x86InstructionData{
 				Inst: x86.STOSB,
 
@@ -1071,6 +1089,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "EVEX extended register",
 			Mode:     x86.Mode64,
 			Assembly: "(vaddpd ymm14 ymm3 ymm31)",
+			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 			Data: &x86InstructionData{
 				Inst: x86.VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Args: [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
@@ -1091,6 +1110,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "EVEX uncompressed displacement",
 			Mode:     x86.Mode64,
 			Assembly: "(vaddpd ymm19 ymm3 (+ rax 513))",
+			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_M256_EVEX,
 			Data: &x86InstructionData{
 				Inst: x86.VADDPD_YMM1_YMMV_M256_EVEX,
 				Args: [4]any{x86.YMM19, x86.YMM3, &x86.Memory{Base: x86.RAX, Displacement: 513}},
@@ -1113,6 +1133,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "EVEX compressed displacement",
 			Mode:     x86.Mode64,
 			Assembly: "(vaddpd ymm19 ymm3 (+ rax 512))",
+			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_M256_EVEX,
 			Data: &x86InstructionData{
 				Inst: x86.VADDPD_YMM1_YMMV_M256_EVEX,
 				Args: [4]any{x86.YMM19, x86.YMM3, &x86.Memory{Base: x86.RAX, Displacement: 512}},
@@ -1135,6 +1156,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "EVEX implicit opmask",
 			Mode:     x86.Mode64,
 			Assembly: "'(mask k0)(vaddpd ymm14 ymm3 ymm31)",
+			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 			Data: &x86InstructionData{
 				Inst: x86.VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Args: [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
@@ -1156,6 +1178,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "EVEX explicit opmask",
 			Mode:     x86.Mode64,
 			Assembly: "'(mask k7)(vaddpd ymm14 ymm3 ymm31)",
+			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 			Data: &x86InstructionData{
 				Inst: x86.VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Args: [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
@@ -1177,6 +1200,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "EVEX implicit zeroing",
 			Mode:     x86.Mode64,
 			Assembly: "'(zero false)(vaddpd ymm14 ymm3 ymm31)",
+			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 			Data: &x86InstructionData{
 				Inst: x86.VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Args: [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
@@ -1198,6 +1222,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Name:     "EVEX explicit zeroing",
 			Mode:     x86.Mode64,
 			Assembly: "'(zero true)(vaddpd ymm14 ymm3 ymm31)",
+			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 			Data: &x86InstructionData{
 				Inst: x86.VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Args: [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
@@ -1220,7 +1245,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			var got x86.Code
-			err := test.Data.Encode(&got, test.Mode)
+			err := x86EncodeInstruction(&got, test.Mode, test.Op, test.Data)
 			if err != nil {
 				t.Fatalf("%s.Encode(): %v", test.Assembly, err)
 			}
