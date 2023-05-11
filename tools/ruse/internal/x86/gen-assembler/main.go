@@ -78,15 +78,18 @@ func genAssembler(output string) error {
 	var data struct {
 		Command      string
 		Package      string
+		UIDs         []string
 		Instructions map[string][]*x86.Instruction
 	}
 
 	data.Command = filepath.Base(os.Args[0]) + " " + strings.Join(os.Args[1:], " ")
 	data.Package = "compiler"
+	data.UIDs = make([]string, len(x86.Instructions))
 	data.Instructions = make(map[string][]*x86.Instruction)
 
-	for _, inst := range x86.Instructions {
+	for i, inst := range x86.Instructions {
 		data.Instructions[inst.Mnemonic] = append(data.Instructions[inst.Mnemonic], inst)
+		data.UIDs[i] = inst.UID
 	}
 
 	// Print stats.

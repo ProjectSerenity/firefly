@@ -14,3 +14,7 @@ var x86MnemonicToCandidates = map[string][]x86InstructionCandidate{ {{- range $m
 		{Op: ssafir.OpX86{{ .UID }}, Inst: x86.{{ .UID }}},{{ end }}
 	},{{ end }}
 }
+
+var x86OpToInstruction = map[ssafir.Op]*x86.Instruction{ {{- range .UIDs }}
+	ssafir.OpX86{{ . }}: x86.{{ . }},{{ end }}
+}
