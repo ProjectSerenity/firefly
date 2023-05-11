@@ -17,6 +17,7 @@ import (
 func TestEncodeMemory(t *testing.T) {
 	tests := []struct {
 		Mode   x86.Mode
+		Op     ssafir.Op
 		Data   *x86InstructionData
 		Memory *x86.Memory
 		Want   *x86.Code
@@ -1475,10 +1476,15 @@ func TestEncodeMemory(t *testing.T) {
 		code.EVEX.Default()
 		data := test.Data
 		if data == nil {
-			data = &x86InstructionData{Op: ssafir.OpX86AAD}
+			data = &x86InstructionData{}
 		}
 
-		err := data.encodeMemory(&code, ssafir.OpX86AAD, test.Mode, test.Memory)
+		op := test.Op
+		if op == ssafir.OpInvalid {
+			op = ssafir.OpX86AAD
+		}
+
+		err := data.encodeMemory(&code, op, test.Mode, test.Memory)
 		if err != nil {
 			t.Errorf("%d-bit mode: encodeMemory(%s): %v", test.Mode.Int, test.Memory, err)
 			continue

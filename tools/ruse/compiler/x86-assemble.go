@@ -54,7 +54,6 @@ func (ctx *x86Context) Errorf(pos token.Pos, format string, v ...any) error {
 // necessary to fully assemble an x86 instruction.
 type x86InstructionData struct {
 	Pos  token.Pos
-	Op   ssafir.Op
 	Args [4]any // Unused args are untyped nil.
 
 	Length    uint8          // Number of bytes of machine code (max 15).
@@ -866,9 +865,7 @@ func (ctx *x86Context) Match(list *ast.List, args []ast.Expression, op ssafir.Op
 		return nil, nil
 	}
 
-	data = &x86InstructionData{
-		Op: op,
-	}
+	data = &x86InstructionData{}
 
 	// Check any annotations for EVEX parameters.
 	ok, err := ctx.handleInstructionAnnotations(data, list, inst)

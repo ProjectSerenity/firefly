@@ -48,7 +48,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86RET,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86RET,
 					Length: 1,
 				},
 			},
@@ -60,7 +59,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86SHR_Rmr32_Imm8,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86SHR_Rmr32_Imm8,
 					Args:   [4]any{x86.EAX, uint64(3)},
 					Length: 3,
 				},
@@ -73,7 +71,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86ADC_M8_R8,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86ADC_M8_R8,
 					Args:   [4]any{&x86.Memory{Base: x86.BX_SI}, x86.CL},
 					Length: 3,
 				},
@@ -86,7 +83,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86ADC_M8_R8,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86ADC_M8_R8,
 					Args:   [4]any{&x86.Memory{Segment: x86.ES, Base: x86.BP, Displacement: 7}, x86.CL},
 					Length: 5,
 				},
@@ -99,7 +95,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86ADD_R64_M64_REX,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86ADD_R64_M64_REX,
 					Args:   [4]any{x86.R8, &x86.Memory{Base: x86.RDI, Displacement: 7}},
 					Length: 4,
 				},
@@ -112,7 +107,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86MOV_R8op_Imm8u,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86MOV_R8op_Imm8u,
 					Args:   [4]any{x86.AH, uint64(0)},
 					Length: 2,
 				},
@@ -125,7 +119,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86SYSRET,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86SYSRET,
 					Length: 2,
 				},
 			},
@@ -137,7 +130,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86SYSRET,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86SYSRET,
 					Length: 3,
 					REX_W:  true,
 				},
@@ -150,7 +142,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86STOSB,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86STOSB,
 					Length: 1,
 				},
 			},
@@ -162,7 +153,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86STOSB,
 				Extra: &x86InstructionData{
-					Op:        ssafir.OpX86STOSB,
 					Length:    2,
 					Prefixes:  [14]x86.Prefix{x86.PrefixRepeat},
 					PrefixLen: 1,
@@ -176,7 +166,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_VEX,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_VEX,
 					Args:   [4]any{x86.YMM3, x86.YMM2, x86.YMM8},
 					Length: 5,
 				},
@@ -189,7 +178,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 					Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 					Length: 6,
 				},
@@ -202,7 +190,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 					Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 					Length: 6,
 					Mask:   0,
@@ -216,7 +203,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 					Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 					Length: 6,
 					Mask:   1,
@@ -230,7 +216,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 					Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 					Length: 6,
 					Zero:   false,
@@ -244,7 +229,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 					Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 					Length: 6,
 					Zero:   true,
@@ -258,7 +242,6 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86ADD_Rmr8_Imm8,
 				Extra: &x86InstructionData{
-					Op:     ssafir.OpX86ADD_Rmr8_Imm8,
 					Args:   [4]any{x86.AL, uint64(1)},
 					Length: 3,
 				},
