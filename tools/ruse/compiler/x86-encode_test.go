@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"firefly-os.dev/tools/ruse/internal/x86"
+	"firefly-os.dev/tools/ruse/ssafir"
 )
 
 func TestEncodeMemory(t *testing.T) {
@@ -1474,10 +1475,10 @@ func TestEncodeMemory(t *testing.T) {
 		code.EVEX.Default()
 		data := test.Data
 		if data == nil {
-			data = &x86InstructionData{Inst: x86.AAD}
+			data = &x86InstructionData{Op: ssafir.OpX86AAD}
 		}
 
-		err := data.encodeMemory(&code, test.Mode, test.Memory)
+		err := data.encodeMemory(&code, ssafir.OpX86AAD, test.Mode, test.Memory)
 		if err != nil {
 			t.Errorf("%d-bit mode: encodeMemory(%s): %v", test.Mode.Int, test.Memory, err)
 			continue

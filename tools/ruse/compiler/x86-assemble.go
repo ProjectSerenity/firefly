@@ -55,7 +55,6 @@ func (ctx *x86Context) Errorf(pos token.Pos, format string, v ...any) error {
 type x86InstructionData struct {
 	Pos  token.Pos
 	Op   ssafir.Op
-	Inst *x86.Instruction
 	Args [4]any // Unused args are untyped nil.
 
 	Length    uint8          // Number of bytes of machine code (max 15).
@@ -488,9 +487,11 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 
 				// Next, prefer options with smaller
 				// data operations.
-				if options[i].Inst.DataSize != 0 && options[j].Inst.DataSize != 0 &&
-					options[i].Inst.DataSize != options[j].Inst.DataSize {
-					return options[i].Inst.DataSize < options[j].Inst.DataSize
+				inst1 := x86OpToInstruction[options[i].Op]
+				inst2 := x86OpToInstruction[options[j].Op]
+				if inst1.DataSize != 0 && inst2.DataSize != 0 &&
+					inst1.DataSize != inst2.DataSize {
+					return inst1.DataSize < inst2.DataSize
 				}
 
 				// If an EVEX encoding is not necessary
@@ -500,8 +501,8 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 				// also match. Prefer VEX over EVEX, as
 				// it's more intuitive and doesn't have
 				// any other effect.
-				enc1 := options[i].Inst.Encoding
-				enc2 := options[j].Inst.Encoding
+				enc1 := inst1.Encoding
+				enc2 := inst2.Encoding
 				if enc1.VEX != enc2.VEX || enc1.EVEX != enc2.EVEX {
 					return enc1.VEX
 				}
@@ -546,15 +547,16 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 		for _, ref := range label.Refs {
 			v := fun.Entry.Values[ref]
 			data := v.Extra.(*x86InstructionData)
+			inst := x86OpToInstruction[v.Op]
 			jumpLength := int64(data.Args[0].(uint64))
 
 			// Check whether we can encode the jump in an
 			// 8-bit or 16-bit version of the same jump.
 
-			newUID8 := strings.Replace(data.Inst.UID, "32", "8", 1)
+			newUID8 := strings.Replace(inst.UID, "32", "8", 1)
 			inst8, ok := x86.InstructionsByUID[newUID8]
 			if ok && inst8.Supports(ctx.Mode) && math.MinInt8 <= jumpLength && jumpLength <= math.MaxInt8 {
-				data.Inst = inst8
+				v.Op = x86Opcodes[newUID8]
 				err := x86EncodeInstruction(&code, ctx.Mode, v.Op, data)
 				if err != nil {
 					return nil, err
@@ -564,10 +566,10 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 				continue
 			}
 
-			newUID16 := strings.Replace(data.Inst.UID, "32", "16", 1)
+			newUID16 := strings.Replace(inst.UID, "32", "16", 1)
 			inst16, ok := x86.InstructionsByUID[newUID16]
 			if ok && inst16.Supports(ctx.Mode) && math.MinInt16 <= jumpLength && jumpLength <= math.MaxInt16 {
-				data.Inst = inst16
+				v.Op = x86Opcodes[newUID16]
 				err := x86EncodeInstruction(&code, ctx.Mode, v.Op, data)
 				if err != nil {
 					return nil, err
@@ -860,8 +862,7 @@ func (ctx *x86Context) Match(list *ast.List, args []ast.Expression, inst x86Inst
 	}
 
 	data = &x86InstructionData{
-		Op:   inst.Op,
-		Inst: inst.Inst,
+		Op: inst.Op,
 	}
 
 	// Check any annotations for EVEX parameters.

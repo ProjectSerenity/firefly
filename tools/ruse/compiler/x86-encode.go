@@ -97,6 +97,11 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 	code.VEX.Default()
 	code.EVEX.Default()
 
+	inst := x86OpToInstruction[op]
+	if inst == nil {
+		return fmt.Errorf("internal error: found no instruction data for op %s", op)
+	}
+
 	seenPrefix := make(map[x86.Prefix]bool)
 	addPrefix := func(prefix x86.Prefix) {
 		if !seenPrefix[prefix] {
@@ -108,32 +113,32 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 	// Start with the mandatory encoding
 	// details defined in the instruction.
 
-	copy(code.PrefixOpcodes[:], data.Inst.Encoding.PrefixOpcodes)
-	for _, prefix := range data.Inst.Encoding.MandatoryPrefixes {
+	copy(code.PrefixOpcodes[:], inst.Encoding.PrefixOpcodes)
+	for _, prefix := range inst.Encoding.MandatoryPrefixes {
 		addPrefix(prefix)
 	}
 
-	if data.Inst.Encoding.REX || data.REX_W {
+	if inst.Encoding.REX || data.REX_W {
 		code.REX.SetOn()
 	}
 
-	code.REX.SetR(data.Inst.Encoding.REX_R)
-	code.REX.SetW(data.REX_W || data.Inst.Encoding.REX_W)
-	code.SetL(data.Inst.Encoding.VEX_L)
-	code.SetPP(data.Inst.Encoding.VEXpp)
-	code.SetM_MMMM(data.Inst.Encoding.VEXm_mmmm)
-	code.SetW(data.Inst.Encoding.VEX_W)
-	code.EVEX.SetOn(data.Inst.Encoding.EVEX)
-	code.EVEX.SetLp(data.Inst.Encoding.EVEX_Lp)
+	code.REX.SetR(inst.Encoding.REX_R)
+	code.REX.SetW(data.REX_W || inst.Encoding.REX_W)
+	code.SetL(inst.Encoding.VEX_L)
+	code.SetPP(inst.Encoding.VEXpp)
+	code.SetM_MMMM(inst.Encoding.VEXm_mmmm)
+	code.SetW(inst.Encoding.VEX_W)
+	code.EVEX.SetOn(inst.Encoding.EVEX)
+	code.EVEX.SetLp(inst.Encoding.EVEX_Lp)
 	code.EVEX.SetZ(data.Zero)
 	code.EVEX.SetAAA(data.Mask)
 	code.EVEX.SetBr(data.Broadcast)
 
 	// Store the opcode.
-	code.OpcodeLen = copy(code.Opcode[:], data.Inst.Encoding.Opcode)
+	code.OpcodeLen = copy(code.Opcode[:], inst.Encoding.Opcode)
 
-	if data.Inst.Encoding.ModRMreg != 0 {
-		code.ModRM.SetReg(data.Inst.Encoding.ModRMreg - 1)
+	if inst.Encoding.ModRMreg != 0 {
+		code.ModRM.SetReg(inst.Encoding.ModRMreg - 1)
 	}
 
 	// Then include everything specified
@@ -150,7 +155,7 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 	// We also check for an address with a non-standard
 	// size, making the address override prefix
 	// necessary.
-	for i, param := range data.Inst.Parameters {
+	for i, param := range inst.Parameters {
 		if param.Type != x86.TypeMemory {
 			continue
 		}
@@ -207,7 +212,7 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 	// Check for a data operation with a
 	// non-standard size, making the operand
 	// override prefix necessary.
-	if 8 < data.Inst.DataSize && data.Inst.DataSize <= 64 && data.Inst.OperandSize {
+	if 8 < inst.DataSize && inst.DataSize <= 64 && inst.OperandSize {
 		var defaultBits int
 		switch mode.Int {
 		case 16:
@@ -216,15 +221,15 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 			defaultBits = 32
 		}
 
-		if data.Inst.DataSize == 64 {
+		if inst.DataSize == 64 {
 			code.REX.SetOn()
 			code.REX.SetW(true)
-		} else if data.Inst.DataSize != defaultBits && !data.Inst.Encoding.NoVEXPrefixes {
+		} else if inst.DataSize != defaultBits && !inst.Encoding.NoVEXPrefixes {
 			addPrefix(x86.PrefixOperandSize)
 		}
 	}
 
-	for i, param := range data.Inst.Parameters {
+	for i, param := range inst.Parameters {
 		var err error
 		switch param.Encoding {
 		case x86.EncodingNone:
@@ -246,14 +251,14 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 			code.EVEX.SetVVVV(vvvv)
 		case x86.EncodingRegisterModifier:
 			arg := data.Args[i].(*x86.Register)
-			idx := data.Inst.Encoding.RegisterModifier - 1
+			idx := inst.Encoding.RegisterModifier - 1
 			_, rex, rexB, reg := arg.ModRM()
 			code.REX.SetREX(rex)
 			code.SetB(rexB)
 			code.Opcode[idx] += reg
 		case x86.EncodingStackIndex:
 			mod := data.Args[i].(uint8)
-			idx := data.Inst.Encoding.StackIndex - 1
+			idx := inst.Encoding.StackIndex - 1
 			code.Opcode[idx] += mod
 		case x86.EncodingCodeOffset:
 			var arg uint64
@@ -318,7 +323,7 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 				code.ModRM.SetMod(modRegister)
 				code.ModRM.SetRM(reg)
 			case *x86.Memory:
-				err = data.encodeMemory(code, mode, arg)
+				err = data.encodeMemory(code, op, mode, arg)
 				if err != nil {
 					return fmt.Errorf("invalid argument %d: %v", i, err)
 				}
@@ -327,7 +332,7 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 			}
 		case x86.EncodingDisplacement:
 			arg := data.Args[i].(*x86.Memory)
-			_, _, err := data.addDisplacement(code, arg.Base, mode, param.Type == x86.TypeMemoryOffset, arg.Displacement)
+			_, _, err := data.addDisplacement(code, op, arg.Base, mode, param.Type == x86.TypeMemoryOffset, arg.Displacement)
 			if err != nil {
 				return fmt.Errorf("invalid argument %d: %v", i, err)
 			}
@@ -387,19 +392,19 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 		code.REX = 0
 	}
 
-	if code.ModRM != 0 || data.Inst.Encoding.ModRM {
+	if code.ModRM != 0 || inst.Encoding.ModRM {
 		code.UseModRM = true
 	}
 
 	// Finally, append any implied immediate.
-	code.ImmediateLen += copy(code.Immediate[code.ImmediateLen:], data.Inst.Encoding.ImpliedImmediate)
+	code.ImmediateLen += copy(code.Immediate[code.ImmediateLen:], inst.Encoding.ImpliedImmediate)
 
 	return nil
 }
 
 // addDisplacement is a helper function for encoding a
 // memory address displacement.
-func (data *x86InstructionData) addDisplacement(code *x86.Code, base *x86.Register, mode x86.Mode, isMoffset bool, displ int64) (mod, rm byte, err error) {
+func (data *x86InstructionData) addDisplacement(code *x86.Code, op ssafir.Op, base *x86.Register, mode x86.Mode, isMoffset bool, displ int64) (mod, rm byte, err error) {
 	size := int(mode.Int)
 	if base != nil && base.Bits != 0 {
 		size = base.Bits
@@ -412,8 +417,13 @@ func (data *x86InstructionData) addDisplacement(code *x86.Code, base *x86.Regist
 		rm = rmDisplacementOnly32
 	}
 
+	inst := x86OpToInstruction[op]
+	if inst == nil {
+		return 0, 0, fmt.Errorf("internal error: found no instruction data for op %s", op)
+	}
+
 	// Determine whether to compress the displacement.
-	N, err := data.Inst.DisplacementCompression(data.Broadcast)
+	N, err := inst.DisplacementCompression(data.Broadcast)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -453,7 +463,7 @@ func (data *x86InstructionData) addDisplacement(code *x86.Code, base *x86.Regist
 
 // Encode follows the rules in the x86-64 manual, volume 2A,
 // chapters 2 and 3, to encode a memory reference.
-func (data *x86InstructionData) encodeMemory(code *x86.Code, mode x86.Mode, m *x86.Memory) (err error) {
+func (data *x86InstructionData) encodeMemory(code *x86.Code, op ssafir.Op, mode x86.Mode, m *x86.Memory) (err error) {
 	convertScale := func(err *error, scale uint8) uint8 {
 		if *err != nil {
 			return 0
@@ -492,7 +502,7 @@ func (data *x86InstructionData) encodeMemory(code *x86.Code, mode x86.Mode, m *x
 		code.SIB.SetIndex(idx)
 		scale := convertScale(&err, m.Scale)
 		code.SIB.SetScale(scale)
-		mod, _, err := data.addDisplacement(code, m.Base, mode, false, m.Displacement)
+		mod, _, err := data.addDisplacement(code, op, m.Base, mode, false, m.Displacement)
 		code.ModRM.SetMod(mod)
 		if err != nil {
 			return err
@@ -506,7 +516,7 @@ func (data *x86InstructionData) encodeMemory(code *x86.Code, mode x86.Mode, m *x
 		code.SIB.SetIndex(idx)
 		scale := convertScale(&err, m.Scale)
 		code.SIB.SetScale(scale)
-		mod, _, err := data.addDisplacement(code, m.Base, mode, false, m.Displacement)
+		mod, _, err := data.addDisplacement(code, op, m.Base, mode, false, m.Displacement)
 		code.ModRM.SetMod(mod)
 		if err != nil {
 			return err
@@ -519,7 +529,7 @@ func (data *x86InstructionData) encodeMemory(code *x86.Code, mode x86.Mode, m *x
 		code.SIB.SetBase(base)
 		switch m.Base {
 		case x86.BP, x86.EBP, x86.RBP:
-			mod, _, err := data.addDisplacement(code, m.Base, mode, false, m.Displacement)
+			mod, _, err := data.addDisplacement(code, op, m.Base, mode, false, m.Displacement)
 			code.ModRM.SetMod(mod)
 			if err != nil {
 				return err
@@ -541,7 +551,7 @@ func (data *x86InstructionData) encodeMemory(code *x86.Code, mode x86.Mode, m *x
 		code.REX.SetREX(rex)
 		code.SetX(rexX)
 		code.SIB.SetIndex(idx)
-		mod, _, err := data.addDisplacement(code, m.Base, mode, false, m.Displacement)
+		mod, _, err := data.addDisplacement(code, op, m.Base, mode, false, m.Displacement)
 		code.ModRM.SetMod(mod)
 		if err != nil {
 			return err
@@ -566,13 +576,13 @@ func (data *x86InstructionData) encodeMemory(code *x86.Code, mode x86.Mode, m *x
 			code.ModRM.SetRM(rmSIB)
 			code.SIB.SetBase(sibStackPointerBase)
 			code.SIB.SetIndex(sibNoIndex)
-			mod, _, err := data.addDisplacement(code, m.Base, mode, false, m.Displacement)
+			mod, _, err := data.addDisplacement(code, op, m.Base, mode, false, m.Displacement)
 			code.ModRM.SetMod(mod)
 			if err != nil {
 				return err
 			}
 		default:
-			mod, _, err := data.addDisplacement(code, m.Base, mode, false, m.Displacement)
+			mod, _, err := data.addDisplacement(code, op, m.Base, mode, false, m.Displacement)
 			code.ModRM.SetMod(mod)
 			if err != nil {
 				return err
@@ -590,7 +600,7 @@ func (data *x86InstructionData) encodeMemory(code *x86.Code, mode x86.Mode, m *x
 		code.SIB.SetBase(base)
 		switch m.Base {
 		case x86.BP, x86.EBP, x86.RBP:
-			mod, _, err := data.addDisplacement(code, m.Base, mode, false, m.Displacement)
+			mod, _, err := data.addDisplacement(code, op, m.Base, mode, false, m.Displacement)
 			code.ModRM.SetMod(mod)
 			if err != nil {
 				return err
@@ -609,7 +619,7 @@ func (data *x86InstructionData) encodeMemory(code *x86.Code, mode x86.Mode, m *x
 		mod := modDerefenceRegister
 		switch m.Base {
 		case x86.BP, x86.EBP, x86.RBP:
-			mod, _, err = data.addDisplacement(code, m.Base, mode, false, m.Displacement)
+			mod, _, err = data.addDisplacement(code, op, m.Base, mode, false, m.Displacement)
 			if err != nil {
 				return err
 			}
@@ -629,13 +639,13 @@ func (data *x86InstructionData) encodeMemory(code *x86.Code, mode x86.Mode, m *x
 			code.SIB.SetBase(sibNoBase)
 			code.SIB.SetIndex(sibNoIndex)
 			code.SIB.SetScale(0)
-			mod, _, err := data.addDisplacement(code, m.Base, mode, false, m.Displacement)
+			mod, _, err := data.addDisplacement(code, op, m.Base, mode, false, m.Displacement)
 			code.ModRM.SetMod(mod)
 			if err != nil {
 				return err
 			}
 		} else {
-			mod, rm, err := data.addDisplacement(code, m.Base, mode, false, m.Displacement)
+			mod, rm, err := data.addDisplacement(code, op, m.Base, mode, false, m.Displacement)
 			code.ModRM.SetMod(mod)
 			code.ModRM.SetRM(rm)
 			if err != nil {

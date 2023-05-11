@@ -49,7 +49,6 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86RET,
 				Extra: &x86InstructionData{
 					Op:     ssafir.OpX86RET,
-					Inst:   x86.RET,
 					Length: 1,
 				},
 			},
@@ -62,7 +61,6 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86SHR_Rmr32_Imm8,
 				Extra: &x86InstructionData{
 					Op:     ssafir.OpX86SHR_Rmr32_Imm8,
-					Inst:   x86.SHR_Rmr32_Imm8,
 					Args:   [4]any{x86.EAX, uint64(3)},
 					Length: 3,
 				},
@@ -76,7 +74,6 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86ADC_M8_R8,
 				Extra: &x86InstructionData{
 					Op:     ssafir.OpX86ADC_M8_R8,
-					Inst:   x86.ADC_M8_R8,
 					Args:   [4]any{&x86.Memory{Base: x86.BX_SI}, x86.CL},
 					Length: 3,
 				},
@@ -90,7 +87,6 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86ADC_M8_R8,
 				Extra: &x86InstructionData{
 					Op:     ssafir.OpX86ADC_M8_R8,
-					Inst:   x86.ADC_M8_R8,
 					Args:   [4]any{&x86.Memory{Segment: x86.ES, Base: x86.BP, Displacement: 7}, x86.CL},
 					Length: 5,
 				},
@@ -104,7 +100,6 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86ADD_R64_M64_REX,
 				Extra: &x86InstructionData{
 					Op:     ssafir.OpX86ADD_R64_M64_REX,
-					Inst:   x86.ADD_R64_M64_REX,
 					Args:   [4]any{x86.R8, &x86.Memory{Base: x86.RDI, Displacement: 7}},
 					Length: 4,
 				},
@@ -118,7 +113,6 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86MOV_R8op_Imm8u,
 				Extra: &x86InstructionData{
 					Op:     ssafir.OpX86MOV_R8op_Imm8u,
-					Inst:   x86.MOV_R8op_Imm8u,
 					Args:   [4]any{x86.AH, uint64(0)},
 					Length: 2,
 				},
@@ -132,7 +126,6 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86SYSRET,
 				Extra: &x86InstructionData{
 					Op:     ssafir.OpX86SYSRET,
-					Inst:   x86.SYSRET,
 					Length: 2,
 				},
 			},
@@ -144,9 +137,7 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86SYSRET,
 				Extra: &x86InstructionData{
-					Op:   ssafir.OpX86SYSRET,
-					Inst: x86.SYSRET,
-
+					Op:     ssafir.OpX86SYSRET,
 					Length: 3,
 					REX_W:  true,
 				},
@@ -160,7 +151,6 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86STOSB,
 				Extra: &x86InstructionData{
 					Op:     ssafir.OpX86STOSB,
-					Inst:   x86.STOSB,
 					Length: 1,
 				},
 			},
@@ -172,9 +162,7 @@ func TestAssembleX86(t *testing.T) {
 			Want: &ssafir.Value{
 				Op: ssafir.OpX86STOSB,
 				Extra: &x86InstructionData{
-					Op:   ssafir.OpX86STOSB,
-					Inst: x86.STOSB,
-
+					Op:        ssafir.OpX86STOSB,
 					Length:    2,
 					Prefixes:  [14]x86.Prefix{x86.PrefixRepeat},
 					PrefixLen: 1,
@@ -189,7 +177,6 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_VEX,
 				Extra: &x86InstructionData{
 					Op:     ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_VEX,
-					Inst:   x86.VADDPD_YMM1_YMMV_YMM2_VEX,
 					Args:   [4]any{x86.YMM3, x86.YMM2, x86.YMM8},
 					Length: 5,
 				},
@@ -203,7 +190,6 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Extra: &x86InstructionData{
 					Op:     ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
-					Inst:   x86.VADDPD_YMM1_YMMV_YMM2_EVEX,
 					Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 					Length: 6,
 				},
@@ -217,7 +203,6 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Extra: &x86InstructionData{
 					Op:     ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
-					Inst:   x86.VADDPD_YMM1_YMMV_YMM2_EVEX,
 					Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 					Length: 6,
 					Mask:   0,
@@ -232,7 +217,6 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Extra: &x86InstructionData{
 					Op:     ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
-					Inst:   x86.VADDPD_YMM1_YMMV_YMM2_EVEX,
 					Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 					Length: 6,
 					Mask:   1,
@@ -247,7 +231,6 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Extra: &x86InstructionData{
 					Op:     ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
-					Inst:   x86.VADDPD_YMM1_YMMV_YMM2_EVEX,
 					Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 					Length: 6,
 					Zero:   false,
@@ -262,7 +245,6 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Extra: &x86InstructionData{
 					Op:     ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
-					Inst:   x86.VADDPD_YMM1_YMMV_YMM2_EVEX,
 					Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 					Length: 6,
 					Zero:   true,
@@ -277,7 +259,6 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86ADD_Rmr8_Imm8,
 				Extra: &x86InstructionData{
 					Op:     ssafir.OpX86ADD_Rmr8_Imm8,
-					Inst:   x86.ADD_Rmr8_Imm8,
 					Args:   [4]any{x86.AL, uint64(1)},
 					Length: 3,
 				},
@@ -686,11 +667,11 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 						fmt.Fprintf(&b, "  Syntax:  %s\n", test.Inst.Syntax)
 						fmt.Fprintf(&b, "  UID:     %s\n", test.Inst.UID)
 						fmt.Fprintf(&b, "  Mode:    %s\n", test.Mode)
-						fmt.Fprintf(&b, "  Data:    %d\n", data.Inst.DataSize)
-						for i, param := range data.Inst.Parameters {
+						fmt.Fprintf(&b, "  Data:    %d\n", test.Inst.DataSize)
+						for i, param := range test.Inst.Parameters {
 							fmt.Fprintf(&b, "  Param %d: %s %s %v\n", i+1, param.Encoding, param.Type, data.Args[i])
 						}
-						fmt.Fprintf(&b, "    Code: %s\n", data.Inst.Encoding.Syntax)
+						fmt.Fprintf(&b, "    Code: %s\n", test.Inst.Encoding.Syntax)
 						fmt.Fprintf(&b, "    %v\n", err)
 						fmt.Fprintf(&b, "    Want: %v\n", strings.Join(want, "\n          "))
 						fmt.Fprintf(&b, "    Code: %s", test.Inst.Encoding.Syntax)
@@ -744,11 +725,11 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 						fmt.Fprintf(&b, "  UID:     %s\n", test.Inst.UID)
 						fmt.Fprintf(&b, "  Code:    %s\n", test.Inst.Encoding.Syntax)
 						fmt.Fprintf(&b, "  Mode:    %s\n", test.Mode)
-						fmt.Fprintf(&b, "  Data:    %d\n", data.Inst.DataSize)
-						fmt.Fprintf(&b, "  Operand: %v\n", data.Inst.OperandSize)
-						fmt.Fprintf(&b, "  Address: %v\n", data.Inst.AddressSize)
+						fmt.Fprintf(&b, "  Data:    %d\n", test.Inst.DataSize)
+						fmt.Fprintf(&b, "  Operand: %v\n", test.Inst.OperandSize)
+						fmt.Fprintf(&b, "  Address: %v\n", test.Inst.AddressSize)
 						fmt.Fprintf(&b, "  Rich:    %s\n", &code)
-						for i, param := range data.Inst.Parameters {
+						for i, param := range test.Inst.Parameters {
 							fmt.Fprintf(&b, "  Param %d: %s %s %v\n", i+1, param.Encoding, param.Type, data.Args[i])
 						}
 						fmt.Fprintf(&b, "    Got:  %v\n", prettyMachineCode(got))
@@ -804,9 +785,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Mode:     x86.Mode64,
 			Assembly: "(ret)",
 			Op:       ssafir.OpX86RET,
-			Data: &x86InstructionData{
-				Inst: x86.RET,
-			},
+			Data:     &x86InstructionData{},
 			Want: &x86.Code{
 				Opcode:    [3]byte{0xc3},
 				OpcodeLen: 1,
@@ -818,7 +797,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(shr ecx 18)",
 			Op:       ssafir.OpX86SHR_Rmr32_Imm8,
 			Data: &x86InstructionData{
-				Inst: x86.SHR_Rmr32_Imm8,
 				Args: [4]any{
 					x86.ECX,
 					uint64(18),
@@ -839,7 +817,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(add r8 (rdi))",
 			Op:       ssafir.OpX86ADD_R64_M64_REX,
 			Data: &x86InstructionData{
-				Inst: x86.ADD_R64_M64_REX,
 				Args: [4]any{x86.R8, &x86.Memory{Base: x86.RDI}},
 			},
 			Want: &x86.Code{
@@ -856,7 +833,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(add r8 (+ rdi 7))",
 			Op:       ssafir.OpX86ADD_R64_M64_REX,
 			Data: &x86InstructionData{
-				Inst: x86.ADD_R64_M64_REX,
 				Args: [4]any{x86.R8, &x86.Memory{Base: x86.RDI, Displacement: 7}},
 			},
 			Want: &x86.Code{
@@ -875,7 +851,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(mov ah (es eax)",
 			Op:       ssafir.OpX86MOV_R8_M8,
 			Data: &x86InstructionData{
-				Inst: x86.MOV_R8_M8,
 				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.ES, Base: x86.EAX}},
 			},
 			Want: &x86.Code{
@@ -892,7 +867,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(mov ah (cs eax)",
 			Op:       ssafir.OpX86MOV_R8_M8,
 			Data: &x86InstructionData{
-				Inst: x86.MOV_R8_M8,
 				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.CS, Base: x86.EAX}},
 			},
 			Want: &x86.Code{
@@ -909,7 +883,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(mov ah (ss eax)",
 			Op:       ssafir.OpX86MOV_R8_M8,
 			Data: &x86InstructionData{
-				Inst: x86.MOV_R8_M8,
 				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.SS, Base: x86.EAX}},
 			},
 			Want: &x86.Code{
@@ -926,7 +899,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(mov ah (ds eax)",
 			Op:       ssafir.OpX86MOV_R8_M8,
 			Data: &x86InstructionData{
-				Inst: x86.MOV_R8_M8,
 				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.DS, Base: x86.EAX}},
 			},
 			Want: &x86.Code{
@@ -943,7 +915,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(mov ah (fs eax)",
 			Op:       ssafir.OpX86MOV_R8_M8,
 			Data: &x86InstructionData{
-				Inst: x86.MOV_R8_M8,
 				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.FS, Base: x86.EAX}},
 			},
 			Want: &x86.Code{
@@ -960,7 +931,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(mov ah (gs eax)",
 			Op:       ssafir.OpX86MOV_R8_M8,
 			Data: &x86InstructionData{
-				Inst: x86.MOV_R8_M8,
 				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.GS, Base: x86.EAX}},
 			},
 			Want: &x86.Code{
@@ -977,7 +947,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(mov eax (edx))",
 			Op:       ssafir.OpX86MOV_R32_M32,
 			Data: &x86InstructionData{
-				Inst: x86.MOV_R32_M32,
 				Args: [4]any{x86.EAX, &x86.Memory{Base: x86.EDX}},
 			},
 			Want: &x86.Code{
@@ -994,7 +963,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(cmpeqpd xmm0 (0xb))",
 			Op:       ssafir.OpX86CMPEQPD_XMM1_M128,
 			Data: &x86InstructionData{
-				Inst: x86.CMPEQPD_XMM1_M128,
 				Args: [4]any{x86.XMM0, &x86.Memory{Displacement: 0xb}},
 			},
 			Want: &x86.Code{
@@ -1015,7 +983,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(fsave (ecx))",
 			Op:       ssafir.OpX86FSAVE_M94l108byte,
 			Data: &x86InstructionData{
-				Inst: x86.FSAVE_M94l108byte,
 				Args: [4]any{&x86.Memory{Base: x86.ECX}},
 			},
 			Want: &x86.Code{
@@ -1031,9 +998,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Mode:     x86.Mode64,
 			Assembly: "(sysret)",
 			Op:       ssafir.OpX86SYSRET,
-			Data: &x86InstructionData{
-				Inst: x86.SYSRET,
-			},
+			Data:     &x86InstructionData{},
 			Want: &x86.Code{
 				Opcode:    [3]byte{0x0f, 0x07},
 				OpcodeLen: 2,
@@ -1045,8 +1010,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(rex.w sysret)",
 			Op:       ssafir.OpX86SYSRET,
 			Data: &x86InstructionData{
-				Inst: x86.SYSRET,
-
 				REX_W: true,
 			},
 			Want: &x86.Code{
@@ -1060,9 +1023,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Mode:     x86.Mode64,
 			Assembly: "(stosb)",
 			Op:       ssafir.OpX86STOSB,
-			Data: &x86InstructionData{
-				Inst: x86.STOSB,
-			},
+			Data:     &x86InstructionData{},
 			Want: &x86.Code{
 				Opcode:    [3]byte{0xaa},
 				OpcodeLen: 1,
@@ -1074,8 +1035,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(rep stosb)",
 			Op:       ssafir.OpX86STOSB,
 			Data: &x86InstructionData{
-				Inst: x86.STOSB,
-
 				Prefixes:  [14]x86.Prefix{x86.PrefixRepeat},
 				PrefixLen: 1,
 			},
@@ -1091,7 +1050,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(vaddpd ymm14 ymm3 ymm31)",
 			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 			Data: &x86InstructionData{
-				Inst: x86.VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Args: [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 			},
 			Want: &x86.Code{
@@ -1112,7 +1070,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(vaddpd ymm19 ymm3 (+ rax 513))",
 			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_M256_EVEX,
 			Data: &x86InstructionData{
-				Inst: x86.VADDPD_YMM1_YMMV_M256_EVEX,
 				Args: [4]any{x86.YMM19, x86.YMM3, &x86.Memory{Base: x86.RAX, Displacement: 513}},
 			},
 			Want: &x86.Code{
@@ -1135,7 +1092,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(vaddpd ymm19 ymm3 (+ rax 512))",
 			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_M256_EVEX,
 			Data: &x86InstructionData{
-				Inst: x86.VADDPD_YMM1_YMMV_M256_EVEX,
 				Args: [4]any{x86.YMM19, x86.YMM3, &x86.Memory{Base: x86.RAX, Displacement: 512}},
 			},
 			Want: &x86.Code{
@@ -1158,7 +1114,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "'(mask k0)(vaddpd ymm14 ymm3 ymm31)",
 			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 			Data: &x86InstructionData{
-				Inst: x86.VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Args: [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 				Mask: 0,
 			},
@@ -1180,7 +1135,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "'(mask k7)(vaddpd ymm14 ymm3 ymm31)",
 			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 			Data: &x86InstructionData{
-				Inst: x86.VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Args: [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 				Mask: 7,
 			},
@@ -1202,7 +1156,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "'(zero false)(vaddpd ymm14 ymm3 ymm31)",
 			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 			Data: &x86InstructionData{
-				Inst: x86.VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Args: [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 				Zero: false,
 			},
@@ -1224,7 +1177,6 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "'(zero true)(vaddpd ymm14 ymm3 ymm31)",
 			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
 			Data: &x86InstructionData{
-				Inst: x86.VADDPD_YMM1_YMMV_YMM2_EVEX,
 				Args: [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 				Zero: true,
 			},
