@@ -33,8 +33,6 @@ type x86Context struct {
 	Mode   x86.Mode // CPU mode.
 	FSet   *token.FileSet
 	Labels map[string]*x86Label
-	Links  []*tempLink
-	Link   *ssafir.Link // Any link in the current instruction.
 }
 
 // x86Label contains information about a position
@@ -58,8 +56,7 @@ type x86InstructionData struct {
 	Pos  token.Pos
 	Op   ssafir.Op
 	Inst *x86.Instruction
-	Args [4]any    // Unused args are untyped nil.
-	Link *tempLink // Any link action on the instruction.
+	Args [4]any // Unused args are untyped nil.
 
 	Length    uint8          // Number of bytes of machine code (max 15).
 	REX_W     bool           // Whether to force a REX prefix, with REX.W set.
@@ -391,9 +388,18 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 			// offset into the instruction of
 			// any immediate value (as that is
 			// where the link would be inserted).
-			if ctx.Link != nil {
+			for i, arg := range data.Args {
+				if arg == nil {
+					break
+				}
+
+				link, ok := arg.(*ssafir.Link)
+				if !ok {
+					continue
+				}
+
 				if code.CodeOffsetLen == 0 && code.ImmediateLen == 0 {
-					panic(ctx.Errorf(ctx.Link.Pos, "internal error: instruction specified a link to %s, but no code offset or immediate was produced", ctx.Link.Name))
+					return nil, ctx.Errorf(link.Pos, "internal error: instruction specified a link to %s, but no code offset or immediate was produced", link.Name)
 				}
 
 				// Update the link's offsets. The
@@ -404,15 +410,14 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 				// is just the instruction index, but
 				// we replace it with the full offset
 				// later.
-				link := &tempLink{
+				link2 := &tempLink{
 					InnerOffset:  code.Len() - (code.CodeOffsetLen + code.ImmediateLen),
 					InnerAddress: uintptr(code.Len()), // The instruction is relative to the next instruction.
-					Link:         ctx.Link,
+					Link:         link,
 				}
 
-				link.Link.Offset = len(ctx.Func.Entry.Values)
-				data.Link = link
-				ctx.Link = nil
+				link.Offset = len(ctx.Func.Entry.Values)
+				data.Args[i] = link2
 			}
 
 			data.Length = uint8(code.Len())
@@ -509,10 +514,6 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 		}
 
 		option := options[0]
-		if option.Link != nil {
-			ctx.Links = append(ctx.Links, option.Link)
-			option.Link = nil
-		}
 
 		c.currentBlock.NewValueExtra(list.ParenOpen, list.ParenClose, option.Op, nil, option)
 	}
@@ -588,27 +589,35 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 	}
 
 	// Finally, complete any link references.
-	if len(ctx.Links) > 0 {
-		var offset int
-		fun.Links = make([]*ssafir.Link, len(ctx.Links))
-		for i, j := 0, 0; i < len(fun.Entry.Values) && j < len(ctx.Links); i++ {
-			data, ok := fun.Entry.Values[i].Extra.(*x86InstructionData)
+	var offset int
+	for _, value := range fun.Entry.Values {
+		data, ok := value.Extra.(*x86InstructionData)
+		if !ok {
+			continue
+		}
+
+		for i, arg := range data.Args {
+			if arg == nil {
+				break
+			}
+
+			link, ok := arg.(*tempLink)
 			if !ok {
 				continue
 			}
 
-			if ctx.Links[j].Link.Offset == i {
-				// Replace the instruction index with
-				// the offset into the function, plus
-				// the offset into the instruction.
-				ctx.Links[j].Link.Offset = offset + ctx.Links[j].InnerOffset
-				ctx.Links[j].Link.Address = uintptr(offset) + ctx.Links[j].InnerAddress
-				fun.Links[j] = ctx.Links[j].Link // Store the final link.
-				j++                              // Move onto the next link.
-			}
+			// Replace the instruction index with
+			// the offset into the function, plus
+			// the offset into the instruction.
+			link.Link.Offset = offset + link.InnerOffset
+			link.Link.Address = uintptr(offset) + link.InnerAddress
 
-			offset += int(data.Length)
+			// Store the final link.
+			data.Args[i] = link.Link
+			fun.Links = append(fun.Links, link.Link)
 		}
+
+		offset += int(data.Length)
 	}
 
 	return fun, nil
@@ -1048,14 +1057,7 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, param *x86.Parameter) an
 			Size: size,
 		}
 
-		if ctx.Link != nil {
-			panic(ctx.Errorf(list.Pos(), "cannot use multiple inline Ruse expressions in a single instruction"))
-		}
-
-		ctx.Link = link
-		placeholder := uint64(0x1122334455667788) >> (64 - size)
-
-		return placeholder
+		return link
 	case "len":
 		// This must be an immediate.
 		if param.Encoding != x86.EncodingImmediate {

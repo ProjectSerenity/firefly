@@ -256,7 +256,18 @@ func (data *x86InstructionData) Encode(code *x86.Code, mode x86.Mode) (err error
 			idx := data.Inst.Encoding.StackIndex - 1
 			code.Opcode[idx] += mod
 		case x86.EncodingCodeOffset:
-			arg := data.Args[i].(uint64)
+			var arg uint64
+			switch a := data.Args[i].(type) {
+			case uint64:
+				arg = a
+			case *ssafir.Link:
+				arg = 0x1122334455667788 >> (64 - a.Size) // Placeholder.
+			case *tempLink:
+				arg = 0x1122334455667788 >> (64 - a.Link.Size) // Placeholder.
+			default:
+				return fmt.Errorf("invalid argument %d: unexpected code offset argument type %T", i, a)
+			}
+
 			switch param.Bits {
 			case 8:
 				if param.Type == x86.TypeRelativeAddress {
@@ -322,7 +333,18 @@ func (data *x86InstructionData) Encode(code *x86.Code, mode x86.Mode) (err error
 			}
 			// No ModR/M byte for a memory offset.
 		case x86.EncodingImmediate:
-			arg := data.Args[i].(uint64)
+			var arg uint64
+			switch a := data.Args[i].(type) {
+			case uint64:
+				arg = a
+			case *ssafir.Link:
+				arg = 0x1122334455667788 >> (64 - a.Size) // Placeholder.
+			case *tempLink:
+				arg = 0x1122334455667788 >> (64 - a.Link.Size) // Placeholder.
+			default:
+				return fmt.Errorf("invalid argument %d: unexpected immediate argument type %T", i, a)
+			}
+
 			switch param.Bits {
 			case 5, 8:
 				code.Immediate[code.ImmediateLen] = uint8(arg)
