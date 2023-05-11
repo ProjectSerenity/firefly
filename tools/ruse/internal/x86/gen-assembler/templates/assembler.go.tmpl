@@ -9,9 +9,9 @@ import (
 	"firefly-os.dev/tools/ruse/ssafir"
 )
 
-var x86MnemonicToCandidates = map[string][]x86InstructionCandidate{ {{- range $mnemonic, $instructions := .Instructions }}
+var x86MnemonicToOps = map[string][]ssafir.Op{ {{- range $mnemonic, $instructions := .Instructions }}
 	"{{ $mnemonic }}": { {{- range $instructions }}
-		{Op: ssafir.OpX86{{ .UID }}, Inst: x86.{{ .UID }}},{{ end }}
+		ssafir.OpX86{{ .UID }},{{ end }}
 	},{{ end }}
 }
 
