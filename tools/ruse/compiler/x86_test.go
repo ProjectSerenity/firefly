@@ -154,7 +154,7 @@ func TestAssembleX86(t *testing.T) {
 				Op: ssafir.OpX86STOSB,
 				Extra: &x86InstructionData{
 					Length:    2,
-					Prefixes:  [14]x86.Prefix{x86.PrefixRepeat},
+					Prefixes:  [5]x86.Prefix{x86.PrefixRepeat},
 					PrefixLen: 1,
 				},
 			},
@@ -1018,7 +1018,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 			Assembly: "(rep stosb)",
 			Op:       ssafir.OpX86STOSB,
 			Data: &x86InstructionData{
-				Prefixes:  [14]x86.Prefix{x86.PrefixRepeat},
+				Prefixes:  [5]x86.Prefix{x86.PrefixRepeat},
 				PrefixLen: 1,
 			},
 			Want: &x86.Code{

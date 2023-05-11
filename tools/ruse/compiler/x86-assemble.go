@@ -56,12 +56,12 @@ type x86InstructionData struct {
 	Pos  token.Pos
 	Args [4]any // Unused args are untyped nil.
 
-	Length    uint8          // Number of bytes of machine code (max 15).
-	REX_W     bool           // Whether to force a REX prefix, with REX.W set.
-	Mask      uint8          // Any EVEX mask register.
-	Zero      bool           // Any EVEX zeroing.
-	Broadcast bool           // Any EVEX memory broadcast.
-	Prefixes  [14]x86.Prefix // Any optional legacy prefixes specified.
+	Length    uint8         // Number of bytes of machine code (max 15).
+	REX_W     bool          // Whether to force a REX prefix, with REX.W set.
+	Mask      uint8         // Any EVEX mask register.
+	Zero      bool          // Any EVEX zeroing.
+	Broadcast bool          // Any EVEX memory broadcast.
+	Prefixes  [5]x86.Prefix // Any optional legacy prefixes specified.
 	PrefixLen uint8
 }
 
