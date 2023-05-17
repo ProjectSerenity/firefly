@@ -38,7 +38,7 @@ go_library(
 
 go_test(
     name = "compiler_test",
-    size = "medium",
+    size = "small",
     srcs = [
         "compiler_test.go",
         "x86-encode_test.go",

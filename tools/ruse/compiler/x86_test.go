@@ -11,6 +11,7 @@ import (
 	"encoding/csv"
 	"encoding/hex"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -32,6 +33,8 @@ import (
 	"firefly-os.dev/tools/ruse/token"
 	"firefly-os.dev/tools/ruse/types"
 )
+
+var x86TestVectors = flag.Bool("x86-test-vectors", false, "Run exhaustive tests using the x86 instruction test vectors")
 
 func TestAssembleX86(t *testing.T) {
 	tests := []struct {
@@ -337,8 +340,8 @@ func TestAssembleX86(t *testing.T) {
 }
 
 func TestX86GeneratedAssemblyTests(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping bulk test vector tests")
+	if !*x86TestVectors {
+		t.Skip("skipping x86 test vector tests")
 	}
 
 	name := filepath.Join("testdata", "x86-tests.csv.gz")
