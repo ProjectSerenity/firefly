@@ -20,7 +20,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"text/template"
 
@@ -104,8 +103,6 @@ func genOpcodes(output string) error {
 			Operands: got,
 		})
 	}
-
-	sort.Slice(opcodes, func(i, j int) bool { return opcodes[i].Name < opcodes[j].Name })
 
 	// Build the combined data.
 	var data struct {
