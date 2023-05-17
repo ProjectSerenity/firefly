@@ -83,6 +83,18 @@ type tempLink struct {
 	InnerAddress uintptr // Address within an instruction.
 }
 
+// x86OpToInstruction maps a `ssafir.Op` to
+// an `*x86.Instruction`. If the op is not
+// an x86 instruction, `nil` is returned.
+func x86OpToInstruction(op ssafir.Op) *x86.Instruction {
+	i := int(op - firstX86Op)
+	if 0 <= i && i < len(x86OpToInstructionData) {
+		return x86OpToInstructionData[i]
+	}
+
+	return nil
+}
+
 // assembleX86 assembles a single Ruse assembly
 // function for x86.
 func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, info *types.Info, sizes types.Sizes) (*ssafir.Function, error) {
@@ -343,8 +355,8 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 		options = options[:0]
 		rightArity := false
 		for _, op := range candidates {
-			inst, ok := x86OpToInstruction[op]
-			if !ok {
+			inst := x86OpToInstruction(op)
+			if inst == nil {
 				return nil, fmt.Errorf("internal error: found no instruction data for op %s", op)
 			}
 
@@ -445,7 +457,7 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 			var want []int
 			seenArity := make(map[int]bool)
 			for _, op := range candidates {
-				inst := x86OpToInstruction[op]
+				inst := x86OpToInstruction(op)
 				arity := len(inst.Parameters)
 				if !seenArity[arity] {
 					seenArity[arity] = true
@@ -551,7 +563,7 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 		for _, ref := range label.Refs {
 			v := fun.Entry.Values[ref]
 			data := v.Extra.(*x86InstructionData)
-			inst := x86OpToInstruction[v.Op]
+			inst := x86OpToInstruction(v.Op)
 			jumpLength := int64(data.Args[0].(uint64))
 
 			// Check whether we can encode the jump in an

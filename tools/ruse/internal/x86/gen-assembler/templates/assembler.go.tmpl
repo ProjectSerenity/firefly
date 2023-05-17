@@ -15,8 +15,10 @@ var x86MnemonicToOps = map[string][]ssafir.Op{ {{- range $mnemonic, $instruction
 	},{{ end }}
 }
 
-var x86OpToInstruction = map[ssafir.Op]*x86.Instruction{ {{- range .UIDs }}
-	ssafir.OpX86{{ . }}: x86.{{ . }},{{ end }}
+var firstX86Op = ssafir.OpX86{{ index .UIDs 0 }}
+
+var x86OpToInstructionData = [...]*x86.Instruction{ {{- range .UIDs }}
+	x86.{{ . }},{{ end }}
 }
 
 var x86Opcodes = map[string]ssafir.Op{ {{- range .UIDs }}

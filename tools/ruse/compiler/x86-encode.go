@@ -97,7 +97,7 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 	code.VEX.Default()
 	code.EVEX.Default()
 
-	inst := x86OpToInstruction[op]
+	inst := x86OpToInstruction(op)
 	if inst == nil {
 		return fmt.Errorf("internal error: found no instruction data for op %s", op)
 	}
@@ -417,7 +417,7 @@ func (data *x86InstructionData) addDisplacement(code *x86.Code, op ssafir.Op, ba
 		rm = rmDisplacementOnly32
 	}
 
-	inst := x86OpToInstruction[op]
+	inst := x86OpToInstruction(op)
 	if inst == nil {
 		return 0, 0, fmt.Errorf("internal error: found no instruction data for op %s", op)
 	}
