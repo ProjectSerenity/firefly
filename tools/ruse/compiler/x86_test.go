@@ -296,6 +296,22 @@ var x86TestCases = []*x86TestCase{
 		},
 	},
 	{
+		Name:     "call absolute address",
+		Mode:     x86.Mode32,
+		Assembly: "(call-far (0x1122 0x33445566))",
+		Op:       ssafir.OpX86CALL_FAR_Ptr16v32,
+		Data: &x86InstructionData{
+			Args:   [4]any{uint64(0x112233445566)},
+			Length: 7,
+		},
+		Code: &x86.Code{
+			Opcode:        [3]byte{0x9a},
+			OpcodeLen:     1,
+			CodeOffset:    [8]byte{0x66, 0x55, 0x44, 0x33, 0x22, 0x11},
+			CodeOffsetLen: 6,
+		},
+	},
+	{
 		Name:     "specialised cmppd",
 		Mode:     x86.Mode16,
 		Assembly: "(cmpeqpd xmm0 (0xb))",
@@ -314,6 +330,20 @@ var x86TestCases = []*x86TestCase{
 			DisplacementLen: 2,
 			Immediate:       [8]byte{0x00},
 			ImmediateLen:    1,
+		},
+	},
+	{
+		Name:     "x87 add",
+		Mode:     x86.Mode64,
+		Assembly: "(fadd st0 st)",
+		Op:       ssafir.OpX86FADD_STi_ST, // The order matters.
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.ST0, struct{}{}},
+			Length: 2,
+		},
+		Code: &x86.Code{
+			Opcode:    [3]byte{0xdc, 0xc0},
+			OpcodeLen: 2,
 		},
 	},
 	{
