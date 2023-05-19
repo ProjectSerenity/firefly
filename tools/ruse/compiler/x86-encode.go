@@ -102,7 +102,7 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 		return fmt.Errorf("internal error: found no instruction data for op %s", op)
 	}
 
-	seenPrefix := make(map[x86.Prefix]bool)
+	var seenPrefix [256]bool
 	addPrefix := func(prefix x86.Prefix) {
 		if !seenPrefix[prefix] {
 			seenPrefix[prefix] = true
