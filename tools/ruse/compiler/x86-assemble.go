@@ -767,8 +767,10 @@ func (ctx *x86Context) handleInstructionAnnotations(data *x86InstructionData, li
 			}
 
 			switch k.Name {
-			case "true", "false":
-				data.Broadcast = k.Name == "true"
+			case "true":
+				data.Broadcast = true
+			case "false":
+				data.Broadcast = false
 			default:
 				return false, ctx.Errorf(k.NamePos, "invalid EVEX annotation: invalid broadcast mode: %s %q", k, k.Print())
 			}
@@ -792,10 +794,9 @@ func (ctx *x86Context) handleInstructionAnnotations(data *x86InstructionData, li
 				return false, ctx.Errorf(anno.Quote, "invalid EVEX annotation: expected a mask register, found %d parameters", len(anno.X.Elements)-1)
 			}
 
-			// We accept either a mask register
-			// by name (kX) or by number (X),
-			// in the range 1-7. Note that k0
-			// is not valid.
+			// We accept a mask register by name
+			// (kX), in the range 1-7. Note that
+			// k0 is not valid.
 			switch k := anno.X.Elements[1].(type) {
 			case *ast.Identifier:
 				switch k.Name {
@@ -803,17 +804,6 @@ func (ctx *x86Context) handleInstructionAnnotations(data *x86InstructionData, li
 					data.Mask = k.Name[1] - '0'
 				default:
 					return false, ctx.Errorf(k.NamePos, "invalid EVEX annotation: invalid mask register: %s %q", k, k.Print())
-				}
-			case *ast.Literal:
-				if k.Kind != token.Integer {
-					return false, ctx.Errorf(k.ValuePos, "invalid EVEX annotation: invalid mask register: %s %q", k, k.Print())
-				}
-
-				switch k.Value {
-				case "1", "2", "3", "4", "5", "6", "7":
-					data.Mask = k.Value[0] - '0'
-				default:
-					return false, ctx.Errorf(k.ValuePos, "invalid EVEX annotation: invalid mask register: %s %q", k, k.Print())
 				}
 			}
 
