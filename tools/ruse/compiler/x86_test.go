@@ -695,6 +695,66 @@ func TestEncodeInstructionX86(t *testing.T) {
 	}
 }
 
+func BenchmarkX86(b *testing.B) {
+	// Use x86-64.
+	arch := sys.X86_64
+	sizes := types.SizesFor(arch)
+
+	var got x86.Code
+	for _, test := range x86TestCases {
+		b.Run(test.Name, func(b *testing.B) {
+			if test.AssErr != "" {
+				b.Skipf("skipping test case expecting assembly error")
+			}
+
+			fset := token.NewFileSet()
+			mode := test.Mode.Int
+			if mode == 0 {
+				mode = 64
+			}
+
+			text := fmt.Sprintf("(package test)\n\n'(arch x86-64)\n'(mode %d)\n(asm-func test %s)", mode, test.Assembly)
+			file, err := parser.ParseFile(fset, "test.ruse", text, 0)
+			if err != nil {
+				b.Fatalf("failed to parse text: %v", err)
+			}
+
+			files := []*ast.File{file}
+			info := &types.Info{
+				Types:       make(map[ast.Expression]types.TypeAndValue),
+				Definitions: make(map[*ast.Identifier]types.Object),
+				Uses:        make(map[*ast.Identifier]types.Object),
+			}
+
+			var config types.Config
+			pkg, err := config.Check("test", fset, files, arch, info)
+			if err != nil {
+				b.Fatalf("failed to type-check package: %v", err)
+			}
+
+			b.Run("assembly", func(b *testing.B) {
+				b.ReportAllocs()
+				for i := 0; i < b.N; i++ {
+					_, err = Compile(fset, arch, pkg, files, info, sizes)
+					if err != nil {
+						b.Fatalf("unexpected error: %v", err)
+					}
+				}
+			})
+
+			b.Run("encoding", func(b *testing.B) {
+				b.ReportAllocs()
+				for i := 0; i < b.N; i++ {
+					err = x86EncodeInstruction(&got, test.Mode, test.Op, test.Data)
+					if err != nil {
+						b.Fatalf("unexpected error: %v", err)
+					}
+				}
+			})
+		})
+	}
+}
+
 func TestX86GeneratedAssemblyTests(t *testing.T) {
 	if !*x86TestVectors {
 		t.Skip("skipping x86 test vector tests")
