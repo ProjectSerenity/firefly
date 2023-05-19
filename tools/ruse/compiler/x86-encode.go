@@ -464,24 +464,21 @@ func (data *x86InstructionData) addDisplacement(code *x86.Code, op ssafir.Op, ba
 // Encode follows the rules in the x86-64 manual, volume 2A,
 // chapters 2 and 3, to encode a memory reference.
 func (data *x86InstructionData) encodeMemory(code *x86.Code, op ssafir.Op, mode x86.Mode, m *x86.Memory) (err error) {
-	convertScale := func(err *error, scale uint8) uint8 {
-		if *err != nil {
-			return 0
-		}
-
-		switch scale {
-		case 1:
-			return 0
-		case 2:
-			return 1
-		case 4:
-			return 2
-		case 8:
-			return 3
-		default:
-			*err = fmt.Errorf("invalid scale %d", scale)
-			return 0
-		}
+	// Check / convert any index scaling.
+	var scaleExponent uint8
+	switch m.Scale {
+	case 0:
+		// Nothing to do.
+	case 1:
+		scaleExponent = 0
+	case 2:
+		scaleExponent = 1
+	case 4:
+		scaleExponent = 2
+	case 8:
+		scaleExponent = 3
+	default:
+		return fmt.Errorf("invalid scale %d", m.Scale)
 	}
 
 	// See https://blog.yossarian.net/2020/06/13/How-x86-addresses-memory
@@ -500,8 +497,7 @@ func (data *x86InstructionData) encodeMemory(code *x86.Code, op ssafir.Op, mode 
 		code.REX.SetREX(rex)
 		code.SetX(rexX)
 		code.SIB.SetIndex(idx)
-		scale := convertScale(&err, m.Scale)
-		code.SIB.SetScale(scale)
+		code.SIB.SetScale(scaleExponent)
 		mod, _, err := data.addDisplacement(code, op, m.Base, mode, false, m.Displacement)
 		code.ModRM.SetMod(mod)
 		if err != nil {
@@ -514,8 +510,7 @@ func (data *x86InstructionData) encodeMemory(code *x86.Code, op ssafir.Op, mode 
 		code.REX.SetREX(rex)
 		code.SetX(rexX)
 		code.SIB.SetIndex(idx)
-		scale := convertScale(&err, m.Scale)
-		code.SIB.SetScale(scale)
+		code.SIB.SetScale(scaleExponent)
 		mod, _, err := data.addDisplacement(code, op, m.Base, mode, false, m.Displacement)
 		code.ModRM.SetMod(mod)
 		if err != nil {
@@ -539,8 +534,7 @@ func (data *x86InstructionData) encodeMemory(code *x86.Code, op ssafir.Op, mode 
 		code.REX.SetREX(rex)
 		code.SetX(rexX)
 		code.SIB.SetIndex(idx)
-		scale := convertScale(&err, m.Scale)
-		code.SIB.SetScale(scale)
+		code.SIB.SetScale(scaleExponent)
 	case base && index && displacement:
 		code.ModRM.SetRM(rmSIB)
 		rex, rexB, base := m.Base.Base()
@@ -563,8 +557,7 @@ func (data *x86InstructionData) encodeMemory(code *x86.Code, op ssafir.Op, mode 
 		code.REX.SetREX(rex)
 		code.SetX(rexX)
 		code.SIB.SetIndex(idx)
-		scale := convertScale(&err, m.Scale)
-		code.SIB.SetScale(scale)
+		code.SIB.SetScale(scaleExponent)
 		// With no base, we still have to
 		// include a 32-bit displacement.
 		binary.LittleEndian.PutUint32(code.Displacement[code.DisplacementLen:], 0)
@@ -610,7 +603,7 @@ func (data *x86InstructionData) encodeMemory(code *x86.Code, op ssafir.Op, mode 
 		code.REX.SetREX(rex)
 		code.SetX(rexX)
 		code.SIB.SetIndex(idx)
-		code.SIB.SetScale(0)
+		code.SIB.SetScale(scaleExponent)
 	case base:
 		rex, rexB, base := m.Base.Base()
 		code.REX.SetREX(rex)
@@ -638,7 +631,7 @@ func (data *x86InstructionData) encodeMemory(code *x86.Code, op ssafir.Op, mode 
 			code.ModRM.SetRM(rmSIB)
 			code.SIB.SetBase(sibNoBase)
 			code.SIB.SetIndex(sibNoIndex)
-			code.SIB.SetScale(0)
+			code.SIB.SetScale(scaleExponent)
 			mod, _, err := data.addDisplacement(code, op, m.Base, mode, false, m.Displacement)
 			code.ModRM.SetMod(mod)
 			if err != nil {
