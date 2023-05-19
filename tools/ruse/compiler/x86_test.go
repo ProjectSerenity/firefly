@@ -16,7 +16,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -36,244 +35,578 @@ import (
 
 var x86TestVectors = flag.Bool("x86-test-vectors", false, "Run exhaustive tests using the x86 instruction test vectors")
 
-func TestAssembleX86(t *testing.T) {
-	tests := []struct {
-		Name     string
-		Mode     x86.Mode
-		Assembly string
-		Err      string
-		Want     *ssafir.Value
-	}{
-		{
-			Name:     "return",
-			Mode:     x86.Mode64,
-			Assembly: "(ret)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86RET,
-				Extra: &x86InstructionData{
-					Length: 1,
-				},
-			},
-		},
-		{
-			Name:     "shift right",
-			Mode:     x86.Mode64,
-			Assembly: "(shr eax 3)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86SHR_Rmr32_Imm8,
-				Extra: &x86InstructionData{
-					Args:   [4]any{x86.EAX, uint64(3)},
-					Length: 3,
-				},
-			},
-		},
-		{
-			Name:     "small displaced adc register pair",
-			Mode:     x86.Mode64,
-			Assembly: "(adc '(*byte)(+ bx si) cl)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86ADC_M8_R8,
-				Extra: &x86InstructionData{
-					Args:   [4]any{&x86.Memory{Base: x86.BX_SI}, x86.CL},
-					Length: 3,
-				},
-			},
-		},
-		{
-			Name:     "small displaced adc segment offset",
-			Mode:     x86.Mode64,
-			Assembly: "(adc '(*byte)(+ es bp 0x7) cl)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86ADC_M8_R8,
-				Extra: &x86InstructionData{
-					Args:   [4]any{&x86.Memory{Segment: x86.ES, Base: x86.BP, Displacement: 7}, x86.CL},
-					Length: 5,
-				},
-			},
-		},
-		{
-			Name:     "large displaced add",
-			Mode:     x86.Mode64,
-			Assembly: "(add r8 (+ rdi 7))",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86ADD_R64_M64_REX,
-				Extra: &x86InstructionData{
-					Args:   [4]any{x86.R8, &x86.Memory{Base: x86.RDI, Displacement: 7}},
-					Length: 4,
-				},
-			},
-		},
-		{
-			Name:     "move to register",
-			Mode:     x86.Mode16,
-			Assembly: "(mov ah 0)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86MOV_R8op_Imm8u,
-				Extra: &x86InstructionData{
-					Args:   [4]any{x86.AH, uint64(0)},
-					Length: 2,
-				},
-			},
-		},
-		{
-			Name:     "sysret to 32-bit mode",
-			Mode:     x86.Mode64,
-			Assembly: "(sysret)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86SYSRET,
-				Extra: &x86InstructionData{
-					Length: 2,
-				},
-			},
-		},
-		{
-			Name:     "sysret to 64-bit mode",
-			Mode:     x86.Mode64,
-			Assembly: "(rex.w sysret)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86SYSRET,
-				Extra: &x86InstructionData{
-					Length: 3,
-					REX_W:  true,
-				},
-			},
-		},
-		{
-			Name:     "stosb",
-			Mode:     x86.Mode64,
-			Assembly: "(stosb)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86STOSB,
-				Extra: &x86InstructionData{
-					Length: 1,
-				},
-			},
-		},
-		{
-			Name:     "rep stosb",
-			Mode:     x86.Mode64,
-			Assembly: "(rep stosb)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86STOSB,
-				Extra: &x86InstructionData{
-					Length:    2,
-					Prefixes:  [5]x86.Prefix{x86.PrefixRepeat},
-					PrefixLen: 1,
-				},
-			},
-		},
-		{
-			Name:     "extended register",
-			Mode:     x86.Mode64,
-			Assembly: "(vaddpd ymm3 ymm2 ymm8)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_VEX,
-				Extra: &x86InstructionData{
-					Args:   [4]any{x86.YMM3, x86.YMM2, x86.YMM8},
-					Length: 5,
-				},
-			},
-		},
-		{
-			Name:     "EVEX extended register",
-			Mode:     x86.Mode64,
-			Assembly: "(vaddpd ymm14 ymm3 ymm31)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
-				Extra: &x86InstructionData{
-					Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
-					Length: 6,
-				},
-			},
-		},
-		{
-			Name:     "EVEX implicit opmask",
-			Mode:     x86.Mode64,
-			Assembly: "(vaddpd ymm14 ymm3 ymm31)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
-				Extra: &x86InstructionData{
-					Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
-					Length: 6,
-					Mask:   0,
-				},
-			},
-		},
-		{
-			Name:     "EVEX explicit opmask",
-			Mode:     x86.Mode64,
-			Assembly: "'(mask k1)(vaddpd ymm14 ymm3 ymm31)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
-				Extra: &x86InstructionData{
-					Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
-					Length: 6,
-					Mask:   1,
-				},
-			},
-		},
-		{
-			Name:     "EVEX implicit zeroing",
-			Mode:     x86.Mode64,
-			Assembly: "'(zero false)(vaddpd ymm14 ymm3 ymm31)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
-				Extra: &x86InstructionData{
-					Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
-					Length: 6,
-					Zero:   false,
-				},
-			},
-		},
-		{
-			Name:     "EVEX explicit zeroing",
-			Mode:     x86.Mode64,
-			Assembly: "'(zero true)(vaddpd ymm14 ymm3 ymm31)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
-				Extra: &x86InstructionData{
-					Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
-					Length: 6,
-					Zero:   true,
-				},
-			},
-		},
-		{
-			Name:     "force selection of a longer encoding",
-			Mode:     x86.Mode64,
-			Assembly: "'(match ADD_Rmr8_Imm8)(add al 1)",
-			Want: &ssafir.Value{
-				Op: ssafir.OpX86ADD_Rmr8_Imm8,
-				Extra: &x86InstructionData{
-					Args:   [4]any{x86.AL, uint64(1)},
-					Length: 3,
-				},
-			},
-		},
-		{
-			Name:     "illegal prefix",
-			Mode:     x86.Mode32,
-			Assembly: "(rep rdrand eax)",
-			Err:      "mnemonic \"rdrand\" cannot be used with repeat prefixes",
-		},
-		{
-			Name:     "illegal register",
-			Mode:     x86.Mode32,
-			Assembly: "(vaddpd ymm3 ymm2 ymm8)",
-			Err:      "register ymm8 cannot be used in 32-bit mode",
-		},
+// x86REX is a helper function for creating
+// REX prefixes in tests.
+func x86REX(s string) x86.REX {
+	var out x86.REX
+	out.SetOn()
+	for _, r := range s {
+		switch r {
+		case 'W':
+			out.SetW(true)
+		case 'R':
+			out.SetR(true)
+		case 'X':
+			out.SetX(true)
+		case 'B':
+			out.SetB(true)
+		default:
+			panic(fmt.Sprintf("invalid REX value %c", r))
+		}
 	}
 
+	return out
+}
+
+type x86TestCase struct {
+	Name     string
+	Mode     x86.Mode
+	Assembly string
+	AssErr   string
+	Op       ssafir.Op
+	Data     *x86InstructionData
+	EncErr   string
+	Code     *x86.Code
+}
+
+var x86TestCases = []*x86TestCase{
+	{
+		Name:     "ret",
+		Mode:     x86.Mode64,
+		Assembly: "(ret)",
+		Op:       ssafir.OpX86RET,
+		Data: &x86InstructionData{
+			Length: 1,
+		},
+		Code: &x86.Code{
+			Opcode:    [3]byte{0xc3},
+			OpcodeLen: 1,
+		},
+	},
+	{
+		Name:     "shift right",
+		Mode:     x86.Mode64,
+		Assembly: "(shr ecx 18)",
+		Op:       ssafir.OpX86SHR_Rmr32_Imm8,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.ECX,
+				uint64(18),
+			},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			Opcode:       [3]byte{0xc1},
+			OpcodeLen:    1,
+			UseModRM:     true,
+			ModRM:        0b11_101_001,
+			Immediate:    [8]byte{0x12},
+			ImmediateLen: 1,
+		},
+	},
+	{
+		Name:     "small displaced adc register pair",
+		Mode:     x86.Mode64,
+		Assembly: "(adc '(*byte)(+ bx si) cl)",
+		Op:       ssafir.OpX86ADC_M8_R8,
+		Data: &x86InstructionData{
+			Args:   [4]any{&x86.Memory{Base: x86.BX_SI}, x86.CL},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			Prefixes:  [14]x86.Prefix{x86.PrefixAddressSize},
+			Opcode:    [3]byte{0x10},
+			OpcodeLen: 1,
+			UseModRM:  true,
+			ModRM:     0b00_001_000,
+		},
+	},
+	{
+		Name:     "small displaced adc segment offset",
+		Mode:     x86.Mode64,
+		Assembly: "(adc '(*byte)(+ es bp 0x7) cl)",
+		Op:       ssafir.OpX86ADC_M8_R8,
+		Data: &x86InstructionData{
+			Args:   [4]any{&x86.Memory{Segment: x86.ES, Base: x86.BP, Displacement: 7}, x86.CL},
+			Length: 5,
+		},
+		Code: &x86.Code{
+			Prefixes:        [14]x86.Prefix{x86.PrefixAddressSize, x86.PrefixES},
+			Opcode:          [3]byte{0x10},
+			OpcodeLen:       1,
+			UseModRM:        true,
+			ModRM:           0b01_001_110,
+			Displacement:    [8]byte{0x07},
+			DisplacementLen: 1,
+		},
+	},
+	{
+		Name:     "large add",
+		Mode:     x86.Mode64,
+		Assembly: "(add r8 (rdi))",
+		Op:       ssafir.OpX86ADD_R64_M64_REX,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.R8, &x86.Memory{Base: x86.RDI}},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			REX:       x86REX("WR"),
+			Opcode:    [3]byte{0x03},
+			OpcodeLen: 1,
+			UseModRM:  true,
+			ModRM:     0b00_000_111,
+		},
+	},
+	{
+		Name:     "large displaced add",
+		Mode:     x86.Mode64,
+		Assembly: "(add r8 (+ rdi 7))",
+		Op:       ssafir.OpX86ADD_R64_M64_REX,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.R8, &x86.Memory{Base: x86.RDI, Displacement: 7}},
+			Length: 4,
+		},
+		Code: &x86.Code{
+			REX:             x86REX("WR"),
+			Opcode:          [3]byte{0x03},
+			OpcodeLen:       1,
+			UseModRM:        true,
+			ModRM:           0b01_000_111,
+			Displacement:    [8]byte{7},
+			DisplacementLen: 1,
+		},
+	},
+	{
+		Name:     "move to register from ES",
+		Mode:     x86.Mode32,
+		Assembly: "(mov ah (es eax))",
+		Op:       ssafir.OpX86MOV_R8_M8,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.AH, &x86.Memory{Segment: x86.ES, Base: x86.EAX}},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			Prefixes:  [14]x86.Prefix{x86.PrefixES},
+			Opcode:    [3]byte{0x8a},
+			OpcodeLen: 1,
+			UseModRM:  true,
+			ModRM:     0b00_100_000,
+		},
+	},
+	{
+		Name:     "move to register from CS",
+		Mode:     x86.Mode32,
+		Assembly: "(mov ah (cs eax))",
+		Op:       ssafir.OpX86MOV_R8_M8,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.AH, &x86.Memory{Segment: x86.CS, Base: x86.EAX}},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			Prefixes:  [14]x86.Prefix{x86.PrefixCS},
+			Opcode:    [3]byte{0x8a},
+			OpcodeLen: 1,
+			UseModRM:  true,
+			ModRM:     0b00_100_000,
+		},
+	},
+	{
+		Name:     "move to register from SS",
+		Mode:     x86.Mode32,
+		Assembly: "(mov ah (ss eax))",
+		Op:       ssafir.OpX86MOV_R8_M8,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.AH, &x86.Memory{Segment: x86.SS, Base: x86.EAX}},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			Prefixes:  [14]x86.Prefix{x86.PrefixSS},
+			Opcode:    [3]byte{0x8a},
+			OpcodeLen: 1,
+			UseModRM:  true,
+			ModRM:     0b00_100_000,
+		},
+	},
+	{
+		Name:     "move to register from DS",
+		Mode:     x86.Mode32,
+		Assembly: "(mov ah (ds eax))",
+		Op:       ssafir.OpX86MOV_R8_M8,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.AH, &x86.Memory{Segment: x86.DS, Base: x86.EAX}},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			Prefixes:  [14]x86.Prefix{x86.PrefixDS},
+			Opcode:    [3]byte{0x8a},
+			OpcodeLen: 1,
+			UseModRM:  true,
+			ModRM:     0b00_100_000,
+		},
+	},
+	{
+		Name:     "move to register from FS",
+		Mode:     x86.Mode32,
+		Assembly: "(mov ah (fs eax))",
+		Op:       ssafir.OpX86MOV_R8_M8,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.AH, &x86.Memory{Segment: x86.FS, Base: x86.EAX}},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			Prefixes:  [14]x86.Prefix{x86.PrefixFS},
+			Opcode:    [3]byte{0x8a},
+			OpcodeLen: 1,
+			UseModRM:  true,
+			ModRM:     0b00_100_000,
+		},
+	},
+	{
+		Name:     "move to register from GS",
+		Mode:     x86.Mode32,
+		Assembly: "(mov ah (gs eax))",
+		Op:       ssafir.OpX86MOV_R8_M8,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.AH, &x86.Memory{Segment: x86.GS, Base: x86.EAX}},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			Prefixes:  [14]x86.Prefix{x86.PrefixGS},
+			Opcode:    [3]byte{0x8a},
+			OpcodeLen: 1,
+			UseModRM:  true,
+			ModRM:     0b00_100_000,
+		},
+	},
+	{
+		Name:     "size override mov",
+		Mode:     x86.Mode64,
+		Assembly: "(mov eax (edx))",
+		Op:       ssafir.OpX86MOV_R32_M32,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.EAX, &x86.Memory{Base: x86.EDX}},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			Prefixes:  [14]x86.Prefix{x86.PrefixAddressSize},
+			Opcode:    [3]byte{0x8b},
+			OpcodeLen: 1,
+			UseModRM:  true,
+			ModRM:     0b00_000_010,
+		},
+	},
+	{
+		Name:     "specialised cmppd",
+		Mode:     x86.Mode16,
+		Assembly: "(cmpeqpd xmm0 (0xb))",
+		Op:       ssafir.OpX86CMPEQPD_XMM1_M128,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.XMM0, &x86.Memory{Displacement: 0xb}},
+			Length: 7,
+		},
+		Code: &x86.Code{
+			Prefixes:        [14]x86.Prefix{x86.PrefixOperandSize},
+			Opcode:          [3]byte{0x0f, 0xc2},
+			OpcodeLen:       2,
+			UseModRM:        true,
+			ModRM:           0b00_000_110,
+			Displacement:    [8]byte{0x0b, 0x00},
+			DisplacementLen: 2,
+			Immediate:       [8]byte{0x00},
+			ImmediateLen:    1,
+		},
+	},
+	{
+		Name:     "old fsave",
+		Mode:     x86.Mode32,
+		Assembly: "(fsave (ecx))",
+		Op:       ssafir.OpX86FSAVE_M94l108byte,
+		Data: &x86InstructionData{
+			Args:   [4]any{&x86.Memory{Base: x86.ECX}},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			PrefixOpcodes: [5]byte{0x9b},
+			Opcode:        [3]byte{0xdd},
+			OpcodeLen:     1,
+			UseModRM:      true,
+			ModRM:         0b00_110_001,
+		},
+	},
+	{
+		Name:     "sysret to 32-bit mode",
+		Mode:     x86.Mode64,
+		Assembly: "(sysret)",
+		Op:       ssafir.OpX86SYSRET,
+		Data: &x86InstructionData{
+			Length: 2,
+		},
+		Code: &x86.Code{
+			Opcode:    [3]byte{0x0f, 0x07},
+			OpcodeLen: 2,
+		},
+	},
+	{
+		Name:     "sysret to 64-bit mode",
+		Mode:     x86.Mode64,
+		Assembly: "(rex.w sysret)",
+		Op:       ssafir.OpX86SYSRET,
+		Data: &x86InstructionData{
+			Length: 3,
+			REX_W:  true,
+		},
+		Code: &x86.Code{
+			REX:       x86REX("W"),
+			Opcode:    [3]byte{0x0f, 0x07},
+			OpcodeLen: 2,
+		},
+	},
+	{
+		Name:     "stosb",
+		Mode:     x86.Mode64,
+		Assembly: "(stosb)",
+		Op:       ssafir.OpX86STOSB,
+		Data: &x86InstructionData{
+			Length: 1,
+		},
+		Code: &x86.Code{
+			Opcode:    [3]byte{0xaa},
+			OpcodeLen: 1,
+		},
+	},
+	{
+		Name:     "rep stosb",
+		Mode:     x86.Mode64,
+		Assembly: "(rep stosb)",
+		Op:       ssafir.OpX86STOSB,
+		Data: &x86InstructionData{
+			Prefixes:  [5]x86.Prefix{x86.PrefixRepeat},
+			PrefixLen: 1,
+			Length:    2,
+		},
+		Code: &x86.Code{
+			Prefixes:  [14]x86.Prefix{x86.PrefixRepeat},
+			Opcode:    [3]byte{0xaa},
+			OpcodeLen: 1,
+		},
+	},
+	{
+		Name:     "VEX extended register",
+		Mode:     x86.Mode64,
+		Assembly: "(vaddpd ymm3 ymm2 ymm8)",
+		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_VEX,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.YMM3, x86.YMM2, x86.YMM8},
+			Length: 5,
+		},
+		Code: &x86.Code{
+			VEX: x86.VEX{
+				0b1100_0001, // 0xc1: R:1, X:1, B:0, m-mmmm:00001.
+				0b0110_1101, // 0x6d: W:0, vvvv:1101, L:1, pp:01.
+			},
+			Opcode:    [3]byte{0x58},
+			OpcodeLen: 1,
+			ModRM:     0b11_011_000,
+			UseModRM:  true,
+		},
+	},
+	{
+		Name:     "EVEX extended register",
+		Mode:     x86.Mode64,
+		Assembly: "(vaddpd ymm14 ymm3 ymm31)",
+		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
+			Length: 6,
+		},
+		Code: &x86.Code{
+			EVEX: x86.EVEX{
+				0b0001_0001, // 0x11: R:0, X:0, B:0, R':1, mm:01.
+				0b1110_0101, // 0xe5: W:0, vvvv:1100, pp:01.
+				0b0010_1000, // 0x28: z:0, L':0, L:1, b:0, V':1, aaa:000.
+			},
+			Opcode:    [3]byte{0x58},
+			OpcodeLen: 1,
+			ModRM:     0b11_110_111,
+			UseModRM:  true,
+		},
+	},
+	{
+		Name:     "EVEX uncompressed displacement",
+		Mode:     x86.Mode64,
+		Assembly: "(vaddpd ymm19 ymm3 (+ rax 513))",
+		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_M256_EVEX,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.YMM19, x86.YMM3, &x86.Memory{Base: x86.RAX, Displacement: 513}},
+			Length: 10,
+		},
+		Code: &x86.Code{
+			EVEX: x86.EVEX{
+				0b1110_0001, // 0xe1: R:1, X:1, B:1, R':0, mm:01.
+				0b1110_0101, // 0xe5: W:0, vvvv:1100, pp:01.
+				0b0010_1000, // 0x28: z:0, L':0, L:1, b:0, V':1, aaa:000.
+			},
+			Opcode:          [3]byte{0x58},
+			OpcodeLen:       1,
+			ModRM:           0b10_011_000,
+			UseModRM:        true,
+			Displacement:    [8]byte{0x01, 0x02, 0x00, 0x00},
+			DisplacementLen: 4,
+		},
+	},
+	{
+		Name:     "EVEX compressed displacement",
+		Mode:     x86.Mode64,
+		Assembly: "(vaddpd ymm19 ymm3 (+ rax 512))",
+		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_M256_EVEX,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.YMM19, x86.YMM3, &x86.Memory{Base: x86.RAX, Displacement: 512}},
+			Length: 7,
+		},
+		Code: &x86.Code{
+			EVEX: x86.EVEX{
+				0b1110_0001, // 0xe1: R:1, X:1, B:1, R':0, mm:01.
+				0b1110_0101, // 0xe5: W:0, vvvv:1100, pp:01.
+				0b0010_1000, // 0x28: z:0, L':0, L:1, b:0, V':1, aaa:000.
+			},
+			Opcode:          [3]byte{0x58},
+			OpcodeLen:       1,
+			ModRM:           0b01_011_000,
+			UseModRM:        true,
+			Displacement:    [8]byte{0x10},
+			DisplacementLen: 1,
+		},
+	},
+	{
+		Name:     "EVEX implicit opmask",
+		Mode:     x86.Mode64,
+		Assembly: "(vaddpd ymm14 ymm3 ymm31)",
+		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
+			Length: 6,
+			Mask:   0,
+		},
+		Code: &x86.Code{
+			EVEX: x86.EVEX{
+				0b0001_0001, // 0x11: R:0, X:0, B:0, R':1, mm:01.
+				0b1110_0101, // 0xe5: W:0, vvvv:1100, pp:01.
+				0b0010_1000, // 0x28: z:0, L':0, L:1, b:0, V':1, aaa:000.
+			},
+			Opcode:    [3]byte{0x58},
+			OpcodeLen: 1,
+			ModRM:     0b11_110_111,
+			UseModRM:  true,
+		},
+	},
+	{
+		Name:     "EVEX explicit opmask",
+		Mode:     x86.Mode64,
+		Assembly: "'(mask k7)(vaddpd ymm14 ymm3 ymm31)",
+		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
+			Length: 6,
+			Mask:   7,
+		},
+		Code: &x86.Code{
+			EVEX: x86.EVEX{
+				0b0001_0001, // 0x11: R:0, X:0, B:0, R':1, mm:01.
+				0b1110_0101, // 0xe5: W:0, vvvv:1100, pp:01.
+				0b0010_1111, // 0x2f: z:0, L':0, L:1, b:0, V':1, aaa:111.
+			},
+			Opcode:    [3]byte{0x58},
+			OpcodeLen: 1,
+			ModRM:     0b11_110_111,
+			UseModRM:  true,
+		},
+	},
+	{
+		Name:     "EVEX implicit zeroing",
+		Mode:     x86.Mode64,
+		Assembly: "'(zero false)(vaddpd ymm14 ymm3 ymm31)",
+		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
+			Length: 6,
+			Zero:   false,
+		},
+		Code: &x86.Code{
+			EVEX: x86.EVEX{
+				0b0001_0001, // 0x11: R:0, X:0, B:0, R':1, mm:01.
+				0b1110_0101, // 0xe5: W:0, vvvv:1100, pp:01.
+				0b0010_1000, // 0x28: z:0, L':0, L:1, b:0, V':1, aaa:000.
+			},
+			Opcode:    [3]byte{0x58},
+			OpcodeLen: 1,
+			ModRM:     0b11_110_111,
+			UseModRM:  true,
+		},
+	},
+	{
+		Name:     "EVEX explicit zeroing",
+		Mode:     x86.Mode64,
+		Assembly: "'(zero true)(vaddpd ymm14 ymm3 ymm31)",
+		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
+			Length: 6,
+			Zero:   true,
+		},
+		Code: &x86.Code{
+			EVEX: x86.EVEX{
+				0b0001_0001, // 0x11: R:0, X:0, B:0, R':1, mm:01.
+				0b1110_0101, // 0xe5: W:0, vvvv:1100, pp:01.
+				0b1010_1000, // 0xa8: z:1, L':0, L:1, b:0, V':1, aaa:000.
+			},
+			Opcode:    [3]byte{0x58},
+			OpcodeLen: 1,
+			ModRM:     0b11_110_111,
+			UseModRM:  true,
+		},
+	},
+	{
+		Name:     "force selection of a longer encoding",
+		Mode:     x86.Mode64,
+		Assembly: "'(match ADD_Rmr8_Imm8)(add al 1)",
+		Op:       ssafir.OpX86ADD_Rmr8_Imm8,
+		Data: &x86InstructionData{
+			Args:   [4]any{x86.AL, uint64(1)},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			Opcode:       [3]byte{0x80},
+			OpcodeLen:    1,
+			UseModRM:     true,
+			ModRM:        0b11_000_000,
+			Immediate:    [8]byte{0x01},
+			ImmediateLen: 1,
+		},
+	},
+	{
+		Name:     "illegal prefix",
+		Mode:     x86.Mode32,
+		Assembly: "(rep rdrand eax)",
+		AssErr:   "mnemonic \"rdrand\" cannot be used with repeat prefixes",
+	},
+	{
+		Name:     "illegal register",
+		Mode:     x86.Mode32,
+		Assembly: "(vaddpd ymm3 ymm2 ymm8)",
+		AssErr:   "register ymm8 cannot be used in 32-bit mode",
+	},
+}
+
+func TestAssembleX86(t *testing.T) {
 	compareOptions := []cmp.Option{
-		cmp.Exporter(func(t reflect.Type) bool { return true }),            // Allow unexported types to be compared.
-		cmpopts.IgnoreTypes(token.Pos(0), ssafir.ID(0), new(ssafir.Block)), // Ignore token.Pos, ssafir.ID, *ssafir.Block values.
+		cmpopts.IgnoreTypes(token.Pos(0)), // Ignore token.Pos values.
 	}
 
 	// Use x86-64.
 	arch := sys.X86_64
 	sizes := types.SizesFor(arch)
 
-	for _, test := range tests {
+	for _, test := range x86TestCases {
 		t.Run(test.Name, func(t *testing.T) {
 			fset := token.NewFileSet()
 			mode := test.Mode.Int
@@ -301,14 +634,14 @@ func TestAssembleX86(t *testing.T) {
 			}
 
 			p, err := Compile(fset, arch, pkg, files, info, sizes)
-			if test.Err != "" {
+			if test.AssErr != "" {
 				if err == nil {
-					t.Fatalf("unexpected success, wanted error %q", test.Err)
+					t.Fatalf("unexpected success, wanted error %q", test.AssErr)
 				}
 
 				e := err.Error()
-				if !strings.Contains(e, test.Err) {
-					t.Fatalf("got error %q, want %q", e, test.Err)
+				if !strings.Contains(e, test.AssErr) {
+					t.Fatalf("got error %q, want %q", e, test.AssErr)
 				}
 
 				return
@@ -331,9 +664,32 @@ func TestAssembleX86(t *testing.T) {
 			}
 
 			v := fun.Entry.Values[1]
+			if v.Op != test.Op {
+				t.Fatalf("Compile:\n  Got op  %s\n  Want op %s", v.Op, test.Op)
+			}
 
-			if diff := cmp.Diff(test.Want, v, compareOptions...); diff != "" {
+			if diff := cmp.Diff(test.Data, v.Extra, compareOptions...); diff != "" {
 				t.Fatalf("Compile(): (-want, +got)\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestEncodeInstructionX86(t *testing.T) {
+	var got x86.Code
+	for _, test := range x86TestCases {
+		t.Run(test.Name, func(t *testing.T) {
+			if test.AssErr != "" {
+				t.Skipf("skipping test case expecting assembly error")
+			}
+
+			err := x86EncodeInstruction(&got, test.Mode, test.Op, test.Data)
+			if err != nil {
+				t.Fatalf("%s.Encode(): %v", test.Assembly, err)
+			}
+
+			if diff := cmp.Diff(test.Code, &got); diff != "" {
+				t.Fatalf("%s.Encode(): (-want, +got)\n%s", test.Assembly, diff)
 			}
 		})
 	}
@@ -733,466 +1089,6 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 	modes[32].Print()
 	modes[64].Print()
 	all.Print()
-}
-
-func TestEncodeInstructionX86(t *testing.T) {
-	rex := func(s string) x86.REX {
-		var out x86.REX
-		out.SetOn()
-		for _, r := range s {
-			switch r {
-			case 'W':
-				out.SetW(true)
-			case 'R':
-				out.SetR(true)
-			case 'X':
-				out.SetX(true)
-			case 'B':
-				out.SetB(true)
-			default:
-				t.Helper()
-				t.Fatalf("invalid REX value %c", r)
-			}
-		}
-
-		return out
-	}
-
-	tests := []struct {
-		Name     string
-		Mode     x86.Mode
-		Assembly string
-		Op       ssafir.Op
-		Data     *x86InstructionData
-		Want     *x86.Code
-	}{
-		{
-			Name:     "ret",
-			Mode:     x86.Mode64,
-			Assembly: "(ret)",
-			Op:       ssafir.OpX86RET,
-			Data:     &x86InstructionData{},
-			Want: &x86.Code{
-				Opcode:    [3]byte{0xc3},
-				OpcodeLen: 1,
-			},
-		},
-		{
-			Name:     "shift right",
-			Mode:     x86.Mode64,
-			Assembly: "(shr ecx 18)",
-			Op:       ssafir.OpX86SHR_Rmr32_Imm8,
-			Data: &x86InstructionData{
-				Args: [4]any{
-					x86.ECX,
-					uint64(18),
-				},
-			},
-			Want: &x86.Code{
-				Opcode:       [3]byte{0xc1},
-				OpcodeLen:    1,
-				UseModRM:     true,
-				ModRM:        0b11_101_001,
-				Immediate:    [8]byte{0x12},
-				ImmediateLen: 1,
-			},
-		},
-		{
-			Name:     "large add",
-			Mode:     x86.Mode64,
-			Assembly: "(add r8 (rdi))",
-			Op:       ssafir.OpX86ADD_R64_M64_REX,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.R8, &x86.Memory{Base: x86.RDI}},
-			},
-			Want: &x86.Code{
-				REX:       rex("WR"),
-				Opcode:    [3]byte{0x03},
-				OpcodeLen: 1,
-				UseModRM:  true,
-				ModRM:     0b00_000_111,
-			},
-		},
-		{
-			Name:     "large displaced add",
-			Mode:     x86.Mode64,
-			Assembly: "(add r8 (+ rdi 7))",
-			Op:       ssafir.OpX86ADD_R64_M64_REX,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.R8, &x86.Memory{Base: x86.RDI, Displacement: 7}},
-			},
-			Want: &x86.Code{
-				REX:             rex("WR"),
-				Opcode:          [3]byte{0x03},
-				OpcodeLen:       1,
-				UseModRM:        true,
-				ModRM:           0b01_000_111,
-				Displacement:    [8]byte{7},
-				DisplacementLen: 1,
-			},
-		},
-		{
-			Name:     "move to from ES segment",
-			Mode:     x86.Mode32,
-			Assembly: "(mov ah (es eax)",
-			Op:       ssafir.OpX86MOV_R8_M8,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.ES, Base: x86.EAX}},
-			},
-			Want: &x86.Code{
-				Prefixes:  [14]x86.Prefix{x86.PrefixES},
-				Opcode:    [3]byte{0x8a},
-				OpcodeLen: 1,
-				UseModRM:  true,
-				ModRM:     0b00_100_000,
-			},
-		},
-		{
-			Name:     "move to from CS segment",
-			Mode:     x86.Mode32,
-			Assembly: "(mov ah (cs eax)",
-			Op:       ssafir.OpX86MOV_R8_M8,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.CS, Base: x86.EAX}},
-			},
-			Want: &x86.Code{
-				Prefixes:  [14]x86.Prefix{x86.PrefixCS},
-				Opcode:    [3]byte{0x8a},
-				OpcodeLen: 1,
-				UseModRM:  true,
-				ModRM:     0b00_100_000,
-			},
-		},
-		{
-			Name:     "move to from SS segment",
-			Mode:     x86.Mode32,
-			Assembly: "(mov ah (ss eax)",
-			Op:       ssafir.OpX86MOV_R8_M8,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.SS, Base: x86.EAX}},
-			},
-			Want: &x86.Code{
-				Prefixes:  [14]x86.Prefix{x86.PrefixSS},
-				Opcode:    [3]byte{0x8a},
-				OpcodeLen: 1,
-				UseModRM:  true,
-				ModRM:     0b00_100_000,
-			},
-		},
-		{
-			Name:     "move to from DS segment",
-			Mode:     x86.Mode32,
-			Assembly: "(mov ah (ds eax)",
-			Op:       ssafir.OpX86MOV_R8_M8,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.DS, Base: x86.EAX}},
-			},
-			Want: &x86.Code{
-				Prefixes:  [14]x86.Prefix{x86.PrefixDS},
-				Opcode:    [3]byte{0x8a},
-				OpcodeLen: 1,
-				UseModRM:  true,
-				ModRM:     0b00_100_000,
-			},
-		},
-		{
-			Name:     "move to from FS segment",
-			Mode:     x86.Mode32,
-			Assembly: "(mov ah (fs eax)",
-			Op:       ssafir.OpX86MOV_R8_M8,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.FS, Base: x86.EAX}},
-			},
-			Want: &x86.Code{
-				Prefixes:  [14]x86.Prefix{x86.PrefixFS},
-				Opcode:    [3]byte{0x8a},
-				OpcodeLen: 1,
-				UseModRM:  true,
-				ModRM:     0b00_100_000,
-			},
-		},
-		{
-			Name:     "move to from GS segment",
-			Mode:     x86.Mode32,
-			Assembly: "(mov ah (gs eax)",
-			Op:       ssafir.OpX86MOV_R8_M8,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.AH, &x86.Memory{Segment: x86.GS, Base: x86.EAX}},
-			},
-			Want: &x86.Code{
-				Prefixes:  [14]x86.Prefix{x86.PrefixGS},
-				Opcode:    [3]byte{0x8a},
-				OpcodeLen: 1,
-				UseModRM:  true,
-				ModRM:     0b00_100_000,
-			},
-		},
-		{
-			Name:     "size override mov",
-			Mode:     x86.Mode64,
-			Assembly: "(mov eax (edx))",
-			Op:       ssafir.OpX86MOV_R32_M32,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.EAX, &x86.Memory{Base: x86.EDX}},
-			},
-			Want: &x86.Code{
-				Prefixes:  [14]x86.Prefix{x86.PrefixAddressSize},
-				Opcode:    [3]byte{0x8b},
-				OpcodeLen: 1,
-				UseModRM:  true,
-				ModRM:     0b00_000_010,
-			},
-		},
-		{
-			Name:     "specialised cmppd",
-			Mode:     x86.Mode16,
-			Assembly: "(cmpeqpd xmm0 (0xb))",
-			Op:       ssafir.OpX86CMPEQPD_XMM1_M128,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.XMM0, &x86.Memory{Displacement: 0xb}},
-			},
-			Want: &x86.Code{
-				Prefixes:        [14]x86.Prefix{x86.PrefixOperandSize},
-				Opcode:          [3]byte{0x0f, 0xc2},
-				OpcodeLen:       2,
-				UseModRM:        true,
-				ModRM:           0b00_000_110,
-				Displacement:    [8]byte{0x0b, 0x00},
-				DisplacementLen: 2,
-				Immediate:       [8]byte{0x00},
-				ImmediateLen:    1,
-			},
-		},
-		{
-			Name:     "old fsave",
-			Mode:     x86.Mode32,
-			Assembly: "(fsave (ecx))",
-			Op:       ssafir.OpX86FSAVE_M94l108byte,
-			Data: &x86InstructionData{
-				Args: [4]any{&x86.Memory{Base: x86.ECX}},
-			},
-			Want: &x86.Code{
-				PrefixOpcodes: [5]byte{0x9b},
-				Opcode:        [3]byte{0xdd},
-				OpcodeLen:     1,
-				UseModRM:      true,
-				ModRM:         0b00_110_001,
-			},
-		},
-		{
-			Name:     "sysret to 32-bit mode",
-			Mode:     x86.Mode64,
-			Assembly: "(sysret)",
-			Op:       ssafir.OpX86SYSRET,
-			Data:     &x86InstructionData{},
-			Want: &x86.Code{
-				Opcode:    [3]byte{0x0f, 0x07},
-				OpcodeLen: 2,
-			},
-		},
-		{
-			Name:     "sysret to 64-bit mode",
-			Mode:     x86.Mode64,
-			Assembly: "(rex.w sysret)",
-			Op:       ssafir.OpX86SYSRET,
-			Data: &x86InstructionData{
-				REX_W: true,
-			},
-			Want: &x86.Code{
-				REX:       rex("W"),
-				Opcode:    [3]byte{0x0f, 0x07},
-				OpcodeLen: 2,
-			},
-		},
-		{
-			Name:     "stosb",
-			Mode:     x86.Mode64,
-			Assembly: "(stosb)",
-			Op:       ssafir.OpX86STOSB,
-			Data:     &x86InstructionData{},
-			Want: &x86.Code{
-				Opcode:    [3]byte{0xaa},
-				OpcodeLen: 1,
-			},
-		},
-		{
-			Name:     "rep stosb",
-			Mode:     x86.Mode64,
-			Assembly: "(rep stosb)",
-			Op:       ssafir.OpX86STOSB,
-			Data: &x86InstructionData{
-				Prefixes:  [5]x86.Prefix{x86.PrefixRepeat},
-				PrefixLen: 1,
-			},
-			Want: &x86.Code{
-				Prefixes:  [14]x86.Prefix{x86.PrefixRepeat},
-				Opcode:    [3]byte{0xaa},
-				OpcodeLen: 1,
-			},
-		},
-		{
-			Name:     "EVEX extended register",
-			Mode:     x86.Mode64,
-			Assembly: "(vaddpd ymm14 ymm3 ymm31)",
-			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
-			},
-			Want: &x86.Code{
-				EVEX: x86.EVEX{
-					0b0001_0001, // 0x11: R:0, X:0, B:0, R':1, mm:01.
-					0b1110_0101, // 0xe5: W:0, vvvv:1100, pp:01.
-					0b0010_1000, // 0x28: z:0, L':0, L:1, b:0, V':1, aaa:000.
-				},
-				Opcode:    [3]byte{0x58},
-				OpcodeLen: 1,
-				ModRM:     0b11_110_111,
-				UseModRM:  true,
-			},
-		},
-		{
-			Name:     "EVEX uncompressed displacement",
-			Mode:     x86.Mode64,
-			Assembly: "(vaddpd ymm19 ymm3 (+ rax 513))",
-			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_M256_EVEX,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.YMM19, x86.YMM3, &x86.Memory{Base: x86.RAX, Displacement: 513}},
-			},
-			Want: &x86.Code{
-				EVEX: x86.EVEX{
-					0b1110_0001, // 0xe1: R:1, X:1, B:1, R':0, mm:01.
-					0b1110_0101, // 0xe5: W:0, vvvv:1100, pp:01.
-					0b0010_1000, // 0x28: z:0, L':0, L:1, b:0, V':1, aaa:000.
-				},
-				Opcode:          [3]byte{0x58},
-				OpcodeLen:       1,
-				ModRM:           0b10_011_000,
-				UseModRM:        true,
-				Displacement:    [8]byte{0x01, 0x02, 0x00, 0x00},
-				DisplacementLen: 4,
-			},
-		},
-		{
-			Name:     "EVEX compressed displacement",
-			Mode:     x86.Mode64,
-			Assembly: "(vaddpd ymm19 ymm3 (+ rax 512))",
-			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_M256_EVEX,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.YMM19, x86.YMM3, &x86.Memory{Base: x86.RAX, Displacement: 512}},
-			},
-			Want: &x86.Code{
-				EVEX: x86.EVEX{
-					0b1110_0001, // 0xe1: R:1, X:1, B:1, R':0, mm:01.
-					0b1110_0101, // 0xe5: W:0, vvvv:1100, pp:01.
-					0b0010_1000, // 0x28: z:0, L':0, L:1, b:0, V':1, aaa:000.
-				},
-				Opcode:          [3]byte{0x58},
-				OpcodeLen:       1,
-				ModRM:           0b01_011_000,
-				UseModRM:        true,
-				Displacement:    [8]byte{0x10},
-				DisplacementLen: 1,
-			},
-		},
-		{
-			Name:     "EVEX implicit opmask",
-			Mode:     x86.Mode64,
-			Assembly: "'(mask k0)(vaddpd ymm14 ymm3 ymm31)",
-			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
-				Mask: 0,
-			},
-			Want: &x86.Code{
-				EVEX: x86.EVEX{
-					0b0001_0001, // 0x11: R:0, X:0, B:0, R':1, mm:01.
-					0b1110_0101, // 0xe5: W:0, vvvv:1100, pp:01.
-					0b0010_1000, // 0x28: z:0, L':0, L:1, b:0, V':1, aaa:000.
-				},
-				Opcode:    [3]byte{0x58},
-				OpcodeLen: 1,
-				ModRM:     0b11_110_111,
-				UseModRM:  true,
-			},
-		},
-		{
-			Name:     "EVEX explicit opmask",
-			Mode:     x86.Mode64,
-			Assembly: "'(mask k7)(vaddpd ymm14 ymm3 ymm31)",
-			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
-				Mask: 7,
-			},
-			Want: &x86.Code{
-				EVEX: x86.EVEX{
-					0b0001_0001, // 0x11: R:0, X:0, B:0, R':1, mm:01.
-					0b1110_0101, // 0xe5: W:0, vvvv:1100, pp:01.
-					0b0010_1111, // 0x2f: z:0, L':0, L:1, b:0, V':1, aaa:111.
-				},
-				Opcode:    [3]byte{0x58},
-				OpcodeLen: 1,
-				ModRM:     0b11_110_111,
-				UseModRM:  true,
-			},
-		},
-		{
-			Name:     "EVEX implicit zeroing",
-			Mode:     x86.Mode64,
-			Assembly: "'(zero false)(vaddpd ymm14 ymm3 ymm31)",
-			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
-				Zero: false,
-			},
-			Want: &x86.Code{
-				EVEX: x86.EVEX{
-					0b0001_0001, // 0x11: R:0, X:0, B:0, R':1, mm:01.
-					0b1110_0101, // 0xe5: W:0, vvvv:1100, pp:01.
-					0b0010_1000, // 0x28: z:0, L':0, L:1, b:0, V':1, aaa:000.
-				},
-				Opcode:    [3]byte{0x58},
-				OpcodeLen: 1,
-				ModRM:     0b11_110_111,
-				UseModRM:  true,
-			},
-		},
-		{
-			Name:     "EVEX explicit zeroing",
-			Mode:     x86.Mode64,
-			Assembly: "'(zero true)(vaddpd ymm14 ymm3 ymm31)",
-			Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
-			Data: &x86InstructionData{
-				Args: [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
-				Zero: true,
-			},
-			Want: &x86.Code{
-				EVEX: x86.EVEX{
-					0b0001_0001, // 0x11: R:0, X:0, B:0, R':1, mm:01.
-					0b1110_0101, // 0xe5: W:0, vvvv:1100, pp:01.
-					0b1010_1000, // 0xa8: z:1, L':0, L:1, b:0, V':1, aaa:000.
-				},
-				Opcode:    [3]byte{0x58},
-				OpcodeLen: 1,
-				ModRM:     0b11_110_111,
-				UseModRM:  true,
-			},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.Name, func(t *testing.T) {
-			var got x86.Code
-			err := x86EncodeInstruction(&got, test.Mode, test.Op, test.Data)
-			if err != nil {
-				t.Fatalf("%s.Encode(): %v", test.Assembly, err)
-			}
-
-			if diff := cmp.Diff(test.Want, &got); diff != "" {
-				t.Fatalf("%s.Encode(): (-want, +got)\n%s", test.Assembly, diff)
-			}
-		})
-	}
 }
 
 func TestEncodeX86(t *testing.T) {
