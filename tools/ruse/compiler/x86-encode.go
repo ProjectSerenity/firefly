@@ -257,9 +257,9 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 			code.SetB(rexB)
 			code.Opcode[idx] += reg
 		case x86.EncodingStackIndex:
-			mod := data.Args[i].(uint8)
+			reg := data.Args[i].(*x86.Register)
 			idx := inst.Encoding.StackIndex - 1
-			code.Opcode[idx] += mod
+			code.Opcode[idx] += reg.Reg
 		case x86.EncodingCodeOffset:
 			var arg uint64
 			switch a := data.Args[i].(type) {

@@ -1240,14 +1240,14 @@ func (ctx *x86Context) matchStackIndex(arg ast.Expression, param *x86.Parameter)
 		return struct{}{}
 	}
 
-	for i, reg := range param.Registers {
+	for _, reg := range param.Registers {
 		if reg.Name == ident.Name {
-			return uint8(i)
+			return reg
 		}
 
 		for _, alias := range reg.Aliases {
 			if alias == ident.Name {
-				return uint8(i)
+				return reg
 			}
 		}
 	}

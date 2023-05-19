@@ -202,14 +202,14 @@ var (
 	GS = &Register{Name: "gs", Type: TypeSegment, Reg: 0x5, Addr: 0x5, Bits: 16}
 
 	// x87 floating point stack positions.
-	ST0 = &Register{Name: "st0", Type: TypeX87, Bits: 80}
-	ST1 = &Register{Name: "st1", Type: TypeX87, Bits: 80}
-	ST2 = &Register{Name: "st2", Type: TypeX87, Bits: 80}
-	ST3 = &Register{Name: "st3", Type: TypeX87, Bits: 80}
-	ST4 = &Register{Name: "st4", Type: TypeX87, Bits: 80}
-	ST5 = &Register{Name: "st5", Type: TypeX87, Bits: 80}
-	ST6 = &Register{Name: "st6", Type: TypeX87, Bits: 80}
-	ST7 = &Register{Name: "st7", Type: TypeX87, Bits: 80}
+	ST0 = &Register{Name: "st0", Type: TypeX87, Bits: 80, Reg: 0}
+	ST1 = &Register{Name: "st1", Type: TypeX87, Bits: 80, Reg: 1}
+	ST2 = &Register{Name: "st2", Type: TypeX87, Bits: 80, Reg: 2}
+	ST3 = &Register{Name: "st3", Type: TypeX87, Bits: 80, Reg: 3}
+	ST4 = &Register{Name: "st4", Type: TypeX87, Bits: 80, Reg: 4}
+	ST5 = &Register{Name: "st5", Type: TypeX87, Bits: 80, Reg: 5}
+	ST6 = &Register{Name: "st6", Type: TypeX87, Bits: 80, Reg: 6}
+	ST7 = &Register{Name: "st7", Type: TypeX87, Bits: 80, Reg: 7}
 
 	// Control registers.
 	CR0  = &Register{Name: "cr0", Type: TypeControl, Reg: 0}
