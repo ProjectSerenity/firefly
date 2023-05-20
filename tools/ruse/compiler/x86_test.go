@@ -627,6 +627,17 @@ var x86TestCases = []*x86TestCase{
 	},
 }
 
+func TestX86OpToInstruction(t *testing.T) {
+	// Test that ssafir.Op opcodes for x86
+	// and x86 instruction data match.
+	for i, inst := range x86.Instructions {
+		op := firstX86Op + ssafir.Op(i)
+		if op.String() != inst.UID {
+			t.Errorf("opcode mismatch: opcode %d (%s) does not match instruction %s", i, op, inst.UID)
+		}
+	}
+}
+
 func TestAssembleX86(t *testing.T) {
 	compareOptions := []cmp.Option{
 		cmpopts.IgnoreTypes(token.Pos(0)), // Ignore token.Pos values.

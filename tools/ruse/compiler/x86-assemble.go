@@ -88,8 +88,8 @@ type tempLink struct {
 // an x86 instruction, `nil` is returned.
 func x86OpToInstruction(op ssafir.Op) *x86.Instruction {
 	i := int(op - firstX86Op)
-	if 0 <= i && i < len(x86OpToInstructionData) {
-		return x86OpToInstructionData[i]
+	if 0 <= i && i < len(x86.Instructions) {
+		return x86.Instructions[i]
 	}
 
 	return nil

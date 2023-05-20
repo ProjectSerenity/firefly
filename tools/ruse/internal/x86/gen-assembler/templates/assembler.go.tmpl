@@ -5,7 +5,6 @@
 package {{ .Package }}
 
 import (
-	"firefly-os.dev/tools/ruse/internal/x86"
 	"firefly-os.dev/tools/ruse/ssafir"
 )
 
@@ -16,10 +15,6 @@ var x86MnemonicToOps = map[string][]ssafir.Op{ {{- range $mnemonic, $instruction
 }
 
 var firstX86Op = ssafir.OpX86{{ index .UIDs 0 }}
-
-var x86OpToInstructionData = [...]*x86.Instruction{ {{- range .UIDs }}
-	x86.{{ . }},{{ end }}
-}
 
 var x86Opcodes = map[string]ssafir.Op{ {{- range .UIDs }}
 	"{{ . }}": ssafir.OpX86{{ . }},{{ end }}
