@@ -426,6 +426,8 @@ func (t LinkType) String() string {
 	switch t {
 	case LinkFullAddress:
 		return "full address"
+	case LinkRelativeAddress:
+		return "relative address"
 	default:
 		return fmt.Sprintf("LinkType(%d)", t)
 	}
