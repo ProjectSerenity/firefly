@@ -53,7 +53,6 @@ func (ctx *x86Context) Errorf(pos token.Pos, format string, v ...any) error {
 // x86InstructionData contains the information
 // necessary to fully assemble an x86 instruction.
 type x86InstructionData struct {
-	Pos  token.Pos
 	Args [4]any // Unused args are untyped nil.
 
 	Length    uint8         // Number of bytes of machine code (max 15).
@@ -392,7 +391,6 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 
 			// Fill in the common fields and
 			// encode the instruction.
-			data.Pos = list.ParenOpen
 			data.PrefixLen = uint8(copy(data.Prefixes[:], prefixes))
 			data.REX_W = rexwOverride
 			err = x86EncodeInstruction(&code, ctx.Mode, op, data)
@@ -543,13 +541,14 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 		}
 
 		for _, ref := range label.Refs {
-			data := fun.Entry.Values[ref].Extra.(*x86InstructionData)
+			v := fun.Entry.Values[ref]
+			data := v.Extra.(*x86InstructionData)
 			jumpLength := ctx.calculateJumpDistance(label, ref)
 
 			// First, check we can store the jump in a 32-bit
 			// relative (signed) address.
 			if jumpLength < math.MinInt32 || math.MaxInt32 < jumpLength {
-				return nil, ctx.Errorf(data.Pos, "jump to %q is too far to be encoded", name)
+				return nil, ctx.Errorf(v.Pos, "jump to %q is too far to be encoded", name)
 			}
 
 			data.Args[0] = uint64(jumpLength)

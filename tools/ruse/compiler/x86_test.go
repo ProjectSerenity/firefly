@@ -639,10 +639,6 @@ func TestX86OpToInstruction(t *testing.T) {
 }
 
 func TestAssembleX86(t *testing.T) {
-	compareOptions := []cmp.Option{
-		cmpopts.IgnoreTypes(token.Pos(0)), // Ignore token.Pos values.
-	}
-
 	// Use x86-64.
 	arch := sys.X86_64
 	sizes := types.SizesFor(arch)
@@ -709,7 +705,7 @@ func TestAssembleX86(t *testing.T) {
 				t.Fatalf("Compile:\n  Got op  %s\n  Want op %s", v.Op, test.Op)
 			}
 
-			if diff := cmp.Diff(test.Data, v.Extra, compareOptions...); diff != "" {
+			if diff := cmp.Diff(test.Data, v.Extra); diff != "" {
 				t.Fatalf("Compile(): (-want, +got)\n%s", diff)
 			}
 		})
