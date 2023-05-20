@@ -102,10 +102,12 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 		return fmt.Errorf("internal error: found no instruction data for op %s", op)
 	}
 
-	var seenPrefix [256]bool
+	var seenPrefix [256 / 8]uint8
 	addPrefix := func(prefix x86.Prefix) {
-		if !seenPrefix[prefix] {
-			seenPrefix[prefix] = true
+		byte := prefix / 8
+		bit := uint8(1) << (prefix % 8)
+		if seenPrefix[byte]&bit == 0 {
+			seenPrefix[byte] |= bit
 			code.AddPrefix(prefix)
 		}
 	}
