@@ -1053,7 +1053,6 @@ func cleanup(insts []*instruction) []*instruction {
 			case i < len(opAction[op]):
 				action = append(action, opAction[op][i])
 			default:
-				fmt.Fprintf(os.Stderr, "p.%d: %s has encoding %s for %s but no r/w annotations\n", inst.page, inst.syntax, enc, arg)
 				action = append(action, "?")
 			}
 
