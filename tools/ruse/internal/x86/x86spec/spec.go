@@ -8,15 +8,10 @@
 //
 // Usage:
 //
-//	x86spec [-f file] [-u url] >x86.csv
+//	x86spec [-f file] >x86.csv
 //
 // The -f flag specifies the input file (default x86manual.pdf), the Intel instruction
 // set reference manual in PDF form.
-// If the input file does not exist, it will be created by downloading the manual.
-//
-// The -u flag specifies the URL from which to download the manual
-// (default https://golang.org/s/x86manual, which redirects to Intel's site).
-// The URL is downloaded only when the file named by the -f flag is missing.
 //
 // There are additional debugging flags, not shown. Run x86spec -help for the list.
 //
@@ -201,7 +196,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -213,7 +207,6 @@ const (
 
 var (
 	flagDebugPage = flag.String("debugpage", "", "debug page `n` of the manual (can be comma-separated list)")
-	flagURL       = flag.String("u", "https://golang.org/s/x86manual", "use `url` for download if needed")
 	flagFile      = flag.String("f", "x86manual.pdf", "read manual from `file`, downloading if necessary")
 	flagCompat    = flag.Bool("compat", false, "print compatibility statements")
 
@@ -245,7 +238,6 @@ func main() {
 	log.SetFlags(0)
 	log.SetPrefix("x86spec: ")
 	flags()
-	download()
 	insts := parse()
 	insts = cleanup(insts)
 	format(insts)
@@ -265,34 +257,6 @@ func flags() {
 	}
 	debugging = *flagDebugPage != ""
 	onlySomePages = *flagDebugPage != ""
-}
-
-func download() {
-	_, err := os.Stat(*flagFile)
-	if !os.IsNotExist(err) {
-		return
-	}
-
-	// Try downloading.
-	log.Printf("downloading manual to %s", *flagFile)
-	resp, err := http.Get(*flagURL)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if resp.StatusCode != 200 {
-		log.Fatal(resp.Status)
-	}
-	f, err := os.Create(*flagFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = io.Copy(f, resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := f.Close(); err != nil {
-		log.Fatal(err)
-	}
 }
 
 func write(w io.Writer, insts []*instruction) {
