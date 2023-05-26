@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"rsc.io/pdf"
 )
@@ -163,8 +164,7 @@ func parse() []*instruction {
 			return
 		}
 		if len(current.mtables) == 0 || len(current.mtables[0]) <= 1 {
-			fmt.Fprintf(os.Stderr, "p.%d: no mnemonics for instruction %q\n", current.pageNum, current.name)
-			os.Exit(1)
+			log.Fatalf("p.%d: no mnemonics for instruction %q\n", current.pageNum, current.name)
 		}
 		processListing(current, &insts)
 		current = nil
@@ -208,8 +208,11 @@ func parse() []*instruction {
 
 	if !onlySomePages {
 		for _, headline := range instList {
-			if headline != "" {
-				fmt.Fprintf(os.Stderr, "missing instruction %q\n", headline)
+			if headline != "" && !headingRE.MatchString(headline) && !strings.HasPrefix(headline, "VSCATTER") {
+				// The VSCATTER variants are documented in a different
+				// grouping to the table of contents, so we skip them
+				// too.
+				log.Fatalf("missing instruction %q\n", headline)
 			}
 		}
 	}
@@ -258,7 +261,10 @@ func instHeadings(outline pdf.Outline) []string {
 	return appendInstHeadings(outline, nil)
 }
 
-var instRE = regexp.MustCompile(`\d Instructions \([A-Z]-[A-Z]\)|VMX Instructions|Instruction SET Reference|SHA Extensions Reference`)
+var (
+	instRE    = regexp.MustCompile(`\d Instructions \([A-Z]-[A-Z]\)|VMX Instructions|Instruction SET Reference|SHA Extensions Reference`)
+	headingRE = regexp.MustCompile(`^\d+\.\d+ `)
+)
 
 // The headings are inconsistent about dash and superscript usage. Normalize.
 var fixDash = strings.NewReplacer(
@@ -415,10 +421,10 @@ func parsePage(p pdf.Page, pageNum int) *listing {
 
 	// Table follows; heading is NeoSansIntelMedium and rows are NeoSansIntel.
 	i := 0
-	for i < len(text) && (match(text[i], "NeoSansIntelMedium", 9, "") || match(text[i], "NeoSansIntelMedium", 7.2, "1")) {
+	for i < len(text) && (match(text[i], "NeoSansIntelMedium", 9, "") || match(text[i], "NeoSansIntelMedium", 7.2, "1") || match(text[i], "NeoSansIntel", 9, "*")) {
 		i++
 	}
-	for i < len(text) && match(text[i], "NeoSansIntel", 9, "") && text[i].S != "NOTES:" {
+	for i < len(text) && (match(text[i], "NeoSansIntel", 9, "") || match(text[i], "NeoSansIntel", 8.6, "") || match(text[i], "IntelClear", 8.6, "")) && text[i].S != "NOTES:" {
 		i++
 	}
 
@@ -598,6 +604,9 @@ func findMnemonicTable(text []pdf.Text) [][]string {
 		heading := mtable[0]
 		for i, x := range heading {
 			heading[i] = fixHeading.Replace(x)
+			if heading[i] == "CPUID" {
+				heading[i] = "CPUID Feature Flag"
+			}
 		}
 	}
 
@@ -605,6 +614,7 @@ func findMnemonicTable(text []pdf.Text) [][]string {
 }
 
 var fixHeading = strings.NewReplacer(
+	"32/64\nbit Mode\nSupport", "64/32-Bit Mode",
 	"64/32-\nbit\nMode", "64/32-Bit Mode",
 	"64/32-\nbit Mode", "64/32-Bit Mode",
 	"64/32-bit\nMode", "64/32-Bit Mode",
@@ -613,6 +623,9 @@ var fixHeading = strings.NewReplacer(
 	"64/32bit\nMode\nSupport", "64/32-Bit Mode",
 	"64/32\n-bit\nMode", "64/32-Bit Mode",
 	"64/32\nbit Mode\nSupport", "64/32-Bit Mode",
+	"64/32\nbit\nMode\nSupport", "64/32-Bit Mode",
+	"64/32 *\nbit Mode\nSupport", "64/32-Bit Mode",
+	"64/32\nbitMode\nSupport", "64/32-Bit Mode",
 	"64-Bit\nMode", "64-Bit Mode",
 	"64-bit\nMode", "64-Bit Mode",
 
@@ -621,6 +634,8 @@ var fixHeading = strings.NewReplacer(
 	"Op/\nEn", "Op/En",
 	"Op/\nEN", "Op/En",
 	"Op /\nEn", "Op/En",
+	"Op\n/ En", "Op/En",
+	"Op\n/\nEn", "Op/En",
 	"Op/E\nn", "Op/En",
 	"Op / En", "Op/En",
 	"1\nOpcode", "Opcode", // Misplaced superscript.
@@ -640,6 +655,7 @@ var fixHeading = strings.NewReplacer(
 
 	"Compat/\nLeg Mode*", "Compat/Leg Mode",
 	"Compat/\nLeg Mode", "Compat/Leg Mode",
+	"Compat/\nLeg\nMode", "Compat/Leg Mode",
 	"Compat/\n1\nLeg Mode", "Compat/Leg Mode", // Misplaced superscript.
 	"Compat/ *\nLeg Mode", "Compat/Leg Mode",
 )
@@ -863,6 +879,17 @@ func processListing(p *listing, insts *[]*instruction) {
 					opEn := encs[x]
 					if inst.args == nil && len(encs) == 1 && encs["A"].Operands != nil {
 						opEn = encs["A"]
+					}
+					if inst.args == nil && strings.IndexFunc(x, unicode.IsSpace) >= 0 {
+						dropSpace := func(r rune) rune {
+							if unicode.IsSpace(r) {
+								return -1
+							}
+
+							return r
+						}
+
+						opEn = encs[strings.Map(dropSpace, x)]
 					}
 					// In the December 2015 manual, PREFETCHW says
 					// encoding A but the table gives encoding M.

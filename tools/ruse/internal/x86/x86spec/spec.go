@@ -268,6 +268,20 @@ func write(w io.Writer, insts []*instruction) {
 			datasize = fmt.Sprint(inst.datasize)
 		}
 
+		// Some tuple types are
+		// incorrect in the manual,
+		// so we fix them here.
+		switch inst.tuple {
+		case "NA":
+			inst.tuple = "N/A"
+		case "Scalar":
+			inst.tuple = "Tuple1 Scalar"
+		case "Tuple1_4X":
+			inst.tuple = "Tuple4"
+		case "Quarter":
+			inst.tuple = "Quarter Mem"
+		}
+
 		switch inst.tuple {
 		case "N/A":
 			inst.tuple = ""
@@ -291,7 +305,7 @@ func write(w io.Writer, insts []*instruction) {
 				inst.tuple = ""
 			}
 		default:
-			println("instruction", inst.syntax, "has unrecognised tuple type:", inst.tuple)
+			fmt.Fprintf(os.Stderr, "p.%d: instruction %s has unrecognised tuple type: %s\n", inst.page, inst.syntax, inst.tuple)
 			os.Exit(1)
 		}
 
