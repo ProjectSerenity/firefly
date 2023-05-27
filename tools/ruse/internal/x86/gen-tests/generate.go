@@ -32,6 +32,16 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 			continue
 		}
 
+		// Clang always uses the EVEX form, even
+		// if it's longer.
+		switch mnemonic {
+		case "vpdpbusd", "vpdpbusds",
+			"vpdpwssd", "vpdpwssds":
+			if inst.Encoding.VEX {
+				continue
+			}
+		}
+
 		// Skip XBEGIN for now, as its behaviour
 		// is odd.
 		if mnemonic == "xbegin" {
@@ -167,6 +177,24 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 
 		if masks {
 			continue
+		}
+
+		// Clang expects a 32-bit source register,
+		// but an 8/16-bit register makes more
+		// sense, so we skip these variants.
+		switch inst.Mnemonic {
+		case "vpbroadcastb", "vpbroadcastw":
+			continue
+		}
+
+		// Clang insists on a different approach
+		// to size hints than the Intel manual,
+		// so we just skip it for now.
+		switch inst.Mnemonic {
+		case "vpmovqd", "vpmovsqd", "vpmovusqd":
+			if inst.Parameters[0].Type == x86.TypeMemory {
+				continue
+			}
 		}
 
 		// We don't support VSIB yet.
