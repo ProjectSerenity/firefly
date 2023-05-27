@@ -1139,6 +1139,10 @@ func cleanup(insts []*instruction) []*instruction {
 			inst.syntax = "VREDUCESS xmm1 {k1}{z}, xmm2, xmm3/m32{sae}, imm8"
 		}
 
+		if (strings.Contains(inst.syntax, " vm32") || strings.Contains(inst.syntax, " vm64")) && !strings.Contains(inst.opcode, " /vsib") {
+			inst.opcode += " /vsib"
+		}
+
 		op, args := splitSyntax(inst.syntax)
 		op = strings.TrimRight(op, "*")
 		inst.syntax = joinSyntax(op, args)
