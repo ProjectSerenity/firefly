@@ -25,6 +25,7 @@ func CheckInstruction(inst *x86.Instruction) error {
 		codeOffset         string
 		registerInModRMreg string
 		registerInModRMrm  string
+		vsib               string
 
 		codeOffsets []int
 		immediates  []int
@@ -88,6 +89,12 @@ func CheckInstruction(inst *x86.Instruction) error {
 			}
 
 			registerInModRMrm = param.Syntax
+		case x86.EncodingVSIB:
+			if vsib != "" {
+				return fmt.Errorf("found memory %s and %s encoded in VSIB", vsib, param.Syntax)
+			}
+
+			vsib = param.Syntax
 		}
 	}
 
@@ -135,6 +142,10 @@ func CheckInstruction(inst *x86.Instruction) error {
 
 	if inst.Encoding.RegisterModifier != 0 && stackIndex == "" && registerModifier == "" {
 		return fmt.Errorf("found register opcode modifier but no x87 FPU stack index or register parameter")
+	}
+
+	if vsib != "" && !inst.Encoding.VSIB {
+		return fmt.Errorf("found parameter %s but instruction encoding is missing /vsib", vsib)
 	}
 
 	switch {
