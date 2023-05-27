@@ -277,7 +277,7 @@ func instHeadings(outline pdf.Outline) []string {
 }
 
 var (
-	instRE    = regexp.MustCompile(`\d Instructions \([A-Z]-[A-Z]\)|VMX Instructions|Instruction SET Reference|SHA Extensions Reference`)
+	instRE    = regexp.MustCompile(`\d Instructions \([A-Z](-[A-Z])?\)|VMX Instructions|Instruction SET Reference|Instruction Set Reference|SHA Extensions Reference`)
 	headingRE = regexp.MustCompile(`^\d+\.\d+ `)
 )
 
