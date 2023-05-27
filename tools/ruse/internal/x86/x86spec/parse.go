@@ -158,6 +158,7 @@ func parse() []*instruction {
 	// Scan document looking for instructions.
 	// Must find exactly the ones in the outline.
 	n := f.NumPage()
+	var skipCurrent bool
 	var current *listing
 	finishInstruction := func() {
 		if current == nil {
@@ -182,9 +183,20 @@ func parse() []*instruction {
 				if parsed.name == headline {
 					instList[j] = ""
 					current = parsed
+					skipCurrent = false
 					break
 				}
 			}
+			if current == nil && (strings.HasPrefix(parsed.name, "GETSEC[") || strings.HasPrefix(parsed.name, "VSCATTER")) {
+				// The GETSEC instruction has an odd documentation, so
+				// we skip it here and instead add it in gen-x86.
+				// The VSCATTER variants are documented in a different
+				// grouping to the table of contents, so we skip them
+				// too.
+				skipCurrent = true
+				continue
+			}
+
 			if current == nil {
 				fmt.Fprintf(os.Stderr, "p.%d: unexpected instruction %q\n", pageNum, parsed.name)
 			}
@@ -192,6 +204,9 @@ func parse() []*instruction {
 		}
 		if current != nil {
 			merge(current, parsed)
+			continue
+		}
+		if skipCurrent {
 			continue
 		}
 		if parsed.mtables != nil {
