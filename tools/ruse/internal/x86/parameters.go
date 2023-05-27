@@ -266,6 +266,7 @@ var (
 	ParamM           = &Parameter{TypeMemory, EncodingModRMrm, "M", 0, "m", nil}
 	ParamM8          = &Parameter{TypeMemory, EncodingModRMrm, "M8", 8, "m8", nil}
 	ParamM16         = &Parameter{TypeMemory, EncodingModRMrm, "M16", 16, "m16", nil}
+	ParamM16bcst     = &Parameter{TypeMemory, EncodingModRMrm, "M16bcst", 16, "m16bcst", nil}
 	ParamM32         = &Parameter{TypeMemory, EncodingModRMrm, "M32", 32, "m32", nil}
 	ParamM32bcst     = &Parameter{TypeMemory, EncodingModRMrm, "M32bcst", 32, "m32bcst", nil}
 	ParamM64         = &Parameter{TypeMemory, EncodingModRMrm, "M64", 64, "m64", nil}
