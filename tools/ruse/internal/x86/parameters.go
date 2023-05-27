@@ -97,6 +97,7 @@ const (
 	EncodingCodeOffset                         // The parameter is encoded as a code offset after the opcode.
 	EncodingModRMreg                           // The parameter is encoded in the ModR/M.reg field of the machine code.
 	EncodingModRMrm                            // The parameter is encoded in the ModR/M.rm field of the machine code.
+	EncodingVSIB                               // The parameter is encoded in the vector SIB byte.
 	EncodingDisplacement                       // The parameter is encoded in the displacement field of the machine code.
 	EncodingImmediate                          // The parameter is encoded in the immediate field of the machine code.
 	EncodingVEXis4                             // The parameter is encoded in the VEX /is4 immediate byte.
@@ -110,6 +111,7 @@ var ParameterEncodings = map[string]ParameterEncoding{
 	"code offset":       EncodingCodeOffset,
 	"ModR/M reg":        EncodingModRMreg,
 	"ModR/M r/m":        EncodingModRMrm,
+	"VSIB":              EncodingVSIB,
 	"displacement":      EncodingDisplacement,
 	"immediate":         EncodingImmediate,
 	"VEX /is4":          EncodingVEXis4,
@@ -131,6 +133,8 @@ func (e ParameterEncoding) String() string {
 		return "ModR/M reg"
 	case EncodingModRMrm:
 		return "ModR/M r/m"
+	case EncodingVSIB:
+		return "VSIB"
 	case EncodingDisplacement:
 		return "displacement"
 	case EncodingImmediate:
@@ -158,6 +162,8 @@ func (e ParameterEncoding) UID() string {
 		return "EncodingModRMreg"
 	case EncodingModRMrm:
 		return "EncodingModRMrm"
+	case EncodingVSIB:
+		return "EncodingVSIB"
 	case EncodingDisplacement:
 		return "EncodingDisplacement"
 	case EncodingImmediate:
@@ -287,6 +293,13 @@ var (
 	ParamM2byte      = &Parameter{TypeMemory, EncodingModRMrm, "M2byte", 16, "m2byte", nil}
 	ParamM14l28byte  = &Parameter{TypeMemory, EncodingModRMrm, "M14l28byte", 224, "m14/28byte", nil}
 	ParamM94l108byte = &Parameter{TypeMemory, EncodingModRMrm, "M94l108byte", 864, "m94/108byte", nil}
+
+	ParamVm32x = &Parameter{TypeMemory, EncodingVSIB, "Vm32x", 32, "vm32x", nil}
+	ParamVm32y = &Parameter{TypeMemory, EncodingVSIB, "Vm32y", 32, "vm32y", nil}
+	ParamVm32z = &Parameter{TypeMemory, EncodingVSIB, "Vm32z", 32, "vm32z", nil}
+	ParamVm64x = &Parameter{TypeMemory, EncodingVSIB, "Vm64x", 64, "vm64x", nil}
+	ParamVm64y = &Parameter{TypeMemory, EncodingVSIB, "Vm64y", 64, "vm64y", nil}
+	ParamVm64z = &Parameter{TypeMemory, EncodingVSIB, "Vm64z", 64, "vm64z", nil}
 
 	// Memory values only in the displacement field.
 	ParamMoffs8  = &Parameter{TypeMemoryOffset, EncodingDisplacement, "Moffs8", 8, "moffs8", nil}
@@ -426,6 +439,14 @@ var Parameters = map[string]*Parameter{
 	"m2byte":      ParamM2byte,
 	"m14/28byte":  ParamM14l28byte,
 	"m94/108byte": ParamM94l108byte,
+
+	// VSIB vector sets.
+	"vm32x": ParamVm32x,
+	"vm32y": ParamVm32y,
+	"vm32z": ParamVm32z,
+	"vm64x": ParamVm64x,
+	"vm64y": ParamVm64y,
+	"vm64z": ParamVm64z,
 
 	// Memory values only in the displacement field.
 	"moffs8":  ParamMoffs8,
