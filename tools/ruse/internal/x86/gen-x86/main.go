@@ -150,6 +150,7 @@ func GenerateJSON() error {
 
 		if inst.Encoding.EVEX {
 			b.WriteString("_EVEX")
+			b.WriteString(strconv.Itoa(inst.Encoding.VectorSize()))
 		}
 
 		uid := b.String()

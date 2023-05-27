@@ -444,7 +444,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "EVEX extended register",
 		Mode:     x86.Mode64,
 		Assembly: "(vaddpd ymm14 ymm3 ymm31)",
-		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
+		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX256,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 			Length: 6,
@@ -465,7 +465,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "EVEX uncompressed displacement",
 		Mode:     x86.Mode64,
 		Assembly: "(vaddpd ymm19 ymm3 (+ rax 513))",
-		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_M256_EVEX,
+		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_M256_EVEX256,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.YMM19, x86.YMM3, &x86.Memory{Base: x86.RAX, Displacement: 513}},
 			Length: 10,
@@ -488,7 +488,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "EVEX compressed displacement",
 		Mode:     x86.Mode64,
 		Assembly: "(vaddpd ymm19 ymm3 (+ rax 512))",
-		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_M256_EVEX,
+		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_M256_EVEX256,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.YMM19, x86.YMM3, &x86.Memory{Base: x86.RAX, Displacement: 512}},
 			Length: 7,
@@ -511,7 +511,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "EVEX implicit opmask",
 		Mode:     x86.Mode64,
 		Assembly: "(vaddpd ymm14 ymm3 ymm31)",
-		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
+		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX256,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 			Length: 6,
@@ -533,7 +533,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "EVEX explicit opmask",
 		Mode:     x86.Mode64,
 		Assembly: "'(mask k7)(vaddpd ymm14 ymm3 ymm31)",
-		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
+		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX256,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 			Length: 6,
@@ -555,7 +555,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "EVEX implicit zeroing",
 		Mode:     x86.Mode64,
 		Assembly: "'(zero false)(vaddpd ymm14 ymm3 ymm31)",
-		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
+		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX256,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 			Length: 6,
@@ -577,7 +577,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "EVEX explicit zeroing",
 		Mode:     x86.Mode64,
 		Assembly: "'(zero true)(vaddpd ymm14 ymm3 ymm31)",
-		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX,
+		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX256,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 			Length: 6,
