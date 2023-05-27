@@ -266,7 +266,7 @@ func (c *Code) SetPP(b byte) {
 
 func (c *Code) SetM_MMMM(b byte) {
 	c.VEX.SetM_MMMM(b)
-	c.EVEX.SetMM(b)
+	c.EVEX.SetMMM(b)
 }
 
 func (c *Code) SetW(b bool) {
@@ -701,16 +701,16 @@ func (p *EVEX) b2i(b bool) byte {
 // 	| 7  6  5  4   3  2  1  0 |
 // 	+-------------------------|
 // 	| 0  1  1  0   0  0  1  0 | // 0x62 prefix.
-// 	| R  X  B  R'  0  0  m  m | // P0.
+// 	| R  X  B  R'  0  m  m  m | // P0.
 // 	| W  v  v  v   v  1  p  p | // P1.
 // 	| z  L' L  b   V' a  a  a | // P2.
 
 // P0.
-func (p EVEX) R() bool  { return ((p[0] >> 7) & 1) == 1 }
-func (p EVEX) X() bool  { return ((p[0] >> 6) & 1) == 1 }
-func (p EVEX) B() bool  { return ((p[0] >> 5) & 1) == 1 }
-func (p EVEX) Rp() bool { return ((p[0] >> 4) & 1) == 1 }
-func (p EVEX) MM() byte { return p[0] & 0b11 }
+func (p EVEX) R() bool   { return ((p[0] >> 7) & 1) == 1 }
+func (p EVEX) X() bool   { return ((p[0] >> 6) & 1) == 1 }
+func (p EVEX) B() bool   { return ((p[0] >> 5) & 1) == 1 }
+func (p EVEX) Rp() bool  { return ((p[0] >> 4) & 1) == 1 }
+func (p EVEX) MMM() byte { return p[0] & 0b111 }
 
 // P1.
 func (p EVEX) W() bool    { return ((p[1] >> 7) & 1) == 1 }
@@ -726,11 +726,11 @@ func (p EVEX) Vp() bool  { return ((p[2] >> 3) & 1) == 1 }
 func (p EVEX) AAA() byte { return p[2] & 0b111 }
 
 // P0.
-func (p *EVEX) SetR(b bool)  { p[0] = p[0]&0b0111_1111 | (p.b2i(b) << 7) }
-func (p *EVEX) SetX(b bool)  { p[0] = p[0]&0b1011_1111 | (p.b2i(b) << 6) }
-func (p *EVEX) SetB(b bool)  { p[0] = p[0]&0b1101_1111 | (p.b2i(b) << 5) }
-func (p *EVEX) SetRp(b bool) { p[0] = p[0]&0b1110_1111 | (p.b2i(b) << 4) }
-func (p *EVEX) SetMM(b byte) { p[0] = p[0]&0b1111_1100 | (b & 0b11) }
+func (p *EVEX) SetR(b bool)   { p[0] = p[0]&0b0111_1111 | (p.b2i(b) << 7) }
+func (p *EVEX) SetX(b bool)   { p[0] = p[0]&0b1011_1111 | (p.b2i(b) << 6) }
+func (p *EVEX) SetB(b bool)   { p[0] = p[0]&0b1101_1111 | (p.b2i(b) << 5) }
+func (p *EVEX) SetRp(b bool)  { p[0] = p[0]&0b1110_1111 | (p.b2i(b) << 4) }
+func (p *EVEX) SetMMM(b byte) { p[0] = p[0]&0b1111_1000 | (b & 0b111) }
 
 // P1.
 func (p *EVEX) SetW(b bool)    { p[1] = p[1]&0b0111_1111 | (p.b2i(b) << 7) }
@@ -778,7 +778,7 @@ func (p EVEX) Encode() (prefix, p0, p1, p2 byte) {
 
 func (p EVEX) String() string {
 	return fmt.Sprintf("{R: %b, X: %b, B: %b, R': %b, mm: %02b // W: %b, vvvv: %04b, pp: %02b // z: %b, L': %b, L: %b, b: %b, V': %b, aaa: %03b}",
-		p.b2i(p.R()), p.b2i(p.X()), p.b2i(p.B()), p.b2i(p.Rp()), p.MM(),
+		p.b2i(p.R()), p.b2i(p.X()), p.b2i(p.B()), p.b2i(p.Rp()), p.MMM(),
 		p.b2i(p.W()), p.VVVV(), p.PP(),
 		p.b2i(p.Z()), p.b2i(p.Lp()), p.b2i(p.L()), p.b2i(p.Br()), p.b2i(p.Vp()), p.AAA())
 }

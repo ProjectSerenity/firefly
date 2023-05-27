@@ -298,7 +298,7 @@ func (e *Encoding) MatchesMachineCode(code []byte) MachineCodeMatch {
 
 		evex := (*EVEX)(code[1:4])
 		code = code[4:]
-		if evex.MM() != e.VEXm_mmmm {
+		if evex.MMM() != e.VEXm_mmmm {
 			return MismatchMissingVEXm_mmmm
 		}
 
@@ -607,6 +607,10 @@ prefixes:
 					e.VEXm_mmmm = 0b0_0010
 				case "0F3A":
 					e.VEXm_mmmm = 0b0_0011
+				case "MAP5":
+					e.VEXm_mmmm = 0b0_0101
+				case "MAP6":
+					e.VEXm_mmmm = 0b0_0110
 				case "WIG":
 					e.VEX_WIG = true
 					fallthrough
