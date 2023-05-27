@@ -1120,6 +1120,11 @@ func cleanup(insts []*instruction) []*instruction {
 			inst.syntax = "V4FMADDPS zmm1 {k1}{z}, zmm2, m128"
 		case "VCMPSDxmm1,xmm2,xmm3/m64, imm8":
 			inst.syntax = "VCMPSD xmm1, xmm2, xmm3/m64, imm8"
+		case "VCVTTPD2UDQ xmm1 {k1}{z}, ymm2/m256/m64bcst":
+			prefix, found := strings.CutSuffix(inst.opcode, "78 02 /r")
+			if found {
+				inst.opcode = prefix + "78 /r"
+			}
 		case "VFIXUPIMMPS xmm1 {k1}{z}, xmm2, xmm3/m128/m32bcst, imm8",
 			"VFIXUPIMMPS ymm1 {k1}{z}, ymm2, ymm3/m256/m32bcst, imm8",
 			"VFPCLASSSS k2 {k1}, xmm2/m32, imm8",

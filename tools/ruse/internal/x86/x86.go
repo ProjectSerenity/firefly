@@ -81,7 +81,7 @@ func (inst *Instruction) HasCPUID(feature string) bool {
 // DisplacementCompression returns
 // the value N for the instruction,
 // as described in Intel x86 manuals,
-// Volume 2A, Section 2.6.5.
+// Volume 2A, Section 2.7.5.
 func (inst *Instruction) DisplacementCompression(broadcast bool) (n int64, err error) {
 	var inputSize int64
 	if inst.Encoding.VEX_W {
