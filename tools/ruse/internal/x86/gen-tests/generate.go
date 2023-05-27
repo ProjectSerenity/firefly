@@ -144,13 +144,39 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 		// now.
 		broadcast := false
 		for _, param := range params {
-			if param == x86.ParamM32bcst || param == x86.ParamM64bcst {
+			if param == x86.ParamM16bcst || param == x86.ParamM32bcst || param == x86.ParamM64bcst {
 				broadcast = true
 				break
 			}
 		}
 
 		if broadcast {
+			continue
+		}
+
+		// Clang doesn't seem to encode mask
+		// registers correctly, so we skip them
+		// for now.
+		masks := false
+		for _, param := range params {
+			if param == x86.ParamK1 {
+				masks = true
+				break
+			}
+		}
+
+		if masks {
+			continue
+		}
+
+		// We don't support VSIB yet.
+		if inst.Encoding.VSIB {
+			continue
+		}
+
+		// Clang doesn't seem to support
+		// AVX512-FP16 instructions yet.
+		if inst.HasCPUID("AVX512-FP16") || inst.HasCPUID("AVX512-FP16 AVX512VL") {
 			continue
 		}
 
@@ -1324,7 +1350,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		if mode == 64 {
 			memory64("byte", "byte")
 		}
-	case "m16", "m16int", "m16op", "m2byte":
+	case "m16", "m16int", "m16op", "m16bcst", "m2byte":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
 			memory16("word", "word")
 		}
