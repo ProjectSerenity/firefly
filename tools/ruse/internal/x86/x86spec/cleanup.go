@@ -555,6 +555,8 @@ var encodeOK = map[[2]string]bool{
 	{"r16op", "opcode + rd"}:                   true,
 	{"r16/r32/m16", "ModRM:r/m"}:               true, // Segment register operations.
 	{"r16/r32/r64", "ModRM:reg"}:               true, // MOVDIR64B.
+	{"rmr8", "ModRM:r/m"}:                      true,
+	{"rmr16", "ModRM:r/m"}:                     true,
 	{"rmr8/rmr16/rmr32/rmr64", "ModRM:r/m"}:    true, // SENDUIPI.
 	{"rmr16/rmr32/rmr64", "ModRM:r/m"}:         true, // UMONITOR.
 	{"r32/m16", "ModRM:r/m"}:                   true,
@@ -1196,6 +1198,18 @@ func cleanup(insts []*instruction) []*instruction {
 				enc = strings.TrimSuffix(enc, "(r)") + " (r)"
 			}
 			inst.args[i] = enc
+
+			// Some VPBROADCAST forms use the wrong register
+			// description.
+			if strings.HasPrefix(inst.syntax, "VPBROADCASTB ") {
+				if arg == "reg" {
+					arg = "r8"
+				}
+			} else if strings.HasPrefix(inst.syntax, "VPBROADCASTW ") {
+				if arg == "reg" {
+					arg = "r16"
+				}
+			}
 
 			switch {
 			case strings.HasSuffix(enc, " (r)"):
