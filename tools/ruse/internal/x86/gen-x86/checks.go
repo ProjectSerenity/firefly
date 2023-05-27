@@ -148,6 +148,10 @@ func CheckInstruction(inst *x86.Instruction) error {
 		return fmt.Errorf("found parameter %s but instruction encoding is missing /vsib", vsib)
 	}
 
+	if inst.Tuple == x86.Tuple1Scalar && inst.DataSize == 0 {
+		return fmt.Errorf("instruction has tuple type %s but no data operation size", inst.Tuple)
+	}
+
 	switch {
 	case inst.Encoding.CodeOffset && codeOffset == "":
 		return fmt.Errorf("a relative code offset is required but no relative offset parameters are included")
