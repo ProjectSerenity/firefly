@@ -54,7 +54,7 @@ func main() {
 		flag.Usage()
 	}
 
-	if output == "" {
+	if output == "" && !statsOnly {
 		flag.Usage()
 		os.Exit(2)
 	}
