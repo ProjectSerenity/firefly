@@ -53,7 +53,7 @@ func SortInstructions(insts []*x86.Instruction) {
 				op1 := operandPriority[operand1.Syntax]
 				op2 := operandPriority[operand2.Syntax]
 				if op1 == 0 || op2 == 0 {
-					panic("failed to sort " + mnemonic1 + ": bad syntax:\n" + inst1.Syntax + "\n" + inst2.Syntax)
+					panic(fmt.Sprintf("failed to sort %s: bad syntax:\n%s (%s: %d)\n%s (%s: %d)", mnemonic1, inst1.Syntax, operand1.Syntax, op1, inst2.Syntax, operand2.Syntax, op2))
 				}
 
 				return op1 < op2
@@ -219,6 +219,7 @@ var operandOrder = [...]*x86.Parameter{
 	x86.ParamM384,
 	x86.ParamM512,
 	x86.ParamM512byte,
+	x86.ParamM16bcst,
 	x86.ParamM32fp,
 	x86.ParamM32bcst,
 	x86.ParamM64fp,
@@ -237,6 +238,13 @@ var operandOrder = [...]*x86.Parameter{
 	x86.ParamM2byte,
 	x86.ParamM14l28byte,
 	x86.ParamM94l108byte,
+
+	x86.ParamVm32x,
+	x86.ParamVm32y,
+	x86.ParamVm32z,
+	x86.ParamVm64x,
+	x86.ParamVm64y,
+	x86.ParamVm64z,
 
 	x86.ParamMoffs8,
 	x86.ParamMoffs16,
