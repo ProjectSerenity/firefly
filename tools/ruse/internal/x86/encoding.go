@@ -62,6 +62,9 @@ type Encoding struct {
 	ModRMreg uint8 // Any fixed value used as the ModR/M byte's reg field, plus one. Zero for no value.
 	ModRMrm  uint8 // Any fixed value used as the ModR/M byte's r/m field, plus one. Zero for no value.
 
+	// Vector SIB.
+	VSIB bool // Whether the instruction uses the Vector SIB.
+
 	// Immediates.
 	ImpliedImmediate []byte // An immediate value implied by the encoding string.
 }
@@ -577,6 +580,10 @@ prefixes:
 			for _, part := range parts {
 				switch part {
 				case "EVEX":
+				case "NDS", "NDD", "DDS":
+					// The NDS/NDD/DDS terms can be ignored,
+					// as their information is also encoded
+					// in the parameter details.
 				case "128", "LLIG":
 					e.VEX_L = false
 					e.EVEX_Lp = false
@@ -586,6 +593,8 @@ prefixes:
 				case "512":
 					e.VEX_L = false
 					e.EVEX_Lp = true
+				case "NP":
+					e.NoVEXPrefixes = true
 				case "66":
 					e.VEXpp = 0b01
 				case "F3":
@@ -620,17 +629,15 @@ prefixes:
 
 		// Handle VEX clauses, as they're complex.
 		if strings.HasPrefix(clause, "VEX.") {
-			// The NDS/NDD/DDS terms can be ignored,
-			// as their information is also encoded
-			// in the parameter details.
 			e.VEX = true
-			clause = strings.Replace(clause, "VEX.NDS.", "VEX.", 1)
-			clause = strings.Replace(clause, "VEX.NDD.", "VEX.", 1)
-			clause = strings.Replace(clause, "VEX.DDS.", "VEX.", 1)
 			parts := strings.Split(clause, ".")
 			for _, part := range parts {
 				switch part {
 				case "VEX":
+				case "NDS", "NDD", "DDS":
+					// The NDS/NDD/DDS terms can be ignored,
+					// as their information is also encoded
+					// in the parameter details.
 				case "128", "L0", "LZ", "LIG":
 					e.VEX_L = false
 				case "256", "L1":
@@ -754,6 +761,8 @@ prefixes:
 			}
 
 			e.VEXis4 = true
+		case "/vsib":
+			e.VSIB = true
 		default:
 			b, err := strconv.ParseUint(clause, 16, 8)
 			if err != nil {
