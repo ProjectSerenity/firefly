@@ -198,7 +198,7 @@ func parse() []*instruction {
 			}
 
 			if current == nil {
-				fmt.Fprintf(os.Stderr, "p.%d: unexpected instruction %q\n", pageNum, parsed.name)
+				log.Fatalf("p.%d: unexpected instruction %q", pageNum, parsed.name)
 			}
 			continue
 		}
@@ -210,13 +210,13 @@ func parse() []*instruction {
 			continue
 		}
 		if parsed.mtables != nil {
-			fmt.Fprintf(os.Stderr, "p.%d: unexpected mnemonic table\n", pageNum)
+			log.Fatalf("p.%d: unexpected mnemonic table", pageNum)
 		}
 		if parsed.enctables != nil {
-			fmt.Fprintf(os.Stderr, "p.%d: unexpected encoding table\n", pageNum)
+			log.Fatalf("p.%d: unexpected encoding table", pageNum)
 		}
 		if parsed.compat != "" {
-			fmt.Fprintf(os.Stderr, "p.%d: unexpected compatibility statement\n", pageNum)
+			log.Fatalf("p.%d: unexpected compatibility statement", pageNum)
 		}
 	}
 	finishInstruction()
