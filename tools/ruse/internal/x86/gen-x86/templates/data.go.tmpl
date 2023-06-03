@@ -40,8 +40,8 @@ var ({{ range .Instructions }}
 			ModRM:             true,{{ end }}{{ if .Encoding.ModRMmod }}
 			ModRMmod:          {{ .Encoding.ModRMmod }},{{ end }}{{ if .Encoding.ModRMreg }}
 			ModRMreg:          {{ .Encoding.ModRMreg }},{{ end }}{{ if .Encoding.ModRMrm }}
-			ModRMrm:           {{ .Encoding.ModRMrm }},{{ end }}{{ if .Encoding.VSIB }}
-			VSIB:              true,{{ end }}{{ if .Encoding.ImpliedImmediate }}
+			ModRMrm:           {{ .Encoding.ModRMrm }},{{ end }}{{ if .Encoding.SIB }}
+			SIB:               true,{{ end }}{{ if .Encoding.ImpliedImmediate }}
 			ImpliedImmediate:  []byte{ {{- range .Encoding.ImpliedImmediate }}{{ printf "%#02x" . }}, {{ end -}} },{{ end }}
 		},{{ if .Parameters }}
 		Parameters: []*Parameter{ {{- range .Parameters }}Param{{ .UID }}, {{ end -}} },{{ end }}

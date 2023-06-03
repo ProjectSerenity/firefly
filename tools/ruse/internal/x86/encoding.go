@@ -62,8 +62,8 @@ type Encoding struct {
 	ModRMreg uint8 // Any fixed value used as the ModR/M byte's reg field, plus one. Zero for no value.
 	ModRMrm  uint8 // Any fixed value used as the ModR/M byte's r/m field, plus one. Zero for no value.
 
-	// Vector SIB.
-	VSIB bool // Whether the instruction uses the Vector SIB.
+	// SIB encoding.
+	SIB bool // Whether the instruction must use the SIB field.
 
 	// Immediates.
 	ImpliedImmediate []byte // An immediate value implied by the encoding string.
@@ -766,7 +766,7 @@ prefixes:
 
 			e.VEXis4 = true
 		case "/vsib":
-			e.VSIB = true
+			e.SIB = true
 		default:
 			b, err := strconv.ParseUint(clause, 16, 8)
 			if err != nil {

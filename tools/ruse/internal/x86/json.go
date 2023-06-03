@@ -57,8 +57,8 @@ type jsonEncoding struct {
 	ModRMreg uint8 `json:"modRmReg,omitempty"`
 	ModRMrm  uint8 `json:"modRmRm,omitempty"`
 
-	// Vector SIB.
-	VSIB bool `json:"vsib,omitempty"`
+	// SIB.
+	SIB bool `json:"sib,omitempty"`
 
 	// Implied immediates.
 	ImpliedImmediate string `json:"impliedImmediate,omitempty"`
@@ -103,7 +103,7 @@ func (e *Encoding) MarshalJSON() ([]byte, error) {
 		ModRMreg: e.ModRMreg,
 		ModRMrm:  e.ModRMrm,
 
-		VSIB: e.VSIB,
+		SIB: e.SIB,
 
 		// ImpliedImmediate is handled separately.
 	}
@@ -223,7 +223,7 @@ func (e *Encoding) UnmarshalJSON(data []byte) error {
 		ModRMreg: j.ModRMreg,
 		ModRMrm:  j.ModRMrm,
 
-		VSIB: j.VSIB,
+		SIB: j.SIB,
 
 		ImpliedImmediate: impliedImmediate,
 	}

@@ -197,8 +197,8 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 			}
 		}
 
-		// We don't support VSIB yet.
-		if inst.Encoding.VSIB {
+		// We don't support SIB yet.
+		if inst.Encoding.SIB {
 			continue
 		}
 
