@@ -118,6 +118,7 @@ type ParameterEncoding uint8
 const (
 	_                        ParameterEncoding = iota
 	EncodingNone                               // The parameter is required in the assembly but is not encoded.
+	EncodingImplicit                           // The parameter is optional in the assembly and is not encoded.
 	EncodingVEXvvvv                            // The parameter is encoded in the VEX.vvvv field of the machine code.
 	EncodingRegisterModifier                   // The parameter is encoded in the opcode byte.
 	EncodingStackIndex                         // The parameter is an x87 stack index, encoded in the opcode byte.
@@ -132,6 +133,7 @@ const (
 
 var ParameterEncodings = map[string]ParameterEncoding{
 	"none":              EncodingNone,
+	"implicit":          EncodingImplicit,
 	"VEX.vvvv":          EncodingVEXvvvv,
 	"register modifier": EncodingRegisterModifier,
 	"stack index":       EncodingStackIndex,
@@ -148,6 +150,8 @@ func (e ParameterEncoding) String() string {
 	switch e {
 	case EncodingNone:
 		return "none"
+	case EncodingImplicit:
+		return "implicit"
 	case EncodingVEXvvvv:
 		return "VEX.vvvv"
 	case EncodingRegisterModifier:
@@ -177,6 +181,8 @@ func (e ParameterEncoding) UID() string {
 	switch e {
 	case EncodingNone:
 		return "EncodingNone"
+	case EncodingImplicit:
+		return "EncodingImplicit"
 	case EncodingVEXvvvv:
 		return "EncodingVEXvvvv"
 	case EncodingRegisterModifier:
