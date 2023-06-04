@@ -755,7 +755,8 @@ prefixes:
 
 			e.CodeOffset = true
 		// Immediate values.
-		case "ib", "iw", "id", "io":
+		case "ib", "iw", "id", "io",
+			"/ib", "/iw", "/id", "/io":
 			// Nothing to do here, as
 			// the information is also
 			// in the parameters.
@@ -765,7 +766,7 @@ prefixes:
 			}
 
 			e.VEXis4 = true
-		case "/vsib":
+		case "/sib", "/vsib":
 			e.SIB = true
 		default:
 			b, err := strconv.ParseUint(clause, 16, 8)
