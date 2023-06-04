@@ -82,6 +82,33 @@ func (t ParameterType) String() string {
 	}
 }
 
+func (t ParameterType) UID() string {
+	switch t {
+	case TypeSignedImmediate:
+		return "TypeSignedImmediate"
+	case TypeUnsignedImmediate:
+		return "TypeUnsignedImmediate"
+	case TypeRegister:
+		return "TypeRegister"
+	case TypeStackIndex:
+		return "TypeStackIndex"
+	case TypeRelativeAddress:
+		return "TypeRelativeAddress"
+	case TypeFarPointer:
+		return "TypeFarPointer"
+	case TypeMemory:
+		return "TypeMemory"
+	case TypeMemoryOffset:
+		return "TypeMemoryOffset"
+	case TypeStringDst:
+		return "TypeStringDst"
+	case TypeStringSrc:
+		return "TypeStringSrc"
+	default:
+		return fmt.Sprintf("ParameterType(%d)", t)
+	}
+}
+
 // ParameterEncoding represents a way in
 // which an x86 instruction's parameter
 // is encoded (or not) in the machine
