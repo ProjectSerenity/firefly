@@ -46,8 +46,8 @@ type Instruction struct {
 
 	CPUID []string `json:"cpuid,omitempty"` // CPUID feature flags required (comma-separated).
 
-	OperandSize bool `json:"operandSize,omitEmpty"` // Whether this instruction uses the operand size override prefix.
-	AddressSize bool `json:"addressSize,omitEmpty"` // Whether this instruction uses the address size override prefix.
+	OperandSize bool `json:"operandSize,omitempty"` // Whether this instruction uses the operand size override prefix.
+	AddressSize bool `json:"addressSize,omitempty"` // Whether this instruction uses the address size override prefix.
 	DataSize    int  `json:"dataSize,omitempty"`    // Data operation size in bits.
 }
 
