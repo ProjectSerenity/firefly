@@ -289,6 +289,11 @@ var (
 	F6 = &Register{Name: "f6", Type: TypeFloat}
 	F7 = &Register{Name: "f7", Type: TypeFloat}
 
+	// Bounds registers.
+	BND0 = &Register{Name: "bnd0", Type: TypeBounds, Reg: 0x0}
+	BND1 = &Register{Name: "bnd1", Type: TypeBounds, Reg: 0x1}
+	BND2 = &Register{Name: "bnd2", Type: TypeBounds, Reg: 0x2}
+
 	// MMX registers.
 	MMX0 = &Register{Name: "mmx0", Type: TypeMMX, Reg: 0x0, Addr: 0x0, Aliases: []string{"mm0"}}
 	MMX1 = &Register{Name: "mmx1", Type: TypeMMX, Reg: 0x1, Addr: 0x1, Aliases: []string{"mm1"}}
@@ -298,6 +303,16 @@ var (
 	MMX5 = &Register{Name: "mmx5", Type: TypeMMX, Reg: 0x5, Addr: 0x5, Aliases: []string{"mm5"}}
 	MMX6 = &Register{Name: "mmx6", Type: TypeMMX, Reg: 0x6, Addr: 0x6, Aliases: []string{"mm6"}}
 	MMX7 = &Register{Name: "mmx7", Type: TypeMMX, Reg: 0x7, Addr: 0x7, Aliases: []string{"mm7"}}
+
+	// TMM registers.
+	TMM0 = &Register{Name: "tmm0", Type: TypeTMM, Reg: 0x0, Addr: 0x0}
+	TMM1 = &Register{Name: "tmm1", Type: TypeTMM, Reg: 0x1, Addr: 0x1}
+	TMM2 = &Register{Name: "tmm2", Type: TypeTMM, Reg: 0x2, Addr: 0x2}
+	TMM3 = &Register{Name: "tmm3", Type: TypeTMM, Reg: 0x3, Addr: 0x3}
+	TMM4 = &Register{Name: "tmm4", Type: TypeTMM, Reg: 0x4, Addr: 0x4}
+	TMM5 = &Register{Name: "tmm5", Type: TypeTMM, Reg: 0x5, Addr: 0x5}
+	TMM6 = &Register{Name: "tmm6", Type: TypeTMM, Reg: 0x6, Addr: 0x6}
+	TMM7 = &Register{Name: "tmm7", Type: TypeTMM, Reg: 0x7, Addr: 0x7}
 
 	// XMM registers.
 	XMM0  = &Register{Name: "xmm0", Type: TypeXMM, Reg: 0x00, Addr: 0x00, Bits: 128}
@@ -415,7 +430,9 @@ var Registers = []*Register{
 	DR0, DR1, DR2, DR3, DR4, DR5, DR6, DR7, DR8, DR9, DR10, DR11, DR12, DR13, DR14, DR15,
 	K0, K1, K2, K3, K4, K5, K6, K7,
 	F0, F1, F2, F3, F4, F5, F6, F7,
+	BND0, BND1, BND2,
 	MMX0, MMX1, MMX2, MMX3, MMX4, MMX5, MMX6, MMX7,
+	TMM0, TMM1, TMM2, TMM3, TMM4, TMM5, TMM6, TMM7,
 	XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7,
 	XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15,
 	XMM16, XMM17, XMM18, XMM19, XMM20, XMM21, XMM22, XMM23,
@@ -522,6 +539,12 @@ var (
 		MMX0, MMX1, MMX2, MMX3, MMX4, MMX5, MMX6, MMX7,
 	}
 
+	// RegistersTMM contains the
+	// TMM tile registers.
+	RegistersTMM = []*Register{
+		TMM0, TMM1, TMM2, TMM3, TMM4, TMM5, TMM6, TMM7,
+	}
+
 	// Registers128bitXMM contains the
 	// 128-bit XMM registers.
 	Registers128bitXMM = []*Register{
@@ -579,7 +602,9 @@ const (
 	TypeDebug
 	TypeOpmask
 	TypeFloat
+	TypeBounds
 	TypeMMX
+	TypeTMM
 	TypeXMM
 	TypeYMM
 	TypeZMM
@@ -605,8 +630,12 @@ func (t RegisterType) String() string {
 		return "opmask register"
 	case TypeFloat:
 		return "float register"
+	case TypeBounds:
+		return "bounds register"
 	case TypeMMX:
 		return "MMX register"
+	case TypeTMM:
+		return "TMM register"
 	case TypeXMM:
 		return "XMM register"
 	case TypeYMM:
@@ -628,7 +657,9 @@ var RegisterTypes = map[string]RegisterType{
 	"debug register":               TypeDebug,
 	"opmask register":              TypeOpmask,
 	"float register":               TypeFloat,
+	"bounds register":              TypeBounds,
 	"MMX register":                 TypeMMX,
+	"TMM register":                 TypeTMM,
 	"XMM register":                 TypeXMM,
 	"YMM register":                 TypeYMM,
 	"ZMM register":                 TypeZMM,
