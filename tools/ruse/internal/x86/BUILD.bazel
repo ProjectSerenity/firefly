@@ -36,9 +36,6 @@ go_library(
     ],
     importpath = "firefly-os.dev/tools/ruse/internal/x86",
     visibility = ["//tools/ruse/internal/x86:__subpackages__"],
-    deps = [
-        "//tools/ruse/internal/x86/x86csv",
-    ],
 )
 
 go_test(
