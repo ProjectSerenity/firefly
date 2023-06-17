@@ -30,7 +30,7 @@ go_library(
         "encoding.go",
         "json.go",
         "memory.go",
-        "parameters.go",
+        "operands.go",
         "registers.go",
         "x86.go",
     ],

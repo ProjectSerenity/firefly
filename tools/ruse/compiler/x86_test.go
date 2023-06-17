@@ -87,7 +87,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "shift right",
 		Mode:     x86.Mode64,
 		Assembly: "(shr ecx 18)",
-		Op:       ssafir.OpX86SHR_Rmr32_Imm8,
+		Op:       ssafir.OpX86SHR_Rmr32_Imm8u,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.ECX,
@@ -685,7 +685,8 @@ func TestAssembleX86(t *testing.T) {
 			}
 
 			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
+				inst := x86OpToInstruction(test.Op)
+				t.Fatalf("unexpected error: %v (%d-%d)", err, inst.MinArgs, inst.MaxArgs)
 			}
 
 			// The package should have one function with
@@ -1107,8 +1108,12 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 						fmt.Fprintf(&b, "  UID:     %s\n", test.Inst.UID)
 						fmt.Fprintf(&b, "  Mode:    %s\n", test.Mode)
 						fmt.Fprintf(&b, "  Data:    %d\n", test.Inst.DataSize)
-						for i, param := range test.Inst.Parameters {
-							fmt.Fprintf(&b, "  Param %d: %s %s %v\n", i+1, param.Encoding, param.Type, data.Args[i])
+						for i, operand := range test.Inst.Operands {
+							if operand == nil {
+								break
+							}
+
+							fmt.Fprintf(&b, "  Param %d: %s %s %v\n", i+1, operand.Encoding, operand.Type, data.Args[i])
 						}
 						fmt.Fprintf(&b, "    Code: %s\n", test.Inst.Encoding.Syntax)
 						fmt.Fprintf(&b, "    %v\n", err)
@@ -1142,9 +1147,9 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 						// as 32-bit mode.
 						if (test.Mode == "32" || test.Mode == "64") &&
 							test.Inst.Mnemonic == "mov" &&
-							len(test.Inst.Parameters) == 2 &&
-							(test.Inst.Parameters[0].UID == "Sreg" ||
-								test.Inst.Parameters[1].UID == "Sreg") {
+							test.Inst.MinArgs == 2 &&
+							(test.Inst.Operands[0].UID == "Sreg" ||
+								test.Inst.Operands[1].UID == "Sreg") {
 							ok = options[sortPrefixes("66"+got)]
 						}
 					}
@@ -1168,8 +1173,8 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 						fmt.Fprintf(&b, "  Operand: %v\n", test.Inst.OperandSize)
 						fmt.Fprintf(&b, "  Address: %v\n", test.Inst.AddressSize)
 						fmt.Fprintf(&b, "  Rich:    %s\n", &code)
-						for i, param := range test.Inst.Parameters {
-							fmt.Fprintf(&b, "  Param %d: %s %s %v\n", i+1, param.Encoding, param.Type, data.Args[i])
+						for i, operand := range test.Inst.Operands {
+							fmt.Fprintf(&b, "  Param %d: %s %s %v\n", i+1, operand.Encoding, operand.Type, data.Args[i])
 						}
 						fmt.Fprintf(&b, "    Got:  %v\n", prettyMachineCode(got))
 						fmt.Fprintf(&b, "    Want: %s", strings.Join(want, "\n          "))

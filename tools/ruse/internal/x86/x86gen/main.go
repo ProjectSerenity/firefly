@@ -11,9 +11,12 @@
 package main
 
 import (
+	"bytes"
+	"embed"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"go/format"
 	"log"
 	"os"
 	"path/filepath"
@@ -21,8 +24,11 @@ import (
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"text/template"
 
 	"rsc.io/pdf"
+
+	"firefly-os.dev/tools/ruse/internal/x86"
 )
 
 func openPDF(name string) (*pdf.Reader, error) {
@@ -40,11 +46,31 @@ func openPDF(name string) (*pdf.Reader, error) {
 	return pdf.NewReader(newCachedReaderAt(f), fi.Size())
 }
 
+var (
+	program   = filepath.Base(os.Args[0])
+	data_go   = filepath.Join("tools", "ruse", "internal", "x86", "data.go")
+	x86_json  = filepath.Join("tools", "ruse", "internal", "x86", "x86.json")
+	x86manual = filepath.Join("bazel-firefly-os.dev", "external", "x86manual", "file", "downloaded")
+)
+
 func init() {
-	log.SetFlags(0)
+	log.SetFlags(log.Llongfile)
 	log.SetOutput(os.Stderr)
-	log.SetPrefix(filepath.Base(os.Args[0]) + ": ")
+	log.SetPrefix(program + ": ")
 }
+
+//go:embed templates/*.tmpl
+var templatesFS embed.FS
+
+var templates = template.Must(template.New("").Funcs(map[string]any{
+	"registers": func(operand *x86.Operand) string {
+		if len(operand.Registers) == 0 {
+			return ""
+		}
+
+		return registersNameByOperandUID[operand.UID]
+	},
+}).ParseFS(templatesFS, "templates/*.tmpl"))
 
 func main() {
 	var debugDescriptions bool
@@ -58,9 +84,32 @@ func main() {
 	}
 
 	flag.Parse()
+
+	// If no file has been specified, we
+	// default to finding manual in Bazel.
 	if name == "" {
-		flag.Usage()
-		os.Exit(2)
+		name = x86manual
+		if workspace := os.Getenv("BUILD_WORKSPACE_DIRECTORY"); workspace != "" {
+			name = filepath.Join(workspace, name)
+		}
+	}
+
+	// Firstly, change to the workspace root
+	// directory so we can write the
+	// data.go and x86.json data files into
+	// their destination.
+	if workspace := os.Getenv("BUILD_WORKSPACE_DIRECTORY"); workspace != "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			log.Fatalf("failed to determine current directory: %v", err)
+		}
+
+		defer os.Chdir(cwd) // Move back to where we started once we're finished.
+
+		err = os.Chdir(workspace)
+		if err != nil {
+			log.Fatalf("failed to change directory to %q: %v", workspace, err)
+		}
 	}
 
 	if debugDescriptions && len(debugPages) == 0 {
@@ -220,8 +269,8 @@ func main() {
 
 	var stats Stats
 	stats.Start()
-	var instructions []*Instruction
-	byUID := make(map[string]*Instruction)
+	var instructions []*x86.Instruction
+	byUID := make(map[string]*x86.Instruction)
 	numPages := r.NumPage()
 	for pageNum := 1; pageNum <= numPages; {
 		var listing *Listing
@@ -324,7 +373,7 @@ func main() {
 							}
 
 							inst.MaxArgs = i + 1
-							inst.Operands[i] = new(Operand)
+							inst.Operands[i] = new(x86.Operand)
 							*inst.Operands[i] = *op
 						}
 					}
@@ -373,6 +422,54 @@ func main() {
 		fmt.Printf("WARNING: Failed to find instruction %q.\n", inst)
 	}
 
-	fmt.Println()
-	json.NewEncoder(os.Stdout).Encode(instructions[10])
+	// Prepare the generated Go code
+	// and write it out to the desired
+	// path.
+
+	var data struct {
+		Command      string
+		Instructions []*x86.Instruction
+	}
+
+	data.Command = "//tools/ruse/internal/x86/x86gen"
+	data.Instructions = instructions
+
+	var b bytes.Buffer
+	err = templates.ExecuteTemplate(&b, "data.go.tmpl", data)
+	if err != nil {
+		log.Fatalf("failed to write instructions to %q: %v", data_go, err)
+	}
+
+	fail := false
+	formatted, err := format.Source(b.Bytes())
+	if err != nil {
+		fail = true
+		log.Println(err)
+		formatted = b.Bytes()
+	}
+
+	// Write to data.go in the repository requested.
+	err = os.WriteFile(data_go, formatted, 0644)
+	if err != nil {
+		log.Fatalf("failed to write %s: %v", data_go, err)
+	}
+
+	// Write out the JSON data.
+	f, err := os.Create(x86_json)
+	if err != nil {
+		log.Fatalf("failed to create %q: %v", x86_json, err)
+	}
+
+	defer f.Close()
+
+	jw := json.NewEncoder(f)
+	jw.SetEscapeHTML(false)
+	err = jw.Encode(instructions)
+	if err != nil {
+		log.Fatalf("failed to write instructions to %q: %v", x86_json, err)
+	}
+
+	if fail {
+		os.Exit(1)
+	}
 }

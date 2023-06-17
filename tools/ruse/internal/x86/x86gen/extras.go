@@ -16,7 +16,7 @@ import (
 // to four operand pointers. Any non-nil
 // operand pointers should be installed
 // into the instruction.
-var ExtraOperands = map[string][4]*Operand{
+var ExtraOperands = map[string][4]*x86.Operand{
 	// Implicit strings in CMPS.
 	"CMPSB": {
 		0: {Name: "m8", Syntax: "[ds:esi:8]", UID: "StrSrc8", Type: x86.TypeStringSrc, Encoding: x86.EncodingNone, Bits: 8},

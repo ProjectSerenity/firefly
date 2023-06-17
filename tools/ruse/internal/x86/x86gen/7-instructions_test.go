@@ -17,7 +17,7 @@ func TestSpec_Instructions(t *testing.T) {
 	tests := []struct {
 		Name string
 		Spec *Spec
-		Want []*Instruction
+		Want []*x86.Instruction
 	}{
 		{
 			Name: "ADC",
@@ -37,7 +37,7 @@ func TestSpec_Instructions(t *testing.T) {
 					Operands: [4]string{"ModRM:r/m", "Immediate", "N/A", "N/A"},
 				},
 			},
-			Want: []*Instruction{
+			Want: []*x86.Instruction{
 				{
 					Page:     137,
 					Mnemonic: "adc",
@@ -53,7 +53,7 @@ func TestSpec_Instructions(t *testing.T) {
 					DataSize:  8,
 					MinArgs:   2,
 					MaxArgs:   2,
-					Operands: [4]*Operand{
+					Operands: [4]*x86.Operand{
 						{
 							Name:      "r8",
 							Syntax:    "r8",
@@ -91,7 +91,7 @@ func TestSpec_Instructions(t *testing.T) {
 					DataSize:  8,
 					MinArgs:   2,
 					MaxArgs:   2,
-					Operands: [4]*Operand{
+					Operands: [4]*x86.Operand{
 						{
 							Name:     "m8",
 							Syntax:   "m8",

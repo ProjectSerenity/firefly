@@ -157,8 +157,8 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 	// We also check for an address with a non-standard
 	// size, making the address override prefix
 	// necessary.
-	for i, param := range inst.Parameters {
-		if param.Type != x86.TypeMemory {
+	for i, operand := range inst.Operands {
+		if operand == nil || operand.Type != x86.TypeMemory {
 			continue
 		}
 
@@ -231,15 +231,19 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 		}
 	}
 
-	for i, param := range inst.Parameters {
+	for i, operand := range inst.Operands {
+		if operand == nil {
+			break
+		}
+
 		var err error
-		switch param.Encoding {
+		switch operand.Encoding {
 		case x86.EncodingNone:
 			// Nothing to do, unless this is a
 			// string operation, in which case
 			// we may need to add an address
 			// size override.
-			if param.Type == x86.TypeStringDst || param.Type == x86.TypeStringSrc {
+			if (operand.Type == x86.TypeStringDst || operand.Type == x86.TypeStringSrc) && data.Args[i] != nil {
 				reg := data.Args[i].(*x86.Register)
 				if reg.Bits != int(mode.Int) {
 					addPrefix(x86.PrefixAddressSize)
@@ -275,9 +279,9 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 				return fmt.Errorf("invalid argument %d: unexpected code offset argument type %T", i, a)
 			}
 
-			switch param.Bits {
+			switch operand.Bits {
 			case 8:
-				if param.Type == x86.TypeRelativeAddress {
+				if operand.Type == x86.TypeRelativeAddress {
 					rel := int8(uint8(arg))
 					rel -= 1 + int8(code.Len())
 					arg = uint64(int64(rel))
@@ -285,7 +289,7 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 				code.CodeOffset[code.CodeOffsetLen] = uint8(arg)
 				code.CodeOffsetLen += 1
 			case 16:
-				if param.Type == x86.TypeRelativeAddress {
+				if operand.Type == x86.TypeRelativeAddress {
 					rel := int16(uint16(arg))
 					rel -= 2 + int16(code.Len())
 					arg = uint64(int64(rel))
@@ -293,7 +297,7 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 				binary.LittleEndian.PutUint16(code.CodeOffset[code.CodeOffsetLen:], uint16(arg))
 				code.CodeOffsetLen += 2
 			case 32:
-				if param.Type == x86.TypeRelativeAddress {
+				if operand.Type == x86.TypeRelativeAddress {
 					rel := int32(uint32(arg))
 					rel -= 4 + int32(code.Len())
 					arg = uint64(int64(rel))
@@ -306,7 +310,7 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 				binary.LittleEndian.PutUint32(code.CodeOffset[code.CodeOffsetLen:], uint32(arg>>16))
 				code.CodeOffsetLen += 4
 			default:
-				panic(fmt.Sprintf("unsupported code offset: %d bits", param.Bits))
+				panic(fmt.Sprintf("unsupported code offset: %d bits", operand.Bits))
 			}
 		case x86.EncodingModRMreg:
 			arg := data.Args[i].(*x86.Register)
@@ -330,11 +334,11 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 					return fmt.Errorf("invalid argument %d: %v", i, err)
 				}
 			default:
-				return fmt.Errorf("invalid argument %d: %s encoding specified for unexpected type %T", i, param.Encoding, data.Args[i])
+				return fmt.Errorf("invalid argument %d: %s encoding specified for unexpected type %T", i, operand.Encoding, data.Args[i])
 			}
 		case x86.EncodingDisplacement:
 			arg := data.Args[i].(*x86.Memory)
-			_, _, err := data.addDisplacement(code, op, arg.Base, mode, param.Type == x86.TypeMemoryOffset, arg.Displacement)
+			_, _, err := data.addDisplacement(code, op, arg.Base, mode, operand.Type == x86.TypeMemoryOffset, arg.Displacement)
 			if err != nil {
 				return fmt.Errorf("invalid argument %d: %v", i, err)
 			}
@@ -352,7 +356,7 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 				return fmt.Errorf("invalid argument %d: unexpected immediate argument type %T", i, a)
 			}
 
-			switch param.Bits {
+			switch operand.Bits {
 			case 5, 8:
 				code.Immediate[code.ImmediateLen] = uint8(arg)
 				code.ImmediateLen += 1
@@ -366,7 +370,7 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 				binary.LittleEndian.PutUint64(code.Immediate[code.ImmediateLen:], arg)
 				code.ImmediateLen += 8
 			default:
-				panic(fmt.Sprintf("unsupported immediate: %d bits", param.Bits))
+				panic(fmt.Sprintf("unsupported immediate: %d bits", operand.Bits))
 			}
 		case x86.EncodingVEXis4:
 			arg := data.Args[i].(*x86.Register)
@@ -374,7 +378,7 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 			code.Immediate[code.ImmediateLen] = is4
 			code.ImmediateLen += 1
 		default:
-			return fmt.Errorf("invalid argument %d: unrecognised encoding %d", i, param.Encoding)
+			return fmt.Errorf("invalid argument %d: unrecognised encoding %d", i, operand.Encoding)
 		}
 	}
 

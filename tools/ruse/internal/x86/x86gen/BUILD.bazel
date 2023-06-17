@@ -29,6 +29,7 @@ go_library(
         "stats.go",
         "structs.go",
     ],
+    embedsrcs = glob(["templates/**"]) + ["@x86manual//file"],
     importpath = "firefly-os.dev/tools/ruse/internal/x86/x86gen",
     visibility = ["//visibility:public"],
     deps = [

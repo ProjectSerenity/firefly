@@ -87,7 +87,7 @@ func genOpcodes(output string) error {
 	args := make(map[string]int)
 	var opcodes []OpInfo
 	for _, inst := range x86.Instructions {
-		got := len(inst.Parameters)
+		got := inst.MinArgs
 		want, ok := args[inst.UID]
 		if ok {
 			if got != want {

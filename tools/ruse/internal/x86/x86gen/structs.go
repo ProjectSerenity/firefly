@@ -109,42 +109,6 @@ type Spec struct {
 	E *OperandEncoding
 }
 
-// Instruction contains the information to describe
-// a complete instruction form.
-type Instruction struct {
-	Page      int           `json:"page,omitempty"`
-	Mnemonic  string        `json:"mnemonic"`
-	UID       string        `json:"uid"`
-	Syntax    string        `json:"syntax"`
-	Encoding  *x86.Encoding `json:"encoding"`
-	TupleType x86.TupleType `json:"tupletype,omitempty"`
-
-	MinArgs  int         `json:"minArgs"`
-	MaxArgs  int         `json:"maxArgs"`
-	Operands [4]*Operand `json:"operands"`
-
-	Mode64 bool `json:"mode64"`
-	Mode32 bool `json:"mode32"`
-	Mode16 bool `json:"mode16"`
-
-	CPUID []string `json:"cpuid,omitempty"`
-
-	OperandSize bool `json:"operandSize,omitempty"`
-	AddressSize bool `json:"addressSize,omitempty"`
-	DataSize    int  `json:"dataSize,omitempty"`
-}
-
-// Operand describes one operand to an instruction.
-type Operand struct {
-	Name      string                `json:"name"`
-	Syntax    string                `json:"syntax"`
-	UID       string                `json:"uid"`
-	Type      x86.ParameterType     `json:"type"`
-	Encoding  x86.ParameterEncoding `json:"encoding"`
-	Bits      int                   `json:"bits,omitempty"`
-	Registers []*x86.Register       `json:"registers,omitempty"`
-}
-
 var registersByOperandUID = map[string][]*x86.Register{
 	"AL":    {x86.AL},
 	"CL":    {x86.CL},
@@ -222,4 +186,83 @@ var registersByOperandUID = map[string][]*x86.Register{
 	"XMMIH": x86.Registers128bitXMM,
 	"YMMIH": x86.Registers256bitYMM,
 	"ZMMIH": x86.Registers512bitZMM,
+}
+
+var registersNameByOperandUID = map[string]string{
+	"AL":    "[]*Register{AL}",
+	"CL":    "[]*Register{CL}",
+	"AX":    "[]*Register{AX}",
+	"DX":    "[]*Register{DX}",
+	"EAX":   "[]*Register{EAX}",
+	"ECX":   "[]*Register{ECX}",
+	"EDX":   "[]*Register{EDX}",
+	"RAX":   "[]*Register{RAX}",
+	"CR8":   "[]*Register{CR8}",
+	"XMM0":  "[]*Register{XMM0}",
+	"ST":    "[]*Register{ST0}",
+	"ST(0)": "[]*Register{ST0}",
+
+	"StrDst8":  "[]*Register{DI, EDI, RDI}",
+	"StrDst16": "[]*Register{DI, EDI, RDI}",
+	"StrDst32": "[]*Register{DI, EDI, RDI}",
+	"StrDst64": "[]*Register{RDI}",
+	"StrSrc8":  "[]*Register{SI, ESI, RSI}",
+	"StrSrc16": "[]*Register{SI, ESI, RSI}",
+	"StrSrc32": "[]*Register{SI, ESI, RSI}",
+	"StrSrc64": "[]*Register{RSI}",
+
+	"ES": "[]*Register{ES}",
+	"CS": "[]*Register{CS}",
+	"SS": "[]*Register{SS}",
+	"DS": "[]*Register{DS}",
+	"FS": "[]*Register{FS}",
+	"GS": "[]*Register{GS}",
+
+	"R8V":  "Registers8bitGeneralPurpose",
+	"R16V": "Registers16bitGeneralPurpose",
+	"R32V": "Registers32bitGeneralPurpose",
+	"R64V": "Registers64bitGeneralPurpose",
+	"KV":   "RegistersOpmask",
+	"TMMV": "RegistersTMM",
+	"XMMV": "Registers128bitXMM",
+	"YMMV": "Registers256bitYMM",
+	"ZMMV": "Registers512bitZMM",
+
+	"R8op":  "Registers8bitGeneralPurpose",
+	"R16op": "Registers16bitGeneralPurpose",
+	"R32op": "Registers32bitGeneralPurpose",
+	"R64op": "Registers64bitGeneralPurpose",
+
+	"STi": "RegistersStackIndices",
+
+	"R8":       "Registers8bitGeneralPurpose",
+	"R16":      "Registers16bitGeneralPurpose",
+	"R32":      "Registers32bitGeneralPurpose",
+	"R64":      "Registers64bitGeneralPurpose",
+	"Sreg":     "Registers16bitSegment",
+	"CR0toCR7": "[]*Register{CR0, CR1, CR2, CR3, CR4, CR5, CR6, CR7}",
+	"DR0toDR7": "[]*Register{DR0, DR1, DR2, DR3, DR4, DR5, DR6, DR7}",
+	"K1":       "RegistersOpmask",
+	"BND1":     "[]*Register{BND0, BND1, BND2}",
+	"MM1":      "Registers64bitMMX",
+	"TMM1":     "RegistersTMM",
+	"XMM1":     "Registers128bitXMM",
+	"YMM1":     "Registers256bitYMM",
+	"ZMM1":     "Registers512bitZMM",
+
+	"Rmr8":  "Registers8bitGeneralPurpose",
+	"Rmr16": "Registers16bitGeneralPurpose",
+	"Rmr32": "Registers32bitGeneralPurpose",
+	"Rmr64": "Registers64bitGeneralPurpose",
+	"K2":    "RegistersOpmask",
+	"BND2":  "[]*Register{BND0, BND1, BND2}",
+	"MM2":   "Registers64bitMMX",
+	"TMM2":  "RegistersTMM",
+	"XMM2":  "Registers128bitXMM",
+	"YMM2":  "Registers256bitYMM",
+	"ZMM2":  "Registers512bitZMM",
+
+	"XMMIH": "Registers128bitXMM",
+	"YMMIH": "Registers256bitYMM",
+	"ZMMIH": "Registers512bitZMM",
 }

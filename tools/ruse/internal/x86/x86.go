@@ -33,16 +33,20 @@ var (
 // Instruction includes structured informatin
 // about an x86 instruction.
 type Instruction struct {
-	Mnemonic   string       `json:"mnemonic"`            // The Intel name for the instruction, in lower case.
-	UID        string       `json:"uid"`                 // A unique identifier for the instruction.
-	Syntax     string       `json:"syntax"`              // The original Intel syntax for the instruction.
-	Encoding   *Encoding    `json:"encoding"`            // The information on how to encode the instruction.
-	Tuple      TupleType    `json:"tupleType,omitempty"` // Any tuple type.
-	Parameters []*Parameter `json:"parameters"`          // Any parameters to the instruction.
+	Page      int       `json:"page,omitempty"`      // The page in the manual where this is defined.
+	Mnemonic  string    `json:"mnemonic"`            // The Intel name for the instruction, in lower case.
+	UID       string    `json:"uid"`                 // A unique identifier for the instruction.
+	Syntax    string    `json:"syntax"`              // The original Intel syntax for the instruction.
+	Encoding  *Encoding `json:"encoding"`            // The information on how to encode the instruction.
+	TupleType TupleType `json:"tupleType,omitempty"` // Any tuple type.
 
-	Mode16 bool `json:"mode16"` // Whether the instruction is supported in 16-bit mode.
-	Mode32 bool `json:"mode32"` // Whether the instruction is supported in 32-bit mode.
+	MinArgs  int         `json:"minArgs"`
+	MaxArgs  int         `json:"maxArgs"`
+	Operands [4]*Operand `json:"operands"` // Any parameters to the instruction.
+
 	Mode64 bool `json:"mode64"` // Whether the instruction is supported in 64-bit mode.
+	Mode32 bool `json:"mode32"` // Whether the instruction is supported in 32-bit mode.
+	Mode16 bool `json:"mode16"` // Whether the instruction is supported in 16-bit mode.
 
 	CPUID []string `json:"cpuid,omitempty"` // CPUID feature flags required (comma-separated).
 
@@ -95,7 +99,7 @@ func (inst *Instruction) DisplacementCompression(broadcast bool) (n int64, err e
 		return 1, nil
 	}
 
-	switch inst.Tuple {
+	switch inst.TupleType {
 	case TupleNone:
 		return 1, nil
 	case TupleFull:
@@ -145,7 +149,7 @@ func (inst *Instruction) DisplacementCompression(broadcast bool) (n int64, err e
 			return 64, nil
 		}
 	default:
-		return 1, fmt.Errorf("unknown tuple type: %s", inst.Tuple)
+		return 1, fmt.Errorf("unknown tuple type: %s", inst.TupleType)
 	}
 
 	panic("unreachable")

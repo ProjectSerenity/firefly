@@ -367,9 +367,9 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 				continue
 			}
 
-			if len(params) != len(inst.Parameters) {
+			if len(params) < inst.MinArgs || inst.MaxArgs < len(params) {
 				if matchUID != "" {
-					return nil, ctx.Errorf(mnemonic.NamePos, "invalid assembly directive: %s does not match instruction %s: got %d parameters, want %d", list.Print(), matchUID, len(params), len(inst.Parameters))
+					return nil, ctx.Errorf(mnemonic.NamePos, "invalid assembly directive: %s does not match instruction %s: got %d parameters, want %d-%d", list.Print(), matchUID, len(params), inst.MinArgs, inst.MaxArgs)
 				}
 
 				continue
@@ -456,10 +456,11 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 			seenArity := make(map[int]bool)
 			for _, op := range candidates {
 				inst := x86OpToInstruction(op)
-				arity := len(inst.Parameters)
-				if !seenArity[arity] {
-					seenArity[arity] = true
-					want = append(want, arity)
+				for arity := inst.MinArgs; arity <= inst.MaxArgs; arity++ {
+					if !seenArity[arity] {
+						seenArity[arity] = true
+						want = append(want, arity)
+					}
 				}
 			}
 
@@ -862,7 +863,7 @@ func (ctx *x86Context) handleInstructionAnnotations(data *x86InstructionData, li
 // an x86 instruction form. If there is no
 // match, Match returns `nil, nil`.
 func (ctx *x86Context) Match(list *ast.List, args []ast.Expression, op ssafir.Op, inst *x86.Instruction) (data *x86InstructionData, err error) {
-	if len(args) != len(inst.Parameters) || !inst.Supports(ctx.Mode) {
+	if len(args) < inst.MinArgs || inst.MaxArgs < len(args) || !inst.Supports(ctx.Mode) {
 		return nil, nil
 	}
 
@@ -893,31 +894,35 @@ func (ctx *x86Context) Match(list *ast.List, args []ast.Expression, op ssafir.Op
 		panic(v)
 	}()
 
-	for i, param := range inst.Parameters {
+	for i, operand := range inst.Operands {
+		if operand == nil || i >= len(args) {
+			break
+		}
+
 		var arg any
-		switch param.Type {
+		switch operand.Type {
 		case x86.TypeSignedImmediate:
-			arg = ctx.matchSignedImmediate(args[i], param)
+			arg = ctx.matchSignedImmediate(args[i], operand)
 		case x86.TypeUnsignedImmediate:
-			arg = ctx.matchUnsignedImmediate(args[i], param)
+			arg = ctx.matchUnsignedImmediate(args[i], operand)
 		case x86.TypeRegister:
-			arg = ctx.matchRegister(args[i], param)
+			arg = ctx.matchRegister(args[i], operand)
 		case x86.TypeStackIndex:
-			arg = ctx.matchStackIndex(args[i], param)
+			arg = ctx.matchStackIndex(args[i], operand)
 		case x86.TypeRelativeAddress:
-			arg = ctx.matchRelativeAddress(args[i], param)
+			arg = ctx.matchRelativeAddress(args[i], operand)
 		case x86.TypeFarPointer:
-			arg = ctx.matchFarPointer(args[i], param)
+			arg = ctx.matchFarPointer(args[i], operand)
 		case x86.TypeMemory:
-			arg = ctx.matchMemory(args[i], param)
+			arg = ctx.matchMemory(args[i], operand)
 		case x86.TypeMemoryOffset:
-			arg = ctx.matchMemoryOffset(args[i], param)
+			arg = ctx.matchMemoryOffset(args[i], operand)
 		case x86.TypeStringDst:
-			arg = ctx.matchStringDst(args[i], param)
+			arg = ctx.matchStringDst(args[i], operand)
 		case x86.TypeStringSrc:
-			arg = ctx.matchStringSrc(args[i], param)
+			arg = ctx.matchStringSrc(args[i], operand)
 		default:
-			panic("unexpected parameter type: " + param.Type.String())
+			panic("unexpected parameter type: " + operand.Type.String())
 		}
 
 		if arg == nil {
@@ -1009,7 +1014,7 @@ func (ctx *x86Context) rejectedBySizeHint(list *ast.List, bits int) bool {
 	return false
 }
 
-func (ctx *x86Context) matchSpecialForm(list *ast.List, param *x86.Parameter) any {
+func (ctx *x86Context) matchSpecialForm(list *ast.List, operand *x86.Operand) any {
 	if len(list.Elements) != 2 {
 		return nil
 	}
@@ -1028,17 +1033,17 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, param *x86.Parameter) an
 		// end up far apart.
 		var size uint8
 		var linkType ssafir.LinkType
-		switch param.Encoding {
+		switch operand.Encoding {
 		case x86.EncodingImmediate:
 			size = ctx.Mode.Int
 			linkType = ssafir.LinkFullAddress
-			if param.Bits != int(ctx.Mode.Int) {
+			if operand.Bits != int(ctx.Mode.Int) {
 				return nil
 			}
 		case x86.EncodingCodeOffset:
 			size = 32
 			linkType = ssafir.LinkRelativeAddress
-			if param.Bits != 32 {
+			if operand.Bits != 32 {
 				return nil
 			}
 		default:
@@ -1065,7 +1070,7 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, param *x86.Parameter) an
 		return link
 	case "len":
 		// This must be an immediate.
-		if param.Encoding != x86.EncodingImmediate {
+		if operand.Encoding != x86.EncodingImmediate {
 			return nil
 		}
 
@@ -1185,14 +1190,14 @@ func (ctx *x86Context) matchRegPair(base, index *x86.Register) *x86.Register {
 	return nil
 }
 
-func (ctx *x86Context) matchSignedImmediate(arg ast.Expression, param *x86.Parameter) any {
-	if param.Encoding == x86.EncodingNone {
+func (ctx *x86Context) matchSignedImmediate(arg ast.Expression, operand *x86.Operand) any {
+	if operand.Encoding == x86.EncodingNone {
 		lit, ok := arg.(*ast.Literal)
 		if !ok || lit.Kind != token.Integer {
 			return nil
 		}
 
-		if lit.Value != param.Syntax {
+		if lit.Value != operand.Syntax {
 			return nil
 		}
 
@@ -1201,22 +1206,36 @@ func (ctx *x86Context) matchSignedImmediate(arg ast.Expression, param *x86.Param
 	}
 
 	if list, ok := arg.(*ast.List); ok {
-		return ctx.matchSpecialForm(list, param)
+		return ctx.matchSpecialForm(list, operand)
 	}
 
-	return ctx.matchSint(arg, param.Bits)
+	return ctx.matchSint(arg, operand.Bits)
 }
 
-func (ctx *x86Context) matchUnsignedImmediate(arg ast.Expression, param *x86.Parameter) any {
+func (ctx *x86Context) matchUnsignedImmediate(arg ast.Expression, operand *x86.Operand) any {
+	if operand.Encoding == x86.EncodingNone {
+		lit, ok := arg.(*ast.Literal)
+		if !ok || lit.Kind != token.Integer {
+			return nil
+		}
+
+		if lit.Value != operand.Syntax {
+			return nil
+		}
+
+		// We store nothing.
+		return struct{}{}
+	}
+
 	if list, ok := arg.(*ast.List); ok {
-		return ctx.matchSpecialForm(list, param)
+		return ctx.matchSpecialForm(list, operand)
 	}
 
-	return ctx.matchUint(arg, param.Bits)
+	return ctx.matchUint(arg, operand.Bits)
 }
 
-func (ctx *x86Context) matchRegister(arg ast.Expression, param *x86.Parameter) any {
-	reg := ctx.matchReg(arg, param.Registers...)
+func (ctx *x86Context) matchRegister(arg ast.Expression, operand *x86.Operand) any {
+	reg := ctx.matchReg(arg, operand.Registers...)
 	if reg == nil {
 		return nil
 	}
@@ -1224,14 +1243,14 @@ func (ctx *x86Context) matchRegister(arg ast.Expression, param *x86.Parameter) a
 	return reg
 }
 
-func (ctx *x86Context) matchStackIndex(arg ast.Expression, param *x86.Parameter) any {
+func (ctx *x86Context) matchStackIndex(arg ast.Expression, operand *x86.Operand) any {
 	ident, ok := arg.(*ast.Identifier)
 	if !ok {
 		return nil
 	}
 
 	// For ST, we store nothing.
-	if param.Encoding == x86.EncodingNone {
+	if operand.Encoding == x86.EncodingNone {
 		if ident.Name != "st" {
 			return nil
 		}
@@ -1239,7 +1258,7 @@ func (ctx *x86Context) matchStackIndex(arg ast.Expression, param *x86.Parameter)
 		return struct{}{}
 	}
 
-	for _, reg := range param.Registers {
+	for _, reg := range operand.Registers {
 		if reg.Name == ident.Name {
 			return reg
 		}
@@ -1254,12 +1273,12 @@ func (ctx *x86Context) matchStackIndex(arg ast.Expression, param *x86.Parameter)
 	return nil
 }
 
-func (ctx *x86Context) matchRelativeAddress(arg ast.Expression, param *x86.Parameter) any {
+func (ctx *x86Context) matchRelativeAddress(arg ast.Expression, operand *x86.Operand) any {
 	// Handle labels. We only accept labels for
 	// 32-bit relative jumps so that optimisations
 	// don't increase any jump distances.
 	if label, ok := arg.(*ast.QuotedIdentifier); ok {
-		if param.Bits < 32 {
+		if operand.Bits < 32 {
 			return nil
 		}
 
@@ -1275,21 +1294,21 @@ func (ctx *x86Context) matchRelativeAddress(arg ast.Expression, param *x86.Param
 	}
 
 	if list, ok := arg.(*ast.List); ok {
-		return ctx.matchSpecialForm(list, param)
+		return ctx.matchSpecialForm(list, operand)
 	}
 
 	// Relative addresses can't be unsigned.
-	return ctx.matchSint(arg, param.Bits)
+	return ctx.matchSint(arg, operand.Bits)
 }
 
-func (ctx *x86Context) matchFarPointer(arg ast.Expression, param *x86.Parameter) any {
+func (ctx *x86Context) matchFarPointer(arg ast.Expression, operand *x86.Operand) any {
 	pair, ok := arg.(*ast.List)
 	if !ok || len(pair.Elements) != 2 {
 		return nil
 	}
 
 	base := ctx.matchUint(pair.Elements[0], 16)
-	index := ctx.matchUint(pair.Elements[1], param.Bits-16)
+	index := ctx.matchUint(pair.Elements[1], operand.Bits-16)
 	if base == nil || index == nil {
 		return nil
 	}
@@ -1299,10 +1318,10 @@ func (ctx *x86Context) matchFarPointer(arg ast.Expression, param *x86.Parameter)
 	// base and a 32-bit index. We encode the base in the high
 	// bits, as it is enocded after the index.
 
-	return (base.(uint64) << (param.Bits - 16)) | index.(uint64)
+	return (base.(uint64) << (operand.Bits - 16)) | index.(uint64)
 }
 
-func (ctx *x86Context) matchMemory(arg ast.Expression, param *x86.Parameter) any {
+func (ctx *x86Context) matchMemory(arg ast.Expression, operand *x86.Operand) any {
 	list, ok := arg.(*ast.List)
 	if !ok {
 		return nil
@@ -1310,7 +1329,7 @@ func (ctx *x86Context) matchMemory(arg ast.Expression, param *x86.Parameter) any
 
 	// The size of memory being copied can be
 	// specified in an annotation.
-	if ctx.rejectedBySizeHint(list, param.Bits) {
+	if ctx.rejectedBySizeHint(list, operand.Bits) {
 		return nil
 	}
 
@@ -1453,7 +1472,7 @@ func (ctx *x86Context) matchMemory(arg ast.Expression, param *x86.Parameter) any
 	return nil
 }
 
-func (ctx *x86Context) matchMemoryOffset(arg ast.Expression, param *x86.Parameter) any {
+func (ctx *x86Context) matchMemoryOffset(arg ast.Expression, operand *x86.Operand) any {
 	deref, ok := arg.(*ast.List)
 	if !ok {
 		return nil
@@ -1461,7 +1480,7 @@ func (ctx *x86Context) matchMemoryOffset(arg ast.Expression, param *x86.Paramete
 
 	// The size of memory being copied can be
 	// specified in an annotation.
-	if ctx.rejectedBySizeHint(deref, param.Bits) {
+	if ctx.rejectedBySizeHint(deref, operand.Bits) {
 		return nil
 	}
 
@@ -1483,7 +1502,7 @@ func (ctx *x86Context) matchMemoryOffset(arg ast.Expression, param *x86.Paramete
 	return nil
 }
 
-func (ctx *x86Context) matchStringDst(arg ast.Expression, param *x86.Parameter) any {
+func (ctx *x86Context) matchStringDst(arg ast.Expression, operand *x86.Operand) any {
 	deref, ok := arg.(*ast.List)
 	if !ok {
 		return nil
@@ -1491,7 +1510,7 @@ func (ctx *x86Context) matchStringDst(arg ast.Expression, param *x86.Parameter) 
 
 	// The size of memory being copied can be
 	// specified in an annotation.
-	if ctx.rejectedBySizeHint(deref, param.Bits) {
+	if ctx.rejectedBySizeHint(deref, operand.Bits) {
 		return nil
 	}
 
@@ -1516,7 +1535,7 @@ func (ctx *x86Context) matchStringDst(arg ast.Expression, param *x86.Parameter) 
 	return nil
 }
 
-func (ctx *x86Context) matchStringSrc(arg ast.Expression, param *x86.Parameter) any {
+func (ctx *x86Context) matchStringSrc(arg ast.Expression, operand *x86.Operand) any {
 	deref, ok := arg.(*ast.List)
 	if !ok {
 		return nil
@@ -1524,7 +1543,7 @@ func (ctx *x86Context) matchStringSrc(arg ast.Expression, param *x86.Parameter) 
 
 	// The size of memory being copied can be
 	// specified in an annotation.
-	if ctx.rejectedBySizeHint(deref, param.Bits) {
+	if ctx.rejectedBySizeHint(deref, operand.Bits) {
 		return nil
 	}
 

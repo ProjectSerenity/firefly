@@ -13,7 +13,7 @@ import (
 	"firefly-os.dev/tools/ruse/internal/x86"
 )
 
-func (s *Spec) Instructions(stats *Stats) ([]*Instruction, error) {
+func (s *Spec) Instructions(stats *Stats) ([]*x86.Instruction, error) {
 	// First, we work out whether the instruction
 	// has any split operands, meaning that we
 	// need to return multiple forms of the
@@ -23,8 +23,8 @@ func (s *Spec) Instructions(stats *Stats) ([]*Instruction, error) {
 	// copying any unsplit operands if a split
 	// operand has been found.
 	mnemonic, rest, _ := strings.Cut(s.M.Instruction, " ")
-	out := make([]*Instruction, 1, 3)
-	out[0] = new(Instruction)
+	out := make([]*x86.Instruction, 1, 3)
+	out[0] = new(x86.Instruction)
 
 	encoding, err := x86.ParseEncoding(s.M.Opcode)
 	if err != nil {
@@ -67,7 +67,7 @@ func (s *Spec) Instructions(stats *Stats) ([]*Instruction, error) {
 		arg, suffixes, _ := strings.Cut(strings.TrimSpace(arg), " ")
 
 		// Determine the encoding.
-		out[0].Operands[i] = new(Operand)
+		out[0].Operands[i] = new(x86.Operand)
 		switch s.E.Operands[i] {
 		case "None":
 			out[0].Operands[i].Encoding = x86.EncodingNone
@@ -127,12 +127,12 @@ func (s *Spec) Instructions(stats *Stats) ([]*Instruction, error) {
 
 		for j, part := range parts {
 			if j > 0 {
-				out = append(out, new(Instruction))
+				out = append(out, new(x86.Instruction))
 			}
 
 			if out[j].Operands[i] == nil {
 				// Copy the encoding details.
-				out[j].Operands[i] = new(Operand)
+				out[j].Operands[i] = new(x86.Operand)
 				*out[j].Operands[i] = *out[0].Operands[i]
 			}
 
@@ -167,7 +167,7 @@ func (s *Spec) Instructions(stats *Stats) ([]*Instruction, error) {
 		if i > 0 {
 			for j := range out[0].Operands {
 				if inst.Operands[j] == nil && out[0].Operands[j] != nil {
-					inst.Operands[j] = new(Operand)
+					inst.Operands[j] = new(x86.Operand)
 					*inst.Operands[j] = *out[0].Operands[j]
 				}
 			}
@@ -186,7 +186,7 @@ func (s *Spec) Instructions(stats *Stats) ([]*Instruction, error) {
 		}
 
 		// Check/finish the instruction.
-		err = inst.fix(stats)
+		err = fixInstruction(stats, inst)
 		if err != nil {
 			return nil, err
 		}

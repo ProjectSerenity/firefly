@@ -39,7 +39,7 @@ func onlyNumbers(s string) string {
 
 	return strings.Map(keepNumber, s)
 }
-func (inst *Instruction) fix(stats *Stats) error {
+func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 	// General corrections.
 	switch inst.Syntax {
 	case "HRESET imm8, <EAX>":
@@ -325,7 +325,7 @@ func (inst *Instruction) fix(stats *Stats) error {
 
 	// Fix the individual operands.
 	for i := range inst.Operands {
-		err := inst.Operands[i].fix(inst.Page, stats)
+		err := fixOperand(inst.Page, inst.Operands[i], stats)
 		if err != nil {
 			return Errorf(inst.Page, "instruction %s  %s has operand %d (%q) with %v", inst.Encoding.Syntax, inst.Syntax, i+1, inst.Operands[i].Name, err)
 		}
@@ -551,7 +551,7 @@ func (inst *Instruction) fix(stats *Stats) error {
 	inst.Mnemonic = strings.ToLower(inst.Mnemonic)
 
 	// Derive the instruction UID.
-	uid := inst.genUID(false)
+	uid := genUID(inst, false)
 
 	// Check the UID is a valid Go
 	// identifier.
@@ -740,7 +740,7 @@ func (inst *Instruction) fix(stats *Stats) error {
 	return nil
 }
 
-func (inst *Instruction) genUID(includeImplied bool) string {
+func genUID(inst *x86.Instruction, includeImplied bool) string {
 	var b strings.Builder
 	b.WriteString(strings.Replace(strings.ToUpper(inst.Mnemonic), "-", "_", 1))
 
@@ -806,7 +806,7 @@ func (inst *Instruction) genUID(includeImplied bool) string {
 	return b.String()
 }
 
-func (op *Operand) fix(page int, stats *Stats) error {
+func fixOperand(page int, op *x86.Operand, stats *Stats) error {
 	if op == nil {
 		return nil
 	}
