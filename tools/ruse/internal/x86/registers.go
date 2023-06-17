@@ -6,6 +6,7 @@
 package x86
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -24,6 +25,27 @@ type Register struct {
 	MinMode uint8        `json:"-"` // Any CPU mode requirements as a number of bits.
 	EVEX    bool         `json:"-"` // Whether the register can only be used with EVEX encoding.
 	Aliases []string     `json:"-"`
+}
+
+func (r *Register) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.Name)
+}
+
+func (r *Register) UnmarshalJSON(data []byte) error {
+	var s string
+	err := json.Unmarshal(data, &s)
+	if err != nil {
+		return err
+	}
+
+	got, ok := RegistersByName[s]
+	if !ok {
+		return fmt.Errorf("invalid register %q", s)
+	}
+
+	*r = *got
+
+	return nil
 }
 
 func (r *Register) String() string    { return r.Name }

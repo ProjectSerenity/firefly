@@ -6,18 +6,19 @@
 package x86
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
 // Parameter includes structured informattion
 // about a parameter to an x86 instruction.
 type Parameter struct {
-	Type      ParameterType     // The parameter type.
-	Encoding  ParameterEncoding // The way the operand is encoded in machien code.
-	UID       string            // The unique identifier of the parameter.
-	Bits      int               // The parameter size in bits.
-	Syntax    string            // The Intel syntax for the parameter.
-	Registers []*Register       // The set of acceptable registers (if any) for this operand.
+	Type      ParameterType     `json:"type"`                // The parameter type.
+	Encoding  ParameterEncoding `json:"encoding"`            // The way the operand is encoded in machien code.
+	UID       string            `json:"uid"`                 // The unique identifier of the parameter.
+	Bits      int               `json:"bits,omitempty"`      // The parameter size in bits.
+	Syntax    string            `json:"syntax"`              // The Intel syntax for the parameter.
+	Registers []*Register       `json:"registers,omitempty"` // The set of acceptable registers (if any) for this operand.
 }
 
 func (p *Parameter) String() string {
@@ -53,6 +54,27 @@ var ParameterTypes = map[string]ParameterType{
 	"memory offset":      TypeMemoryOffset,
 	"string destination": TypeStringDst,
 	"string source":      TypeStringSrc,
+}
+
+func (t ParameterType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.String())
+}
+
+func (t *ParameterType) UnmarshalJSON(data []byte) error {
+	var s string
+	err := json.Unmarshal(data, &s)
+	if err != nil {
+		return err
+	}
+
+	got, ok := ParameterTypes[s]
+	if !ok {
+		return fmt.Errorf("invalid parameter type %q", s)
+	}
+
+	*t = got
+
+	return nil
 }
 
 func (t ParameterType) String() string {
@@ -144,6 +166,27 @@ var ParameterEncodings = map[string]ParameterEncoding{
 	"displacement":      EncodingDisplacement,
 	"immediate":         EncodingImmediate,
 	"VEX /is4":          EncodingVEXis4,
+}
+
+func (e ParameterEncoding) MarshalJSON() ([]byte, error) {
+	return json.Marshal(e.String())
+}
+
+func (e *ParameterEncoding) UnmarshalJSON(data []byte) error {
+	var s string
+	err := json.Unmarshal(data, &s)
+	if err != nil {
+		return err
+	}
+
+	got, ok := ParameterEncodings[s]
+	if !ok {
+		return fmt.Errorf("invalid parameter encoding %q", s)
+	}
+
+	*e = got
+
+	return nil
 }
 
 func (e ParameterEncoding) String() string {
