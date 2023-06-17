@@ -1,0 +1,63 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "x86gen_lib",
+    srcs = [
+        "1-metadata.go",
+        "1-metadata-fix.go",
+        "2-pages.go",
+        "2-pages-fix.go",
+        "3-split.go",
+        "3-split-fix.go",
+        "4-tables.go",
+        "4-tables-fix.go",
+        "5-listings.go",
+        "5-listings-fix.go",
+        "6-specs.go",
+        "6-specs-fix.go",
+        "7-instructions.go",
+        "7-instructions-fix.go",
+        "cache.go",
+        "errors.go",
+        "extras.go",
+        "main.go",
+        "stats.go",
+        "structs.go",
+    ],
+    importpath = "firefly-os.dev/tools/ruse/internal/x86/x86gen",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tools/ruse/internal/x86:x86-no-data",
+        "//vendor/rsc.io/pdf",
+    ],
+)
+
+go_binary(
+    name = "x86gen",
+    embed = [":x86gen_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "x86gen_test",
+    size = "small",
+    srcs = [
+        "1-metadata_test.go",
+        "2-pages_test.go",
+        "3-split_test.go",
+        "4-tables_test.go",
+        "5-listings_test.go",
+        "6-specs_test.go",
+        "7-instructions_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":x86gen_lib"],
+    deps = [
+        "//vendor/github.com/google/go-cmp/cmp",
+    ],
+)
