@@ -1053,6 +1053,9 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 						fmt.Fprintf(&b, "  Ruse:  %s\n", test.Ruse)
 						fmt.Fprintf(&b, "  Intel:  %s\n", test.Intel)
 						fmt.Fprintf(&b, "  Syntax: %s\n", test.Inst.Syntax)
+						if test.Inst.Page != 0 {
+							fmt.Fprintf(&b, "  Page:   %d\n", test.Inst.Page)
+						}
 						fmt.Fprintf(&b, "  UID:    %s\n", test.Inst.UID)
 						fmt.Fprintf(&b, "  Code:   %s\n", test.Inst.Encoding.Syntax)
 						fmt.Fprintf(&b, "  Mode:   %s\n", test.Mode)
@@ -1105,14 +1108,14 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 						fmt.Fprintf(&b, "  Ruse:   %s\n", test.Ruse)
 						fmt.Fprintf(&b, "  Intel:   %s\n", test.Intel)
 						fmt.Fprintf(&b, "  Syntax:  %s\n", test.Inst.Syntax)
+						if test.Inst.Page != 0 {
+							fmt.Fprintf(&b, "  Page:    %d\n", test.Inst.Page)
+						}
 						fmt.Fprintf(&b, "  UID:     %s\n", test.Inst.UID)
 						fmt.Fprintf(&b, "  Mode:    %s\n", test.Mode)
 						fmt.Fprintf(&b, "  Data:    %d\n", test.Inst.DataSize)
-						for i, operand := range test.Inst.Operands {
-							if operand == nil {
-								break
-							}
-
+						for i := 0; i < test.Inst.MinArgs; i++ {
+							operand := test.Inst.Operands[i]
 							fmt.Fprintf(&b, "  Param %d: %s %s %v\n", i+1, operand.Encoding, operand.Type, data.Args[i])
 						}
 						fmt.Fprintf(&b, "    Code: %s\n", test.Inst.Encoding.Syntax)
@@ -1166,6 +1169,9 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 						fmt.Fprintf(&b, "  Ruse:   %s\n", test.Ruse)
 						fmt.Fprintf(&b, "  Intel:   %s\n", test.Intel)
 						fmt.Fprintf(&b, "  Syntax:  %s\n", test.Inst.Syntax)
+						if test.Inst.Page != 0 {
+							fmt.Fprintf(&b, "  Page:    %d\n", test.Inst.Page)
+						}
 						fmt.Fprintf(&b, "  UID:     %s\n", test.Inst.UID)
 						fmt.Fprintf(&b, "  Code:    %s\n", test.Inst.Encoding.Syntax)
 						fmt.Fprintf(&b, "  Mode:    %s\n", test.Mode)
@@ -1173,7 +1179,8 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 						fmt.Fprintf(&b, "  Operand: %v\n", test.Inst.OperandSize)
 						fmt.Fprintf(&b, "  Address: %v\n", test.Inst.AddressSize)
 						fmt.Fprintf(&b, "  Rich:    %s\n", &code)
-						for i, operand := range test.Inst.Operands {
+						for i := 0; i < test.Inst.MinArgs; i++ {
+							operand := test.Inst.Operands[i]
 							fmt.Fprintf(&b, "  Param %d: %s %s %v\n", i+1, operand.Encoding, operand.Type, data.Args[i])
 						}
 						fmt.Fprintf(&b, "    Got:  %v\n", prettyMachineCode(got))

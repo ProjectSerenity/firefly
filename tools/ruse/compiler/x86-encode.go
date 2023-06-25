@@ -232,7 +232,7 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 	}
 
 	for i, operand := range inst.Operands {
-		if operand == nil {
+		if operand == nil || i >= inst.MinArgs {
 			break
 		}
 

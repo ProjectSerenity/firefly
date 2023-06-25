@@ -35,11 +35,6 @@ func TestJSON(t *testing.T) {
 			Base: Encoding{},
 			JSON: jsonEncoding{},
 		},
-		{
-			Name: "Parameter",
-			Base: Parameter{},
-			JSON: jsonParameter{},
-		},
 	}
 
 	for _, test := range tests {

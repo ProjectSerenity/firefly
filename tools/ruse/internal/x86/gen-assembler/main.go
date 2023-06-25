@@ -88,7 +88,8 @@ func genAssembler(output string) error {
 	data.Instructions = make(map[string][]*x86.Instruction)
 
 	for i, inst := range x86.Instructions {
-		data.Instructions[inst.Mnemonic] = append(data.Instructions[inst.Mnemonic], inst)
+		mnemonic := strings.ToLower(inst.Mnemonic)
+		data.Instructions[mnemonic] = append(data.Instructions[mnemonic], inst)
 		data.UIDs[i] = inst.UID
 	}
 
