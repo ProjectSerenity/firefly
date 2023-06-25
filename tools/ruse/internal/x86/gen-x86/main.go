@@ -8,6 +8,8 @@
 // of the “Intel® 64 and IA-32 Architectures Software Developer's Manual”
 // and to emit more structured data.
 
+// Command gen-x86 parses the Intel x86 manual to generate structured
+// data on the x86 instruction set.
 package main
 
 import (

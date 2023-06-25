@@ -6,7 +6,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 
 go_library(
-    name = "x86gen_lib",
+    name = "gen-x86_lib",
     srcs = [
         "1-metadata.go",
         "1-metadata-fix.go",
@@ -30,7 +30,7 @@ go_library(
         "structs.go",
     ],
     embedsrcs = glob(["templates/**"]) + ["@x86manual//file"],
-    importpath = "firefly-os.dev/tools/ruse/internal/x86/x86gen",
+    importpath = "firefly-os.dev/tools/ruse/internal/x86/gen-x86",
     visibility = ["//visibility:public"],
     deps = [
         "//tools/ruse/internal/x86:x86-no-data",
@@ -39,13 +39,13 @@ go_library(
 )
 
 go_binary(
-    name = "x86gen",
-    embed = [":x86gen_lib"],
+    name = "gen-x86",
+    embed = [":gen-x86_lib"],
     visibility = ["//visibility:public"],
 )
 
 go_test(
-    name = "x86gen_test",
+    name = "gen-x86_test",
     size = "small",
     srcs = [
         "1-metadata_test.go",
@@ -57,7 +57,7 @@ go_test(
         "7-instructions_test.go",
     ],
     data = glob(["testdata/**"]),
-    embed = [":x86gen_lib"],
+    embed = [":gen-x86_lib"],
     deps = [
         "//vendor/github.com/google/go-cmp/cmp",
     ],
