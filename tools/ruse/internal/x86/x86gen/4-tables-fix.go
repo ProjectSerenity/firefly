@@ -64,7 +64,7 @@ func fixMnemonicHeadings(page int, headings []string, stats *Stats) ([]string, e
 			match(&instruction, &err)
 
 		case "OpcodeInstruction":
-			stats.ListingError()
+			stats.ListingError("p.%d: Invalid mnemonic table heading entry %q", page, dropSpaces(col))
 			fallthrough
 		case "Opcode/Instruction", "Opcode*/Instruction":
 			col = "Opcode/Instruction"
@@ -88,7 +88,7 @@ func fixMnemonicHeadings(page int, headings []string, stats *Stats) ([]string, e
 		case "64/32*bitModeSupport":
 			if col == "64/32 *\nbit Mode\nSupport" {
 				// The asterisk is spurious (and not visible!).
-				stats.ListingError()
+				stats.ListingError("p.%d: Spurious hidden asterisk in mnemonic table heading entry %q", page, dropSpaces(col))
 			}
 			fallthrough
 		case "32/64bitModeSupport",
@@ -259,7 +259,7 @@ func fixOperandEncodingTable(page int, table [][]string, stats *Stats) ([][]stri
 	if stringSetEqual(table[0], []string{"Op/En", "Tuple Type", "Operand 1", "Operand2", "Operand3", "Operand4"}) {
 		// XABORT is missing the spaces in the
 		// last three operand headings.
-		stats.ListingError()
+		stats.ListingError("p.%d: Malformed instruction operand encoding table headings", page)
 		table[0] = append(table[0][3:], "Operand 2", "Operand 3", "Operand 4")
 
 		return table, nil

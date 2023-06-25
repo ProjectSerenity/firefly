@@ -101,86 +101,6 @@ func ParsePage(r *pdf.Reader, page int, stats *Stats, debug bool) (listing *List
 	}
 	listing.MnemonicTable = trimmedMnemonics
 
-	// Check whether we have any groups
-	// of mnemonics that vary only by
-	// their operand size, suggesting
-	// that they are selected using the
-	// operand size override prefix.
-	//
-	// Start by building up a mapping
-	// based on the opcode.
-	opcodes := make(map[string][]*Mnemonic)
-	for i, mnemonic := range listing.MnemonicTable {
-		opcode := mnemonic.Opcode
-		if strings.Contains(opcode, "VEX") {
-			continue
-		}
-
-		// We also ignore any code offset
-		// suffix, since this is influenced
-		// by the operand size override
-		// prefix.
-		opcode = strings.TrimSuffix(opcode, " cw")
-		opcode = strings.TrimSuffix(opcode, " cd")
-
-		// Likewise with immediate sizes.
-		opcode = strings.TrimSuffix(opcode, " iw")
-		opcode = strings.TrimSuffix(opcode, " id")
-
-		// Likewise with opcode registers.
-		opcode = strings.TrimSuffix(opcode, "+rw")
-		opcode = strings.TrimSuffix(opcode, "+rd")
-		opcodes[opcode] = append(opcodes[opcode], &listing.MnemonicTable[i])
-	}
-
-	// Now find the groups and check
-	// their mode compatibilities
-	// overlap.
-	for _, group := range opcodes {
-		if len(group) < 2 {
-			continue
-		}
-
-		// Turn the mode compatibilities
-		// into a bitmap.
-		const (
-			mode64 = 1 << iota
-			mode32
-			mode16
-		)
-
-		modes := make([]uint8, len(group))
-		for i, m := range group {
-			var mode uint8
-			if m.Mode64 == "Valid" {
-				mode |= mode64
-			}
-			if m.Mode32 == "Valid" {
-				mode |= mode32
-			}
-			if m.Mode16 == "Valid" {
-				mode |= mode16
-			}
-
-			modes[i] = mode
-		}
-
-		for i := range modes {
-			for j := i + 1; j < len(modes); j++ {
-				// The instruction mnemonics must
-				// also be the same, or we will
-				// erroneously include aliased
-				// instructions like JZ and JE.
-				mnemonic1, _, _ := strings.Cut(group[i].Instruction, " ")
-				mnemonic2, _, _ := strings.Cut(group[j].Instruction, " ")
-				if modes[i]&modes[j] != 0 && mnemonic1 == mnemonic2 {
-					group[i].OperandSize = true
-					group[j].OperandSize = true
-				}
-			}
-		}
-	}
-
 	for i, page := range encodings {
 		if debug {
 			fmt.Printf("Operand encoding text %d:\n", i+1)
@@ -251,7 +171,7 @@ func ParseMnemonicTable(table *Table, stats *Stats, debug bool) ([]Mnemonic, err
 			case "64/32-Bit Mode":
 				switch col {
 				case "VV":
-					stats.InstructionError()
+					stats.InstructionError("p.%d: Invalid mnemonic table compatibility entry %q", table.Page, col)
 					col = "V/V"
 				}
 

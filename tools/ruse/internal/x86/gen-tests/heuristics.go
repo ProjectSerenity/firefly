@@ -23,12 +23,13 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// the assembly, so strip them if they
 	// are reasonable.
 	if (entry.Inst.Encoding.REX_W && strings.HasPrefix(disasm, "rex.w ") && !strings.HasPrefix(entry.Intel, "rex.w ")) ||
-		(entry.Inst.Mnemonic == "jmp-far" && entry.Mode.Int == 64 && strings.HasPrefix(disasm, "rex.w ")) {
+		(entry.Inst.Mnemonic == "JMP-FAR" && entry.Mode.Int == 64 && strings.HasPrefix(disasm, "rex.w ")) {
 		disasm = strings.TrimPrefix(disasm, "rex.w ")
 	}
 
 	got := strings.Fields(disasm)
 	gotMnemonic, _, _ := strings.Cut(disasm, " ")
+	gotMnemonic = strings.ToUpper(gotMnemonic)
 	gotEntry := &TestEntry{Inst: new(x86.Instruction), Mode: entry.Mode, Intel: disasm, Code: code}
 	*gotEntry.Inst = *entry.Inst
 	gotEntry.Inst.Mnemonic = gotMnemonic
@@ -47,8 +48,8 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// AAD.
 	// AAM.
 	if len(want) == 1 &&
-		((wantMnemonic == "aad" && code == "d50a") ||
-			(wantMnemonic == "aam" && code == "d40a")) {
+		((wantMnemonic == "AAD" && code == "d50a") ||
+			(wantMnemonic == "AAM" && code == "d40a")) {
 		wantVerbose := []string{want[0], "0xa"}
 		if heuristicallySimilarArguments(got, wantVerbose) {
 			return true
@@ -62,9 +63,9 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// BLENDVPS xmm1, xmm2/m128, <XMM0>.
 	// PBLENDVB xmm1, xmm2/m128, <XMM0>.
 	if got[len(got)-1] == "xmm0" && entry.Inst.Mnemonic == gotMnemonic &&
-		(wantMnemonic == "blendvpd" ||
-			wantMnemonic == "blendvps" ||
-			wantMnemonic == "pblendvb") {
+		(wantMnemonic == "BLENDVPD" ||
+			wantMnemonic == "BLENDVPS" ||
+			wantMnemonic == "PBLENDVB") {
 		// Strip the implicit xmm0 arg.
 		gotExplicit := append([]string(nil), got[:len(got)-1]...)
 		gotExplicit[len(gotExplicit)-1] = noComma(gotExplicit[len(gotExplicit)-1])
@@ -88,7 +89,7 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// Objdump uses a different syntax when
 	// printing near CALLs. Here, we check
 	// whether this is such a matching call.
-	if wantMnemonic == "call" && gotMnemonic == "call" && len(got) >= 2 {
+	if wantMnemonic == "CALL" && gotMnemonic == "CALL" && len(got) >= 2 {
 		// objdump: `call 7fff <_start-0x4010ec>`
 		// clang:   `call dword ptr [0x7fff]`
 		addr := want[len(want)-1]
@@ -104,8 +105,8 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	//
 	// CALL.
 	// JMP.
-	if (wantMnemonic == "call" && gotMnemonic == "callw") ||
-		(wantMnemonic == "jmp" && gotMnemonic == "jmpw") {
+	if (wantMnemonic == "CALL" && gotMnemonic == "CALLW") ||
+		(wantMnemonic == "JMP" && gotMnemonic == "JMPW") {
 		wantRenamed := append([]string(nil), want...)
 		wantRenamed[0] += "w"
 		if heuristicallySimilarArguments(got, wantRenamed) {
@@ -119,8 +120,8 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// CALL-FAR ptr.
 	// JMP-FAR ptr.
 	if strings.Contains(entry.Inst.Syntax, "ptr") &&
-		(wantMnemonic == "call-far" ||
-			wantMnemonic == "jmp-far") {
+		(wantMnemonic == "CALL-FAR" ||
+			wantMnemonic == "JMP-FAR") {
 		// objdump: call 0x12:0xfcfdfe
 		// clang:   lcall 0x12, 0xfcfdfe
 		gotSplit := make([]string, len(got)-1, len(got)+1)
@@ -152,10 +153,10 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// CALL-FAR m16:.
 	// JMP-FAR m16:.
 	if strings.Contains(entry.Inst.Syntax, "m16:") &&
-		(wantMnemonic == "call-far" ||
-			wantMnemonic == "jmp-far") {
+		(wantMnemonic == "CALL-FAR" ||
+			wantMnemonic == "JMP-FAR") {
 		wantTweaked := append([]string(nil), want...)
-		wantTweaked[0] = strings.TrimPrefix(wantTweaked[0], "l") // call-far is lcall but jmp-far is just jmp.
+		wantTweaked[0] = strings.TrimPrefix(wantTweaked[0], "l") // CALL-FAR is LCALL but JMP-FAR is just JMP.
 		switch entry.Mode.Int {
 		case 16:
 			wantTweaked[1] = "dword"
@@ -184,7 +185,7 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// source register size in the CRC32 instruction.
 	//
 	// CRC32.
-	if entry.Mode.Int == 16 && wantMnemonic == "crc32" && len(got) == 3 {
+	if entry.Mode.Int == 16 && wantMnemonic == "CRC32" && len(got) == 3 {
 		gotFlipped := append([]string(nil), got...)
 		gotFlipped[2] = flip16And32BitRegister(gotFlipped[2])
 		if heuristicallySimilarArguments(gotFlipped, want) {
@@ -209,7 +210,7 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// of the destination register.
 	//
 	// MOVDIR64B r16/r32, m512.
-	if wantMnemonic == "movdir64b" {
+	if wantMnemonic == "MOVDIR64B" {
 		wantFlipped := append([]string(nil), want...)
 		wantFlipped[1] = flip16And32BitRegister(wantFlipped[1])
 		if heuristicallySimilarArguments(got, wantFlipped) {
@@ -230,7 +231,7 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	//
 	// MOVDIRI m32, r32.
 	// MOVDIRI m64, r64.
-	if wantMnemonic == "movdiri" && len(want) > 2 && len(got) > 2 {
+	if wantMnemonic == "MOVDIRI" && len(want) > 2 && len(got) > 2 {
 		wantTweaked := append([]string(nil), want...)
 		if want[1] == "dword" && got[1] == "word" {
 			wantTweaked[1] = "word"
@@ -250,9 +251,9 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// FDIV ST(0), ST(i) / FDIV ST(i), ST(0).
 	// FSUB ST(0), ST(i) / FSUB ST(i), ST(0).
 	if len(want) == 3 &&
-		((wantMnemonic == "fadd" && code == "d8c0") ||
-			(wantMnemonic == "fdiv" && code == "d8f0") ||
-			(wantMnemonic == "fsub" && code == "d8e0")) {
+		((wantMnemonic == "FADD" && code == "d8c0") ||
+			(wantMnemonic == "FDIV" && code == "d8f0") ||
+			(wantMnemonic == "FSUB" && code == "d8e0")) {
 		wantReversed := []string{want[0], want[2] + ",", noComma(want[1])}
 		if heuristicallySimilarArguments(got, wantReversed) {
 			return true
@@ -270,12 +271,12 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// FSUBP ST(1), ST / FSUBP.
 	// FSUBRP ST(1), ST / FSUBRP.
 	if len(want) == 1 &&
-		((wantMnemonic == "faddp" && code == "dec1") ||
-			(wantMnemonic == "fdivp" && code == "def9") ||
-			(wantMnemonic == "fdivrp" && code == "def1") ||
-			(wantMnemonic == "fmulp" && code == "dec9") ||
-			(wantMnemonic == "fsubp" && code == "dee9") ||
-			(wantMnemonic == "fsubrp" && code == "dee1")) {
+		((wantMnemonic == "FADDP" && code == "dec1") ||
+			(wantMnemonic == "FDIVP" && code == "def9") ||
+			(wantMnemonic == "FDIVRP" && code == "def1") ||
+			(wantMnemonic == "FMULP" && code == "dec9") ||
+			(wantMnemonic == "FSUBP" && code == "dee9") ||
+			(wantMnemonic == "FSUBRP" && code == "dee1")) {
 		wantExplicit := []string{want[0], "st(1),", "st"}
 		if heuristicallySimilarArguments(got, wantExplicit) {
 			return true
@@ -292,11 +293,11 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// FUCOMP ST(1) / FUCOMP.
 	// FXCH ST(1) / FXCH.
 	if len(want) == 1 &&
-		((wantMnemonic == "fcom" && code == "d8d1") ||
-			(wantMnemonic == "fcomp" && code == "d8d9") ||
-			(wantMnemonic == "fucom" && code == "dde1") ||
-			(wantMnemonic == "fucomp" && code == "dde9") ||
-			(wantMnemonic == "fxch" && code == "d9c9")) {
+		((wantMnemonic == "FCOM" && code == "d8d1") ||
+			(wantMnemonic == "FCOMP" && code == "d8d9") ||
+			(wantMnemonic == "FUCOM" && code == "dde1") ||
+			(wantMnemonic == "FUCOMP" && code == "dde9") ||
+			(wantMnemonic == "FXCH" && code == "d9c9")) {
 		wantExplicit := []string{want[0], "st(1)"}
 		if heuristicallySimilarArguments(got, wantExplicit) {
 			return true
@@ -307,7 +308,7 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// INVLPG instruction, which is unnecessary.
 	//
 	// INVLPG.
-	if wantMnemonic == "invlpg" && len(got) == 4 && got[1] == "byte" && got[2] == "ptr" {
+	if wantMnemonic == "INVLPG" && len(got) == 4 && got[1] == "byte" && got[2] == "ptr" {
 		gotHintless := []string{got[0], got[3]}
 		if heuristicallySimilarArguments(gotHintless, want) {
 			return true
@@ -320,8 +321,8 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// IRET.
 	// IRETW.
 	// IRETD.
-	if (wantMnemonic == "iret" && gotMnemonic == "iretw" && len(got) == 1 && entry.Mode.Int != 16 && strings.HasPrefix(code, "66")) ||
-		(wantMnemonic == "iretd" && gotMnemonic == "iret" && len(got) == 1 && (entry.Mode.Int == 32 || entry.Mode.Int == 64) && !strings.HasPrefix(code, "66")) {
+	if (wantMnemonic == "IRET" && gotMnemonic == "IRETW" && len(got) == 1 && entry.Mode.Int != 16 && strings.HasPrefix(code, "66")) ||
+		(wantMnemonic == "IRETD" && gotMnemonic == "IRET" && len(got) == 1 && (entry.Mode.Int == 32 || entry.Mode.Int == 64) && !strings.HasPrefix(code, "66")) {
 		return true
 	}
 
@@ -333,8 +334,8 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// LAR.
 	// LSL.
 	if len(want) == 3 &&
-		(wantMnemonic == "lar" ||
-			wantMnemonic == "lsl") {
+		(wantMnemonic == "LAR" ||
+			wantMnemonic == "LSL") {
 		wantFlipped := append([]string(nil), want...)
 		wantFlipped[2] = flip16And32BitRegister(wantFlipped[2])
 		if heuristicallySimilarArguments(got, wantFlipped) {
@@ -359,12 +360,12 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	//
 	// LES, LCS, LSS, LDS, LFS, LGS.
 	if len(want) == 5 && len(got) == 5 &&
-		(wantMnemonic == "les" ||
-			wantMnemonic == "lcs" ||
-			wantMnemonic == "lss" ||
-			wantMnemonic == "lds" ||
-			wantMnemonic == "lfs" ||
-			wantMnemonic == "lgs") {
+		(wantMnemonic == "LES" ||
+			wantMnemonic == "LCS" ||
+			wantMnemonic == "LSS" ||
+			wantMnemonic == "LDS" ||
+			wantMnemonic == "LFS" ||
+			wantMnemonic == "LGS") {
 		wantTweaked := append([]string(nil), want...)
 		size := x86.RegisterSizes[noComma(got[1])]
 		switch size {
@@ -388,7 +389,7 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// SGDT.
 	// SIDT.
 	switch wantMnemonic {
-	case "lgdt", "lidt", "sgdt", "sidt":
+	case "LGDT", "LIDT", "SGDT", "SIDT":
 		gotRenamed := append([]string(nil), got...)
 		switch entry.Mode.Int {
 		case 16:
@@ -409,7 +410,7 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// register.
 	//
 	// MOV r, Sreg.
-	if wantMnemonic == "mov" && strings.HasSuffix(entry.Inst.Syntax, " Sreg") && len(want) == 3 {
+	if wantMnemonic == "MOV" && strings.HasSuffix(entry.Inst.Syntax, " Sreg") && len(want) == 3 {
 		wantFlipped := append([]string(nil), want...)
 		wantFlipped[1] = flip16And32BitRegister(wantFlipped[1])
 		if heuristicallySimilarArguments(got, wantFlipped) {
@@ -422,8 +423,8 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// 64-bit mode.
 	//
 	// MOVABS.
-	if wantMnemonic == "mov" && len(entry.Inst.Parameters) == 2 &&
-		(entry.Inst.Parameters[0].Type == x86.TypeMemoryOffset || entry.Inst.Parameters[1].Type == x86.TypeMemoryOffset || (!entry.Inst.Mode16 && !entry.Inst.Mode32)) {
+	if wantMnemonic == "MOV" && entry.Inst.MinArgs == 2 &&
+		(entry.Inst.Operands[0].Type == x86.TypeMemoryOffset || entry.Inst.Operands[1].Type == x86.TypeMemoryOffset || (!entry.Inst.Mode16 && !entry.Inst.Mode32)) {
 		wantRenamed := append([]string(nil), want...)
 		wantRenamed[0] = "movabs"
 		if heuristicallySimilarArguments(got, wantRenamed) {
@@ -448,7 +449,7 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	//
 	// NOP.
 	if code == "90" && disasm == "nop" &&
-		wantMnemonic == "xchg" && len(want) == 3 &&
+		wantMnemonic == "XCHG" && len(want) == 3 &&
 		!strings.Contains(want[1], "]") &&
 		noComma(want[1]) == want[2] {
 		return true
@@ -461,9 +462,9 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// VMRUN (rAX).
 	// VMSAVE (rAX).
 	switch wantMnemonic {
-	case "skinit", "vmload", "vmrun", "vmsave":
+	case "SKINIT", "VMLOAD", "VMRUN", "VMSAVE":
 		wantRegister := "eax"
-		if wantMnemonic != "skinit" && entry.Mode.Int == 64 {
+		if wantMnemonic != "SKINIT" && entry.Mode.Int == 64 {
 			wantRegister = "rax"
 		}
 
@@ -477,7 +478,7 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	//
 	// SHA256RNDS2 xmm1, xmm2/m128, <XMM0>.
 	switch wantMnemonic {
-	case "sha256rnds2":
+	case "SHA256RNDS2":
 		gotTrimmed := append([]string(nil), got[:len(got)-1]...)
 		gotTrimmed[len(gotTrimmed)-1] = noComma(gotTrimmed[len(gotTrimmed)-1])
 		if heuristicallySimilarArguments(gotTrimmed, want) {
@@ -491,7 +492,7 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// destination register.
 	//
 	// UMONITOR rmr16/rmr32.
-	if wantMnemonic == "umonitor" && len(want) == 2 {
+	if wantMnemonic == "UMONITOR" && len(want) == 2 {
 		wantFlipped := append([]string(nil), want...)
 		wantFlipped[1] = flip16And32BitRegister(wantFlipped[1])
 		if heuristicallySimilarArguments(got, wantFlipped) {
@@ -504,11 +505,12 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// so we pivot on the comma.
 	//
 	// XCHG.
-	if wantMnemonic == "xchg" {
-		swapped := strings.Split(strings.TrimPrefix(entry.Intel, entry.Inst.Mnemonic), ",")
+	if wantMnemonic == "XCHG" {
+		mnemonic := strings.ToLower(entry.Inst.Mnemonic)
+		swapped := strings.Split(strings.TrimPrefix(entry.Intel, mnemonic), ",")
 		var wantReversedText string
 		if len(swapped) == 2 {
-			wantReversedText = entry.Inst.Mnemonic + " " + swapped[1] + ", " + swapped[0]
+			wantReversedText = mnemonic + " " + swapped[1] + ", " + swapped[0]
 		}
 		wantReversedArgs := strings.Fields(wantReversedText)
 		if heuristicallySimilarArguments(got, wantReversedArgs) {
@@ -520,7 +522,7 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// 16-bit version of XBEGIN.
 	//
 	// XBEGIN.
-	if wantMnemonic == "xbegin" && gotMnemonic == "xbeginw" {
+	if wantMnemonic == "XBEGIN" && gotMnemonic == "XBEGINW" {
 		wantRenamed := append([]string(nil), want...)
 		wantRenamed[0] = "xbeginw"
 		if heuristicallySimilarArguments(got, wantRenamed) {
@@ -532,7 +534,7 @@ func IsDisassemblyMatch(entry *TestEntry, disasm, code string) bool {
 	// of XLAT with an implicit address.
 	//
 	// XLATB.
-	if wantMnemonic == "xlatb" {
+	if wantMnemonic == "XLATB" {
 		var wantExplicit []string
 		switch entry.Mode.Int {
 		case 16:
@@ -640,6 +642,12 @@ func flip16And32BitRegister(s string) string {
 // arguments once the specialisation has been
 // accounted for.
 func heuristicSpecialisation(special, general *TestEntry) bool {
+	if special.Inst.Mnemonic[0] < 'A' || 'Z' < special.Inst.Mnemonic[0] {
+		panic("special: " + special.Inst.Mnemonic)
+	}
+	if general.Inst.Mnemonic[0] < 'A' || 'Z' < general.Inst.Mnemonic[0] {
+		panic("general: " + general.Inst.Mnemonic)
+	}
 	// Check that general has specialisations.
 	// If not, we're done.
 	options, ok := specialisations[general.Inst.Mnemonic]
@@ -686,7 +694,7 @@ func heuristicSpecialisation(special, general *TestEntry) bool {
 		// we compare each component, as
 		// expected by heuristicallySimilarArguments.
 		specialArgs := strings.Fields(special.Intel)
-		specialArgs[0] = general.Inst.Mnemonic
+		specialArgs[0] = strings.ToLower(general.Inst.Mnemonic)
 		generalArgs = strings.Fields(general.Intel)
 		generalArgs = generalArgs[:len(generalArgs)-1]                             // Ignore the final arg.
 		generalArgs[len(generalArgs)-1] = noComma(generalArgs[len(generalArgs)-1]) // Remove the trailing comma.

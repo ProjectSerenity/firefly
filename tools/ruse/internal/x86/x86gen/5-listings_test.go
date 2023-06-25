@@ -414,7 +414,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if above (CF=0 and ZF=0). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            657,
@@ -425,7 +424,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if above (CF=0 and ZF=0).",
-							OperandSize:     true,
 						},
 						{
 							Page:            657,
@@ -436,7 +434,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if above or equal (CF=0). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            657,
@@ -447,7 +444,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if above or equal (CF=0).",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -458,7 +454,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if below (CF=1). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -469,7 +464,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if below (CF=1).",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -480,7 +474,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if below or equal (CF=1 or ZF=1). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -491,7 +484,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if below or equal (CF=1 or ZF=1).",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -502,7 +494,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if carry (CF=1). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -513,7 +504,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if carry (CF=1).",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -524,7 +514,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if equal (ZF=1). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -535,7 +524,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if equal (ZF=1).",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -546,7 +534,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if 0 (ZF=1). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -557,7 +544,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if 0 (ZF=1).",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -568,7 +554,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if greater (ZF=0 and SF=OF). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -579,7 +564,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if greater (ZF=0 and SF=OF).",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -590,7 +574,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if greater or equal (SF=OF). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -601,7 +584,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if greater or equal (SF=OF).",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -612,7 +594,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if less (SF≠ OF). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -623,7 +604,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if less (SF≠ OF).",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -634,7 +614,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if less or equal (ZF=1 or SF≠ OF). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -645,7 +624,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if less or equal (ZF=1 or SF≠ OF).",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -656,7 +634,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not above (CF=1 or ZF=1). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -667,7 +644,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not above (CF=1 or ZF=1).",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -678,7 +654,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not above or equal (CF=1). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -689,7 +664,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not above or equal (CF=1).",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -700,7 +674,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not below (CF=0). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -711,7 +684,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not below (CF=0).",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -722,7 +694,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not below or equal (CF=0 and ZF=0). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -733,7 +704,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not below or equal (CF=0 and ZF=0).",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -744,7 +714,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not carry (CF=0). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -755,7 +724,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not carry (CF=0).",
-							OperandSize:     true,
 						},
 						{
 							Page:            658,
@@ -766,7 +734,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not equal (ZF=0). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -777,7 +744,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not equal (ZF=0).",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -788,7 +754,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not greater (ZF=1 or SF≠ OF). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -799,7 +764,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not greater (ZF=1 or SF≠ OF).",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -810,7 +774,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not greater or equal (SF≠ OF). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -821,7 +784,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not greater or equal (SF≠ OF).",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -832,7 +794,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not less (SF=OF). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -843,7 +804,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not less (SF=OF).",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -854,7 +814,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not less or equal (ZF=0 and SF=OF). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -865,7 +824,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not less or equal (ZF=0 and SF=OF).",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -876,7 +834,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not overflow (OF=0). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -887,7 +844,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not overflow (OF=0).",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -898,7 +854,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not parity (PF=0). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -909,7 +864,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not parity (PF=0).",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -920,7 +874,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not sign (SF=0). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -931,7 +884,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not sign (SF=0).",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -942,7 +894,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not zero (ZF=0). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -953,7 +904,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if not zero (ZF=0).",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -964,7 +914,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if overflow (OF=1). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -975,7 +924,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if overflow (OF=1).",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -986,7 +934,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if parity (PF=1). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -997,7 +944,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if parity (PF=1).",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -1008,7 +954,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if parity even (PF=1). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -1019,7 +964,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if parity even (PF=1).",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -1030,7 +974,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if parity odd (PF=0). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -1041,7 +984,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if parity odd (PF=0).",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -1052,7 +994,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if sign (SF=1). Not supported in 64- bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -1063,7 +1004,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if sign (SF=1).",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -1074,7 +1014,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if 0 (ZF=1). Not supported in 64-bit mode.",
-							OperandSize:     true,
 						},
 						{
 							Page:            659,
@@ -1085,7 +1024,6 @@ func TestParse(t *testing.T) {
 							Mode32:          "Valid",
 							Mode16:          "Valid",
 							Description:     "Jump near if 0 (ZF=1).",
-							OperandSize:     true,
 						},
 					},
 					OperandEncodingTable: []OperandEncoding{

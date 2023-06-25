@@ -76,7 +76,7 @@ func SplitInstructionPages(pages []Page, stats *Stats, debug bool) (mnemonicTabl
 				// after the encoding table.
 				if matchExact(t, "Verdana", 9, "TESTUI copies the current value of the user interrupt flag (UIF) into EFLAGS.CF. This instruction can be executed") {
 					// The "Description" heading is missing from TESTUI.
-					stats.ListingError()
+					stats.ListingError("p.%d: No description heading after the instruction operand encoding table", page.Page)
 					if i > 0 {
 						prev := Page{Page: page.Page, Text: page.Text[:i]}
 						encodingTables = append(encodingTables, prev)

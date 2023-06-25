@@ -40,7 +40,7 @@ func TestSpec_Instructions(t *testing.T) {
 			Want: []*x86.Instruction{
 				{
 					Page:     137,
-					Mnemonic: "adc",
+					Mnemonic: "ADC",
 					UID:      "ADC_Rmr8_Imm8",
 					Syntax:   "ADC r8/m8, imm8",
 					Encoding: &x86.Encoding{
@@ -78,7 +78,7 @@ func TestSpec_Instructions(t *testing.T) {
 				},
 				{
 					Page:     137,
-					Mnemonic: "adc",
+					Mnemonic: "ADC",
 					UID:      "ADC_M8_Imm8",
 					Syntax:   "ADC r8/m8, imm8",
 					Encoding: &x86.Encoding{

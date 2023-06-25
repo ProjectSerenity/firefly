@@ -73,11 +73,13 @@ var templates = template.Must(template.New("").Funcs(map[string]any{
 }).ParseFS(templatesFS, "templates/*.tmpl"))
 
 func main() {
-	var debugDescriptions bool
-	var name, debugPages string
+	var debugDescriptions, verbose bool
+	var name, debugPages, findMnemonics string
 	flag.BoolVar(&debugDescriptions, "descriptions", false, "Include instruction descriptions when debugging.")
 	flag.StringVar(&name, "f", "", "Path to the Intel manual PDF.")
 	flag.StringVar(&debugPages, "debug", "", "List of comma-separated pages numbers to debug.")
+	flag.StringVar(&findMnemonics, "find", "", "List of comma-separated mnemonics to debug.")
+	flag.BoolVar(&verbose, "v", false, "Print each error individually.")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage:\n  %s OPTIONS\n\nOptions:\n", filepath.Base(os.Args[0]))
 		flag.PrintDefaults()
@@ -121,6 +123,7 @@ func main() {
 		log.Fatalf("failed to open %q: %v", name, err)
 	}
 
+	var instructions []*x86.Instruction
 	if debugPages != "" {
 		pages := strings.Split(debugPages, ",")
 		numbers := make([]int, len(pages))
@@ -214,16 +217,19 @@ func main() {
 				log.Fatal(err)
 			}
 
-			if len(specs) > 0 {
-				fmt.Println("\nInstructions:")
-				w := tabwriter.NewWriter(os.Stdout, 0, 8, 3, ' ', 0)
-				columns[0] = "UID"
-				columns[1] = "Syntax"
-				columns[2] = "Encoding"
-				columns[3] = "Operand size override"
-				columns[4] = "Data size"
-				n := 5
-				fmt.Fprintln(w, strings.Join(columns[:n], "\t"))
+			if len(specs) == 0 {
+				continue
+			}
+
+			instructions = instructions[:0]
+
+			// Start with the extra instructions.
+			for _, extra := range Extras {
+				specs, err := extra.Specs(nil)
+				if err != nil {
+					log.Fatal(err)
+				}
+
 				for _, spec := range specs {
 					insts, err := spec.Instructions(nil)
 					if err != nil {
@@ -231,23 +237,52 @@ func main() {
 					}
 
 					for _, inst := range insts {
-						columns[0] = inst.UID
-						columns[1] = inst.Syntax
-						columns[2] = inst.Encoding.Syntax
-						columns[3] = ""
-						columns[4] = ""
-						if inst.OperandSize {
-							columns[3] = "true"
-						}
-						if inst.DataSize != 0 {
-							columns[4] = strconv.Itoa(inst.DataSize)
-						}
-
-						fmt.Fprintln(w, strings.Join(columns[:n], "\t"))
+						instructions = append(instructions, inst)
 					}
 				}
-				w.Flush()
 			}
+
+			for _, spec := range specs {
+				insts, err := spec.Instructions(nil)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				instructions = append(instructions, insts...)
+			}
+
+			autodetectVariableOperandSizes(instructions)
+
+			fmt.Println("\nInstructions:")
+			w := tabwriter.NewWriter(os.Stdout, 0, 8, 3, ' ', 0)
+			columns[0] = "UID"
+			columns[1] = "Syntax"
+			columns[2] = "Encoding"
+			columns[3] = "Operand size override"
+			columns[4] = "Data size"
+			n := 5
+			fmt.Fprintln(w, strings.Join(columns[:n], "\t"))
+			for _, inst := range instructions {
+				if inst.Page == 0 {
+					continue
+				}
+
+				columns[0] = inst.UID
+				columns[1] = inst.Syntax
+				columns[2] = inst.Encoding.Syntax
+				columns[3] = ""
+				columns[4] = ""
+				if inst.OperandSize {
+					columns[3] = "true"
+				}
+				if inst.DataSize != 0 {
+					columns[4] = strconv.Itoa(inst.DataSize)
+				}
+
+				fmt.Fprintln(w, strings.Join(columns[:n], "\t"))
+			}
+
+			w.Flush()
 		}
 
 		return
@@ -268,9 +303,10 @@ func main() {
 	}
 
 	var stats Stats
+	stats.PrintErrors = verbose
 	stats.Start()
-	var instructions []*x86.Instruction
 	byUID := make(map[string]*x86.Instruction)
+	byMnemonic := make(map[string][]*x86.Instruction)
 	numPages := r.NumPage()
 	for pageNum := 1; pageNum <= numPages; {
 		var listing *Listing
@@ -328,7 +364,7 @@ func main() {
 							// This instruction is repeated in
 							// the manual. We just ignore the
 							// second version.
-							stats.ListingError()
+							stats.ListingError("p.%d: Instruction %q is repeated on p.%d", other.Page, other.Syntax, inst.Page)
 							continue
 						}
 					case "VMOVQ_XMM1_M64_VEX", "VMOVQ_XMM1_M64_EVEX128",
@@ -380,6 +416,7 @@ func main() {
 				}
 
 				byUID[inst.UID] = inst
+				byMnemonic[inst.Mnemonic] = append(byMnemonic[inst.Mnemonic], inst)
 				stats.InstructionForm()
 				instructions = append(instructions, inst)
 			}
@@ -409,6 +446,7 @@ func main() {
 				}
 
 				byUID[inst.UID] = inst
+				byMnemonic[inst.Mnemonic] = append(byMnemonic[inst.Mnemonic], inst)
 				stats.ExtraInstructionForm()
 				instructions = append(instructions, inst)
 			}
@@ -417,9 +455,74 @@ func main() {
 
 	sort.Slice(instructions, func(i, j int) bool { return instructions[i].UID < instructions[j].UID })
 
+	autodetectVariableOperandSizes(instructions)
+
 	print(stats.String())
 	for inst := range expected {
 		fmt.Printf("WARNING: Failed to find instruction %q.\n", inst)
+	}
+
+	if findMnemonics != "" {
+		mnemonics := strings.Split(findMnemonics, ",")
+		for i := range mnemonics {
+			mnemonics[i] = strings.TrimSpace(mnemonics[i])
+		}
+
+		sort.Strings(mnemonics)
+
+		for _, mnemonic := range mnemonics {
+			fmt.Println()
+			insts, ok := byMnemonic[mnemonic]
+			if !ok {
+				fmt.Fprintf(os.Stderr, "found no instructions with mnemonic %q\n", mnemonic)
+				continue
+			}
+
+			fmt.Printf("Mnemonic: %s\n", mnemonic)
+			columns := make([]string, 11)
+			w := tabwriter.NewWriter(os.Stdout, 0, 8, 3, ' ', 0)
+			headers := [][11]string{
+				{"", "", "", "Opcode", "64-Bit", "32-Bit", "16-Bit", "CPUID", "Operand", "Address", "Data"},
+				{"Page", "UID", "Syntax", "Encoding", "Mode", "Mode", "Mode", "Flags", "Size", "Size", "Size"},
+				{"----", "---", "------", "--------", "------", "------", "------", "-----", "-------", "-------", "----"},
+			}
+
+			for _, header := range headers {
+				copy(columns, header[:])
+				fmt.Fprintln(w, strings.Join(columns, "\t"))
+			}
+
+			for _, inst := range insts {
+				// Debug the instruction.
+				columns[0] = ""
+				if inst.Page != 0 {
+					columns[0] = strconv.Itoa(inst.Page)
+				}
+				columns[1] = inst.UID
+				columns[2] = inst.Syntax
+				columns[3] = inst.Encoding.Syntax
+				columns[4] = strconv.FormatBool(inst.Mode64)
+				columns[5] = strconv.FormatBool(inst.Mode32)
+				columns[6] = strconv.FormatBool(inst.Mode16)
+				columns[7] = strings.Join(inst.CPUID, ", ")
+				columns[8] = ""
+				if inst.OperandSize {
+					columns[8] = "true"
+				}
+				columns[9] = ""
+				if inst.AddressSize {
+					columns[9] = "true"
+				}
+				columns[10] = ""
+				if inst.DataSize != 0 {
+					columns[10] = strconv.Itoa(inst.DataSize)
+				}
+				fmt.Fprintln(w, strings.Join(columns, "\t"))
+			}
+			w.Flush()
+		}
+
+		return
 	}
 
 	// Prepare the generated Go code
@@ -464,12 +567,193 @@ func main() {
 
 	jw := json.NewEncoder(f)
 	jw.SetEscapeHTML(false)
-	err = jw.Encode(instructions)
-	if err != nil {
-		log.Fatalf("failed to write instructions to %q: %v", x86_json, err)
+	for i, inst := range instructions {
+		// Encode each instruction on a
+		// separate line.
+		err = jw.Encode(inst)
+		if err != nil {
+			log.Fatalf("failed to write instruction %d to %q: %v", i, x86_json, err)
+		}
 	}
 
 	if fail {
 		os.Exit(1)
+	}
+}
+
+// autodetectVariableOperandSizes takes a
+// set of instructions and identifies any
+// that should have a variable operand
+// size. This is typically where multiple
+// instructions have the same encoding.
+// The exception is the conditional jump
+// instructions, which alias one another.
+func autodetectVariableOperandSizes(insts []*x86.Instruction) {
+	// Group instructions by encoding.
+	opcodes := make(map[string][]*x86.Instruction)
+	for _, inst := range insts {
+		// Some instructions should be
+		// excluded as they don't have
+		// variable operand sizes, but
+		// appear that they might.
+		switch inst.Mnemonic {
+		// Don't include `MOVSD xmm1, xmm2/m64`
+		// or `MOVSS xmm1, xmm2/m32`, which are
+		// split in two for some reason.
+		case "MOVSS", "MOVSD":
+			// Don't affect the MOVS variant.
+			if inst.MinArgs > 0 {
+				continue
+			}
+		// These vendor-specific instructions
+		// clash with one another.
+		case "SENDUIPI", "VMXON":
+			continue
+		}
+
+		switch inst.UID {
+		// The operand size override
+		// prefix is unhelpful here,
+		// as the 16-bit and 32-bit
+		// versions have the same
+		// effect. It is allowed to
+		// use the operand size
+		// override prefix in 32-bit
+		// mode for the register
+		// forms, but we drop it
+		// in 16-bit mode.
+		case "MOV_M16_Sreg", "MOV_Sreg_M16",
+			"MOV_Rmr32_Sreg", "MOV_Sreg_Rmr32":
+			continue
+		// These clash with other
+		// instructions.
+		case "POP_DS", "POP_ES", "POP_SS",
+			"PUSH_CS", "PUSH_DS", "PUSH_ES", "PUSH_SS":
+			inst.DataSize = 0
+			continue
+		// These can vary in operand
+		// size, but not based on
+		// the operand size.
+		case "POP16_FS", "POP32_FS", "POP64_FS",
+			"POP16_GS", "POP32_GS", "POP64_GS",
+			"PUSH_FS", "PUSH_GS":
+			inst.DataSize = 0
+			continue
+		// The memory form is the
+		// same in any mode.
+		case "SLDT_M16", "SMSW_M16", "STR_M16":
+			inst.OperandSize = false
+			continue
+		// This is variable in size,
+		// but we shouldn't use REX.W
+		// for the 64-bit form, as the
+		// 32-bit form isn't supported
+		// in 64-bit mode.
+		case "POP_Rmr64", "POP_M64", "POP_R64op",
+			"PUSH_Rmr64", "PUSH_M64", "PUSH_R64op":
+			inst.OperandSize = false
+			continue
+		}
+
+		opcode := inst.Encoding.Syntax
+		if strings.Contains(opcode, "VEX") {
+			continue
+		}
+
+		// We also ignore any code offset
+		// suffix, since this is influenced
+		// by the operand size override
+		// prefix.
+		opcode = strings.TrimSuffix(opcode, " cw")
+		opcode = strings.TrimSuffix(opcode, " cd")
+
+		// Likewise with immediate sizes.
+		opcode = strings.TrimSuffix(opcode, " iw")
+		opcode = strings.TrimSuffix(opcode, " id")
+
+		// Likewise with opcode registers.
+		opcode = strings.TrimSuffix(opcode, "+rw")
+		opcode = strings.TrimSuffix(opcode, "+rd")
+		opcodes[opcode] = append(opcodes[opcode], inst)
+	}
+
+	// Now find the groups and check
+	// their mode compatibilities
+	// overlap.
+	for _, group := range opcodes {
+		if len(group) < 2 {
+			continue
+		}
+
+		// Turn the mode compatibilities
+		// into a bitmap.
+		const (
+			mode64 = 1 << iota
+			mode32
+			mode16
+		)
+
+		modes := make([]uint8, len(group))
+		for i, inst := range group {
+			var mode uint8
+			if inst.Mode64 {
+				mode |= mode64
+			}
+			if inst.Mode32 {
+				mode |= mode32
+			}
+			if inst.Mode16 {
+				mode |= mode16
+			}
+
+			modes[i] = mode
+		}
+
+		for i := range modes {
+			for j := i + 1; j < len(modes); j++ {
+				// Don't include different forms
+				// of the same instruction.
+				if group[i].Syntax == group[j].Syntax {
+					continue
+				}
+
+				// Don't include aliased jump
+				// instructions like JZ and JE.
+				if group[i].Mnemonic != group[j].Mnemonic && group[i].Mnemonic[0] == 'J' {
+					continue
+				}
+
+				if modes[i]&modes[j] != 0 {
+					group[i].OperandSize = true
+					group[j].OperandSize = true
+
+					// Also bind their pages
+					// together, if we've added
+					// an extra instruction.
+					if group[i].Page == 0 {
+						group[i].Page = group[j].Page
+					}
+					if group[j].Page == 0 {
+						group[j].Page = group[i].Page
+					}
+				}
+			}
+		}
+	}
+
+	for _, inst := range insts {
+		// See whether we can use the
+		// operand data to determine
+		// the instruction data size.
+		if inst.DataSize == 0 && (inst.OperandSize || inst.Encoding.REX) && inst.Operands[0] != nil {
+			inst.DataSize = inst.Operands[0].Bits
+		}
+
+		// Remove unwanted data sizes if
+		// necessary.
+		switch inst.Mnemonic {
+		case "INCSSPQ":
+			inst.DataSize = 0
+		}
 	}
 }

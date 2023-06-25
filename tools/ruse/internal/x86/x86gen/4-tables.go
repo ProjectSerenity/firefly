@@ -192,11 +192,6 @@ func ExtractEncodingTable(page Page, stats *Stats, debug bool) (table *Table, er
 			fmt.Printf("text at %.2f: %v => %d\n", x, t, i)
 		}
 
-		if line[i] == "ModRM:r/m (r)" && t.S == "VEX.vvvv (r) /" {
-			stats.InstructionError()
-			continue // Ambiguous table for VMOVHLPS.
-		}
-
 		if line[i] != "" {
 			line[i] += " "
 		}
@@ -204,7 +199,7 @@ func ExtractEncodingTable(page Page, stats *Stats, debug bool) (table *Table, er
 		t.S = strings.Replace(t.S, ", ModRM:[7:6] must be 11b", "", 1)
 		t.S = strings.Replace(t.S, ", ModRM:[7:6] must not be 11b", "", 1)
 		if prefix, suffix, found := strings.Cut(t.S, "ModRM:rm"); found {
-			stats.InstructionError()
+			stats.InstructionError("p.%d: Incorrect instruction operand encoding entry %q", page.Page, t.S)
 			t.S = prefix + "ModRM:r/m" + suffix
 		}
 

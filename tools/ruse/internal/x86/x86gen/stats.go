@@ -8,7 +8,9 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -16,6 +18,8 @@ var ignoredStats Stats
 
 type Stats struct {
 	t0 time.Time
+
+	PrintErrors bool
 
 	FirstPage             int
 	LastPage              int
@@ -40,8 +44,6 @@ func (s *Stats) notnil() *Stats {
 
 func (s *Stats) Start()                { s.notnil().t0 = time.Now() }
 func (s *Stats) Listing()              { s.notnil().Listings++ }
-func (s *Stats) ListingError()         { s.notnil().ListingErrors++ }
-func (s *Stats) InstructionError()     { s.notnil().InstructionErrors++ }
 func (s *Stats) InstructionForm()      { s.notnil().InstructionForms++ }
 func (s *Stats) ExtraInstruction()     { s.notnil().ExtraInstructions++ }
 func (s *Stats) ExtraInstructionForm() { s.notnil().ExtraInstructionForms++ }
@@ -55,6 +57,30 @@ func (s *Stats) Instruction(page int) {
 
 	if s.LastPage < page {
 		s.LastPage = page
+	}
+}
+
+func (s *Stats) ListingError(format string, v ...any) {
+	s = s.notnil()
+	s.ListingErrors++
+	if s.PrintErrors {
+		if !strings.HasSuffix(format, "\n") {
+			format += "\n"
+		}
+
+		fmt.Fprintf(os.Stderr, format, v...)
+	}
+}
+
+func (s *Stats) InstructionError(format string, v ...any) {
+	s = s.notnil()
+	s.InstructionErrors++
+	if s.PrintErrors {
+		if !strings.HasSuffix(format, "\n") {
+			format += "\n"
+		}
+
+		fmt.Fprintf(os.Stderr, format, v...)
 	}
 }
 

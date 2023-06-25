@@ -42,17 +42,24 @@ func onlyNumbers(s string) string {
 func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 	// General corrections.
 	switch inst.Syntax {
+	case "CALL m16:64":
+		if inst.Encoding.REX_W {
+			inst.UID = strings.TrimSuffix(inst.UID, "_REX")
+			inst.Encoding.REX = false
+			inst.Encoding.REX_W = false
+			inst.Encoding.Syntax = strings.TrimPrefix(inst.Encoding.Syntax, "REX.W ")
+		}
 	case "HRESET imm8, <EAX>":
 		// The manual gives an operand encoding
 		// of ModRM:r/m, N/A, which should be
 		// Immediate, Implicit.
 		if inst.Operands[0].Encoding != x86.EncodingImmediate {
-			stats.ListingError()
+			stats.ListingError("p.%d: Incorrect operand %d encoding %q, want %q", inst.Page, 0, inst.Operands[0].Encoding, x86.EncodingImmediate)
 			inst.Operands[0].Encoding = x86.EncodingImmediate
 		}
 
 		if inst.Operands[1].Encoding != x86.EncodingImplicit {
-			stats.ListingError()
+			stats.ListingError("p.%d: Incorrect operand %d encoding %q, want %q", inst.Page, 1, inst.Operands[1].Encoding, x86.EncodingImplicit)
 			inst.Operands[1].Encoding = x86.EncodingImplicit
 		}
 	case "IN AL, imm8", "IN AX, imm8", "IN EAX, imm8":
@@ -60,12 +67,12 @@ func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 		// of Immediate, N/A, which should be
 		// Implicit, Immediate.
 		if inst.Operands[0].Encoding == x86.EncodingImmediate {
-			stats.ListingError()
+			stats.ListingError("p.%d: Incorrect operand %d encoding %q, want %q", inst.Page, 0, inst.Operands[0].Encoding, x86.EncodingNone)
 			inst.Operands[0].Encoding = x86.EncodingNone
 		}
 
 		if inst.Operands[1].Encoding != x86.EncodingImmediate {
-			stats.ListingError()
+			stats.ListingError("p.%d: Incorrect operand %d encoding %q, want %q", inst.Page, 1, inst.Operands[1].Encoding, x86.EncodingImmediate)
 			inst.Operands[1].Encoding = x86.EncodingImmediate
 		}
 	case "NOP", "NOP r16/m16", "NOP r32/m32":
@@ -73,7 +80,7 @@ func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 		// NP in its encoding, but still uses the
 		// 66 prefix in examples. We assume the NP
 		// is incorrect and remove it.
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Spurious NP prefix in instruction encoding %q", inst.Page, inst.Encoding.Syntax)
 		inst.Encoding.NoVEXPrefixes = false
 		inst.Encoding.Syntax = strings.TrimPrefix(inst.Encoding.Syntax, "NP ")
 	case "SENDUIPI r64":
@@ -82,7 +89,7 @@ func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 		// as it also has /6, which goes in the
 		// ModRM:reg slot.
 		if inst.Operands[0].Encoding != x86.EncodingModRMrm {
-			stats.ListingError()
+			stats.ListingError("p.%d: Incorrect operand %d encoding %q, want %q", inst.Page, 0, inst.Operands[0].Encoding, x86.EncodingModRMrm)
 			inst.Operands[0].Encoding = x86.EncodingModRMrm
 		}
 	}
@@ -138,7 +145,7 @@ func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 		"VSUBSH",
 		"VUCOMISH":
 		inst.DataSize = 16
-	case "CWDE",
+	case "CDQ", "CWDE",
 		"CMPSD", "INSD", "LODSD", "MOVSD", "OUTSD", "SCASD", "STOSD",
 		"IRETD",
 		"MOVD",
@@ -191,7 +198,7 @@ func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 		"VUCOMISS",
 		"WRSSD", "WRUSSD":
 		inst.DataSize = 32
-	case "CDQ", "CDQE",
+	case "CDQE", "CQO",
 		"CMPSQ", "INSQ", "LODSQ", "MOVSQ", "OUTSQ", "SCASQ", "STOSQ",
 		"IRETQ",
 		"MOVQ",
@@ -260,18 +267,10 @@ func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 		"MOV CR0-CR7, r32", "MOV DR0-DR7, r32",
 		"MOVSS xmm1, xmm2", "MOVSS xmm1, m32", "MOVSS xmm2/m32, xmm1":
 		inst.DataSize = 32
-		switch inst.Mnemonic {
-		case "MOVSS":
-			inst.OperandSize = false
-		}
 	case "CALL m16:64", "CALL r64/m64",
 		"JMP m16:64", "JMP r64/m64",
 		"MOVSD xmm1, xmm2", "MOVSD xmm1, m64", "MOVSD xmm1/m64, xmm2":
 		inst.DataSize = 64
-		switch inst.Mnemonic {
-		case "MOVSD":
-			inst.OperandSize = false
-		}
 	case "VCVTPD2DQ xmm1, xmm2/m128", "VCVTPD2DQ xmm1 {k1}{z}, xmm2/m128/m64bcst",
 		"VCVTPD2PS xmm1, xmm2/m128", "VCVTPD2PS xmm1 {k1}{z}, xmm2/m128/m64bcst",
 		"VCVTTPD2DQ xmm1, xmm2/m128", "VCVTTPD2DQ xmm1 {k1}{z}, xmm2/m128/m64bcst":
@@ -289,15 +288,16 @@ func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 	// Some instructions get the
 	// operand size marking wrong.
 	switch inst.Mnemonic {
-	case "CBW", "CWD", "CWDE",
-		"IRET", "IRETD",
-		"POPA", "POPAD",
-		"POPF", "POPFD",
-		"PUSHA", "PUSHAD",
-		"PUSHF", "PUSHFD",
-		"SLDT",
-		"STR":
+	case "SLDT", "STR":
+		if inst.OperandSize {
+			return Errorf(inst.Page, "found a manual case to mark %q as having a variable operand size, but it has that already", inst.Mnemonic)
+		}
+
 		inst.OperandSize = true
+	case "MOVSX", "MOVZX":
+		if strings.TrimPrefix(inst.Syntax, inst.Mnemonic) == " r32, r16/m16" {
+			inst.OperandSize = true
+		}
 	case "CALL", "JMP":
 		if strings.Contains(inst.Operands[0].Name, "ptr16") {
 			inst.OperandSize = true
@@ -319,7 +319,7 @@ func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 	// Ensure we don't leave tuple
 	// types in non-EVEX instructions.
 	if inst.TupleType != x86.TupleNone && !inst.Encoding.EVEX {
-		stats.ListingError()
+		stats.ListingError("p.%d: Spurious tuple type %q in non-EVEX instruction %q", inst.Page, inst.TupleType, inst.Syntax)
 		inst.TupleType = x86.TupleNone
 	}
 
@@ -418,12 +418,6 @@ func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 		}
 	}
 
-	// See whether we can use the
-	// operand data to determine
-	// the instruction data size.
-	if inst.DataSize == 0 && (inst.OperandSize || inst.Encoding.REX) && inst.Operands[0] != nil {
-		inst.DataSize = inst.Operands[0].Bits
-	}
 	switch inst.Mnemonic {
 	// Uniform arithmetic instructions.
 	case "ADCX", "ADOX", "ANDN",
@@ -455,13 +449,6 @@ func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 				}
 			}
 		}
-	}
-
-	// Remove unwanted data sizes if
-	// necessary.
-	switch inst.Mnemonic {
-	case "INCSSPQ":
-		inst.DataSize = 0
 	}
 
 	// Operand post-corrections.
@@ -508,8 +495,12 @@ func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 		"SAL", "SAR", "SHL", "SHR":
 		// The rotate/shift is unsigned.
 		if inst.Operands[1].Type == x86.TypeSignedImmediate {
-			inst.Operands[1].Syntax += "u"
-			inst.Operands[1].UID += "u"
+			if !strings.HasSuffix(inst.Operands[1].Syntax, "u") {
+				inst.Operands[1].Syntax += "u"
+			}
+			if !strings.HasSuffix(inst.Operands[1].UID, "u") {
+				inst.Operands[1].UID += "u"
+			}
 			inst.Operands[1].Type = x86.TypeUnsignedImmediate
 		}
 	case "VCMPPD", "VCMPPS", "VCMPSD", "VCMPSS":
@@ -545,10 +536,6 @@ func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 			inst.Syntax = strings.Replace(inst.Syntax, "RET", "RET-FAR", 1)
 		}
 	}
-
-	// Make the mnemonic lower case,
-	// as we use it in the assembler.
-	inst.Mnemonic = strings.ToLower(inst.Mnemonic)
 
 	// Derive the instruction UID.
 	uid := genUID(inst, false)
@@ -722,7 +709,7 @@ func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 	}
 
 	if registerInModRMreg != "" && registerInModRMrm != "" && !strings.Contains(inst.Encoding.Syntax, "/r") {
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Opcode %q is missing %q token", inst.Page, inst.Encoding.Syntax)
 		inst.Encoding.Syntax += " /r"
 		inst.Encoding.ModRM = true
 	}
@@ -742,10 +729,10 @@ func fixInstruction(stats *Stats, inst *x86.Instruction) error {
 
 func genUID(inst *x86.Instruction, includeImplied bool) string {
 	var b strings.Builder
-	b.WriteString(strings.Replace(strings.ToUpper(inst.Mnemonic), "-", "_", 1))
+	b.WriteString(strings.Replace(inst.Mnemonic, "-", "_", 1))
 
 	switch inst.Mnemonic {
-	case "bndmov", "vmload", "vmrun", "vmsave":
+	case "BNDMOV", "VMLOAD", "VMRUN", "VMSAVE":
 		// These instructions have ambiguous
 		// versions because the same encoding
 		// has different meanings in 32-bit
@@ -755,7 +742,7 @@ func genUID(inst *x86.Instruction, includeImplied bool) string {
 		} else {
 			b.WriteString("64")
 		}
-	case "pop":
+	case "POP":
 		if inst.Operands[0].Name == "FS" || inst.Operands[0].Name == "GS" {
 			// POP on FS and GS
 			// has three versions with

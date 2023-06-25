@@ -505,8 +505,6 @@ var x86TestsDone atomic.Int64
 func runTests(b *bytes.Buffer, mode x86.Mode, entries []*TestEntry) error {
 	b.Reset()
 	b.WriteString(".global _start\n")
-	//b.WriteString(".intel_mnemonic\n")
-	//b.WriteString(".intel_syntax noprefix\n")
 	b.WriteString(".text\n")
 	b.WriteByte('\n')
 	b.WriteString("_start:\n")
@@ -545,6 +543,7 @@ func runTests(b *bytes.Buffer, mode x86.Mode, entries []*TestEntry) error {
 	}
 
 	tmpName := intermediate.Name()
+	defer os.RemoveAll(tmpName)
 	_, err = intermediate.Write(b.Bytes())
 	if err != nil {
 		intermediate.Close()
@@ -561,6 +560,7 @@ func runTests(b *bytes.Buffer, mode x86.Mode, entries []*TestEntry) error {
 	cmd := exec.Command("clang", "-masm=intel", "-m"+mode.String, "-nostdlib", "-nodefaultlibs", "-static", "-o", tmpName+".exe", tmpName)
 	cmd.Stderr = b
 	err = cmd.Run()
+	defer os.RemoveAll(tmpName + ".exe")
 	if err != nil {
 		if len(entries) == 1 {
 			e := &InstructionMismatchError{
@@ -655,7 +655,7 @@ func runTests(b *bytes.Buffer, mode x86.Mode, entries []*TestEntry) error {
 			// need some special parsing, as objdump
 			// prints their destination address (as
 			// seen above), rather than the offset.
-			if len(entry.Inst.Parameters) == 1 && entry.Inst.Parameters[0].Type == x86.TypeRelativeAddress {
+			if entry.Inst.MinArgs == 1 && entry.Inst.Operands[0].Type == x86.TypeRelativeAddress {
 				// Parse the addresses.
 				fields := strings.Fields(disasm)
 				base, err1 := strconv.ParseUint(addr, 16, 64)
@@ -711,6 +711,27 @@ func runTests(b *bytes.Buffer, mode x86.Mode, entries []*TestEntry) error {
 			if entry.Code == "" {
 				// We're all good!
 				entry.Code = code
+
+				switch entry.Inst.Mnemonic {
+				// Clang has to be forced to choose
+				// `CALL-FAR m16:64` over `CALL-FAR m16:32`,
+				// even in 64-bit mode. However, if we try,
+				// Objdump reads the REX.W prefix as a
+				// separate instruction. Instead, we insert
+				// the prefix here.
+				case "CALL-FAR":
+					if entry.Inst.UID == "CALL_FAR_M16v64" && !strings.Contains(code, "48") {
+						entry.Code = strings.Replace(entry.Code, "ff", "48ff", 1)
+					}
+				// For some reason, Clang always inserts an
+				// operand size override prefix to RET in
+				// 16-bit mode. I can't see why this would
+				// be correct, so we strip it here.
+				case "RET", "RET-FAR":
+					if entry.Mode.Int == 16 {
+						entry.Code = strings.TrimPrefix(entry.Code, "66")
+					}
+				}
 			} else if entry.Code != code {
 				err := &InstructionMismatchError{
 					Done:     x86TestsDone.Load() + int64(i),

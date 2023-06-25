@@ -68,12 +68,12 @@ func (m *Mnemonic) fix(stats *Stats) error {
 	// Whereas these are errors.
 	switch m.Instruction {
 	case "VREDUCESD xmm1 {k1}{z}, xmm2, xmm3/m64{sae}, imm8/r":
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Malformed instruction mnemonic %q", m.Page, m.Instruction)
 		m.Opcode += " /r"
 		m.Instruction = "VREDUCESD xmm1 {k1}{z}, xmm2, xmm3/m64{sae}, imm8"
 	case "VCVTTPD2UDQ xmm1 {k1}{z}, ymm2/m256/m64bcst":
 		if m.Opcode == "EVEX.256.0F.W1 78 02 /r" {
-			stats.InstructionError()
+			stats.InstructionError("p.%d: Spurious %q in opcode value", m.Page, "02")
 			m.Opcode = "EVEX.256.0F.W1 78 /r"
 		}
 	}
@@ -92,7 +92,7 @@ func (m *Mnemonic) fix(stats *Stats) error {
 
 	// Error in CMOVG r64, r/m64.
 	if m.Mode64 == "V/N.E." && m.Mode32 == "N/A" {
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Invalid compatibility values %q and %q", m.Page, m.Mode64, m.Mode32)
 		m.Mode64 = "V"
 		m.Mode32 = "N.E."
 	}
@@ -174,7 +174,7 @@ func (m *Mnemonic) fixOpcode(stats *Stats) error {
 				return
 			}
 
-			stats.InstructionError()
+			stats.InstructionError("p.%d: Invalid opcode component %q, should be %q", m.Page, old, new)
 			m.Opcode = prefix + new + suffix
 		}
 	}
@@ -190,7 +190,7 @@ func (m *Mnemonic) fixOpcode(stats *Stats) error {
 	fix("66 0F3A ", "66 0F 3A ")
 	switch m.Opcode {
 	case "VEX.128.66.0F.W0 6E /":
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Invalid opcode component %q missing %q", m.Page, m.Opcode, "r")
 		m.Opcode = "VEX.128.66.0F.W0 6E /r"
 	}
 
@@ -255,7 +255,7 @@ func (m *Mnemonic) fixInstruction(stats *Stats) error {
 	case "SENDUIPI reg":
 		m.Instruction = "SENDUIPI r64" // Resolve `reg`.
 	case "SLDT r/m16":
-		m.Instruction = "SLDT r16/r32/m16" // Add a 32-bit register option..
+		m.Instruction = "SLDT r16/r32/m16" // Add a 32-bit register option.
 	case "STR r/m16":
 		m.Instruction = "STR r16/r32/m16" // Add a 32-bit register option.
 	case "TILELOADD tmm1, sibmem", "TILELOADDT1 tmm1, sibmem":
@@ -305,74 +305,58 @@ func (m *Mnemonic) fixInstruction(stats *Stats) error {
 
 	// Whereas these are errors.
 	case "ENCODEKEY256 r32, r32 <XMM0-6>":
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Missing comma after operand 2 in mnemonic %q", m.Page, m.Instruction)
 		m.Instruction = "ENCODEKEY256 r32, r32, <XMM0-6>" // Added a comma after operand 2.
 	case "KSHIFTLB k1, k2, imm8", "KSHIFTLW k1, k2, imm8", "KSHIFTLD k1, k2, imm8", "KSHIFTLQ k1, k2, imm8",
-		"KSHIFTRB k1, k2, imm8", "KSHIFTRW k1, k2, imm8", "KSHIFTRD k1, k2, imm8", "KSHIFTRQ k1, k2, imm8":
+		"KSHIFTRB k1, k2, imm8", "KSHIFTRW k1, k2, imm8", "KSHIFTRD k1, k2, imm8", "KSHIFTRQ k1, k2, imm8",
+		"VFIXUPIMMPS xmm1 {k1}{z}, xmm2, xmm3/m128/m32bcst, imm8",
+		"VFIXUPIMMPS ymm1 {k1}{z}, ymm2, ymm3/m256/m32bcst, imm8",
+		"VFPCLASSSS k2 {k1}, xmm2/m32, imm8",
+		"VRANGESD xmm1 {k1}{z}, xmm2, xmm3/m64{sae}, imm8", "VRANGESS xmm1 {k1}{z}, xmm2, xmm3/m32{sae}, imm8",
+		"VREDUCESD xmm1 {k1}{z}, xmm2, xmm3/m64{sae}, imm8":
 		if !strings.Contains(m.Opcode, " ib") {
-			stats.InstructionError()
+			stats.InstructionError("p.%d: Opcode %q is missing a token to represent immediate operand", m.Page, m.Opcode)
 			m.Opcode += " ib"
 		}
 	case "MOV r64, CR8", "MOV CR8, r64":
 		if strings.HasSuffix(m.Opcode, "/0") {
-			stats.InstructionError()
+			stats.InstructionError("p.%d: Inconsistent operand encoding for register CR8 in %q", m.Page, m.Opcode)
 			m.Opcode = strings.TrimSuffix(m.Opcode, "/0") + "/r"
 		}
-	case "VFIXUPIMMPS xmm1 {k1}{z}, xmm2, xmm3/m128/m32bcst, imm8",
-		"VFIXUPIMMPS ymm1 {k1}{z}, ymm2, ymm3/m256/m32bcst, imm8":
-		if !strings.Contains(m.Opcode, " ib") {
-			stats.InstructionError()
-			m.Opcode += " ib"
-		}
-	case "VFPCLASSSS k2 {k1}, xmm2/m32, imm8":
-		if !strings.Contains(m.Opcode, " ib") {
-			stats.InstructionError()
-			m.Opcode += " ib"
-		}
 	case "VGATHERDPD ymm1, vm32x, ymm2":
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Opcode %q is missing a token to represent VSIB operand", m.Page, m.Opcode)
 		m.Instruction = "VGATHERDPD ymm1, vm32y, ymm2" // vm32x to vm32y.
 		// Also, check the encoding.
 		if !strings.Contains(m.Opcode, "/vsib") && !strings.Contains(m.Opcode, "/sib") {
 			m.Opcode += " /vsib"
 		}
 	case "VMOVDQU32 xmm1 {k1}{z}, xmm2/mm128":
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Spurious operand token in mnemonic %q", m.Page, m.Instruction)
 		m.Instruction = "VMOVDQU32 xmm1 {k1}{z}, xmm2/m128" // Trim the second `m` in `mm128`.
 	case "VPAND ymm1, ymm2, ymm3/.m256":
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Spurious period in mnemonic %q", m.Page, m.Instruction)
 		m.Instruction = "VPAND ymm1, ymm2, ymm3/m256" // Trim the `.` in `.m256`.
 	case "VPGATHERQD xmm1, vm64y, xmm2":
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Spurious 128-bit operands in 256-bit instruction %q", m.Page, m.Instruction)
 		m.Instruction = "VPGATHERQD ymm1, vm64y, ymm2" // xmm to ymm.
 		// Also, check the encoding.
 		if !strings.Contains(m.Opcode, "/vsib") && !strings.Contains(m.Opcode, "/sib") {
 			m.Opcode += " /vsib"
 		}
-	case "VRANGESD xmm1 {k1}{z}, xmm2, xmm3/m64{sae}, imm8", "VRANGESS xmm1 {k1}{z}, xmm2, xmm3/m32{sae}, imm8":
-		if !strings.Contains(m.Opcode, " ib") {
-			stats.InstructionError()
-			m.Opcode += " ib"
-		}
-	case "VREDUCESD xmm1 {k1}{z}, xmm2, xmm3/m64{sae}, imm8":
-		if !strings.Contains(m.Opcode, " ib") {
-			stats.InstructionError()
-			m.Opcode += " ib"
-		}
 	case "VSCATTERPF0QPD vm64z {k1}":
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Spurious ZMM VSIB operand in YMM instruction %q", m.Page, m.Instruction)
 		m.Instruction = "VSCATTERPF0QPD vm64y {k1}" // vm64z to vm64y.
 	case "VSCATTERPF1QPD vm64z {k1}":
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Spurious ZMM VSIB operand in YMM instruction %q", m.Page, m.Instruction)
 		m.Instruction = "VSCATTERPF1QPD vm64y {k1}" // vm64z to vm64y.
 	case "XBEGIN rel16":
 		if !strings.Contains(m.Opcode, "cw") {
-			stats.InstructionError()
+			stats.InstructionError("p.%d: Opcode %q is missing a token to represent code offset operand", m.Page, m.Opcode)
 			m.Opcode += " cw"
 		}
 	case "XBEGIN rel32":
 		if !strings.Contains(m.Opcode, "cd") {
-			stats.InstructionError()
+			stats.InstructionError("p.%d: Opcode %q is missing a token to represent code offset operand", m.Page, m.Opcode)
 			m.Opcode += " cd"
 		}
 	}
@@ -483,8 +467,8 @@ func (m *Mnemonic) fixInstruction(stats *Stats) error {
 			case "ptr16:16", "ptr16:32":
 			case "mib":
 				if !strings.Contains(m.Opcode, "/sib") {
+					stats.InstructionError("p.%d: Opcode %q is missing token to represent MIB operand", m.Page, m.Opcode)
 					m.Opcode += " /sib"
-					stats.InstructionError()
 				}
 			case "mem":
 				parts[j] = "m"
@@ -535,8 +519,8 @@ func (m *Mnemonic) fixOperandEncoding(stats *Stats) error {
 	// PREFETCHW has a mismatch
 	// between the two tables.
 	if m.OperandEncoding == "A" && m.Instruction == "PREFETCHW m8" {
+		stats.ListingError("p.%d: Spurious operand encoding %q", m.Page, m.OperandEncoding)
 		m.OperandEncoding = "M"
-		stats.ListingError()
 	}
 
 	// VMASKMOV has a very narrow
@@ -560,13 +544,13 @@ func (m *Mnemonic) fixOperandEncoding(stats *Stats) error {
 		case "XCHG AX, r16",
 			"XCHG EAX, r32",
 			"XCHG RAX, r64":
+			stats.ListingError("p.%d: Spurious operand encoding %q", m.Page, m.OperandEncoding)
 			m.OperandEncoding = "AO"
-			stats.ListingError()
 		case "XCHG r16, AX",
 			"XCHG r32, EAX",
 			"XCHG r64, RAX":
+			stats.ListingError("p.%d: Spurious operand encoding %q", m.Page, m.OperandEncoding)
 			m.OperandEncoding = "OA"
-			stats.ListingError()
 		}
 	}
 
@@ -588,7 +572,7 @@ func (m *Mnemonic) fixMode64(stats *Stats) error {
 	case "V", "Valid":
 		m.Mode64 = "Valid"
 	case "NE", "N.E", "Inv.":
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Malformed 64-bit mode indicator %q", m.Page, dropSpaces(m.Mode64))
 		fallthrough
 	case "I", "Invalid", "Invalid*", "N.E.", "N.P.", "N.I.", "N.S.":
 		m.Mode64 = "Invalid"
@@ -608,7 +592,7 @@ func (m *Mnemonic) fixMode32(stats *Stats) error {
 	case "V", "Valid":
 		m.Mode32 = "Valid"
 	case "NE", "N.E", "Inv.":
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Malformed 32-bit mode indicator %q", m.Page, dropSpaces(m.Mode32))
 		fallthrough
 	case "I", "Invalid", "Invalid*", "N.E.":
 		m.Mode32 = "Invalid"
@@ -653,7 +637,7 @@ func (m *Mnemonic) fixCPUID(stats *Stats) error {
 	case "AESKLE":
 	case "AESKLE WIDE_KL":
 	case "AESKLEWIDE_KL":
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Malformed CPUID feature flag %q", m.Page, m.CPUID)
 		m.CPUID = "AESKLE WIDE_KL"
 	case "AMX-BF16":
 	case "AMX-INT8":
@@ -667,7 +651,7 @@ func (m *Mnemonic) fixCPUID(stats *Stats) error {
 	case "AVX512BW":
 	case "AVX512CD":
 	case "AVX512D Q":
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Malformed CPUID feature flag %q", m.Page, m.CPUID)
 		m.CPUID = "AVX512DQ"
 	case "AVX512DQ":
 	case "AVX512ER":
@@ -691,7 +675,7 @@ func (m *Mnemonic) fixCPUID(stats *Stats) error {
 	case "AVX512VL AVX512CD":
 	case "AVX512VL AVX512DQ":
 	case "AVX512VLA VX512DQ":
-		stats.InstructionError()
+		stats.InstructionError("p.%d: Malformed CPUID feature flag %q", m.Page, m.CPUID)
 		m.CPUID = "AVX512VL AVX512DQ"
 	case "AVX512VL AVX512F":
 	case "AVX512VL AVX512_VBMI":
@@ -806,18 +790,18 @@ func (e *OperandEncoding) fixEncoding(stats *Stats) error {
 	// XCHG erroneously uses the same encoding
 	// for two different instruction forms.
 	if e.Encoding == "O" && e.Operands == ([4]string{"AX/EAX/RAX (r, w)", "opcode + rd (r, w)", "N/A", "N/A"}) {
+		stats.ListingError("p.%d: Ambiguous operand encoding %q", e.Page, e.Encoding)
 		e.Encoding = "AO"
-		stats.ListingError()
 	} else if e.Encoding == "O" && e.Operands == ([4]string{"opcode + rd (r, w)", "AX/EAX/RAX (r, w)", "N/A", "N/A"}) {
+		stats.ListingError("p.%d: Ambiguous operand encoding %q", e.Page, e.Encoding)
 		e.Encoding = "OA"
-		stats.ListingError()
 	}
 
 	// One of the VMOVLPD forms has an invalid
 	// encoding.
 	if e.Operands == ([4]string{"ModRM:r/m (r)", "VEX.vvvv (r)", "ModRM:r/m (r)", "N/A"}) {
+		stats.ListingError("p.%d: Incorrect operand encoding %q", e.Page, e.Operands)
 		e.Operands[0] = "ModRM:reg (w)"
-		stats.ListingError()
 	}
 
 	// Check the encoding is well-formed.
@@ -832,7 +816,7 @@ func (e *OperandEncoding) fixTupleType(stats *Stats) error {
 	// Check the tuple type is well-formed.
 	switch e.TupleType {
 	case "NA":
-		stats.ListingError()
+		stats.ListingError("p.%d: Malformed tuple type %q", e.Page, e.TupleType)
 		e.TupleType = ""
 	case "", "N/A":
 		e.TupleType = ""
@@ -840,19 +824,19 @@ func (e *OperandEncoding) fixTupleType(stats *Stats) error {
 	case "Half":
 	case "Full Mem":
 	case "Scalar":
-		stats.ListingError()
+		stats.ListingError("p.%d: Malformed tuple type %q", e.Page, e.TupleType)
 		e.TupleType = "Tuple1 Scalar"
 	case "Tuple1 Scalar":
 	case "Tuple1 Fixed":
 	case "Tuple2":
 	case "Tuple1_4X":
-		stats.ListingError()
+		stats.ListingError("p.%d: Malformed tuple type %q", e.Page, e.TupleType)
 		e.TupleType = "Tuple4"
 	case "Tuple4":
 	case "Tuple8":
 	case "Half Mem":
 	case "Quarter":
-		stats.ListingError()
+		stats.ListingError("p.%d: Malformed tuple type %q", e.Page, e.TupleType)
 		e.TupleType = "Quarter Mem"
 	case "Quarter Mem":
 	case "Eighth Mem":
@@ -874,7 +858,7 @@ func (e *OperandEncoding) fixOperands(stats *Stats) error {
 		operand = strings.TrimSpace(strings.TrimSuffix(operand, "(r,w)"))
 		operand = strings.TrimSpace(strings.TrimSuffix(operand, "(r, w)"))
 		if strings.HasSuffix(operand, " (R)") {
-			stats.ListingError()
+			stats.ListingError("p.%d: Malformed operand %q", e.Page, e.Operands[i])
 			operand = strings.TrimSpace(strings.TrimSuffix(operand, "(R)"))
 		}
 
@@ -882,7 +866,7 @@ func (e *OperandEncoding) fixOperands(stats *Stats) error {
 		// No operand.
 		case "N/A":
 		case "NA":
-			stats.ListingError()
+			stats.ListingError("p.%d: Malformed operand %q", e.Page, e.Operands[i])
 			operand = "N/A"
 
 		// Operands that aren't encoded.
@@ -893,7 +877,7 @@ func (e *OperandEncoding) fixOperands(stats *Stats) error {
 
 		// Implied operands that aren't encoded.
 		case "<XMM0>":
-			stats.InstructionError()
+			stats.InstructionError("p.%d: Malformed operand %q", e.Page, e.Operands[i])
 			fallthrough
 		case "Implicit EAX", "Implicit EAX/RAX", "implicit XMM0", "Implicit XMM0", "Implicit XMM0-2", "Implicit XMM0-6", "Implicit XMM0-7", "Implicit XMM4-6":
 			operand = "Implicit"

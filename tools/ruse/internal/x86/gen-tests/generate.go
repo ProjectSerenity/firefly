@@ -23,20 +23,20 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 	var ruseOptionsSet, intelOptionsSet [][]string
 	for _, inst := range insts {
 		mnemonic := inst.Mnemonic
-		params := inst.Parameters
+		operands := inst.Operands
 
 		// Skip vextractps, as clang always emits
 		// an EVEX encoding, even when the VEX
 		// form is valid and shorter.
-		if mnemonic == "vextractps" {
+		if mnemonic == "VEXTRACTPS" {
 			continue
 		}
 
 		// Clang always uses the EVEX form, even
 		// if it's longer.
 		switch mnemonic {
-		case "vpdpbusd", "vpdpbusds",
-			"vpdpwssd", "vpdpwssds":
+		case "VPDPBUSD", "VPDPBUSDS",
+			"VPDPWSSD", "VPDPWSSDS":
 			if inst.Encoding.VEX {
 				continue
 			}
@@ -44,29 +44,31 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 
 		// Skip XBEGIN for now, as its behaviour
 		// is odd.
-		if mnemonic == "xbegin" {
+		if mnemonic == "XBEGIN" {
 			continue
 		}
 
 		// These instructions are not yet widely
 		// supported.
 		switch inst.Mnemonic {
-		case "aesdec128kl", "aesdec256kl",
-			"aesdecwide128kl", "aesdecwide256kl",
-			"aesenc128kl", "aesenc256kl",
-			"aesencwide128kl", "aesencwide256kl",
-			"clrssbsy",
-			"clui",
-			"encodekey128", "encodekey256",
-			"hreset",
-			"loadiwkey",
-			"rstorssp",
-			"senduipi",
-			"stui",
-			"testui",
-			"ud0",
-			"uiret",
-			"umonitor":
+		case "AESDEC128KL", "AESDEC256KL",
+			"AESDECWIDE128KL", "AESDECWIDE256KL",
+			"AESENC128KL", "AESENC256KL",
+			"AESENCWIDE128KL", "AESENCWIDE256KL",
+			"CLRSSBSY",
+			"CLUI",
+			"ENCODEKEY128", "ENCODEKEY256",
+			"HRESET",
+			"INT0", "INT1", // Clang does not support these.
+			"LDTILECFG", "STTILECFG", "TILERELEASE", // Objdump does not support these.
+			"LOADIWKEY",
+			"RSTORSSP",
+			"SENDUIPI",
+			"STUI",
+			"TESTUI",
+			"UD0",
+			"UIRET",
+			"UMONITOR":
 			continue
 		}
 
@@ -74,69 +76,73 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 		// make test vectors for, because the
 		// register size is ignored.
 		switch inst.Mnemonic {
-		case "enqcmd", "enqcmds",
-			"movdir64b":
+		case "ENQCMD", "ENQCMDS",
+			"MOVDIR64B":
 			continue
 		}
 
 		intelMnemonic := mnemonic
 		switch intelMnemonic {
-		case "call-far":
-			intelMnemonic = "lcall"
-		case "jmp-far":
-			intelMnemonic = "ljmp"
-		case "ret-far":
-			intelMnemonic = "retf"
-		case "cmpsb", "cmpsw", "cmpsd", "cmpsq":
-			if len(params) != 0 && !strings.Contains(inst.Syntax, "xmm") { // Don't mess up the unrelated XMM instruction CMPSD.
-				intelMnemonic = "cmps"
+		case "CALL-FAR":
+			intelMnemonic = "LCALL"
+		case "JMP-FAR":
+			intelMnemonic = "LJMP"
+		case "RET-FAR":
+			intelMnemonic = "RETF"
+		case "CMPSB", "CMPSW", "CMPSD", "CMPSQ":
+			if inst.MinArgs != 0 && !strings.Contains(inst.Syntax, "xmm") { // Don't mess up the unrelated XMM instruction CMPSD.
+				intelMnemonic = "CMPS"
 			}
-		case "insb", "insw", "insd", "insq":
-			if len(params) != 0 {
-				intelMnemonic = "ins"
+		case "INSB", "INSW", "INSD", "INSQ":
+			if inst.MinArgs != 0 {
+				intelMnemonic = "INS"
 			}
-		case "lodsb", "lodsw", "lodsd", "lodsq":
-			if len(params) != 0 {
-				intelMnemonic = "lods"
+		case "LODSB", "LODSW", "LODSD", "LODSQ":
+			if inst.MinArgs != 0 {
+				intelMnemonic = "LODS"
 			}
-		case "movsb", "movsw", "movsd", "movsq":
-			if len(params) != 0 && !strings.Contains(inst.Syntax, "xmm") { // Don't mess up the unrelated XMM instruction MOVSD.
-				intelMnemonic = "movs"
+		case "MOVSB", "MOVSW", "MOVSD", "MOVSQ":
+			if inst.MinArgs != 0 && !strings.Contains(inst.Syntax, "xmm") { // Don't mess up the unrelated XMM instruction MOVSD.
+				intelMnemonic = "MOVS"
 			}
-		case "outsb", "outsw", "outsd", "outsq":
-			if len(params) != 0 {
-				intelMnemonic = "outs"
+		case "OUTSB", "OUTSW", "OUTSD", "OUTSQ":
+			if inst.MinArgs != 0 {
+				intelMnemonic = "OUTS"
 			}
-		case "scasb", "scasw", "scasd", "scasq":
-			if len(params) != 0 {
-				intelMnemonic = "scas"
+		case "SCASB", "SCASW", "SCASD", "SCASQ":
+			if inst.MinArgs != 0 {
+				intelMnemonic = "SCAS"
 			}
-		case "stosb", "stosw", "stosd", "stosq":
-			if len(params) != 0 {
-				intelMnemonic = "stos"
+		case "STOSB", "STOSW", "STOSD", "STOSQ":
+			if inst.MinArgs != 0 {
+				intelMnemonic = "STOS"
 			}
-		case "pushw", "pushd":
-			if len(params) == 1 && (params[0].Syntax == "imm16" || params[0].Syntax == "imm32") {
-				intelMnemonic = "push"
+		case "PUSHW", "PUSHD":
+			if inst.MinArgs == 1 && (operands[0].Syntax == "imm16" || operands[0].Syntax == "imm32") {
+				intelMnemonic = "PUSH"
 			}
-		case "vmovapd", "vmovaps",
-			"vmovd", "vmovq",
-			"vmovddup",
-			"vmovdqa", "vmovdqa32", "vmovdqa64",
-			"vmovdqu", "vmovdqu8", "vmovdqu16", "vmovdqu32", "vmovdqu64",
-			"vmovsd", "vmovss",
-			"vmovupd", "vmovups",
-			"vpextrw":
+		case "VMOVAPD", "VMOVAPS",
+			"VMOVD", "VMOVQ",
+			"VMOVDDUP",
+			"VMOVDQA", "VMOVDQA32", "VMOVDQA64",
+			"VMOVDQU", "VMOVDQU8", "VMOVDQU16", "VMOVDQU32", "VMOVDQU64",
+			"VMOVSD", "VMOVSS",
+			"VMOVUPD", "VMOVUPS",
+			"VPEXTRW":
 			// If we have no memory address,
 			// this is ambiguous with the other
 			// form.
 			mem := false
 			regs := 0
-			for _, param := range params {
-				if param.Type == x86.TypeMemory {
+			for _, operand := range operands {
+				if operand == nil {
+					break
+				}
+
+				if operand.Type == x86.TypeMemory {
 					mem = true
 				}
-				if param.Type == x86.TypeRegister && param.Encoding != x86.EncodingNone {
+				if operand.Type == x86.TypeRegister && operand.Encoding != x86.EncodingNone {
 					regs++
 				}
 			}
@@ -146,36 +152,62 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 			}
 		}
 
+		switch inst.UID {
+		// It's more efficient to use the
+		// non-REX version.
+		case "MOVQ_M64_MM1_REX", "MOVQ_M64_XMM1_REX",
+			"MOVQ_MM1_M64_REX", "MOVQ_XMM1_M64_REX",
+			"MOV_M16_Sreg_REX",
+			"SMSW_M16_REX":
+			continue
+		// This is undefined, so Clang
+		// chooses not to support it.
+		case "BSWAP_R16op":
+			continue
+		// These forms are redundant, as
+		// they have the same effect as
+		// the 16-bit memory form.
+		case "MOV_Sreg_M32", "MOV_Sreg_M64_REX":
+			continue
+		}
+
 		// Broadcast memory is a pain to handle,
 		// as the Ruse syntax is very different
 		// (an annotation on the instruction as
 		// a whole, rather than a suffix on the
 		// memory address), so we skip them for
 		// now.
-		broadcast := false
-		for _, param := range params {
-			if param == x86.ParamM16bcst || param == x86.ParamM32bcst || param == x86.ParamM64bcst {
-				broadcast = true
-				break
-			}
-		}
-
-		if broadcast {
-			continue
-		}
-
+		//
 		// Clang doesn't seem to encode mask
 		// registers correctly, so we skip them
 		// for now.
-		masks := false
-		for _, param := range params {
-			if param == x86.ParamK1 {
-				masks = true
+		//
+		// We don't support bounds or tile
+		// registers yet.
+		var broadcast, masks, bounds, tile bool
+		for _, operand := range operands {
+			if operand == nil {
 				break
+			}
+
+			if strings.HasSuffix(operand.UID, "bcst") {
+				broadcast = true
+			}
+
+			if strings.HasPrefix(operand.UID, "K") {
+				masks = true
+			}
+
+			if strings.HasPrefix(operand.UID, "BND") {
+				bounds = true
+			}
+
+			if strings.HasPrefix(operand.UID, "TMM") {
+				tile = true
 			}
 		}
 
-		if masks {
+		if broadcast || masks || bounds || tile {
 			continue
 		}
 
@@ -183,7 +215,7 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 		// but an 8/16-bit register makes more
 		// sense, so we skip these variants.
 		switch inst.Mnemonic {
-		case "vpbroadcastb", "vpbroadcastw":
+		case "VPBROADCASTB", "VPBROADCASTW":
 			continue
 		}
 
@@ -191,8 +223,8 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 		// to size hints than the Intel manual,
 		// so we just skip it for now.
 		switch inst.Mnemonic {
-		case "vpmovqd", "vpmovsqd", "vpmovusqd":
-			if inst.Parameters[0].Type == x86.TypeMemory {
+		case "VPMOVQD", "VPMOVSQD", "VPMOVUSQD":
+			if inst.Operands[0].Type == x86.TypeMemory {
 				continue
 			}
 		}
@@ -208,13 +240,13 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 			continue
 		}
 
-		for len(ruseOptionsSet) < len(params) {
+		for len(ruseOptionsSet) < inst.MinArgs {
 			ruseOptionsSet = append(ruseOptionsSet, make([]string, 0, 10))
 			intelOptionsSet = append(intelOptionsSet, make([]string, 0, 10))
 		}
 
-		ruseOptionsSet = ruseOptionsSet[:len(params)]
-		intelOptionsSet = intelOptionsSet[:len(params)]
+		ruseOptionsSet = ruseOptionsSet[:inst.MinArgs]
+		intelOptionsSet = intelOptionsSet[:inst.MinArgs]
 		for _, mode := range x86.Modes {
 			switch mode.Int {
 			case 16:
@@ -246,9 +278,13 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 				continue
 			}
 
-			for i, param := range params {
+			for i, operand := range operands {
+				if operand == nil || i >= len(ruseOptionsSet) {
+					break
+				}
+
 				var err error
-				ruseOptionsSet[i], intelOptionsSet[i], err = syntaxToOptions(inst, ruseOptionsSet[i][:0], intelOptionsSet[i][:0], mode.Int, param.Syntax)
+				ruseOptionsSet[i], intelOptionsSet[i], err = syntaxToOptions(inst, ruseOptionsSet[i][:0], intelOptionsSet[i][:0], mode.Int, operand.UID)
 				if err != nil {
 					return nil, fmt.Errorf("failed to generate tests for %s (%s): %v", inst.Syntax, inst.UID, err)
 				}
@@ -257,14 +293,14 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 					// This happens sometimes for 16-bit mode,
 					// with SSE instructions, which are valid
 					// for 32-bit mode but not 16-bit mode.
-					return nil, fmt.Errorf("mode %d: got no options for %q in %s / %s (%s)", mode.Int, param.Syntax, inst.Syntax, inst.Encoding.Syntax, inst.UID)
+					return nil, fmt.Errorf("mode %d: got no options for %q in %s / %s (%s)", mode.Int, operand.Syntax, inst.Syntax, inst.Encoding.Syntax, inst.UID)
 				}
 			}
 
 			// Multiply the form across all of the arg
 			// combinations.
-			ruse := []string{mnemonic}
-			intel := []string{intelMnemonic}
+			ruse := []string{strings.ToLower(mnemonic)}
+			intel := []string{strings.ToLower(intelMnemonic)}
 			ruseOptions := ruseOptionsSet // Make a copy so the originals keep their offset.
 			intelOptions := intelOptionsSet
 			ruseJoin := " "
@@ -337,32 +373,32 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 				switch mnemonic {
 				// This is not widely supported and its
 				// encoding is trivial.
-				case "clui":
+				case "CLUI":
 					code = "f30f01ee"
 				// String operations must have
 				// matching parameter sizes.
-				case "cmps", "cmpsb", "cmpsw", "cmpsd", "cmpsq",
-					"movs", "movsb", "movsw", "movsd", "movsq":
+				case "CMPS", "CMPSB", "CMPSW", "CMPSD", "CMPSQ",
+					"MOVS", "MOVSB", "MOVSW", "MOVSD", "MOVSQ":
 					if strings.Contains(intel[i], "[edi]") && !strings.Contains(intel[i], "[esi]") ||
 						strings.Contains(intel[i], "[di]") && !strings.Contains(intel[i], "[si]") {
 						// Skip this one.
 						continue
 					}
-				case "fwait", "wait":
+				case "FWAIT", "WAIT":
 					// Objdump seems to merge this into
 					// any subsequent fxam instruction,
 					// which is next alphabetically.
 					// Since its encoding is trivial,
 					// we just hard-code it here.
 					code = "9b"
-				case "call", "jmp":
+				case "CALL", "JMP":
 					// We are at risk of linker errors with
 					// memory references consisting only
 					// of a displacement, if that displacement
 					// falls outside the bounds of the binary's
 					// address space.
 					j := strings.LastIndexByte(intel[i], ' ')
-					if i < 0 || len(inst.Parameters) == 1 && inst.Parameters[0].Type == x86.TypeRelativeAddress {
+					if i < 0 || inst.MinArgs == 1 && inst.Operands[0].Type == x86.TypeRelativeAddress {
 						break
 					}
 
@@ -373,7 +409,7 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 						// Just a displacement, so skip for now.
 						continue
 					}
-				case "call-far", "jmp-far":
+				case "CALL-FAR", "JMP-FAR":
 					// The small address literals we generate
 					// for 16-bit far jumps will never be
 					// encoded as 16-bit jumps by Clang,
@@ -394,22 +430,29 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 					// than try and work around it, we just
 					// skip non-native address sizes for
 					// now.
-					if inst.Parameters[0].Type == x86.TypeMemory && inst.Parameters[0].Bits-16 != int(mode.Int) {
+					if inst.Operands[0] != nil && inst.Operands[0].Type == x86.TypeMemory && inst.Operands[0].Bits-16 != int(mode.Int) {
 						continue
 					}
-				case "pop", "popw", "popd", "popq":
+				case "MOVSXD":
+					// Clang doesn't like the versions with
+					// less than a 64-bit destination, which
+					// the manual describe as 'discouraged'.
+					if inst.Syntax != "MOVSXD r64, r32/m32" {
+						continue
+					}
+				case "POP", "POPW", "POPD", "POPQ":
 					// Clang and objdump both have slightly
 					// odd behaviour with popping a segment
 					// register, so we just hard-code them
 					// here.
-					if (mnemonic == "popw" && mode.Int != 16) ||
-						(mnemonic == "popd" && mode.Int == 16) {
+					if (mnemonic == "POPW" && mode.Int != 16) ||
+						(mnemonic == "POPD" && mode.Int == 16) {
 						code = "66" // Operand size override prefix.
-					} else if mnemonic == "popq" {
+					} else if mnemonic == "POPQ" {
 						code = "48" // REX.W
 					}
 
-					if inst.Mnemonic == "pop" && len(inst.Parameters) == 1 && inst.Parameters[0].Type == x86.TypeRegister && inst.Parameters[0].Encoding == x86.EncodingModRMrm {
+					if inst.Mnemonic == "POP" && inst.MinArgs == 1 && inst.Operands[0].Type == x86.TypeRegister && inst.Operands[0].Encoding == x86.EncodingModRMrm {
 						// This is ambiguous with the older
 						// POP reg form.
 						continue
@@ -429,36 +472,51 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 					default:
 						code = "" // Fall back to test cases.
 					}
-				case "popa", "popf", "pusha", "pushf",
-					"popad", "popfd", "pushad", "pushfd",
-					"popfq", "pushfq":
+				case "POPA", "POPF", "PUSHA", "PUSHF",
+					"POPAD", "POPFD", "PUSHAD", "PUSHFD",
+					"POPFQ", "PUSHFQ":
 					// Objdump always gives the short name
 					// for the word and double word versions
 					// of these instructions. Since their
 					// encodings are so simple, we just
 					// hard-code them here.
-					if strings.HasSuffix(mnemonic, "q") {
+					if strings.HasSuffix(mnemonic, "Q") {
 						code = "48" // REX.W
-					} else if (mode.Int == 16 && strings.HasSuffix(mnemonic, "d")) ||
-						(mode.Int == 32 && !strings.HasSuffix(mnemonic, "d")) ||
-						(mode.Int == 64 && strings.HasSuffix(mnemonic, "f")) {
+					} else if (mode.Int == 16 && strings.HasSuffix(mnemonic, "D")) ||
+						(mode.Int == 32 && !strings.HasSuffix(mnemonic, "D")) ||
+						(mode.Int == 64 && strings.HasSuffix(mnemonic, "F")) {
 						code = "66" // Operand size override.
 					}
 
 					code += strings.ToLower(inst.Encoding.Syntax)
-				case "push", "pushw", "pushd", "pushq":
+				case "PUSH", "PUSHW", "PUSHD", "PUSHQ":
+					// Clang picks the version that
+					// matches the operand size, so
+					// we skip them when an operand
+					// size override prefix would be
+					// necessary.
+					if inst.UID == "PUSH_Imm16" {
+						if mode.Int != 16 {
+							continue
+						}
+					} else if inst.UID == "PUSH_Imm32" {
+						if mode.Int == 16 {
+							continue
+						}
+					}
+
 					// Clang and objdump both have slightly
 					// odd behaviour with pushing a segment
 					// register, so we just hard-code them
 					// here.
-					if mnemonic == "pushq" {
+					if mnemonic == "PUSHQ" {
 						code = "48" // REX.W
-					} else if (mnemonic == "pushw" && mode.Int != 16) ||
-						(mnemonic == "pushd" && mode.Int == 16) {
+					} else if (mnemonic == "PUSHW" && mode.Int != 16) ||
+						(mnemonic == "PUSHD" && mode.Int == 16) {
 						code = "66" // Operand size override prefix.
 					}
 
-					if inst.Mnemonic == "push" && len(inst.Parameters) == 1 && inst.Parameters[0].Type == x86.TypeRegister && inst.Parameters[0].Encoding == x86.EncodingModRMrm {
+					if inst.Mnemonic == "PUSH" && inst.MinArgs == 1 && inst.Operands[0].Type == x86.TypeRegister && inst.Operands[0].Encoding == x86.EncodingModRMrm {
 						// This is ambiguous with the older
 						// PUSH reg form.
 						continue
@@ -480,27 +538,47 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 					default:
 						code = "" // Fall back to test cases.
 					}
+				// Clang expects the implied operand
+				// for AMD-V instructions.
+				case "SKINIT", "VMLOAD", "VMRUN", "VMSAVE":
+					arg := strings.ToLower(inst.Operands[0].UID)
+					switch arg {
+					case "eax":
+						if mode.Int != 32 {
+							continue
+						}
+					case "rax":
+						if mode.Int != 64 {
+							continue
+						}
+					default:
+						panic(arg)
+					}
+
+					full := fmt.Sprintf("%s %s", strings.ToLower(mnemonic), arg)
+					ruse[i] = full
+					intel[i] = full
 				// This is not widely supported and its
 				// encoding is trivial.
-				case "stui":
+				case "STUI":
 					code = "f30f01ef"
-				case "sysexit":
+				case "SYSEXIT":
 					if inst.Encoding.REX_W {
 						code = "480f35" // This is easier than forcing the REX.W prefix through Clang.
 					}
-				case "sysret":
+				case "SYSRET":
 					if inst.Encoding.REX_W {
 						code = "480f07" // This is easier than forcing the REX.W prefix through Clang.
 					}
 				// This is not widely supported and its
 				// encoding is trivial.
-				case "testui":
+				case "TESTUI":
 					code = "f30f01ed"
 				// This is not widely supported and its
 				// encoding is trivial.
 				case "uiret":
 					code = "f30f01ec"
-				case "xlatb":
+				case "XLATB":
 					if inst.Encoding.REX_W {
 						code = "48d7" // This is easier than forcing the REX.W prefix through Clang.
 					}
@@ -563,31 +641,19 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 					}
 				}
 
-				// For some reason, Clang always inserts an
-				// operand size override prefix to RET in
-				// 16-bit mode. I can't see why this would
-				// be correct, so we hard-code here (and in
-				// simpleUnsignedInstructions below).
-				switch inst.Syntax {
-				case "RET":
-					code = "c3"
-				case "RET-FAR":
-					code = "cb"
-				}
-
 				// These instruction forms are ambiguous
 				// with an older version that only supports
 				// registers.
 				switch inst.Syntax {
-				case "DEC r/m8", "DEC r/m16", "DEC r/m32", "DEC r/m64",
-					"INC r/m8", "INC r/m16", "INC r/m32", "INC r/m64":
+				case "DEC r8/m8", "DEC r16/m16", "DEC r32/m32", "DEC r64/m64",
+					"INC r8/m8", "INC r16/m16", "INC r32/m32", "INC r64/m64":
 					if !strings.Contains(intel[i], "[") && mode.Int != 64 {
 						continue
 					}
 				// These versions are the same but their
 				// counterparts are still supported in
 				// 64-bit mode.
-				case "MOV r/m8, imm8u", "MOV r/m16, imm16", "MOV r/m32, imm32":
+				case "MOV r8/m8, imm8", "MOV r16/m16, imm16", "MOV r32/m32, imm32":
 					if !strings.Contains(intel[i], "[") {
 						continue
 					}
@@ -596,12 +662,12 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 				// Thse aren't ambiguous, but fixing VEX
 				// prefixes is too tedious for now.
 				switch mnemonic {
-				case "vmovapd", "vmovaps",
-					"vmovdqa", "vmovdqu",
-					"vmovq",
-					"vmovsd", "vmovss",
-					"vmovupd", "vmovups",
-					"vpextrw":
+				case "VMOVAPD", "VMOVAPS",
+					"VMOVDQA", "VMOVDQU",
+					"VMOVQ",
+					"VMOVSD", "VMOVSS",
+					"VMOVUPD", "VMOVUPS",
+					"VPEXTRW":
 					if inst.Encoding.VEX && !strings.Contains(intel[i], "[") {
 						continue
 					}
@@ -615,7 +681,7 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 				// with clang choosing the latter:
 				//
 				// 	ADC AX, imm16
-				// 	ADC r/m16, imm8
+				// 	ADC r16/m16, imm8
 				//
 				// To ensure that the forms match, we
 				// hard-code the expected code here.
@@ -627,7 +693,7 @@ func GenerateTestEntries(insts []*x86.Instruction) ([]*TestEntry, error) {
 					}
 					addOperandOverrideIfMode(simple.OverrideMode)
 					code += simple.Opcode
-					if len(inst.Parameters) != 1 || inst.Parameters[0].Type != x86.TypeRelativeAddress {
+					if inst.MinArgs != 1 || inst.Operands[0].Type != x86.TypeRelativeAddress {
 						addSignedImmediate(simple.ArgIndex, simple.ArgSize, 0)
 					} else {
 						addSignedImmediate(simple.ArgIndex, simple.ArgSize, int64(len(code)/2+simple.ArgSize/8))
@@ -846,8 +912,8 @@ var simpleUnsignedInstructions = map[string]simpleInstruction{
 	"MOV moffs16, AX":  {32, "a3", 3, 0},
 	"MOV moffs32, EAX": {16, "a3", 3, 0},
 	"MOV moffs64, RAX": {0, "a3", 3, 0},
-	"RET imm16u":       {0, "c2", 1, 16},
-	"RET-FAR imm16u":   {0, "ca", 1, 16},
+	"RET imm16":        {0, "c2", 1, 16},
+	"RET-FAR imm16":    {0, "ca", 1, 16},
 }
 
 // ambiguousInstruction describes
@@ -857,12 +923,12 @@ var simpleUnsignedInstructions = map[string]simpleInstruction{
 // For example, the pair:
 //
 //   - ADC AX, imm16
-//   - ADC r/m16, imm8
+//   - ADC r16/m16, imm8
 //
 // is ambiguous, as either could be
 // chosen for the assembly code
 // `adc ax, 2`. This structure is
-// used for the likes of `ADC r/m16, imm8`,
+// used for the likes of `ADC r16/m16, imm8`,
 // which is a more general instruction
 // that overlaps with a more specific
 // one.
@@ -873,41 +939,41 @@ var simpleUnsignedInstructions = map[string]simpleInstruction{
 // of the immediate argument. For
 // example, the pair:
 //
-//   - ADC r/m16, imm8
-//   - ADC r/m16, imm16
+//   - ADC r16/m16, imm8
+//   - ADC r16/m16, imm16
 type ambiguousInstruction struct {
 	Prefix    string // The prefix of an instruction instance that would be ambiguous.
 	OtherBits int    // The size in bits of the immediate argument of the smaller variant of this instruction (or 0).
 }
 
 var ambiguousInstructions = map[string]ambiguousInstruction{
-	"ADC r/m16, imm16":       {"adc ax,", 8},
-	"ADC r/m32, imm32":       {"adc eax,", 8},
-	"ADC r/m64, imm32":       {"adc rax,", 8},
-	"ADD r/m16, imm16":       {"add ax,", 8},
-	"ADD r/m32, imm32":       {"add eax,", 8},
-	"ADD r/m64, imm32":       {"add rax,", 8},
-	"AND r/m16, imm16":       {"and ax,", 8},
-	"AND r/m32, imm32":       {"and eax,", 8},
-	"AND r/m64, imm32":       {"and rax,", 8},
-	"CMP r/m16, imm16":       {"cmp ax,", 8},
-	"CMP r/m32, imm32":       {"cmp eax,", 8},
-	"CMP r/m64, imm32":       {"cmp rax,", 8},
-	"IMUL r16, r/m16, imm16": {"", 8},
-	"IMUL r32, r/m32, imm32": {"", 8},
-	"IMUL r64, r/m64, imm32": {"", 8},
-	"OR r/m16, imm16":        {"or ax,", 8},
-	"OR r/m32, imm32":        {"or eax,", 8},
-	"OR r/m64, imm32":        {"or rax,", 8},
-	"SBB r/m16, imm16":       {"sbb ax,", 8},
-	"SBB r/m32, imm32":       {"sbb eax,", 8},
-	"SBB r/m64, imm32":       {"sbb rax,", 8},
-	"SUB r/m16, imm16":       {"sub ax,", 8},
-	"SUB r/m32, imm32":       {"sub eax,", 8},
-	"SUB r/m64, imm32":       {"sub rax,", 8},
-	"XOR r/m16, imm16":       {"xor ax,", 8},
-	"XOR r/m32, imm32":       {"xor eax,", 8},
-	"XOR r/m64, imm32":       {"xor rax,", 8},
+	"ADC r16/m16, imm16":       {"adc ax,", 8},
+	"ADC r32/m32, imm32":       {"adc eax,", 8},
+	"ADC r64/m64, imm32":       {"adc rax,", 8},
+	"ADD r16/m16, imm16":       {"add ax,", 8},
+	"ADD r32/m32, imm32":       {"add eax,", 8},
+	"ADD r64/m64, imm32":       {"add rax,", 8},
+	"AND r16/m16, imm16":       {"and ax,", 8},
+	"AND r32/m32, imm32":       {"and eax,", 8},
+	"AND r64/m64, imm32":       {"and rax,", 8},
+	"CMP r16/m16, imm16":       {"cmp ax,", 8},
+	"CMP r32/m32, imm32":       {"cmp eax,", 8},
+	"CMP r64/m64, imm32":       {"cmp rax,", 8},
+	"IMUL r16, r16/m16, imm16": {"", 8},
+	"IMUL r32, r32/m32, imm32": {"", 8},
+	"IMUL r64, r64/m64, imm32": {"", 8},
+	"OR r16/m16, imm16":        {"or ax,", 8},
+	"OR r32/m32, imm32":        {"or eax,", 8},
+	"OR r64/m64, imm32":        {"or rax,", 8},
+	"SBB r16/m16, imm16":       {"sbb ax,", 8},
+	"SBB r32/m32, imm32":       {"sbb eax,", 8},
+	"SBB r64/m64, imm32":       {"sbb rax,", 8},
+	"SUB r16/m16, imm16":       {"sub ax,", 8},
+	"SUB r32/m32, imm32":       {"sub eax,", 8},
+	"SUB r64/m64, imm32":       {"sub rax,", 8},
+	"XOR r16/m16, imm16":       {"xor ax,", 8},
+	"XOR r32/m32, imm32":       {"xor eax,", 8},
+	"XOR r64/m64, imm32":       {"xor rax,", 8},
 }
 
 // syntaxToOptions turns an
@@ -1172,29 +1238,29 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 	}
 
 	switch operand {
-	case "imm8":
+	case "Imm8":
 		both("-0x80", "-7", "0", "7", "0x7f")
-	case "imm16":
+	case "Imm16":
 		both("-0x8000", "-256", "256", "0x7fff")
-	case "imm32":
+	case "Imm32":
 		both("-0x80000000", "-65536", "65536", "0x7fffffff")
-	case "imm64":
+	case "Imm64":
 		both("-0x8000000000000000", "-4294967296", "4294967296", "0x7fffffffffffffff")
-	case "imm5u":
+	case "Imm5u":
 		both("0", "11", "31")
-	case "imm8u":
+	case "Imm8u":
 		both("0", "12", "0x7f", "0xff")
-	case "imm16u":
+	case "Imm16u":
 		both("0x7fff", "0xffff")
-	case "imm32u":
+	case "Imm32u":
 		both("0x7fffffff", "0xffffffff")
-	case "imm64u":
+	case "Imm64u":
 		both("0x7fffffffffffffff", "0xffffffffffffff")
-	case "rel8":
+	case "Rel8":
 		both("-0x11", "0", "0x11")
-	case "rel16":
+	case "Rel16":
 		both("-0x1122", "0", "0x1122")
-	case "rel32":
+	case "Rel32":
 		both("-0x112233", "0", "0x112233")
 	case "ST":
 		both("st")
@@ -1205,7 +1271,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		"CR8",
 		"0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
 		both(strings.Map(alphanumRunesOnlyAndLower, operand))
-	case "r8", "rmr8", "r8V", "r8op", "rmr8op":
+	case "R8", "Rmr8", "R8V", "R8op", "Rmr8op":
 		// Don't include al, as there are too
 		// many instructions that specialise
 		// for the accumulator, resulting in
@@ -1220,7 +1286,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 				"r15l", "r15b",
 			)
 		}
-	case "r16", "rmr16", "r16V", "r16op", "rmr16op":
+	case "R16", "Rmr16", "R16V", "R16op", "Rmr16op":
 		// Don't include ax, as there are too
 		// many instructions that specialise
 		// for the accumulator, resulting in
@@ -1229,7 +1295,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		if mode == 64 {
 			both("r8w", "r10w", "r15w")
 		}
-	case "r32", "rmr32", "r32V", "r32op", "rmr32op":
+	case "R32", "Rmr32", "R32V", "R32op", "Rmr32op":
 		// Don't include eax, as there are too
 		// many instructions that specialise
 		// for the accumulator, resulting in
@@ -1238,7 +1304,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		if mode == 64 {
 			both("r8d", "r10d", "r15d")
 		}
-	case "r64", "rmr64", "r64V", "r64op", "rmr64op":
+	case "R64", "Rmr64", "R64V", "R64op", "Rmr64op":
 		// Don't include rax, as there are too
 		// many instructions that specialise
 		// for the accumulator, resulting in
@@ -1248,23 +1314,23 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		} else {
 			both("rcx", "rbp", "rsp", "rdi", "r8", "r10", "r15")
 		}
-	case "k1", "k2", "kV":
+	case "K1", "K2", "KV":
 		both("k1", "k4", "k7")
 	case "Sreg":
 		both("es", "cs", "ss", "ds", "fs", "gs")
-	case "ST(i)":
+	case "STi":
 		pairs(
 			"st1", "st(1)",
 			"st3", "st(3)",
 			"st7", "st(7)",
 		)
-	case "CR0-CR7":
+	case "CR0toCR7":
 		both("cr0", "cr1", "cr5", "cr7")
-	case "DR0-DR7":
+	case "DR0toDR7":
 		both("dr0", "dr1", "dr5", "dr7")
-	case "mm1", "mm2":
+	case "MM", "MM1", "MM2", "MM3":
 		both("mm0", "mm1", "mm7")
-	case "xmm1", "xmm2":
+	case "XMM", "XMM1", "XMM2":
 		if inst.Encoding.EVEX {
 			if mode == 64 {
 				both("xmm5", "xmm19", "xmm31")
@@ -1275,7 +1341,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 				both("xmm8", "xmm15")
 			}
 		}
-	case "xmmV", "xmmIH":
+	case "XMMV", "XMMIH":
 		if inst.Encoding.EVEX {
 			if mode == 64 {
 				both("xmm5", "xmm19", "xmm31")
@@ -1288,7 +1354,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 				both("xmm8", "xmm15")
 			}
 		}
-	case "ymm1", "ymm2":
+	case "YMM1", "YMM2":
 		if inst.Encoding.EVEX {
 			if mode == 64 {
 				both("ymm5", "ymm19", "ymm31")
@@ -1299,7 +1365,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 				both("ymm8", "ymm15")
 			}
 		}
-	case "ymmV", "ymmIH":
+	case "YMMV", "YMMIH":
 		if inst.Encoding.EVEX {
 			if mode == 64 {
 				both("ymm5", "ymm19", "ymm31")
@@ -1312,53 +1378,53 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 				both("ymm8", "ymm15")
 			}
 		}
-	case "zmm1", "zmm2", "zmmV", "zmmIH":
+	case "ZMM1", "ZMM2", "ZMMV", "ZMMIH":
 		if mode == 64 && inst.Encoding.EVEX {
 			both("zmm0", "zmm1", "zmm7", "zmm8", "zmm15", "zmm19", "zmm31")
 		}
-	case "[es:edi:8]":
+	case "StrDst8":
 		if mode == 16 {
 			stringDst16("byte")
 		}
 		stringDst32("byte")
-	case "[es:edi:16]":
+	case "StrDst16":
 		if mode == 16 {
 			stringDst16("word")
 		}
 		stringDst32("word")
-	case "[es:edi:32]":
+	case "StrDst32":
 		if mode == 16 {
 			stringDst16("dword")
 		}
 		stringDst32("dword")
-	case "[rdi:64]":
+	case "StrDst64":
 		if mode != 64 {
 			return nil, nil, fmt.Errorf("no options for syntax %q in %d-bit mode", operand, mode)
 		} else {
 			stringDst64("qword")
 		}
-	case "[ds:esi:8]":
+	case "StrSrc8":
 		if mode == 16 {
 			stringSrc16("byte")
 		}
 		stringSrc32("byte")
-	case "[ds:esi:16]":
+	case "StrSrc16":
 		if mode == 16 {
 			stringSrc16("word")
 		}
 		stringSrc32("word")
-	case "[ds:esi:32]":
+	case "StrSrc32":
 		if mode == 16 {
 			stringSrc16("dword")
 		}
 		stringSrc32("dword")
-	case "[rsi:64]":
+	case "StrSrc64":
 		if mode != 64 {
 			return nil, nil, fmt.Errorf("no options for syntax %q in %d-bit mode", operand, mode)
 		} else {
 			stringSrc64("qword")
 		}
-	case "m", "m14/28byte", "m94/108byte", "m384", "m512byte":
+	case "M", "M14l28byte", "M94l108byte", "M384", "M512byte":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
 			memory16("", "")
 		}
@@ -1368,7 +1434,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		if mode == 64 {
 			memory64("", "")
 		}
-	case "m8":
+	case "M8":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
 			memory16("byte", "byte")
 		}
@@ -1378,7 +1444,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		if mode == 64 {
 			memory64("byte", "byte")
 		}
-	case "m16", "m16int", "m16op", "m16bcst", "m2byte":
+	case "M16", "M16int", "M16op", "M16bcst", "M2byte":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
 			memory16("word", "word")
 		}
@@ -1388,7 +1454,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		if mode == 64 {
 			memory64("word", "word")
 		}
-	case "m16:16":
+	case "M16v16":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
 			memory16("dword", "word")
 		}
@@ -1398,7 +1464,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		if mode == 64 {
 			memory64("dword", "word")
 		}
-	case "m16:32":
+	case "M16v32":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
 			memory16("tword", "word")
 		}
@@ -1408,7 +1474,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		if mode == 64 {
 			memory64("tword", "word")
 		}
-	case "m32", "m32fp", "m32int", "m32op", "m32bcst", "m16&16":
+	case "M32", "M32fp", "M32int", "M32op", "M32bcst", "M16x16":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
 			memory16("dword", "dword")
 		}
@@ -1418,7 +1484,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		if mode == 64 {
 			memory64("dword", "dword")
 		}
-	case "m16&32":
+	case "M16x32":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
 			memory16("tword", "")
 		}
@@ -1428,7 +1494,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		if mode == 64 {
 			memory64("tword", "")
 		}
-	case "m64", "m64fp", "m64int", "m64op", "m64bcst", "m32&32":
+	case "M64", "M64fp", "M64int", "M64op", "M64bcst", "M32x32":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
 			memory16("qword", "qword")
 		}
@@ -1438,7 +1504,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		if mode == 64 {
 			memory64("qword", "qword")
 		}
-	case "m16:64", "m16&64":
+	case "M16v64", "M16x64":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
 			memory16("tbyte", "qword")
 		}
@@ -1448,14 +1514,14 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		if mode == 64 {
 			memory64("tbyte", "qword")
 		}
-	case "m80bcd", "m80dec", "m80fp":
+	case "M80bcd", "M80dec", "M80fp":
 		if mode == 32 || !inst.Encoding.EVEX {
 			memory32("tbyte", "tbyte", mode > 16)
 		}
 		if mode == 64 {
 			memory64("tbyte", "tbyte")
 		}
-	case "m128":
+	case "M128":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
 			memory16("xmmword", "xmmword")
 		}
@@ -1465,7 +1531,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		if mode == 64 {
 			memory64("xmmword", "xmmword")
 		}
-	case "m256":
+	case "M256":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
 			memory16("ymmword", "ymmword")
 		}
@@ -1475,28 +1541,28 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		if mode == 64 {
 			memory64("ymmword", "ymmword")
 		}
-	case "m512":
+	case "M512":
 		if mode == 32 || !inst.Encoding.EVEX {
 			memory32("zmmword", "zmmword", mode > 16)
 		}
 		if mode == 64 {
 			memory64("zmmword", "zmmword")
 		}
-	case "moffs8":
+	case "Moffs8":
 		memoryOffset("byte", mode)
-	case "moffs16":
+	case "Moffs16":
 		memoryOffset("word", mode)
-	case "moffs32":
+	case "Moffs32":
 		memoryOffset("dword", mode)
-	case "moffs64":
+	case "Moffs64":
 		memoryOffset("qword", mode)
-	case "ptr16:16":
+	case "Ptr16v16":
 		pairs(
 			"(0x0 0x0)", "0x0, 0x0",
 			"(0xfd 0xfe)", "0xfd, 0xfe",
 			"(0xfefd 0xf2fe)", "0xfefd, 0xf2fe",
 		)
-	case "ptr16:32":
+	case "Ptr16v32":
 		pairs(
 			"(0x0 0x10000)", "0x0, 0x10000",
 			"(0xfd 0xfefcfd)", "0xfd, 0xfefcfd",

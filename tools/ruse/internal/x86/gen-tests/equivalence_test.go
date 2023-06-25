@@ -157,7 +157,7 @@ func TestCanonicaliseStringOperation(t *testing.T) {
 		{
 			Name: "already canonical",
 			Entry: &TestEntry{
-				Inst:  x86.MOVSD_StrDst32_StrSrc32,
+				Inst:  x86.MOVSD,
 				Intel: "movsd dword ptr es:[edi], dword ptr ds:[esi]",
 				Mode:  x86.Mode32,
 			},

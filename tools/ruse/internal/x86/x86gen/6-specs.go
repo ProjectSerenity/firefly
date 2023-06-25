@@ -48,7 +48,7 @@ func (l *Listing) Specs(stats *Stats) ([]Spec, error) {
 		if !ok {
 			open, ok = missingEncodings[mnemonic.Instruction]
 			if ok {
-				stats.ListingError()
+				stats.ListingError("p.%d: Mnemonic is missing an operand encoding table", l.Page)
 			}
 		}
 

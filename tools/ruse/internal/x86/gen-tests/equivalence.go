@@ -72,7 +72,7 @@ func AreEquivalent(a, b *TestEntry) bool {
 
 	// There is also XCHG, whose
 	// arguments are reversible.
-	if a.Inst.Mnemonic == "xchg" && b.Inst.Mnemonic == "xchg" &&
+	if a.Inst.Mnemonic == "XCHG" && b.Inst.Mnemonic == "XCHG" &&
 		len(argsA) == len(argsB) && len(argsA) == 2 {
 		argsAFields0 := strings.Fields(argsA[0])
 		argsAFields1 := strings.Fields(argsA[1])
@@ -115,18 +115,18 @@ func AreEquivalent(a, b *TestEntry) bool {
 	// FXCH ST(1) / FXCH.
 	if a.Inst.Mnemonic == b.Inst.Mnemonic && len(argsA) <= 2 && len(argsB) <= 2 {
 		switch a.Inst.Mnemonic {
-		case "fadd", "fdiv", "fsub":
+		case "FADD", "FDIV", "FSUB":
 			if len(argsA) == 2 && len(argsB) == 2 &&
 				argsA[0] == argsB[1] &&
 				argsA[1] == argsB[0] {
 				return true
 			}
-		case "faddp", "fdivp", "fdivrp", "fmulp", "fsubp", "fsubrp":
+		case "FADDP", "FDIVP", "FDIVRP", "FMULP", "FSUBP", "FSUBRP":
 			if (len(argsA) == 0 || (len(argsA) == 2 && argsA[0] == "st(1)" && argsA[1] == "st")) &&
 				(len(argsB) == 0 || (len(argsB) == 2 && argsB[0] == "st(1)" && argsB[1] == "st")) {
 				return true
 			}
-		case "fcom", "fcomp", "fucom", "fucomp", "fxch":
+		case "FCOM", "FCOMP", "FUCOM", "FUCOMP", "FXCH":
 			if (len(argsA) == 0 || (len(argsA) == 1 && argsA[0] == "st(1)")) &&
 				(len(argsB) == 0 || (len(argsB) == 1 && argsB[0] == "st(1)")) {
 				return true
@@ -139,7 +139,7 @@ func AreEquivalent(a, b *TestEntry) bool {
 	// register does not change
 	// the behaviour, so we accept
 	// any size.
-	if a.Inst.Mnemonic == "mov" && b.Inst.Mnemonic == "mov" &&
+	if a.Inst.Mnemonic == "MOV" && b.Inst.Mnemonic == "MOV" &&
 		strings.HasSuffix(a.Inst.Syntax, ", Sreg") && strings.HasSuffix(b.Inst.Syntax, ", Sreg") &&
 		len(argsA) == 2 && len(argsB) == 2 {
 		canonA, okA := CanonicaliseRegister(argsA[0])
@@ -154,7 +154,7 @@ func AreEquivalent(a, b *TestEntry) bool {
 	// register does not change
 	// the behaviour, so we accept
 	// any size.
-	if a.Inst.Mnemonic == "mov" && b.Inst.Mnemonic == "mov" &&
+	if a.Inst.Mnemonic == "MOV" && b.Inst.Mnemonic == "MOV" &&
 		strings.HasPrefix(a.Inst.Syntax, "MOV Sreg,") && strings.HasPrefix(b.Inst.Syntax, "MOV Sreg,") &&
 		len(argsA) == 2 && len(argsB) == 2 {
 		canonA, okA := CanonicaliseRegister(argsA[1])
@@ -382,30 +382,30 @@ func CanonicaliseRegister(reg string) (canonical string, ok bool) {
 // CanonicaliseStringOperation returns
 // `("", false)`.
 func CanonicaliseStringOperation(entry *TestEntry, addSuffix bool) (canonical string, ok bool) {
-	family := strings.TrimRight(entry.Inst.Mnemonic, "bwdq")
-	if family == "cmps" && strings.Contains(entry.Inst.Syntax, "xmm") {
+	family := strings.TrimRight(entry.Inst.Mnemonic, "BWDQ")
+	if family == "CMPS" && strings.Contains(entry.Inst.Syntax, "xmm") {
 		// We don't want to match on the XMM CMPS instruction.
 		return "", false
 	}
 
 	switch family {
-	case "cmps", "ins", "lods", "movs", "outs", "scas", "stos":
+	case "CMPS", "INS", "LODS", "MOVS", "OUTS", "SCAS", "STOS":
 	default:
 		return "", false
 	}
 
 	var acc, size, dst, src string
 	switch {
-	case strings.HasSuffix(entry.Inst.Mnemonic, "b"), strings.Contains(entry.Intel, " byte ptr"):
+	case strings.HasSuffix(entry.Inst.Mnemonic, "B"), strings.Contains(entry.Intel, " byte ptr"):
 		acc = "al"
 		size = "byte ptr"
-	case strings.HasSuffix(entry.Inst.Mnemonic, "w"), strings.Contains(entry.Intel, " word ptr"):
+	case strings.HasSuffix(entry.Inst.Mnemonic, "W"), strings.Contains(entry.Intel, " word ptr"):
 		acc = "ax"
 		size = "word ptr"
-	case strings.HasSuffix(entry.Inst.Mnemonic, "d"), strings.Contains(entry.Intel, " dword ptr"):
+	case strings.HasSuffix(entry.Inst.Mnemonic, "D"), strings.Contains(entry.Intel, " dword ptr"):
 		acc = "eax"
 		size = "dword ptr"
-	case strings.HasSuffix(entry.Inst.Mnemonic, "q"), strings.Contains(entry.Intel, " qword ptr"):
+	case strings.HasSuffix(entry.Inst.Mnemonic, "Q"), strings.Contains(entry.Intel, " qword ptr"):
 		acc = "rax"
 		size = "qword ptr"
 	default:
@@ -447,20 +447,20 @@ func CanonicaliseStringOperation(entry *TestEntry, addSuffix bool) (canonical st
 	}
 
 	switch family {
-	case "cmps":
-		canonical = fmt.Sprintf("cmps%s %s %s, %s %s", suffix, size, src, size, dst)
-	case "ins":
-		canonical = fmt.Sprintf("ins%s %s %s, dx", suffix, size, dst)
-	case "lods":
-		canonical = fmt.Sprintf("lods%s %s, %s %s", suffix, acc, size, src)
-	case "movs":
-		canonical = fmt.Sprintf("movs%s %s %s, %s %s", suffix, size, dst, size, src)
-	case "outs":
-		canonical = fmt.Sprintf("outs%s dx, %s %s", suffix, size, src)
-	case "scas":
-		canonical = fmt.Sprintf("scas%s %s, %s %s", suffix, acc, size, dst)
-	case "stos":
-		canonical = fmt.Sprintf("stos%s %s %s, %s", suffix, size, dst, acc)
+	case "CMPS":
+		canonical = fmt.Sprintf("%s%s %s %s, %s %s", strings.ToLower(family), suffix, size, src, size, dst)
+	case "INS":
+		canonical = fmt.Sprintf("%s%s %s %s, dx", strings.ToLower(family), suffix, size, dst)
+	case "LODS":
+		canonical = fmt.Sprintf("%s%s %s, %s %s", strings.ToLower(family), suffix, acc, size, src)
+	case "MOVS":
+		canonical = fmt.Sprintf("%s%s %s %s, %s %s", strings.ToLower(family), suffix, size, dst, size, src)
+	case "OUTS":
+		canonical = fmt.Sprintf("%s%s dx, %s %s", strings.ToLower(family), suffix, size, src)
+	case "SCAS":
+		canonical = fmt.Sprintf("%s%s %s, %s %s", strings.ToLower(family), suffix, acc, size, dst)
+	case "STOS":
+		canonical = fmt.Sprintf("%s%s %s %s, %s", strings.ToLower(family), suffix, size, dst, acc)
 	default:
 		panic("unexpected mnemonic: " + entry.Inst.Mnemonic)
 	}
@@ -547,45 +547,45 @@ func equalStringSetsOrMemories(a, b []string) bool {
 // each group is the canonical
 // mnemonic.
 var equivalentGroups = [][]string{
-	{"cmovb", "cmovc", "cmovnae"},
-	{"cmovae", "cmovnb", "cmovnc"},
-	{"cmove", "cmovz"},
-	{"cmovne", "cmovnz"},
-	{"cmovbe", "cmovna"},
-	{"cmova", "cmovnbe"},
-	{"cmovp", "cmovpe"},
-	{"cmovnp", "cmovpo"},
-	{"cmovl", "cmovnge"},
-	{"cmovge", "cmovnl"},
-	{"cmovle", "cmovng"},
-	{"cmovg", "cmovnle"},
-	{"jb", "jc", "jnae"},
-	{"jae", "jnb", "jnc"},
-	{"je", "jz"},
-	{"jne", "jnz"},
-	{"jbe", "jna"},
-	{"ja", "jnbe"},
-	{"jp", "jpe"},
-	{"jnp", "jpo"},
-	{"jl", "jnge"},
-	{"jge", "jnl"},
-	{"jle", "jng"},
-	{"jg", "jnle"},
-	{"jecxz", "jcxz", "jrcxz"},
-	{"shl", "sal"},
-	{"setb", "setnae", "setc"},
-	{"setae", "setnb", "setnc"},
-	{"sete", "setz"},
-	{"setne", "setnz"},
-	{"setbe", "setna"},
-	{"seta", "setnbe"},
-	{"setp", "setpe"},
-	{"setnp", "setpo"},
-	{"setl", "setnge"},
-	{"setge", "setnl"},
-	{"setle", "setng"},
-	{"setg", "setnle"},
-	{"wait", "fwait"},
+	{"CMOVB", "CMOVC", "CMOVNAE"},
+	{"CMOVAE", "CMOVNB", "CMOVNC"},
+	{"CMOVE", "CMOVZ"},
+	{"CMOVNE", "CMOVNZ"},
+	{"CMOVBE", "CMOVNA"},
+	{"CMOVA", "CMOVNBE"},
+	{"CMOVP", "CMOVPE"},
+	{"CMOVNP", "CMOVPO"},
+	{"CMOVL", "CMOVNGE"},
+	{"CMOVGE", "CMOVNL"},
+	{"CMOVLE", "CMOVNG"},
+	{"CMOVG", "CMOVNLE"},
+	{"JB", "JC", "JNAE"},
+	{"JAE", "JNB", "JNC"},
+	{"JE", "JZ"},
+	{"JNE", "JNZ"},
+	{"JBE", "JNA"},
+	{"JA", "JNBE"},
+	{"JP", "JPE"},
+	{"JNP", "JPO"},
+	{"JL", "JNGE"},
+	{"JGE", "JNL"},
+	{"JLE", "JNG"},
+	{"JG", "JNLE"},
+	{"JECXZ", "JCXZ", "JRCXZ"},
+	{"SHL", "SAL"},
+	{"SETB", "SETNAE", "SETC"},
+	{"SETAE", "SETNB", "SETNC"},
+	{"SETE", "SETZ"},
+	{"SETNE", "SETNZ"},
+	{"SETBE", "SETNA"},
+	{"SETA", "SETNBE"},
+	{"SETP", "SETPE"},
+	{"SETNP", "SETPO"},
+	{"SETL", "SETNGE"},
+	{"SETGE", "SETNL"},
+	{"SETLE", "SETNG"},
+	{"SETG", "SETNLE"},
+	{"WAIT", "FWAIT"},
 }
 
 // equivalentGroupsForMode are a set of
@@ -597,12 +597,12 @@ var equivalentGroups = [][]string{
 // mnemonic.
 var equivalentGroupsForMode = map[uint8][][]string{
 	16: {
-		{"pop", "popw"},
-		{"push", "pushw"},
+		{"POP", "POPW"},
+		{"PUSH", "PUSHW"},
 	},
 	32: {
-		{"pop", "popd"},
-		{"push", "pushd"},
+		{"POP", "POPD"},
+		{"PUSH", "PUSHD"},
 	},
 }
 
@@ -690,8 +690,8 @@ func IsSpecialisation(special, general *TestEntry) bool {
 // that is a variant of a more
 // general instruction.
 //
-// For example, `cmpeqpd` is a
-// specialisation of `cmppd`,
+// For example, `CMPEQPD` is a
+// specialisation of `CMPPD`,
 // where the final immediate
 // argument is zero.
 type specialisation struct {
@@ -703,112 +703,112 @@ type specialisation struct {
 // instruction mnemonics to their
 // more specialised forms.
 var specialisations = map[string][]specialisation{
-	"cmppd": {
-		{Mnemonic: "cmpeqpd", Suffixes: []string{"0", "8", "16", "24"}},
-		{Mnemonic: "cmpltpd", Suffixes: []string{"1", "9", "17", "25"}},
-		{Mnemonic: "cmplepd", Suffixes: []string{"2", "10", "18", "26"}},
-		{Mnemonic: "cmpunordpd", Suffixes: []string{"3", "11", "19", "27"}},
-		{Mnemonic: "cmpfalsepd", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
-		{Mnemonic: "cmpneqpd", Suffixes: []string{"4", "12", "20", "28"}},
-		{Mnemonic: "cmpnltpd", Suffixes: []string{"5", "13", "21", "29"}},
-		{Mnemonic: "cmpnlepd", Suffixes: []string{"6", "14", "22", "30"}},
-		{Mnemonic: "cmpordpd", Suffixes: []string{"7", "15", "23", "31"}},
-		{Mnemonic: "cmptrue_uspd", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
+	"CMPPD": {
+		{Mnemonic: "CMPEQPD", Suffixes: []string{"0", "8", "16", "24"}},
+		{Mnemonic: "CMPLTPD", Suffixes: []string{"1", "9", "17", "25"}},
+		{Mnemonic: "CMPLEPD", Suffixes: []string{"2", "10", "18", "26"}},
+		{Mnemonic: "CMPUNORDPD", Suffixes: []string{"3", "11", "19", "27"}},
+		{Mnemonic: "CMPFALSEPD", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
+		{Mnemonic: "CMPNEQPD", Suffixes: []string{"4", "12", "20", "28"}},
+		{Mnemonic: "CMPNLTPD", Suffixes: []string{"5", "13", "21", "29"}},
+		{Mnemonic: "CMPNLEPD", Suffixes: []string{"6", "14", "22", "30"}},
+		{Mnemonic: "CMPORDPD", Suffixes: []string{"7", "15", "23", "31"}},
+		{Mnemonic: "CMPTRUE_USPD", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
 	},
-	"cmpps": {
-		{Mnemonic: "cmpeqps", Suffixes: []string{"0", "8", "16", "24"}},
-		{Mnemonic: "cmpltps", Suffixes: []string{"1", "9", "17", "25"}},
-		{Mnemonic: "cmpleps", Suffixes: []string{"2", "10", "18", "26"}},
-		{Mnemonic: "cmpunordps", Suffixes: []string{"3", "11", "19", "27"}},
-		{Mnemonic: "cmpfalseps", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
-		{Mnemonic: "cmpneqps", Suffixes: []string{"4", "12", "20", "28"}},
-		{Mnemonic: "cmpnltps", Suffixes: []string{"5", "13", "21", "29"}},
-		{Mnemonic: "cmpnleps", Suffixes: []string{"6", "14", "22", "30"}},
-		{Mnemonic: "cmpordps", Suffixes: []string{"7", "15", "23", "31"}},
-		{Mnemonic: "cmptrue_usps", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
+	"CMPPS": {
+		{Mnemonic: "CMPEQPS", Suffixes: []string{"0", "8", "16", "24"}},
+		{Mnemonic: "CMPLTPS", Suffixes: []string{"1", "9", "17", "25"}},
+		{Mnemonic: "CMPLEPS", Suffixes: []string{"2", "10", "18", "26"}},
+		{Mnemonic: "CMPUNORDPS", Suffixes: []string{"3", "11", "19", "27"}},
+		{Mnemonic: "CMPFALSEPS", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
+		{Mnemonic: "CMPNEQPS", Suffixes: []string{"4", "12", "20", "28"}},
+		{Mnemonic: "CMPNLTPS", Suffixes: []string{"5", "13", "21", "29"}},
+		{Mnemonic: "CMPNLEPS", Suffixes: []string{"6", "14", "22", "30"}},
+		{Mnemonic: "CMPORDPS", Suffixes: []string{"7", "15", "23", "31"}},
+		{Mnemonic: "CMPTRUE_USPS", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
 	},
-	"cmpsd": {
-		{Mnemonic: "cmpeqsd", Suffixes: []string{"0", "8", "16", "24"}},
-		{Mnemonic: "cmpltsd", Suffixes: []string{"1", "9", "17", "25"}},
-		{Mnemonic: "cmplesd", Suffixes: []string{"2", "10", "18", "26"}},
-		{Mnemonic: "cmpunordsd", Suffixes: []string{"3", "11", "19", "27"}},
-		{Mnemonic: "cmpfalsesd", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
-		{Mnemonic: "cmpneqsd", Suffixes: []string{"4", "12", "20", "28"}},
-		{Mnemonic: "cmpnltsd", Suffixes: []string{"5", "13", "21", "29"}},
-		{Mnemonic: "cmpnlesd", Suffixes: []string{"6", "14", "22", "30"}},
-		{Mnemonic: "cmpordsd", Suffixes: []string{"7", "15", "23", "31"}},
-		{Mnemonic: "cmptrue_ussd", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
+	"CMPSD": {
+		{Mnemonic: "CMPEQSD", Suffixes: []string{"0", "8", "16", "24"}},
+		{Mnemonic: "CMPLTSD", Suffixes: []string{"1", "9", "17", "25"}},
+		{Mnemonic: "CMPLESD", Suffixes: []string{"2", "10", "18", "26"}},
+		{Mnemonic: "CMPUNORDSD", Suffixes: []string{"3", "11", "19", "27"}},
+		{Mnemonic: "CMPFALSESD", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
+		{Mnemonic: "CMPNEQSD", Suffixes: []string{"4", "12", "20", "28"}},
+		{Mnemonic: "CMPNLTSD", Suffixes: []string{"5", "13", "21", "29"}},
+		{Mnemonic: "CMPNLESD", Suffixes: []string{"6", "14", "22", "30"}},
+		{Mnemonic: "CMPORDSD", Suffixes: []string{"7", "15", "23", "31"}},
+		{Mnemonic: "CMPTRUE_USSD", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
 	},
-	"cmpss": {
-		{Mnemonic: "cmpeqss", Suffixes: []string{"0", "8", "16", "24"}},
-		{Mnemonic: "cmpltss", Suffixes: []string{"1", "9", "17", "25"}},
-		{Mnemonic: "cmpless", Suffixes: []string{"2", "10", "18", "26"}},
-		{Mnemonic: "cmpunordss", Suffixes: []string{"3", "11", "19", "27"}},
-		{Mnemonic: "cmpfalsess", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
-		{Mnemonic: "cmpneqss", Suffixes: []string{"4", "12", "20", "28"}},
-		{Mnemonic: "cmpnltss", Suffixes: []string{"5", "13", "21", "29"}},
-		{Mnemonic: "cmpnless", Suffixes: []string{"6", "14", "22", "30"}},
-		{Mnemonic: "cmpordss", Suffixes: []string{"7", "15", "23", "31"}},
-		{Mnemonic: "cmptrue_usss", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
+	"CMPSS": {
+		{Mnemonic: "CMPEQSS", Suffixes: []string{"0", "8", "16", "24"}},
+		{Mnemonic: "CMPLTSS", Suffixes: []string{"1", "9", "17", "25"}},
+		{Mnemonic: "CMPLESS", Suffixes: []string{"2", "10", "18", "26"}},
+		{Mnemonic: "CMPUNORDSS", Suffixes: []string{"3", "11", "19", "27"}},
+		{Mnemonic: "CMPFALSESS", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
+		{Mnemonic: "CMPNEQSS", Suffixes: []string{"4", "12", "20", "28"}},
+		{Mnemonic: "CMPNLTSS", Suffixes: []string{"5", "13", "21", "29"}},
+		{Mnemonic: "CMPNLESS", Suffixes: []string{"6", "14", "22", "30"}},
+		{Mnemonic: "CMPORDSS", Suffixes: []string{"7", "15", "23", "31"}},
+		{Mnemonic: "CMPTRUE_USSS", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
 	},
-	"pclmulqdq": {
-		{Mnemonic: "pclmullqlqdq", Suffixes: []string{"0"}},
-		{Mnemonic: "pclmulhqlqdq", Suffixes: []string{"1"}},
-		{Mnemonic: "pclmullqhqdq", Suffixes: []string{"16"}},
-		{Mnemonic: "pclmulhqhqdq", Suffixes: []string{"17"}},
+	"PCLMULQDQ": {
+		{Mnemonic: "PCLMULLQLQDQ", Suffixes: []string{"0"}},
+		{Mnemonic: "PCLMULHQLQDQ", Suffixes: []string{"1"}},
+		{Mnemonic: "PCLMULLQHQDQ", Suffixes: []string{"16"}},
+		{Mnemonic: "PCLMULHQHQDQ", Suffixes: []string{"17"}},
 	},
-	"vcmppd": {
-		{Mnemonic: "vcmpeqpd", Suffixes: []string{"0", "8", "16", "24"}},
-		{Mnemonic: "vcmpltpd", Suffixes: []string{"1", "9", "17", "25"}},
-		{Mnemonic: "vcmplepd", Suffixes: []string{"2", "10", "18", "26"}},
-		{Mnemonic: "vcmpunordpd", Suffixes: []string{"3", "11", "19", "27"}},
-		{Mnemonic: "vcmpfalsepd", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
-		{Mnemonic: "vcmpneqpd", Suffixes: []string{"4", "12", "20", "28"}},
-		{Mnemonic: "vcmpnltpd", Suffixes: []string{"5", "13", "21", "29"}},
-		{Mnemonic: "vcmpnlepd", Suffixes: []string{"6", "14", "22", "30"}},
-		{Mnemonic: "vcmpordpd", Suffixes: []string{"7", "15", "23", "31"}},
-		{Mnemonic: "vcmptrue_uspd", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
+	"VCMPPD": {
+		{Mnemonic: "VCMPEQPD", Suffixes: []string{"0", "8", "16", "24"}},
+		{Mnemonic: "VCMPLTPD", Suffixes: []string{"1", "9", "17", "25"}},
+		{Mnemonic: "VCMPLEPD", Suffixes: []string{"2", "10", "18", "26"}},
+		{Mnemonic: "VCMPUNORDPD", Suffixes: []string{"3", "11", "19", "27"}},
+		{Mnemonic: "VCMPFALSEPD", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
+		{Mnemonic: "VCMPNEQPD", Suffixes: []string{"4", "12", "20", "28"}},
+		{Mnemonic: "VCMPNLTPD", Suffixes: []string{"5", "13", "21", "29"}},
+		{Mnemonic: "VCMPNLEPD", Suffixes: []string{"6", "14", "22", "30"}},
+		{Mnemonic: "VCMPORDPD", Suffixes: []string{"7", "15", "23", "31"}},
+		{Mnemonic: "VCMPTRUE_USPD", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
 	},
-	"vcmpps": {
-		{Mnemonic: "vcmpeqps", Suffixes: []string{"0", "8", "16", "24"}},
-		{Mnemonic: "vcmpltps", Suffixes: []string{"1", "9", "17", "25"}},
-		{Mnemonic: "vcmpleps", Suffixes: []string{"2", "10", "18", "26"}},
-		{Mnemonic: "vcmpunordps", Suffixes: []string{"3", "11", "19", "27"}},
-		{Mnemonic: "vcmpfalseps", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
-		{Mnemonic: "vcmpneqps", Suffixes: []string{"4", "12", "20", "28"}},
-		{Mnemonic: "vcmpnltps", Suffixes: []string{"5", "13", "21", "29"}},
-		{Mnemonic: "vcmpnleps", Suffixes: []string{"6", "14", "22", "30"}},
-		{Mnemonic: "vcmpordps", Suffixes: []string{"7", "15", "23", "31"}},
-		{Mnemonic: "vcmptrue_usps", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
+	"VCMPPS": {
+		{Mnemonic: "VCMPEQPS", Suffixes: []string{"0", "8", "16", "24"}},
+		{Mnemonic: "VCMPLTPS", Suffixes: []string{"1", "9", "17", "25"}},
+		{Mnemonic: "VCMPLEPS", Suffixes: []string{"2", "10", "18", "26"}},
+		{Mnemonic: "VCMPUNORDPS", Suffixes: []string{"3", "11", "19", "27"}},
+		{Mnemonic: "VCMPFALSEPS", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
+		{Mnemonic: "VCMPNEQPS", Suffixes: []string{"4", "12", "20", "28"}},
+		{Mnemonic: "VCMPNLTPS", Suffixes: []string{"5", "13", "21", "29"}},
+		{Mnemonic: "VCMPNLEPS", Suffixes: []string{"6", "14", "22", "30"}},
+		{Mnemonic: "VCMPORDPS", Suffixes: []string{"7", "15", "23", "31"}},
+		{Mnemonic: "VCMPTRUE_USPS", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
 	},
-	"vcmpsd": {
-		{Mnemonic: "vcmpeqsd", Suffixes: []string{"0", "8", "16", "24"}},
-		{Mnemonic: "vcmpltsd", Suffixes: []string{"1", "9", "17", "25"}},
-		{Mnemonic: "vcmplesd", Suffixes: []string{"2", "10", "18", "26"}},
-		{Mnemonic: "vcmpunordsd", Suffixes: []string{"3", "11", "19", "27"}},
-		{Mnemonic: "vcmpfalsesd", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
-		{Mnemonic: "vcmpneqsd", Suffixes: []string{"4", "12", "20", "28"}},
-		{Mnemonic: "vcmpnltsd", Suffixes: []string{"5", "13", "21", "29"}},
-		{Mnemonic: "vcmpnlesd", Suffixes: []string{"6", "14", "22", "30"}},
-		{Mnemonic: "vcmpordsd", Suffixes: []string{"7", "15", "23", "31"}},
-		{Mnemonic: "vcmptrue_ussd", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
+	"VCMPSD": {
+		{Mnemonic: "VCMPEQSD", Suffixes: []string{"0", "8", "16", "24"}},
+		{Mnemonic: "VCMPLTSD", Suffixes: []string{"1", "9", "17", "25"}},
+		{Mnemonic: "VCMPLESD", Suffixes: []string{"2", "10", "18", "26"}},
+		{Mnemonic: "VCMPUNORDSD", Suffixes: []string{"3", "11", "19", "27"}},
+		{Mnemonic: "VCMPFALSESD", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
+		{Mnemonic: "VCMPNEQSD", Suffixes: []string{"4", "12", "20", "28"}},
+		{Mnemonic: "VCMPNLTSD", Suffixes: []string{"5", "13", "21", "29"}},
+		{Mnemonic: "VCMPNLESD", Suffixes: []string{"6", "14", "22", "30"}},
+		{Mnemonic: "VCMPORDSD", Suffixes: []string{"7", "15", "23", "31"}},
+		{Mnemonic: "VCMPTRUE_USSD", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
 	},
-	"vcmpss": {
-		{Mnemonic: "vcmpeqss", Suffixes: []string{"0", "8", "16", "24"}},
-		{Mnemonic: "vcmpltss", Suffixes: []string{"1", "9", "17", "25"}},
-		{Mnemonic: "vcmpless", Suffixes: []string{"2", "10", "18", "26"}},
-		{Mnemonic: "vcmpunordss", Suffixes: []string{"3", "11", "19", "27"}},
-		{Mnemonic: "vcmpfalsess", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
-		{Mnemonic: "vcmpneqss", Suffixes: []string{"4", "12", "20", "28"}},
-		{Mnemonic: "vcmpnltss", Suffixes: []string{"5", "13", "21", "29"}},
-		{Mnemonic: "vcmpnless", Suffixes: []string{"6", "14", "22", "30"}},
-		{Mnemonic: "vcmpordss", Suffixes: []string{"7", "15", "23", "31"}},
-		{Mnemonic: "vcmptrue_usss", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
+	"VCMPSS": {
+		{Mnemonic: "VCMPEQSS", Suffixes: []string{"0", "8", "16", "24"}},
+		{Mnemonic: "VCMPLTSS", Suffixes: []string{"1", "9", "17", "25"}},
+		{Mnemonic: "VCMPLESS", Suffixes: []string{"2", "10", "18", "26"}},
+		{Mnemonic: "VCMPUNORDSS", Suffixes: []string{"3", "11", "19", "27"}},
+		{Mnemonic: "VCMPFALSESS", Suffixes: []string{"3", "11", "19", "27"}}, // Objdump alternative.
+		{Mnemonic: "VCMPNEQSS", Suffixes: []string{"4", "12", "20", "28"}},
+		{Mnemonic: "VCMPNLTSS", Suffixes: []string{"5", "13", "21", "29"}},
+		{Mnemonic: "VCMPNLESS", Suffixes: []string{"6", "14", "22", "30"}},
+		{Mnemonic: "VCMPORDSS", Suffixes: []string{"7", "15", "23", "31"}},
+		{Mnemonic: "VCMPTRUE_USSS", Suffixes: []string{"7", "15", "23", "31"}}, // Objdump alternative.
 	},
-	"vpclmulqdq": {
-		{Mnemonic: "vpclmullqlqdq", Suffixes: []string{"0"}},
-		{Mnemonic: "vpclmulhqlqdq", Suffixes: []string{"1"}},
-		{Mnemonic: "vpclmullqhqdq", Suffixes: []string{"16"}},
-		{Mnemonic: "vpclmulhqhqdq", Suffixes: []string{"17"}},
+	"VPCLMULQDQ": {
+		{Mnemonic: "VPCLMULLQLQDQ", Suffixes: []string{"0"}},
+		{Mnemonic: "VPCLMULHQLQDQ", Suffixes: []string{"1"}},
+		{Mnemonic: "VPCLMULLQHQDQ", Suffixes: []string{"16"}},
+		{Mnemonic: "VPCLMULHQHQDQ", Suffixes: []string{"17"}},
 	},
 }

@@ -142,6 +142,12 @@ var ExtraOperands = map[string][4]*x86.Operand{
 // manual.
 var Extras = []*Listing{
 	{
+		// The somewhat undefined 16-bit version of BSWAP.
+		MnemonicTable:        []Mnemonic{{Opcode: "0F C8+rd", Instruction: "BSWAP r16", OperandEncoding: "O", Mode64: "Valid", Mode32: "Valid"}},
+		OperandEncodingTable: []OperandEncoding{{Encoding: "O", Operands: [4]string{"Opcode", "N/A", "N/A", "N/A"}}},
+	},
+
+	{
 		// Clear the global interrupt flag (AMD-V).
 		MnemonicTable: []Mnemonic{{Opcode: "0F 01 DD", Instruction: "CLGI", Mode64: "Valid", Mode32: "Valid", Mode16: "Valid"}},
 	},
@@ -249,6 +255,14 @@ var Extras = []*Listing{
 			{Opcode: "REX.W AD", Instruction: "LODS RAX, [rsi:64]", OperandEncoding: "A", Mode64: "Valid", Mode32: "Invalid", Mode16: "Invalid", OperandSize: true, DataSize: 64},
 		},
 		OperandEncodingTable: []OperandEncoding{{Encoding: "A", Operands: [4]string{"None", "None", "N/A", "N/A"}}},
+	},
+
+	{
+		// The register half of `MOV Sreg, r/m32`.
+		MnemonicTable: []Mnemonic{
+			{Opcode: "8E /r", Instruction: "MOV Sreg, r32/m32", OperandEncoding: "RM", Mode64: "Valid", Mode32: "Valid", Mode16: "Invalid", DataSize: 16},
+		},
+		OperandEncodingTable: []OperandEncoding{{Encoding: "RM", Operands: [4]string{"ModRM:reg", "ModRM:r/m", "N/A", "N/A"}}},
 	},
 
 	{

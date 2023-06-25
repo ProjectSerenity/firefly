@@ -99,13 +99,13 @@ func (s *Spec) Instructions(stats *Stats) ([]*x86.Instruction, error) {
 				"ES", "CS", "SS", "DS", "FS", "GS",
 				"ST",
 				"0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
-				stats.ListingError()
+				stats.ListingError("p.%d: Missing operand encoding for %q", s.M.Page, arg)
 				out[0].Operands[i].Encoding = x86.EncodingNone
 			case "<EAX>", "<ECX>", "<EDX>", "<XMM0>":
-				stats.ListingError()
+				stats.ListingError("p.%d: Invalid operand encodign %q", s.M.Page, arg)
 				out[0].Operands[i].Encoding = x86.EncodingImplicit
 			case "imm8":
-				stats.ListingError()
+				stats.ListingError("p.%d: Invalid operand encoding %q", s.M.Page, arg)
 				out[0].Operands[i].Encoding = x86.EncodingImmediate
 			default:
 				return nil, Errorf(s.M.Page, "operand %q has invalid encoding %q", arg, s.E.Operands[i])
