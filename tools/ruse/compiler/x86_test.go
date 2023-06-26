@@ -59,14 +59,14 @@ func x86REX(s string) x86.REX {
 }
 
 type x86TestCase struct {
-	Name     string
-	Mode     x86.Mode
-	Assembly string
-	AssErr   string
-	Op       ssafir.Op
-	Data     *x86InstructionData
-	EncErr   string
-	Code     *x86.Code
+	Name           string
+	Mode           x86.Mode
+	Assembly       string
+	AssemblyError  string
+	Op             ssafir.Op
+	Data           *x86InstructionData
+	EncodingErrror string
+	Code           *x86.Code
 }
 
 var x86TestCases = []*x86TestCase{
@@ -614,16 +614,16 @@ var x86TestCases = []*x86TestCase{
 		},
 	},
 	{
-		Name:     "illegal prefix",
-		Mode:     x86.Mode32,
-		Assembly: "(rep rdrand eax)",
-		AssErr:   "mnemonic \"rdrand\" cannot be used with repeat prefixes",
+		Name:          "illegal prefix",
+		Mode:          x86.Mode32,
+		Assembly:      "(rep rdrand eax)",
+		AssemblyError: "mnemonic \"rdrand\" cannot be used with repeat prefixes",
 	},
 	{
-		Name:     "illegal register",
-		Mode:     x86.Mode32,
-		Assembly: "(vaddpd ymm3 ymm2 ymm8)",
-		AssErr:   "register ymm8 cannot be used in 32-bit mode",
+		Name:          "illegal register",
+		Mode:          x86.Mode32,
+		Assembly:      "(vaddpd ymm3 ymm2 ymm8)",
+		AssemblyError: "register ymm8 cannot be used in 32-bit mode",
 	},
 }
 
@@ -671,14 +671,14 @@ func TestAssembleX86(t *testing.T) {
 			}
 
 			p, err := Compile(fset, arch, pkg, files, info, sizes)
-			if test.AssErr != "" {
+			if test.AssemblyError != "" {
 				if err == nil {
-					t.Fatalf("unexpected success, wanted error %q", test.AssErr)
+					t.Fatalf("unexpected success, wanted error %q", test.AssemblyError)
 				}
 
 				e := err.Error()
-				if !strings.Contains(e, test.AssErr) {
-					t.Fatalf("got error %q, want %q", e, test.AssErr)
+				if !strings.Contains(e, test.AssemblyError) {
+					t.Fatalf("got error %q, want %q", e, test.AssemblyError)
 				}
 
 				return
@@ -717,7 +717,7 @@ func TestEncodeInstructionX86(t *testing.T) {
 	var got x86.Code
 	for _, test := range x86TestCases {
 		t.Run(test.Name, func(t *testing.T) {
-			if test.AssErr != "" {
+			if test.AssemblyError != "" {
 				t.Skipf("skipping test case expecting assembly error")
 			}
 
@@ -741,7 +741,7 @@ func BenchmarkX86(b *testing.B) {
 	var got x86.Code
 	for _, test := range x86TestCases {
 		b.Run(test.Name, func(b *testing.B) {
-			if test.AssErr != "" {
+			if test.AssemblyError != "" {
 				b.Skipf("skipping test case expecting assembly error")
 			}
 
