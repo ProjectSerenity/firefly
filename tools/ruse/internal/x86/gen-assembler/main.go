@@ -3,10 +3,9 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-// Command gen-assembler uses x86.csv data
-// to generate an assembler implementation
-// for x86, supporting each defined instruction
-// form.
+// Command gen-assembler uses x86 instruction data
+// to generate an assembler implementation for
+// x86, supporting each defined instruction form.
 //
 // The resulting Go code is then written out.
 package main

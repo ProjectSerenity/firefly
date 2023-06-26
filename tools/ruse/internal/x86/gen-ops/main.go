@@ -3,7 +3,7 @@
 // Use of this source code is governed by a BSD 3-clause
 // license that can be found in the LICENSE file.
 
-// Command gen-ops uses x86.csv data to
+// Command gen-ops uses x86 instruction data to
 // generate the set of Ruse compiler opcodes
 // for x86, supporting each defined
 // instruction form.

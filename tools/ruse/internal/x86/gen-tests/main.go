@@ -8,16 +8,15 @@
 // and Ruse assembly code and the expected
 // machine code, plus other metadata.
 //
-// Uses our x86.json data (see ../x86json)
-// to generate varied test cases for each
-// instruction, then uses clang and objdump
-// to determine the expected machine code
-// bytes.
+// This uses x86 instruction data to generate
+// varied test cases for each instruction,
+// then uses clang and objdump to determine
+// the expected machine code bytes.
 //
 // This is performed using the following
 // process:
 //
-// 1. We use x86.json to deterministically generate a large variety of assembly.
+// 1. We use x86 instruction data to deterministically generate a large variety of assembly.
 // 2. We prune some examples that an assembler would never generate in that form. For example, `adc ecx, 1` should always be assembled as `ADC r/m32, imm8`, not `ADC r/m32, imm32` so should not be selected for the latter.
 // 3. We skip some examples by calculating their expected machine code directly. This is useful for instructions that are hard to generate otherwise but are simple to encode, such as odd-sized `pop` instructions.
 // 4. The generated instructions are batched up and assembled using Clang. If an error is encountered, the batch is enumerated to isolate the error.

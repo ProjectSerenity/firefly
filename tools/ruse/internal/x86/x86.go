@@ -34,7 +34,7 @@ var (
 // about an x86 instruction.
 type Instruction struct {
 	Page      int       `json:"page,omitempty"`      // The page in the manual where this is defined.
-	Mnemonic  string    `json:"mnemonic"`            // The Intel name for the instruction, in lower case.
+	Mnemonic  string    `json:"mnemonic"`            // The Intel name for the instruction, in upper case.
 	UID       string    `json:"uid"`                 // A unique identifier for the instruction.
 	Syntax    string    `json:"syntax"`              // The original Intel syntax for the instruction.
 	Encoding  *Encoding `json:"encoding"`            // The information on how to encode the instruction.
