@@ -25,6 +25,14 @@ http_file(
     url = "https://cdrdv2.intel.com/v1/dl/getContent/671110",
 )
 
+# Arm A64 instruction set architecture, version ID030323, March 2023.
+http_archive(
+    name = "a64manual",
+    build_file = "@//bazel:a64xml.BUILD",
+    sha256 = "4be65585693d1bf1f1765bcc1a2493ce5df99718cc33d6e98fc3e83f76019bfd",
+    url = "https://developer.arm.com/-/media/developer/products/architecture/armv9-a-architecture/2023-03/ISA_A64_xml_A_profile-2023-03.tar.gz?rev=3ddc4fac5a824f1fa5a615e2ec21d3aa&hash=3998E2AB39837E332B6AE2533EE26EC6",
+)
+
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 
 GO_VERSION = "1.20.4"

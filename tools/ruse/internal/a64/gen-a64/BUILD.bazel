@@ -1,0 +1,35 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "gen-a64_lib",
+    srcs = [
+        "main.go",
+    ],
+    importpath = "firefly-os.dev/tools/ruse/internal/a64/gen-a64",
+    visibility = ["//visibility:public"],
+)
+
+go_binary(
+    name = "gen-a64",
+    data = ["@a64manual//:xml"],
+    embed = [":gen-a64_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "gen-a64_test",
+    size = "small",
+    srcs = [
+        "decode_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":gen-a64_lib"],
+    deps = [
+        "//vendor/github.com/google/go-cmp/cmp",
+    ],
+)
