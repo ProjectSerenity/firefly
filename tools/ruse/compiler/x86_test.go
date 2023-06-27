@@ -1068,7 +1068,7 @@ func TestAssembleX86(t *testing.T) {
 				mode = 64
 			}
 
-			text := fmt.Sprintf("(package test)\n\n'(arch x86-64)\n'(mode %d)\n(asm-func test %s)", mode, test.Assembly)
+			text := fmt.Sprintf("(package test)\n\n'(mode %d)\n(asm-func test %s)", mode, test.Assembly)
 			file, err := parser.ParseFile(fset, "test.ruse", text, 0)
 			if err != nil {
 				t.Fatalf("failed to parse text: %v", err)
@@ -1168,7 +1168,7 @@ func BenchmarkX86(b *testing.B) {
 				mode = 64
 			}
 
-			text := fmt.Sprintf("(package test)\n\n'(arch x86-64)\n'(mode %d)\n(asm-func test %s)", mode, test.Assembly)
+			text := fmt.Sprintf("(package test)\n\n'(mode %d)\n(asm-func test %s)", mode, test.Assembly)
 			file, err := parser.ParseFile(fset, "test.ruse", text, 0)
 			if err != nil {
 				b.Fatalf("failed to parse text: %v", err)
@@ -1451,7 +1451,6 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 					text := fmt.Sprintf(`
 						(package test)
 
-						'(arch x86-64)
 						'(mode %s)
 						(asm-func test
 							'(match %s)

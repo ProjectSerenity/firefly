@@ -452,7 +452,6 @@ func (c *checker) CheckTopLevelAsmFuncDecl(fun *ast.List) error {
 
 	scope := NewScope(c.pkg.scope, fun.Elements[2].Pos(), fun.ParenClose, "function "+name.Name)
 
-	var archOk bool
 	var paramTypes []*Variable
 	var resultType Type
 	var buf strings.Builder
@@ -463,6 +462,7 @@ func (c *checker) CheckTopLevelAsmFuncDecl(fun *ast.List) error {
 		switch kind.Name {
 		case "arch":
 			// Check that this matches the target architecture.
+			var archOk bool
 			for _, x := range anno.X.Elements[1:] {
 				arch, ok := x.(*ast.Identifier)
 				if !ok {
@@ -565,10 +565,6 @@ func (c *checker) CheckTopLevelAsmFuncDecl(fun *ast.List) error {
 	}
 
 	buf.WriteByte(')')
-
-	if !archOk {
-		return c.errorf(fun.ParenOpen, "assembly function has no architecture annotation")
-	}
 
 	signature := NewSignature(buf.String(), paramTypes, resultType)
 	function := NewFunction(c.pkg.scope, fun.ParenOpen, fun.ParenClose, c.pkg, name.Name, signature)
