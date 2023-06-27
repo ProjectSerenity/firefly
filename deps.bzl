@@ -6,7 +6,7 @@
 go = [
     module(
         name = "github.com/bazelbuild/buildtools",
-        version = "v0.0.0-20230427141602-b182fc414c8b",
+        version = "v0.0.0-20230510134650-37bd1811516d",
         packages = [
             package(
                 name = "github.com/bazelbuild/buildtools/build",
@@ -88,11 +88,12 @@ go = [
     ),
     module(
         name = "github.com/google/osv-scanner",
-        version = "v1.3.2",
+        version = "v1.3.4",
         packages = [
             package(
                 name = "github.com/google/osv-scanner/pkg/models",
                 deps = [
+                    "github.com/google/go-cmp/cmp",
                     "golang.org/x/exp/slices",
                 ],
             ),
@@ -111,7 +112,7 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.8.0",
+        version = "v0.10.0",
         packages = [
             package(
                 name = "golang.org/x/crypto/ed25519",
@@ -120,7 +121,7 @@ go = [
     ),
     module(
         name = "golang.org/x/exp",
-        version = "v0.0.0-20230425010034-47ecfdc1ba53",
+        version = "v0.0.0-20230626212559-97b1e661b5df",
         packages = [
             package(
                 name = "golang.org/x/exp/constraints",
@@ -135,7 +136,7 @@ go = [
     ),
     module(
         name = "golang.org/x/mod",
-        version = "v0.10.0",
+        version = "v0.11.0",
         packages = [
             package(
                 name = "golang.org/x/mod/internal/lazyregexp",
@@ -195,7 +196,7 @@ go = [
     ),
     module(
         name = "golang.org/x/sync",
-        version = "v0.2.0",
+        version = "v0.3.0",
         packages = [
             package(
                 name = "golang.org/x/sync/errgroup",
@@ -219,7 +220,7 @@ go = [
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.8.0",
+        version = "v0.10.0",
         packages = [
             package(
                 name = "golang.org/x/tools/txtar",

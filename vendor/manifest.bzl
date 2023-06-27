@@ -8,7 +8,7 @@
 go = [
     module(
         name = "github.com/bazelbuild/buildtools",
-        version = "v0.0.0-20230427141602-b182fc414c8b",
+        version = "v0.0.0-20230510134650-37bd1811516d",
         digest = "sha256:5fffe643ce7150a30b1d65ecc96d10cde7b1a908fc95f1e068ec4e408c30b541",
     ),
     module(
@@ -18,8 +18,8 @@ go = [
     ),
     module(
         name = "github.com/google/osv-scanner",
-        version = "v1.3.2",
-        digest = "sha256:907a0ddcdba43bb84609d568723187a4e6a2e331e1d2f2135238a4ba3b27b3fb",
+        version = "v1.3.4",
+        digest = "sha256:446fc10e665c25643870c75a46dc42b6a35d54f8f1d890806977504c88d4d994",
         patch_args = [
             "-p1",
         ],
@@ -30,23 +30,23 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.8.0",
-        digest = "sha256:21d1790b219610b35a17d093448c493de3892dedb79532776c18544eaf399f3b",
+        version = "v0.10.0",
+        digest = "sha256:c4c9bdb80737d64bcf19afacd01f04281f969aa99e21a3c3d2824aed23213693",
     ),
     module(
         name = "golang.org/x/exp",
-        version = "v0.0.0-20230425010034-47ecfdc1ba53",
-        digest = "sha256:a64847027daa00bede7116c8899199170456edafbb3c9b59d4b6f07ab33af806",
+        version = "v0.0.0-20230626212559-97b1e661b5df",
+        digest = "sha256:f53a26cd5a7b2dff5978766fef967bd702195883a806a47c49ce0398c18567f2",
     ),
     module(
         name = "golang.org/x/mod",
-        version = "v0.10.0",
-        digest = "sha256:5b9141e7062f950527184889dd887196c68ce438ef247eb59dd78390c2aa127e",
+        version = "v0.11.0",
+        digest = "sha256:315ec258829cef6bdd4b924e25a00723136c3f4f1591b8b4b3188cf2b53e08ea",
     ),
     module(
         name = "golang.org/x/sync",
-        version = "v0.2.0",
-        digest = "sha256:e1a323d5b2564c26414853fbd5d76868ea18b2a086bb317332e0c5fb01e0f1f7",
+        version = "v0.3.0",
+        digest = "sha256:552b8e04389159e96490db59f884eb9e4407d165ee7bc4151a09ad92baa4b8fc",
     ),
     module(
         name = "golang.org/x/time",
@@ -55,8 +55,8 @@ go = [
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.8.0",
-        digest = "sha256:1decc1dfdd753a4de3d39dec25d70197a57be530ff15d2a19f922041affe3b66",
+        version = "v0.10.0",
+        digest = "sha256:16f1e6c82382c6d20125ce1e5252f2afefdfe03e216eb9def10fd26c534c8353",
     ),
     module(
         name = "golang.org/x/xerrors",
