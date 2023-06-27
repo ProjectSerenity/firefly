@@ -907,6 +907,11 @@ const (
 	SIBscale10 SIB = 0b10_000_000
 	SIBscale11 SIB = 0b11_000_000
 
+	SIBscale1 = SIBscale00
+	SIBscale2 = SIBscale01
+	SIBscale4 = SIBscale10
+	SIBscale8 = SIBscale11
+
 	SIBindex000 SIB = 0b00_000_000
 	SIBindex001 SIB = 0b00_001_000
 	SIBindex010 SIB = 0b00_010_000
