@@ -849,6 +849,42 @@ func (r REX) String() string {
 // byte.
 type ModRM byte
 
+const (
+	ModRMmod00 ModRM = 0b00_000_000
+	ModRMmod01 ModRM = 0b01_000_000
+	ModRMmod10 ModRM = 0b10_000_000
+	ModRMmod11 ModRM = 0b11_000_000
+
+	// Section 2.1.5, table 2.2, Mod column.
+	ModRMmodDereferenceRegister    = ModRMmod00
+	ModRMmodSmallDisplacedRegister = ModRMmod01
+	ModRMmodLargeDisplacedRegister = ModRMmod10
+	ModRMmodRegister               = ModRMmod11
+
+	ModRMreg000 ModRM = 0b00_000_000
+	ModRMreg001 ModRM = 0b00_001_000
+	ModRMreg010 ModRM = 0b00_010_000
+	ModRMreg011 ModRM = 0b00_011_000
+	ModRMreg100 ModRM = 0b00_100_000
+	ModRMreg101 ModRM = 0b00_101_000
+	ModRMreg110 ModRM = 0b00_110_000
+	ModRMreg111 ModRM = 0b00_111_000
+
+	ModRMrm000 ModRM = 0b00_000_000
+	ModRMrm001 ModRM = 0b00_000_001
+	ModRMrm010 ModRM = 0b00_000_010
+	ModRMrm011 ModRM = 0b00_000_011
+	ModRMrm100 ModRM = 0b00_000_100
+	ModRMrm101 ModRM = 0b00_000_101
+	ModRMrm110 ModRM = 0b00_000_110
+	ModRMrm111 ModRM = 0b00_000_111
+
+	// Section 2.1.5, table 2.2, Effective address column.
+	ModRMrmSIB                = ModRMrm100
+	ModRMrmDisplacementOnly32 = ModRMrm101
+	ModRMrmDisplacementOnly16 = ModRMrm110
+)
+
 func (m ModRM) Mod() byte      { return byte(m&0b11000000) >> 6 }
 func (m ModRM) Reg() byte      { return byte(m&0b00111000) >> 3 }
 func (m ModRM) RM() byte       { return byte(m&0b00000111) >> 0 }
@@ -864,6 +900,38 @@ func (m ModRM) String() string {
 // for reading and writing a SIB
 // byte.
 type SIB byte
+
+const (
+	SIBscale00 SIB = 0b00_000_000
+	SIBscale01 SIB = 0b01_000_000
+	SIBscale10 SIB = 0b10_000_000
+	SIBscale11 SIB = 0b11_000_000
+
+	SIBindex000 SIB = 0b00_000_000
+	SIBindex001 SIB = 0b00_001_000
+	SIBindex010 SIB = 0b00_010_000
+	SIBindex011 SIB = 0b00_011_000
+	SIBindex100 SIB = 0b00_100_000
+	SIBindex101 SIB = 0b00_101_000
+	SIBindex110 SIB = 0b00_110_000
+	SIBindex111 SIB = 0b00_111_000
+
+	// Section 2.1.5, table 2.3, Index column.
+	SIBindexNone = SIBindex100
+
+	SIBbase000 SIB = 0b00_000_000
+	SIBbase001 SIB = 0b00_000_001
+	SIBbase010 SIB = 0b00_000_010
+	SIBbase011 SIB = 0b00_000_011
+	SIBbase100 SIB = 0b00_000_100
+	SIBbase101 SIB = 0b00_000_101
+	SIBbase110 SIB = 0b00_000_110
+	SIBbase111 SIB = 0b00_000_111
+
+	// Section 2.1.5, table 2.3, Base row.
+	SIBbaseStackPointer = SIBbase100
+	SIBbaseNone         = SIBbase101
+)
 
 func (s SIB) Scale() byte      { return byte(s&0b11000000) >> 6 }
 func (s SIB) Index() byte      { return byte(s&0b00111000) >> 3 }
