@@ -296,6 +296,354 @@ var x86TestCases = []*x86TestCase{
 		},
 	},
 	{
+		Name:     "memory base index displacement",
+		Mode:     x86.Mode64,
+		Assembly: "(mov rcx (+ rdx r9 17))",
+		Op:       ssafir.OpX86MOV_R64_M64_REX,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.RCX,
+				&x86.Memory{
+					Base:         x86.RDX,
+					Index:        x86.R9,
+					Displacement: 17,
+				},
+			},
+			Length: 5,
+		},
+		Code: &x86.Code{
+			REX:             x86REX("WX"),
+			Opcode:          [3]byte{0x8b},
+			OpcodeLen:       1,
+			UseModRM:        true,
+			ModRM:           x86.ModRMmodSmallDisplacedRegister | x86.ModRMreg001 | x86.ModRMrmSIB,
+			SIB:             x86.SIBscale00 | x86.SIBindex001 | x86.SIBbase010,
+			Displacement:    [8]byte{0x11},
+			DisplacementLen: 1,
+		},
+	},
+	{
+		Name:     "memory base displacement 16-bit",
+		Mode:     x86.Mode16,
+		Assembly: "(mov cx (+ bx di 17))",
+		Op:       ssafir.OpX86MOV_R16_M16,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.CX,
+				&x86.Memory{
+					Base:         x86.BX_DI,
+					Displacement: 17,
+				},
+			},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			Opcode:          [3]byte{0x8b},
+			OpcodeLen:       1,
+			UseModRM:        true,
+			ModRM:           x86.ModRMmodSmallDisplacedRegister | x86.ModRMreg001 | x86.ModRMrm001,
+			Displacement:    [8]byte{0x11},
+			DisplacementLen: 1,
+		},
+	},
+	{
+		Name:     "memory base index scale displacement",
+		Mode:     x86.Mode64,
+		Assembly: "(mov rcx (+ r12 (* rbx 4) 17))",
+		Op:       ssafir.OpX86MOV_R64_M64_REX,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.RCX,
+				&x86.Memory{
+					Base:         x86.R12,
+					Index:        x86.RBX,
+					Scale:        4,
+					Displacement: 17,
+				},
+			},
+			Length: 5,
+		},
+		Code: &x86.Code{
+			REX:             x86REX("WB"),
+			Opcode:          [3]byte{0x8b},
+			OpcodeLen:       1,
+			UseModRM:        true,
+			ModRM:           x86.ModRMmodSmallDisplacedRegister | x86.ModRMreg001 | x86.ModRMrmSIB,
+			SIB:             x86.SIBscale4 | x86.SIBindex011 | x86.SIBbase100,
+			Displacement:    [8]byte{0x11},
+			DisplacementLen: 1,
+		},
+	},
+	{
+		Name:     "memory base displacement",
+		Mode:     x86.Mode32,
+		Assembly: "(mov ecx (+ edx 256))",
+		Op:       ssafir.OpX86MOV_R32_M32,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.ECX,
+				&x86.Memory{
+					Base:         x86.EDX,
+					Displacement: 256,
+				},
+			},
+			Length: 6,
+		},
+		Code: &x86.Code{
+			Opcode:          [3]byte{0x8b},
+			OpcodeLen:       1,
+			UseModRM:        true,
+			ModRM:           x86.ModRMmodLargeDisplacedRegister | x86.ModRMreg001 | x86.ModRMrm010,
+			Displacement:    [8]byte{0x00, 0x01, 0x00, 0x00},
+			DisplacementLen: 4,
+		},
+	},
+	{
+		Name:     "memory base index",
+		Mode:     x86.Mode32,
+		Assembly: "(mov ecx (+ edx ebx))",
+		Op:       ssafir.OpX86MOV_R32_M32,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.ECX,
+				&x86.Memory{
+					Base:  x86.EDX,
+					Index: x86.EBX,
+				},
+			},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			Opcode:    [3]byte{0x8b},
+			OpcodeLen: 1,
+			UseModRM:  true,
+			ModRM:     x86.ModRMmodDereferenceRegister | x86.ModRMreg001 | x86.ModRMrmSIB,
+			SIB:       x86.SIBscale1 | x86.SIBindex011 | x86.SIBbase010,
+		},
+	},
+	{
+		Name:     "memory index scale",
+		Mode:     x86.Mode64,
+		Assembly: "(mov rcx (* rbx 8))",
+		Op:       ssafir.OpX86MOV_R64_M64_REX,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.RCX,
+				&x86.Memory{
+					Index: x86.RBX,
+					Scale: 8,
+				},
+			},
+			Length: 8,
+		},
+		Code: &x86.Code{
+			REX:             x86REX("W"),
+			Opcode:          [3]byte{0x8b},
+			OpcodeLen:       1,
+			UseModRM:        true,
+			ModRM:           x86.ModRMmodDereferenceRegister | x86.ModRMreg001 | x86.ModRMrmSIB,
+			SIB:             x86.SIBscale8 | x86.SIBindex011 | x86.SIBbaseNone,
+			DisplacementLen: 4, // We have to include a (zero) displacement with no base register.
+		},
+	},
+	{
+		Name:     "memory index scale displacement",
+		Mode:     x86.Mode64,
+		Assembly: "(mov rcx (+ (* rbx 8) 17))",
+		Op:       ssafir.OpX86MOV_R64_M64_REX,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.RCX,
+				&x86.Memory{
+					Index:        x86.RBX,
+					Scale:        8,
+					Displacement: 17,
+				},
+			},
+			Length: 8,
+		},
+		Code: &x86.Code{
+			REX:             x86REX("W"),
+			Opcode:          [3]byte{0x8b},
+			OpcodeLen:       1,
+			UseModRM:        true,
+			ModRM:           x86.ModRMmodDereferenceRegister | x86.ModRMreg001 | x86.ModRMrmSIB,
+			SIB:             x86.SIBscale8 | x86.SIBindex011 | x86.SIBbaseNone,
+			Displacement:    [8]byte{0x11},
+			DisplacementLen: 4,
+		},
+	},
+	{
+		Name:     "memory base index scale",
+		Mode:     x86.Mode32,
+		Assembly: "(mov ecx (+ edx (* ebx 2)))",
+		Op:       ssafir.OpX86MOV_R32_M32,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.ECX,
+				&x86.Memory{
+					Base:  x86.EDX,
+					Index: x86.EBX,
+					Scale: 2,
+				},
+			},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			Opcode:    [3]byte{0x8b},
+			OpcodeLen: 1,
+			UseModRM:  true,
+			ModRM:     x86.ModRMmodDereferenceRegister | x86.ModRMreg001 | x86.ModRMrmSIB,
+			SIB:       x86.SIBscale2 | x86.SIBindex011 | x86.SIBbase010,
+		},
+	},
+	{
+		Name:     "memory base",
+		Mode:     x86.Mode32,
+		Assembly: "(mov ecx (edx))",
+		Op:       ssafir.OpX86MOV_R32_M32,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.ECX,
+				&x86.Memory{
+					Base: x86.EDX,
+				},
+			},
+			Length: 2,
+		},
+		Code: &x86.Code{
+			Opcode:    [3]byte{0x8b},
+			OpcodeLen: 1,
+			UseModRM:  true,
+			ModRM:     x86.ModRMmodDereferenceRegister | x86.ModRMreg001 | x86.ModRMrm010,
+		},
+	},
+	{
+		Name:     "memory displacement",
+		Mode:     x86.Mode32,
+		Assembly: "(mov ecx (17))",
+		Op:       ssafir.OpX86MOV_R32_M32,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.ECX,
+				&x86.Memory{
+					Displacement: 17,
+				},
+			},
+			Length: 6,
+		},
+		Code: &x86.Code{
+			Opcode:          [3]byte{0x8b},
+			OpcodeLen:       1,
+			UseModRM:        true,
+			ModRM:           x86.ModRMmodDereferenceRegister | x86.ModRMreg001 | x86.ModRMrmDisplacementOnly32,
+			Displacement:    [8]byte{0x11},
+			DisplacementLen: 4,
+		},
+	},
+	{
+		Name:     "memory displacement 16-bit",
+		Mode:     x86.Mode16,
+		Assembly: "(mov cx (17))",
+		Op:       ssafir.OpX86MOV_R16_M16,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.CX,
+				&x86.Memory{
+					Displacement: 17,
+				},
+			},
+			Length: 4,
+		},
+		Code: &x86.Code{
+			Opcode:          [3]byte{0x8b},
+			OpcodeLen:       1,
+			UseModRM:        true,
+			ModRM:           x86.ModRMmodDereferenceRegister | x86.ModRMreg001 | x86.ModRMrmDisplacementOnly16,
+			Displacement:    [8]byte{0x11},
+			DisplacementLen: 2,
+		},
+	},
+	{
+		Name:     "memory segment offset",
+		Mode:     x86.Mode32,
+		Assembly: "(mov al (ss 17))",
+		Op:       ssafir.OpX86MOV_AL_Moffs8,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.AL,
+				&x86.Memory{
+					Segment:      x86.SS,
+					Displacement: 17,
+				},
+			},
+			Length: 6,
+		},
+		Code: &x86.Code{
+			Prefixes:        [14]x86.Prefix{x86.PrefixSS},
+			Opcode:          [3]byte{0xa0},
+			OpcodeLen:       1,
+			Displacement:    [8]byte{0x11},
+			DisplacementLen: 4,
+		},
+	},
+	{
+		Name:     "memory absolute offset",
+		Mode:     x86.Mode64,
+		Assembly: "(mov rax (0x1122334455667788))",
+		Op:       ssafir.OpX86MOV_RAX_Moffs64_REX,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.RAX,
+				&x86.Memory{
+					Displacement: 0x1122334455667788,
+				},
+			},
+			Length: 10,
+		},
+		Code: &x86.Code{
+			REX:             x86REX("W"),
+			Opcode:          [3]byte{0xa1},
+			OpcodeLen:       1,
+			Displacement:    [8]byte{0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11},
+			DisplacementLen: 8,
+		},
+	},
+	{
+		Name:     "memory strings",
+		Mode:     x86.Mode32,
+		Assembly: "(movs '(*byte)(edi) '(*byte)(esi))",
+		Op:       ssafir.OpX86MOVS_StrDst8_StrSrc8,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.EDI,
+				x86.ESI,
+			},
+			Length: 1,
+		},
+		Code: &x86.Code{
+			Opcode:    [3]byte{0xa4},
+			OpcodeLen: 1,
+		},
+	},
+	{
+		Name:     "memory explicit strings",
+		Mode:     x86.Mode32,
+		Assembly: "(movs '(*dword)(es edi) '(*dword)(ds esi))",
+		Op:       ssafir.OpX86MOVS_StrDst32_StrSrc32,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.EDI,
+				x86.ESI,
+			},
+			Length: 1,
+		},
+		Code: &x86.Code{
+			Opcode:    [3]byte{0xa5},
+			OpcodeLen: 1,
+		},
+	},
+	{
 		Name:     "call absolute address",
 		Mode:     x86.Mode32,
 		Assembly: "(call-far (0x1122 0x33445566))",
@@ -438,6 +786,33 @@ var x86TestCases = []*x86TestCase{
 			OpcodeLen: 1,
 			ModRM:     x86.ModRMmodRegister | x86.ModRMreg011 | x86.ModRMrm000,
 			UseModRM:  true,
+		},
+	},
+	{
+		Name:     "VEX is4",
+		Mode:     x86.Mode64,
+		Assembly: "(vblendvps xmm12 xmm13 xmm14 xmm15)",
+		Op:       ssafir.OpX86VBLENDVPS_XMM1_XMMV_XMM2_XMMIH_VEX,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.XMM12,
+				x86.XMM13,
+				x86.XMM14,
+				x86.XMM15,
+			},
+			Length: 6,
+		},
+		Code: &x86.Code{
+			VEX: x86.VEX{
+				0b0100_0011, // 0x43: R:0, X:1, B:0, m-mmmm:00011.
+				0b0001_0001, // 0x11: W:0, vvvv:0010, L:0, pp:01.
+			},
+			Opcode:       [3]byte{0x4a},
+			OpcodeLen:    1,
+			ModRM:        x86.ModRMmodRegister | x86.ModRMreg100 | x86.ModRMrm110,
+			UseModRM:     true,
+			Immediate:    [8]byte{0b1111_0000},
+			ImmediateLen: 1,
 		},
 	},
 	{
@@ -624,6 +999,48 @@ var x86TestCases = []*x86TestCase{
 		Mode:          x86.Mode32,
 		Assembly:      "(vaddpd ymm3 ymm2 ymm8)",
 		AssemblyError: "register ymm8 cannot be used in 32-bit mode",
+	},
+	{
+		Name:          "wrong arity single",
+		Mode:          x86.Mode16,
+		Assembly:      "(add cx ax bx sp)",
+		AssemblyError: "expected 2 arguments, found 4",
+	},
+	{
+		Name:          "wrong arity pair",
+		Mode:          x86.Mode32,
+		Assembly:      "(ret 1 2 3)",
+		AssemblyError: "expected 0 or 1 arguments, found 3",
+	},
+	{
+		Name:          "wrong arity many",
+		Mode:          x86.Mode64,
+		Assembly:      "(movsd xmm1 xmm2 xmm3 xmm4 xmm5)",
+		AssemblyError: "expected 0, 1, or 2 arguments, found 5",
+	},
+	{
+		Name:          "unrecognised instruction",
+		Mode:          x86.Mode64,
+		Assembly:      "(not-a-real-instruction)",
+		AssemblyError: "mnemonic \"not-a-real-instruction\" not recognised",
+	},
+	{
+		Name:          "mismatched instruction",
+		Mode:          x86.Mode64,
+		Assembly:      "(add 1 2)",
+		AssemblyError: "no matching instruction found for (add 1 2)",
+	},
+	{
+		Name:          "mismatched specific instruction",
+		Mode:          x86.Mode64,
+		Assembly:      "'(match ADD_R32_Rmr32)(add rax rcx)",
+		AssemblyError: "(add rax rcx) does not match instruction ADD_R32_Rmr32",
+	},
+	{
+		Name:          "unmatched label",
+		Mode:          x86.Mode64,
+		Assembly:      "'foo",
+		AssemblyError: `label "foo" is not referenced by any instructions`,
 	},
 }
 
