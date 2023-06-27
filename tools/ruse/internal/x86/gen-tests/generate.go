@@ -1015,7 +1015,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 
 	memory16 := func(ruseSize, intelSize string) {
 		if ruseSize != "" {
-			ruseSize = "'(*" + ruseSize + ")"
+			ruseSize = "'(bits " + ruseSize + ")"
 		}
 		if intelSize != "" {
 			intelSize = intelSize + " ptr "
@@ -1057,7 +1057,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 
 	memory32 := func(ruseSize, intelSize string, fullSize bool) {
 		if ruseSize != "" {
-			ruseSize = "'(*" + ruseSize + ")"
+			ruseSize = "'(bits " + ruseSize + ")"
 		}
 		if intelSize != "" {
 			intelSize = intelSize + " ptr "
@@ -1116,7 +1116,7 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 
 	memory64 := func(ruseSize, intelSize string) {
 		if ruseSize != "" {
-			ruseSize = "'(*" + ruseSize + ")"
+			ruseSize = "'(bits " + ruseSize + ")"
 		}
 		if intelSize != "" {
 			intelSize = intelSize + " ptr "
@@ -1166,11 +1166,12 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		)
 	}
 
-	memoryOffset := func(size string, mode uint8) {
-		var ruseSize, intelSize string
-		if size != "" {
-			ruseSize = "'(*" + size + ")"
-			intelSize = size + " ptr "
+	memoryOffset := func(ruseSize, intelSize string, mode uint8) {
+		if ruseSize != "" {
+			ruseSize = "'(bits " + ruseSize + ")"
+		}
+		if intelSize != "" {
+			intelSize = intelSize + " ptr "
 		}
 		if mode == 16 || mode == 32 {
 			// 16-bit offsets.
@@ -1197,43 +1198,43 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		}
 	}
 
-	stringDst16 := func(size string) {
+	stringDst16 := func(ruseSize, intelSize string) {
 		pairs(
-			"'(*"+size+")(di)", size+" ptr [di]",
-			"'(*"+size+")(es di)", size+" ptr es:[di]",
+			"'(bits "+ruseSize+")(di)", intelSize+" ptr [di]",
+			"'(bits "+ruseSize+")(es di)", intelSize+" ptr es:[di]",
 		)
 	}
 
-	stringDst32 := func(size string) {
+	stringDst32 := func(ruseSize, intelSize string) {
 		pairs(
-			"'(*"+size+")(edi)", size+" ptr [edi]",
-			"'(*"+size+")(es edi)", size+" ptr es:[edi]",
+			"'(bits "+ruseSize+")(edi)", intelSize+" ptr [edi]",
+			"'(bits "+ruseSize+")(es edi)", intelSize+" ptr es:[edi]",
 		)
 	}
 
-	stringDst64 := func(size string) {
+	stringDst64 := func(ruseSize, intelSize string) {
 		pairs(
-			"'(*"+size+")(rdi)", size+" ptr [rdi]",
+			"'(bits "+ruseSize+")(rdi)", intelSize+" ptr [rdi]",
 		)
 	}
 
-	stringSrc16 := func(size string) {
+	stringSrc16 := func(ruseSize, intelSize string) {
 		pairs(
-			"'(*"+size+")(si)", size+" ptr [si]",
-			"'(*"+size+")(ds si)", size+" ptr ds:[si]",
+			"'(bits "+ruseSize+")(si)", intelSize+" ptr [si]",
+			"'(bits "+ruseSize+")(ds si)", intelSize+" ptr ds:[si]",
 		)
 	}
 
-	stringSrc32 := func(size string) {
+	stringSrc32 := func(ruseSize, intelSize string) {
 		pairs(
-			"'(*"+size+")(esi)", size+" ptr [esi]",
-			"'(*"+size+")(ds esi)", size+" ptr ds:[esi]",
+			"'(bits "+ruseSize+")(esi)", intelSize+" ptr [esi]",
+			"'(bits "+ruseSize+")(ds esi)", intelSize+" ptr ds:[esi]",
 		)
 	}
 
-	stringSrc64 := func(size string) {
+	stringSrc64 := func(ruseSize, intelSize string) {
 		pairs(
-			"'(*"+size+")(rsi)", size+" ptr [rsi]",
+			"'(bits "+ruseSize+")(rsi)", intelSize+" ptr [rsi]",
 		)
 	}
 
@@ -1384,47 +1385,47 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		}
 	case "StrDst8":
 		if mode == 16 {
-			stringDst16("byte")
+			stringDst16("8", "byte")
 		}
-		stringDst32("byte")
+		stringDst32("8", "byte")
 	case "StrDst16":
 		if mode == 16 {
-			stringDst16("word")
+			stringDst16("16", "word")
 		}
-		stringDst32("word")
+		stringDst32("16", "word")
 	case "StrDst32":
 		if mode == 16 {
-			stringDst16("dword")
+			stringDst16("32", "dword")
 		}
-		stringDst32("dword")
+		stringDst32("32", "dword")
 	case "StrDst64":
 		if mode != 64 {
 			return nil, nil, fmt.Errorf("no options for syntax %q in %d-bit mode", operand, mode)
 		} else {
-			stringDst64("qword")
+			stringDst64("64", "qword")
 		}
 	case "StrSrc8":
 		if mode == 16 {
-			stringSrc16("byte")
+			stringSrc16("8", "byte")
 		}
-		stringSrc32("byte")
+		stringSrc32("8", "byte")
 	case "StrSrc16":
 		if mode == 16 {
-			stringSrc16("word")
+			stringSrc16("16", "word")
 		}
-		stringSrc32("word")
+		stringSrc32("16", "word")
 	case "StrSrc32":
 		if mode == 16 {
-			stringSrc16("dword")
+			stringSrc16("32", "dword")
 		}
-		stringSrc32("dword")
+		stringSrc32("32", "dword")
 	case "StrSrc64":
 		if mode != 64 {
 			return nil, nil, fmt.Errorf("no options for syntax %q in %d-bit mode", operand, mode)
 		} else {
-			stringSrc64("qword")
+			stringSrc64("64", "qword")
 		}
-	case "M", "M14l28byte", "M94l108byte", "M384", "M512byte":
+	case "M", "M14l28byte", "M94l108byte":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
 			memory16("", "")
 		}
@@ -1436,126 +1437,140 @@ func syntaxToOptions(inst *x86.Instruction, ruse, intel []string, mode uint8, op
 		}
 	case "M8":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
-			memory16("byte", "byte")
+			memory16("8", "byte")
 		}
 		if mode == 32 || !inst.Encoding.EVEX {
-			memory32("byte", "byte", mode > 16)
+			memory32("8", "byte", mode > 16)
 		}
 		if mode == 64 {
-			memory64("byte", "byte")
+			memory64("8", "byte")
 		}
 	case "M16", "M16int", "M16op", "M16bcst", "M2byte":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
-			memory16("word", "word")
+			memory16("16", "word")
 		}
 		if mode == 32 || !inst.Encoding.EVEX {
-			memory32("word", "word", mode > 16)
+			memory32("16", "word", mode > 16)
 		}
 		if mode == 64 {
-			memory64("word", "word")
+			memory64("16", "word")
 		}
 	case "M16v16":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
-			memory16("dword", "word")
+			memory16("32", "word")
 		}
 		if mode == 32 || !inst.Encoding.EVEX {
-			memory32("dword", "word", mode > 16)
+			memory32("32", "word", mode > 16)
 		}
 		if mode == 64 {
-			memory64("dword", "word")
+			memory64("32", "word")
 		}
 	case "M16v32":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
-			memory16("tword", "word")
+			memory16("48", "word")
 		}
 		if mode == 32 || !inst.Encoding.EVEX {
-			memory32("tword", "word", mode > 16)
+			memory32("48", "word", mode > 16)
 		}
 		if mode == 64 {
-			memory64("tword", "word")
+			memory64("48", "word")
 		}
 	case "M32", "M32fp", "M32int", "M32op", "M32bcst", "M16x16":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
-			memory16("dword", "dword")
+			memory16("32", "dword")
 		}
 		if mode == 32 || !inst.Encoding.EVEX {
-			memory32("dword", "dword", mode > 16)
+			memory32("32", "dword", mode > 16)
 		}
 		if mode == 64 {
-			memory64("dword", "dword")
+			memory64("32", "dword")
 		}
 	case "M16x32":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
-			memory16("tword", "")
+			memory16("48", "")
 		}
 		if mode == 32 || !inst.Encoding.EVEX {
-			memory32("tword", "", mode > 16)
+			memory32("48", "", mode > 16)
 		}
 		if mode == 64 {
-			memory64("tword", "")
+			memory64("48", "")
 		}
 	case "M64", "M64fp", "M64int", "M64op", "M64bcst", "M32x32":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
-			memory16("qword", "qword")
+			memory16("64", "qword")
 		}
 		if mode == 32 || !inst.Encoding.EVEX {
-			memory32("qword", "qword", mode > 16)
+			memory32("64", "qword", mode > 16)
 		}
 		if mode == 64 {
-			memory64("qword", "qword")
+			memory64("64", "qword")
 		}
 	case "M16v64", "M16x64":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
-			memory16("tbyte", "qword")
+			memory16("80", "qword")
 		}
 		if mode == 32 || !inst.Encoding.EVEX {
-			memory32("tbyte", "qword", mode > 16)
+			memory32("80", "qword", mode > 16)
 		}
 		if mode == 64 {
-			memory64("tbyte", "qword")
+			memory64("80", "qword")
 		}
 	case "M80bcd", "M80dec", "M80fp":
 		if mode == 32 || !inst.Encoding.EVEX {
-			memory32("tbyte", "tbyte", mode > 16)
+			memory32("80", "tbyte", mode > 16)
 		}
 		if mode == 64 {
-			memory64("tbyte", "tbyte")
+			memory64("80", "tbyte")
 		}
 	case "M128":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
-			memory16("xmmword", "xmmword")
+			memory16("128", "xmmword")
 		}
 		if mode == 32 || !inst.Encoding.EVEX {
-			memory32("xmmword", "xmmword", mode > 16)
+			memory32("128", "xmmword", mode > 16)
 		}
 		if mode == 64 {
-			memory64("xmmword", "xmmword")
+			memory64("128", "xmmword")
 		}
 	case "M256":
 		if (mode == 16 || mode == 32) && inst.Mode16 {
-			memory16("ymmword", "ymmword")
+			memory16("256", "ymmword")
 		}
 		if mode == 32 || !inst.Encoding.EVEX {
-			memory32("ymmword", "ymmword", mode > 16)
+			memory32("256", "ymmword", mode > 16)
 		}
 		if mode == 64 {
-			memory64("ymmword", "ymmword")
+			memory64("256", "ymmword")
+		}
+	case "M384":
+		if mode == 32 || !inst.Encoding.EVEX {
+			memory32("384", "", mode > 16)
+		}
+		if mode == 64 {
+			memory64("384", "")
 		}
 	case "M512":
 		if mode == 32 || !inst.Encoding.EVEX {
-			memory32("zmmword", "zmmword", mode > 16)
+			memory32("512", "zmmword", mode > 16)
 		}
 		if mode == 64 {
-			memory64("zmmword", "zmmword")
+			memory64("512", "zmmword")
+		}
+	case "M512byte":
+		if mode == 32 || !inst.Encoding.EVEX {
+			memory32("4096", "", mode > 16)
+		}
+		if mode == 64 {
+			memory64("4096", "")
 		}
 	case "Moffs8":
-		memoryOffset("byte", mode)
+		memoryOffset("8", "byte", mode)
 	case "Moffs16":
-		memoryOffset("word", mode)
+		memoryOffset("16", "word", mode)
 	case "Moffs32":
-		memoryOffset("dword", mode)
+		memoryOffset("32", "dword", mode)
 	case "Moffs64":
-		memoryOffset("qword", mode)
+		memoryOffset("64", "qword", mode)
 	case "Ptr16v16":
 		pairs(
 			"(0x0 0x0)", "0x0, 0x0",

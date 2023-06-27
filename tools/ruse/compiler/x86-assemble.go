@@ -906,46 +906,35 @@ func (ctx *x86Context) rejectedBySizeHint(list *ast.List, bits int) bool {
 		return false
 	}
 
-	var wantSize string
-	switch bits {
-	case 8:
-		wantSize = "*byte"
-	case 16:
-		wantSize = "*word"
-	case 32:
-		wantSize = "*dword"
-	case 48:
-		wantSize = "*tword"
-	case 64:
-		wantSize = "*qword"
-	case 80:
-		wantSize = "*tbyte"
-	case 128:
-		wantSize = "*xmmword"
-	case 256:
-		wantSize = "*ymmword"
-	case 512:
-		wantSize = "*zmmword"
-	default:
-		panic(fmt.Sprintf("unexpected memory transaction size: %d bits", bits))
-	}
-
 	foundMatch := false
 	foundSizeHint := false
 	for _, anno := range list.Annotations {
-		if len(anno.X.Elements) != 1 {
+		if len(anno.X.Elements) != 2 {
 			continue
 		}
 
 		got, ok := anno.X.Elements[0].(*ast.Identifier)
-		if !ok || !strings.HasPrefix(got.Name, "*") {
+		if !ok {
 			continue
 		}
 
-		foundSizeHint = true
-		if got.Name == wantSize {
-			foundMatch = true
-			break
+		numLit, ok := anno.X.Elements[1].(*ast.Literal)
+		if !ok || numLit.Kind != token.Integer {
+			continue
+		}
+
+		num, err := strconv.Atoi(numLit.Value)
+		if err != nil {
+			panic("invalid integer literal: " + err.Error())
+		}
+
+		switch got.Name {
+		case "bits":
+			foundSizeHint = true
+			foundMatch = bits == num
+		case "bytes":
+			foundSizeHint = true
+			foundMatch = bits == num*8
 		}
 	}
 

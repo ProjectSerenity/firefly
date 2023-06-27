@@ -107,7 +107,7 @@ var x86TestCases = []*x86TestCase{
 	{
 		Name:     "small displaced adc register pair",
 		Mode:     x86.Mode64,
-		Assembly: "(adc '(*byte)(+ bx si) cl)",
+		Assembly: "(adc '(bits 8)(+ bx si) cl)",
 		Op:       ssafir.OpX86ADC_M8_R8,
 		Data: &x86InstructionData{
 			Args:   [4]any{&x86.Memory{Base: x86.BX_SI}, x86.CL},
@@ -124,7 +124,7 @@ var x86TestCases = []*x86TestCase{
 	{
 		Name:     "small displaced adc segment offset",
 		Mode:     x86.Mode64,
-		Assembly: "(adc '(*byte)(+ es bp 0x7) cl)",
+		Assembly: "(adc '(bytes 1)(+ es bp 0x7) cl)",
 		Op:       ssafir.OpX86ADC_M8_R8,
 		Data: &x86InstructionData{
 			Args:   [4]any{&x86.Memory{Segment: x86.ES, Base: x86.BP, Displacement: 7}, x86.CL},
@@ -612,7 +612,7 @@ var x86TestCases = []*x86TestCase{
 	{
 		Name:     "memory strings",
 		Mode:     x86.Mode32,
-		Assembly: "(movs '(*byte)(edi) '(*byte)(esi))",
+		Assembly: "(movs '(bits 8)(edi) (esi))",
 		Op:       ssafir.OpX86MOVS_StrDst8_StrSrc8,
 		Data: &x86InstructionData{
 			Args: [4]any{
@@ -629,7 +629,7 @@ var x86TestCases = []*x86TestCase{
 	{
 		Name:     "memory explicit strings",
 		Mode:     x86.Mode32,
-		Assembly: "(movs '(*dword)(es edi) '(*dword)(ds esi))",
+		Assembly: "(movs '(bits 32)(es edi) '(bytes 4)(ds esi))",
 		Op:       ssafir.OpX86MOVS_StrDst32_StrSrc32,
 		Data: &x86InstructionData{
 			Args: [4]any{
