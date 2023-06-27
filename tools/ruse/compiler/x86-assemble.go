@@ -8,7 +8,6 @@
 package compiler
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"go/constant"
@@ -687,60 +686,6 @@ func (ctx *x86Context) calculateJumpDistance(label *x86Label, ref int) int64 {
 	}
 
 	return jumpLength
-}
-
-// splitPrefixes takes x86 machine code in
-// hexadecimal format and splits it into
-// the set of legacy x86 prefixes and the
-// remaining machine code.
-//
-// If the input is not valid hexadecimal,
-// splitPrefixes will panic.
-func splitPrefixes(s string) (prefixOpcodes, prefixes []byte, rest string) {
-	code, err := hex.DecodeString(s)
-	if err != nil {
-		panic("invalid hex '" + s + "' passed to SplitPrefixes: " + err.Error())
-	}
-
-	for i, b := range code {
-		switch b {
-		case 0x9b:
-			prefixOpcodes = append(prefixOpcodes, b)
-		case 0xf0, 0xf2, 0xf3, // Group 1.
-			0x2e, 0x36, 0x3e, 0x26, 0x64, 0x65, // Group 2.
-			0x66, // Group 3.
-			0x67: // Group 4.
-			prefixes = append(prefixes, b)
-		default:
-			// Machine code.
-			rest = s[i*2:]
-			return prefixOpcodes, prefixes, rest
-		}
-	}
-
-	return prefixOpcodes, prefixes, rest
-}
-
-// sortPrefixes takes x86 machine code in
-// hexadecimal format and returns it with
-// the x86 prefixes sorted into numerical
-// order.
-//
-// If the input is not valid hexadecimal,
-// sortPrefixes will panic.
-func sortPrefixes(s string) string {
-	prefixOpcodes, prefixes, rest := splitPrefixes(s)
-	if len(prefixes) == 0 && len(prefixOpcodes) == 0 {
-		return rest
-	}
-
-	if len(prefixes) == 0 {
-		return hex.EncodeToString(prefixOpcodes) + rest
-	}
-
-	sort.Slice(prefixes, func(i, j int) bool { return prefixes[i] < prefixes[j] })
-
-	return hex.EncodeToString(prefixOpcodes) + hex.EncodeToString(prefixes) + rest
 }
 
 // handleInstructionAnnotations processes
