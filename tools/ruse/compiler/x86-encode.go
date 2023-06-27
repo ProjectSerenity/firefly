@@ -158,7 +158,11 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 	// size, making the address override prefix
 	// necessary.
 	for i, operand := range inst.Operands {
-		if operand == nil || operand.Type != x86.TypeMemory {
+		if operand == nil {
+			break
+		}
+
+		if operand.Type != x86.TypeMemory && operand.Type != x86.TypeMemoryOffset {
 			continue
 		}
 
