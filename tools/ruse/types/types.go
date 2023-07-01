@@ -189,6 +189,8 @@ func (s standardSizes) AlignmentOf(typ Type) int {
 // Only the fields that are initialised before calling
 // Check are populated.
 type Info struct {
+	List        []Type                          // The list of types in an implementation-defined order.
+	Indices     map[Type]int                    // Mapping each type to its position in List.
 	Types       map[ast.Expression]TypeAndValue // The type (and value for constants) of each expression.
 	Definitions map[*ast.Identifier]Object      // Identifiers that define a new object.
 	Uses        map[*ast.Identifier]Object      // Identifiers that refer to an object.
@@ -276,6 +278,16 @@ type checker struct {
 	funcs  map[token.Pos]*Signature
 	names  map[token.Pos]string
 	consts map[ast.Expression]constant.Value
+}
+
+func (c *checker) newType(typ Type) {
+	if c.info.List != nil {
+		if c.info.Indices != nil {
+			c.info.Indices[typ] = len(c.info.List)
+		}
+
+		c.info.List = append(c.info.List, typ)
+	}
 }
 
 func (c *checker) define(ident *ast.Identifier, obj Object) {
@@ -567,6 +579,7 @@ func (c *checker) CheckTopLevelAsmFuncDecl(fun *ast.List) error {
 	buf.WriteByte(')')
 
 	signature := NewSignature(buf.String(), paramTypes, resultType)
+	c.newType(signature)
 	function := NewFunction(c.pkg.scope, fun.ParenOpen, fun.ParenClose, c.pkg, name.Name, signature)
 	c.funcs[fun.ParenOpen] = signature
 	c.names[fun.ParenOpen] = "function " + name.Name
@@ -715,6 +728,7 @@ func (c *checker) CheckTopLevelFuncDecl(fun *ast.List) error {
 	buf.WriteByte(')')
 
 	signature := NewSignature(buf.String(), paramTypes, resultType)
+	c.newType(signature)
 	function := NewFunction(c.pkg.scope, fun.ParenOpen, fun.ParenClose, c.pkg, name.Name, signature)
 	c.funcs[fun.ParenOpen] = signature
 	c.names[fun.ParenOpen] = "function " + name.Name
