@@ -31,7 +31,7 @@ go = [
     module(
         name = "golang.org/x/crypto",
         version = "v0.10.0",
-        digest = "sha256:c4c9bdb80737d64bcf19afacd01f04281f969aa99e21a3c3d2824aed23213693",
+        digest = "sha256:d350c8a2b03412a789c91ef95f71ff73daaa0dae35790c5dfd20abe6bd4b2604",
     ),
     module(
         name = "golang.org/x/exp",

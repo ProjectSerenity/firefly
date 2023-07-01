@@ -115,6 +115,15 @@ go = [
         version = "v0.10.0",
         packages = [
             package(
+                name = "golang.org/x/crypto/cryptobyte/asn1",
+            ),
+            package(
+                name = "golang.org/x/crypto/cryptobyte",
+                deps = [
+                    "golang.org/x/crypto/cryptobyte/asn1",
+                ],
+            ),
+            package(
                 name = "golang.org/x/crypto/ed25519",
             ),
         ],
