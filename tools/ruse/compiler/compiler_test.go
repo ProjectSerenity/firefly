@@ -166,7 +166,7 @@ func TestCompile(t *testing.T) {
 				p21 := types.NewParameter(nil, 134, 142, nil, "x", types.Byte)
 				f2 := &ssafir.Function{
 					Name:        "unary-function",
-					Type:        types.NewSignature("(func (x byte))", []*types.Variable{p21}, nil),
+					Type:        types.NewSignature("(func (byte))", []*types.Variable{p21}, nil),
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b21 := f2.NewBlock(145, ssafir.BlockReturn)
@@ -183,7 +183,7 @@ func TestCompile(t *testing.T) {
 				p32 := types.NewParameter(nil, 190, 200, nil, "y", types.String)
 				f3 := &ssafir.Function{
 					Name:        "binary-function",
-					Type:        types.NewSignature("(func (x int32) (y string))", []*types.Variable{p31, p32}, nil),
+					Type:        types.NewSignature("(func (int32) (string))", []*types.Variable{p31, p32}, nil),
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b31 := f3.NewBlock(203, ssafir.BlockReturn)
@@ -204,7 +204,7 @@ func TestCompile(t *testing.T) {
 				p41 := types.NewParameter(nil, 252, 260, nil, "x", types.Int8)
 				f4 := &ssafir.Function{
 					Name:        "add1",
-					Type:        types.NewSignature("(func (x int8) int8)", []*types.Variable{p41}, types.Int8),
+					Type:        types.NewSignature("(func (int8) int8)", []*types.Variable{p41}, types.Int8),
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b41 := f4.NewBlock(268, ssafir.BlockReturn)
@@ -222,7 +222,7 @@ func TestCompile(t *testing.T) {
 				p52 := types.NewParameter(nil, 307, 322, nil, "scalar", types.Uint64)
 				f5 := &ssafir.Function{
 					Name:        "product",
-					Type:        types.NewSignature("(func (base uint64) (scalar uint64) uint64)", []*types.Variable{p51, p52}, types.Uint64),
+					Type:        types.NewSignature("(func (uint64) (uint64) uint64)", []*types.Variable{p51, p52}, types.Uint64),
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b51 := f5.NewBlock(332, ssafir.BlockReturn)
@@ -252,7 +252,7 @@ func TestCompile(t *testing.T) {
 					"",
 				},
 				{
-					"unary-function (func (x byte))",
+					"unary-function (func (byte))",
 					"b1:",
 					"	v1 := (MakeMemoryState) memory state",
 					"	v2 := (Parameter (extra 0)) byte (x)",
@@ -262,7 +262,7 @@ func TestCompile(t *testing.T) {
 					"",
 				},
 				{
-					"binary-function (func (x int32) (y string))",
+					"binary-function (func (int32) (string))",
 					"b1:",
 					"	v1 := (MakeMemoryState) memory state",
 					"	v2 := (Parameter (extra 0)) int32 (x)",
@@ -277,7 +277,7 @@ func TestCompile(t *testing.T) {
 				},
 				// add1
 				{
-					"add1 (func (x int8) int8)",
+					"add1 (func (int8) int8)",
 					"b1:",
 					"	v1 := (MakeMemoryState) memory state",
 					"	v2 := (Parameter (extra 0)) int8 (x)",
@@ -289,7 +289,7 @@ func TestCompile(t *testing.T) {
 				},
 				// product
 				{
-					"product (func (base uint64) (scalar uint64) uint64)",
+					"product (func (uint64) (uint64) uint64)",
 					"b1:",
 					"	v1 := (MakeMemoryState) memory state",
 					"	v2 := (Parameter (extra 0)) uint64 (base)",

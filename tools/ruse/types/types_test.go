@@ -211,7 +211,7 @@ func TestCheck(t *testing.T) {
 						pkg:  pkg,
 						name: "unary-function",
 						typ: &Signature{
-							name:   "(func (x byte))",
+							name:   "(func (byte))",
 							params: []*Variable{param1},
 						},
 					},
@@ -230,7 +230,7 @@ func TestCheck(t *testing.T) {
 						pkg:  pkg,
 						name: "binary-function",
 						typ: &Signature{
-							name:   "(func (x int64) (y string))",
+							name:   "(func (int64) (string))",
 							params: []*Variable{param1, param2},
 						},
 					},
@@ -246,7 +246,7 @@ func TestCheck(t *testing.T) {
 						pkg:  pkg,
 						name: "add1",
 						typ: &Signature{
-							name:   "(func (x int8) int8)",
+							name:   "(func (int8) int8)",
 							params: []*Variable{param1},
 							result: Int8,
 						},
@@ -265,7 +265,7 @@ func TestCheck(t *testing.T) {
 						pkg:  pkg,
 						name: "product",
 						typ: &Signature{
-							name:   "(func (base uint64) (scalar uint64) uint64)",
+							name:   "(func (uint64) (uint64) uint64)",
 							params: []*Variable{param1, param2},
 							result: Uint64,
 						},
@@ -311,7 +311,7 @@ func TestCheck(t *testing.T) {
 						pkg:  pkg,
 						name: "syscall6",
 						typ: &Signature{
-							name:   "(func (sys uint64) (arg1 uint64) (arg2 uint64) (arg3 uint64) (arg4 uint64) (arg5 uint64) (arg6 uint64) uint64)",
+							name:   "(func (uint64) (uint64) (uint64) (uint64) (uint64) (uint64) (uint64) uint64)",
 							params: []*Variable{sys, arg1, arg2, arg3, arg4, arg5, arg6},
 							result: Uint64,
 						},

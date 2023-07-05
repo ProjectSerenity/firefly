@@ -543,7 +543,7 @@ func (c *checker) CheckTopLevelAsmFuncDecl(fun *ast.List) error {
 			c.record(param, typ, nil)
 			c.record(name, typ, nil)
 			c.names[param.Pos()] = name.Name
-			fmt.Fprintf(&buf, " (%s %s)", name.Name, typ)
+			fmt.Fprintf(&buf, " (%s)", typ)
 		case "result":
 			if resultType != nil {
 				c.errorf(name.NamePos, "cannot declare multiple result types")
@@ -717,7 +717,7 @@ func (c *checker) CheckTopLevelFuncDecl(fun *ast.List) error {
 		c.record(param, typ, nil)
 		c.record(name, typ, nil)
 		c.names[params[i].Pos()] = name.Name
-		fmt.Fprintf(&buf, " (%s %s)", name.Name, typ)
+		fmt.Fprintf(&buf, " (%s)", typ)
 	}
 
 	if resultTypeName != "" {
