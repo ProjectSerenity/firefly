@@ -27,10 +27,19 @@ type Package struct {
 	Functions []*ssafir.Function
 }
 
+// MachineCode can be used as a placeholder for a
+// compiled function.
+type MachineCode []byte
+
 // EncodeTo writes the machine code implementation
 // of fun to w. If the function is not fully
 // compiled, EncodeTo will return an error.
 func EncodeTo(w io.Writer, fset *token.FileSet, arch *sys.Arch, fun *ssafir.Function) error {
+	if code, ok := fun.Extra.(MachineCode); ok {
+		_, err := w.Write(code)
+		return err
+	}
+
 	switch arch.Name {
 	case "x86-64":
 		return encodeX86(w, fset, fun)
