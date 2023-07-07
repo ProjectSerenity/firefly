@@ -18,6 +18,7 @@ import (
 
 	"firefly-os.dev/tools/ruse/cmd/compile"
 	"firefly-os.dev/tools/ruse/cmd/link"
+	"firefly-os.dev/tools/ruse/cmd/rpkg"
 )
 
 func init() {
@@ -55,6 +56,7 @@ func RegisterCommand(name, description string, fun func(ctx context.Context, w i
 func init() {
 	RegisterCommand("compile", "Compile a Ruse package into an rpkg file", compile.Main)
 	RegisterCommand("link", "Link one or more Ruse packages into an executable binary", link.Main)
+	RegisterCommand("rpkg", "Print debug information about a Ruse package", rpkg.Main)
 }
 
 func main() {

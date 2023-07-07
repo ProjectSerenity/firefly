@@ -1,0 +1,16 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "rpkg",
+    srcs = ["rpkg.go"],
+    importpath = "firefly-os.dev/tools/ruse/cmd/rpkg",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tools/ruse/rpkg",
+    ],
+)

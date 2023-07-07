@@ -15,6 +15,7 @@ go_library(
     deps = [
         "//tools/ruse/cmd/compile",
         "//tools/ruse/cmd/link",
+        "//tools/ruse/cmd/rpkg",
     ],
 )
 
