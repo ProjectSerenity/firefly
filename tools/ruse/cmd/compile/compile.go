@@ -33,7 +33,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("compile", flag.ExitOnError)
 
 	var help bool
-	var out string
+	var out, pkgName string
 	var arch *sys.Arch
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
 	flags.Func("arch", "The target architecture (x86-64).", func(s string) error {
@@ -50,6 +50,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 		return nil
 	})
+	flags.StringVar(&pkgName, "package", "", "The full package name.")
 	flags.StringVar(&out, "o", "", "The name of the compiled rpkg.")
 
 	flags.Usage = func() {
@@ -63,7 +64,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		flags.Usage()
 	}
 
-	if arch == nil || out == "" {
+	if arch == nil || out == "" || pkgName == "" {
 		flags.Usage()
 		os.Exit(2)
 	}
@@ -90,7 +91,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	var config types.Config
-	pkg, err := config.Check("main", fset, files, arch, info)
+	pkg, err := config.Check(pkgName, fset, files, arch, info)
 	if err != nil {
 		return err
 	}
