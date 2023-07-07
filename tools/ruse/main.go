@@ -17,6 +17,7 @@ import (
 	"sort"
 
 	"firefly-os.dev/tools/ruse/cmd/compile"
+	"firefly-os.dev/tools/ruse/cmd/link"
 )
 
 func init() {
@@ -52,7 +53,8 @@ func RegisterCommand(name, description string, fun func(ctx context.Context, w i
 }
 
 func init() {
-	RegisterCommand("compile", "Compile a Ruse package into an executable binary", compile.Main)
+	RegisterCommand("compile", "Compile a Ruse package into an rpkg file", compile.Main)
+	RegisterCommand("link", "Link one or more Ruse packages into an executable binary", link.Main)
 }
 
 func main() {
