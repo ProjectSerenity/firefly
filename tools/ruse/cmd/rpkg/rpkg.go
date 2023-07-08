@@ -94,7 +94,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("failed to parse %s: %v", name, err)
 	}
 
-	gotSymbols, err := d.Symbols()
+	gotSymbols, _, err := d.Symbols()
 	if err != nil {
 		return fmt.Errorf("failed to parse %s: %v", name, err)
 	}
