@@ -36,6 +36,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 	var help bool
 	var out string
+	var rpkgs []string
 	var encode binaryEncoder
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
 	flags.Func("binary", "The binary encoding (elf).", func(s string) error {
@@ -50,6 +51,10 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			return fmt.Errorf("unrecognised -binary format: %q", s)
 		}
 
+		return nil
+	})
+	flags.Func("rpkg", "One or more dependency rpkg files.", func(s string) error {
+		rpkgs = append(rpkgs, s)
 		return nil
 	})
 	flags.StringVar(&out, "o", "", "The name of the compiled binary.")
@@ -110,6 +115,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("main function: must have no parameters or result, found function signature %s", p.Functions[0].Type)
 	}
 
+	// Build the symbol table.
 	symbols := make(map[string]*binary.Symbol)
 	var table []*binary.Symbol
 	var code, stringsData bytes.Buffer
@@ -151,6 +157,84 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		stringsData.WriteString(s)
 		table = append(table, sym)
 		symbols[sym.Name] = sym
+	}
+
+	// Add the dependencies, checking
+	// that we have all the imports we
+	// need.
+	seenPackages := make(map[string]bool)
+	needPackages := make(map[string]bool)
+	seenPackages[p.Path] = true
+	for _, imp := range p.Imports {
+		needPackages[imp] = true
+	}
+	for _, name := range rpkgs {
+		data, err := os.ReadFile(name)
+		if err != nil {
+			return fmt.Errorf("failed to read rpkg %q: %v", name, err)
+		}
+
+		depArch, p, err := rpkg.Decode(info, data)
+		if err != nil {
+			return fmt.Errorf("failed to parse rpkg %q: %v", name, err)
+		}
+
+		if depArch != arch {
+			return fmt.Errorf("cannot import rpkg %q: compiled for %s: need %s", name, depArch.Name, arch.Name)
+		}
+
+		seenPackages[p.Path] = true
+		for _, imp := range p.Imports {
+			needPackages[imp] = true
+		}
+
+		for _, fun := range p.Functions {
+			prev := code.Len()
+			sym := &binary.Symbol{
+				Name:    p.Path + "." + fun.Name,
+				Kind:    binary.SymbolFunction,
+				Section: 0,
+				Offset:  uintptr(prev), // Just the offset within the section for now.
+			}
+
+			err = compiler.EncodeTo(&code, nil, arch, fun)
+			if err != nil {
+				return err
+			}
+
+			sym.Length = code.Len() - prev
+			table = append(table, sym)
+			symbols[sym.Name] = sym
+		}
+
+		for _, con := range p.Constants {
+			val := con.Value()
+			if val.Kind() != constant.String {
+				// Non-string constants are inlined.
+				continue
+			}
+
+			s := constant.StringVal(val)
+			sym := &binary.Symbol{
+				Name:    p.Path + "." + con.Name(),
+				Kind:    binary.SymbolString,
+				Section: 1,
+				Offset:  uintptr(stringsData.Len()), // Just the offset within the section for now.
+				Length:  len(s),
+			}
+
+			stringsData.WriteString(s)
+			table = append(table, sym)
+			symbols[sym.Name] = sym
+		}
+	}
+
+	// Check that we have seen every package
+	// that we need.
+	for pkg := range needPackages {
+		if !seenPackages[pkg] {
+			return fmt.Errorf("no rpkg provided for package %q", pkg)
+		}
 	}
 
 	const page4k = 0x1000 // One 4 KiB page.
