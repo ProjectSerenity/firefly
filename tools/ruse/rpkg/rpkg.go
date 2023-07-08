@@ -12,6 +12,8 @@
 //
 //   - The imports section contains the list of other packages
 //     that this package imports.
+//   - The exports section contains the list of symbols that
+//     this package exports.
 //   - The types section contains the public and private type
 //     information for the package, including any aspects derived
 //     from (or including) types from dependent packages.
@@ -45,6 +47,9 @@
 //
 //		// Location of the imports section.
 //		ImportsOffset   uint32  // The offset into the file where the imports section begins.
+//
+//		// Location of the exports section.
+//		ExportsOffset   uint32  // The offset into the file where the exports section begins.
 //
 //		// Location of the types section.
 //		TypesOffset     uint64  // The offset into the file where the types section begins.
@@ -83,6 +88,17 @@
 // pseudocode:
 //
 //	type ImportReference uint32
+//
+// # Exports section
+//
+// The exports section consists of a sequence of symbol
+// references, one for each exported symbol.The exports
+// section contains an integral number of 64-bit unsigned
+// integers, which are offsets into the symbols section.
+// Each export reference is described with the following
+// pseudocode:
+//
+//	type ExportReference uint64
 //
 // # Types section
 //
@@ -213,6 +229,10 @@ type header struct {
 	ImportsOffset uint32 // The offset into the file where the imports section begins.
 	ImportsLength uint32 // The length in bytes of the imports section.
 
+	// Location of the exports section.
+	ExportsOffset uint32 // The offset into the file where the exports section begins.
+	ExportsLength uint32 // The length in bytes of the exports section.
+
 	// Location of the types section.
 	TypesOffset uint64 // The offset into the file where the types section begins.
 	TypesLength uint64 // The length in bytes of the types section.
@@ -243,6 +263,7 @@ const headerSize = 4 + // 32-bit magic.
 	1 + // 8-bit version.
 	2 + // 16-bit package name string offset.
 	4 + // 32-bit imports section offset.
+	4 + // 32-bit exports section offset.
 	8 + // 64-bit types section offset.
 	8 + // 64-bit symbols section offset.
 	8 + // 64-bit strings section offset.
@@ -264,6 +285,10 @@ type Header struct {
 	// Location of the imports section.
 	ImportsOffset uint32 // The offset into the file where the imports section begins.
 	ImportsLength uint32 // The length in bytes of the imports section.
+
+	// Location of the exports section.
+	ExportsOffset uint32 // The offset into the file where the exports section begins.
+	ExportsLength uint32 // The length in bytes of the exports section.
 
 	// Location of the types section.
 	TypesOffset uint64 // The offset into the file where the types section begins.

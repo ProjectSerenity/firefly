@@ -31,6 +31,8 @@ type encoder struct {
 
 	imports []uint32
 
+	exports []uint64
+
 	// Used to build the types section
 	// efficiently. This state is managed
 	// by AddType.
@@ -38,7 +40,8 @@ type encoder struct {
 	typesOffset  uint64
 	typesOffsets map[string]uint64
 
-	symbols []*symbol
+	symbols       []*symbol
+	symbolOffsets map[types.Object]uint64
 
 	// Used to build the strings section
 	// efficiently. This state is managed
@@ -73,7 +76,9 @@ func (e *encoder) AddHeader(arch *sys.Arch, pkg *compiler.Package) error {
 	e.header.PackageName = uint16(e.AddString(pkg.Path))
 	e.header.ImportsOffset = headerSize
 	e.header.ImportsLength = 4 * uint32(len(e.imports))
-	e.header.TypesOffset = uint64(e.header.ImportsOffset) + uint64(e.header.ImportsLength)
+	e.header.ExportsOffset = e.header.ImportsOffset + e.header.ImportsLength
+	e.header.ExportsLength = 8 * uint32(len(e.exports))
+	e.header.TypesOffset = uint64(e.header.ExportsOffset) + uint64(e.header.ExportsLength)
 	e.header.TypesLength = e.typesOffset
 	e.header.SymbolsOffset = e.header.TypesOffset + e.header.TypesLength
 	e.header.SymbolsLength = symbolSize * uint64(len(e.symbols))
@@ -225,6 +230,7 @@ func (e *encoder) AddFunction(fset *token.FileSet, arch *sys.Arch, pkg *compiler
 		})
 	}
 
+	e.symbolOffsets[fun.Func] = symbolSize * uint64(len(e.symbols))
 	e.symbols = append(e.symbols, sym)
 
 	return nil
@@ -286,6 +292,7 @@ func (e *encoder) AddConstant(pkg *compiler.Package, con *types.Constant) error 
 		Value:       value,
 	}
 
+	e.symbolOffsets[con] = symbolSize * uint64(len(e.symbols))
 	e.symbols = append(e.symbols, sym)
 
 	return nil
@@ -345,6 +352,7 @@ func (h *header) Marshal(b *cryptobyte.Builder) error {
 	b.AddUint8(h.Version)
 	b.AddUint16(h.PackageName)
 	b.AddUint32(h.ImportsOffset)
+	b.AddUint32(h.ExportsOffset)
 	b.AddUint64(h.TypesOffset)
 	b.AddUint64(h.SymbolsOffset)
 	b.AddUint64(h.StringsOffset)
@@ -384,6 +392,10 @@ func (e *encoder) WriteTo(w io.Writer) (n int64, err error) {
 
 	for _, imp := range e.imports {
 		b.AddUint32(imp)
+	}
+
+	for _, exp := range e.exports {
+		b.AddUint64(exp)
 	}
 
 	for _, typ := range e.types {
@@ -456,6 +468,7 @@ func Encode(w io.Writer, fset *token.FileSet, arch *sys.Arch, pkg *compiler.Pack
 	var _ = (*cryptobyte.Builder)(nil)
 	e := &encoder{
 		typesOffsets:  make(map[string]uint64),
+		symbolOffsets: make(map[types.Object]uint64),
 		stringOffsets: make(map[string]uint64),
 	}
 
@@ -491,6 +504,31 @@ func Encode(w io.Writer, fset *token.FileSet, arch *sys.Arch, pkg *compiler.Pack
 		if err != nil {
 			return err
 		}
+	}
+
+	// Add any exports.
+	scope := pkg.Types.Scope()
+	names := scope.Names()
+	for _, name := range names {
+		obj := scope.Lookup(name)
+		if obj == nil {
+			return fmt.Errorf("failed to lookup symbol %q in package scope", name)
+		}
+
+		if !obj.Exported() {
+			continue
+		}
+
+		offset, ok := e.symbolOffsets[obj]
+		if !ok {
+			for obj, offset := range e.symbolOffsets {
+				fmt.Printf("1: %#v (%p): %d\n", obj, obj, offset)
+			}
+			fmt.Printf("2: %#v (%p)\n", types.Object(obj), obj)
+			return fmt.Errorf("failed to lookup symbol offset for %q", name)
+		}
+
+		e.exports = append(e.exports, offset)
 	}
 
 	err := e.AddHeader(arch, pkg)

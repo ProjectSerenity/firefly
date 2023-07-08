@@ -40,6 +40,7 @@ func decodeHeader(h *header, b []byte) error {
 		!s.ReadUint8(&h.Version) ||
 		!s.ReadUint16(&h.PackageName) ||
 		!s.ReadUint32(&h.ImportsOffset) ||
+		!s.ReadUint32(&h.ExportsOffset) ||
 		!s.ReadUint64(&h.TypesOffset) ||
 		!s.ReadUint64(&h.SymbolsOffset) ||
 		!s.ReadUint64(&h.StringsOffset) ||
@@ -55,7 +56,8 @@ func decodeHeader(h *header, b []byte) error {
 	}
 
 	h.Architecture = Arch(arch)
-	h.ImportsLength = uint32(h.TypesOffset) - h.ImportsOffset
+	h.ImportsLength = h.ExportsOffset - h.ImportsOffset
+	h.ExportsLength = uint32(h.TypesOffset) - h.ExportsOffset
 	h.TypesLength = h.SymbolsOffset - h.TypesOffset
 	h.SymbolsLength = h.StringsOffset - h.SymbolsOffset
 	h.StringsLength = h.LinkagesOffset - h.StringsOffset
@@ -77,7 +79,16 @@ func decodeHeader(h *header, b []byte) error {
 	if h.ImportsOffset != headerSize {
 		return fmt.Errorf("invalid rpkg header: got imports offset %d, want %d", h.ImportsOffset, headerSize)
 	}
-	if h.TypesOffset < uint64(h.ImportsOffset) || h.TypesOffset > h.SymbolsOffset || h.TypesOffset%4 != 0 {
+	if h.ImportsLength%4 != 0 {
+		return fmt.Errorf("invalid rpkg header: got invalid imports length %d", h.ImportsLength)
+	}
+	if h.ExportsOffset < h.ImportsOffset || uint64(h.ExportsOffset) > h.TypesOffset || h.ExportsOffset%4 != 0 {
+		return fmt.Errorf("invalid rpkg header: got invalid exports offset %d", h.ExportsOffset)
+	}
+	if h.ExportsLength%8 != 0 {
+		return fmt.Errorf("invalid rpkg header: got invalid exports length %d", h.ExportsLength)
+	}
+	if h.TypesOffset < uint64(h.ExportsOffset) || h.TypesOffset > h.SymbolsOffset || h.TypesOffset%4 != 0 {
 		return fmt.Errorf("invalid rpkg header: got invalid types offset %d", h.TypesOffset)
 	}
 	if h.SymbolsOffset > h.StringsOffset || h.SymbolsOffset%4 != 0 {
@@ -124,8 +135,9 @@ func decodeHeader(h *header, b []byte) error {
 type decoded struct {
 	header   header
 	imports  []uint32
+	exports  []uint64
 	types    map[uint64]typeSplat
-	symbols  []symbol
+	symbols  map[uint64]*symbol
 	strings  map[uint64]string
 	linkages map[uint64]*linkage
 	code     map[uint64][]byte
@@ -162,15 +174,9 @@ func decodeSimple(b []byte) (*decoded, error) {
 
 	// Read the symbols section.
 	s = cryptobyte.String(b[d.header.SymbolsOffset:d.header.StringsOffset])
-	d.symbols = make([]symbol, d.header.SymbolsLength/symbolSize)
-	for i := range d.symbols {
-		err = d.decodeSymbol(&d.symbols[i], &s)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode symbol %d: %v", i, err)
-		}
-	}
-	if !s.Empty() {
-		return nil, fmt.Errorf("invalid symbols section: %d trailing bytes", len(s))
+	d.symbols, err = d.decodeSymbols(s)
+	if err != nil {
+		return nil, err
 	}
 
 	// Read the strings section.
@@ -201,6 +207,13 @@ func decodeSimple(b []byte) (*decoded, error) {
 		return nil, err
 	}
 
+	// Read the exports section.
+	s = cryptobyte.String(b[d.header.ExportsOffset:d.header.TypesOffset])
+	d.exports, err = d.decodeExports(s)
+	if err != nil {
+		return nil, err
+	}
+
 	return &d, nil
 }
 
@@ -224,16 +237,32 @@ func (d *decoded) decodeImports(s cryptobyte.String) (imports []uint32, err erro
 	return imports, nil
 }
 
+// decodeExports reads the exports from `s`,
+// checking that each export is valid.
+func (d *decoded) decodeExports(s cryptobyte.String) (exports []uint64, err error) {
+	var exp uint64
+	exports = make([]uint64, 0, len(s)/8)
+	for !s.Empty() {
+		if !s.ReadUint64(&exp) {
+			return nil, fmt.Errorf("invalid exports section: %w", io.ErrUnexpectedEOF)
+		}
+
+		if _, ok := d.symbols[exp]; !ok {
+			return nil, fmt.Errorf("invalid exports section: export %d is not a valid symbol offset", exp)
+		}
+
+		exports = append(exports, exp)
+	}
+
+	return exports, nil
+}
+
 // decodeTypes reads the types from `s`,
 // checking that each is valid.
 func (d *decoded) decodeTypes(s cryptobyte.String) (types map[uint64]typeSplat, err error) {
 	var offset uint64
 	types = make(map[uint64]typeSplat)
-	for {
-		if s.Empty() {
-			return types, nil
-		}
-
+	for !s.Empty() {
 		here := offset
 		var kind uint8
 		var rest cryptobyte.String
@@ -316,56 +345,68 @@ func (d *decoded) decodeTypes(s cryptobyte.String) (types map[uint64]typeSplat, 
 			return nil, fmt.Errorf("invalid type: got unrecognised type kind %d", kind)
 		}
 	}
+
+	return types, nil
 }
 
-// decodeSymbol reads the symbol from `s`,
-// checking that each field is valid.
-func (d *decoded) decodeSymbol(sym *symbol, s *cryptobyte.String) error {
-	var kind uint32
-	if !s.ReadUint32(&kind) ||
-		!s.ReadUint64(&sym.PackageName) ||
-		!s.ReadUint64(&sym.Name) ||
-		!s.ReadUint64(&sym.Type) ||
-		!s.ReadUint64(&sym.Value) {
-		return fmt.Errorf("failed to read symbol: %w", io.ErrUnexpectedEOF)
-	}
-
-	sym.Kind = SymKind(kind)
-	switch sym.Kind {
-	case SymKindBooleanConstant:
-		if sym.Value != 0 && sym.Value != 1 {
-			return fmt.Errorf("invalid symbol: got value %d, want 0 or 1 for kind %q", sym.Value, sym.Kind)
+// decodeSymbols reads the symbols from `s`,
+// checking that each symbol is valid.
+func (d *decoded) decodeSymbols(s cryptobyte.String) (symbols map[uint64]*symbol, err error) {
+	var offset uint64
+	symbols = make(map[uint64]*symbol)
+	for !s.Empty() {
+		var sym symbol
+		var kind uint32
+		if !s.ReadUint32(&kind) ||
+			!s.ReadUint64(&sym.PackageName) ||
+			!s.ReadUint64(&sym.Name) ||
+			!s.ReadUint64(&sym.Type) ||
+			!s.ReadUint64(&sym.Value) {
+			return nil, fmt.Errorf("failed to read symbol: %w", io.ErrUnexpectedEOF)
 		}
-	case SymKindIntegerConstant:
-	case SymKindBigIntegerConstant, SymKindBigNegativeIntegerConstant:
-		if sym.Value >= d.header.StringsLength {
-			return fmt.Errorf("invalid symbol: %s value %d is beyond strings section", sym.Kind, sym.Value)
+
+		here := offset
+		offset += symbolSize
+
+		sym.Kind = SymKind(kind)
+		switch sym.Kind {
+		case SymKindBooleanConstant:
+			if sym.Value != 0 && sym.Value != 1 {
+				return nil, fmt.Errorf("invalid symbol: got value %d, want 0 or 1 for kind %q", sym.Value, sym.Kind)
+			}
+		case SymKindIntegerConstant:
+		case SymKindBigIntegerConstant, SymKindBigNegativeIntegerConstant:
+			if sym.Value >= d.header.StringsLength {
+				return nil, fmt.Errorf("invalid symbol: %s value %d is beyond strings section", sym.Kind, sym.Value)
+			}
+		case SymKindStringConstant:
+			if sym.Value >= d.header.StringsLength {
+				return nil, fmt.Errorf("invalid symbol: %s value %d is beyond strings section", sym.Kind, sym.Value)
+			}
+		case SymKindFunction:
+			if sym.Value >= d.header.CodeLength {
+				return nil, fmt.Errorf("invalid symbol: %s value %d is beyond code section", sym.Kind, sym.Value)
+			}
+		default:
+			return nil, fmt.Errorf("invalid symbol: unrecognised kind %d", sym.Kind)
 		}
-	case SymKindStringConstant:
-		if sym.Value >= d.header.StringsLength {
-			return fmt.Errorf("invalid symbol: %s value %d is beyond strings section", sym.Kind, sym.Value)
+
+		if sym.PackageName >= d.header.StringsLength {
+			return nil, fmt.Errorf("invalid symbol: package path offset %d is beyond strings section", sym.PackageName)
 		}
-	case SymKindFunction:
-		if sym.Value >= d.header.CodeLength {
-			return fmt.Errorf("invalid symbol: %s value %d is beyond code section", sym.Kind, sym.Value)
+
+		if sym.Name >= d.header.StringsLength {
+			return nil, fmt.Errorf("invalid symbol: name offset %d is beyond strings section", sym.Name)
 		}
-	default:
-		return fmt.Errorf("invalid symbol: unrecognised kind %d", sym.Kind)
+
+		if sym.Type == 0 {
+			return nil, fmt.Errorf("invalid symbol: got type %d for kind %q", sym.Type, sym.Kind)
+		}
+
+		symbols[here] = &sym
 	}
 
-	if sym.PackageName >= d.header.StringsLength {
-		return fmt.Errorf("invalid symbol: package path offset %d is beyond strings section", sym.PackageName)
-	}
-
-	if sym.Name >= d.header.StringsLength {
-		return fmt.Errorf("invalid symbol: name offset %d is beyond strings section", sym.Name)
-	}
-
-	if sym.Type == 0 {
-		return fmt.Errorf("invalid symbol: got type %d for kind %q", sym.Type, sym.Kind)
-	}
-
-	return nil
+	return symbols, nil
 }
 
 // decodeStrings reads the strings from `s`,
@@ -541,17 +582,22 @@ type Decoder struct {
 
 	header header
 
+	pkg *types.Package
+
 	packageName string
 
-	allImports  []string              // Cached result from Imports.
-	allTypes    []types.Type          // Cached result from Types.
-	types       map[uint64]types.Type // Cached lookup of each type.
-	allSymbols  []*Symbol             // Cached result from Symbols.
-	symbols     map[uint64]*Symbol    // Cached lookup of each symbol.
-	allStrings  []string              // Cached result from Strings.
-	strings     map[uint64]string     // Cached lookup of each string.
-	allLinkages []*Linkage            // Cached result from Linkages.
-	code        map[uint64][]byte     // Cached lookup of each function.
+	allImports  []string                // Cached result from Imports.
+	allExports  []types.Object          // Cached result from Exports.
+	allTypes    []types.Type            // Cached result from Types.
+	types       map[uint64]types.Type   // Cached lookup of each type.
+	allSymbols  []*Symbol               // Cached result from Symbols.
+	allObjects  []types.Object          // Cached result from Symbols.
+	symbols     map[uint64]*Symbol      // Cached lookup of each symbol.
+	objects     map[uint64]types.Object // Cached lookup of each object.
+	allStrings  []string                // Cached result from Strings.
+	strings     map[uint64]string       // Cached lookup of each string.
+	allLinkages []*Linkage              // Cached result from Linkages.
+	code        map[uint64][]byte       // Cached lookup of each function.
 }
 
 // NewDecoder helps parse an rpkg into a compiled package.
@@ -584,6 +630,11 @@ func NewDecoder(b []byte) (*Decoder, error) {
 		return nil, fmt.Errorf("invalid rpkg header: invalid package name: %v", err)
 	}
 
+	d.pkg = &types.Package{
+		Path: d.packageName,
+		Name: path.Base(d.packageName),
+	}
+
 	return d, nil
 }
 
@@ -599,6 +650,9 @@ func (d *Decoder) Header() *Header {
 
 		ImportsOffset: d.header.ImportsOffset,
 		ImportsLength: d.header.ImportsLength,
+
+		ExportsOffset: d.header.ExportsOffset,
+		ExportsLength: d.header.ExportsLength,
 
 		TypesOffset: d.header.TypesOffset,
 		TypesLength: d.header.TypesLength,
@@ -631,7 +685,7 @@ func (d *Decoder) Imports() ([]string, error) {
 
 	var offset uint32
 	var result []string
-	s := cryptobyte.String(d.b[d.header.ImportsOffset:d.header.TypesOffset])
+	s := cryptobyte.String(d.b[d.header.ImportsOffset:d.header.ExportsOffset])
 	for !s.Empty() {
 		if !s.ReadUint32(&offset) {
 			return nil, fmt.Errorf("invalid imports section: %w", io.ErrUnexpectedEOF)
@@ -646,6 +700,34 @@ func (d *Decoder) Imports() ([]string, error) {
 	}
 
 	d.allImports = result
+
+	return result, nil
+}
+
+// Exports reads all exports in the rpkg, caching
+// them in the decoder.
+func (d *Decoder) Exports() ([]types.Object, error) {
+	if d.allExports != nil {
+		return d.allExports, nil
+	}
+
+	var offset uint64
+	var result []types.Object
+	s := cryptobyte.String(d.b[d.header.ExportsOffset:d.header.TypesOffset])
+	for !s.Empty() {
+		if !s.ReadUint64(&offset) {
+			return nil, fmt.Errorf("invalid exports section: %w", io.ErrUnexpectedEOF)
+		}
+
+		obj, ok := d.objects[offset]
+		if !ok {
+			return nil, fmt.Errorf("invalid exports section: no symbol found at offset %d", offset)
+		}
+
+		result = append(result, obj)
+	}
+
+	d.allExports = result
 
 	return result, nil
 }
@@ -826,14 +908,16 @@ func (d *Decoder) getTypeFrom(s *cryptobyte.String) (types.Type, error) {
 
 // Symbols reads all symbols in the rpkg, caching
 // them in the decoder.
-func (d *Decoder) Symbols() ([]*Symbol, error) {
-	if d.allSymbols != nil {
-		return d.allSymbols, nil
+func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
+	if d.allSymbols != nil && d.allObjects != nil {
+		return d.allSymbols, d.allObjects, nil
 	}
 
 	var offset uint64
 	var result []*Symbol
+	var objects []types.Object
 	d.symbols = make(map[uint64]*Symbol)
+	d.objects = make(map[uint64]types.Object)
 	s := cryptobyte.String(d.b[d.header.SymbolsOffset:d.header.StringsOffset])
 	for !s.Empty() {
 		here := offset
@@ -844,15 +928,16 @@ func (d *Decoder) Symbols() ([]*Symbol, error) {
 			!s.ReadUint64(&nameOffset) ||
 			!s.ReadUint64(&typeOffset) ||
 			!s.ReadUint64(&rawValue) {
-			return nil, fmt.Errorf("failed to read symbol: %w", io.ErrUnexpectedEOF)
+			return nil, nil, fmt.Errorf("failed to read symbol: %w", io.ErrUnexpectedEOF)
 		}
 
 		offset += symbolSize
+
 		var value any
 		switch SymKind(kind) {
 		case SymKindBooleanConstant:
 			if rawValue != 0 && rawValue != 1 {
-				return nil, fmt.Errorf("invalid symbol: got value %d, want 0 or 1 for kind %q", rawValue, SymKind(kind))
+				return nil, nil, fmt.Errorf("invalid symbol: got value %d, want 0 or 1 for kind %q", rawValue, SymKind(kind))
 			}
 
 			value = rawValue == 1
@@ -860,77 +945,77 @@ func (d *Decoder) Symbols() ([]*Symbol, error) {
 			value = constant.MakeInt64(int64(rawValue))
 		case SymKindBigIntegerConstant:
 			if rawValue >= d.header.StringsLength {
-				return nil, fmt.Errorf("invalid symbol: %s value %d is beyond strings section", SymKind(kind), rawValue)
+				return nil, nil, fmt.Errorf("invalid symbol: %s value %d is beyond strings section", SymKind(kind), rawValue)
 			}
 
 			data, err := d.getString(rawValue)
 			if err != nil {
-				return nil, fmt.Errorf("invalid symbol: invalid %s: %v", SymKind(kind), err)
+				return nil, nil, fmt.Errorf("invalid symbol: invalid %s: %v", SymKind(kind), err)
 			}
 
 			x := new(big.Int).SetBytes([]byte(data))
 			value = constant.Make(x)
 		case SymKindBigNegativeIntegerConstant:
 			if rawValue >= d.header.StringsLength {
-				return nil, fmt.Errorf("invalid symbol: %s value %d is beyond strings section", SymKind(kind), rawValue)
+				return nil, nil, fmt.Errorf("invalid symbol: %s value %d is beyond strings section", SymKind(kind), rawValue)
 			}
 
 			data, err := d.getString(rawValue)
 			if err != nil {
-				return nil, fmt.Errorf("invalid symbol: invalid %s: %v", SymKind(kind), err)
+				return nil, nil, fmt.Errorf("invalid symbol: invalid %s: %v", SymKind(kind), err)
 			}
 
 			x := new(big.Int).SetBytes([]byte(data))
 			value = constant.Make(x.Neg(x))
 		case SymKindStringConstant:
 			if rawValue >= d.header.StringsLength {
-				return nil, fmt.Errorf("invalid symbol: %s value %d is beyond strings section", SymKind(kind), rawValue)
+				return nil, nil, fmt.Errorf("invalid symbol: %s value %d is beyond strings section", SymKind(kind), rawValue)
 			}
 
 			data, err := d.getString(rawValue)
 			if err != nil {
-				return nil, fmt.Errorf("invalid symbol: invalid %s: %v", SymKind(kind), err)
+				return nil, nil, fmt.Errorf("invalid symbol: invalid %s: %v", SymKind(kind), err)
 			}
 
 			value = constant.MakeString(data)
 		case SymKindFunction:
 			if rawValue >= d.header.CodeLength {
-				return nil, fmt.Errorf("invalid symbol: %s value %d is beyond code section", SymKind(kind), rawValue)
+				return nil, nil, fmt.Errorf("invalid symbol: %s value %d is beyond code section", SymKind(kind), rawValue)
 			}
 
 			code, err := d.getCode(rawValue)
 			if err != nil {
-				return nil, fmt.Errorf("invalid symbol: invalid %s: %v", SymKind(kind), err)
+				return nil, nil, fmt.Errorf("invalid symbol: invalid %s: %v", SymKind(kind), err)
 			}
 
 			value = compiler.MachineCode(code)
 		default:
-			return nil, fmt.Errorf("invalid symbol: unrecognised kind %d", SymKind(kind))
+			return nil, nil, fmt.Errorf("invalid symbol: unrecognised kind %d", SymKind(kind))
 		}
 
 		if packageOffset >= d.header.StringsLength {
-			return nil, fmt.Errorf("invalid symbol: package path offset %d is beyond strings section", packageOffset)
+			return nil, nil, fmt.Errorf("invalid symbol: package path offset %d is beyond strings section", packageOffset)
 		}
 		if nameOffset >= d.header.StringsLength {
-			return nil, fmt.Errorf("invalid symbol: name offset %d is beyond strings section", nameOffset)
+			return nil, nil, fmt.Errorf("invalid symbol: name offset %d is beyond strings section", nameOffset)
 		}
 		if typeOffset == 0 {
-			return nil, fmt.Errorf("invalid symbol: got type %d for kind %q", typeOffset, SymKind(kind))
+			return nil, nil, fmt.Errorf("invalid symbol: got type %d for kind %q", typeOffset, SymKind(kind))
 		}
 
 		pkgName, err := d.getString(packageOffset)
 		if err != nil {
-			return nil, fmt.Errorf("invalid symbol: invalid package name: %v", err)
+			return nil, nil, fmt.Errorf("invalid symbol: invalid package name: %v", err)
 		}
 
 		name, err := d.getString(nameOffset)
 		if err != nil {
-			return nil, fmt.Errorf("invalid symbol: invalid symbol name: %v", err)
+			return nil, nil, fmt.Errorf("invalid symbol: invalid symbol name: %v", err)
 		}
 
 		typ, err := d.getType(typeOffset)
 		if err != nil {
-			return nil, fmt.Errorf("invalid symbol: invalid type: %v", err)
+			return nil, nil, fmt.Errorf("invalid symbol: invalid type: %v", err)
 		}
 
 		symbol := &Symbol{
@@ -941,13 +1026,40 @@ func (d *Decoder) Symbols() ([]*Symbol, error) {
 			Value:       value,
 		}
 
+		var object types.Object
+		switch symbol.Kind {
+		case SymKindBooleanConstant,
+			SymKindIntegerConstant,
+			SymKindBigIntegerConstant,
+			SymKindBigNegativeIntegerConstant,
+			SymKindStringConstant:
+			value, ok := symbol.Value.(constant.Value)
+			if !ok {
+				return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with kind %v and unexpected value type %#v", symbol.Name, symbol.Kind, symbol.Value)
+			}
+
+			object = types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, symbol.Type, value)
+		case SymKindFunction:
+			sig, ok := symbol.Type.(*types.Signature)
+			if !ok {
+				return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with kind %v and unexpected type %#v", symbol.Name, symbol.Kind, symbol.Type)
+			}
+
+			object = types.NewFunction(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, sig)
+		default:
+			return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with unsupported kind: %v", symbol.Name, symbol.Kind)
+		}
+
 		d.symbols[here] = symbol
+		d.objects[here] = object
 		result = append(result, symbol)
+		objects = append(objects, object)
 	}
 
 	d.allSymbols = result
+	d.allObjects = objects
 
-	return result, nil
+	return result, objects, nil
 }
 
 // Strings reads all strings in the rpkg, caching
@@ -1241,8 +1353,9 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 	}
 
 	pkg = &compiler.Package{
-		Name: path.Base(d.packageName),
-		Path: d.packageName,
+		Name:  d.pkg.Name,
+		Path:  d.pkg.Path,
+		Types: d.pkg,
 	}
 
 	// Pull all the data from the package.
@@ -1281,7 +1394,7 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 		info.List = append(info.List, typ)
 	}
 
-	symbols, err := d.Symbols()
+	symbols, objects, err := d.Symbols()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1291,42 +1404,49 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 		return nil, nil, err
 	}
 
+	_, err = d.Imports()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	exports, err := d.Exports()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Add the exported symbols to
+	// the package scope.
+	scope := pkg.Types.Scope()
+	for _, exp := range exports {
+		scope.Insert(exp)
+	}
+
 	// Spread the symbols out into
 	// the package's constants and
 	// functions.
 
-	for _, symbol := range symbols {
-		switch symbol.Kind {
-		case SymKindBooleanConstant,
-			SymKindIntegerConstant,
-			SymKindBigIntegerConstant,
-			SymKindBigNegativeIntegerConstant,
-			SymKindStringConstant:
-			value, ok := symbol.Value.(constant.Value)
-			if !ok {
-				return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with kind %v and unexpected value type %#v", symbol.Name, symbol.Kind, symbol.Value)
-			}
-
-			pkg.Constants = append(pkg.Constants, types.NewConstant(nil, token.NoPos, token.NoPos, nil, symbol.Name, symbol.Type, value))
-		case SymKindFunction:
-			typ, ok := symbol.Type.(*types.Signature)
-			if !ok {
-				return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with kind %v and unexpected type %#v", symbol.Name, symbol.Kind, symbol.Type)
-			}
-
+	for i, obj := range objects {
+		symbol := symbols[i]
+		switch obj := obj.(type) {
+		case *types.Constant:
+			pkg.Constants = append(pkg.Constants, obj)
+		case *types.Function:
 			code, ok := symbol.Value.(compiler.MachineCode)
 			if !ok {
-				return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with kind %v and unexpected value type %#v", symbol.Name, symbol.Kind, symbol.Value)
+				return nil, nil, fmt.Errorf("found symbol %q with kind %v and unexpected value type %#v", symbol.Name, symbol.Kind, symbol.Value)
 			}
 
-			pkg.Functions = append(pkg.Functions, &ssafir.Function{
+			fun := &ssafir.Function{
 				Name:  symbol.Name,
-				Type:  typ,
+				Func:  obj,
+				Type:  obj.Type().(*types.Signature),
 				Extra: code,
 				Links: symbol.Links,
-			})
+			}
+
+			pkg.Functions = append(pkg.Functions, fun)
 		default:
-			return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with unsupported kind: %v", symbol.Name, symbol.Kind)
+			return nil, nil, fmt.Errorf("rpkg: internal error: symbol %q (%#v) has unexpected object type: %#v", symbol.Name, symbol, obj)
 		}
 	}
 

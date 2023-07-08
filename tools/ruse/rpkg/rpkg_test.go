@@ -41,14 +41,16 @@ var tests = []struct {
 			1,    // Arch: x86-64.
 			1,    // Version: 1.
 			0, 4, // PackageName: 4.
-			0, 0, 0, 60, // ImportsOffset: 60.
-			0, 0, 0, 0, 0, 0, 0, 60, // TypesOffset: 60.
-			0, 0, 0, 0, 0, 0, 0, 64, // SymbolsOffset: 64,
-			0, 0, 0, 0, 0, 0, 0, 64, // StringsOffset: 64,
-			0, 0, 0, 0, 0, 0, 0, 88, // LinkagesOffset: 88,
-			0, 0, 0, 0, 0, 0, 0, 88, // CodeOffset: 88,
-			0, 0, 0, 0, 0, 0, 0, 88, // ChecksumOffset: 88,
+			0, 0, 0, 64, // ImportsOffset: 64.
+			0, 0, 0, 64, // ExportsOffset: 64.
+			0, 0, 0, 0, 0, 0, 0, 64, // TypesOffset: 64.
+			0, 0, 0, 0, 0, 0, 0, 68, // SymbolsOffset: 68,
+			0, 0, 0, 0, 0, 0, 0, 68, // StringsOffset: 68,
+			0, 0, 0, 0, 0, 0, 0, 92, // LinkagesOffset: 92,
+			0, 0, 0, 0, 0, 0, 0, 92, // CodeOffset: 92,
+			0, 0, 0, 0, 0, 0, 0, 92, // ChecksumOffset: 92,
 			// Imports.
+			// Exports.
 			// Types.
 			// - The nil type.
 			1,       // Kind: none.
@@ -64,10 +66,10 @@ var tests = []struct {
 			// Linkages.
 			// Code.
 			// Checksum.
-			0xac, 0x60, 0x83, 0xf4, 0xb3, 0xe0, 0x54, 0x79,
-			0x7a, 0xd9, 0x0d, 0x6e, 0x99, 0xe1, 0x4f, 0x47,
-			0xae, 0xc9, 0xb2, 0xa8, 0x4a, 0x5b, 0x94, 0x33,
-			0xcc, 0x38, 0x0c, 0xe9, 0x4b, 0x85, 0xc0, 0x67,
+			0x70, 0x52, 0x8a, 0xae, 0x4d, 0x75, 0xe5, 0xd3,
+			0x35, 0x9c, 0x66, 0x39, 0x3c, 0xc1, 0x62, 0xa5,
+			0x93, 0x31, 0x6a, 0x8e, 0xa6, 0x00, 0x63, 0x93,
+			0x41, 0x78, 0x0a, 0x2e, 0x48, 0xee, 0xa4, 0xc1,
 		},
 		Decoded: &decoded{
 			header: header{
@@ -75,28 +77,32 @@ var tests = []struct {
 				Architecture:   ArchX86_64,
 				Version:        1,
 				PackageName:    4,
-				ImportsOffset:  60,
+				ImportsOffset:  64,
 				ImportsLength:  0,
-				TypesOffset:    60,
+				ExportsOffset:  64,
+				ExportsLength:  0,
+				TypesOffset:    64,
 				TypesLength:    4,
-				SymbolsOffset:  64,
+				SymbolsOffset:  68,
 				SymbolsLength:  0,
-				StringsOffset:  64,
+				StringsOffset:  68,
 				StringsLength:  24,
-				LinkagesOffset: 88,
+				LinkagesOffset: 92,
 				LinkagesLength: 0,
-				CodeOffset:     88,
+				CodeOffset:     92,
 				CodeLength:     0,
-				ChecksumOffset: 88,
+				ChecksumOffset: 92,
 				ChecksumLength: 32,
 			},
+			imports: []uint32{},
+			exports: []uint64{},
 			types: map[uint64]typeSplat{
 				0: {
 					Kind:   TypeKindNone,
 					Length: 0,
 				},
 			},
-			symbols: []symbol{},
+			symbols: map[uint64]*symbol{},
 			strings: map[uint64]string{
 				0: "",
 				4: "example.com/foo",
@@ -111,10 +117,10 @@ var tests = []struct {
 		Package: "example.com/foo",
 		Code: `
 			(package foo)
-			(let text (+ "Hello, " "world!"))
+			(let Text (+ "Hello, " "world!"))
 			(let (num uint16) (* 4 3))
 			(let massive 0x112233445566778899)
-			(let big-negative -0x112233445566778899)
+			(let Big-negative -0x112233445566778899)
 		`,
 		Raw: []byte{
 			// Header.
@@ -122,14 +128,20 @@ var tests = []struct {
 			1,    // Arch: x86-64.
 			1,    // Version: 1.
 			0, 4, // PackageName: 4.
-			0, 0, 0, 60, // ImportsOffset: 60.
-			0, 0, 0, 0, 0, 0, 0, 60, // TypesOffset: 60.
-			0, 0, 0, 0, 0, 0, 0, 88, // SymbolsOffset: 88,
-			0, 0, 0, 0, 0, 0, 0, 232, // StringsOffset: 232,
-			0, 0, 0, 0, 0, 0, 1, 80, // LinkagesOffset: 336,
-			0, 0, 0, 0, 0, 0, 1, 80, // CodeOffset: 336,
-			0, 0, 0, 0, 0, 0, 1, 80, // ChecksumOffset: 336,
+			0, 0, 0, 64, // ImportsOffset: 64.
+			0, 0, 0, 64, // ExportsOffset: 64.
+			0, 0, 0, 0, 0, 0, 0, 80, // TypesOffset: 80.
+			0, 0, 0, 0, 0, 0, 0, 108, // SymbolsOffset: 108,
+			0, 0, 0, 0, 0, 0, 0, 252, // StringsOffset: 252,
+			0, 0, 0, 0, 0, 0, 1, 100, // LinkagesOffset: 356,
+			0, 0, 0, 0, 0, 0, 1, 100, // CodeOffset: 356,
+			0, 0, 0, 0, 0, 0, 1, 100, // ChecksumOffset: 356,
 			// Imports.
+			// Exports (sorted).
+			// - Big-negative.
+			0, 0, 0, 0, 0, 0, 0, 108, // Symbol offset 108 (Big-negative).
+			// - Text.
+			0, 0, 0, 0, 0, 0, 0, 0, // Symbol offset: 0 (Text).
 			// Types.
 			// - The nil type.
 			1,       // Kind: 1 (none).
@@ -147,10 +159,10 @@ var tests = []struct {
 			0, 0, 4, // Length: 4.
 			0, 0, 0, 16, // BasicKind: 16 (untyped int).
 			// Symbols.
-			// - text
+			// - Text
 			0, 0, 0, 5, // Kind: 5 (string constant).
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
-			0, 0, 0, 0, 0, 0, 0, 24, // Name: 24 ("text").
+			0, 0, 0, 0, 0, 0, 0, 24, // Name: 24 ("Text").
 			0, 0, 0, 0, 0, 0, 0, 4, // Type: 4 (untyped string).
 			0, 0, 0, 0, 0, 0, 0, 32, // Value: 32 ("Hello, world!").
 			// - num
@@ -165,10 +177,10 @@ var tests = []struct {
 			0, 0, 0, 0, 0, 0, 0, 60, // Name: 60 ("massive").
 			0, 0, 0, 0, 0, 0, 0, 20, // Type: 20 (untyped int).
 			0, 0, 0, 0, 0, 0, 0, 72, // Value: 72 (0x112233445566778899).
-			// - big-negative
+			// - Big-negative
 			0, 0, 0, 4, // Kind: 4 (big negative integer constant).
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
-			0, 0, 0, 0, 0, 0, 0, 88, // Name: 88 ("big-negative").
+			0, 0, 0, 0, 0, 0, 0, 88, // Name: 88 ("Big-negative").
 			0, 0, 0, 0, 0, 0, 0, 20, // Type: 20 (untyped int).
 			0, 0, 0, 0, 0, 0, 0, 72, // Value: 72 (0x112233445566778899).
 			// Strings.
@@ -178,9 +190,9 @@ var tests = []struct {
 			0, 0, 0, 15, // Length: 15.
 			'e', 'x', 'a', 'm', 'p', 'l', 'e', '.', 'c', 'o', 'm', '/', 'f', 'o', 'o', // Text.
 			0, // Padding.
-			// - "text".
+			// - "Text".
 			0, 0, 0, 4, // Length: 4.
-			't', 'e', 'x', 't', // Text.
+			'T', 'e', 'x', 't', // Text.
 			// - "Hello, world!".
 			0, 0, 0, 13, // Length: 13.
 			'H', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd', '!', // Text.
@@ -197,16 +209,16 @@ var tests = []struct {
 			0, 0, 0, 9, // Length: 9.
 			0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, // Text.
 			0, 0, 0, // Padding
-			// - "big-negative".
+			// - "Big-negative".
 			0, 0, 0, 12, // Length: 12.
-			'b', 'i', 'g', '-', 'n', 'e', 'g', 'a', 't', 'i', 'v', 'e', // Text.
+			'B', 'i', 'g', '-', 'n', 'e', 'g', 'a', 't', 'i', 'v', 'e', // Text.
 			// Linkages.
 			// Code.
 			// Checksum.
-			0xeb, 0x06, 0x43, 0xf5, 0x2a, 0x9b, 0x2a, 0xfc,
-			0x04, 0x86, 0x4d, 0xb1, 0xd7, 0x29, 0xb5, 0xa6,
-			0x52, 0x73, 0xc1, 0x5f, 0x39, 0x9d, 0xc5, 0x04,
-			0x4d, 0xa5, 0x57, 0x17, 0xaa, 0xbb, 0x05, 0xf0,
+			0xaa, 0x96, 0x60, 0xb5, 0x9f, 0x9b, 0x28, 0xf4,
+			0x90, 0xf2, 0x41, 0xd2, 0x69, 0x1a, 0xa4, 0x0e,
+			0x9d, 0xa3, 0xb4, 0xb8, 0xbb, 0xe5, 0x9e, 0x0c,
+			0x1b, 0xd7, 0xe5, 0x8b, 0xe9, 0x34, 0x29, 0x83,
 		},
 		Decoded: &decoded{
 			header: header{
@@ -214,20 +226,27 @@ var tests = []struct {
 				Architecture:   ArchX86_64,
 				Version:        1,
 				PackageName:    4,
-				ImportsOffset:  60,
+				ImportsOffset:  64,
 				ImportsLength:  0,
-				TypesOffset:    60,
+				ExportsOffset:  64,
+				ExportsLength:  16,
+				TypesOffset:    80,
 				TypesLength:    28,
-				SymbolsOffset:  88,
+				SymbolsOffset:  108,
 				SymbolsLength:  144,
-				StringsOffset:  232,
+				StringsOffset:  252,
 				StringsLength:  104,
-				LinkagesOffset: 336,
+				LinkagesOffset: 356,
 				LinkagesLength: 0,
-				CodeOffset:     336,
+				CodeOffset:     356,
 				CodeLength:     0,
-				ChecksumOffset: 336,
+				ChecksumOffset: 356,
 				ChecksumLength: 32,
+			},
+			imports: []uint32{},
+			exports: []uint64{
+				108,
+				0,
 			},
 			types: map[uint64]typeSplat{
 				0: {
@@ -250,29 +269,29 @@ var tests = []struct {
 					Basic:  BasicKindUntypedInt,
 				},
 			},
-			symbols: []symbol{
-				{
+			symbols: map[uint64]*symbol{
+				0: {
 					Kind:        SymKindStringConstant,
 					PackageName: 4,
 					Name:        24,
 					Type:        4,
 					Value:       32,
 				},
-				{
+				36: {
 					Kind:        SymKindIntegerConstant,
 					PackageName: 4,
 					Name:        52,
 					Type:        12,
 					Value:       12,
 				},
-				{
+				72: {
 					Kind:        SymKindBigIntegerConstant,
 					PackageName: 4,
 					Name:        60,
 					Type:        20,
 					Value:       72,
 				},
-				{
+				108: {
 					Kind:        SymKindBigNegativeIntegerConstant,
 					PackageName: 4,
 					Name:        88,
@@ -283,12 +302,12 @@ var tests = []struct {
 			strings: map[uint64]string{
 				0:  "",
 				4:  "example.com/foo",
-				24: "text",
+				24: "Text",
 				32: "Hello, world!",
 				52: "num",
 				60: "massive",
 				72: "\x11\x22\x33\x44\x55\x66\x77\x88\x99",
-				88: "big-negative",
+				88: "Big-negative",
 			},
 			linkages: map[uint64]*linkage{},
 			code:     map[uint64][]byte{},
@@ -333,14 +352,16 @@ var tests = []struct {
 			1,    // Arch: x86-64.
 			1,    // Version: 1.
 			0, 4, // PackageName: 4.
-			0, 0, 0, 60, // ImportsOffset: 60.
-			0, 0, 0, 0, 0, 0, 0, 60, // TypesOffset: 60.
-			0, 0, 0, 0, 0, 0, 0, 168, // SymbolsOffset: 168,
-			0, 0, 0, 0, 0, 0, 1, 56, // StringsOffset: 312,
-			0, 0, 0, 0, 0, 0, 1, 216, // LinkagesOffset: 472,
-			0, 0, 0, 0, 0, 0, 1, 252, // CodeOffset: 508,
-			0, 0, 0, 0, 0, 0, 2, 40, // ChecksumOffset: 552,
+			0, 0, 0, 64, // ImportsOffset: 64.
+			0, 0, 0, 64, // ExportsOffset: 64.
+			0, 0, 0, 0, 0, 0, 0, 64, // TypesOffset: 64.
+			0, 0, 0, 0, 0, 0, 0, 172, // SymbolsOffset: 172,
+			0, 0, 0, 0, 0, 0, 1, 60, // StringsOffset: 316,
+			0, 0, 0, 0, 0, 0, 1, 220, // LinkagesOffset: 476,
+			0, 0, 0, 0, 0, 0, 2, 0, // CodeOffset: 512,
+			0, 0, 0, 0, 0, 0, 2, 44, // ChecksumOffset: 556,
 			// Imports.
+			// Exports.
 			// Types.
 			// - The nil type.
 			1,       // Kind: 1 (none).
@@ -472,10 +493,10 @@ var tests = []struct {
 			0xc3, // (ret)
 			0, 0, // Padding.
 			// Checksum.
-			0xbf, 0x18, 0xf8, 0x73, 0x9f, 0xc0, 0x00, 0x7c,
-			0x6c, 0xdc, 0x2b, 0xee, 0xec, 0xef, 0xe6, 0x28,
-			0x8f, 0x16, 0x61, 0x80, 0x28, 0xbc, 0x9d, 0xbe,
-			0x49, 0x2a, 0x2a, 0x0e, 0xb3, 0x74, 0x8b, 0xb0,
+			0x88, 0xd4, 0x7d, 0xb8, 0x33, 0x08, 0x88, 0xce,
+			0x7c, 0x56, 0x2a, 0x2e, 0xac, 0x4c, 0xf0, 0x18,
+			0x11, 0x5d, 0xec, 0x02, 0x85, 0x44, 0x6a, 0x8c,
+			0xbc, 0x55, 0x9b, 0x44, 0xc7, 0x65, 0x23, 0xee,
 		},
 		Decoded: &decoded{
 			header: header{
@@ -483,21 +504,25 @@ var tests = []struct {
 				Architecture:   ArchX86_64,
 				Version:        1,
 				PackageName:    4,
-				ImportsOffset:  60,
+				ImportsOffset:  64,
 				ImportsLength:  0,
-				TypesOffset:    60,
+				ExportsOffset:  64,
+				ExportsLength:  0,
+				TypesOffset:    64,
 				TypesLength:    108,
-				SymbolsOffset:  168,
+				SymbolsOffset:  172,
 				SymbolsLength:  144,
-				StringsOffset:  312,
+				StringsOffset:  316,
 				StringsLength:  160,
-				LinkagesOffset: 472,
+				LinkagesOffset: 476,
 				LinkagesLength: 36,
-				CodeOffset:     508,
+				CodeOffset:     512,
 				CodeLength:     44,
-				ChecksumOffset: 552,
+				ChecksumOffset: 556,
 				ChecksumLength: 32,
 			},
+			imports: []uint32{},
+			exports: []uint64{},
 			types: map[uint64]typeSplat{
 				0: {
 					Kind:   TypeKindNone,
@@ -538,29 +563,29 @@ var tests = []struct {
 					Basic:  BasicKindUntypedString,
 				},
 			},
-			symbols: []symbol{
-				{
+			symbols: map[uint64]*symbol{
+				0: {
 					Kind:        SymKindFunction,
 					PackageName: 4,
 					Name:        24,
 					Type:        4,
 					Value:       0,
 				},
-				{
+				36: {
 					Kind:        SymKindFunction,
 					PackageName: 4,
 					Name:        52,
 					Type:        44,
 					Value:       8,
 				},
-				{
+				72: {
 					Kind:        SymKindFunction,
 					PackageName: 4,
 					Name:        120,
 					Type:        4,
 					Value:       16,
 				},
-				{
+				108: {
 					Kind:        SymKindStringConstant,
 					PackageName: 4,
 					Name:        132,
