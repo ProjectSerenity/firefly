@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 
 	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/compiler"
@@ -34,6 +35,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 	var help bool
 	var out, pkgName string
+	var rpkgs []string
 	var arch *sys.Arch
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
 	flags.Func("arch", "The target architecture (x86-64).", func(s string) error {
@@ -48,6 +50,10 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			return fmt.Errorf("unrecognised -arch: %q", s)
 		}
 
+		return nil
+	})
+	flags.Func("rpkg", "One or more dependency rpkg files.", func(s string) error {
+		rpkgs = append(rpkgs, s)
 		return nil
 	})
 	flags.StringVar(&pkgName, "package", "", "The full package name.")
@@ -69,6 +75,30 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		os.Exit(2)
 	}
 
+	// Get the set of packages available
+	// to import.
+	rpkgFiles := make(map[string]string)
+	availableImports := make(map[string]*types.Package)
+	for _, name := range rpkgs {
+		data, err := os.ReadFile(name)
+		if err != nil {
+			return fmt.Errorf("failed to read rpkg %q: %v", name, err)
+		}
+
+		info := new(types.Info)
+		depArch, pkg, err := rpkg.Decode(info, data)
+		if err != nil {
+			return fmt.Errorf("failed to parse rpkg %q: %v", name, err)
+		}
+
+		if depArch != arch {
+			return fmt.Errorf("cannot import rpkg %q: compiled for %s: need %s", name, depArch.Name, arch.Name)
+		}
+
+		rpkgFiles[pkg.Path] = name
+		availableImports[pkg.Path] = pkg.Types
+	}
+
 	filenames := flags.Args()
 	if len(filenames) == 0 {
 		flags.Usage()
@@ -84,10 +114,35 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 	}
 
+	// Accumulate the set of imports.
+	seenImport := make(map[string]bool)
+	for _, file := range files {
+		for _, imp := range file.Imports {
+			path, err := strconv.Unquote(imp.Path.Value)
+			if err != nil {
+				return fmt.Errorf("%s: found malformed import path %q: %v", fset.Position(imp.Path.ValuePos), imp.Path.Value, err)
+			}
+
+			if _, ok := availableImports[path]; !ok {
+				return fmt.Errorf("%s: no package found for import %s", fset.Position(imp.Path.ValuePos), imp.Path.Value)
+			}
+
+			seenImport[path] = true
+		}
+	}
+
+	// Check that we have no redundant rpkg files.
+	for imp := range availableImports {
+		if !seenImport[imp] {
+			return fmt.Errorf("rpkg file %s (package %q) was provided but not imported", rpkgFiles[imp], imp)
+		}
+	}
+
 	info := &types.Info{
 		Types:       make(map[ast.Expression]types.TypeAndValue),
 		Definitions: make(map[*ast.Identifier]types.Object),
 		Uses:        make(map[*ast.Identifier]types.Object),
+		Packages:    availableImports,
 	}
 
 	pkg, err := types.Check(pkgName, fset, files, arch, info)
