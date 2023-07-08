@@ -90,8 +90,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		Uses:        make(map[*ast.Identifier]types.Object),
 	}
 
-	var config types.Config
-	pkg, err := config.Check(pkgName, fset, files, arch, info)
+	pkg, err := types.Check(pkgName, fset, files, arch, info)
 	if err != nil {
 		return err
 	}

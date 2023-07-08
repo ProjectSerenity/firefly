@@ -216,18 +216,6 @@ func (p *Package) Scope() *Scope {
 	return p.scope
 }
 
-// Config customises the behaviour when type checking.
-//
-// The zero value Config is ready to use.
-type Config struct {
-	// If Error is not nil, it is called with each
-	// error that is encountered while type checking.
-	//
-	// If Error is nil, the first encountered error
-	// is returned, ending type checking.
-	Error func(err error)
-}
-
 // Check performs type checking on the given files.
 //
 // Path is the complete package path, such as
@@ -235,12 +223,8 @@ type Config struct {
 //
 // Any optional info is populated, as described
 // in the Info type.
-func (c *Config) Check(packagePath string, fset *token.FileSet, files []*ast.File, arch *sys.Arch, info *Info) (*Package, error) {
+func Check(packagePath string, fset *token.FileSet, files []*ast.File, arch *sys.Arch, info *Info) (*Package, error) {
 	if len(files) == 0 {
-		if c.Error != nil {
-			c.Error(ErrNoFiles)
-		}
-
 		return nil, ErrNoFiles
 	}
 
@@ -254,7 +238,6 @@ func (c *Config) Check(packagePath string, fset *token.FileSet, files []*ast.Fil
 	}
 
 	checker := &checker{
-		Error:  c.Error,
 		fset:   fset,
 		info:   info,
 		pkg:    pkg,

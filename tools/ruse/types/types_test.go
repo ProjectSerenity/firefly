@@ -449,8 +449,7 @@ func TestCheck(t *testing.T) {
 				Uses:        make(map[*ast.Identifier]Object),
 			}
 
-			var config Config
-			pkg, err := config.Check(test.Path, fset, files, sys.X86_64, info)
+			pkg, err := Check(test.Path, fset, files, sys.X86_64, info)
 			if test.Err != "" {
 				if err == nil {
 					t.Fatalf("unexpected success, wanted error %q", test.Err)

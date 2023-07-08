@@ -1081,8 +1081,7 @@ func TestAssembleX86(t *testing.T) {
 				Uses:        make(map[*ast.Identifier]types.Object),
 			}
 
-			var config types.Config
-			pkg, err := config.Check("test", fset, files, arch, info)
+			pkg, err := types.Check("test", fset, files, arch, info)
 			if err != nil {
 				t.Fatalf("failed to type-check package: %v", err)
 			}
@@ -1181,8 +1180,7 @@ func BenchmarkX86(b *testing.B) {
 				Uses:        make(map[*ast.Identifier]types.Object),
 			}
 
-			var config types.Config
-			pkg, err := config.Check("test", fset, files, arch, info)
+			pkg, err := types.Check("test", fset, files, arch, info)
 			if err != nil {
 				b.Fatalf("failed to type-check package: %v", err)
 			}
@@ -1473,8 +1471,7 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 						Uses:        make(map[*ast.Identifier]types.Object),
 					}
 
-					var config types.Config
-					pkg, err := config.Check("test", fset, files, arch, info)
+					pkg, err := types.Check("test", fset, files, arch, info)
 					if err != nil {
 						all.Fail()
 						local.Fail()
@@ -1851,8 +1848,7 @@ func TestEncodeX86(t *testing.T) {
 				Uses:        make(map[*ast.Identifier]types.Object),
 			}
 
-			var config types.Config
-			pkg, err := config.Check("test", fset, files, arch, info)
+			pkg, err := types.Check("test", fset, files, arch, info)
 			if err != nil {
 				t.Fatalf("failed to type-check:\n  Ruse: %s\n    %v", test.Ruse, err)
 			}

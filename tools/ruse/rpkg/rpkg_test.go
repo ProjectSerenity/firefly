@@ -642,8 +642,7 @@ func TestEncode(t *testing.T) {
 				Uses:        make(map[*ast.Identifier]types.Object),
 			}
 
-			var config types.Config
-			tpkg, err := config.Check(test.Package, fset, files, test.Arch, info)
+			tpkg, err := types.Check(test.Package, fset, files, test.Arch, info)
 			if err != nil {
 				t.Fatalf("failed to type-check code: %v", err)
 			}
@@ -721,8 +720,7 @@ func TestRoundTripping(t *testing.T) {
 				Uses:        make(map[*ast.Identifier]types.Object),
 			}
 
-			var config types.Config
-			tpkg, err := config.Check(test.Package, fset, files, test.Arch, info)
+			tpkg, err := types.Check(test.Package, fset, files, test.Arch, info)
 			if err != nil {
 				t.Fatalf("failed to type-check code: %v", err)
 			}

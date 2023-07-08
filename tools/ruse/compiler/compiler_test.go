@@ -344,8 +344,7 @@ func TestCompile(t *testing.T) {
 				Uses:        make(map[*ast.Identifier]types.Object),
 			}
 
-			var config types.Config
-			pkg, err := config.Check(test.Path, fset, files, arch, info)
+			pkg, err := types.Check(test.Path, fset, files, arch, info)
 			if err != nil {
 				t.Fatalf("failed to type-check package: %v", err)
 			}
