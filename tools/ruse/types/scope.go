@@ -137,7 +137,7 @@ func (s *Scope) Lookup(name string) Object {
 
 // LookupParent returns the object bound to the
 // given name in the current scope and its
-// (recurisve) parent scope(s).
+// (recursive) parent scope(s).
 //
 // If a valid position is provided, only objects
 // declared at or before pos are considered.

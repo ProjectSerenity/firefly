@@ -12,6 +12,7 @@ import (
 	"go/constant"
 	gotoken "go/token"
 	"path"
+	"sort"
 	"strings"
 
 	"firefly-os.dev/tools/ruse/ast"
@@ -201,6 +202,9 @@ type Package struct {
 	Path string // The full package path.
 	Name string // The local package name.
 
+	// The packages imported by this one.
+	Imports []string
+
 	scope *Scope
 }
 
@@ -296,7 +300,8 @@ func (c *checker) record(expr ast.Expression, typ Type, value constant.Value) {
 }
 
 func (c *checker) Check(files []*ast.File) error {
-	for _, file := range files {
+	seenImport := make(map[string]bool)
+	for i, file := range files {
 		if c.pkg.Name == "" {
 			c.pkg.Name = file.Name.Name
 		} else if file.Name.Name != c.pkg.Name {
@@ -309,9 +314,17 @@ func (c *checker) Check(files []*ast.File) error {
 			return c.errorf(file.Package, "found package name %q, expected %q or %q", file.Name.Name, "main", path.Base(c.pkg.Path))
 		}
 
-		if file.Imports != nil {
-			// TODO: support imports.
-			return c.errorf(file.Imports[0].ParenOpen, "found import statement, which is not yet supported")
+		// Resolve any imports.
+		for _, imp := range file.Imports {
+			importPath, err := strconv.Unquote(imp.Path.Value)
+			if err != nil {
+				return c.errorf(imp.Path.ValuePos, "found malformed import path: %v", err)
+			}
+
+			if !seenImport[importPath] {
+				seenImport[importPath] = true
+				c.pkg.Imports = append(c.pkg.Imports, importPath)
+			}
 		}
 
 		// Check the top-level expressions.
@@ -350,6 +363,8 @@ func (c *checker) Check(files []*ast.File) error {
 			}
 		}
 	}
+
+	sort.Strings(c.pkg.Imports)
 
 	// We do a second pass, where we
 	// type-check function bodies, now

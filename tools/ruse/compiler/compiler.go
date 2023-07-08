@@ -23,6 +23,8 @@ import (
 type Package struct {
 	Name      string
 	Path      string
+	Types     *types.Package
+	Imports   []string
 	Constants []*types.Constant
 	Functions []*ssafir.Function
 }
@@ -115,8 +117,10 @@ func compile(fset *token.FileSet, pkg *types.Package, expr *ast.List, info *type
 // returning the corresponding intermediate representation.
 func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*ast.File, info *types.Info, sizes types.Sizes) (*Package, error) {
 	p := &Package{
-		Name: pkg.Name,
-		Path: pkg.Path,
+		Name:    pkg.Name,
+		Path:    pkg.Path,
+		Types:   pkg,
+		Imports: pkg.Imports,
 	}
 
 	// Identify all package-level constants.
