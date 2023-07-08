@@ -476,7 +476,8 @@ func (l *Link) Perform(arch *sys.Arch, object []byte, fun *binary.Symbol, addres
 // Each function is compiled separately.
 type Function struct {
 	Name   string           // The function name.
-	Type   *types.Signature // The funciton signature.
+	Func   *types.Function  // The function's type information.
+	Type   *types.Signature // The function signature.
 	Blocks []*Block         // The basic blocks in this function's control flow graph.
 	Entry  *Block           // The basic block that begins the control flow graph.
 

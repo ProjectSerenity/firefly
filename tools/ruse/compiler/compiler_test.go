@@ -306,7 +306,7 @@ func TestCompile(t *testing.T) {
 
 	compareOptions := []cmp.Option{
 		cmp.Exporter(func(t reflect.Type) bool { return true }),                            // Allow unexported types to be compared.
-		cmpopts.IgnoreTypes(new(types.Package), new(types.Scope)),                          // Ignore *types.Package and *types.Scope values.
+		cmpopts.IgnoreTypes(new(types.Package), new(types.Scope), new(types.Function)),     // Ignore *types.Package and *types.Scope values.
 		cmpopts.SortMaps(func(v1, v2 *types.Variable) bool { return v1.Pos() < v2.Pos() }), // Sort NamedValues to improve comparisons.
 	}
 

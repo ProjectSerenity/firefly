@@ -66,6 +66,7 @@ func compile(fset *token.FileSet, pkg *types.Package, expr *ast.List, info *type
 	signature := function.Type().(*types.Signature)
 	fun := &ssafir.Function{
 		Name: name.Name,
+		Func: function,
 		Type: signature,
 
 		NamedValues: make(map[*types.Variable][]*ssafir.Value),

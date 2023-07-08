@@ -106,6 +106,7 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 	signature := function.Type().(*types.Signature)
 	fun := &ssafir.Function{
 		Name: name.Name,
+		Func: function,
 		Type: signature,
 
 		NamedValues: make(map[*types.Variable][]*ssafir.Value),
