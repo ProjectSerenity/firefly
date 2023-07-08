@@ -26,6 +26,12 @@ type Scope struct {
 	decls    map[string]Object // Lazily allocated.
 	pos, end token.Pos
 	comment  string // A context string for debugging purposes.
+
+	// If readonly is true, insertions to this scope
+	// are added to the parent instead. This is used
+	// in file scopes, as we want to read from them
+	// but write to the parent (package) scope.
+	readonly bool
 }
 
 // NewScope creates a new, empty scope.
@@ -164,6 +170,13 @@ func (s *Scope) LookupParent(name string, pos token.Pos) (*Scope, Object) {
 // obj's parent scope if currently unset, then
 // returns nil.
 func (s *Scope) Insert(obj Object) Object {
+	if s.readonly {
+		if obj.Parent() == s {
+			obj.setParent(s.parent)
+		}
+		return s.parent.Insert(obj)
+	}
+
 	name := obj.Name()
 	if other := s.Lookup(name); other != nil {
 		return other

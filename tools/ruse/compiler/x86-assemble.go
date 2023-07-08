@@ -987,6 +987,13 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, operand *x86.Operand) an
 
 		ident, ok := list.Elements[1].(*ast.Identifier)
 		if !ok {
+			var qualified *ast.Qualified
+			qualified, ok = list.Elements[1].(*ast.Qualified)
+			if ok {
+				ident = qualified.Y
+			}
+		}
+		if !ok {
 			panic("internal error: expected identifier, got " + list.Elements[1].Print())
 		}
 

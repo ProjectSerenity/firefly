@@ -35,14 +35,21 @@ func TestCheck(t *testing.T) {
 			Name:  "minimal",
 			Path:  "tests/minimal",
 			Files: []string{"minimal"},
-			Want: &Package{
-				Name: "minimal",
-				Path: "tests/minimal",
-				scope: &Scope{
-					parent:  Universe,
-					comment: "package tests/minimal",
-				},
-			},
+			Want: (func() *Package {
+				pkg := &Package{
+					Name: "minimal",
+					Path: "tests/minimal",
+					scope: &Scope{
+						parent:  Universe,
+						comment: "package tests/minimal",
+					},
+				}
+
+				file0 := NewScope(pkg.scope, 58, 74, "file 0")
+				file0.readonly = true
+
+				return pkg
+			})(),
 		},
 		{
 			Name: "multifile",
@@ -51,14 +58,23 @@ func TestCheck(t *testing.T) {
 				"minimal",
 				"multifile",
 			},
-			Want: &Package{
-				Name: "minimal",
-				Path: "tests/minimal",
-				scope: &Scope{
-					parent:  Universe,
-					comment: "package tests/minimal",
-				},
-			},
+			Want: (func() *Package {
+				pkg := &Package{
+					Name: "minimal",
+					Path: "tests/minimal",
+					scope: &Scope{
+						parent:  Universe,
+						comment: "package tests/minimal",
+					},
+				}
+
+				file0 := NewScope(pkg.scope, 58, 74, "file 0")
+				file1 := NewScope(pkg.scope, 134, 150, "file 1")
+				file0.readonly = true
+				file1.readonly = true
+
+				return pkg
+			})(),
 		},
 		{
 			Name:  "constants",
@@ -73,6 +89,9 @@ func TestCheck(t *testing.T) {
 						comment: "package tests/constants",
 					},
 				}
+
+				file0 := NewScope(pkg.scope, 58, 396, "file 0")
+				file0.readonly = true
 
 				pkg.scope.Insert(&Constant{
 					object: object{
@@ -185,7 +204,10 @@ func TestCheck(t *testing.T) {
 					},
 				}
 
-				fun1Scope := NewScope(pkg.scope, 93, 109, "function nullary-function")
+				file0 := NewScope(pkg.scope, 46, 348, "file 0")
+				file0.readonly = true
+
+				fun1Scope := NewScope(file0, 93, 109, "function nullary-function")
 				fun1Scope.Insert(NewConstant(fun1Scope, 108, 109, pkg, "_", Int8, constant.MakeInt64(0)))
 				pkg.scope.Insert(&Function{
 					object: object{
@@ -200,7 +222,7 @@ func TestCheck(t *testing.T) {
 					},
 				})
 
-				fun2Scope := NewScope(pkg.scope, 145, 154, "function unary-function")
+				fun2Scope := NewScope(file0, 145, 154, "function unary-function")
 				param1 := NewParameter(fun2Scope, 134, 142, pkg, "x", Byte)
 				fun2Scope.Insert(param1)
 				fun2Scope.Insert(NewVariable(fun2Scope, 153, 154, pkg, "_", Byte))
@@ -217,7 +239,7 @@ func TestCheck(t *testing.T) {
 					},
 				})
 
-				fun3Scope := NewScope(pkg.scope, 203, 237, "function binary-function")
+				fun3Scope := NewScope(file0, 203, 237, "function binary-function")
 				param1 = NewParameter(fun3Scope, 180, 189, pkg, "x", Int64)
 				param2 := NewParameter(fun3Scope, 190, 200, pkg, "y", String)
 				fun3Scope.Insert(param1)
@@ -236,7 +258,7 @@ func TestCheck(t *testing.T) {
 					},
 				})
 
-				fun4Scope := NewScope(pkg.scope, 268, 275, "function add1")
+				fun4Scope := NewScope(file0, 268, 275, "function add1")
 				param1 = NewParameter(fun4Scope, 252, 260, pkg, "x", Int8)
 				fun4Scope.Insert(param1)
 				pkg.scope.Insert(&Function{
@@ -253,7 +275,7 @@ func TestCheck(t *testing.T) {
 					},
 				})
 
-				fun5Scope := NewScope(pkg.scope, 332, 347, "function product")
+				fun5Scope := NewScope(file0, 332, 347, "function product")
 				param1 = NewParameter(fun5Scope, 293, 306, pkg, "base", Uint64)
 				param2 = NewParameter(fun5Scope, 307, 322, pkg, "scalar", Uint64)
 				fun5Scope.Insert(param1)
@@ -289,7 +311,10 @@ func TestCheck(t *testing.T) {
 					},
 				}
 
-				funcScope := NewScope(pkg.scope, 329, 338, "function syscall6")
+				file0 := NewScope(pkg.scope, 48, 339, "file 0")
+				file0.readonly = true
+
+				funcScope := NewScope(file0, 329, 338, "function syscall6")
 				sys := NewParameter(funcScope, 91, 103, pkg, "sys", Uint64)
 				arg1 := NewParameter(funcScope, 117, 130, pkg, "arg1", Uint64)
 				arg2 := NewParameter(funcScope, 144, 157, pkg, "arg2", Uint64)
@@ -517,5 +542,84 @@ func TestCheck(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+func TestImports(t *testing.T) {
+	// Test that we correctly type-check
+	// one package that imports another.
+	depPkgName := "example/imported"
+	depCode := `
+		(package imported)
+
+		(let msg "Hello, world!")
+
+		(func (double-string-length (s string) int)
+			(* (len s) 2))
+	`
+
+	mainPkgName := "example/main"
+	mainCode := `
+		(package main)
+
+		(import
+			("example/imported"))
+
+		(let text imported.msg)
+		(let double-length (* (len imported.msg) 2))
+
+		(func (test-imported int)
+			(+ double-length (imported.double-string-length text)))
+	`
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "dep.ruse", depCode, 0)
+	if err != nil {
+		t.Fatalf("failed to parse dep text: %v", err)
+	}
+
+	files := []*ast.File{file}
+
+	depInfo := &Info{
+		Types:       make(map[ast.Expression]TypeAndValue),
+		Definitions: make(map[*ast.Identifier]Object),
+		Uses:        make(map[*ast.Identifier]Object),
+	}
+
+	depPkg, err := Check(depPkgName, fset, files, sys.X86_64, depInfo)
+	if err != nil {
+		t.Fatalf("failed to check dep text: %v", err)
+	}
+
+	file, err = parser.ParseFile(fset, "main.ruse", mainCode, 0)
+	if err != nil {
+		t.Fatalf("failed to parse main text: %v", err)
+	}
+
+	files = []*ast.File{file}
+
+	mainInfo := &Info{
+		Types:       make(map[ast.Expression]TypeAndValue),
+		Definitions: make(map[*ast.Identifier]Object),
+		Uses:        make(map[*ast.Identifier]Object),
+		Packages: map[string]*Package{
+			depPkgName: depPkg,
+		},
+	}
+
+	mainPkg, err := Check(mainPkgName, fset, files, sys.X86_64, mainInfo)
+	if err != nil {
+		t.Fatalf("failed to check main text: %v", err)
+	}
+
+	// Check that it's all joined up.
+	text := mainPkg.scope.Lookup("text")
+	con, ok := text.(*Constant)
+	if !ok {
+		t.Fatalf("failed to check main constant: got %#v", text)
+	}
+
+	if con.Type() != UntypedString {
+		t.Fatalf("incorrect main constant type: got %v, want %v", con.Type(), UntypedString)
 	}
 }

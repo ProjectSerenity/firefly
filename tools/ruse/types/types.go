@@ -13,9 +13,11 @@ import (
 	gotoken "go/token"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 
 	"firefly-os.dev/tools/ruse/ast"
+	"firefly-os.dev/tools/ruse/parser"
 	"firefly-os.dev/tools/ruse/sys"
 	"firefly-os.dev/tools/ruse/token"
 )
@@ -195,6 +197,7 @@ type Info struct {
 	Types       map[ast.Expression]TypeAndValue // The type (and value for constants) of each expression.
 	Definitions map[*ast.Identifier]Object      // Identifiers that define a new object.
 	Uses        map[*ast.Identifier]Object      // Identifiers that refer to an object.
+	Packages    map[string]*Package             // Packages available to import.
 }
 
 // Package represents a type-checked Ruse package.
@@ -301,6 +304,7 @@ func (c *checker) record(expr ast.Expression, typ Type, value constant.Value) {
 
 func (c *checker) Check(files []*ast.File) error {
 	seenImport := make(map[string]bool)
+	fileScopes := make([]*Scope, len(files))
 	for i, file := range files {
 		if c.pkg.Name == "" {
 			c.pkg.Name = file.Name.Name
@@ -314,6 +318,10 @@ func (c *checker) Check(files []*ast.File) error {
 			return c.errorf(file.Package, "found package name %q, expected %q or %q", file.Name.Name, "main", path.Base(c.pkg.Path))
 		}
 
+		// Create the file scope.
+		scope := NewScope(c.pkg.scope, file.Pos(), file.End(), fmt.Sprintf("file %d", i))
+		fileScopes[i] = scope
+
 		// Resolve any imports.
 		for _, imp := range file.Imports {
 			importPath, err := strconv.Unquote(imp.Path.Value)
@@ -321,11 +329,45 @@ func (c *checker) Check(files []*ast.File) error {
 				return c.errorf(imp.Path.ValuePos, "found malformed import path: %v", err)
 			}
 
+			dep := c.info.Packages[importPath]
+			if dep == nil {
+				return c.errorf(imp.Path.ValuePos, "no package found for import %q", importPath)
+			}
+
+			var name string
+			if imp.Name != nil {
+				name = imp.Name.Name
+			} else {
+				// Check that the import
+				// path is a valid identifier.
+				name = path.Base(importPath)
+				x, err := parser.ParseExpression(name)
+				if err != nil {
+					return c.errorf(imp.Path.ValuePos, "invalid import path: base %q is not a valid identifier: %v", importPath, err)
+				}
+
+				if _, ok := x.(*ast.Identifier); !ok {
+					return c.errorf(imp.Path.ValuePos, "invalid import path: base %q is not a valid identifier: got %v", importPath, x)
+				}
+			}
+
 			if !seenImport[importPath] {
 				seenImport[importPath] = true
 				c.pkg.Imports = append(c.pkg.Imports, importPath)
 			}
+
+			ref := NewImport(scope, imp.ParenOpen, imp.ParenClose, c.pkg, name, dep)
+
+			// Imports only affect the file scope,
+			// not the entire package.
+			scope.Insert(ref)
 		}
+
+		// Having added any imports, we now
+		// mark the file scope as read-only,
+		// so that insertions are applied to
+		// the package scope.
+		scope.readonly = true
 
 		// Check the top-level expressions.
 		//
@@ -342,19 +384,19 @@ func (c *checker) Check(files []*ast.File) error {
 			switch kind.Name {
 			case "asm-func":
 				c.use(kind, specialForms[SpecialFormAsmFunc])
-				err := c.CheckTopLevelAsmFuncDecl(expr)
+				err := c.CheckTopLevelAsmFuncDecl(scope, expr)
 				if err != nil {
 					return err
 				}
 			case "func":
 				c.use(kind, specialForms[SpecialFormFunc])
-				err := c.CheckTopLevelFuncDecl(expr)
+				err := c.CheckTopLevelFuncDecl(scope, expr)
 				if err != nil {
 					return err
 				}
 			case "let":
 				c.use(kind, specialForms[SpecialFormLet])
-				err := c.CheckTopLevelLet(expr)
+				err := c.CheckTopLevelLet(scope, expr)
 				if err != nil {
 					return err
 				}
@@ -370,12 +412,8 @@ func (c *checker) Check(files []*ast.File) error {
 	// type-check function bodies, now
 	// that we have all package-level
 	// declarations.
-	for _, file := range files {
-		if file.Imports != nil {
-			// TODO: support imports.
-			return c.errorf(file.Imports[0].ParenOpen, "found import statement, which is not yet supported")
-		}
-
+	for i, file := range files {
+		scope := fileScopes[i]
 		for _, expr := range file.Expressions {
 			kind, _, err := c.interpretDefinition(expr, "top-level list")
 			if err != nil {
@@ -384,12 +422,12 @@ func (c *checker) Check(files []*ast.File) error {
 
 			switch kind.Name {
 			case "asm-func":
-				err := c.ResolveAsmFuncBody(c.pkg.scope, expr)
+				err := c.ResolveAsmFuncBody(scope, expr)
 				if err != nil {
 					return err
 				}
 			case "func":
-				_, err := c.ResolveFuncBody(c.pkg.scope, expr)
+				_, err := c.ResolveFuncBody(scope, expr)
 				if err != nil {
 					return err
 				}
@@ -404,7 +442,7 @@ func (c *checker) Check(files []*ast.File) error {
 	return nil
 }
 
-func (c *checker) GetNameTypePair(x ast.Expression) (name *ast.Identifier, typ Type, err error) {
+func (c *checker) GetNameTypePair(scope *Scope, x ast.Expression) (name *ast.Identifier, typ Type, err error) {
 	pair, ok := x.(*ast.List)
 	if !ok {
 		return nil, nil, fmt.Errorf("want a (name type) list, found %s", x)
@@ -424,7 +462,7 @@ func (c *checker) GetNameTypePair(x ast.Expression) (name *ast.Identifier, typ T
 		return nil, nil, fmt.Errorf("invalid type: want an identifier, found %s", pair.Elements[1])
 	}
 
-	_, obj := c.pkg.scope.LookupParent(typeName.Name, token.NoPos)
+	_, obj := scope.LookupParent(typeName.Name, token.NoPos)
 	if obj == nil {
 		return nil, nil, fmt.Errorf("undefined type: %s", typeName.Name)
 	}
@@ -436,7 +474,7 @@ func (c *checker) GetNameTypePair(x ast.Expression) (name *ast.Identifier, typ T
 	return name, typ, nil
 }
 
-func (c *checker) CheckTopLevelAsmFuncDecl(fun *ast.List) error {
+func (c *checker) CheckTopLevelAsmFuncDecl(parent *Scope, fun *ast.List) error {
 	// Named assembly function declaration.
 	//
 	// Takes the following form:
@@ -460,7 +498,7 @@ func (c *checker) CheckTopLevelAsmFuncDecl(fun *ast.List) error {
 		return c.errorf(fun.Elements[1].Pos(), "invalid function declaration: expected function name, found %s", fun.Elements[1])
 	}
 
-	scope := NewScope(c.pkg.scope, fun.Elements[2].Pos(), fun.ParenClose, "function "+name.Name)
+	scope := NewScope(parent, fun.Elements[2].Pos(), fun.ParenClose, "function "+name.Name)
 
 	var paramTypes []*Variable
 	var resultType Type
@@ -526,7 +564,7 @@ func (c *checker) CheckTopLevelAsmFuncDecl(fun *ast.List) error {
 			continue
 		case "param":
 			param := anno.X.Elements[1]
-			name, typ, err := c.GetNameTypePair(param)
+			name, typ, err := c.GetNameTypePair(parent, param)
 			if err != nil {
 				return c.errorf(param.Pos(), "bad parameter %d: %v", len(paramTypes)+1, err)
 			}
@@ -552,7 +590,7 @@ func (c *checker) CheckTopLevelAsmFuncDecl(fun *ast.List) error {
 				return c.errorf(anno.X.Elements[1].Pos(), "bad result: expected identifier, found %s", anno.X.Elements[1])
 			}
 
-			_, obj := c.pkg.scope.LookupParent(result.Name, token.NoPos)
+			_, obj := parent.LookupParent(result.Name, token.NoPos)
 			if obj == nil {
 				return c.errorf(result.NamePos, "undefined type: %s", result.Name)
 			}
@@ -578,21 +616,21 @@ func (c *checker) CheckTopLevelAsmFuncDecl(fun *ast.List) error {
 
 	signature := NewSignature(buf.String(), paramTypes, resultType)
 	c.newType(signature)
-	function := NewFunction(c.pkg.scope, fun.ParenOpen, fun.ParenClose, c.pkg, name.Name, signature)
+	function := NewFunction(parent, fun.ParenOpen, fun.ParenClose, c.pkg, name.Name, signature)
 	c.funcs[fun.ParenOpen] = signature
 	c.names[fun.ParenOpen] = "function " + name.Name
 	c.define(name, function)
 	c.record(fun, signature, nil)
 	c.record(fun.Elements[0], signature, nil)
 	c.record(name, signature, nil)
-	if other := c.pkg.scope.Insert(function); other != nil {
+	if other := parent.Insert(function); other != nil {
 		return c.errorf(fun.ParenOpen, "%s redeclared: previous declaration at %s", name.Name, c.fset.Position(other.Pos()))
 	}
 
 	return nil
 }
 
-func (c *checker) CheckTopLevelFuncDecl(fun *ast.List) error {
+func (c *checker) CheckTopLevelFuncDecl(parent *Scope, fun *ast.List) error {
 	// Named function declaration.
 	//
 	// Takes one of the following forms:
@@ -681,7 +719,7 @@ func (c *checker) CheckTopLevelFuncDecl(fun *ast.List) error {
 		// parameters.
 		result, ok := params[len(params)-1].(*ast.Identifier)
 		if ok {
-			_, obj := c.pkg.scope.LookupParent(result.Name, token.NoPos)
+			_, obj := parent.LookupParent(result.Name, token.NoPos)
 			if obj == nil {
 				return c.errorf(result.NamePos, "undefined type: %s", result.Name)
 			}
@@ -694,13 +732,13 @@ func (c *checker) CheckTopLevelFuncDecl(fun *ast.List) error {
 		}
 	}
 
-	scope := NewScope(c.pkg.scope, fun.Elements[2].Pos(), fun.ParenClose, "function "+name.Name)
+	scope := NewScope(parent, fun.Elements[2].Pos(), fun.ParenClose, "function "+name.Name)
 
 	var buf strings.Builder
 	buf.WriteString("(func")
 	paramTypes := make([]*Variable, len(params))
 	for i, param := range params {
-		name, typ, err := c.GetNameTypePair(param)
+		name, typ, err := c.GetNameTypePair(parent, param)
 		if err != nil {
 			return c.errorf(param.Pos(), "bad parameter %d: %v", i+1, err)
 		}
@@ -727,7 +765,7 @@ func (c *checker) CheckTopLevelFuncDecl(fun *ast.List) error {
 
 	signature := NewSignature(buf.String(), paramTypes, resultType)
 	c.newType(signature)
-	function := NewFunction(c.pkg.scope, fun.ParenOpen, fun.ParenClose, c.pkg, name.Name, signature)
+	function := NewFunction(parent, fun.ParenOpen, fun.ParenClose, c.pkg, name.Name, signature)
 	c.funcs[fun.ParenOpen] = signature
 	c.names[fun.ParenOpen] = "function " + name.Name
 	c.define(name, function)
@@ -735,7 +773,7 @@ func (c *checker) CheckTopLevelFuncDecl(fun *ast.List) error {
 	c.record(fun.Elements[0], signature, nil)
 	c.record(decl, signature, nil)
 	c.record(name, signature, nil)
-	if other := c.pkg.scope.Insert(function); other != nil {
+	if other := parent.Insert(function); other != nil {
 		return c.errorf(fun.ParenOpen, "%s redeclared: previous declaration at %s", name.Name, c.fset.Position(other.Pos()))
 	}
 
@@ -1023,6 +1061,30 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 
 		c.record(x, typ, value)
 		return obj, typ, nil
+	case *ast.Qualified:
+		// The left hand side should be an
+		// import reference, the right hand
+		// is resolved in the imported
+		// scope.
+		_, lhs := scope.LookupParent(x.X.Name, token.NoPos)
+		if lhs == nil {
+			return nil, nil, c.errorf(x.X.NamePos, "invalid qualified expression value %s: package %q is not defined", x.Print(), x.X.Name)
+		}
+
+		pkg, ok := lhs.(*Import)
+		if !ok {
+			return nil, nil, c.errorf(x.X.NamePos, "invalid qualified expression value %s: expected imported package reference, got %#v", x.Print(), lhs)
+		}
+
+		rhs := pkg.imported.scope.Lookup(x.Y.Name)
+		if rhs == nil {
+			return nil, nil, c.errorf(x.Y.NamePos, "invalid qualified expression value %s: expression %q is not defined", x.Print(), x.Y.Name)
+		}
+
+		typ := rhs.Type()
+		c.use(x.Y, rhs)
+		c.record(x, typ, nil)
+		return rhs, typ, nil
 	case *ast.QuotedIdentifier:
 		// Quoted identifiers have no type.
 		return nil, nil, nil
@@ -1171,7 +1233,7 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 	return typ, nil
 }
 
-func (c *checker) CheckTopLevelLet(let *ast.List) error {
+func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 	// Constant declaration.
 	//
 	// Takes one of the following forms:
@@ -1216,7 +1278,7 @@ func (c *checker) CheckTopLevelLet(let *ast.List) error {
 		// We can assign constants using a function
 		// call, but only if it resolves to a constant
 		// expression.
-		_, constantType, err := c.ResolveExpression(c.pkg.scope, v)
+		_, constantType, err := c.ResolveExpression(parent, v)
 		if err != nil {
 			return err
 		}
@@ -1230,7 +1292,7 @@ func (c *checker) CheckTopLevelLet(let *ast.List) error {
 		if typeName == nil {
 			typ = constantType
 		} else {
-			_, obj := c.pkg.scope.LookupParent(typeName.Name, token.NoPos)
+			_, obj := parent.LookupParent(typeName.Name, token.NoPos)
 			if obj == nil {
 				return c.errorf(typeName.NamePos, "undefined type: %s", typeName.Name)
 			}
@@ -1249,7 +1311,7 @@ func (c *checker) CheckTopLevelLet(let *ast.List) error {
 			if typeName == nil {
 				typ = UntypedInt
 			} else {
-				_, obj := c.pkg.scope.LookupParent(typeName.Name, token.NoPos)
+				_, obj := parent.LookupParent(typeName.Name, token.NoPos)
 				if obj == nil {
 					return c.errorf(typeName.NamePos, "undefined type: %s", typeName.Name)
 				}
@@ -1268,7 +1330,7 @@ func (c *checker) CheckTopLevelLet(let *ast.List) error {
 			if typeName == nil {
 				typ = UntypedString
 			} else {
-				_, obj := c.pkg.scope.LookupParent(typeName.Name, token.NoPos)
+				_, obj := parent.LookupParent(typeName.Name, token.NoPos)
 				if obj == nil {
 					return c.errorf(typeName.NamePos, "undefined type: %s", typeName.Name)
 				}
@@ -1285,6 +1347,49 @@ func (c *checker) CheckTopLevelLet(let *ast.List) error {
 		default:
 			return c.errorf(v.ValuePos, "invalid constant declaration: unexpected value type for constant %s: %s", name.Name, v)
 		}
+	case *ast.Qualified:
+		// The left hand side should be an
+		// import reference, the right hand
+		// is resolved in the imported
+		// scope.
+		_, lhs := parent.LookupParent(v.X.Name, token.NoPos)
+		if lhs == nil {
+			return c.errorf(v.X.NamePos, "invalid constant declaration: invalid qualified expression value %s: package %q is not defined", v.Print(), v.X.Name)
+		}
+
+		pkg, ok := lhs.(*Import)
+		if !ok {
+			return c.errorf(v.X.NamePos, "invalid constant declaration: invalid qualified expression value %s: expected imported package reference, got %#v", v.Print(), lhs)
+		}
+
+		rhs := pkg.imported.scope.Lookup(v.Y.Name)
+		if rhs == nil {
+			return c.errorf(v.Y.NamePos, "invalid constant declaration: invalid qualified expression value %s: expression %q is not defined", v.Print(), v.Y.Name)
+		}
+
+		con, ok := rhs.(*Constant)
+		if !ok {
+			return c.errorf(v.X.NamePos, "invalid constant declaration: cannot assign %s to constant", rhs)
+		}
+
+		// Check any declared type matches.
+		if typeName == nil {
+			typ = rhs.Type()
+		} else {
+			_, obj := parent.LookupParent(typeName.Name, token.NoPos)
+			if obj == nil {
+				return c.errorf(typeName.NamePos, "undefined type: %s", typeName.Name)
+			}
+
+			typ = obj.Type()
+			c.use(typeName, obj)
+			c.record(typeName, typ, nil)
+			if !AssignableTo(typ, rhs.Type()) {
+				return c.errorf(let.ParenOpen, "cannot assign %s to constant of type %s", rhs.Type(), typ)
+			}
+		}
+
+		value = con.value
 	default:
 		// TODO: handle top-level lets that assign another constant to a new name.
 		return c.errorf(let.Elements[2].Pos(), "invalid constant declaration: unexpected value type for constant %s: %s", name.Name, let.Elements[2])
@@ -1299,7 +1404,7 @@ func (c *checker) CheckTopLevelLet(let *ast.List) error {
 		result: typ,
 	}
 
-	obj := NewConstant(c.pkg.scope, let.ParenOpen, let.ParenClose, c.pkg, name.Name, typ, value)
+	obj := NewConstant(parent, let.ParenOpen, let.ParenClose, c.pkg, name.Name, typ, value)
 	c.names[let.ParenOpen] = "constant " + name.Name
 	c.define(name, obj)
 	c.record(let, typ, value)
@@ -1307,7 +1412,7 @@ func (c *checker) CheckTopLevelLet(let *ast.List) error {
 	c.record(let.Elements[0], sig, value)
 	c.record(let.Elements[1], typ, value)
 	c.record(let.Elements[2], typ, value)
-	if other := c.pkg.scope.Insert(obj); other != nil {
+	if other := parent.Insert(obj); other != nil {
 		return c.errorf(let.ParenOpen, "%s redeclared: previous declaration at %s", name.Name, c.fset.Position(other.Pos()))
 	}
 
