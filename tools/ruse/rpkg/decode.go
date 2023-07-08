@@ -123,6 +123,7 @@ func decodeHeader(h *header, b []byte) error {
 // rpkg file.
 type decoded struct {
 	header   header
+	imports  []uint32
 	types    map[uint64]typeSplat
 	symbols  []symbol
 	strings  map[uint64]string
@@ -193,7 +194,34 @@ func decodeSimple(b []byte) (*decoded, error) {
 		return nil, err
 	}
 
+	// Read the imports section.
+	s = cryptobyte.String(b[d.header.ImportsOffset:d.header.ExportsOffset])
+	d.imports, err = d.decodeImports(s)
+	if err != nil {
+		return nil, err
+	}
+
 	return &d, nil
+}
+
+// decodeImports reads the imports from `s`,
+// checking that each import is valid.
+func (d *decoded) decodeImports(s cryptobyte.String) (imports []uint32, err error) {
+	var imp uint32
+	imports = make([]uint32, 0, len(s)/4)
+	for !s.Empty() {
+		if !s.ReadUint32(&imp) {
+			return nil, fmt.Errorf("invalid imports section: %w", io.ErrUnexpectedEOF)
+		}
+
+		if _, ok := d.strings[uint64(imp)]; !ok {
+			return nil, fmt.Errorf("invalid imports section: import %d is not a valid string offset", imp)
+		}
+
+		imports = append(imports, imp)
+	}
+
+	return imports, nil
 }
 
 // decodeTypes reads the types from `s`,

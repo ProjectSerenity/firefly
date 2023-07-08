@@ -463,6 +463,22 @@ func Encode(w io.Writer, fset *token.FileSet, arch *sys.Arch, pkg *compiler.Pack
 	e.AddType(nil)  // The nil type is always at offset 0.
 	e.AddString("") // The empty string is always at offset 0.
 	e.AddString(pkg.Path)
+
+	// Add the imports early, so that
+	// they're at the beginning of the
+	// strings section, ensuring that
+	// all of the strings offsets fit
+	// within uint32s.
+	e.imports = make([]uint32, len(pkg.Imports))
+	for i, imp := range pkg.Imports {
+		offset := e.AddString(imp)
+		if offset >= math.MaxUint32 {
+			return fmt.Errorf("cannot encode import %q: offset %d overflows uint32", imp, offset)
+		}
+
+		e.imports[i] = uint32(offset)
+	}
+
 	for _, fun := range pkg.Functions {
 		err := e.AddFunction(fset, arch, pkg, fun)
 		if err != nil {
