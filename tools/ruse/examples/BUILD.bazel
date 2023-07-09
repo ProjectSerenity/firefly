@@ -1,0 +1,49 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("//tools/ruse:def.bzl", "ruse_binary", "ruse_library")
+
+ruse_library(
+    name = "hello-world_lib",
+    srcs = ["hello-world.ruse"],
+    arch = "x86-64",
+    package_path = "firefly-os.dev/tools/ruse/examples/hello-world",
+    visibility = ["//visibility:private"],
+)
+
+ruse_binary(
+    name = "hello-world",
+    format = "elf",
+    package = ":hello-world_lib",
+)
+
+ruse_library(
+    name = "printer",
+    srcs = [
+        "printer.ruse",
+    ],
+    arch = "x86-64",
+    package_path = "firefly-os.dev/tools/ruse/examples/printer",
+    visibility = ["//visibility:private"],
+)
+
+ruse_library(
+    name = "multipackage_lib",
+    srcs = [
+        "multipackage.ruse",
+    ],
+    arch = "x86-64",
+    package_path = "firefly-os.dev/tools/ruse/examples/multipackage",
+    visibility = ["//visibility:private"],
+    deps = [
+        ":printer",
+    ],
+)
+
+ruse_binary(
+    name = "multipackage",
+    format = "elf",
+    package = ":multipackage_lib",
+)
