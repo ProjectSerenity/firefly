@@ -1,0 +1,2 @@
+# Use Scheme syntax highlighting for Ruse.
+*.ruse linguist-language=Scheme
