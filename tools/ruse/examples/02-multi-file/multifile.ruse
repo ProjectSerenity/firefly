@@ -1,0 +1,25 @@
+; Copyright 2023 The Firefly Authors.
+;
+; Use of this source code is governed by a BSD 3-clause
+; license that can be found in the LICENSE file.
+
+(package main)
+
+; This is a straightforward Hello world program in Ruse,
+; written in x86-64 assembly, targeting Linux. Unlike
+; the previous example, this implementation is split
+; into two files, as part of a single package.
+
+'(arch x86-64)
+(asm-func main
+	; Note that we reference `default-message` (which is
+	; in another file) just as if it was in the same
+	; file, as it is a package-local constant.
+
+	(mov rsi (string-pointer default-message))
+	(mov rdx (len default-message))
+	(call (func print))
+
+	(mov eax 60)   ; sys_exit
+	(xor rdi rdi)  ; int error_code
+	(syscall))     ; exit(0)

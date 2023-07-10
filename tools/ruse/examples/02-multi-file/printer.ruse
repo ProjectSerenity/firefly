@@ -1,0 +1,23 @@
+; Copyright 2023 The Firefly Authors.
+;
+; Use of this source code is governed by a BSD 3-clause
+; license that can be found in the LICENSE file.
+
+(package main)
+
+(let default-message "Hello, world!\n")
+
+; Here we use ABI features to declare the
+; parameters to print. In a later example,
+; we will call this function from Ruse,
+; with the compiler passing the parameters
+; in the appropriate registers.
+;
+'(param (msg string) rsi)
+'(param (msg-len int) rdx)
+(asm-func print
+	(mov eax 1) ; sys_write
+	(mov rdi 1) ; unsigned int fd stdout
+	(syscall)   ; write(1, "Hello, world!\n", 14)
+
+	(ret))

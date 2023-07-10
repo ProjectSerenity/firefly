@@ -1,0 +1,36 @@
+; Copyright 2023 The Firefly Authors.
+;
+; Use of this source code is governed by a BSD 3-clause
+; license that can be found in the LICENSE file.
+
+(package main)
+
+; This is a straightforward Hello world program in Ruse,
+; written in x86-64 assembly, targeting Linux. Unlike
+; the previous example, this implementation is split
+; into two packages.
+
+; This imports the first package into this package,
+; allowing us to access its exported symbols.
+
+(import
+	("firefly-os.dev/tools/ruse/examples/printer"))
+
+'(arch x86-64)
+(asm-func main
+	; Note the syntax printer.Default-message. The
+	; import statement does not specify an override
+	; for the local name for the package, so the
+	; name `printer` is derived by being the final
+	; path element.
+	;
+	; We can then access exported symbols within
+	; the package using the dot qualifier.
+
+	(mov rsi (string-pointer printer.Default-message))
+	(mov rdx (len printer.Default-message))
+	(call (func printer.Print))
+
+	(mov eax 60)   ; sys_exit
+	(xor rdi rdi)  ; int error_code
+	(syscall))     ; exit(0)

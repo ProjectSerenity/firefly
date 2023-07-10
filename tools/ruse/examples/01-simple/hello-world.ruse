@@ -1,0 +1,57 @@
+; Copyright 2023 The Firefly Authors.
+;
+; Use of this source code is governed by a BSD 3-clause
+; license that can be found in the LICENSE file.
+
+(package main)
+
+; This is a straightforward Hello world program in Ruse,
+; written in x86-64 assembly, targeting Linux.
+
+; hello-world is an untyped string constant.
+;
+; Note that it contains the terminating newline. Ruse
+; strings are length-prefixed and not NULL terminating.
+;
+(let hello-world "Hello, world!\n")
+
+; print-hello-world is a function written in x86-64
+; assembly. We don't specify the architecture explicitly
+; here, so the compiler will attempt to target whichever
+; architecture is currently being targeted.
+;
+; A smarter version of this function would use the ABI
+; functionality to make the initial MOV instructions
+; explicit parameters, managed by the compiler. As is,
+; the type signature is `(func)`; a nullary function.
+;
+(asm-func print-hello-world
+	(mov eax 1)                            ; sys_write
+	(mov rdi 1)                            ; unsigned int fd stdout
+	(mov rsi (string-pointer hello-world)) ; const char *buf
+	(mov rdx (len hello-world))            ; size_t count
+	(syscall)                              ; write(1, "Hello, world!\n", 14)
+
+	(ret))
+
+; main is another function written in x86-64 assembly.
+;
+; Here, we specify the architecture explicitly. This
+; means that if the compiler was targeting another
+; architecture, this function will be ignored, rather
+; than the compiler trying to assemble it for the
+; target architecture.
+;
+; Note also that we can provide the main function
+; however we wish; in this case in assembly.
+;
+'(arch x86-64)
+(asm-func main
+	; At link-time, the linker will insert the final
+	; address of print-hello-world into this instruction
+	; as a relative address.
+	(call (func print-hello-world))
+
+	(mov eax 60)  ; sys_exit
+	(xor rdi rdi) ; int error_code
+	(syscall))    ; exit(0)

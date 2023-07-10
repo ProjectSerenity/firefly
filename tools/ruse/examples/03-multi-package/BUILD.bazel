@@ -6,20 +6,6 @@
 load("//tools/ruse:def.bzl", "ruse_binary", "ruse_library")
 
 ruse_library(
-    name = "hello-world_lib",
-    srcs = ["hello-world.ruse"],
-    arch = "x86-64",
-    package_path = "firefly-os.dev/tools/ruse/examples/hello-world",
-    visibility = ["//visibility:private"],
-)
-
-ruse_binary(
-    name = "hello-world",
-    format = "elf",
-    package = ":hello-world_lib",
-)
-
-ruse_library(
     name = "printer",
     srcs = [
         "printer.ruse",
@@ -30,7 +16,7 @@ ruse_library(
 )
 
 ruse_library(
-    name = "multipackage_lib",
+    name = "hello-world_lib",
     srcs = [
         "multipackage.ruse",
     ],
@@ -43,7 +29,7 @@ ruse_library(
 )
 
 ruse_binary(
-    name = "multipackage",
+    name = "hello-world",
     format = "elf",
-    package = ":multipackage_lib",
+    package = ":hello-world_lib",
 )
