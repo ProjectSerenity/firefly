@@ -18,8 +18,8 @@ go = [
     ),
     module(
         name = "github.com/google/osv-scanner",
-        version = "v1.3.4",
-        digest = "sha256:446fc10e665c25643870c75a46dc42b6a35d54f8f1d890806977504c88d4d994",
+        version = "v1.3.5",
+        digest = "sha256:c2790be6bfaab117416845f08f7b5b6fdc045de04982c00d7eb9ea2689cddca6",
         patch_args = [
             "-p1",
         ],
@@ -30,18 +30,18 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.10.0",
-        digest = "sha256:d350c8a2b03412a789c91ef95f71ff73daaa0dae35790c5dfd20abe6bd4b2604",
+        version = "v0.11.0",
+        digest = "sha256:359fa4352b7c5fca22dcd898afcc18ad7cf57fa6c0bf86d26e3689f976a93d9e",
     ),
     module(
         name = "golang.org/x/exp",
-        version = "v0.0.0-20230626212559-97b1e661b5df",
+        version = "v0.0.0-20230711153332-06a737ee72cb",
         digest = "sha256:f53a26cd5a7b2dff5978766fef967bd702195883a806a47c49ce0398c18567f2",
     ),
     module(
         name = "golang.org/x/mod",
-        version = "v0.11.0",
-        digest = "sha256:315ec258829cef6bdd4b924e25a00723136c3f4f1591b8b4b3188cf2b53e08ea",
+        version = "v0.12.0",
+        digest = "sha256:fff2a1f75d376f5fd9c48cae964f241e223655a971c92fd5e693522d019c2fcb",
     ),
     module(
         name = "golang.org/x/sync",
@@ -55,13 +55,18 @@ go = [
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.10.0",
-        digest = "sha256:16f1e6c82382c6d20125ce1e5252f2afefdfe03e216eb9def10fd26c534c8353",
+        version = "v0.11.0",
+        digest = "sha256:f3ddd3e5d128f971e15268e3db09b2fab8256985e927ff7b57f8d0cc8e4de7d6",
     ),
     module(
         name = "golang.org/x/xerrors",
         version = "v0.0.0-20220907171357-04be3eba64a2",
         digest = "sha256:9df13449b145dfcfb97ea22dc88c0fdcb4d847a56de7a693724f62ebf2b23907",
+    ),
+    module(
+        name = "gopkg.in/yaml.v3",
+        version = "v3.0.1",
+        digest = "sha256:0ea843c770e6e5f0b2f18ceda20b9bc1a8aafd232efcc05dd3d748e80b782c77",
     ),
     module(
         name = "rsc.io/diff",

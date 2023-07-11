@@ -21,6 +21,7 @@ go_library(
     deps = [
         "//vendor/github.com/google/go-cmp/cmp",
         "//vendor/golang.org/x/exp/slices",
+        "//vendor/gopkg.in/yaml.v3",
     ],
 )
 

@@ -88,13 +88,14 @@ go = [
     ),
     module(
         name = "github.com/google/osv-scanner",
-        version = "v1.3.4",
+        version = "v1.3.5",
         packages = [
             package(
                 name = "github.com/google/osv-scanner/pkg/models",
                 deps = [
                     "github.com/google/go-cmp/cmp",
                     "golang.org/x/exp/slices",
+                    "gopkg.in/yaml.v3",
                 ],
             ),
             package(
@@ -112,7 +113,7 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.10.0",
+        version = "v0.11.0",
         packages = [
             package(
                 name = "golang.org/x/crypto/cryptobyte/asn1",
@@ -130,7 +131,7 @@ go = [
     ),
     module(
         name = "golang.org/x/exp",
-        version = "v0.0.0-20230626212559-97b1e661b5df",
+        version = "v0.0.0-20230711153332-06a737ee72cb",
         packages = [
             package(
                 name = "golang.org/x/exp/constraints",
@@ -145,7 +146,7 @@ go = [
     ),
     module(
         name = "golang.org/x/mod",
-        version = "v0.11.0",
+        version = "v0.12.0",
         packages = [
             package(
                 name = "golang.org/x/mod/internal/lazyregexp",
@@ -229,7 +230,7 @@ go = [
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.10.0",
+        version = "v0.11.0",
         packages = [
             package(
                 name = "golang.org/x/tools/txtar",
@@ -248,6 +249,16 @@ go = [
             ),
             package(
                 name = "golang.org/x/xerrors/internal",
+            ),
+        ],
+    ),
+    module(
+        name = "gopkg.in/yaml.v3",
+        version = "v3.0.1",
+        packages = [
+            package(
+                name = "gopkg.in/yaml.v3",
+                no_tests = True,  # The tests require more dependencies.
             ),
         ],
     ),
