@@ -238,6 +238,13 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	const page4k = 0x1000 // One 4 KiB page.
+	nextPage := func(n uintptr) uintptr {
+		// Return the start of the next page.
+		remainder := n % page4k
+		gap := page4k - remainder
+		return n + gap
+	}
+
 	bin := &binary.Binary{
 		Arch:     arch,
 		BaseAddr: 0x20_0000, // 2 MiB in.
@@ -250,7 +257,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			},
 			{
 				Name:        "strings",
-				Address:     0x20_0000 + uintptr(code.Len()) + uintptr(page4k-(code.Len()%page4k)), // The start of the next page after code.
+				Address:     nextPage(0x20_0000 + uintptr(code.Len())), // The start of the next page after code.
 				Permissions: binary.Read,
 				Data:        stringsData.Bytes(),
 			},
