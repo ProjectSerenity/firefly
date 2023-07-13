@@ -14,6 +14,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//tools/ruse/cmd/compile",
+        "//tools/ruse/cmd/debug",
         "//tools/ruse/cmd/link",
         "//tools/ruse/cmd/rpkg",
     ],
