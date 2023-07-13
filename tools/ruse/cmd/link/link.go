@@ -87,7 +87,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	info := &types.Info{}
-	arch, p, err := rpkg.Decode(info, data)
+	arch, p, _, err := rpkg.Decode(info, data)
 	if err != nil {
 		return fmt.Errorf("failed to parse %s: %v", filenames[0], err)
 	}
@@ -174,7 +174,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			return fmt.Errorf("failed to read rpkg %q: %v", name, err)
 		}
 
-		depArch, p, err := rpkg.Decode(info, data)
+		depArch, p, _, err := rpkg.Decode(info, data)
 		if err != nil {
 			return fmt.Errorf("failed to parse rpkg %q: %v", name, err)
 		}

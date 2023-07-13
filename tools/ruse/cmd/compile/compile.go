@@ -86,7 +86,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		info := new(types.Info)
-		depArch, pkg, err := rpkg.Decode(info, data)
+		depArch, pkg, _, err := rpkg.Decode(info, data)
 		if err != nil {
 			return fmt.Errorf("failed to parse rpkg %q: %v", name, err)
 		}

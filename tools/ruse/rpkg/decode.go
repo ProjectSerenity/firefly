@@ -1337,10 +1337,10 @@ func (d *Decoder) getCode(offset uint64) ([]byte, error) {
 // package. The types in the package are populated in
 // the type information. Specifically, the List and
 // Indices fields.
-func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, err error) {
+func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, checksum []byte, err error) {
 	d, err := NewDecoder(b)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Prepare our outputs.
@@ -1349,7 +1349,7 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 	case ArchX86_64:
 		arch = sys.X86_64
 	default:
-		return nil, nil, fmt.Errorf("unsupported architecture: %s", d.header.Architecture)
+		return nil, nil, nil, fmt.Errorf("unsupported architecture: %s", d.header.Architecture)
 	}
 
 	pkg = &compiler.Package{
@@ -1363,12 +1363,12 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 
 	_, err = d.Strings()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	typs, err := d.Types()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Populate the types information.
@@ -1396,22 +1396,22 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 
 	symbols, objects, err := d.Symbols()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	_, err = d.Linkages()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	_, err = d.Imports()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	exports, err := d.Exports()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// Add the exported symbols to
@@ -1433,7 +1433,7 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 		case *types.Function:
 			code, ok := symbol.Value.(compiler.MachineCode)
 			if !ok {
-				return nil, nil, fmt.Errorf("found symbol %q with kind %v and unexpected value type %#v", symbol.Name, symbol.Kind, symbol.Value)
+				return nil, nil, nil, fmt.Errorf("found symbol %q with kind %v and unexpected value type %#v", symbol.Name, symbol.Kind, symbol.Value)
 			}
 
 			fun := &ssafir.Function{
@@ -1446,9 +1446,11 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 
 			pkg.Functions = append(pkg.Functions, fun)
 		default:
-			return nil, nil, fmt.Errorf("rpkg: internal error: symbol %q (%#v) has unexpected object type: %#v", symbol.Name, symbol, obj)
+			return nil, nil, nil, fmt.Errorf("rpkg: internal error: symbol %q (%#v) has unexpected object type: %#v", symbol.Name, symbol, obj)
 		}
 	}
 
-	return arch, pkg, nil
+	checksum = bytes.Clone(d.b[d.header.ChecksumOffset : d.header.ChecksumOffset+d.header.ChecksumLength])
+
+	return arch, pkg, checksum, nil
 }

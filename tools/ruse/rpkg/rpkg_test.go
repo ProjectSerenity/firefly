@@ -762,7 +762,7 @@ func TestRoundTripping(t *testing.T) {
 			}
 
 			dinfo := new(types.Info)
-			darch, dpkg, err := Decode(dinfo, first.Bytes())
+			darch, dpkg, _, err := Decode(dinfo, first.Bytes())
 			if err != nil {
 				t.Fatalf("failed to decode package: %v", err)
 			}
