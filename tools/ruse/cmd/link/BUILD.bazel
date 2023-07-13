@@ -16,5 +16,6 @@ go_library(
         "//tools/ruse/compiler",
         "//tools/ruse/rpkg",
         "//tools/ruse/types",
+        "//vendor/golang.org/x/crypto/cryptobyte",
     ],
 )

@@ -18,6 +18,8 @@ import (
 	"path/filepath"
 	"sort"
 
+	"golang.org/x/crypto/cryptobyte"
+
 	"firefly-os.dev/tools/ruse/binary"
 	"firefly-os.dev/tools/ruse/binary/elf"
 	"firefly-os.dev/tools/ruse/compiler"
@@ -87,7 +89,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	info := &types.Info{}
-	arch, p, _, err := rpkg.Decode(info, data)
+	arch, p, checksum, err := rpkg.Decode(info, data)
 	if err != nil {
 		return fmt.Errorf("failed to parse %s: %v", filenames[0], err)
 	}
@@ -159,6 +161,12 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		symbols[sym.Name] = sym
 	}
 
+	rpkgsData := cryptobyte.NewBuilder(nil)
+	rpkgsData.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+		b.AddBytes([]byte(p.Path))
+	})
+	rpkgsData.AddBytes(checksum)
+
 	// Add the dependencies, checking
 	// that we have all the imports we
 	// need.
@@ -174,7 +182,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			return fmt.Errorf("failed to read rpkg %q: %v", name, err)
 		}
 
-		depArch, p, _, err := rpkg.Decode(info, data)
+		depArch, p, checksum, err := rpkg.Decode(info, data)
 		if err != nil {
 			return fmt.Errorf("failed to parse rpkg %q: %v", name, err)
 		}
@@ -227,6 +235,11 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			table = append(table, sym)
 			symbols[sym.Name] = sym
 		}
+
+		rpkgsData.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+			b.AddBytes([]byte(p.Path))
+		})
+		rpkgsData.AddBytes(checksum)
 	}
 
 	// Check that we have seen every package
@@ -260,6 +273,12 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				Address:     nextPage(0x20_0000 + uintptr(code.Len())), // The start of the next page after code.
 				Permissions: binary.Read,
 				Data:        stringsData.Bytes(),
+			},
+			{
+				Name:        "rpkgs",
+				Address:     nextPage(0x20_0000 + uintptr(code.Len()+stringsData.Len())), // The start of the next page after strings.
+				Permissions: binary.Read,
+				Data:        rpkgsData.BytesOrPanic(),
 			},
 		},
 	}
