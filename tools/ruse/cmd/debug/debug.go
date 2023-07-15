@@ -55,14 +55,21 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("failed to read %s: %v", filenames[0], err)
 	}
 
-	// TODO: Derive the rpkgs segment programmatically,
-	// rather than knowing it's (currently) the third
-	// segment.
-	if len(r.Progs) < 3 {
-		return fmt.Errorf("failed to parse %s: found %d segments, expected 3", filenames[0], len(r.Progs))
+	// Find the rpkgs segment using the section
+	// headers.
+	var rpkgsSection *elf.Section
+	for _, section := range r.Sections {
+		if section.Name == "rpkgs" {
+			rpkgsSection = section
+			break
+		}
 	}
 
-	rpkgs, err := io.ReadAll(r.Progs[2].Open())
+	if rpkgsSection == nil {
+		return fmt.Errorf("failed to parse %s: no 'rpkgs' section found", filenames[0])
+	}
+
+	rpkgs, err := rpkgsSection.Data()
 	if err != nil {
 		return fmt.Errorf("failed to parse %s: failed to read rpkgs segment: %v", filenames[0], err)
 	}
