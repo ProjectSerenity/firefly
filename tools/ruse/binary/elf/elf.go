@@ -88,9 +88,79 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 		gobinary.Write(b, bo, data)
 	}
 
-	progHeadOffs := 0x40                                  // Offset of the program headers.
-	progDataOffs := uint64(0x40 + 0x38*len(bin.Sections)) // Offset of the program data.
-	entry := uint64(bin.BaseAddr) + progDataOffs          // Entry point.
+	const (
+		// Size constants.
+		pageSize       = 0x1000 // 4kB page size in bytes.
+		elfHeaderSize  = 0x40   // ELF header size in bytes.
+		progHeaderSize = 0x38   // Program header size in bytes.
+		sectHeaderSize = 0x40   // Section header size in bytes.
+
+		// Value constants.
+		ET_EXEC = 0x02
+		PT_LOAD = 0x01
+	)
+
+	nextPage := func(offset uint64) uint64 {
+		// Round the offset up to the start
+		// of the next 4kB page.
+		remainder := offset % pageSize
+		topUp := pageSize - remainder
+		return offset + topUp
+	}
+
+	// Start with the offsets that we don't align.
+	progHeadOff := uint64(elfHeaderSize)                      // Offset of the program headers (ELF header length).
+	progHeadLen := progHeaderSize * uint64(len(bin.Sections)) // Length of the program headers.
+	progHeadEnd := progHeadOff + progHeadLen                  // Offset where the program headers end.
+	progDataOff := nextPage(progHeadEnd)                      // Offset of the program data.
+
+	// The entry point needs to be the start
+	// of one of the sections so we can find
+	// the right address.
+	entry := uint64(bin.BaseAddr) // Entry point.
+
+	// SectionOffsets is used to simplify the
+	// calculation of section offsets.
+	type SectionOffsets struct {
+		MemStart   uint64 // Address in memory.
+		MemEnd     uint64 // End address in memory.
+		MemSize    uint64 // Size in memory.
+		FileStart  uint64 // Offset into the file.
+		FileEnd    uint64 // Section data end in the file.
+		FileSize   uint64 // Size in the file.
+		FilePadded uint64 // Size in the file with padding.
+	}
+
+	// Determine the section offsets.
+	offset := progDataOff
+	offsets := make([]SectionOffsets, len(bin.Sections))
+	for i := range offsets {
+		// Memory offsets.
+		offsets[i].MemStart = uint64(bin.Sections[i].Address)
+		offsets[i].MemSize = uint64(len(bin.Sections[i].Data))
+		offsets[i].MemEnd = offsets[i].MemStart + offsets[i].MemSize
+
+		// File offsets.
+		offsets[i].FileStart = offset
+		offsets[i].FileSize = uint64(len(bin.Sections[i].Data))
+		offsets[i].FileEnd = offsets[i].FileStart + offsets[i].FileSize
+		offsets[i].FilePadded = nextPage(offsets[i].FileEnd)
+
+		// No data when it's zeroed.
+		if bin.Sections[i].IsZeroed {
+			offsets[i].FileSize = 0
+			offsets[i].FileEnd = offsets[i].FileStart
+			offsets[i].FilePadded = offsets[i].FileStart
+		}
+
+		// We don't pad the final section, as
+		// nothing comes after it.
+		if i+1 == len(offsets) {
+			offsets[i].FilePadded = offsets[i].FileEnd
+		}
+
+		offset = offsets[i].FilePadded
+	}
 
 	b.Write([]byte{0x7f, 'E', 'L', 'F'}) // Magic number.
 	b.WriteByte(2)                       // 64-bit format.
@@ -99,44 +169,49 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 	b.WriteByte(0x1e)                    // Firefly.
 	b.WriteByte(0)                       // ABI version.
 	b.Write(make([]byte, 7))             // Padding.
-	write(uint16(2))                     // Executable file.
+	write(uint16(ET_EXEC))               // Executable file.
 	write(arch2machine(bin.Arch))        // Architecture.
 	write(uint32(1))                     // ELF version 1.
 	write(entry)                         // Entry point address.
-	write(uint64(progHeadOffs))          // Program header table offset.
+	write(progHeadOff)                   // Program header table offset.
 	write(uint64(0))                     // Section header table offset (which we don't use).
 	write(uint32(0))                     // Flags (which we don't use).
-	write(uint16(0x40))                  // File header size.
-	write(uint16(0x38))                  // Program header size.
+	write(uint16(elfHeaderSize))         // File header size.
+	write(uint16(progHeaderSize))        // Program header size.
 	write(uint16(len(bin.Sections)))     // Number of program headers.
-	write(uint16(0x40))                  // Section header size.
+	write(uint16(sectHeaderSize))        // Section header size.
 	write(uint16(0))                     // Number of section headers (which we don't use).
 	write(uint16(0))                     // Section header table index for section names (which we don't use).
 
 	// Add the program headers.
-	for _, section := range bin.Sections {
-		var fileSize uint64 // Size in the section.
-		if !section.IsZeroed {
-			fileSize = uint64(len(section.Data))
-		}
-
-		base := uint64(section.Address) + progDataOffs
-		section.Offset = uintptr(progDataOffs)  // Update the section data.
-		write(uint32(1))                        // Loadable segment.
+	for i, section := range bin.Sections {
+		sectionOffsets := offsets[i]
+		section.Offset = uintptr(sectionOffsets.FileStart)
+		write(uint32(PT_LOAD))                  // Loadable segment.
 		write(permissions(section.Permissions)) // Section flags.
-		write(progDataOffs)                     // File offset where segment begins.
-		write(base)                             // Section virtual address in memory.
-		write(base)                             // Section physical address in memory.
-		write(fileSize)                         // Size in the binary file.
-		write(uint64(len(section.Data)))        // Size in memory.
-		write(uint64(0x1000))                   // Alignment in memory.
-		progDataOffs += fileSize                // Skip over the section data in the file.
+		write(sectionOffsets.FileStart)         // File offset where segment begins.
+		write(sectionOffsets.MemStart)          // Section virtual address in memory.
+		write(sectionOffsets.MemStart)          // Section physical address in memory.
+		write(sectionOffsets.FileSize)          // Size in the binary file.
+		write(sectionOffsets.MemSize)           // Size in memory.
+		write(uint64(pageSize))                 // Alignment in memory.
 	}
 
+	// Add the padding between the end of the
+	// program headers and the start of the
+	// section data (which is page-aligned).
+	b.Write(make([]byte, progDataOff-progHeadEnd))
+
 	// Add the section data.
-	for _, section := range bin.Sections {
+	for i, section := range bin.Sections {
+		sectionOffsets := offsets[i]
 		if !section.IsZeroed {
 			b.Write(section.Data)
+		}
+
+		if !section.IsZeroed && sectionOffsets.FilePadded > sectionOffsets.FileEnd {
+			padding := sectionOffsets.FilePadded - sectionOffsets.FileEnd
+			b.Write(make([]byte, padding))
 		}
 	}
 

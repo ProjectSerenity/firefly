@@ -258,25 +258,28 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return n + gap
 	}
 
+	codeAddr := uintptr(0x20_0000)
+	stringsAddr := nextPage(codeAddr + uintptr(code.Len()))
+	rpkgsAddr := nextPage(stringsAddr + uintptr(stringsData.Len()))
 	bin := &binary.Binary{
 		Arch:     arch,
 		BaseAddr: 0x20_0000, // 2 MiB in.
 		Sections: []*binary.Section{
 			{
 				Name:        "code",
-				Address:     0x20_0000,
+				Address:     codeAddr,
 				Permissions: binary.Read | binary.Execute,
 				Data:        code.Bytes(),
 			},
 			{
 				Name:        "strings",
-				Address:     nextPage(0x20_0000 + uintptr(code.Len())), // The start of the next page after code.
+				Address:     stringsAddr, // The start of the next page after code.
 				Permissions: binary.Read,
 				Data:        stringsData.Bytes(),
 			},
 			{
 				Name:        "rpkgs",
-				Address:     nextPage(0x20_0000 + uintptr(code.Len()+stringsData.Len())), // The start of the next page after strings.
+				Address:     rpkgsAddr, // The start of the next page after strings.
 				Permissions: binary.Read,
 				Data:        rpkgsData.BytesOrPanic(),
 			},
@@ -293,8 +296,9 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 	// Finish the symbol table.
 	for _, sym := range table {
-		sym.Offset += bin.Sections[sym.Section].Offset
-		sym.Address = sym.Offset + bin.Sections[sym.Section].Address
+		sectionOffset := sym.Offset
+		sym.Offset = bin.Sections[sym.Section].Offset + sectionOffset
+		sym.Address = bin.Sections[sym.Section].Address + sectionOffset
 	}
 
 	// Perform any linkages.
