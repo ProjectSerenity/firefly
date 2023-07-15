@@ -66,7 +66,7 @@ func arch2machine(arch *sys.Arch) uint16 {
 	return 0
 }
 
-func permissions(perm binary.Permissions) uint32 {
+func progPermissions(perm binary.Permissions) uint32 {
 	var out uint32
 	if perm.Read() {
 		out |= 0x04
@@ -76,6 +76,18 @@ func permissions(perm binary.Permissions) uint32 {
 	}
 	if perm.Execute() {
 		out |= 0x01
+	}
+
+	return out
+}
+
+func sectPermissions(perm binary.Permissions) uint64 {
+	var out uint64
+	if perm.Write() {
+		out |= 0x01
+	}
+	if perm.Execute() {
+		out |= 0x04
 	}
 
 	return out
@@ -95,9 +107,16 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 		progHeaderSize = 0x38   // Program header size in bytes.
 		sectHeaderSize = 0x40   // Section header size in bytes.
 
+		// Section names table.
+		shstrtabName = "section names"
+
 		// Value constants.
-		ET_EXEC = 0x02
-		PT_LOAD = 0x01
+		ET_EXEC      = 0x02
+		PT_LOAD      = 0x01
+		SHT_PROGBITS = 0x01
+		SHT_STRTAB   = 0x03
+		SHF_ALLOC    = 0x02
+		SHF_STRINGS  = 0x20
 	)
 
 	nextPage := func(offset uint64) uint64 {
@@ -108,11 +127,38 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 		return offset + topUp
 	}
 
+	// Build the section names table.
+	var shstrtab bytes.Buffer
+	sectionNames := make(map[string]uint32)
+	addSectionName := func(s string) {
+		offset, ok := sectionNames[s]
+		if ok {
+			return
+		}
+
+		offset = uint32(shstrtab.Len())
+		shstrtab.WriteString(s)
+		shstrtab.WriteByte(0)
+		sectionNames[s] = offset
+	}
+
+	addSectionName("")
+	addSectionName(shstrtabName)
+	for _, section := range bin.Sections {
+		addSectionName(section.Name)
+	}
+
 	// Start with the offsets that we don't align.
-	progHeadOff := uint64(elfHeaderSize)                      // Offset of the program headers (ELF header length).
-	progHeadLen := progHeaderSize * uint64(len(bin.Sections)) // Length of the program headers.
-	progHeadEnd := progHeadOff + progHeadLen                  // Offset where the program headers end.
-	progDataOff := nextPage(progHeadEnd)                      // Offset of the program data.
+	progHeadOff := uint64(elfHeaderSize)                        // Offset of the program headers (ELF header length).
+	progHeadLen := progHeaderSize * uint64(len(bin.Sections))   // Length of the program headers.
+	progHeadEnd := progHeadOff + progHeadLen                    // Offset where the program headers end.
+	sectHeadOff := progHeadEnd                                  // Offset of the section headers.
+	sectHeadLen := sectHeaderSize * uint64(2+len(bin.Sections)) // Length of the section headers (including the NULL section and an extra for the section names table).
+	sectHeadEnd := sectHeadOff + sectHeadLen                    // Offset where the section headers end.
+	sectDataOff := sectHeadEnd                                  // Offset of the section names table.
+	sectDataLen := uint64(shstrtab.Len())                       // Length of the section names table.
+	sectDataEnd := sectDataOff + sectDataLen                    // Offset where the section names table ends.
+	progDataOff := nextPage(sectDataEnd)                        // Offset of the program data.
 
 	// The entry point needs to be the start
 	// of one of the sections so we can find
@@ -174,33 +220,62 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 	write(uint32(1))                     // ELF version 1.
 	write(entry)                         // Entry point address.
 	write(progHeadOff)                   // Program header table offset.
-	write(uint64(0))                     // Section header table offset (which we don't use).
+	write(sectHeadOff)                   // Section header table offset.
 	write(uint32(0))                     // Flags (which we don't use).
 	write(uint16(elfHeaderSize))         // File header size.
 	write(uint16(progHeaderSize))        // Program header size.
 	write(uint16(len(bin.Sections)))     // Number of program headers.
 	write(uint16(sectHeaderSize))        // Section header size.
-	write(uint16(0))                     // Number of section headers (which we don't use).
-	write(uint16(0))                     // Section header table index for section names (which we don't use).
+	write(uint16(2 + len(bin.Sections))) // Number of section headers.
+	write(uint16(1))                     // Section header table index for section names (always second).
 
 	// Add the program headers.
 	for i, section := range bin.Sections {
 		sectionOffsets := offsets[i]
 		section.Offset = uintptr(sectionOffsets.FileStart)
-		write(uint32(PT_LOAD))                  // Loadable segment.
-		write(permissions(section.Permissions)) // Section flags.
-		write(sectionOffsets.FileStart)         // File offset where segment begins.
-		write(sectionOffsets.MemStart)          // Section virtual address in memory.
-		write(sectionOffsets.MemStart)          // Section physical address in memory.
-		write(sectionOffsets.FileSize)          // Size in the binary file.
-		write(sectionOffsets.MemSize)           // Size in memory.
-		write(uint64(pageSize))                 // Alignment in memory.
+		write(uint32(PT_LOAD))                      // Loadable segment.
+		write(progPermissions(section.Permissions)) // Section flags.
+		write(sectionOffsets.FileStart)             // File offset where segment begins.
+		write(sectionOffsets.MemStart)              // Section virtual address in memory.
+		write(sectionOffsets.MemStart)              // Section physical address in memory.
+		write(sectionOffsets.FileSize)              // Size in the binary file.
+		write(sectionOffsets.MemSize)               // Size in memory.
+		write(uint64(pageSize))                     // Alignment in memory.
 	}
+
+	// Add the section headers.
+	b.Write(make([]byte, sectHeaderSize)) // The NULL section.
+	write(sectionNames[shstrtabName])     // Section name offset in section names table.
+	write(uint32(SHT_STRTAB))             // Section names table.
+	write(uint64(SHF_STRINGS))            // Section flags.
+	write(uint64(0))                      // Section virtual address in memory.
+	write(sectDataOff)                    // File offset where segment begins.
+	write(sectDataLen)                    // Size in the binary file.
+	write(uint32(0))                      // sh_link
+	write(uint32(0))                      // sh_info
+	write(uint64(1))                      // Alignment in memory.
+	write(uint64(0))                      // sh_entsize
+	for i, section := range bin.Sections {
+		sectionOffsets := offsets[i]
+		write(sectionNames[section.Name])                       // Section name offset in section names table.
+		write(uint32(SHT_PROGBITS))                             // Loadable segment.
+		write(SHF_ALLOC | sectPermissions(section.Permissions)) // Section flags.
+		write(sectionOffsets.MemStart)                          // Section virtual address in memory.
+		write(sectionOffsets.FileStart)                         // File offset where segment begins.
+		write(sectionOffsets.FileSize)                          // Size in the binary file.
+		write(uint32(0))                                        // sh_link
+		write(uint32(0))                                        // sh_info
+		write(uint64(pageSize))                                 // Alignment in memory.
+		write(uint64(0))                                        // sh_entsize
+	}
+
+	// Add the section names table.
+	b.Write(shstrtab.Bytes())
 
 	// Add the padding between the end of the
 	// program headers and the start of the
 	// section data (which is page-aligned).
-	b.Write(make([]byte, progDataOff-progHeadEnd))
+	b.Write(make([]byte, progDataOff-sectDataEnd))
 
 	// Add the section data.
 	for i, section := range bin.Sections {
