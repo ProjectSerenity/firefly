@@ -28,7 +28,8 @@ var program = filepath.Base(os.Args[0])
 func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("debug", flag.ExitOnError)
 
-	var help bool
+	var help, short bool
+	flags.BoolVar(&short, "short", false, "Print only the first 8 characters of checksums")
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
 
 	flags.Usage = func() {
@@ -77,7 +78,11 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			return fmt.Errorf("failed to parse %s: failed to read package name: %v", filenames[0], io.ErrUnexpectedEOF)
 		}
 
-		fmt.Printf("%x  %s\n", checksum, pkg)
+		if short {
+			fmt.Printf("%x  %s\n", checksum[:4], pkg)
+		} else {
+			fmt.Printf("%x  %s\n", checksum, pkg)
+		}
 	}
 
 	return nil
