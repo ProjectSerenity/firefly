@@ -483,7 +483,7 @@ func (c *checker) CheckTopLevelAsmFuncDecl(parent *Scope, fun *ast.List) error {
 	// - '(mode mode)                        ; Optional CPU mode indicating how instructions should be encoded.
 	// - '(param (name type) location)       ; Optional parameter annotation with name, type, and memory location (register or stack location). Zero or more.
 	// - '(result type location)             ; Optional result annotation with type and memory location. Zero or one.
-	// - '(strikes register...)              ; Optional strikes annotation with one or more registers that are clobbered. Zero or one.
+	// - '(scratch register...)              ; Optional scratch annotation with one or more registers that are clobbered. Zero or one.
 	// - (asm-func name ...)                 ; Assembly function declaration, declaring function 'name' with any parameters and result type declared in annotations.
 
 	switch len(fun.Elements) {
@@ -599,7 +599,7 @@ func (c *checker) CheckTopLevelAsmFuncDecl(parent *Scope, fun *ast.List) error {
 			resultTypeName = result.Name
 			c.use(result, obj)
 			c.record(result, resultType, nil)
-		case "strikes":
+		case "scratch":
 			// Ignored by the type checker.
 			continue
 		default:

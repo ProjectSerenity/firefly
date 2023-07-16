@@ -11,6 +11,6 @@
 '(param (arg5 uint64) r8)
 '(param (arg6 uint64) r9)
 '(result uint64 rax)
-'(strikes rcx r11)
+'(scratch rcx r11)
 (asm-func syscall6
 	(syscall))

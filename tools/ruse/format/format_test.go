@@ -58,7 +58,7 @@ func TestFormatFile(t *testing.T) {
 '(arch x86-64)
 '(param (x int) rax)
 '(param (a int32) rbx)
-'(result int rax) '(strikes rax    rcx)
+'(result int rax) '(scratch rax    rcx)
 (asm-func
 syscall1
 (movq rax rcx) (xorq rdx rdx) (syscall))
@@ -68,7 +68,7 @@ syscall1
 ; A function with annotations in the wrong order.
 ; The function is short so would appear all on
 ; one line if we didn't special-case that.
-'(strikes     rcx) '(result int32 rax)
+'(scratch     rcx) '(result int32 rax)
 '(arch x86-64)
 '(param (x int32) rax)
 (asm-func double (addq rax rax))
@@ -92,7 +92,7 @@ syscall1
 '(param (x int) rax)
 '(param (a int32) rbx)
 '(result int rax)
-'(strikes rax rcx)
+'(scratch rax rcx)
 (asm-func syscall1
 	(movq rax rcx)
 	(xorq rdx rdx)
@@ -104,7 +104,7 @@ syscall1
 '(arch x86-64)
 '(param (x int32) rax)
 '(result int32 rax)
-'(strikes rcx)
+'(scratch rcx)
 (asm-func double
 	(addq rax rax))
 
