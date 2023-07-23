@@ -63,6 +63,23 @@ type x86InstructionData struct {
 	PrefixLen uint8
 }
 
+func (d *x86InstructionData) String() string {
+	if d.Args[0] == nil {
+		return "(x86-instruction-data)"
+	}
+
+	ss := make([]string, 0, 4)
+	for _, arg := range d.Args {
+		if arg == nil {
+			break
+		}
+
+		ss = append(ss, fmt.Sprintf("%v", arg))
+	}
+
+	return fmt.Sprintf("(x86-instruction-data %s)", strings.Join(ss, "  "))
+}
+
 // x86InstructionCandidate includes the
 // information specified for each instruction
 // in the generated instruction set data.
