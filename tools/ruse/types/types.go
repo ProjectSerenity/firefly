@@ -476,214 +476,71 @@ func (c *checker) GetNameTypePair(scope *Scope, x ast.Expression) (name *ast.Ide
 	return name, typ, nil
 }
 
-func (c *checker) CheckTopLevelAsmFuncDecl(parent *Scope, fun *ast.List) error {
-	// Named assembly function declaration.
-	//
-	// Takes the following form:
-	//
-	// - '(abi abi)                          ; Optional ABI declaration, specifying the calling convention for this function.
-	// - '(arch architecture...)             ; Optional architecture declaration, specifying the architectures for which this declaration is valid.
-	// - '(mode mode)                        ; Optional CPU mode indicating how instructions should be encoded.
-	// - '(param (name type) location)       ; Optional parameter annotation with name, type, and memory location (register or stack location). Zero or more.
-	// - '(result type location)             ; Optional result annotation with type and memory location. Zero or one.
-	// - '(scratch register...)              ; Optional scratch annotation with one or more registers that are clobbered. Zero or one.
-	// - (asm-func name ...)                 ; Assembly function declaration, declaring function 'name' with any parameters and result type declared in annotations.
-
-	switch len(fun.Elements) {
-	case 1:
-		return c.errorf(fun.ParenClose, "invalid assembly function declaration: no function name or body")
-	case 2:
-		return c.errorf(fun.ParenClose, "invalid assembly function declaration: empty function body")
+func (c *checker) checkABI(anno *ast.QuotedList) error {
+	// For now, we just check that the ABI is either
+	// an identifier or an ABI expression. We actually
+	// resolve it later, as the ABI may be defined
+	// further down the file.
+	if len(anno.X.Elements[1:]) != 1 {
+		return c.errorf(anno.X.ParenOpen, "invalid ABI: got %d ABIs, want 1", len(anno.X.Elements[1:]))
 	}
 
-	name, ok := fun.Elements[1].(*ast.Identifier)
-	if !ok {
-		return c.errorf(fun.Elements[1].Pos(), "invalid function declaration: expected function name, found %s", fun.Elements[1])
-	}
-
-	scope := NewScope(parent, fun.Elements[2].Pos(), fun.ParenClose, "function "+name.Name)
-
-	var paramTypes []*Variable
-	var resultType Type
-	var buf strings.Builder
-	var resultTypeName string
-	buf.WriteString("(func")
-	var archOk, seenABI bool
-	for _, anno := range fun.Annotations {
-		kind := anno.X.Elements[0].(*ast.Identifier) // Enforced by the parser.
-		switch kind.Name {
-		case "abi":
-			if seenABI {
-				return c.errorf(anno.X.ParenOpen, "duplicate ABI spec")
-			}
-
-			seenABI = true
-
-			// For now, we just check that the ABI is either
-			// an identifier or an ABI expression. We actually
-			// resolve it later, as the ABI may be defined
-			// further down the file.
-			if len(anno.X.Elements[1:]) != 1 {
-				return c.errorf(anno.X.ParenOpen, "invalid ABI: got %d ABIs, want 1", len(anno.X.Elements[1:]))
-			}
-
-			abi := anno.X.Elements[1]
-			switch v := abi.(type) {
-			case *ast.Identifier:
-			case *ast.List:
-				kind, _, err := c.interpretDefinition(v, "abi spec")
-				if err != nil {
-					return c.errorf(v.ParenOpen, "invalid ABI spec: %v", err)
-				}
-
-				if kind.Name != "abi" {
-					return c.errorf(v.ParenOpen, "invalid ABI spec: got identifier %s, want %s", kind.Name, "abi")
-				}
-			default:
-				return c.errorf(abi.Pos(), "invalid ABI: got ABI spec %s, want spec or value", v.Print())
-			}
-		case "arch":
-			// Check that this matches the target architecture.
-			for _, x := range anno.X.Elements[1:] {
-				arch, ok := x.(*ast.Identifier)
-				if !ok {
-					return c.errorf(x.Pos(), "invalid architecture: expected identifier, found %s", x)
-				}
-
-				if arch.Name == c.arch.Name {
-					// Match!
-					archOk = true
-					break
-				}
-
-				// Check the arch is valid.
-				ok = false
-				for _, a := range sys.All {
-					if a.Name == arch.Name {
-						ok = true
-						break
-					}
-				}
-
-				if !ok {
-					return c.errorf(x.Pos(), "unrecognised architecture: %s", arch.Name)
-				}
-			}
-
-			if !archOk {
-				// Skip this function so its type signature
-				// cannot clash with another of the same
-				// name and another architecture.
-				return nil
-			}
-		case "mode":
-			if len(anno.X.Elements[1:]) != 1 {
-				return c.errorf(anno.X.ParenOpen, "invalid mode: expected one mode value")
-			}
-
-			// We accept an integer or identifier, depending
-			// on architecture.
-			switch mode := anno.X.Elements[1].(type) {
-			case *ast.Identifier:
-			case *ast.Literal:
-				if mode.Kind != token.Integer {
-					return c.errorf(mode.Pos(), "invalid mode: expected identifier or integer, got %s", mode.Print())
-				}
-			default:
-				return c.errorf(anno.X.Elements[1].Pos(), "invalid mode: expected identifier or integer, got %s", anno.X.Elements[1].Print())
-			}
-
-			// Otherwise ignored by the type checker.
-			continue
-		case "param":
-			param := anno.X.Elements[1]
-			name, typ, err := c.GetNameTypePair(parent, param)
-			if err != nil {
-				return c.errorf(param.Pos(), "bad parameter %d: %v", len(paramTypes)+1, err)
-			}
-
-			obj := NewParameter(scope, param.Pos(), param.End(), c.pkg, name.Name, typ)
-			if other := scope.Insert(obj); other != nil {
-				return c.errorf(param.Pos(), "%s redeclared: previous declaration at %s", name.Name, c.fset.Position(other.Pos()))
-			}
-
-			paramTypes = append(paramTypes, obj)
-			c.define(name, obj)
-			c.record(param, typ, nil)
-			c.record(name, typ, nil)
-			c.names[param.Pos()] = name.Name
-			fmt.Fprintf(&buf, " (%s)", typ)
-		case "result":
-			if resultType != nil {
-				c.errorf(name.NamePos, "cannot declare multiple result types")
-			}
-
-			result, ok := anno.X.Elements[1].(*ast.Identifier)
-			if !ok {
-				return c.errorf(anno.X.Elements[1].Pos(), "bad result: expected identifier, found %s", anno.X.Elements[1])
-			}
-
-			_, obj := parent.LookupParent(result.Name, token.NoPos)
-			if obj == nil {
-				return c.errorf(result.NamePos, "undefined type: %s", result.Name)
-			}
-
-			resultType = obj.Type()
-			resultTypeName = result.Name
-			c.use(result, obj)
-			c.record(result, resultType, nil)
-		case "scratch":
-			// Ignored by the type checker.
-			continue
-		default:
-			return c.errorf(kind.NamePos, "unrecognised annotation: %s", kind.Name)
+	abi := anno.X.Elements[1]
+	switch v := abi.(type) {
+	case *ast.Identifier:
+	case *ast.List:
+		kind, _, err := c.interpretDefinition(v, "abi spec")
+		if err != nil {
+			return c.errorf(v.ParenOpen, "invalid ABI spec: %v", err)
 		}
-	}
 
-	if resultTypeName != "" {
-		buf.WriteByte(' ')
-		buf.WriteString(resultTypeName)
-	}
-
-	buf.WriteByte(')')
-
-	signature := NewSignature(buf.String(), paramTypes, resultType)
-	c.newType(signature)
-	function := NewFunction(parent, fun.ParenOpen, fun.ParenClose, c.pkg, name.Name, signature)
-	c.sigs[fun.ParenOpen] = signature
-	c.funcs[fun.ParenOpen] = function
-	c.names[fun.ParenOpen] = "function " + name.Name
-	c.define(name, function)
-	c.record(fun, signature, nil)
-	c.record(fun.Elements[0], signature, nil)
-	c.record(name, signature, nil)
-	if other := parent.Insert(function); other != nil {
-		return c.errorf(fun.ParenOpen, "%s redeclared: previous declaration at %s", name.Name, c.fset.Position(other.Pos()))
+		if kind.Name != "abi" {
+			return c.errorf(v.ParenOpen, "invalid ABI spec: got identifier %s, want %s", kind.Name, "abi")
+		}
+	default:
+		return c.errorf(abi.Pos(), "invalid ABI: got ABI spec %s, want spec or value", v.Print())
 	}
 
 	return nil
 }
 
-func (c *checker) CheckTopLevelFuncDecl(parent *Scope, fun *ast.List) error {
-	// Named function declaration.
-	//
-	// Takes one of the following forms:
-	//
-	// - (func (name) ...)                                   ; Function declaration, declaring function 'name' with no parameters or result.
-	// - (func (name result) ...)                            ; Function declaration, declaring function 'name' with result type 'result' and no parameters.
-	// - (func (name (arg1 typ1) (arg2 type2)) ...)          ; Function declaration, declaring function 'name' with parameters 'arg1' and 'arg2' and types 'type1' and 'type2' and no result.
-	// - (func (name (arg1 type1) (arg2 type2) result) ...)  ; Function declaration, declaring function 'name' with parameters and a result type.
-	//
-	// Function definitions take the following annotations:
-	//
-	// - '(abi abi)                                          ; Optional ABI declaration, specifying the calling convention for this function.
-	// - '(arch architecture...)                             ; Opttonal architecture declaration, specifying the architectures for which this declaration is valid.
+func (c *checker) checkArchitectures(anno *ast.QuotedList) (ok bool, err error) {
+	var archOk bool
+	for _, x := range anno.X.Elements[1:] {
+		arch, ok := x.(*ast.Identifier)
+		if !ok {
+			return false, c.errorf(x.Pos(), "invalid architecture: expected identifier, found %s", x)
+		}
 
+		if arch.Name == c.arch.Name {
+			// Match!
+			archOk = true
+			break
+		}
+
+		// Check the arch is valid.
+		ok = false
+		for _, a := range sys.All {
+			if a.Name == arch.Name {
+				ok = true
+				break
+			}
+		}
+
+		if !ok {
+			return false, c.errorf(x.Pos(), "unrecognised architecture: %s", arch.Name)
+		}
+	}
+
+	return archOk, nil
+}
+
+func (c *checker) checkFuncSignature(parent *Scope, fun *ast.List) error {
 	switch len(fun.Elements) {
 	case 1:
-		return c.errorf(fun.ParenClose, "invalid function declaration: no function name or body")
+		return c.errorf(fun.ParenClose, "invalid assembly function declaration: no function name or body")
 	case 2:
-		return c.errorf(fun.ParenClose, "invalid function declaration: empty function body")
+		return c.errorf(fun.ParenClose, "invalid assembly function declaration: empty function body")
 	}
 
 	// Unpack the declaration.
@@ -699,79 +556,6 @@ func (c *checker) CheckTopLevelFuncDecl(parent *Scope, fun *ast.List) error {
 	name, ok := decl.Elements[0].(*ast.Identifier)
 	if !ok {
 		return c.errorf(decl.Elements[0].Pos(), "invalid function declaration: expected function name, found %s", decl.Elements[0])
-	}
-
-	var archOk, seenABI bool
-	for _, anno := range fun.Annotations {
-		kind := anno.X.Elements[0].(*ast.Identifier) // Enforced by the parser.
-		switch kind.Name {
-		case "abi":
-			if seenABI {
-				return c.errorf(anno.X.ParenOpen, "duplicate ABI spec")
-			}
-
-			seenABI = true
-
-			// For now, we just check that the ABI is either
-			// an identifier or an ABI expression. We actually
-			// resolve it later, as the ABI may be defined
-			// further down the file.
-			if len(anno.X.Elements[1:]) != 1 {
-				return c.errorf(anno.X.ParenOpen, "invalid ABI: got %d ABIs, want 1", len(anno.X.Elements[1:]))
-			}
-
-			abi := anno.X.Elements[1]
-			switch v := abi.(type) {
-			case *ast.Identifier:
-			case *ast.List:
-				kind, _, err := c.interpretDefinition(v, "abi spec")
-				if err != nil {
-					return c.errorf(v.ParenOpen, "invalid ABI spec: %v", err)
-				}
-
-				if kind.Name != "abi" {
-					return c.errorf(v.ParenOpen, "invalid ABI spec: got identifier %s, want %s", kind.Name, "abi")
-				}
-			default:
-				return c.errorf(abi.Pos(), "invalid ABI: got ABI spec %s, want spec or value", v.Print())
-			}
-		case "arch":
-			// Check that this matches the target architecture.
-			for _, x := range anno.X.Elements[1:] {
-				arch, ok := x.(*ast.Identifier)
-				if !ok {
-					return c.errorf(x.Pos(), "invalid architecture: expected identifier, found %s", x)
-				}
-
-				if arch.Name == c.arch.Name {
-					// Match!
-					archOk = true
-					break
-				}
-
-				// Check the arch is valid.
-				ok = false
-				for _, a := range sys.All {
-					if a.Name == arch.Name {
-						ok = true
-						break
-					}
-				}
-
-				if !ok {
-					return c.errorf(x.Pos(), "unrecognised architecture: %s", arch.Name)
-				}
-			}
-
-			if !archOk {
-				// Skip this function so its type signature
-				// cannot clash with another of the same
-				// name and another architecture.
-				return nil
-			}
-		default:
-			return c.errorf(kind.NamePos, "unrecognised annotation: %s", kind.Name)
-		}
 	}
 
 	params := decl.Elements[1:]
@@ -844,6 +628,128 @@ func (c *checker) CheckTopLevelFuncDecl(parent *Scope, fun *ast.List) error {
 	}
 
 	return nil
+}
+
+func (c *checker) CheckTopLevelAsmFuncDecl(parent *Scope, fun *ast.List) error {
+	// Named assembly function declaration.
+	//
+	// Takes one of the following forms:
+	//
+	// - (asm-func (name) ...)                                   ; Assembly function declaration, declaring function 'name' with no parameters or result.
+	// - (asm-func (name result) ...)                            ; Assembly function declaration, declaring function 'name' with result type 'result' and no parameters.
+	// - (asm-func (name (arg1 typ1) (arg2 type2)) ...)          ; Assembly function declaration, declaring function 'name' with parameters 'arg1' and 'arg2' and types 'type1' and 'type2' and no result.
+	// - (asm-func (name (arg1 type1) (arg2 type2) result) ...)  ; Assembly function declaration, declaring function 'name' with parameters and a result type.
+	//
+	// Function definitions take the following annotations:
+	//
+	// - '(abi abi)                                              ; Optional ABI declaration, specifying the calling convention for this function.
+	// - '(arch architecture...)                                 ; Opttonal architecture declaration, specifying the architectures for which this declaration is valid.
+	// - '(mode mode)                                            ; Optional CPU mode indicating how instructions should be encoded.
+
+	var seenABI bool
+	for _, anno := range fun.Annotations {
+		kind := anno.X.Elements[0].(*ast.Identifier) // Enforced by the parser.
+		switch kind.Name {
+		case "abi":
+			if seenABI {
+				return c.errorf(anno.X.ParenOpen, "duplicate ABI spec")
+			}
+
+			seenABI = true
+
+			err := c.checkABI(anno)
+			if err != nil {
+				return err
+			}
+		case "arch":
+			// Check that this matches the target architecture.
+			archOk, err := c.checkArchitectures(anno)
+			if err != nil {
+				return err
+			}
+
+			// Skip this function so its type signature
+			// cannot clash with another of the same
+			// name and another architecture.
+			if !archOk {
+				return nil
+			}
+		case "mode":
+			if len(anno.X.Elements[1:]) != 1 {
+				return c.errorf(anno.X.ParenOpen, "invalid mode: expected one mode value")
+			}
+
+			// We accept an integer or identifier, depending
+			// on architecture.
+			switch mode := anno.X.Elements[1].(type) {
+			case *ast.Identifier:
+			case *ast.Literal:
+				if mode.Kind != token.Integer {
+					return c.errorf(mode.Pos(), "invalid mode: expected identifier or integer, got %s", mode.Print())
+				}
+			default:
+				return c.errorf(anno.X.Elements[1].Pos(), "invalid mode: expected identifier or integer, got %s", anno.X.Elements[1].Print())
+			}
+
+			// Otherwise ignored by the type checker.
+			continue
+		default:
+			return c.errorf(kind.NamePos, "unrecognised annotation: %s", kind.Name)
+		}
+	}
+
+	return c.checkFuncSignature(parent, fun)
+}
+
+func (c *checker) CheckTopLevelFuncDecl(parent *Scope, fun *ast.List) error {
+	// Named function declaration.
+	//
+	// Takes one of the following forms:
+	//
+	// - (func (name) ...)                                   ; Function declaration, declaring function 'name' with no parameters or result.
+	// - (func (name result) ...)                            ; Function declaration, declaring function 'name' with result type 'result' and no parameters.
+	// - (func (name (arg1 typ1) (arg2 type2)) ...)          ; Function declaration, declaring function 'name' with parameters 'arg1' and 'arg2' and types 'type1' and 'type2' and no result.
+	// - (func (name (arg1 type1) (arg2 type2) result) ...)  ; Function declaration, declaring function 'name' with parameters and a result type.
+	//
+	// Function definitions take the following annotations:
+	//
+	// - '(abi abi)                                          ; Optional ABI declaration, specifying the calling convention for this function.
+	// - '(arch architecture...)                             ; Opttonal architecture declaration, specifying the architectures for which this declaration is valid.
+
+	var seenABI bool
+	for _, anno := range fun.Annotations {
+		kind := anno.X.Elements[0].(*ast.Identifier) // Enforced by the parser.
+		switch kind.Name {
+		case "abi":
+			if seenABI {
+				return c.errorf(anno.X.ParenOpen, "duplicate ABI spec")
+			}
+
+			seenABI = true
+
+			err := c.checkABI(anno)
+			if err != nil {
+				return err
+			}
+		case "arch":
+			// Check that this matches the target architecture.
+			archOk, err := c.checkArchitectures(anno)
+			if err != nil {
+				return err
+			}
+
+			// Skip this function so its type signature
+			// cannot clash with another of the same
+			// name and another architecture.
+			if !archOk {
+				return nil
+			}
+		default:
+			return c.errorf(kind.NamePos, "unrecognised annotation: %s", kind.Name)
+		}
+	}
+
+	return c.checkFuncSignature(parent, fun)
 }
 
 func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {

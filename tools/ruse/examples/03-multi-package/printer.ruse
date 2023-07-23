@@ -18,9 +18,7 @@
 ; Similarly, this is the exported function
 ; `Print`, not the unexported function `print`.
 ;
-'(param (msg string) rsi)
-'(param (msg-len int) rdx)
-(asm-func Print
+(asm-func (Print (msg string) (msg-len int))
 	(mov eax 1) ; sys_write
 	(mov rdi 1) ; unsigned int fd stdout
 	(syscall)   ; write(1, "Hello, world!\n", 14)

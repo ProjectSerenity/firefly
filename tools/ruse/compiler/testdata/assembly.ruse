@@ -4,7 +4,14 @@
 
 '(abi syscall)
 '(arch x86-64)
-(asm-func syscall6
+(asm-func (syscall6
+		(sys uintptr)
+		(arg1 uintptr)
+		(arg2 uintptr)
+		(arg3 uintptr)
+		(arg4 uintptr)
+		(arg5 uintptr)
+		(arg6 uintptr) uintptr)
 	(syscall))
 
 '(arch x86-64)

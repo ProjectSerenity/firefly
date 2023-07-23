@@ -119,7 +119,7 @@ func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assemb
 	// subsequent expressions are assembly, either
 	// in the form of a quoted identifier for a
 	// label or a list containing one instruction.
-	name := assembly.Elements[1].(*ast.Identifier)
+	name := assembly.Elements[1].(*ast.List).Elements[0].(*ast.Identifier)
 	function := info.Definitions[name].(*types.Function)
 	signature := function.Type().(*types.Signature)
 	fun := &ssafir.Function{

@@ -1068,7 +1068,7 @@ func TestAssembleX86(t *testing.T) {
 				mode = 64
 			}
 
-			text := fmt.Sprintf("(package test)\n\n'(mode %d)\n(asm-func test %s)", mode, test.Assembly)
+			text := fmt.Sprintf("(package test)\n\n'(mode %d)\n(asm-func (test) %s)", mode, test.Assembly)
 			file, err := parser.ParseFile(fset, "test.ruse", text, 0)
 			if err != nil {
 				t.Fatalf("failed to parse text: %v", err)
@@ -1167,7 +1167,7 @@ func BenchmarkX86(b *testing.B) {
 				mode = 64
 			}
 
-			text := fmt.Sprintf("(package test)\n\n'(mode %d)\n(asm-func test %s)", mode, test.Assembly)
+			text := fmt.Sprintf("(package test)\n\n'(mode %d)\n(asm-func (test) %s)", mode, test.Assembly)
 			file, err := parser.ParseFile(fset, "test.ruse", text, 0)
 			if err != nil {
 				b.Fatalf("failed to parse text: %v", err)
@@ -1450,7 +1450,7 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 						(package test)
 
 						'(mode %s)
-						(asm-func test
+						(asm-func (test)
 							'(match %s)
 							%s)`, test.Mode, test.Inst.UID, test.Ruse)
 					file, err := parser.ParseFile(fset, "test.ruse", text, 0)
@@ -1679,7 +1679,7 @@ func TestEncodeX86(t *testing.T) {
 			Ruse: `
 				'(arch x86-64)
 				'(mode 64)
-				(asm-func test
+				(asm-func (test)
 					(mov cl 1)
 					(xchg rax rax)
 					(syscall))
@@ -1695,7 +1695,7 @@ func TestEncodeX86(t *testing.T) {
 			Ruse: `
 				'(arch x86-64)
 				'(mode 64)
-				(asm-func test
+				(asm-func (test)
 					'bar
 					(mov cl 1)
 					'foo
@@ -1715,7 +1715,7 @@ func TestEncodeX86(t *testing.T) {
 			Ruse: `
 				'(arch x86-64)
 				'(mode 64)
-				(asm-func test
+				(asm-func (test)
 					(je 'foo)
 					(jmp 'bar)
 					(mov cl 1)
@@ -1736,7 +1736,7 @@ func TestEncodeX86(t *testing.T) {
 				(let hello-world "Hello, world!")
 
 				'(arch x86-64)
-				(asm-func test
+				(asm-func (test)
 					(mov ecx (len hello-world)))
 			`,
 			Want: []byte{
@@ -1749,7 +1749,7 @@ func TestEncodeX86(t *testing.T) {
 				(let hello-world "Hello, world!")
 
 				'(arch x86-64)
-				(asm-func test
+				(asm-func (test)
 					(nop)
 					(mov rcx (string-pointer hello-world))
 					(nop))
@@ -1776,7 +1776,7 @@ func TestEncodeX86(t *testing.T) {
 
 				'(arch x86-64)
 				'(mode 32)
-				(asm-func test
+				(asm-func (test)
 					(nop)
 					(mov ecx (string-pointer hello-world))
 					(nop))
@@ -1802,7 +1802,7 @@ func TestEncodeX86(t *testing.T) {
 				(let hello-world "Hello, world!") ; This should be a function, but we've set up the test to expect only one function.
 
 				'(arch x86-64)
-				(asm-func test
+				(asm-func (test)
 					(nop)
 					(call (string-pointer hello-world))
 					(nop))

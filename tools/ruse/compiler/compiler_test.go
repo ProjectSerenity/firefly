@@ -370,20 +370,39 @@ func TestCompile(t *testing.T) {
 				if err != nil {
 					panic(err.Error())
 				}
-				pkg.Constants = append(pkg.Constants, types.NewConstant(nil, 145, 232, nil, "syscall", abi, nil))
+				pkg.Constants = append(pkg.Constants, types.NewConstant(nil, 273, 360, nil, "syscall", abi, nil))
 
+				funcScope := types.NewScope(nil, 246, 255, "function syscall6")
+				syscall := types.NewParameter(funcScope, 120, 133, nil, "sys", types.Uintptr)
+				arg1 := types.NewParameter(funcScope, 136, 150, nil, "arg1", types.Uintptr)
+				arg2 := types.NewParameter(funcScope, 153, 167, nil, "arg2", types.Uintptr)
+				arg3 := types.NewParameter(funcScope, 170, 184, nil, "arg3", types.Uintptr)
+				arg4 := types.NewParameter(funcScope, 187, 201, nil, "arg4", types.Uintptr)
+				arg5 := types.NewParameter(funcScope, 204, 218, nil, "arg5", types.Uintptr)
+				arg6 := types.NewParameter(funcScope, 221, 235, nil, "arg6", types.Uintptr)
 				f1 := &ssafir.Function{
-					Name:        "syscall6",
-					Type:        types.NewSignature("(func)", nil, nil),
-					Params:      [][]sys.Location{},
-					Result:      []sys.Location{},
+					Name: "syscall6",
+					Type: types.NewSignature(
+						"(func (uintptr) (uintptr) (uintptr) (uintptr) (uintptr) (uintptr) (uintptr) uintptr)",
+						[]*types.Variable{syscall, arg1, arg2, arg3, arg4, arg5, arg6},
+						types.Uintptr,
+					),
+					Params: [][]sys.Location{
+						{x86.RAX},
+						{x86.RDI},
+						{x86.RSI},
+						{x86.RDX},
+						{x86.R10},
+						{x86.R8},
+						{x86.R9},
+					},
+					Result:      []sys.Location{x86.RAX},
 					Extra:       x86.Mode64,
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
-				b11 := f1.NewBlock(118, ssafir.BlockNormal)
-				b11.NewValue(98, 127, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
-				b11.NewValueExtra(118, 126, ssafir.OpX86SYSCALL, nil, &x86InstructionData{Length: 2})
-				b11.End = 118
+				b11 := f1.NewBlock(246, ssafir.BlockNormal)
+				b11.NewValueExtra(246, 254, ssafir.OpX86SYSCALL, nil, &x86InstructionData{Length: 2})
+				b11.End = 246
 				f1.Entry = b11
 
 				pkg.Functions = []*ssafir.Function{f1}
@@ -392,10 +411,9 @@ func TestCompile(t *testing.T) {
 			})(),
 			Print: [][]string{
 				{
-					"syscall6 (func)",
+					"syscall6 (func (uintptr) (uintptr) (uintptr) (uintptr) (uintptr) (uintptr) (uintptr) uintptr)",
 					"b1:",
-					"	v1 := (MakeMemoryState) memory state",
-					"	v2 := (SYSCALL (extra (x86-instruction-data)))",
+					"	v1 := (SYSCALL (extra (x86-instruction-data)))",
 					"	(Normal)",
 					"",
 				},

@@ -17,7 +17,7 @@
 	("firefly-os.dev/tools/ruse/examples/printer"))
 
 '(arch x86-64)
-(asm-func main
+(asm-func (main)
 	; Note the syntax printer.Default-message. The
 	; import statement does not specify an override
 	; for the local name for the package, so the

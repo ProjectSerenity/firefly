@@ -322,18 +322,15 @@ var tests = []struct {
 
 			(let msg "Hello, world!")
 
-			(asm-func triple-nop
+			(asm-func (triple-nop)
 				(nop)
 				(nop)
 				(nop))
 
-			'(param (str string) rax)
-			'(param (len uint64) rcx)
-			'(result uint64 rax)
-			(asm-func string-copy
+			(asm-func (string-copy (str string) (len uint64) uint64)
 				(repnz movsb))
 
-			(asm-func looper
+			(asm-func (looper)
 				(mov rcx (len msg))
 				(jz 'done)
 

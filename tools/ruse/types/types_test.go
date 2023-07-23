@@ -351,18 +351,50 @@ func TestCheck(t *testing.T) {
 					},
 				}
 
-				file0 := NewScope(pkg.scope, 48, 339, "file 0")
+				file0 := NewScope(pkg.scope, 48, 361, "file 0")
 				file0.readonly = true
 
-				funcScope := NewScope(file0, 329, 338, "function syscall6")
-				sys := NewParameter(funcScope, 91, 103, pkg, "sys", Uint64)
-				arg1 := NewParameter(funcScope, 117, 130, pkg, "arg1", Uint64)
-				arg2 := NewParameter(funcScope, 144, 157, pkg, "arg2", Uint64)
-				arg3 := NewParameter(funcScope, 171, 184, pkg, "arg3", Uint64)
-				arg4 := NewParameter(funcScope, 198, 211, pkg, "arg4", Uint64)
-				arg5 := NewParameter(funcScope, 225, 238, pkg, "arg5", Uint64)
-				arg6 := NewParameter(funcScope, 251, 264, pkg, "arg6", Uint64)
-				funcScope.Insert(sys)
+				invertedStack := (*ast.Identifier)(nil)
+				params := []*ast.Identifier{
+					{NamePos: 0, Name: "rax"},
+					{NamePos: 0, Name: "rdi"},
+					{NamePos: 0, Name: "rsi"},
+					{NamePos: 0, Name: "rdx"},
+					{NamePos: 0, Name: "r10"},
+					{NamePos: 0, Name: "r8"},
+					{NamePos: 0, Name: "r9"},
+				}
+				result := []*ast.Identifier{
+					{NamePos: 0, Name: "rax"},
+				}
+				scratch := []*ast.Identifier{
+					{NamePos: 0, Name: "rcx"},
+					{NamePos: 0, Name: "r11"},
+				}
+				unused := []*ast.Identifier(nil)
+				abi, err := NewABI(sys.X86_64, invertedStack, params, result, scratch, unused)
+				if err != nil {
+					panic(err.Error())
+				}
+				pkg.scope.Insert(&Constant{
+					object: object{
+						pos:  273,
+						end:  360,
+						pkg:  pkg,
+						name: "syscall",
+						typ:  abi,
+					},
+				})
+
+				funcScope := NewScope(file0, 246, 255, "function syscall6")
+				syscall := NewParameter(funcScope, 120, 133, pkg, "sys", Uintptr)
+				arg1 := NewParameter(funcScope, 136, 150, pkg, "arg1", Uintptr)
+				arg2 := NewParameter(funcScope, 153, 167, pkg, "arg2", Uintptr)
+				arg3 := NewParameter(funcScope, 170, 184, pkg, "arg3", Uintptr)
+				arg4 := NewParameter(funcScope, 187, 201, pkg, "arg4", Uintptr)
+				arg5 := NewParameter(funcScope, 204, 218, pkg, "arg5", Uintptr)
+				arg6 := NewParameter(funcScope, 221, 235, pkg, "arg6", Uintptr)
+				funcScope.Insert(syscall)
 				funcScope.Insert(arg1)
 				funcScope.Insert(arg2)
 				funcScope.Insert(arg3)
@@ -371,16 +403,17 @@ func TestCheck(t *testing.T) {
 				funcScope.Insert(arg6)
 				pkg.scope.Insert(&Function{
 					object: object{
-						pos:  309,
-						end:  338,
+						pos:  98,
+						end:  255,
 						pkg:  pkg,
 						name: "syscall6",
 						typ: &Signature{
-							name:   "(func (uint64) (uint64) (uint64) (uint64) (uint64) (uint64) (uint64) uint64)",
-							params: []*Variable{sys, arg1, arg2, arg3, arg4, arg5, arg6},
-							result: Uint64,
+							name:   "(func (uintptr) (uintptr) (uintptr) (uintptr) (uintptr) (uintptr) (uintptr) uintptr)",
+							params: []*Variable{syscall, arg1, arg2, arg3, arg4, arg5, arg6},
+							result: Uintptr,
 						},
 					},
+					abi: abi.abi,
 				})
 
 				return pkg

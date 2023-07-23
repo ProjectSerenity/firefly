@@ -11,7 +11,7 @@
 ; into two files, as part of a single package.
 
 '(arch x86-64)
-(asm-func main
+(asm-func (main)
 	; Note that we reference `default-message` (which is
 	; in another file) just as if it was in the same
 	; file, as it is a package-local constant.

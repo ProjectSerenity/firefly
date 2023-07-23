@@ -25,7 +25,7 @@
 ; explicit parameters, managed by the compiler. As is,
 ; the type signature is `(func)`; a nullary function.
 ;
-(asm-func print-hello-world
+(asm-func (print-hello-world)
 	(mov eax 1)                            ; sys_write
 	(mov rdi 1)                            ; unsigned int fd stdout
 	(mov rsi (string-pointer hello-world)) ; const char *buf
@@ -46,7 +46,7 @@
 ; however we wish; in this case in assembly.
 ;
 '(arch x86-64)
-(asm-func main
+(asm-func (main)
 	; At link-time, the linker will insert the final
 	; address of print-hello-world into this instruction
 	; as a relative address.
