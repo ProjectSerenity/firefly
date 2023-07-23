@@ -28,6 +28,7 @@ import (
 // package into an rpkg file.
 type encoder struct {
 	header header
+	arch   *sys.Arch
 
 	imports []uint32
 
@@ -43,6 +44,13 @@ type encoder struct {
 	symbols       []*symbol
 	symbolOffsets map[types.Object]uint64
 
+	// Used to build the ABIs section
+	// efficiently. This state is managed
+	// by AddABI.
+	abis        [][]byte
+	abisOffset  uint32
+	abisOffsets map[string]uint32
+
 	// Used to build the strings section
 	// efficiently. This state is managed
 	// by AddString.
@@ -55,7 +63,7 @@ type encoder struct {
 	// Used to build the code section
 	// efficiently. This state is managed
 	// by AddCode.
-	code       [][]byte
+	code       []*function
 	codeOffset uint64
 }
 
@@ -82,7 +90,9 @@ func (e *encoder) AddHeader(arch *sys.Arch, pkg *compiler.Package) error {
 	e.header.TypesLength = e.typesOffset
 	e.header.SymbolsOffset = e.header.TypesOffset + e.header.TypesLength
 	e.header.SymbolsLength = symbolSize * uint64(len(e.symbols))
-	e.header.StringsOffset = e.header.SymbolsOffset + e.header.SymbolsLength
+	e.header.ABIsOffset = e.header.SymbolsOffset + e.header.SymbolsLength
+	e.header.ABIsLength = e.abisOffset
+	e.header.StringsOffset = e.header.ABIsOffset + uint64(e.header.ABIsLength)
 	e.header.StringsLength = e.stringOffset
 	e.header.LinkagesOffset = e.header.StringsOffset + e.header.StringsLength
 	e.header.LinkagesLength = linkageSize * uint64(len(e.linkages))
@@ -207,7 +217,7 @@ func (e *encoder) AddFunction(fset *token.FileSet, arch *sys.Arch, pkg *compiler
 		PackageName: e.AddString(pkg.Path),
 		Name:        e.AddString(fun.Name),
 		Type:        e.AddType(fun.Type),
-		Value:       e.AddCode(code.Bytes()),
+		Value:       e.AddCode(e.AddABI(fun.Func.ABI()), code.Bytes()),
 	}
 
 	source := symbolSize * uint64(len(e.symbols))
@@ -298,6 +308,79 @@ func (e *encoder) AddConstant(pkg *compiler.Package, con *types.Constant) error 
 	return nil
 }
 
+// AddABI appends the ABI to the typeABIs
+// section.
+func (e *encoder) AddABI(abi *sys.ABI) uint32 {
+	var b *cryptobyte.Builder
+	if abi == nil {
+		b = cryptobyte.NewFixedBuilder(make([]byte, 4))
+	} else {
+		length := 4 + // Overall length.
+			minABILength + // InvertedStack and the length fields
+			len(abi.ParamRegisters) +
+			len(abi.ResultRegisters) +
+			len(abi.ScratchRegisters) +
+			len(abi.UnusedRegisters)
+		if length%4 != 0 {
+			length += 4 - (length % 4)
+		}
+
+		var invertedStack uint8
+		if abi.InvertedStack {
+			invertedStack = 1
+		}
+
+		regs := make(map[sys.Location]uint8, len(e.arch.ABIRegisters)+1)
+		regs[e.arch.StackPointer] = abiStackPointer
+		for i, reg := range e.arch.ABIRegisters {
+			regs[reg] = uint8(i)
+		}
+
+		b = cryptobyte.NewFixedBuilder(make([]byte, 0, length))
+		b.AddUint32LengthPrefixed(func(b *cryptobyte.Builder) {
+			b.AddUint8(invertedStack)
+			b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+				for _, reg := range abi.ParamRegisters {
+					b.AddUint8(regs[reg])
+				}
+			})
+			b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+				for _, reg := range abi.ResultRegisters {
+					b.AddUint8(regs[reg])
+				}
+			})
+			b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+				for _, reg := range abi.ScratchRegisters {
+					b.AddUint8(regs[reg])
+				}
+			})
+			b.AddUint8LengthPrefixed(func(b *cryptobyte.Builder) {
+				for _, reg := range abi.UnusedRegisters {
+					b.AddUint8(regs[reg])
+				}
+			})
+		})
+	}
+
+	data := b.BytesOrPanic()
+
+	offset, ok := e.abisOffsets[string(data)]
+	if ok {
+		return offset
+	}
+
+	offset = e.abisOffset
+	e.abis = append(e.abis, data)
+	e.abisOffset += uint32(len(data))
+	if e.abisOffset%4 != 0 {
+		e.abisOffset += 4 - (e.abisOffset % 4) // Padding.
+	}
+
+	e.abisOffsets[string(data)] = offset
+
+	return offset
+}
+
 // AddString ensures that `s` is included
 // exactly once in the rpkg file. The string's
 // offset into the string section is returned.
@@ -331,14 +414,14 @@ func (e *encoder) AddString(s string) uint64 {
 //
 // The code must have a length that fits in
 // a uint32.
-func (e *encoder) AddCode(code []byte) uint64 {
+func (e *encoder) AddCode(abi uint32, code []byte) uint64 {
 	if len(code) > math.MaxUint32 {
 		panic("code too large: length overflows uint32")
 	}
 
 	offset := e.codeOffset
-	e.code = append(e.code, code)
-	e.codeOffset += 4 + uint64(len(code))
+	e.code = append(e.code, &function{ABI: abi, Code: code})
+	e.codeOffset += 4 + 4 + uint64(len(code))
 	if e.codeOffset%4 != 0 {
 		e.codeOffset += 4 - (e.codeOffset % 4)
 	}
@@ -355,6 +438,7 @@ func (h *header) Marshal(b *cryptobyte.Builder) error {
 	b.AddUint32(h.ExportsOffset)
 	b.AddUint64(h.TypesOffset)
 	b.AddUint64(h.SymbolsOffset)
+	b.AddUint64(h.ABIsOffset)
 	b.AddUint64(h.StringsOffset)
 	b.AddUint64(h.LinkagesOffset)
 	b.AddUint64(h.CodeOffset)
@@ -414,6 +498,18 @@ func (e *encoder) WriteTo(w io.Writer) (n int64, err error) {
 		b.AddValue(sym)
 	}
 
+	for _, abi := range e.abis {
+		b.AddBytes(abi)
+		switch len(abi) % 4 {
+		case 1:
+			b.AddUint24(0)
+		case 2:
+			b.AddUint16(0)
+		case 3:
+			b.AddUint8(0)
+		}
+	}
+
 	for _, s := range e.strings {
 		b.AddUint32(uint32(len(s)))
 		b.AddBytes([]byte(s))
@@ -432,9 +528,10 @@ func (e *encoder) WriteTo(w io.Writer) (n int64, err error) {
 	}
 
 	for _, f := range e.code {
-		b.AddUint32(uint32(len(f)))
-		b.AddBytes(f)
-		switch len(f) % 4 {
+		b.AddUint32(f.ABI)
+		b.AddUint32(uint32(len(f.Code)))
+		b.AddBytes(f.Code)
+		switch len(f.Code) % 4 {
 		case 1:
 			b.AddUint24(0)
 		case 2:
@@ -467,13 +564,16 @@ func Encode(w io.Writer, fset *token.FileSet, arch *sys.Arch, pkg *compiler.Pack
 	// encoding.
 	var _ = (*cryptobyte.Builder)(nil)
 	e := &encoder{
+		arch:          arch,
 		typesOffsets:  make(map[string]uint64),
 		symbolOffsets: make(map[types.Object]uint64),
+		abisOffsets:   make(map[string]uint32),
 		stringOffsets: make(map[string]uint64),
 	}
 
 	// Build the rpkg file.
 	e.AddType(nil)  // The nil type is always at offset 0.
+	e.AddABI(nil)   // The nil ABI is always at offset 0.
 	e.AddString("") // The empty string is always at offset 0.
 	e.AddString(pkg.Path)
 

@@ -21,7 +21,11 @@ type ABI struct {
 
 var _ Type = ABI{}
 
-func NewABI(arch *sys.Arch, invertedStack *ast.Identifier, params, result, scratch, unused []*ast.Identifier) (ABI, error) {
+func NewABI(abi *sys.ABI) ABI {
+	return ABI{abi: abi}
+}
+
+func NewRawABI(arch *sys.Arch, invertedStack *ast.Identifier, params, result, scratch, unused []*ast.Identifier) (ABI, error) {
 	// Build up the set of registers we support.
 	registers := make(map[string]sys.Location, len(arch.ABIRegisters))
 	for _, reg := range arch.ABIRegisters {

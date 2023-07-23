@@ -247,7 +247,7 @@ func TestCompile(t *testing.T) {
 					{NamePos: 0, Name: "r11"},
 				}
 				unused := []*ast.Identifier(nil)
-				abi, err := types.NewABI(sys.X86_64, invertedStack, params, result, scratch, unused)
+				abi, err := types.NewRawABI(sys.X86_64, invertedStack, params, result, scratch, unused)
 				if err != nil {
 					panic(err.Error())
 				}
@@ -366,7 +366,7 @@ func TestCompile(t *testing.T) {
 					{NamePos: 0, Name: "r11"},
 				}
 				unused := []*ast.Identifier(nil)
-				abi, err := types.NewABI(sys.X86_64, invertedStack, params, result, scratch, unused)
+				abi, err := types.NewRawABI(sys.X86_64, invertedStack, params, result, scratch, unused)
 				if err != nil {
 					panic(err.Error())
 				}

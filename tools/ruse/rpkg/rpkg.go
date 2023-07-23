@@ -18,6 +18,7 @@
 //     information for the package, including any aspects derived
 //     from (or including) types from dependent packages.
 //   - The symbols section contains the symbol table.
+//   - The ABIs section contains any custom ABIs.
 //   - The strings section contains length-prefixed string data
 //     used by other sections.
 //   - The linkages section contains liinkages and relocations
@@ -56,6 +57,9 @@
 //
 //		// Location of the symbols section.
 //		SymbolsOffset   uint64  // The offset into the file where the symbols section begins.
+//
+//		// Location of the ABIs section.
+//		ABIsOffset      uint64  // The offset into the file where the ABIs section begins.
 //
 //		// Location of the strings section.
 //		StringsOffset   uint64  // The offset into the file where the strings section begins.
@@ -119,6 +123,8 @@
 //			Params        [...]Variable  // Successive variables for each parameter.
 //			Result        uint64         // The offset into the types section where the result type begins.
 //			Name          uint64         // The offset into the strings section where the signature name begins.
+//		case TypeKindABI:
+//			ABIOffset     uint32         // The offset into the ABIs section where the ABI begins.
 //		}
 //	}
 //
@@ -143,6 +149,27 @@
 //		Type         uint64   // The offset into the types section where the symbol's type begins.
 //		Value        uint64   // The symbol's value. The value format is explained below.
 //	}
+//
+// # ABIs section
+//
+// The ABIs section consists of a sequence of contiguous
+// ABIs, where each ABI is described with the following
+// pseudocode:
+//
+//	type ABI struct {
+//		Length         uint32   // The length of the remaining ABI data in bytes. Must be either 0 or greater than 4.
+//		InvertedStack  bool     // Whether the stack is inverted (1 for true, 0 for false).
+//		Params         []uint8  // A 1-byte total length field, followed by 1-byte indices into the architecture's ABI registers list.
+//		Result         []uint8  // A 1-byte total length field, followed by 1-byte indices into the architecture's ABI registers list.
+//		Scratch        []uint8  // A 1-byte total length field, followed by 1-byte indices into the architecture's ABI registers list.
+//		Unused         []uint8  // A 1-byte total length field, followed by 1-byte indices into the architecture's ABI registers list (255 for the stack pointer).
+//	}
+//
+// Note that the first ABI has lengths zero so that references
+// to it can be used to represent the nil ABI. ABIs whose total
+// length is not a multiple of four are followed by up to three
+// bytes of padding to ensure that each `ABI` has 32-bit
+// alignment.
 //
 // # Strings section
 //
@@ -185,6 +212,7 @@
 // following pseudocode:
 //
 //	type Function struct {
+//		ABI     uint32     // The offset into the ABIs section where the function's ABI begins.
 //		Length  uint32     // The length in bytes of the function's machine code.
 //		Data    [...]byte  // The function's machine code.
 //	}
@@ -204,6 +232,7 @@ import (
 	"fmt"
 
 	"firefly-os.dev/tools/ruse/ssafir"
+	"firefly-os.dev/tools/ruse/sys"
 	"firefly-os.dev/tools/ruse/types"
 )
 
@@ -241,6 +270,10 @@ type header struct {
 	SymbolsOffset uint64 // The offset into the file where the symbols section begins.
 	SymbolsLength uint64 // The length in bytes of the symbols section.
 
+	// Location of the ABIs section.
+	ABIsOffset uint64 // The offset into the file where the ABIs section begins.
+	ABIsLength uint32 // The length in bytes of the ABIs section.
+
 	// Location of the strings section.
 	StringsOffset uint64 // The offset into the file where the strings section begins.
 	StringsLength uint64 // The lenght in bytes of the strings section.
@@ -266,6 +299,7 @@ const headerSize = 4 + // 32-bit magic.
 	4 + // 32-bit exports section offset.
 	8 + // 64-bit types section offset.
 	8 + // 64-bit symbols section offset.
+	8 + // 64-bit ABIs section offset.
 	8 + // 64-bit strings section offset.
 	8 + // 64-bit linkages section offset.
 	8 + // 64-bit code section offset.
@@ -297,6 +331,10 @@ type Header struct {
 	// Location of the symbols section.
 	SymbolsOffset uint64 // The offset into the file where the symbols section begins.
 	SymbolsLength uint64 // The length in bytes of the symbols section.
+
+	// Location of the ABIs section.
+	ABIsOffset uint64 // The offset into the file where the ABIs section begins.
+	ABIsLength uint32 // The length in bytes of the ABIs section.
 
 	// Location of the strings section.
 	StringsOffset uint64 // The offset into the file where the strings section begins.
@@ -343,6 +381,7 @@ const (
 	TypeKindNone     TypeKind = 0x01 // No type.
 	TypeKindBasic    TypeKind = 0x02 // A basic type (bool, int, etc).
 	TypeKindFunction TypeKind = 0x03 // A function signature.
+	TypeKindABI      TypeKind = 0x04 // An ABI.
 )
 
 func (k TypeKind) String() string {
@@ -355,6 +394,8 @@ func (k TypeKind) String() string {
 		return "basic"
 	case TypeKindFunction:
 		return "function"
+	case TypeKindABI:
+		return "ABI"
 	default:
 		return fmt.Sprintf("TypeKind(%d)", k)
 	}
@@ -545,6 +586,20 @@ func (k SymKind) String() string {
 	}
 }
 
+const (
+	minABILength          = 5
+	abiStackPointer uint8 = 255
+)
+
+type abi struct {
+	Length        uint32
+	InvertedStack bool
+	Params        []uint8
+	Result        []uint8
+	Scratch       []uint8
+	Unused        []uint8
+}
+
 type linkage struct {
 	Source        uint64          // The offset into the symbols section where the source symbol begins.
 	TargetPackage uint64          // The offset into the strings section where the target symbol's package name begins.
@@ -570,4 +625,14 @@ type Linkage struct {
 	Size    uint8           // The address size in bits.
 	Offset  int             // The offset into the function code where the target address is inserted.
 	Address uintptr         // The offset into the function code used to calculate relative addresses.
+}
+
+type function struct {
+	ABI  uint32
+	Code []byte
+}
+
+type Function struct {
+	ABI  *sys.ABI
+	Code []byte
 }

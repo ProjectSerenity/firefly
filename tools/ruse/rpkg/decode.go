@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"go/constant"
 	"io"
+	"math"
 	"math/big"
 	"path"
 
@@ -43,6 +44,7 @@ func decodeHeader(h *header, b []byte) error {
 		!s.ReadUint32(&h.ExportsOffset) ||
 		!s.ReadUint64(&h.TypesOffset) ||
 		!s.ReadUint64(&h.SymbolsOffset) ||
+		!s.ReadUint64(&h.ABIsOffset) ||
 		!s.ReadUint64(&h.StringsOffset) ||
 		!s.ReadUint64(&h.LinkagesOffset) ||
 		!s.ReadUint64(&h.CodeOffset) ||
@@ -59,7 +61,8 @@ func decodeHeader(h *header, b []byte) error {
 	h.ImportsLength = h.ExportsOffset - h.ImportsOffset
 	h.ExportsLength = uint32(h.TypesOffset) - h.ExportsOffset
 	h.TypesLength = h.SymbolsOffset - h.TypesOffset
-	h.SymbolsLength = h.StringsOffset - h.SymbolsOffset
+	h.SymbolsLength = h.ABIsOffset - h.SymbolsOffset
+	h.ABIsLength = uint32(h.StringsOffset - h.ABIsOffset)
 	h.StringsLength = h.LinkagesOffset - h.StringsOffset
 	h.LinkagesLength = h.CodeOffset - h.LinkagesOffset
 	h.CodeLength = h.ChecksumOffset - h.CodeOffset
@@ -91,11 +94,17 @@ func decodeHeader(h *header, b []byte) error {
 	if h.TypesOffset < uint64(h.ExportsOffset) || h.TypesOffset > h.SymbolsOffset || h.TypesOffset%4 != 0 {
 		return fmt.Errorf("invalid rpkg header: got invalid types offset %d", h.TypesOffset)
 	}
-	if h.SymbolsOffset > h.StringsOffset || h.SymbolsOffset%4 != 0 {
+	if h.SymbolsOffset > h.ABIsOffset || h.SymbolsOffset%4 != 0 {
 		return fmt.Errorf("invalid rpkg header: got invalid symbols offset %d", h.SymbolsOffset)
 	}
 	if h.SymbolsLength%symbolSize != 0 {
 		return fmt.Errorf("invalid rpkg header: got invalid symbols length %d", h.SymbolsLength)
+	}
+	if h.ABIsOffset > h.StringsOffset || h.ABIsOffset%4 != 0 {
+		return fmt.Errorf("invalid rpkg header: got invalid ABIs offset %d", h.ABIsOffset)
+	}
+	if (h.StringsOffset - h.ABIsOffset) > math.MaxUint32 {
+		return fmt.Errorf("invalid rpkg header: ABIs length %d overflows uint32", h.ABIsLength)
 	}
 	if h.StringsOffset > h.LinkagesOffset || h.StringsOffset%4 != 0 {
 		return fmt.Errorf("invalid rpkg header: got strings offset %d", h.StringsOffset)
@@ -138,9 +147,10 @@ type decoded struct {
 	exports  []uint64
 	types    map[uint64]typeSplat
 	symbols  map[uint64]*symbol
+	abis     map[uint32]*abi
 	strings  map[uint64]string
 	linkages map[uint64]*linkage
-	code     map[uint64][]byte
+	code     map[uint64]*function
 }
 
 // decodeSimple performs the first phase of decoding
@@ -173,8 +183,15 @@ func decodeSimple(b []byte) (*decoded, error) {
 	}
 
 	// Read the symbols section.
-	s = cryptobyte.String(b[d.header.SymbolsOffset:d.header.StringsOffset])
+	s = cryptobyte.String(b[d.header.SymbolsOffset:d.header.ABIsOffset])
 	d.symbols, err = d.decodeSymbols(s)
+	if err != nil {
+		return nil, err
+	}
+
+	// Read the ABIs section.
+	s = cryptobyte.String(b[d.header.ABIsOffset:d.header.StringsOffset])
+	d.abis, err = d.decodeABIs(s)
 	if err != nil {
 		return nil, err
 	}
@@ -409,6 +426,89 @@ func (d *decoded) decodeSymbols(s cryptobyte.String) (symbols map[uint64]*symbol
 	return symbols, nil
 }
 
+// decodeABIs reads the ABIs from `s`,
+// checking that each ABI is valid.
+func (d *decoded) decodeABIs(s cryptobyte.String) (ABIs map[uint32]*abi, err error) {
+	var offset uint32
+	ABIs = make(map[uint32]*abi)
+	for !s.Empty() {
+		var length uint32
+		var rest []byte
+		if !s.ReadUint32(&length) ||
+			!s.ReadBytes(&rest, int(length)) {
+			return nil, fmt.Errorf("failed to read ABI: %w", io.ErrUnexpectedEOF)
+		}
+
+		here := offset
+		offset += 4 + length
+		if length == 0 {
+			ABIs[here] = nil
+			continue
+		}
+		if length < minABILength {
+			return nil, fmt.Errorf("invalid ABI: length %d is less than %d", length, minABILength)
+		}
+
+		abiString := cryptobyte.String(rest)
+
+		var invertedStack uint8
+		var params, result, scratch, unused cryptobyte.String
+		if !abiString.ReadUint8(&invertedStack) ||
+			!abiString.ReadUint8LengthPrefixed(&params) ||
+			!abiString.ReadUint8LengthPrefixed(&result) ||
+			!abiString.ReadUint8LengthPrefixed(&scratch) ||
+			!abiString.ReadUint8LengthPrefixed(&unused) ||
+			!abiString.Empty() {
+			return nil, fmt.Errorf("failed to read ABI: %w", io.ErrUnexpectedEOF)
+		}
+
+		if invertedStack != 1 && invertedStack != 0 {
+			return nil, fmt.Errorf("invalid ABI: got inverted stack %d, want 0 or 1", invertedStack)
+		}
+
+		switch length % 4 {
+		case 1:
+			offset += 3
+			var padding uint32
+			if !s.ReadUint24(&padding) {
+				return nil, fmt.Errorf("invalid ABIs section: %w", io.ErrUnexpectedEOF)
+			}
+			if padding != 0 {
+				return nil, fmt.Errorf("invalid ABIs section: invalid padding %06x", padding)
+			}
+		case 2:
+			offset += 2
+			var padding uint16
+			if !s.ReadUint16(&padding) {
+				return nil, fmt.Errorf("invalid ABIs section: %w", io.ErrUnexpectedEOF)
+			}
+			if padding != 0 {
+				return nil, fmt.Errorf("invalid ABIs section: invalid padding %04x", padding)
+			}
+		case 3:
+			offset += 1
+			var padding uint8
+			if !s.ReadUint8(&padding) {
+				return nil, fmt.Errorf("invalid ABIs section: %w", io.ErrUnexpectedEOF)
+			}
+			if padding != 0 {
+				return nil, fmt.Errorf("invalid ABIs section: invalid padding %02x", padding)
+			}
+		}
+
+		ABIs[here] = &abi{
+			Length:        length,
+			InvertedStack: invertedStack == 1,
+			Params:        []uint8(params),
+			Result:        []uint8(result),
+			Scratch:       []uint8(scratch),
+			Unused:        []uint8(unused),
+		}
+	}
+
+	return ABIs, nil
+}
+
 // decodeStrings reads the strings from `s`,
 // checking that each string is valid.
 func (d *decoded) decodeStrings(s cryptobyte.String) (strings map[uint64]string, err error) {
@@ -518,14 +618,16 @@ func (d *decoded) decodeLinkages(s cryptobyte.String) (linkages map[uint64]*link
 
 // decodeCode reads the functions from `s`,
 // checking that each is valid.
-func (d *decoded) decodeCode(s cryptobyte.String) (code map[uint64][]byte, err error) {
+func (d *decoded) decodeCode(s cryptobyte.String) (code map[uint64]*function, err error) {
+	var abi uint32
 	var offset uint64
 	var length uint32
-	code = make(map[uint64][]byte)
+	code = make(map[uint64]*function)
 	for !s.Empty() {
 		var data []byte
 		here := offset
-		if !s.ReadUint32(&length) ||
+		if !s.ReadUint32(&abi) ||
+			!s.ReadUint32(&length) ||
 			!s.ReadBytes(&data, int(length)) {
 			return nil, fmt.Errorf("invalid code section: %w", io.ErrUnexpectedEOF)
 		}
@@ -561,7 +663,10 @@ func (d *decoded) decodeCode(s cryptobyte.String) (code map[uint64][]byte, err e
 			}
 		}
 
-		code[here] = data
+		code[here] = &function{
+			ABI:  abi,
+			Code: data,
+		}
 	}
 
 	return code, nil
@@ -581,6 +686,7 @@ type Decoder struct {
 	b []byte
 
 	header header
+	arch   *sys.Arch
 
 	pkg *types.Package
 
@@ -594,10 +700,12 @@ type Decoder struct {
 	allObjects  []types.Object          // Cached result from Symbols.
 	symbols     map[uint64]*Symbol      // Cached lookup of each symbol.
 	objects     map[uint64]types.Object // Cached lookup of each object.
+	allABIs     []*sys.ABI              // Cached result from ABIs.
+	abis        map[uint32]*sys.ABI     // Cached lookup of each ABI.
 	allStrings  []string                // Cached result from Strings.
 	strings     map[uint64]string       // Cached lookup of each string.
 	allLinkages []*Linkage              // Cached result from Linkages.
-	code        map[uint64][]byte       // Cached lookup of each function.
+	code        map[uint64]*Function    // Cached lookup of each function.
 }
 
 // NewDecoder helps parse an rpkg into a compiled package.
@@ -605,7 +713,8 @@ func NewDecoder(b []byte) (*Decoder, error) {
 	d := &Decoder{
 		b:     b,
 		types: make(map[uint64]types.Type),
-		code:  make(map[uint64][]byte),
+		abis:  make(map[uint32]*sys.ABI),
+		code:  make(map[uint64]*Function),
 	}
 
 	err := decodeHeader(&d.header, b)
@@ -628,6 +737,13 @@ func NewDecoder(b []byte) (*Decoder, error) {
 	d.packageName, err = d.getString(uint64(d.header.PackageName))
 	if err != nil {
 		return nil, fmt.Errorf("invalid rpkg header: invalid package name: %v", err)
+	}
+
+	switch d.header.Architecture {
+	case ArchX86_64:
+		d.arch = sys.X86_64
+	default:
+		return nil, fmt.Errorf("unsupported architecture: %s", d.header.Architecture)
 	}
 
 	d.pkg = &types.Package{
@@ -659,6 +775,9 @@ func (d *Decoder) Header() *Header {
 
 		SymbolsOffset: d.header.SymbolsOffset,
 		SymbolsLength: d.header.SymbolsLength,
+
+		ABIsOffset: d.header.ABIsOffset,
+		ABIsLength: d.header.ABIsLength,
 
 		StringsOffset: d.header.StringsOffset,
 		StringsLength: d.header.StringsLength,
@@ -901,6 +1020,22 @@ func (d *Decoder) getTypeFrom(s *cryptobyte.String) (types.Type, error) {
 		}
 
 		return types.NewSignature(name, params, result), nil
+	case TypeKindABI:
+		var offset uint32
+		if !rest.ReadUint32(&offset) {
+			return nil, fmt.Errorf("invalid type: failed to read %s type kind: %w", TypeKind(kind), io.ErrUnexpectedEOF)
+		}
+
+		if !rest.Empty() {
+			return nil, fmt.Errorf("invalid type: got type kind %s with %d bytes of further data", TypeKind(kind), len(rest))
+		}
+
+		abi, ok := d.abis[offset]
+		if !ok {
+			return nil, fmt.Errorf("invalid type: invalid ABI offset %d", offset)
+		}
+
+		return types.NewABI(abi), nil
 	default:
 		return nil, fmt.Errorf("invalid type: got unrecognised type kind %d", kind)
 	}
@@ -913,12 +1048,13 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 		return d.allSymbols, d.allObjects, nil
 	}
 
+	var abi *sys.ABI
 	var offset uint64
 	var result []*Symbol
 	var objects []types.Object
 	d.symbols = make(map[uint64]*Symbol)
 	d.objects = make(map[uint64]types.Object)
-	s := cryptobyte.String(d.b[d.header.SymbolsOffset:d.header.StringsOffset])
+	s := cryptobyte.String(d.b[d.header.SymbolsOffset:d.header.ABIsOffset])
 	for !s.Empty() {
 		here := offset
 		var kind uint32
@@ -983,12 +1119,13 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 				return nil, nil, fmt.Errorf("invalid symbol: %s value %d is beyond code section", SymKind(kind), rawValue)
 			}
 
-			code, err := d.getCode(rawValue)
+			fun, err := d.getCode(rawValue)
 			if err != nil {
 				return nil, nil, fmt.Errorf("invalid symbol: invalid %s: %v", SymKind(kind), err)
 			}
 
-			value = compiler.MachineCode(code)
+			abi = fun.ABI
+			value = compiler.MachineCode(fun.Code)
 		default:
 			return nil, nil, fmt.Errorf("invalid symbol: unrecognised kind %d", SymKind(kind))
 		}
@@ -1045,7 +1182,9 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 				return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with kind %v and unexpected type %#v", symbol.Name, symbol.Kind, symbol.Type)
 			}
 
-			object = types.NewFunction(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, sig)
+			fun := types.NewFunction(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, sig)
+			fun.SetABI(abi)
+			object = fun
 		default:
 			return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with unsupported kind: %v", symbol.Name, symbol.Kind)
 		}
@@ -1060,6 +1199,136 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 	d.allObjects = objects
 
 	return result, objects, nil
+}
+
+// ABIs reads all ABIs in the rpkg, caching
+// them in the decoder.
+func (d *Decoder) ABIs() ([]*sys.ABI, error) {
+	if d.allABIs != nil {
+		return d.allABIs, nil
+	}
+
+	var offset uint32
+	var out []*sys.ABI
+	d.abis = make(map[uint32]*sys.ABI)
+	s := cryptobyte.String(d.b[d.header.ABIsOffset:d.header.StringsOffset])
+	for !s.Empty() {
+		var length uint32
+		var rest []byte
+		if !s.ReadUint32(&length) ||
+			!s.ReadBytes(&rest, int(length)) {
+			return nil, fmt.Errorf("failed to read ABI: %w", io.ErrUnexpectedEOF)
+		}
+
+		here := offset
+		offset += 4 + length
+
+		if length == 0 {
+			d.abis[here] = nil
+			continue
+		}
+		if length < minABILength {
+			return nil, fmt.Errorf("invalid ABI: length %d is less than %d", length, minABILength)
+		}
+
+		abiString := cryptobyte.String(rest)
+
+		var invertedStack uint8
+		var params, result, scratch, unused cryptobyte.String
+		if !abiString.ReadUint8(&invertedStack) ||
+			!abiString.ReadUint8LengthPrefixed(&params) ||
+			!abiString.ReadUint8LengthPrefixed(&result) ||
+			!abiString.ReadUint8LengthPrefixed(&scratch) ||
+			!abiString.ReadUint8LengthPrefixed(&unused) {
+			return nil, fmt.Errorf("failed to read ABI: %w", io.ErrUnexpectedEOF)
+		}
+
+		if invertedStack != 1 && invertedStack != 0 {
+			return nil, fmt.Errorf("invalid ABI: got inverted stack %d, want 0 or 1", invertedStack)
+		}
+
+		switch length % 4 {
+		case 1:
+			offset += 3
+			var padding uint32
+			if !s.ReadUint24(&padding) {
+				return nil, fmt.Errorf("invalid ABIs section: %w", io.ErrUnexpectedEOF)
+			}
+			if padding != 0 {
+				return nil, fmt.Errorf("invalid ABIs section: invalid padding %06x", padding)
+			}
+		case 2:
+			offset += 2
+			var padding uint16
+			if !s.ReadUint16(&padding) {
+				return nil, fmt.Errorf("invalid ABIs section: %w", io.ErrUnexpectedEOF)
+			}
+			if padding != 0 {
+				return nil, fmt.Errorf("invalid ABIs section: invalid padding %04x", padding)
+			}
+		case 3:
+			offset += 1
+			var padding uint8
+			if !s.ReadUint8(&padding) {
+				return nil, fmt.Errorf("invalid ABIs section: %w", io.ErrUnexpectedEOF)
+			}
+			if padding != 0 {
+				return nil, fmt.Errorf("invalid ABIs section: invalid padding %02x", padding)
+			}
+		}
+
+		abi := &sys.ABI{
+			InvertedStack:    invertedStack == 1,
+			ParamRegisters:   make([]sys.Location, len(params)),
+			ResultRegisters:  make([]sys.Location, len(result)),
+			ScratchRegisters: make([]sys.Location, len(scratch)),
+			UnusedRegisters:  make([]sys.Location, len(unused)),
+		}
+
+		for i, param := range params {
+			if int(param) >= len(d.arch.ABIRegisters) {
+				return nil, fmt.Errorf("invalid ABI: invalid parameter register index %d: overflows %s.ABIRegisters (length %d)", param, d.arch.Name, len(d.arch.ABIRegisters))
+			}
+
+			abi.ParamRegisters[i] = d.arch.ABIRegisters[param]
+		}
+
+		for i, result := range result {
+			if int(result) >= len(d.arch.ABIRegisters) {
+				return nil, fmt.Errorf("invalid ABI: invalid result register index %d: overflows %s.ABIRegisters (length %d)", result, d.arch.Name, len(d.arch.ABIRegisters))
+			}
+
+			abi.ResultRegisters[i] = d.arch.ABIRegisters[result]
+		}
+
+		for i, scratch := range scratch {
+			if int(scratch) >= len(d.arch.ABIRegisters) {
+				return nil, fmt.Errorf("invalid ABI: invalid scratch register index %d: overflows %s.ABIRegisters (length %d)", scratch, d.arch.Name, len(d.arch.ABIRegisters))
+			}
+
+			abi.ScratchRegisters[i] = d.arch.ABIRegisters[scratch]
+		}
+
+		for i, unused := range unused {
+			if unused == abiStackPointer {
+				abi.UnusedRegisters[i] = d.arch.StackPointer
+				continue
+			}
+
+			if int(unused) >= len(d.arch.ABIRegisters) {
+				return nil, fmt.Errorf("invalid ABI: invalid unused register index %d: overflows %s.ABIRegisters (length %d)", unused, d.arch.Name, len(d.arch.ABIRegisters))
+			}
+
+			abi.UnusedRegisters[i] = d.arch.ABIRegisters[unused]
+		}
+
+		d.abis[here] = abi
+		out = append(out, abi)
+	}
+
+	d.allABIs = out
+
+	return out, nil
 }
 
 // Strings reads all strings in the rpkg, caching
@@ -1279,9 +1548,9 @@ func (d *Decoder) Linkages() ([]*Linkage, error) {
 	return result, nil
 }
 
-// getCode reads the function code at the given offset,
+// getCode reads the function at the given offset,
 // caching the result.
-func (d *Decoder) getCode(offset uint64) ([]byte, error) {
+func (d *Decoder) getCode(offset uint64) (*Function, error) {
 	if offset >= d.header.CodeLength {
 		return nil, fmt.Errorf("invalid code offset: %d is beyond code section", offset)
 	}
@@ -1289,14 +1558,17 @@ func (d *Decoder) getCode(offset uint64) ([]byte, error) {
 		return nil, fmt.Errorf("invalid code offset: %d is not 32-bit aligned", offset)
 	}
 
-	code, ok := d.code[offset]
+	fun, ok := d.code[offset]
 	if ok {
-		return code, nil
+		return fun, nil
 	}
 
+	var abiOffset uint32
 	var length uint32
+	var code []byte
 	s := cryptobyte.String(d.b[d.header.CodeOffset+offset : d.header.ChecksumOffset])
-	if !s.ReadUint32(&length) ||
+	if !s.ReadUint32(&abiOffset) ||
+		!s.ReadUint32(&length) ||
 		!s.ReadBytes(&code, int(length)) {
 		return nil, fmt.Errorf("invalid code offset: %w", io.ErrUnexpectedEOF)
 	}
@@ -1328,9 +1600,19 @@ func (d *Decoder) getCode(offset uint64) ([]byte, error) {
 		}
 	}
 
-	d.code[offset] = code
+	abi, ok := d.abis[abiOffset]
+	if !ok {
+		return nil, fmt.Errorf("invalid code section: invalid ABI offset %d", abiOffset)
+	}
 
-	return code, nil
+	fun = &Function{
+		ABI:  abi,
+		Code: code,
+	}
+
+	d.code[offset] = fun
+
+	return fun, nil
 }
 
 // Decode parses an rpkg file, returning the compiled
@@ -1345,13 +1627,7 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 
 	// Prepare our outputs.
 
-	switch d.header.Architecture {
-	case ArchX86_64:
-		arch = sys.X86_64
-	default:
-		return nil, nil, nil, fmt.Errorf("unsupported architecture: %s", d.header.Architecture)
-	}
-
+	arch = d.arch
 	pkg = &compiler.Package{
 		Name:  d.pkg.Name,
 		Path:  d.pkg.Path,
@@ -1360,6 +1636,11 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 
 	// Pull all the data from the package.
 	// The order of these steps is important.
+
+	_, err = d.ABIs()
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	_, err = d.Strings()
 	if err != nil {

@@ -169,7 +169,7 @@ func defPredeclaredSpecialForms() {
 			}
 		}
 
-		abi, err := NewABI(c.arch, invertedStack, params, result, scratch, unused)
+		abi, err := NewRawABI(c.arch, invertedStack, params, result, scratch, unused)
 		if err != nil {
 			return nil, nil, c.errorf(fun.ParenOpen, "%v", err)
 		}
