@@ -37,6 +37,7 @@ type SpecialFormID int
 const (
 	// Syntactic forms.
 	SpecialFormAsmFunc SpecialFormID = iota
+	SpecialFormABI
 	SpecialFormFunc
 	SpecialFormLen
 	SpecialFormLet
@@ -52,6 +53,8 @@ func (id SpecialFormID) String() string {
 	switch id {
 	case SpecialFormAsmFunc:
 		return "asm-func"
+	case SpecialFormABI:
+		return "abi"
 	case SpecialFormFunc:
 		return "func"
 	case SpecialFormLen:
@@ -73,6 +76,7 @@ func (id SpecialFormID) String() string {
 
 var specialForms = [...]*SpecialForm{
 	SpecialFormAsmFunc: {},
+	SpecialFormABI:     {},
 	SpecialFormFunc:    {},
 	SpecialFormLen:     {},
 	SpecialFormLet:     {},
@@ -84,7 +88,7 @@ var specialForms = [...]*SpecialForm{
 	SpecialFormDivide:   {},
 }
 
-var specialFormTypes [len(specialForms)]func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, err error)
+var specialFormTypes [len(specialForms)]func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error)
 
 func defPredeclaredSpecialForms() {
 	var numericTypes = []Type{
@@ -102,30 +106,96 @@ func defPredeclaredSpecialForms() {
 	}
 
 	// Syntactic forms.
-	specialFormTypes[SpecialFormAsmFunc] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, err error) {
+	specialFormTypes[SpecialFormAsmFunc] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
 		// TODO: implement (asm-func)
-		return nil, fmt.Errorf("(asm-func) not supported")
+		return nil, nil, fmt.Errorf("(asm-func) not supported")
 	}
 
-	specialFormTypes[SpecialFormFunc] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, err error) {
+	specialFormTypes[SpecialFormABI] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+		// Build an ABI object and return
+		// only the result. We don't include
+		// a function signature, as ABIs are
+		// resolved immediately.
+		var invertedStack *ast.Identifier
+		var params, result, scratch, unused []*ast.Identifier
+		for _, elt := range fun.Elements[1:] {
+			list, ok := elt.(*ast.List)
+			if !ok {
+				return nil, nil, c.errorf(elt.Pos(), "invalid abi field %s: got %s, want list", elt.Print(), elt)
+			}
+
+			kind, rest, err := c.interpretIdentifiersDefinition(list, "abi spec field")
+			if err != nil {
+				return nil, nil, c.error(err)
+			}
+
+			switch kind.Name {
+			case "inverted-stack":
+				if invertedStack != nil {
+					return nil, nil, c.errorf(kind.NamePos, "duplicate abi field %s", kind.Name)
+				}
+
+				if len(rest) != 1 {
+					return nil, nil, c.errorf(kind.NamePos, "invalid abi field %s: got %d values, want 1 bool", kind.Name, len(rest))
+				}
+
+				invertedStack = rest[0]
+			case "params":
+				if params != nil {
+					return nil, nil, c.errorf(kind.NamePos, "duplicate abi field %s", kind.Name)
+				}
+
+				params = rest
+			case "result":
+				if result != nil {
+					return nil, nil, c.errorf(kind.NamePos, "duplicate abi field %s", kind.Name)
+				}
+
+				result = rest
+			case "scratch":
+				if scratch != nil {
+					return nil, nil, c.errorf(kind.NamePos, "duplicate abi field %s", kind.Name)
+				}
+
+				scratch = rest
+			case "unused":
+				if unused != nil {
+					return nil, nil, c.errorf(kind.NamePos, "duplicate abi field %s", kind.Name)
+				}
+
+				unused = rest
+			default:
+				return nil, nil, c.errorf(kind.NamePos, "unrecognised abi field %s", kind.Name)
+			}
+		}
+
+		abi, err := NewABI(c.arch, invertedStack, params, result, scratch, unused)
+		if err != nil {
+			return nil, nil, c.errorf(fun.ParenOpen, "%v", err)
+		}
+
+		return nil, abi, nil
+	}
+
+	specialFormTypes[SpecialFormFunc] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
 		// TODO: implement (func)
-		return nil, fmt.Errorf("(func) not supported")
+		return nil, nil, fmt.Errorf("(func) not supported")
 	}
 
-	specialFormTypes[SpecialFormLen] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, err error) {
+	specialFormTypes[SpecialFormLen] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
 		if len(fun.Elements[1:]) != 1 {
-			return nil, c.errorf(fun.ParenOpen, "too many arguments in call to len: expected %d, found %d", 1, len(fun.Elements[1:]))
+			return nil, nil, c.errorf(fun.ParenOpen, "too many arguments in call to len: expected %d, found %d", 1, len(fun.Elements[1:]))
 		}
 
 		arg := fun.Elements[1]
 		obj, typ, err := c.ResolveExpression(scope, arg)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		// TODO: Add support for more types to special form len.
 		if !AssignableTo(String, typ) {
-			return nil, c.errorf(arg.Pos(), "invalid argument: %s (%s) for len", arg.Print(), typ)
+			return nil, nil, c.errorf(arg.Pos(), "invalid argument: %s (%s) for len", arg.Print(), typ)
 		}
 
 		sig = &Signature{
@@ -147,13 +217,13 @@ func defPredeclaredSpecialForms() {
 		c.record(fun, sig.result, value)
 		c.record(fun.Elements[0], sig, nil)
 
-		return sig, nil
+		return sig, sig, nil
 	}
 
-	specialFormTypes[SpecialFormLet] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, err error) {
-		typ, err := c.ResolveLet(scope, fun)
+	specialFormTypes[SpecialFormLet] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+		typ, err = c.ResolveLet(scope, fun)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		sig = &Signature{
@@ -165,7 +235,7 @@ func defPredeclaredSpecialForms() {
 			result: typ,
 		}
 
-		return sig, nil
+		return sig, sig, nil
 	}
 
 	// Arithmetic forms.
@@ -229,7 +299,7 @@ type arithmeticOp struct {
 	GoToken     gotoken.Token
 }
 
-func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig *Signature, err error) {
+func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
 	numOperands := len(fun.Elements[1:])
 	minOperands := 2
 	if op.UnaryTypes != nil {
@@ -237,7 +307,7 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig 
 	}
 
 	if minOperands > numOperands {
-		return nil, c.errorf(fun.ParenClose, "expected at least %d parameters, found %d", minOperands, numOperands)
+		return nil, nil, c.errorf(fun.ParenClose, "expected at least %d parameters, found %d", minOperands, numOperands)
 	}
 
 	// Start by resolving the types of the arguments,
@@ -249,7 +319,7 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig 
 		var obj Object
 		obj, argTypes[i], err = c.ResolveExpression(scope, expr)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		value := c.consts[expr]
@@ -280,7 +350,7 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig 
 			}
 
 			if !ok {
-				return nil, c.errorf(fun.Elements[i+1].Pos(), "invalid operation: %s not defined for %s", op.Name, arg)
+				return nil, nil, c.errorf(fun.Elements[i+1].Pos(), "invalid operation: %s not defined for %s", op.Name, arg)
 			}
 
 			sig.result = arg
@@ -289,7 +359,7 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig 
 		}
 
 		if !AssignableTo(sig.result, arg) {
-			return nil, c.errorf(fun.Elements[i+1].Pos(), "expected %s parameter, found %s", sig.result, arg)
+			return nil, nil, c.errorf(fun.Elements[i+1].Pos(), "expected %s parameter, found %s", sig.result, arg)
 		}
 	}
 
@@ -313,5 +383,5 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig 
 		c.record(arg, sig.result, constants[i])
 	}
 
-	return sig, nil
+	return sig, sig, nil
 }

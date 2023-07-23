@@ -249,7 +249,8 @@ func Check(packagePath string, fset *token.FileSet, files []*ast.File, arch *sys
 		info:   info,
 		pkg:    pkg,
 		arch:   arch,
-		funcs:  make(map[token.Pos]*Signature),
+		sigs:   make(map[token.Pos]*Signature),
+		funcs:  make(map[token.Pos]*Function),
 		names:  make(map[token.Pos]string),
 		consts: make(map[ast.Expression]constant.Value),
 	}
@@ -265,7 +266,8 @@ type checker struct {
 	info   *Info
 	pkg    *Package
 	arch   *sys.Arch
-	funcs  map[token.Pos]*Signature
+	sigs   map[token.Pos]*Signature
+	funcs  map[token.Pos]*Function
 	names  map[token.Pos]string
 	consts map[ast.Expression]constant.Value
 }
@@ -479,7 +481,8 @@ func (c *checker) CheckTopLevelAsmFuncDecl(parent *Scope, fun *ast.List) error {
 	//
 	// Takes the following form:
 	//
-	// - '(arch architecture...)             ; Architecture declaration, specifying the architectures for which this declaration is valid.
+	// - '(abi abi)                          ; Optional ABI declaration, specifying the calling convention for this function.
+	// - '(arch architecture...)             ; Optional architecture declaration, specifying the architectures for which this declaration is valid.
 	// - '(mode mode)                        ; Optional CPU mode indicating how instructions should be encoded.
 	// - '(param (name type) location)       ; Optional parameter annotation with name, type, and memory location (register or stack location). Zero or more.
 	// - '(result type location)             ; Optional result annotation with type and memory location. Zero or one.
@@ -505,12 +508,42 @@ func (c *checker) CheckTopLevelAsmFuncDecl(parent *Scope, fun *ast.List) error {
 	var buf strings.Builder
 	var resultTypeName string
 	buf.WriteString("(func")
+	var archOk, seenABI bool
 	for _, anno := range fun.Annotations {
 		kind := anno.X.Elements[0].(*ast.Identifier) // Enforced by the parser.
 		switch kind.Name {
+		case "abi":
+			if seenABI {
+				return c.errorf(anno.X.ParenOpen, "duplicate ABI spec")
+			}
+
+			seenABI = true
+
+			// For now, we just check that the ABI is either
+			// an identifier or an ABI expression. We actually
+			// resolve it later, as the ABI may be defined
+			// further down the file.
+			if len(anno.X.Elements[1:]) != 1 {
+				return c.errorf(anno.X.ParenOpen, "invalid ABI: got %d ABIs, want 1", len(anno.X.Elements[1:]))
+			}
+
+			abi := anno.X.Elements[1]
+			switch v := abi.(type) {
+			case *ast.Identifier:
+			case *ast.List:
+				kind, _, err := c.interpretDefinition(v, "abi spec")
+				if err != nil {
+					return c.errorf(v.ParenOpen, "invalid ABI spec: %v", err)
+				}
+
+				if kind.Name != "abi" {
+					return c.errorf(v.ParenOpen, "invalid ABI spec: got identifier %s, want %s", kind.Name, "abi")
+				}
+			default:
+				return c.errorf(abi.Pos(), "invalid ABI: got ABI spec %s, want spec or value", v.Print())
+			}
 		case "arch":
 			// Check that this matches the target architecture.
-			var archOk bool
 			for _, x := range anno.X.Elements[1:] {
 				arch, ok := x.(*ast.Identifier)
 				if !ok {
@@ -617,7 +650,8 @@ func (c *checker) CheckTopLevelAsmFuncDecl(parent *Scope, fun *ast.List) error {
 	signature := NewSignature(buf.String(), paramTypes, resultType)
 	c.newType(signature)
 	function := NewFunction(parent, fun.ParenOpen, fun.ParenClose, c.pkg, name.Name, signature)
-	c.funcs[fun.ParenOpen] = signature
+	c.sigs[fun.ParenOpen] = signature
+	c.funcs[fun.ParenOpen] = function
 	c.names[fun.ParenOpen] = "function " + name.Name
 	c.define(name, function)
 	c.record(fun, signature, nil)
@@ -642,6 +676,7 @@ func (c *checker) CheckTopLevelFuncDecl(parent *Scope, fun *ast.List) error {
 	//
 	// Function definitions take the following annotations:
 	//
+	// - '(abi abi)                                          ; Optional ABI declaration, specifying the calling convention for this function.
 	// - '(arch architecture...)                             ; Opttonal architecture declaration, specifying the architectures for which this declaration is valid.
 
 	switch len(fun.Elements) {
@@ -666,10 +701,40 @@ func (c *checker) CheckTopLevelFuncDecl(parent *Scope, fun *ast.List) error {
 		return c.errorf(decl.Elements[0].Pos(), "invalid function declaration: expected function name, found %s", decl.Elements[0])
 	}
 
-	var archOk bool
+	var archOk, seenABI bool
 	for _, anno := range fun.Annotations {
 		kind := anno.X.Elements[0].(*ast.Identifier) // Enforced by the parser.
 		switch kind.Name {
+		case "abi":
+			if seenABI {
+				return c.errorf(anno.X.ParenOpen, "duplicate ABI spec")
+			}
+
+			seenABI = true
+
+			// For now, we just check that the ABI is either
+			// an identifier or an ABI expression. We actually
+			// resolve it later, as the ABI may be defined
+			// further down the file.
+			if len(anno.X.Elements[1:]) != 1 {
+				return c.errorf(anno.X.ParenOpen, "invalid ABI: got %d ABIs, want 1", len(anno.X.Elements[1:]))
+			}
+
+			abi := anno.X.Elements[1]
+			switch v := abi.(type) {
+			case *ast.Identifier:
+			case *ast.List:
+				kind, _, err := c.interpretDefinition(v, "abi spec")
+				if err != nil {
+					return c.errorf(v.ParenOpen, "invalid ABI spec: %v", err)
+				}
+
+				if kind.Name != "abi" {
+					return c.errorf(v.ParenOpen, "invalid ABI spec: got identifier %s, want %s", kind.Name, "abi")
+				}
+			default:
+				return c.errorf(abi.Pos(), "invalid ABI: got ABI spec %s, want spec or value", v.Print())
+			}
 		case "arch":
 			// Check that this matches the target architecture.
 			for _, x := range anno.X.Elements[1:] {
@@ -766,7 +831,8 @@ func (c *checker) CheckTopLevelFuncDecl(parent *Scope, fun *ast.List) error {
 	signature := NewSignature(buf.String(), paramTypes, resultType)
 	c.newType(signature)
 	function := NewFunction(parent, fun.ParenOpen, fun.ParenClose, c.pkg, name.Name, signature)
-	c.funcs[fun.ParenOpen] = signature
+	c.sigs[fun.ParenOpen] = signature
+	c.funcs[fun.ParenOpen] = function
 	c.names[fun.ParenOpen] = "function " + name.Name
 	c.define(name, function)
 	c.record(fun, signature, nil)
@@ -781,7 +847,12 @@ func (c *checker) CheckTopLevelFuncDecl(parent *Scope, fun *ast.List) error {
 }
 
 func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
-	sig := c.funcs[fun.ParenOpen]
+	function := c.funcs[fun.ParenOpen]
+	if function == nil {
+		return c.errorf(fun.ParenOpen, "internal error: no function object found")
+	}
+
+	sig := c.sigs[fun.ParenOpen]
 	if sig == nil {
 		return c.errorf(fun.ParenOpen, "internal error: no function signature found")
 	}
@@ -789,6 +860,27 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 	name, ok := c.names[fun.ParenOpen]
 	if !ok {
 		return c.errorf(fun.ParenOpen, "internal error: no function name found")
+	}
+
+	// Resolve the ABI if one is specified.
+	for _, anno := range fun.Annotations {
+		kind := anno.X.Elements[0].(*ast.Identifier) // Enforced by the parser.
+		switch kind.Name {
+		case "abi":
+			elt := anno.X.Elements[1]
+			_, typ, err := c.ResolveExpression(scope, elt)
+			if err != nil {
+				return err
+			}
+
+			abi, ok := typ.(ABI)
+			if !ok {
+				return c.errorf(elt.Pos(), "cannot use %s (%s) as ABI", elt.Print(), elt)
+			}
+
+			function.SetABI(abi.abi)
+			break
+		}
 	}
 
 	// Fetch the function body's scope.
@@ -920,7 +1012,12 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 }
 
 func (c *checker) ResolveFuncBody(scope *Scope, fun *ast.List) (result Type, err error) {
-	sig := c.funcs[fun.ParenOpen]
+	function := c.funcs[fun.ParenOpen]
+	if function == nil {
+		return nil, c.errorf(fun.ParenOpen, "internal error: no function object found")
+	}
+
+	sig := c.sigs[fun.ParenOpen]
 	if sig == nil {
 		return nil, c.errorf(fun.ParenOpen, "internal error: no function signature found")
 	}
@@ -928,6 +1025,27 @@ func (c *checker) ResolveFuncBody(scope *Scope, fun *ast.List) (result Type, err
 	name, ok := c.names[fun.ParenOpen]
 	if !ok {
 		return nil, c.errorf(fun.ParenOpen, "internal error: no function name found")
+	}
+
+	// Resolve the ABI if one is specified.
+	for _, anno := range fun.Annotations {
+		kind := anno.X.Elements[0].(*ast.Identifier) // Enforced by the parser.
+		switch kind.Name {
+		case "abi":
+			elt := anno.X.Elements[1]
+			_, typ, err := c.ResolveExpression(scope, elt)
+			if err != nil {
+				return nil, err
+			}
+
+			abi, ok := typ.(ABI)
+			if !ok {
+				return nil, c.errorf(elt.Pos(), "cannot use %s (%s) as ABI", elt.Print(), elt)
+			}
+
+			function.SetABI(abi.abi)
+			break
+		}
 	}
 
 	// Handle functions with no body.
@@ -977,9 +1095,15 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 			_, obj := scope.LookupParent(name.Name, token.NoPos)
 			if form, ok := obj.(*SpecialForm); ok {
 				// Special form.
-				signature, err := specialFormTypes[form.id](c, scope, x)
+				signature, typ, err := specialFormTypes[form.id](c, scope, x)
 				if err != nil {
 					return nil, nil, err
+				}
+
+				if typ != nil && signature == nil {
+					c.use(name, form)
+					c.record(name, typ, nil)
+					return nil, typ, nil
 				}
 
 				fun := NewFunction(nil, x.ParenOpen, x.ParenClose, nil, form.Name(), signature)
@@ -1284,7 +1408,8 @@ func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 		}
 
 		value = c.consts[v]
-		if value == nil {
+		_, isABI := constantType.(ABI)
+		if value == nil && !isABI {
 			return c.errorf(v.ParenOpen, "cannot use non-constant value %s in constant declaration", v.Print())
 		}
 

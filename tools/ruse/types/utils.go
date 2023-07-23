@@ -81,6 +81,37 @@ func (c *checker) interpretDefinition(list *ast.List, context string) (kind *ast
 	return kind, rest, nil
 }
 
+// interpretIdentifiersDefinition ensures that the
+// given list consists of an identifier followed
+// by one or more further identifiers.
+func (c *checker) interpretIdentifiersDefinition(list *ast.List, context string) (kind *ast.Identifier, rest []*ast.Identifier, err *positionalError) {
+	if len(list.Elements) == 0 {
+		return nil, nil, posErr(list.ParenOpen, "invalid %s: empty definition", context)
+	}
+
+	var ok bool
+	kind, ok = list.Elements[0].(*ast.Identifier)
+	if !ok {
+		return nil, nil, posErr(list.Elements[0].Pos(), "invalid %s: definition kind must be an identifier, found %s", context, list.Elements[0])
+	}
+
+	rest = make([]*ast.Identifier, len(list.Elements[1:]))
+	if len(rest) == 0 {
+		return nil, nil, posErr(list.ParenClose, "invalid %s: definition must have at least one field, found none", context)
+	}
+
+	for i, elt := range list.Elements[1:] {
+		ident, ok := elt.(*ast.Identifier)
+		if !ok {
+			return nil, nil, posErr(elt.Pos(), "invalid %s: value %s must be an identifier, found %s", context, elt.Print(), elt)
+		}
+
+		rest[i] = ident
+	}
+
+	return kind, rest, nil
+}
+
 // checkFixedArgsList ensures that the given list
 // consists of one identifier, plus exactly
 // len(names) elements.

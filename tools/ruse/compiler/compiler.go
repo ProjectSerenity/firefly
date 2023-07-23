@@ -54,14 +54,14 @@ func EncodeTo(w io.Writer, fset *token.FileSet, arch *sys.Arch, fun *ssafir.Func
 func assemble(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assembly *ast.List, info *types.Info, sizes types.Sizes) (*ssafir.Function, error) {
 	switch arch.Name {
 	case "x86-64":
-		return assembleX86(fset, pkg, assembly, info, sizes)
+		return assembleX86(fset, arch, pkg, assembly, info, sizes)
 	default:
 		return nil, fmt.Errorf("unsupported architecture: %s", arch.Name)
 	}
 }
 
 // compile compiles a Ruse function.
-func compile(fset *token.FileSet, pkg *types.Package, expr *ast.List, info *types.Info, sizes types.Sizes) (*ssafir.Function, error) {
+func compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, expr *ast.List, info *types.Info, sizes types.Sizes) (*ssafir.Function, error) {
 	// Find the function details.
 	name := expr.Elements[1].(*ast.List).Elements[0].(*ast.Identifier)
 	function := info.Definitions[name].(*types.Function)
@@ -77,6 +77,7 @@ func compile(fset *token.FileSet, pkg *types.Package, expr *ast.List, info *type
 	// Compile the body.
 	c := &compiler{
 		fset:  fset,
+		arch:  arch,
 		pkg:   pkg,
 		info:  info,
 		fun:   fun,
@@ -86,6 +87,7 @@ func compile(fset *token.FileSet, pkg *types.Package, expr *ast.List, info *type
 		vars: make(map[*types.Variable]*ssafir.Value),
 	}
 
+	c.AddCallingConvention()
 	c.AddFunctionPrelude()
 	for i, x := range expr.Elements[2:] {
 		isLast := i+3 == len(expr.Elements)
@@ -164,7 +166,7 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 			var fun *ssafir.Function
 			switch expr.Elements[0].(*ast.Identifier).Name {
 			case "func":
-				fun, err = compile(fset, pkg, expr, info, sizes)
+				fun, err = compile(fset, arch, pkg, expr, info, sizes)
 			case "asm-func":
 				fun, err = assemble(fset, arch, pkg, expr, info, sizes)
 			default:
@@ -184,6 +186,7 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 
 type compiler struct {
 	fset  *token.FileSet
+	arch  *sys.Arch
 	pkg   *types.Package
 	info  *types.Info
 	fun   *ssafir.Function
@@ -217,6 +220,22 @@ func (c *compiler) Return(end token.Pos, result *ssafir.Value) {
 	c.currentBlock.Kind = ssafir.BlockReturn
 	c.currentBlock.End = end
 	c.currentBlock.Control = result
+}
+
+func (c *compiler) AddCallingConvention() {
+	params := make([]int, len(c.fun.Type.Params()))
+	for i, param := range c.fun.Type.Params() {
+		params[i] = c.sizes.SizeOf(param.Type())
+	}
+
+	var result int
+	if res := c.fun.Type.Result(); res != nil {
+		result = c.sizes.SizeOf(res)
+	}
+
+	abi := c.fun.Func.ABI()
+	c.fun.Params = c.arch.Parameters(abi, params)
+	c.fun.Result = c.arch.Result(abi, result)
 }
 
 func (c *compiler) AddFunctionPrelude() {

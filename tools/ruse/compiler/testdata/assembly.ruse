@@ -2,15 +2,13 @@
 
 (package assembly)
 
+'(abi syscall)
 '(arch x86-64)
-'(param (sys uint64) rax)
-'(param (arg1 uint64) rdi)
-'(param (arg2 uint64) rsi)
-'(param (arg3 uint64) rdx)
-'(param (arg4 uint64) r10)
-'(param (arg5 uint64) r8)
-'(param (arg6 uint64) r9)
-'(result uint64 rax)
-'(scratch rcx r11)
 (asm-func syscall6
 	(syscall))
+
+'(arch x86-64)
+(let syscall (abi
+	(params rax rdi rsi rdx r10 r8 r9)
+	(result rax)
+	(scratch rcx r11)))

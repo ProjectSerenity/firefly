@@ -3,11 +3,29 @@
 # Use of this source code is governed by a BSD 3-clause
 # license that can be found in the LICENSE file.
 
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "sys",
-    srcs = ["arch.go"],
+    srcs = [
+        "abi.go",
+        "arch.go",
+    ],
     importpath = "firefly-os.dev/tools/ruse/sys",
     visibility = ["//visibility:public"],
+    deps = [
+        "//tools/ruse/internal/x86",
+    ],
+)
+
+go_test(
+    name = "sys_test",
+    size = "small",
+    srcs = [
+        "abi_test.go",
+    ],
+    embed = [":sys"],
+    deps = [
+        "//vendor/github.com/google/go-cmp/cmp",
+    ],
 )

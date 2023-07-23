@@ -204,7 +204,7 @@ func TestCheck(t *testing.T) {
 					},
 				}
 
-				file0 := NewScope(pkg.scope, 46, 348, "file 0")
+				file0 := NewScope(pkg.scope, 46, 520, "file 0")
 				file0.readonly = true
 
 				fun1Scope := NewScope(file0, 93, 109, "function nullary-function")
@@ -275,15 +275,54 @@ func TestCheck(t *testing.T) {
 					},
 				})
 
-				fun5Scope := NewScope(file0, 332, 347, "function product")
-				param1 = NewParameter(fun5Scope, 293, 306, pkg, "base", Uint64)
-				param2 = NewParameter(fun5Scope, 307, 322, pkg, "scalar", Uint64)
+				invertedStack := &ast.Identifier{NamePos: 0, Name: "false"}
+				params := []*ast.Identifier{
+					{NamePos: 0, Name: "rdi"},
+					{NamePos: 0, Name: "rsi"},
+					{NamePos: 0, Name: "rdx"},
+					{NamePos: 0, Name: "rcx"},
+					{NamePos: 0, Name: "r8"},
+					{NamePos: 0, Name: "r9"},
+				}
+				result := []*ast.Identifier{
+					{NamePos: 0, Name: "rax"},
+					{NamePos: 0, Name: "rdx"},
+				}
+				scratch := []*ast.Identifier{
+					{NamePos: 0, Name: "rax"},
+					{NamePos: 0, Name: "rdi"},
+					{NamePos: 0, Name: "rsi"},
+					{NamePos: 0, Name: "rdx"},
+					{NamePos: 0, Name: "rcx"},
+					{NamePos: 0, Name: "r8"},
+					{NamePos: 0, Name: "r9"},
+					{NamePos: 0, Name: "r10"},
+					{NamePos: 0, Name: "r11"},
+				}
+				unused := []*ast.Identifier(nil)
+				abi, err := NewABI(sys.X86_64, invertedStack, params, result, scratch, unused)
+				if err != nil {
+					panic(err.Error())
+				}
+				pkg.scope.Insert(&Constant{
+					object: object{
+						pos:  293,
+						end:  431,
+						pkg:  pkg,
+						name: "system-v",
+						typ:  abi,
+					},
+				})
+
+				fun5Scope := NewScope(file0, 504, 519, "function product")
+				param1 = NewParameter(fun5Scope, 465, 478, pkg, "base", Uint64)
+				param2 = NewParameter(fun5Scope, 479, 494, pkg, "scalar", Uint64)
 				fun5Scope.Insert(param1)
 				fun5Scope.Insert(param2)
 				pkg.scope.Insert(&Function{
 					object: object{
-						pos:  278,
-						end:  347,
+						pos:  450,
+						end:  519,
 						pkg:  pkg,
 						name: "product",
 						typ: &Signature{
@@ -292,6 +331,7 @@ func TestCheck(t *testing.T) {
 							result: Uint64,
 						},
 					},
+					abi: abi.abi,
 				})
 
 				return pkg
@@ -518,7 +558,12 @@ func TestCheck(t *testing.T) {
 						}
 
 						obj, ok := info.Uses[ident].(*SpecialForm)
-						if ok && obj.ID() == SpecialFormAsmFunc {
+						if !ok {
+							break
+						}
+
+						switch obj.ID() {
+						case SpecialFormAsmFunc, SpecialFormABI:
 							return false
 						}
 					}

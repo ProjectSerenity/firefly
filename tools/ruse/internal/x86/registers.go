@@ -48,6 +48,7 @@ func (r *Register) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (r *Register) IsRegister() bool  { return true }
 func (r *Register) String() string    { return r.Name }
 func (r *Register) UpperName() string { return strings.ToUpper(r.Name) }
 

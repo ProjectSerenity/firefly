@@ -19,6 +19,7 @@ import (
 	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/internal/x86"
 	"firefly-os.dev/tools/ruse/ssafir"
+	"firefly-os.dev/tools/ruse/sys"
 	"firefly-os.dev/tools/ruse/token"
 	"firefly-os.dev/tools/ruse/types"
 )
@@ -112,7 +113,7 @@ func x86OpToInstruction(op ssafir.Op) *x86.Instruction {
 
 // assembleX86 assembles a single Ruse assembly
 // function for x86.
-func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, info *types.Info, sizes types.Sizes) (*ssafir.Function, error) {
+func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assembly *ast.List, info *types.Info, sizes types.Sizes) (*ssafir.Function, error) {
 	// The asm-func keyword is the first identifier,
 	// and the function name is the second. All the
 	// subsequent expressions are assembly, either
@@ -132,6 +133,7 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 	// Compile the body.
 	c := &compiler{
 		fset:  fset,
+		arch:  arch,
 		pkg:   pkg,
 		info:  info,
 		fun:   fun,
@@ -148,6 +150,7 @@ func assembleX86(fset *token.FileSet, pkg *types.Package, assembly *ast.List, in
 		Labels: make(map[string]*x86Label),
 	}
 
+	c.AddCallingConvention()
 	for _, anno := range assembly.Annotations {
 		if len(anno.X.Elements) == 0 {
 			return nil, ctx.Errorf(anno.X.ParenClose, "invalid annotation: no keyword")

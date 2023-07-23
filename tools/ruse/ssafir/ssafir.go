@@ -176,8 +176,11 @@ func (v *Value) print(maxID ID) string {
 		fmt.Fprintf(&buf, " (extra %v)", v.Extra)
 	}
 
-	buf.WriteString(") ")
-	buf.WriteString(v.Type.String())
+	buf.WriteString(")")
+	if v.Type != nil {
+		buf.WriteByte(' ')
+		buf.WriteString(v.Type.String())
+	}
 
 	var names []string
 	for name, values := range v.Block.Function.NamedValues {
@@ -478,6 +481,8 @@ type Function struct {
 	Name   string           // The function name.
 	Func   *types.Function  // The function's type information.
 	Type   *types.Signature // The function signature.
+	Params [][]sys.Location // The memory locations for the function's parameters.
+	Result []sys.Location   // The mmeory locations for the function's result.
 	Blocks []*Block         // The basic blocks in this function's control flow graph.
 	Entry  *Block           // The basic block that begins the control flow graph.
 

@@ -14,5 +14,13 @@
 (func (add1 (x int8) int8)
 	(+ x 1))
 
+'(arch x86-64)
+(let system-v (abi
+	(inverted-stack false)
+	(params rdi rsi rdx rcx r8 r9)
+	(result rax rdx)
+	(scratch rax rdi rsi rdx rcx r8 r9 r10 r11)))
+
+'(abi system-v)
 (func (product (base uint64) (scalar uint64) uint64)
 	(* base scalar))

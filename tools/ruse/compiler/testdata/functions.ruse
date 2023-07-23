@@ -14,5 +14,12 @@
 (func (add1 (x int8) int8)
 	(+ x 1))
 
+'(arch x86-64)
+(let windows-x64 (abi
+	(params rcx rdx r8 r9)
+	(result rax)
+	(scratch rax rcx rdx r8 r9 r10 r11)))
+
+'(abi windows-x64)
 (func (product (base uint64) (scalar uint64) uint64)
 	(* base scalar))

@@ -19,6 +19,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"firefly-os.dev/tools/ruse/ast"
+	"firefly-os.dev/tools/ruse/internal/x86"
 	"firefly-os.dev/tools/ruse/parser"
 	"firefly-os.dev/tools/ruse/ssafir"
 	"firefly-os.dev/tools/ruse/sys"
@@ -153,6 +154,8 @@ func TestCompile(t *testing.T) {
 				f1 := &ssafir.Function{
 					Name:        "nullary-function",
 					Type:        types.NewSignature("(func)", []*types.Variable{}, nil),
+					Params:      [][]sys.Location{},
+					Result:      []sys.Location{},
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b11 := f1.NewBlock(93, ssafir.BlockReturn)
@@ -167,6 +170,8 @@ func TestCompile(t *testing.T) {
 				f2 := &ssafir.Function{
 					Name:        "unary-function",
 					Type:        types.NewSignature("(func (byte))", []*types.Variable{p21}, nil),
+					Params:      [][]sys.Location{{x86.RDI}},
+					Result:      []sys.Location{},
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b21 := f2.NewBlock(145, ssafir.BlockReturn)
@@ -184,6 +189,8 @@ func TestCompile(t *testing.T) {
 				f3 := &ssafir.Function{
 					Name:        "binary-function",
 					Type:        types.NewSignature("(func (int32) (string))", []*types.Variable{p31, p32}, nil),
+					Params:      [][]sys.Location{{x86.RDI}, {x86.RSI, x86.RDX}},
+					Result:      []sys.Location{},
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b31 := f3.NewBlock(203, ssafir.BlockReturn)
@@ -205,6 +212,8 @@ func TestCompile(t *testing.T) {
 				f4 := &ssafir.Function{
 					Name:        "add1",
 					Type:        types.NewSignature("(func (int8) int8)", []*types.Variable{p41}, types.Int8),
+					Params:      [][]sys.Location{{x86.RDI}},
+					Result:      []sys.Location{x86.RAX},
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b41 := f4.NewBlock(268, ssafir.BlockReturn)
@@ -218,21 +227,49 @@ func TestCompile(t *testing.T) {
 				f4.NamedValues[p41] = []*ssafir.Value{v412}
 				f4.Entry = b41
 
-				p51 := types.NewParameter(nil, 293, 306, nil, "base", types.Uint64)
-				p52 := types.NewParameter(nil, 307, 322, nil, "scalar", types.Uint64)
+				invertedStack := (*ast.Identifier)(nil)
+				params := []*ast.Identifier{
+					{NamePos: 0, Name: "rcx"},
+					{NamePos: 0, Name: "rdx"},
+					{NamePos: 0, Name: "r8"},
+					{NamePos: 0, Name: "r9"},
+				}
+				result := []*ast.Identifier{
+					{NamePos: 0, Name: "rax"},
+				}
+				scratch := []*ast.Identifier{
+					{NamePos: 0, Name: "rax"},
+					{NamePos: 0, Name: "rcx"},
+					{NamePos: 0, Name: "rdx"},
+					{NamePos: 0, Name: "r8"},
+					{NamePos: 0, Name: "r9"},
+					{NamePos: 0, Name: "r10"},
+					{NamePos: 0, Name: "r11"},
+				}
+				unused := []*ast.Identifier(nil)
+				abi, err := types.NewABI(sys.X86_64, invertedStack, params, result, scratch, unused)
+				if err != nil {
+					panic(err.Error())
+				}
+				pkg.Constants = append(pkg.Constants, types.NewConstant(nil, 293, 390, nil, "windows-x64", abi, nil))
+
+				p51 := types.NewParameter(nil, 427, 440, nil, "base", types.Uint64)
+				p52 := types.NewParameter(nil, 441, 456, nil, "scalar", types.Uint64)
 				f5 := &ssafir.Function{
 					Name:        "product",
 					Type:        types.NewSignature("(func (uint64) (uint64) uint64)", []*types.Variable{p51, p52}, types.Uint64),
+					Params:      [][]sys.Location{{x86.RCX}, {x86.RDX}},
+					Result:      []sys.Location{x86.RAX},
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
-				b51 := f5.NewBlock(332, ssafir.BlockReturn)
-				v511 := b51.NewValue(278, 347, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
-				v512 := b51.NewValueInt(293, 306, ssafir.OpParameter, types.Uint64, 0)
-				v513 := b51.NewValueInt(307, 322, ssafir.OpParameter, types.Uint64, 1)
-				v514 := b51.NewValue(335, 346, ssafir.OpMultiplyUint64, types.Uint64, v512, v513)
-				v515 := b51.NewValue(332, 347, ssafir.OpMakeResult, ssafir.Result{Value: types.Uint64}, v514, v511)
+				b51 := f5.NewBlock(466, ssafir.BlockReturn)
+				v511 := b51.NewValue(412, 481, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
+				v512 := b51.NewValueInt(427, 440, ssafir.OpParameter, types.Uint64, 0)
+				v513 := b51.NewValueInt(441, 456, ssafir.OpParameter, types.Uint64, 1)
+				v514 := b51.NewValue(469, 480, ssafir.OpMultiplyUint64, types.Uint64, v512, v513)
+				v515 := b51.NewValue(466, 481, ssafir.OpMakeResult, ssafir.Result{Value: types.Uint64}, v514, v511)
 				b51.Control = v515
-				b51.End = 347
+				b51.End = 481
 				f5.NamedValues[p51] = []*ssafir.Value{v512}
 				f5.NamedValues[p52] = []*ssafir.Value{v513}
 				f5.Entry = b51
@@ -297,6 +334,69 @@ func TestCompile(t *testing.T) {
 					"	v4 := (MultiplyUint64 v2 v3) uint64",
 					"	v5 := (MakeResult v4 v1) result",
 					"	(Return v5)",
+					"",
+				},
+			},
+		},
+		{
+			Name:  "assembly",
+			Path:  "tests/assembly",
+			Files: []string{"assembly"},
+			Want: (func() *Package {
+				pkg := &Package{
+					Name: "assembly",
+					Path: "tests/assembly",
+				}
+
+				invertedStack := (*ast.Identifier)(nil)
+				params := []*ast.Identifier{
+					{NamePos: 0, Name: "rax"},
+					{NamePos: 0, Name: "rdi"},
+					{NamePos: 0, Name: "rsi"},
+					{NamePos: 0, Name: "rdx"},
+					{NamePos: 0, Name: "r10"},
+					{NamePos: 0, Name: "r8"},
+					{NamePos: 0, Name: "r9"},
+				}
+				result := []*ast.Identifier{
+					{NamePos: 0, Name: "rax"},
+				}
+				scratch := []*ast.Identifier{
+					{NamePos: 0, Name: "rcx"},
+					{NamePos: 0, Name: "r11"},
+				}
+				unused := []*ast.Identifier(nil)
+				abi, err := types.NewABI(sys.X86_64, invertedStack, params, result, scratch, unused)
+				if err != nil {
+					panic(err.Error())
+				}
+				pkg.Constants = append(pkg.Constants, types.NewConstant(nil, 145, 232, nil, "syscall", abi, nil))
+
+				f1 := &ssafir.Function{
+					Name:        "syscall6",
+					Type:        types.NewSignature("(func)", nil, nil),
+					Params:      [][]sys.Location{},
+					Result:      []sys.Location{},
+					Extra:       x86.Mode64,
+					NamedValues: make(map[*types.Variable][]*ssafir.Value),
+				}
+				b11 := f1.NewBlock(118, ssafir.BlockNormal)
+				b11.NewValue(98, 127, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
+				b11.NewValueExtra(118, 126, ssafir.OpX86SYSCALL, nil, &x86InstructionData{Length: 2})
+				b11.End = 118
+				f1.Entry = b11
+
+				pkg.Functions = []*ssafir.Function{f1}
+
+				return pkg
+			})(),
+			Print: [][]string{
+				{
+					"syscall6 (func)",
+					"b1:",
+					"	v1 := (MakeMemoryState) memory state",
+					"	v2 := (SYSCALL (extra (x86-instruction-data)))",
+					"	(Normal)",
 					"",
 				},
 			},

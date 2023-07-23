@@ -8,12 +8,14 @@ package types
 import (
 	"fmt"
 
+	"firefly-os.dev/tools/ruse/sys"
 	"firefly-os.dev/tools/ruse/token"
 )
 
 // Function represents a function signature.
 type Function struct {
 	object
+	abi *sys.ABI
 }
 
 var _ Object = (*Function)(nil)
@@ -36,6 +38,8 @@ func NewFunction(scope *Scope, pos, end token.Pos, pkg *Package, name string, si
 	}
 }
 
+func (f *Function) ABI() *sys.ABI       { return f.abi }
+func (f *Function) SetABI(abi *sys.ABI) { f.abi = abi }
 func (f *Function) String() string {
 	return fmt.Sprintf("function %s (%s)", f.object.name, f.object.typ)
 }
