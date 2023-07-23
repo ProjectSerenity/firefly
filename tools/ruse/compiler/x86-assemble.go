@@ -979,7 +979,8 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, operand *x86.Operand) an
 		return nil
 	}
 
-	switch ident.Name {
+	ref := ident.Name
+	switch ref {
 	case "func", "string-pointer":
 		// This must be an immediate with
 		// enough space for a pointer, or
@@ -1019,7 +1020,37 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, operand *x86.Operand) an
 
 		obj := ctx.Comp.info.Uses[ident]
 		if obj == nil {
-			panic("internal error: no use of " + ident.Print())
+			panic(ctx.Errorf(ident.NamePos, "undefined: %s", ident.Print()))
+		}
+
+		// Type-check the reference.
+		switch ref {
+		case "func":
+			fun, ok := obj.(*types.Function)
+			if !ok {
+				panic(ctx.Errorf(ident.NamePos, "cannot use %s as function in symbol reference", obj))
+			}
+
+			// The default ABI is not guaranteed
+			// to be stable so if the function we're
+			// calling uses it and has any params
+			// or result, we return an error.
+			if fun.ABI() == nil {
+				sig := fun.Type().(*types.Signature)
+				if len(sig.Params()) != 0 || sig.Result() != nil {
+					panic(ctx.Errorf(ident.NamePos, "cannot call %s from assembly: function uses default ABI so its calling convention is unstable", ident.Name))
+				}
+			}
+		case "string-pointer":
+			con, ok := obj.(*types.Constant)
+			if !ok {
+				panic(ctx.Errorf(ident.NamePos, "cannot use %s as string constant in symbol reference", obj))
+			}
+
+			typ := types.Underlying(con.Type())
+			if typ != types.String && typ != types.UntypedString {
+				panic(ctx.Errorf(ident.NamePos, "cannot use %s (%s) as string constant in symbol reference", con, con.Type()))
+			}
 		}
 
 		link := &ssafir.Link{

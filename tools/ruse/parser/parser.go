@@ -499,7 +499,8 @@ func (p *parser) parseExpr() ast.Expression {
 			// the last annotation and the list it is
 			// attached to.
 			list.Annotations = annotations
-			if p.file.Line(pos)+1 < p.file.Line(list.ParenOpen) {
+			lastAnnotation := annotations[len(annotations)-1]
+			if p.file.Line(lastAnnotation.X.ParenClose)+1 < p.file.Line(list.ParenOpen) {
 				p.errorExpected(annotations[len(annotations)-1], "attached list or annotation")
 				return nil
 			}

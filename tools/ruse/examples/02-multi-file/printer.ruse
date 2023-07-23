@@ -13,6 +13,8 @@
 ; with the compiler passing the parameters
 ; in the appropriate registers.
 ;
+'(abi (abi
+	(params rsi rdx)))
 (asm-func (print (msg string) (msg-len int))
 	(mov eax 1) ; sys_write
 	(mov rdi 1) ; unsigned int fd stdout
