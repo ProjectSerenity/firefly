@@ -89,6 +89,7 @@ func compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, expr *ast.
 
 	c.AddCallingConvention()
 	c.AddFunctionPrelude()
+	c.AddFunctionInitialValues()
 	for i, x := range expr.Elements[2:] {
 		isLast := i+3 == len(expr.Elements)
 		if !isLast || signature.Result() == nil {
@@ -241,7 +242,10 @@ func (c *compiler) AddCallingConvention() {
 func (c *compiler) AddFunctionPrelude() {
 	b := c.Block(c.list.Elements[2].Pos(), ssafir.BlockNormal)
 	c.fun.Entry = b
-	c.lastMemoryState = b.NewValue(c.list.ParenOpen, c.list.ParenClose, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
+}
+
+func (c *compiler) AddFunctionInitialValues() {
+	c.lastMemoryState = c.fun.Entry.NewValue(c.list.ParenOpen, c.list.ParenClose, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
 	params := c.fun.Type.Params()
 	if len(params) == 0 {
 		return
@@ -249,7 +253,7 @@ func (c *compiler) AddFunctionPrelude() {
 
 	c.args = make([]*ssafir.Value, len(params))
 	for i, param := range params {
-		v := b.NewValueInt(param.Pos(), param.End(), ssafir.OpParameter, param.Type(), int64(i))
+		v := c.fun.Entry.NewValueInt(param.Pos(), param.End(), ssafir.OpParameter, param.Type(), int64(i))
 		c.args[i] = v
 		c.vars[param] = v
 		c.fun.NamedValues[params[i]] = []*ssafir.Value{v}

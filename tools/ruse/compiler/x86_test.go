@@ -1113,11 +1113,11 @@ func TestAssembleX86(t *testing.T) {
 			}
 
 			fun := p.Functions[0]
-			if len(fun.Entry.Values) != 2 {
+			if len(fun.Entry.Values) != 1 {
 				t.Fatalf("got %d values, want 1: %#v", len(fun.Entry.Values), fun.Entry.Values)
 			}
 
-			v := fun.Entry.Values[1]
+			v := fun.Entry.Values[0]
 			if v.Op != test.Op {
 				t.Fatalf("Compile:\n  Got op  %s\n  Want op %s", v.Op, test.Op)
 			}

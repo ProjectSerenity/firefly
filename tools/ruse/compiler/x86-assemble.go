@@ -150,7 +150,6 @@ func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assemb
 		Labels: make(map[string]*x86Label),
 	}
 
-	c.AddCallingConvention()
 	for _, anno := range assembly.Annotations {
 		if len(anno.X.Elements) == 0 {
 			return nil, ctx.Errorf(anno.X.ParenClose, "invalid annotation: no keyword")
@@ -233,6 +232,7 @@ func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assemb
 	var code x86.Code
 	var rexwOverride bool
 	var prefixes []x86.Prefix
+	c.AddCallingConvention()
 	c.AddFunctionPrelude()
 	options := make([]x86InstructionCandidate, 0, 10)
 	for _, expr := range assembly.Elements[2:] {
