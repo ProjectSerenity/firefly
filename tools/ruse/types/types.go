@@ -536,13 +536,6 @@ func (c *checker) checkArchitectures(anno *ast.QuotedList) (ok bool, err error) 
 }
 
 func (c *checker) checkFuncSignature(parent *Scope, fun *ast.List) error {
-	switch len(fun.Elements) {
-	case 1:
-		return c.errorf(fun.ParenClose, "invalid assembly function declaration: no function name or body")
-	case 2:
-		return c.errorf(fun.ParenClose, "invalid assembly function declaration: empty function body")
-	}
-
 	// Unpack the declaration.
 	decl, ok := fun.Elements[1].(*ast.List)
 	if !ok {
@@ -645,6 +638,12 @@ func (c *checker) CheckTopLevelAsmFuncDecl(parent *Scope, fun *ast.List) error {
 	// - '(abi abi)                                              ; Optional ABI declaration, specifying the calling convention for this function.
 	// - '(arch architecture...)                                 ; Opttonal architecture declaration, specifying the architectures for which this declaration is valid.
 	// - '(mode mode)                                            ; Optional CPU mode indicating how instructions should be encoded.
+	switch len(fun.Elements) {
+	case 1:
+		return c.errorf(fun.ParenClose, "invalid assembly function declaration: no function name or body")
+	case 2:
+		return c.errorf(fun.ParenClose, "invalid assembly function declaration: empty function body")
+	}
 
 	var seenABI bool
 	for _, anno := range fun.Annotations {
@@ -715,6 +714,12 @@ func (c *checker) CheckTopLevelFuncDecl(parent *Scope, fun *ast.List) error {
 	//
 	// - '(abi abi)                                          ; Optional ABI declaration, specifying the calling convention for this function.
 	// - '(arch architecture...)                             ; Opttonal architecture declaration, specifying the architectures for which this declaration is valid.
+	switch len(fun.Elements) {
+	case 1:
+		return c.errorf(fun.ParenClose, "invalid function declaration: no function name or body")
+	case 2:
+		return c.errorf(fun.ParenClose, "invalid function declaration: empty function body")
+	}
 
 	var seenABI bool
 	for _, anno := range fun.Annotations {
