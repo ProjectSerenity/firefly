@@ -1322,6 +1322,10 @@ func (d *Decoder) ABIs() ([]*sys.ABI, error) {
 			abi.UnusedRegisters[i] = d.arch.ABIRegisters[unused]
 		}
 
+		if err := d.arch.Validate(abi); err != nil {
+			return nil, fmt.Errorf("invalid ABI: %v", err)
+		}
+
 		d.abis[here] = abi
 		out = append(out, abi)
 	}
