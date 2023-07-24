@@ -89,13 +89,19 @@ func NewRawABI(arch *sys.Arch, invertedStack *ast.Identifier, params, result, sc
 		}
 	} else {
 		// Derive the unused registers from
-		// the scratch registers.
+		// the other registers.
 		//
 		// We do this by deleting from the
 		// registers map each register in
-		// the scratch set.
-		for _, scratch := range scratch {
-			delete(registers, scratch.Name)
+		// the used set.
+		for _, reg := range params {
+			delete(registers, reg.Name)
+		}
+		for _, reg := range result {
+			delete(registers, reg.Name)
+		}
+		for _, reg := range scratch {
+			delete(registers, reg.Name)
 		}
 
 		for _, reg := range arch.ABIRegisters {

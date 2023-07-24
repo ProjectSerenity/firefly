@@ -374,10 +374,10 @@ var tests = []struct {
 			0, 0, 0, 0, 0, 0, 0, 72, // TypesOffset: 72.
 			0, 0, 0, 0, 0, 0, 0, 180, // SymbolsOffset: 180.
 			0, 0, 0, 0, 0, 0, 1, 68, // ABIsOffset: 324.
-			0, 0, 0, 0, 0, 0, 1, 100, // StringsOffset: 356.
-			0, 0, 0, 0, 0, 0, 2, 4, // LinkagesOffset: 516.
-			0, 0, 0, 0, 0, 0, 2, 40, // CodeOffset: 552.
-			0, 0, 0, 0, 0, 0, 2, 96, // ChecksumOffset: 608.
+			0, 0, 0, 0, 0, 0, 1, 96, // StringsOffset: 352.
+			0, 0, 0, 0, 0, 0, 2, 0, // LinkagesOffset: 512.
+			0, 0, 0, 0, 0, 0, 2, 36, // CodeOffset: 548.
+			0, 0, 0, 0, 0, 0, 2, 92, // ChecksumOffset: 604.
 			// Imports.
 			// Exports.
 			// Types.
@@ -441,14 +441,13 @@ var tests = []struct {
 			// - The nil ABI.
 			0, 0, 0, 0, // Length: 0.
 			// - string-copy's ABI.
-			0, 0, 0, 22, // Length: 22.
+			0, 0, 0, 20, // Length: 20.
 			0,       // InvertedStack: 0 (false).
 			2, 5, 1, // ParamRegisters length: 2, ParamRegisters: RSI, RCX.
 			0,                       // ResultRegisters length: 0.
 			0,                       // ScratchRegisters length: 0.
-			15, 0, 1, 2, 3, 4, 5, 6, // UnusedRegisters length: 15, UnusedRegisters: RAX, RCX, RDX, RBX, RBP, RSI.
-			7, 8, 9, 10, 11, 12, 13, 14, // UnusedRegisters: RDI, R8, R9, R10, R11, R12, R13, R14, R15.
-			0, 0, // Padding.
+			13, 0, 2, 3, 4, 6, 7, 8, // UnusedRegisters length: 15, UnusedRegisters: RAX, RDX, RBX, RBP, RDI, R8.
+			9, 10, 11, 12, 13, 14, // UnusedRegisters: R9, R10, R11, R12, R13, R14, R15.
 			// Strings.
 			// - The empty string.
 			0, 0, 0, 0, // Length: 0.
@@ -526,10 +525,10 @@ var tests = []struct {
 			0xc3, // (ret)
 			0, 0, // Padding.
 			// Checksum.
-			0x61, 0xd3, 0x1c, 0xfc, 0xc4, 0x93, 0xcd, 0xba,
-			0xc6, 0xb6, 0x90, 0x9c, 0xd9, 0xa8, 0xda, 0xf7,
-			0xc3, 0x6b, 0x90, 0x10, 0x7f, 0x6c, 0xa8, 0x9f,
-			0xcb, 0x39, 0x0a, 0x8a, 0x72, 0x42, 0xe6, 0x36,
+			0x01, 0x32, 0xc9, 0x89, 0x72, 0xa4, 0xe3, 0xb4,
+			0x5c, 0x1f, 0x95, 0xac, 0xd5, 0x1b, 0x59, 0x67,
+			0xd8, 0x2b, 0xb8, 0x0e, 0x96, 0x13, 0x5a, 0xb1,
+			0x2c, 0x3b, 0x05, 0x0e, 0xbb, 0x07, 0xf6, 0xb1,
 		},
 		Decoded: &decoded{
 			header: header{
@@ -546,14 +545,14 @@ var tests = []struct {
 				SymbolsOffset:  180,
 				SymbolsLength:  144,
 				ABIsOffset:     324,
-				ABIsLength:     32,
-				StringsOffset:  356,
+				ABIsLength:     28,
+				StringsOffset:  352,
 				StringsLength:  160,
-				LinkagesOffset: 516,
+				LinkagesOffset: 512,
 				LinkagesLength: 36,
-				CodeOffset:     552,
+				CodeOffset:     548,
 				CodeLength:     56,
-				ChecksumOffset: 608,
+				ChecksumOffset: 604,
 				ChecksumLength: 32,
 			},
 			imports: []uint32{},
@@ -631,11 +630,11 @@ var tests = []struct {
 			abis: map[uint32]*abi{
 				0: nil,
 				4: {
-					Length:  22,
+					Length:  20,
 					Params:  []uint8{5, 1},
 					Result:  []uint8{},
 					Scratch: []uint8{},
-					Unused:  []uint8{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14},
+					Unused:  []uint8{0, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14},
 				},
 			},
 			strings: map[uint64]string{

@@ -298,19 +298,34 @@ func (arch *Arch) Validate(abi *ABI) error {
 		seen[reg] = true
 	}
 
-	// Check that no registers are both
-	// scratched and preserved.
-	for reg := range seen {
-		seen[reg] = false
+	// Check that unused registers really
+	// are unused.
+	usage := make(map[Location][]string)
+	for _, reg := range abi.ParamRegisters {
+		usage[reg] = append(usage[reg], "parameter")
 	}
-
+	for _, reg := range abi.ResultRegisters {
+		usage[reg] = append(usage[reg], "result")
+	}
 	for _, reg := range abi.ScratchRegisters {
-		seen[reg] = true
+		usage[reg] = append(usage[reg], "scratch")
 	}
 
 	for _, reg := range abi.UnusedRegisters {
-		if seen[reg] {
-			return fmt.Errorf("invalid unused register %s: also listed as scratch register", reg)
+		if uses := usage[reg]; len(uses) != 0 {
+			var text string
+			switch len(uses) {
+			case 1:
+				text = uses[0]
+			case 2:
+				text = fmt.Sprintf("%s and %s", uses[0], uses[1])
+			case 3:
+				text = fmt.Sprintf("%s, %s, and %s", uses[0], uses[1], uses[2])
+			default:
+				panic(len(uses))
+			}
+
+			return fmt.Errorf("invalid unused register %s: also listed as %s register", reg, text)
 		}
 	}
 
