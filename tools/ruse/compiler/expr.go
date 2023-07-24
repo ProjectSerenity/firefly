@@ -517,7 +517,10 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			return nil, err
 		}
 
+		lhs := c.info.Definitions[list.Elements[1].(*ast.Identifier)].(*types.Variable)
+		c.vars[lhs] = value
 		v := c.Value(list.ParenOpen, list.ParenClose, ssafir.OpCopy, value.Type, value)
+
 		return v, nil
 	case types.SpecialFormAdd:
 		args := list.Elements[1:]
