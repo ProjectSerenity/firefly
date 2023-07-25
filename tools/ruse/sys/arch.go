@@ -131,6 +131,13 @@ var All = [...]*Arch{
 	X86_64,
 }
 
+// ArchByName maps architecture names to their
+// metadata.
+var ArchByName = map[string]*Arch{
+	X86.Name:    X86,
+	X86_64.Name: X86_64,
+}
+
 // ArchFamily represents a group of related machine
 // architectures. For example, ppc64 and ppc64le are
 // in the same group.
