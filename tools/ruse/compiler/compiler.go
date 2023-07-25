@@ -157,7 +157,18 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 					continue
 				}
 
-				if ident, ok := anno.X.Elements[1].(*ast.Identifier); !ok || ident.Name != arch.Name {
+				nameElt := anno.X.Elements[1]
+				ident, ok := nameElt.(*ast.Identifier)
+				if !ok {
+					return nil, fmt.Errorf("%s: invalid architecture declaration: got %s, want identifier", fset.Position(nameElt.Pos()), nameElt)
+				}
+
+				got, ok := sys.ArchByName[ident.Name]
+				if !ok {
+					return nil, fmt.Errorf("%s: invalid architecture declaration: architecture %s undefined", fset.Position(ident.NamePos), ident.Name)
+				}
+
+				if got != arch {
 					continue exprs
 				}
 			}
