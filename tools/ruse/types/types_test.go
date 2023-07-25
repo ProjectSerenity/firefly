@@ -204,7 +204,7 @@ func TestCheck(t *testing.T) {
 					},
 				}
 
-				file0 := NewScope(pkg.scope, 46, 520, "file 0")
+				file0 := NewScope(pkg.scope, 46, 554, "file 0")
 				file0.readonly = true
 
 				fun1Scope := NewScope(file0, 93, 109, "function nullary-function")
@@ -332,6 +332,26 @@ func TestCheck(t *testing.T) {
 						},
 					},
 					abi: abi.abi,
+				})
+
+				// Check that we correctly handle an untyped
+				// constant being used as the return value for
+				// a function. That is, the result can be
+				// assignable to the result type without being
+				// the exact same type.
+				NewScope(file0, 551, 553, "function return-constant")
+				pkg.scope.Insert(&Function{
+					object: object{
+						pos:  522,
+						end:  553,
+						pkg:  pkg,
+						name: "return-constant",
+						typ: &Signature{
+							name:   "(func int)",
+							params: []*Variable{},
+							result: Int,
+						},
+					},
 				})
 
 				return pkg

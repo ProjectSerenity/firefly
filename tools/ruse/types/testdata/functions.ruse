@@ -24,3 +24,6 @@
 '(abi system-v)
 (func (product (base uint64) (scalar uint64) uint64)
 	(* base scalar))
+
+(func (return-constant int)
+	17)

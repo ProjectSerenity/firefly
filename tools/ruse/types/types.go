@@ -983,7 +983,7 @@ func (c *checker) ResolveFuncBody(scope *Scope, fun *ast.List) (result Type, err
 			return nil, err
 		}
 
-		if isLast && sig.result != nil && sig.result != result {
+		if isLast && sig.result != nil && !AssignableTo(sig.result, result) {
 			return nil, c.errorf(expr.Pos(), "%s has return type %s but returns value of incompatible type %s", name, sig.result, result)
 		}
 	}
