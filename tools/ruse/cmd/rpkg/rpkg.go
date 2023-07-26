@@ -25,10 +25,11 @@ var program = filepath.Base(os.Args[0])
 func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("rpkg", flag.ExitOnError)
 
-	var help, header, imports, types, symbols, strings, linkages bool
+	var help, header, imports, exports, types, symbols, strings, linkages bool
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
 	flags.BoolVar(&header, "header", true, "Print information about the rpkg header.")
 	flags.BoolVar(&imports, "imports", false, "Print the list of imported package names.")
+	flags.BoolVar(&exports, "exports", false, "Print the list of exported symbols.")
 	flags.BoolVar(&types, "types", false, "Print the set of types defined.")
 	flags.BoolVar(&symbols, "symbols", false, "Print the set of symbols defined.")
 	flags.BoolVar(&strings, "strings", false, "Print the set of strings defined.")
@@ -106,6 +107,11 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("failed to parse %s: %v", name, err)
 	}
 
+	gotExports, err := d.Exports()
+	if err != nil {
+		return fmt.Errorf("failed to parse %s: %v", name, err)
+	}
+
 	gotLinkages, err := d.Linkages()
 	if err != nil {
 		return fmt.Errorf("failed to parse %s: %v", name, err)
@@ -115,6 +121,13 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		fmt.Println("imports:")
 		for _, imp := range gotImports {
 			fmt.Printf("\t%s\n", imp)
+		}
+	}
+
+	if exports {
+		fmt.Println("exports:")
+		for _, exp := range gotExports {
+			fmt.Printf("\t%s\n", exp.Name())
 		}
 	}
 
