@@ -66,6 +66,37 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("failed to parse %s: %v", name, err)
 	}
 
+	var numSections int
+	for _, b := range []bool{header, imports, exports, types, symbols, strings, linkages, functions} {
+		if b {
+			numSections++
+		}
+	}
+
+	var printSectionHeadings bool
+	switch numSections {
+	case 0:
+		return nil
+	case 1:
+		printSectionHeadings = false
+	default:
+		printSectionHeadings = true
+	}
+
+	printSection := func(s string) {
+		if printSectionHeadings {
+			fmt.Printf("%s:\n", s)
+		}
+	}
+
+	printText := func(format string, v ...any) {
+		if printSectionHeadings {
+			fmt.Printf("\t"+format, v...)
+		} else {
+			fmt.Printf(format, v...)
+		}
+	}
+
 	if header {
 		hdr := d.Header()
 		fmt.Printf("architecture: %s\n", hdr.Architecture)
@@ -121,70 +152,70 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	if imports {
-		fmt.Println("imports:")
+		printSection("imports")
 		for _, imp := range gotImports {
-			fmt.Printf("\t%s\n", imp)
+			printText("%s\n", imp)
 		}
 	}
 
 	if exports {
-		fmt.Println("exports:")
+		printSection("exports")
 		for _, exp := range gotExports {
-			fmt.Printf("\t%s\n", exp.Name())
+			printText("%s\n", exp.Name())
 		}
 	}
 
 	if types {
-		fmt.Println("types:")
+		printSection("types")
 		for i, typ := range gotTypes {
 			if i == 0 && typ == nil {
 				continue
 			}
 
-			fmt.Printf("\t%s\n", typ)
+			printText("%s\n", typ)
 		}
 	}
 
 	if symbols {
-		fmt.Println("symbols:")
+		printSection("symbols")
 		for _, sym := range gotSymbols {
 			switch sym.Kind {
 			case rpkg.SymKindFunction:
 				// The type is already printed in parentheses,
 				// so there's no need to add more. Also, the
 				// data isn't meaningfully printable.
-				fmt.Printf("\t%s %s %s\n", sym.Kind, sym.AbsoluteName(), sym.Type)
+				printText("%s %s %s\n", sym.Kind, sym.AbsoluteName(), sym.Type)
 			case rpkg.SymKindStringConstant:
 				// We want to quote the string.
 				v := sym.Value.(constant.Value)
 				s := constant.StringVal(v)
-				fmt.Printf("\t%s %s (%s): %q\n", sym.Kind, sym.AbsoluteName(), sym.Type, s)
+				printText("%s %s (%s): %q\n", sym.Kind, sym.AbsoluteName(), sym.Type, s)
 			default:
-				fmt.Printf("\t%s %s (%s): %v\n", sym.Kind, sym.AbsoluteName(), sym.Type, sym.Value)
+				printText("%s %s (%s): %v\n", sym.Kind, sym.AbsoluteName(), sym.Type, sym.Value)
 			}
 		}
 	}
 
 	if strings {
-		fmt.Println("strings:")
+		printSection("strings")
 		for i, str := range gotStrings {
 			if i == 0 && str == "" {
 				continue
 			}
 
-			fmt.Printf("\t%q\n", str)
+			printText("%q\n", str)
 		}
 	}
 
 	if linkages {
-		fmt.Println("linkages:")
+		printSection("linkages")
 		for _, link := range gotLinkages {
-			fmt.Printf("\t%s: %s (%s) at offset %d (address %#x)\n", link.Source, link.Target, link.Type, link.Offset, link.Address)
+			printText("%s: %s (%s) at offset %d (address %#x)\n", link.Source, link.Target, link.Type, link.Offset, link.Address)
 		}
 	}
 
 	if functions {
-		fmt.Println("functions:")
+		printSection("functions")
 		printed := 0
 		for _, sym := range gotSymbols {
 			if printed != 0 {
@@ -196,12 +227,12 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				// The type is already printed in parentheses,
 				// so there's no need to add more. Also, the
 				// data isn't meaningfully printable.
-				fmt.Printf("\t%s %s\n", sym.Name, sym.Type)
+				printText("%s %s\n", sym.Name, sym.Type)
 				for _, link := range sym.Links {
-					fmt.Printf("\tLink %s for %s at %d\n", link.Type, link.Name, link.Offset)
+					printText("Link %s for %s at %d\n", link.Type, link.Name, link.Offset)
 				}
 
-				fmt.Printf("\t%s", hex.Dump([]byte(sym.Value.(compiler.MachineCode))))
+				printText("%s", hex.Dump([]byte(sym.Value.(compiler.MachineCode))))
 				printed++
 			}
 		}
