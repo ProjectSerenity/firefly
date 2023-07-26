@@ -11,6 +11,7 @@ go_library(
     importpath = "firefly-os.dev/tools/ruse/cmd/rpkg",
     visibility = ["//visibility:public"],
     deps = [
+        "//tools/ruse/compiler",
         "//tools/ruse/rpkg",
     ],
 )

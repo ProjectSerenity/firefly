@@ -8,6 +8,7 @@ package rpkg
 
 import (
 	"context"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"go/constant"
@@ -16,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"firefly-os.dev/tools/ruse/compiler"
 	"firefly-os.dev/tools/ruse/rpkg"
 )
 
@@ -25,7 +27,7 @@ var program = filepath.Base(os.Args[0])
 func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("rpkg", flag.ExitOnError)
 
-	var help, header, imports, exports, types, symbols, strings, linkages bool
+	var help, header, imports, exports, types, symbols, strings, linkages, functions bool
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
 	flags.BoolVar(&header, "header", true, "Print information about the rpkg header.")
 	flags.BoolVar(&imports, "imports", false, "Print the list of imported package names.")
@@ -34,6 +36,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags.BoolVar(&symbols, "symbols", false, "Print the set of symbols defined.")
 	flags.BoolVar(&strings, "strings", false, "Print the set of strings defined.")
 	flags.BoolVar(&linkages, "linkages", false, "Print the set of linkages defined.")
+	flags.BoolVar(&functions, "functions", false, "Print the set of functions defined.")
 
 	flags.Usage = func() {
 		log.Printf("Usage:\n  %s %s [OPTIONS] RPKG\n\n", program, flags.Name())
@@ -177,6 +180,30 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		fmt.Println("linkages:")
 		for _, link := range gotLinkages {
 			fmt.Printf("\t%s: %s (%s) at offset %d (address %#x)\n", link.Source, link.Target, link.Type, link.Offset, link.Address)
+		}
+	}
+
+	if functions {
+		fmt.Println("functions:")
+		printed := 0
+		for _, sym := range gotSymbols {
+			if printed != 0 {
+				fmt.Println()
+			}
+
+			switch sym.Kind {
+			case rpkg.SymKindFunction:
+				// The type is already printed in parentheses,
+				// so there's no need to add more. Also, the
+				// data isn't meaningfully printable.
+				fmt.Printf("\t%s %s\n", sym.Name, sym.Type)
+				for _, link := range sym.Links {
+					fmt.Printf("\tLink %s for %s at %d\n", link.Type, link.Name, link.Offset)
+				}
+
+				fmt.Printf("\t%s", hex.Dump([]byte(sym.Value.(compiler.MachineCode))))
+				printed++
+			}
 		}
 	}
 
