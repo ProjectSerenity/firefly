@@ -70,8 +70,10 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		fmt.Printf("package name: %s\n", hdr.PackageName)
 		fmt.Printf("sections:\n")
 		fmt.Printf("\timports offset:  %d\n", hdr.ImportsOffset)
+		fmt.Printf("\texports offset:  %d\n", hdr.ExportsOffset)
 		fmt.Printf("\ttypes offset:    %d\n", hdr.TypesOffset)
 		fmt.Printf("\tsymbols offset:  %d\n", hdr.SymbolsOffset)
+		fmt.Printf("\tABIs offset:     %d\n", hdr.ABIsOffset)
 		fmt.Printf("\tstrings offset:  %d\n", hdr.StringsOffset)
 		fmt.Printf("\tlinkages offset: %d\n", hdr.LinkagesOffset)
 		fmt.Printf("\tcode offset:     %d\n", hdr.CodeOffset)
@@ -85,6 +87,11 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	gotImports, err := d.Imports()
+	if err != nil {
+		return fmt.Errorf("failed to parse %s: %v", name, err)
+	}
+
+	_, err = d.ABIs()
 	if err != nil {
 		return fmt.Errorf("failed to parse %s: %v", name, err)
 	}
