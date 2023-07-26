@@ -509,7 +509,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			return nil, err
 		}
 
-		v := c.Value(list.ParenOpen, list.ParenClose, ssafir.OpStringLen, types.Int, value)
+		v := c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpStringLen, types.Int, value)
 		return v, nil
 	case types.SpecialFormLet:
 		value, err := c.CompileExpression(list.Elements[2])
@@ -519,7 +519,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 
 		lhs := c.info.Definitions[list.Elements[1].(*ast.Identifier)].(*types.Variable)
 		c.vars[lhs] = value
-		v := c.Value(list.ParenOpen, list.ParenClose, ssafir.OpCopy, value.Type, value)
+		v := c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpCopy, value.Type, value)
 
 		return v, nil
 	case types.SpecialFormAdd:

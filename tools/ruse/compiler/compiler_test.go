@@ -177,7 +177,7 @@ func TestCompile(t *testing.T) {
 				b21 := f2.NewBlock(145, ssafir.BlockReturn)
 				v211 := b21.NewValue(112, 154, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
 				v212 := b21.NewValueInt(134, 142, ssafir.OpParameter, types.Byte, 0)
-				b21.NewValue(145, 153, ssafir.OpCopy, types.Byte, v212)
+				b21.NewValue(145, 154, ssafir.OpCopy, types.Byte, v212)
 				v214 := b21.NewValue(145, 154, ssafir.OpMakeResult, ssafir.Result{}, v211)
 				b21.Control = v214
 				b21.End = 154
@@ -197,10 +197,10 @@ func TestCompile(t *testing.T) {
 				v311 := b31.NewValue(157, 237, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
 				v312 := b31.NewValueInt(180, 189, ssafir.OpParameter, types.Int32, 0)
 				v313 := b31.NewValueInt(190, 200, ssafir.OpParameter, types.String, 1)
-				v314 := b31.NewValue(227, 233, ssafir.OpStringLen, types.Int, v313)
+				v314 := b31.NewValue(227, 234, ssafir.OpStringLen, types.Int, v313)
 				v315 := b31.NewValue(215, 234, ssafir.OpCastInt64ToInt32, types.Int32, v314)
 				v316 := b31.NewValue(213, 235, ssafir.OpAddInt32, types.Int32, v312, v315)
-				b31.NewValue(203, 236, ssafir.OpCopy, types.Int32, v316)
+				b31.NewValue(203, 237, ssafir.OpCopy, types.Int32, v316)
 				v317 := b31.NewValue(203, 237, ssafir.OpMakeResult, ssafir.Result{}, v311)
 				b31.Control = v317
 				b31.End = 237
