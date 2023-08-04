@@ -20,6 +20,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/github.com/google/go-cmp/cmp",
+        "//vendor/github.com/package-url/packageurl-go",
         "//vendor/golang.org/x/exp/slices",
         "//vendor/gopkg.in/yaml.v3",
     ],

@@ -6,7 +6,7 @@
 go = [
     module(
         name = "github.com/bazelbuild/buildtools",
-        version = "v0.0.0-20230510134650-37bd1811516d",
+        version = "v0.0.0-20230713145820-b31f2c13c407",
         packages = [
             package(
                 name = "github.com/bazelbuild/buildtools/build",
@@ -88,12 +88,13 @@ go = [
     ),
     module(
         name = "github.com/google/osv-scanner",
-        version = "v1.3.5",
+        version = "v1.3.6",
         packages = [
             package(
                 name = "github.com/google/osv-scanner/pkg/models",
                 deps = [
                     "github.com/google/go-cmp/cmp",
+                    "github.com/package-url/packageurl-go",
                     "golang.org/x/exp/slices",
                     "gopkg.in/yaml.v3",
                 ],
@@ -109,6 +110,16 @@ go = [
         patch_args = ["-p1"],
         patches = [
             "bazel/patches/github.com_google_osv-scanner_pkg_osv_osv.go",
+        ],
+    ),
+    module(
+        name = "github.com/package-url/packageurl-go",
+        version = "v0.1.1",
+        packages = [
+            package(
+                name = "github.com/package-url/packageurl-go",
+                no_tests = True,  # The tests require an external file.
+            ),
         ],
     ),
     module(
@@ -131,7 +142,7 @@ go = [
     ),
     module(
         name = "golang.org/x/exp",
-        version = "v0.0.0-20230711153332-06a737ee72cb",
+        version = "v0.0.0-20230801115018-d63ba01acd4b",
         packages = [
             package(
                 name = "golang.org/x/exp/constraints",
@@ -230,7 +241,7 @@ go = [
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.11.0",
+        version = "v0.11.1",
         packages = [
             package(
                 name = "golang.org/x/tools/txtar",

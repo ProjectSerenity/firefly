@@ -8,7 +8,7 @@
 go = [
     module(
         name = "github.com/bazelbuild/buildtools",
-        version = "v0.0.0-20230510134650-37bd1811516d",
+        version = "v0.0.0-20230713145820-b31f2c13c407",
         digest = "sha256:5fffe643ce7150a30b1d65ecc96d10cde7b1a908fc95f1e068ec4e408c30b541",
     ),
     module(
@@ -18,8 +18,8 @@ go = [
     ),
     module(
         name = "github.com/google/osv-scanner",
-        version = "v1.3.5",
-        digest = "sha256:c2790be6bfaab117416845f08f7b5b6fdc045de04982c00d7eb9ea2689cddca6",
+        version = "v1.3.6",
+        digest = "sha256:bf7259f9c743989baed7c6562c6fd264a426b852850c32da67b0d8303e024604",
         patch_args = [
             "-p1",
         ],
@@ -29,14 +29,19 @@ go = [
         patch_digest = "sha256:a61855218ea9eb42f5ae7fb32635383c0566e3fa41d0e1feb29ed079b21c8643",
     ),
     module(
+        name = "github.com/package-url/packageurl-go",
+        version = "v0.1.1",
+        digest = "sha256:468d20c9a08fda46d63bf5e2a6e7189a4bf1273c3aef72643b32554143c164bc",
+    ),
+    module(
         name = "golang.org/x/crypto",
         version = "v0.11.0",
         digest = "sha256:359fa4352b7c5fca22dcd898afcc18ad7cf57fa6c0bf86d26e3689f976a93d9e",
     ),
     module(
         name = "golang.org/x/exp",
-        version = "v0.0.0-20230711153332-06a737ee72cb",
-        digest = "sha256:f53a26cd5a7b2dff5978766fef967bd702195883a806a47c49ce0398c18567f2",
+        version = "v0.0.0-20230801115018-d63ba01acd4b",
+        digest = "sha256:031d4f51a5d728716c27d021ede9a03e2ebb67d2c47675cfaafc491a83f1ad45",
     ),
     module(
         name = "golang.org/x/mod",
@@ -55,7 +60,7 @@ go = [
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.11.0",
+        version = "v0.11.1",
         digest = "sha256:f3ddd3e5d128f971e15268e3db09b2fab8256985e927ff7b57f8d0cc8e4de7d6",
     ),
     module(
