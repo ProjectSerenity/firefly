@@ -5,6 +5,8 @@
 
 workspace(name = "firefly")
 
+GO_VERSION = "1.21.0"
+
 # Initialise external dependencies.
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive", "http_file")
@@ -34,8 +36,6 @@ http_archive(
 )
 
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
-
-GO_VERSION = "1.20.7"
 
 go_rules_dependencies()
 
