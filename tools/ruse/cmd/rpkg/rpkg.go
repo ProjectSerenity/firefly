@@ -16,6 +16,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"firefly-os.dev/tools/ruse/compiler"
 	"firefly-os.dev/tools/ruse/rpkg"
@@ -28,6 +29,17 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("rpkg", flag.ExitOnError)
 
 	var help, header, imports, exports, types, symbols, strings, linkages, functions bool
+	all := [...]*bool{
+		&header,
+		&imports,
+		&exports,
+		&types,
+		&symbols,
+		&strings,
+		&linkages,
+		&functions,
+	}
+
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
 	flags.BoolVar(&header, "header", true, "Print information about the rpkg header.")
 	flags.BoolVar(&imports, "imports", false, "Print the list of imported package names.")
@@ -37,6 +49,20 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags.BoolVar(&strings, "strings", false, "Print the set of strings defined.")
 	flags.BoolVar(&linkages, "linkages", false, "Print the set of linkages defined.")
 	flags.BoolVar(&functions, "functions", false, "Print the set of functions defined.")
+	flags.BoolFunc("all", "Print all information.", func(s string) error {
+		v, err := strconv.ParseBool(s)
+		if err != nil {
+			return err
+		}
+
+		if v {
+			for _, b := range all {
+				*b = true
+			}
+		}
+
+		return nil
+	})
 
 	flags.Usage = func() {
 		log.Printf("Usage:\n  %s %s [OPTIONS] RPKG\n\n", program, flags.Name())
