@@ -22,6 +22,19 @@ import (
 	"firefly-os.dev/tools/ruse/token"
 )
 
+// ErrUnclosedList indicates that a list was begun but not
+// completed.
+type ErrUnclosedList struct {
+	ParenOpen token.Pos
+	Err       error
+}
+
+func (l ErrUnclosedList) Error() string {
+	return fmt.Sprintf("unclosed list: %v", l.Err)
+}
+
+func (l ErrUnclosedList) Unwrap() error { return l.Err }
+
 // If src != nil, readSource converts src to a []byte if possible;
 // otherwise it returns an error. If src == nil, readSource returns
 // the result of reading the file specified by filename.
@@ -74,6 +87,9 @@ func ParseFile(fset *token.FileSet, filename string, src interface{}, mode Mode)
 			// resume same panic if it's not a bailout
 			if e == io.ErrUnexpectedEOF {
 				err = io.ErrUnexpectedEOF
+				if p.parenOpen != token.NoPos {
+					err = fmt.Errorf("%s: %w", fset.Position(p.parenOpen), ErrUnclosedList{ParenOpen: p.parenOpen, Err: err})
+				}
 				return
 			}
 
@@ -112,6 +128,9 @@ func ParseExpressionFrom(fset *token.FileSet, filename string, src interface{}, 
 			// resume same panic if it's not a bailout
 			if e == io.ErrUnexpectedEOF {
 				err = io.ErrUnexpectedEOF
+				if p.parenOpen != token.NoPos {
+					err = ErrUnclosedList{ParenOpen: p.parenOpen, Err: err}
+				}
 				return
 			}
 
@@ -185,6 +204,9 @@ type parser struct {
 	syncPos token.Pos // last synchronization position
 	syncCnt int       // number of parser.advance calls without progress
 
+	// Used to detect unclosed lists.
+	parenOpen token.Pos
+
 	// Non-syntactic parser control
 	exprLev int  // < 0: in control clause, >= 0: in expression
 	inRhs   bool // if set, the parser is parsing a rhs expression
@@ -196,6 +218,7 @@ func (p *parser) init(fset *token.FileSet, filename string, src []byte, mode Mod
 
 	p.mode = mode
 	p.trace = mode&Trace != 0 // for convenience (p.trace is used frequently)
+	p.parenOpen = token.NoPos
 
 	p.next()
 }
@@ -395,12 +418,20 @@ func (p *parser) parseList() *ast.List {
 	}
 
 	pos := p.lex.Position
+	if p.parenOpen == token.NoPos {
+		p.parenOpen = pos
+	}
+
 	exprs := make([]ast.Expression, 0, 10) // Most expr lists will have fewer than 10 entries.
 	p.next()
 
 	for {
 		if p.lex.Token == token.ParenClose {
 			x := &ast.List{ParenOpen: pos, Elements: exprs, ParenClose: p.lex.Position}
+			if p.parenOpen == pos {
+				p.parenOpen = token.NoPos
+			}
+
 			return x
 		}
 

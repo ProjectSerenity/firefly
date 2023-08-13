@@ -219,7 +219,7 @@ func TestParseExpression(t *testing.T) {
 		{
 			Name: "incomplete list",
 			Src:  "(foo",
-			Err:  "unexpected EOF",
+			Err:  "unclosed list: unexpected EOF",
 		},
 		{
 			Name: "quoted decimal integer",
@@ -358,7 +358,7 @@ func TestParseFile(t *testing.T) {
 			Name: "unterminated import",
 			Src: `(package foo)
 			      (import`,
-			Err: "unexpected EOF",
+			Err: "test.ruse:2:10: unclosed list: unexpected EOF",
 		},
 		{
 			Name: "empty import",
