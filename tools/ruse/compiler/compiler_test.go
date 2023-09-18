@@ -224,6 +224,7 @@ func TestCompile(t *testing.T) {
 				v415 := b41.NewValue(268, 275, ssafir.OpMakeResult, ssafir.Result{Value: types.Int8}, v414, v411)
 				b41.Control = v415
 				b41.End = 275
+				b41.Control.Uses++ // The return uses the value.
 				f4.NamedValues[p41] = []*ssafir.Value{v412}
 				f4.Entry = b41
 
@@ -271,6 +272,7 @@ func TestCompile(t *testing.T) {
 				v515 := b51.NewValue(466, 481, ssafir.OpMakeResult, ssafir.Result{Value: types.Uint64}, v514, v511)
 				b51.Control = v515
 				b51.End = 481
+				b51.Control.Uses++ // The return uses the value.
 				f5.NamedValues[p51] = []*ssafir.Value{v512}
 				f5.NamedValues[p52] = []*ssafir.Value{v513}
 				f5.Entry = b51

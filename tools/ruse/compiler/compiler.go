@@ -229,6 +229,10 @@ func (c *compiler) ValueExtra(pos, end token.Pos, op ssafir.Op, typ types.Type, 
 }
 
 func (c *compiler) Return(end token.Pos, result *ssafir.Value) {
+	if c.fun.Type.Result() != nil {
+		result.Uses++
+	}
+
 	c.currentBlock.Kind = ssafir.BlockReturn
 	c.currentBlock.End = end
 	c.currentBlock.Control = result
