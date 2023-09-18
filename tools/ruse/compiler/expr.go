@@ -532,7 +532,7 @@ func (c *compiler) CompileBuiltinFunction(list *ast.List, fun *types.Function, s
 				return nil, err
 			}
 
-			v := c.Value(list.ParenOpen, list.ParenClose, op, typ, value)
+			v := c.Value(list.ParenOpen, list.ParenClose+1, op, typ, value)
 			return v, nil
 		}
 	}
@@ -645,7 +645,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 				return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %T", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
 			}
 
-			v := c.Value(list.ParenOpen, list.ParenClose, op, value.Type, value)
+			v := c.Value(list.ParenOpen, list.ParenClose+1, op, value.Type, value)
 
 			return v, nil
 		}

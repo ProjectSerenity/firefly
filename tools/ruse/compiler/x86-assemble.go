@@ -551,7 +551,7 @@ func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assemb
 
 		option := options[0]
 
-		c.currentBlock.NewValueExtra(list.ParenOpen, list.ParenClose, option.Op, nil, option.Data)
+		c.currentBlock.NewValueExtra(list.ParenOpen, list.ParenClose+1, option.Op, nil, option.Data)
 	}
 
 	// Labels phase 3: calculate jump distances.
