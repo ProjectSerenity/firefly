@@ -545,6 +545,22 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 	case types.SpecialFormAsmFunc:
 	case types.SpecialFormFunc:
 	case types.SpecialFormLen:
+		// Handle calls with a constant value.
+		// Constant expressions we've already resolved.
+		if typeAndValue, ok := c.info.Types[list]; ok && typeAndValue.Value != nil {
+			op := ssafir.OpConstantInt64 // TODO: Pick the constant size based on the architecture.
+			v := c.ValueExtra(list.ParenOpen, list.ParenClose+1, op, types.Int, typeAndValue.Value)
+			return v, nil
+		}
+
+		// Unresolved constant expressions.
+		if typeAndValue, ok := c.info.Types[list.Elements[1]]; ok && typeAndValue.Value != nil && typeAndValue.Value.Kind() == constant.String {
+			op := ssafir.OpConstantInt64 // TODO: Pick the constant size based on the architecture.
+			str := constant.StringVal(typeAndValue.Value)
+			v := c.ValueInt(list.ParenOpen, list.ParenClose+1, op, types.Int, int64(len(str)))
+			return v, nil
+		}
+
 		// TODO: support more types in (len).
 		value, err := c.CompileExpression(list.Elements[1])
 		if err != nil {
@@ -559,7 +575,18 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			return nil, err
 		}
 
-		lhs := c.info.Definitions[list.Elements[1].(*ast.Identifier)].(*types.Variable)
+		// Find the identifier.
+		var lhs *types.Variable
+		switch elt := list.Elements[1].(type) {
+		case *ast.Identifier:
+			lhs = c.info.Definitions[elt].(*types.Variable)
+		case *ast.List:
+			ident := elt.Elements[0].(*ast.Identifier)
+			lhs = c.info.Definitions[ident].(*types.Variable)
+		default:
+			return nil, fmt.Errorf("unexpected expression type for let left-hand side: %s %s", list.Elements[1], list.Elements[1].Print())
+		}
+
 		c.vars[lhs] = value
 		v := c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpCopy, value.Type, value)
 
