@@ -23,7 +23,7 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 		switch types.Underlying(typ.Type) {
 		case types.Bool:
 			op = ssafir.OpConstantBool
-		case types.String:
+		case types.String, types.UntypedString:
 			op = ssafir.OpConstantString
 		case types.Int8:
 			op = ssafir.OpConstantInt8
@@ -33,6 +33,15 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 			op = ssafir.OpConstantInt32
 		case types.Int64:
 			op = ssafir.OpConstantInt64
+		case types.Int:
+			switch c.arch.RegisterSize {
+			case 4:
+				op = ssafir.OpConstantInt32
+			case 8:
+				op = ssafir.OpConstantInt64
+			default:
+				panic(fmt.Sprintf("invalid architecture: register size %d", c.arch.RegisterSize))
+			}
 		case types.Uint8:
 			op = ssafir.OpConstantUint8
 		case types.Uint16:
@@ -41,6 +50,17 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 			op = ssafir.OpConstantUint32
 		case types.Uint64:
 			op = ssafir.OpConstantUint64
+		case types.Uint:
+			switch c.arch.RegisterSize {
+			case 4:
+				op = ssafir.OpConstantUint32
+			case 8:
+				op = ssafir.OpConstantUint64
+			default:
+				panic(fmt.Sprintf("invalid architecture: register size %d", c.arch.RegisterSize))
+			}
+		case types.UntypedInt:
+			op = ssafir.OpConstantUntypedInt
 		default:
 			return nil, fmt.Errorf("%s: failed to compile %s (%T): unsupported constant type %s", c.fset.Position(expr.Pos()), expr.Print(), expr, typ)
 		}
@@ -54,22 +74,26 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 			}
 
 			v = c.ValueInt(expr.Pos(), expr.End(), op, typ.Type, extra)
-		case types.String:
+		case types.String, types.UntypedString:
 			v = c.ValueExtra(expr.Pos(), expr.End(), op, typ.Type, constant.StringVal(typ.Value))
-		case types.Int8, types.Int16, types.Int32, types.Int64:
+		case types.Int, types.Int8, types.Int16, types.Int32, types.Int64:
 			num, ok := constant.Int64Val(typ.Value)
 			if !ok {
 				return nil, fmt.Errorf("%s: cannot use %s (%s) as %s value", c.fset.Position(expr.Pos()), expr.Print(), expr, typ)
 			}
 
 			v = c.ValueInt(expr.Pos(), expr.End(), op, typ.Type, int64(num))
-		case types.Uint8, types.Uint16, types.Uint32, types.Uint64:
+		case types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64:
 			num, ok := constant.Uint64Val(typ.Value)
 			if !ok {
 				return nil, fmt.Errorf("%s: cannot use %s (%s) as %s value", c.fset.Position(expr.Pos()), expr.Print(), expr, typ)
 			}
 
 			v = c.ValueInt(expr.Pos(), expr.End(), op, typ.Type, int64(num))
+		case types.UntypedInt:
+			v = c.ValueExtra(expr.Pos(), expr.End(), op, typ.Type, typ.Value)
+		default:
+			return nil, fmt.Errorf("%s: failed to compile %s %s into value: unrecognised underlying type: %v", c.fset.Position(expr.Pos()), expr, expr.Print(), types.Underlying(typ.Type))
 		}
 
 		return v, nil
