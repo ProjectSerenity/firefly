@@ -115,8 +115,26 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 				if obj.Parent() == types.Universe {
 					return c.CompileBuiltinFunction(x, obj, sig)
 				}
+
+				params := make([]*ssafir.Value, len(x.Elements[1:]))
+				for i, elt := range x.Elements[1:] {
+					v, err := c.CompileExpression(elt)
+					if err != nil {
+						return nil, err
+					}
+
+					if v == nil {
+						panic(fmt.Sprintf("function param %d (%s %s) compiled to a nil value", i, elt, elt.Print()))
+					}
+
+					params[i] = v
+				}
+
+				v := c.ValueExtra(x.ParenOpen, x.ParenClose+1, ssafir.OpFunctionCall, sig.Result(), obj, params...)
+
+				return v, nil
 			default:
-				println(fmt.Sprintf("bad identifier %T", obj))
+				panic(fmt.Sprintf("bad identifier %T", obj))
 			}
 		}
 
