@@ -62,11 +62,14 @@ var AbstractOps = []OpInfo{
 	{Name: "ConstantUint16"},
 	{Name: "ConstantUint32"},
 	{Name: "ConstantUint64"},
+	{Name: "ConstantUntypedInt"}, // Extra is the constant.Value.
 	// Memory operations.
+	{Name: "Drop", Operands: 1}, // Used for debugging only.
 	{Name: "Copy", Operands: 1}, // Output = operand 0.
 	{Name: "MakeMemoryState", Virtual: true},
 	{Name: "Parameter", Virtual: true}, // ExtraInt is the parameter index into Function.Type.Params.
 	{Name: "MakeResult", Operands: -1},
+	{Name: "FunctionCall", Operands: -1},
 	// Strings.
 	{Name: "StringPtr", Operands: 1},
 	{Name: "StringLen", Operands: 1},

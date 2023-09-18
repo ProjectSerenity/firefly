@@ -262,6 +262,7 @@ func TestCompile(t *testing.T) {
 					Result:      []sys.Location{x86.RAX},
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
+				o5 := types.NewFunction(nil, 466, 481, nil, "product", f5.Type)
 				b51 := f5.NewBlock(466, ssafir.BlockReturn)
 				v511 := b51.NewValue(412, 481, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
 				v512 := b51.NewValueInt(427, 440, ssafir.OpParameter, types.Uint64, 0)
@@ -274,7 +275,30 @@ func TestCompile(t *testing.T) {
 				f5.NamedValues[p52] = []*ssafir.Value{v513}
 				f5.Entry = b51
 
-				pkg.Functions = []*ssafir.Function{f1, f2, f3, f4, f5}
+				f6 := &ssafir.Function{
+					Name:        "maths-examples",
+					Type:        types.NewSignature("(func)", []*types.Variable{}, nil),
+					Params:      [][]sys.Location{},
+					Result:      []sys.Location{},
+					NamedValues: make(map[*types.Variable][]*ssafir.Value),
+				}
+				b61 := f6.NewBlock(508, ssafir.BlockReturn)
+				v611 := b61.NewValue(484, 605, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
+				v613 := b61.NewValueInt(520, 531, ssafir.OpConstantInt64, types.Int, 3)
+				b61.NewValue(508, 532, ssafir.OpCopy, types.Int, v613)
+				v615 := b61.NewValue(543, 562, ssafir.OpCastInt64ToUint64, types.Uint64, v613)
+				v616 := b61.NewValueExtra(564, 565, ssafir.OpConstantUntypedInt, types.UntypedInt, constant.MakeInt64(2))
+				b61.NewValueExtra(534, 566, ssafir.OpFunctionCall, types.Uint64, o5, v615, v616)
+				v618 := b61.NewValueInt(590, 601, ssafir.OpConstantInt64, types.Int, 3)
+				v619 := b61.NewValue(577, 601, ssafir.OpCastInt64ToUint64, types.Uint64, v618)
+				v620 := b61.NewValueExtra(603, 604, ssafir.OpConstantUntypedInt, types.UntypedInt, constant.MakeInt64(2))
+				b61.NewValueExtra(568, 605, ssafir.OpFunctionCall, types.Uint64, o5, v619, v620)
+				v622 := b61.NewValue(568, 605, ssafir.OpMakeResult, ssafir.Result{}, v611)
+				b61.Control = v622
+				b61.End = 605
+				f6.Entry = b61
+
+				pkg.Functions = []*ssafir.Function{f1, f2, f3, f4, f5, f6}
 
 				return pkg
 			})(),
@@ -334,6 +358,24 @@ func TestCompile(t *testing.T) {
 					"	v4 := (MultiplyUint64 v2 v3) uint64",
 					"	v5 := (MakeResult v4 v1) result",
 					"	(Return v5)",
+					"",
+				},
+				// maths-examples
+				{
+					"maths-examples (func)",
+					"b1:",
+					"	v1  := (MakeMemoryState) memory state",
+					"	v2  := (ConstantInt64 (extra 3)) int",
+					"	v3  := (Copy v2) int",
+					"	v4  := (CastInt64ToUint64 v2) uint64",
+					"	v5  := (ConstantUntypedInt (extra 2)) untyped integer",
+					"	v6  := (FunctionCall v4 v5 (extra function product ((func (uint64) (uint64) uint64)))) uint64",
+					"	v7  := (ConstantInt64 (extra 3)) int",
+					"	v8  := (CastInt64ToUint64 v7) uint64",
+					"	v9  := (ConstantUntypedInt (extra 2)) untyped integer",
+					"	v10 := (FunctionCall v8 v9 (extra function product ((func (uint64) (uint64) uint64)))) uint64",
+					"	v11 := (MakeResult v1) result",
+					"	(Return v11)",
 					"",
 				},
 			},

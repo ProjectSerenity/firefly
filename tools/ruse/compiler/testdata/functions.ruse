@@ -23,3 +23,8 @@
 '(abi windows-x64)
 (func (product (base uint64) (scalar uint64) uint64)
 	(* base scalar))
+
+(func (maths-examples)
+	(let length (len "foo"))
+	(product (int->uint64 length) 2)
+	(product (int->uint64 (len "foo")) 2))
