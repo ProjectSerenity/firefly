@@ -587,8 +587,8 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			return nil, fmt.Errorf("unexpected expression type for let left-hand side: %s %s", list.Elements[1], list.Elements[1].Print())
 		}
 
-		c.vars[lhs] = value
 		v := c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpCopy, value.Type, value)
+		c.vars[lhs] = v
 
 		return v, nil
 	case types.SpecialFormAdd:

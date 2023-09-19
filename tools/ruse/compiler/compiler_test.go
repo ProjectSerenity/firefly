@@ -287,8 +287,8 @@ func TestCompile(t *testing.T) {
 				b61 := f6.NewBlock(508, ssafir.BlockReturn)
 				v611 := b61.NewValue(484, 606, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
 				v613 := b61.NewValueInt(520, 531, ssafir.OpConstantInt64, types.Int, 3)
-				b61.NewValue(508, 532, ssafir.OpCopy, types.Int, v613)
-				v615 := b61.NewValue(543, 563, ssafir.OpCastInt64ToUint64, types.Uint64, v613)
+				v614 := b61.NewValue(508, 532, ssafir.OpCopy, types.Int, v613)
+				v615 := b61.NewValue(543, 563, ssafir.OpCastInt64ToUint64, types.Uint64, v614)
 				v616 := b61.NewValueExtra(564, 565, ssafir.OpConstantUntypedInt, types.UntypedInt, constant.MakeInt64(2))
 				b61.NewValueExtra(534, 566, ssafir.OpFunctionCall, types.Uint64, o5, v615, v616)
 				v618 := b61.NewValueInt(590, 601, ssafir.OpConstantInt64, types.Int, 3)
@@ -369,7 +369,7 @@ func TestCompile(t *testing.T) {
 					"	v1  := (MakeMemoryState) memory state",
 					"	v2  := (ConstantInt64 (extra 3)) int",
 					"	v3  := (Copy v2) int",
-					"	v4  := (CastInt64ToUint64 v2) uint64",
+					"	v4  := (CastInt64ToUint64 v3) uint64",
 					"	v5  := (ConstantUntypedInt (extra 2)) untyped integer",
 					"	v6  := (FunctionCall v4 v5 (extra function product ((func (uint64) (uint64) uint64)))) uint64",
 					"	v7  := (ConstantInt64 (extra 3)) int",
