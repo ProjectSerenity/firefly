@@ -81,6 +81,12 @@ func (g *TestAssemblyGroup) Print() {
 }
 
 func TestCompile(t *testing.T) {
+	// These tests are quite verbose, as we try
+	// to recreate the full data structures that
+	// are produced, including the full SSAFIR.
+	//
+	// See also TestCompileTestValues.
+
 	tests := []struct {
 		Name  string
 		Path  string
@@ -544,6 +550,193 @@ func TestCompile(t *testing.T) {
 			}
 
 			if diff := cmp.Diff(want, got); diff != "" {
+				t.Fatalf("Compile(): (-want, +got)\n%s", diff)
+			}
+		})
+	}
+}
+
+// TestValue is a derivation from a ssafir.Value
+// that is designed to be easier to define in
+// literals, making it easier to write and debug
+// tests.
+type TestValue struct {
+	ID    ssafir.ID
+	Op    ssafir.Op
+	Extra any
+	Uses  int
+	Code  string // Produced by extracting value.Pos:value.End.
+}
+
+func ConvertTestValues(fset *token.FileSet, code string, v []*ssafir.Value) []*TestValue {
+	out := make([]*TestValue, len(v))
+	for i, v := range v {
+		if v.Pos == token.NoPos {
+			panic(fmt.Sprintf("ConvertTestValue: value %d (%s): pos is zero", i, v))
+		} else if v.End == token.NoPos {
+			panic(fmt.Sprintf("ConvertTestValue: value %d (%s): end is zero", i, v))
+		}
+
+		pos := fset.Position(v.Pos)
+		end := fset.Position(v.End)
+		snippet := code[pos.Offset:end.Offset]
+		out[i] = &TestValue{
+			ID:    v.ID,
+			Op:    v.Op,
+			Extra: v.Extra,
+			Uses:  v.Uses,
+			Code:  snippet,
+		}
+	}
+
+	return out
+}
+
+func TestCompileTestValues(t *testing.T) {
+	// These tests focus more on the logical
+	// compilation process, ensuring that
+	// Ruse code is compiled to the right
+	// set of operations.
+	//
+	// See also TestCompile.
+
+	tests := []struct {
+		Name string
+		Code string
+		Want []*TestValue
+	}{
+		{
+			Name: "no-op",
+			Code: `
+				(package test)
+
+				(func (test (a string) (b int))
+					(let _ a))
+			`,
+			Want: []*TestValue{
+				{ID: 1, Op: ssafir.OpMakeMemoryState, Uses: 1, Code: `(func (test (a string) (b int))
+					(let _ a))`},
+				{ID: 2, Op: ssafir.OpParameter, Extra: int64(0), Uses: 1, Code: `(a string)`},
+				{ID: 3, Op: ssafir.OpParameter, Extra: int64(1), Uses: 0, Code: `(b int)`},
+				{ID: 4, Op: ssafir.OpCopy, Uses: 0, Code: `(let _ a)`},
+				{ID: 5, Op: ssafir.OpMakeResult, Uses: 0, Code: `(let _ a)`},
+			},
+		},
+		{
+			Name: "passthrough",
+			Code: `
+				(package test)
+
+				(func (test (a string) (b int) int)
+					(let c b)
+					c)
+			`,
+			Want: []*TestValue{
+				{ID: 1, Op: ssafir.OpMakeMemoryState, Uses: 1, Code: `(func (test (a string) (b int) int)
+					(let c b)
+					c)`},
+				{ID: 2, Op: ssafir.OpParameter, Extra: int64(0), Uses: 0, Code: `(a string)`},
+				{ID: 3, Op: ssafir.OpParameter, Extra: int64(1), Uses: 1, Code: `(b int)`},
+				{ID: 4, Op: ssafir.OpCopy, Uses: 1, Code: `(let c b)`},
+				{ID: 5, Op: ssafir.OpMakeResult, Uses: 1, Code: `c`},
+			},
+		},
+		{
+			Name: "call",
+			Code: `
+				(package test)
+
+				'(abi (abi
+					(params rdi)
+					(result rax)))
+				(asm-func (double (in int) int)
+					(mov rax rdi)
+					(add rax rax)
+					(ret))
+
+				(func (test int)
+					(let length (len "foobar"))
+					(double (len "bar"))
+					(double length))
+			`,
+			Want: []*TestValue{
+				{ID: 1, Op: ssafir.OpMakeMemoryState, Uses: 1, Code: `(func (test int)
+					(let length (len "foobar"))
+					(double (len "bar"))
+					(double length))`},
+				{ID: 2, Op: ssafir.OpConstantInt64, Extra: int64(6), Uses: 1, Code: `(len "foobar")`},
+				{ID: 3, Op: ssafir.OpCopy, Uses: 1, Code: `(let length (len "foobar"))`},
+				{ID: 4, Op: ssafir.OpConstantInt64, Extra: int64(3), Uses: 1, Code: `(len "bar")`},
+				{ID: 5, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 0, Code: `(double (len "bar"))`},
+				{ID: 6, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 1, Code: `(double length)`},
+				{ID: 7, Op: ssafir.OpMakeResult, Uses: 1, Code: `(double length)`},
+			},
+		},
+	}
+
+	compareOptions := []cmp.Option{
+		cmpopts.IgnoreTypes(new(types.Function)),
+	}
+
+	arch := sys.X86_64
+	sizes := types.SizesFor(arch)
+	if err := arch.Validate(&arch.DefaultABI); err != nil {
+		t.Fatalf("invalid test ABI: %v", err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			// Compile the code.
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, "test.ruse", test.Code, 0)
+			if err != nil {
+				t.Fatalf("failed to parse text: %v", err)
+			}
+
+			files := []*ast.File{file}
+
+			info := &types.Info{
+				Types:       make(map[ast.Expression]types.TypeAndValue),
+				Definitions: make(map[*ast.Identifier]types.Object),
+				Uses:        make(map[*ast.Identifier]types.Object),
+			}
+
+			testPath := "tests/test"
+			pkg, err := types.Check(testPath, fset, files, arch, info)
+			if err != nil {
+				t.Fatalf("failed to type-check package: %v", err)
+			}
+
+			p, err := Compile(fset, arch, pkg, files, info, sizes)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			// Find the test function.
+			var testFunc *ssafir.Function
+			for _, fun := range p.Functions {
+				if fun.Name == "test" {
+					testFunc = fun
+					break
+				}
+			}
+
+			if testFunc == nil {
+				names := make([]string, len(p.Functions))
+				for i, fun := range p.Functions {
+					names[i] = fun.Name
+				}
+
+				t.Fatalf("failed to find test function: found %s", strings.Join(names, ", "))
+			}
+
+			var testValues []*TestValue
+			for _, b := range testFunc.Blocks {
+				testValues = append(testValues, ConvertTestValues(fset, test.Code, b.Values)...)
+			}
+
+			if diff := cmp.Diff(test.Want, testValues, compareOptions...); diff != "" {
+				t.Log(testFunc.Print())
 				t.Fatalf("Compile(): (-want, +got)\n%s", diff)
 			}
 		})
