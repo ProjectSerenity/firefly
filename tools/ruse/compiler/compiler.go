@@ -42,8 +42,8 @@ func EncodeTo(w io.Writer, fset *token.FileSet, arch *sys.Arch, fun *ssafir.Func
 		return err
 	}
 
-	switch arch.Name {
-	case "x86-64":
+	switch arch {
+	case sys.X86_64:
 		return encodeX86(w, fset, fun)
 	default:
 		return fmt.Errorf("unsupported architecture: %s", arch.Name)
@@ -52,8 +52,8 @@ func EncodeTo(w io.Writer, fset *token.FileSet, arch *sys.Arch, fun *ssafir.Func
 
 // assemble compiles an assembly function.
 func assemble(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assembly *ast.List, info *types.Info, sizes types.Sizes) (*ssafir.Function, error) {
-	switch arch.Name {
-	case "x86-64":
+	switch arch {
+	case sys.X86_64:
 		return assembleX86(fset, arch, pkg, assembly, info, sizes)
 	default:
 		return nil, fmt.Errorf("unsupported architecture: %s", arch.Name)
