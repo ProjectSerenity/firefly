@@ -579,6 +579,12 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		var lhs *types.Variable
 		switch elt := list.Elements[1].(type) {
 		case *ast.Identifier:
+			// No need to emit actions for storing
+			// to the nil identifier (`_`).
+			if elt.Name == "_" {
+				return nil, nil
+			}
+
 			lhs = c.info.Definitions[elt].(*types.Variable)
 		case *ast.List:
 			ident := elt.Elements[0].(*ast.Identifier)

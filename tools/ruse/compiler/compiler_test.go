@@ -183,9 +183,8 @@ func TestCompile(t *testing.T) {
 				b21 := f2.NewBlock(145, ssafir.BlockReturn)
 				v211 := b21.NewValue(112, 155, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
 				v212 := b21.NewValueInt(134, 142, ssafir.OpParameter, types.Byte, 0)
-				b21.NewValue(145, 154, ssafir.OpCopy, types.Byte, v212)
-				v214 := b21.NewValue(145, 154, ssafir.OpMakeResult, ssafir.Result{}, v211)
-				b21.Control = v214
+				v213 := b21.NewValue(145, 154, ssafir.OpMakeResult, ssafir.Result{}, v211)
+				b21.Control = v213
 				b21.End = 154
 				f2.NamedValues[p21] = []*ssafir.Value{v212}
 				f2.Entry = b21
@@ -205,8 +204,7 @@ func TestCompile(t *testing.T) {
 				v313 := b31.NewValueInt(190, 200, ssafir.OpParameter, types.String, 1)
 				v314 := b31.NewValue(227, 234, ssafir.OpStringLen, types.Int, v313)
 				v315 := b31.NewValue(215, 235, ssafir.OpCastInt64ToInt32, types.Int32, v314)
-				v316 := b31.NewValue(213, 235, ssafir.OpAddInt32, types.Int32, v312, v315)
-				b31.NewValue(203, 237, ssafir.OpCopy, types.Int32, v316)
+				b31.NewValue(213, 235, ssafir.OpAddInt32, types.Int32, v312, v315)
 				v317 := b31.NewValue(203, 237, ssafir.OpMakeResult, ssafir.Result{}, v311)
 				b31.Control = v317
 				b31.End = 237
@@ -325,9 +323,8 @@ func TestCompile(t *testing.T) {
 					"b1:",
 					"	v1 := (MakeMemoryState) memory state",
 					"	v2 := (Parameter (extra 0)) byte (x)",
-					"	v3 := (Copy v2) byte",
-					"	v4 := (MakeResult v1) result",
-					"	(Return v4)",
+					"	v3 := (MakeResult v1) result",
+					"	(Return v3)",
 					"",
 				},
 				{
@@ -339,9 +336,8 @@ func TestCompile(t *testing.T) {
 					"	v4 := (StringLen v3) int",
 					"	v5 := (CastInt64ToInt32 v4) int32",
 					"	v6 := (AddInt32 v2 v5) int32",
-					"	v7 := (Copy v6) int32",
-					"	v8 := (MakeResult v1) result",
-					"	(Return v8)",
+					"	v7 := (MakeResult v1) result",
+					"	(Return v7)",
 					"",
 				},
 				// add1
@@ -616,10 +612,9 @@ func TestCompileTestValues(t *testing.T) {
 			Want: []*TestValue{
 				{ID: 1, Op: ssafir.OpMakeMemoryState, Uses: 1, Code: `(func (test (a string) (b int))
 					(let _ a))`},
-				{ID: 2, Op: ssafir.OpParameter, Extra: int64(0), Uses: 1, Code: `(a string)`},
+				{ID: 2, Op: ssafir.OpParameter, Extra: int64(0), Uses: 0, Code: `(a string)`},
 				{ID: 3, Op: ssafir.OpParameter, Extra: int64(1), Uses: 0, Code: `(b int)`},
-				{ID: 4, Op: ssafir.OpCopy, Uses: 0, Code: `(let _ a)`},
-				{ID: 5, Op: ssafir.OpMakeResult, Uses: 0, Code: `(let _ a)`},
+				{ID: 4, Op: ssafir.OpMakeResult, Uses: 0, Code: `(let _ a)`},
 			},
 		},
 		{
