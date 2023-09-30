@@ -7,6 +7,7 @@ package compiler
 
 import (
 	"fmt"
+	"go/constant"
 	"slices"
 	"strings"
 
@@ -542,6 +543,18 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 				case 0:
 					a.addAlloc(v, &Alloc{Dst: loc, Data: s})
 				case 1:
+					a.addOpAlloc(v, ssafir.OpConstantUntypedInt, &Alloc{Dst: loc, Data: int64(len(s))})
+				}
+
+				continue
+			}
+
+			if val, ok := v.Extra.(constant.Value); ok && val.Kind() == constant.String {
+				switch i {
+				case 0:
+					a.addAlloc(v, &Alloc{Dst: loc, Data: val})
+				case 1:
+					s := constant.StringVal(val)
 					a.addOpAlloc(v, ssafir.OpConstantUntypedInt, &Alloc{Dst: loc, Data: int64(len(s))})
 				}
 

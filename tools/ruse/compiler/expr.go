@@ -202,6 +202,36 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 		default:
 			return nil, fmt.Errorf("%s: failed to compile %s (%T): unsupported expression type %T", c.fset.Position(expr.Pos()), expr.Print(), expr, obj)
 		}
+	case *ast.Qualified:
+		ident := x.Y
+		if obj, ok := c.info.Definitions[ident].(*types.Variable); ok {
+			if v := c.vars[obj]; v != nil {
+				return v, nil
+			}
+		}
+
+		switch obj := c.info.Uses[ident].(type) {
+		case *types.Constant:
+			var op ssafir.Op
+			val := obj.Value()
+			switch val.Kind() {
+			case constant.Int:
+				op = ssafir.OpConstantUntypedInt
+			case constant.String:
+				op = ssafir.OpConstantString
+			default:
+				return nil, fmt.Errorf("%s: failed to compile %s (%T): unsupported expression type %s constant", c.fset.Position(expr.Pos()), expr.Print(), expr, val.Kind())
+			}
+
+			v := c.ValueExtra(x.Pos(), x.End(), op, obj.Type(), val)
+			return v, nil
+		case *types.Variable:
+			if v := c.vars[obj]; v != nil {
+				return v, nil
+			}
+		default:
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): unsupported expression type %T", c.fset.Position(expr.Pos()), expr.Print(), expr, obj)
+		}
 	}
 
 	return nil, fmt.Errorf("%s: failed to compile %s (%T): unsupported expression type %s", c.fset.Position(expr.Pos()), expr.Print(), expr, typ)

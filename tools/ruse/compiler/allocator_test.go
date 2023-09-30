@@ -111,11 +111,20 @@ func TestAllocator(t *testing.T) {
 					(add rax rax)
 					(ret))
 
+				'(abi (abi
+					(params rdi rsi)
+					(result rax)))
+				(asm-func (half-string-length (s string) int)
+					(mov rax rsi)
+					(shr rax 1)
+					(ret))
+
 				(func (test int)
 					(let length (len "foobar"))
 					(double (len "bar"))
 					(double length)
 					(double 7)
+					(half-string-length "foo")
 					(let (val int) 17)
 					(double val))
 			`,
@@ -126,18 +135,21 @@ func TestAllocator(t *testing.T) {
 				{ID: 6, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 0, Code: `(double length)`},
 				{ID: 7, Op: ssafir.OpConstantUntypedInt, Extra: &Alloc{Dst: x86.RDI, Data: constant.MakeInt64(7)}, Uses: 1, Code: `7`},
 				{ID: 8, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 0, Code: `(double 7)`},
-				{ID: 10, Op: ssafir.OpConstantUntypedInt, Extra: &Alloc{Dst: x86.RDI, Data: constant.MakeInt64(17)}, Uses: 1, Code: `val`},
-				{ID: 11, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 1, Code: `(double val)`},
-				{ID: 11, Op: ssafir.OpMakeResult, Extra: &Alloc{Dst: x86.RAX, Src: x86.RAX}, Uses: 1, Code: `(double val)`},
-				{ID: 12, Op: ssafir.OpMakeResult, Extra: &Alloc{Dst: x86.RAX, Src: x86.RAX}, Uses: 1, Code: `(double val)`},
+				{ID: 9, Op: ssafir.OpConstantString, Extra: &Alloc{Dst: x86.RDI, Data: "foo"}, Uses: 1, Code: `"foo"`},
+				{ID: 9, Op: ssafir.OpConstantUntypedInt, Extra: &Alloc{Dst: x86.RSI, Data: int64(3)}, Uses: 1, Code: `"foo"`},
+				{ID: 10, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 0, Code: `(half-string-length "foo")`},
+				{ID: 12, Op: ssafir.OpConstantUntypedInt, Extra: &Alloc{Dst: x86.RDI, Data: constant.MakeInt64(17)}, Uses: 1, Code: `val`},
+				{ID: 13, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 1, Code: `(double val)`},
+				{ID: 13, Op: ssafir.OpMakeResult, Extra: &Alloc{Dst: x86.RAX, Src: x86.RAX}, Uses: 1, Code: `(double val)`},
+				{ID: 14, Op: ssafir.OpMakeResult, Extra: &Alloc{Dst: x86.RAX, Src: x86.RAX}, Uses: 1, Code: `(double val)`},
 			},
 			Text: []string{
 				"allocator for test (func int)",
-				"  rax:  v12",
+				"  rax:  v14",
 				"  rcx:  [free]",
 				"  rdx:  [free]",
-				"  rsi:  [free]",
-				"  rdi:  v10",
+				"  rsi:  v9",
+				"  rdi:  v12",
 				"  r8:   [free]",
 				"  r9:   [free]",
 				"  r10:  [free]",
