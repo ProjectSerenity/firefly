@@ -156,6 +156,25 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return err
 	}
 
+	// Allocate registers and lower the instructions
+	// for Ruse functions.
+	for _, fun := range p.Functions {
+		// Skip assembly functions.
+		if fun.Code.Elements[0].(*ast.Identifier).Name != "func" {
+			continue
+		}
+
+		err = compiler.Allocate(fset, arch, sizes, fun)
+		if err != nil {
+			return err
+		}
+
+		err = compiler.Lower(fset, arch, sizes, fun)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Put the main function first.
 	sort.Slice(p.Functions, func(i, j int) bool {
 		switch {
