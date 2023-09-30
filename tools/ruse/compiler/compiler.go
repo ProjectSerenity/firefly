@@ -274,3 +274,12 @@ func (c *compiler) AddFunctionInitialValues() {
 		c.fun.NamedValues[params[i]] = []*ssafir.Value{v}
 	}
 }
+
+// tempLink stores a link-level action that
+// needs to take place, but with some extra
+// context needed during the assembly phase.
+type tempLink struct {
+	Link         *ssafir.Link
+	InnerOffset  int     // Offset within an instruction.
+	InnerAddress uintptr // Address within an instruction.
+}

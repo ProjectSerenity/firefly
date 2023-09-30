@@ -90,15 +90,6 @@ type x86InstructionCandidate struct {
 	Data *x86InstructionData
 }
 
-// tempLink stores a link-level action that
-// needs to take place, but with some extra
-// context needed during the assembly phase.
-type tempLink struct {
-	Link         *ssafir.Link
-	InnerOffset  int     // Offset within an instruction.
-	InnerAddress uintptr // Address within an instruction.
-}
-
 // x86OpToInstruction maps a `ssafir.Op` to
 // an `*x86.Instruction`. If the op is not
 // an x86 instruction, `nil` is returned.
