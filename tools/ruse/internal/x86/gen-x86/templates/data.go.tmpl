@@ -76,3 +76,18 @@ var Instructions = []*Instruction{ {{- range .Instructions }}
 var InstructionsByUID = map[string]*Instruction{ {{- range .Instructions }}
 	"{{ .UID }}": {{ .UID }},{{ end }}
 }
+
+// ToSize returns the version of `r` that
+// references the lowest `n` bits of the
+// register.
+func (r *Register) ToSize(n int) (sized *Register, ok bool) {
+	switch r { {{- range .Registers }}
+	case {{ .Register.UpperName }}:
+		switch n { {{- range .Others }}
+		case {{ .Bits }}:
+			return {{ .UpperName }}, true{{ end }}
+		}{{ end }}
+	}
+
+	return nil, false
+}

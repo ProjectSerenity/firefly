@@ -534,10 +534,12 @@ func main() {
 	var data struct {
 		Command      string
 		Instructions []*x86.Instruction
+		Registers    []registerSizeMapping
 	}
 
 	data.Command = "//tools/ruse/internal/x86/gen-x86"
 	data.Instructions = instructions
+	data.Registers = buildRegisterSegmentMappings()
 
 	var b bytes.Buffer
 	err = templates.ExecuteTemplate(&b, "data.go.tmpl", data)

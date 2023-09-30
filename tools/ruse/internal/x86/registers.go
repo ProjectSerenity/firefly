@@ -572,6 +572,63 @@ var (
 		ZMM16, ZMM17, ZMM18, ZMM19, ZMM20, ZMM21, ZMM22, ZMM23,
 		ZMM24, ZMM25, ZMM26, ZMM27, ZMM28, ZMM29, ZMM30, ZMM31,
 	}
+
+	// RegisterSegments collects together
+	// cases where different sections of
+	// the same register can be referenced
+	// by different mnemonics, such as `al`,
+	// `ax`, `eax`, and `rax`, which reference
+	// different segments of the `a` register.
+	RegisterSegments = [][]*Register{
+		{AL, AX, EAX, RAX},
+		{CL, CX, ECX, RCX},
+		{DL, DX, EDX, RDX},
+		{BL, BX, EBX, RBX},
+		{BPL, BP, EBP, RBP},
+		{SIL, SI, ESI, RSI},
+		{DIL, DI, EDI, RDI},
+		{R8L, R8W, R8D, R8},
+		{R9L, R9W, R9D, R9},
+		{R10L, R10W, R10D, R10},
+		{R11L, R11W, R11D, R11},
+		{R12L, R12W, R12D, R12},
+		{R13L, R13W, R13D, R13},
+		{R14L, R14W, R14D, R14},
+		{R15L, R15W, R15D, R15},
+		{IP, EIP, RIP},
+		{XMM0, YMM0, ZMM0},
+		{XMM1, YMM1, ZMM1},
+		{XMM2, YMM2, ZMM2},
+		{XMM3, YMM3, ZMM3},
+		{XMM4, YMM4, ZMM4},
+		{XMM5, YMM5, ZMM5},
+		{XMM6, YMM6, ZMM6},
+		{XMM7, YMM7, ZMM7},
+		{XMM8, YMM8, ZMM8},
+		{XMM9, YMM9, ZMM9},
+		{XMM10, YMM10, ZMM10},
+		{XMM11, YMM11, ZMM11},
+		{XMM12, YMM12, ZMM12},
+		{XMM13, YMM13, ZMM13},
+		{XMM14, YMM14, ZMM14},
+		{XMM15, YMM15, ZMM15},
+		{XMM16, YMM16, ZMM16},
+		{XMM17, YMM17, ZMM17},
+		{XMM18, YMM18, ZMM18},
+		{XMM19, YMM19, ZMM19},
+		{XMM20, YMM20, ZMM20},
+		{XMM21, YMM21, ZMM21},
+		{XMM22, YMM22, ZMM22},
+		{XMM23, YMM23, ZMM23},
+		{XMM24, YMM24, ZMM24},
+		{XMM25, YMM25, ZMM25},
+		{XMM26, YMM26, ZMM26},
+		{XMM27, YMM27, ZMM27},
+		{XMM28, YMM28, ZMM28},
+		{XMM29, YMM29, ZMM29},
+		{XMM30, YMM30, ZMM30},
+		{XMM31, YMM31, ZMM31},
+	}
 )
 
 // RegisterSizes maps the names of fixed-size

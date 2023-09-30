@@ -26,6 +26,7 @@ go_library(
         "errors.go",
         "extras.go",
         "main.go",
+        "registers.go",
         "stats.go",
         "structs.go",
     ],
