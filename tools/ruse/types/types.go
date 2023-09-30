@@ -749,6 +749,25 @@ func (c *checker) CheckTopLevelFuncDecl(parent *Scope, fun *ast.List) error {
 			if !archOk {
 				return nil
 			}
+		case "mode":
+			if len(anno.X.Elements[1:]) != 1 {
+				return c.errorf(anno.X.ParenOpen, "invalid mode: expected one mode value")
+			}
+
+			// We accept an integer or identifier, depending
+			// on architecture.
+			switch mode := anno.X.Elements[1].(type) {
+			case *ast.Identifier:
+			case *ast.Literal:
+				if mode.Kind != token.Integer {
+					return c.errorf(mode.Pos(), "invalid mode: expected identifier or integer, got %s", mode.Print())
+				}
+			default:
+				return c.errorf(anno.X.Elements[1].Pos(), "invalid mode: expected identifier or integer, got %s", anno.X.Elements[1].Print())
+			}
+
+			// Otherwise ignored by the type checker.
+			continue
 		default:
 			return c.errorf(kind.NamePos, "unrecognised annotation: %s", kind.Name)
 		}
