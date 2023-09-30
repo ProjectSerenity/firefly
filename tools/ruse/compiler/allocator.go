@@ -132,7 +132,8 @@ func (a *allocator) run() error {
 			a.NoteParameter(v)
 		case ssafir.OpConstantInt64,
 			ssafir.OpConstantUint64,
-			ssafir.OpConstantString:
+			ssafir.OpConstantString,
+			ssafir.OpConstantUntypedInt:
 			// No need to do anything here,
 			// we'll pull the value when it's
 			// used.
@@ -546,7 +547,9 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 			continue
 		}
 
-		a.addOpAlloc(v, ssafir.OpCopy, &Alloc{Dst: loc, Src: a.locations[v][i]})
+		if i < len(a.locations[v]) {
+			a.addOpAlloc(v, ssafir.OpCopy, &Alloc{Dst: loc, Src: a.locations[v][i]})
+		}
 	}
 
 	a.locations[v] = append(a.locations[v][:0], locs...)
