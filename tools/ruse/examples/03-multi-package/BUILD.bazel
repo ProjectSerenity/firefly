@@ -6,25 +6,25 @@
 load("//tools/ruse:def.bzl", "ruse_binary", "ruse_library")
 
 ruse_library(
-    name = "printer",
+    name = "syscalls",
     srcs = [
-        "printer.ruse",
+        "syscalls.ruse",
     ],
     arch = "x86-64",
-    package_path = "firefly-os.dev/tools/ruse/examples/printer",
+    package_path = "firefly-os.dev/tools/ruse/examples/syscalls",
     visibility = ["//visibility:private"],
 )
 
 ruse_library(
     name = "hello-world_lib",
     srcs = [
-        "multipackage.ruse",
+        "main.ruse",
     ],
     arch = "x86-64",
     package_path = "firefly-os.dev/tools/ruse/examples/multipackage",
     visibility = ["//visibility:private"],
     deps = [
-        ":printer",
+        ":syscalls",
     ],
 )
 
