@@ -526,7 +526,8 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 		// Constants are floating.
 		isConstant := func(v *ssafir.Value) bool {
 			switch v.Op {
-			case ssafir.OpConstantInt64, ssafir.OpConstantUint64:
+			case ssafir.OpConstantInt64, ssafir.OpConstantUint64,
+				ssafir.OpConstantUntypedInt, ssafir.OpConstantString:
 				return true
 			}
 

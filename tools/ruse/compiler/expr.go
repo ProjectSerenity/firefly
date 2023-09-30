@@ -136,15 +136,57 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 			default:
 				panic(fmt.Sprintf("bad identifier %T", obj))
 			}
+		case *ast.Qualified:
+			ident := op.Y
+			obj := c.info.Uses[ident]
+			typ := c.info.Types[x.Elements[0]]
+			switch obj := obj.(type) {
+			case *types.SpecialForm:
+				sig := typ.Type.(*types.Signature)
+				return c.CompileSpecialForm(x, obj, sig)
+			case *types.Function:
+				sig := obj.Type().(*types.Signature)
+				if obj.Parent() == types.Universe {
+					return c.CompileBuiltinFunction(x, obj, sig)
+				}
+
+				params := make([]*ssafir.Value, len(x.Elements[1:]))
+				for i, elt := range x.Elements[1:] {
+					v, err := c.CompileExpression(elt)
+					if err != nil {
+						return nil, err
+					}
+
+					if v == nil {
+						panic(fmt.Sprintf("function param %d (%s %s) compiled to a nil value", i, elt, elt.Print()))
+					}
+
+					params[i] = v
+				}
+
+				v := c.ValueExtra(x.ParenOpen, x.ParenClose+1, ssafir.OpFunctionCall, sig.Result(), obj, params...)
+
+				return v, nil
+			default:
+				panic(fmt.Sprintf("bad identifier %T", obj))
+			}
 		}
 
 	// Variable.
 	case *ast.Identifier:
+		if obj, ok := c.info.Definitions[x].(*types.Variable); ok {
+			if v := c.vars[obj]; v != nil {
+				return v, nil
+			}
+		}
+
 		switch obj := c.info.Uses[x].(type) {
 		case *types.Variable:
 			if v := c.vars[obj]; v != nil {
 				return v, nil
 			}
+		default:
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): unsupported expression type %T", c.fset.Position(expr.Pos()), expr.Print(), expr, obj)
 		}
 	}
 

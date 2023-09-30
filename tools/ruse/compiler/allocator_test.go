@@ -6,6 +6,7 @@
 package compiler
 
 import (
+	"go/constant"
 	"strings"
 	"testing"
 
@@ -113,23 +114,26 @@ func TestAllocator(t *testing.T) {
 				(func (test int)
 					(let length (len "foobar"))
 					(double (len "bar"))
-					(double length))
+					(double length)
+					(double 7))
 			`,
 			Want: []*TestValue{
 				{ID: 4, Op: ssafir.OpConstantInt64, Extra: &Alloc{Dst: x86.RDI, Data: int64(3)}, Uses: 1, Code: `(len "bar")`},
 				{ID: 5, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 0, Code: `(double (len "bar"))`},
 				{ID: 3, Op: ssafir.OpCopy, Extra: &Alloc{Dst: x86.RDI, Data: int64(6)}, Uses: 1, Code: `(let length (len "foobar"))`},
-				{ID: 6, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 1, Code: `(double length)`},
-				{ID: 6, Op: ssafir.OpMakeResult, Extra: &Alloc{Dst: x86.RAX, Src: x86.RAX}, Uses: 1, Code: `(double length)`},
-				{ID: 7, Op: ssafir.OpMakeResult, Extra: &Alloc{Dst: x86.RAX, Src: x86.RAX}, Uses: 1, Code: `(double length)`},
+				{ID: 6, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 0, Code: `(double length)`},
+				{ID: 7, Op: ssafir.OpConstantUntypedInt, Extra: &Alloc{Dst: x86.RDI, Data: constant.MakeInt64(7)}, Uses: 1, Code: `7`},
+				{ID: 8, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 1, Code: `(double 7)`},
+				{ID: 8, Op: ssafir.OpMakeResult, Extra: &Alloc{Dst: x86.RAX, Src: x86.RAX}, Uses: 1, Code: `(double 7)`},
+				{ID: 9, Op: ssafir.OpMakeResult, Extra: &Alloc{Dst: x86.RAX, Src: x86.RAX}, Uses: 1, Code: `(double 7)`},
 			},
 			Text: []string{
 				"allocator for test (func int)",
-				"  rax:  v7",
+				"  rax:  v9",
 				"  rcx:  [free]",
 				"  rdx:  [free]",
 				"  rsi:  [free]",
-				"  rdi:  v3",
+				"  rdi:  v7",
 				"  r8:   [free]",
 				"  r9:   [free]",
 				"  r10:  [free]",
