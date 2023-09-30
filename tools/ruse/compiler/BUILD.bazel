@@ -18,6 +18,7 @@ genrule(
 go_library(
     name = "compiler",
     srcs = [
+        "allocator.go",
         "compiler.go",
         "expr.go",
         "x86-assemble.go",
@@ -40,6 +41,7 @@ go_test(
     name = "compiler_test",
     size = "small",
     srcs = [
+        "allocator_test.go",
         "compiler_test.go",
         "x86-encode_test.go",
         "x86_test.go",
@@ -50,5 +52,6 @@ go_test(
         "//tools/ruse/parser",
         "//vendor/github.com/google/go-cmp/cmp",
         "//vendor/github.com/google/go-cmp/cmp/cmpopts",
+        "//vendor/rsc.io/diff",
     ],
 )
