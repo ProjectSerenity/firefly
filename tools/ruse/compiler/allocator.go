@@ -535,6 +535,19 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 		}
 
 		if isConstant(v) {
+			// String constants are a little more complex,
+			// as they come in two parts.
+			if s, ok := v.Extra.(string); ok {
+				switch i {
+				case 0:
+					a.addAlloc(v, &Alloc{Dst: loc, Data: s})
+				case 1:
+					a.addOpAlloc(v, ssafir.OpConstantUntypedInt, &Alloc{Dst: loc, Data: int64(len(s))})
+				}
+
+				continue
+			}
+
 			a.addAlloc(v, &Alloc{Dst: loc, Data: v.Extra})
 
 			continue
