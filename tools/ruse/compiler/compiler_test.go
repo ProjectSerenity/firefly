@@ -165,7 +165,7 @@ func TestCompile(t *testing.T) {
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b11 := f1.NewBlock(93, ssafir.BlockReturn)
-				v111 := b11.NewValue(67, 110, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
+				v111 := b11.NewValue(68, 91, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
 				b11.NewValueInt(93, 109, ssafir.OpConstantInt8, types.Int8, 0)
 				v113 := b11.NewValue(93, 109, ssafir.OpMakeResult, ssafir.Result{}, v111)
 				b11.Control = v113
@@ -181,7 +181,7 @@ func TestCompile(t *testing.T) {
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b21 := f2.NewBlock(145, ssafir.BlockReturn)
-				v211 := b21.NewValue(112, 155, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
+				v211 := b21.NewValue(113, 143, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
 				v212 := b21.NewValueInt(134, 142, ssafir.OpParameter, types.Byte, 0)
 				v213 := b21.NewValue(145, 154, ssafir.OpMakeResult, ssafir.Result{}, v211)
 				b21.Control = v213
@@ -199,7 +199,7 @@ func TestCompile(t *testing.T) {
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b31 := f3.NewBlock(203, ssafir.BlockReturn)
-				v311 := b31.NewValue(157, 238, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
+				v311 := b31.NewValue(158, 201, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
 				v312 := b31.NewValueInt(180, 189, ssafir.OpParameter, types.Int32, 0)
 				v313 := b31.NewValueInt(190, 200, ssafir.OpParameter, types.String, 1)
 				v314 := b31.NewValue(227, 234, ssafir.OpStringLen, types.Int, v313)
@@ -221,7 +221,7 @@ func TestCompile(t *testing.T) {
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b41 := f4.NewBlock(268, ssafir.BlockReturn)
-				v411 := b41.NewValue(240, 276, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
+				v411 := b41.NewValue(241, 266, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
 				v412 := b41.NewValueInt(252, 260, ssafir.OpParameter, types.Int8, 0)
 				v413 := b41.NewValueInt(273, 274, ssafir.OpConstantInt8, types.Int8, 1)
 				v414 := b41.NewValue(271, 274, ssafir.OpAddInt8, types.Int8, v412, v413)
@@ -269,7 +269,7 @@ func TestCompile(t *testing.T) {
 				}
 				o5 := types.NewFunction(nil, 466, 481, nil, "product", f5.Type)
 				b51 := f5.NewBlock(466, ssafir.BlockReturn)
-				v511 := b51.NewValue(412, 482, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
+				v511 := b51.NewValue(413, 464, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
 				v512 := b51.NewValueInt(427, 440, ssafir.OpParameter, types.Uint64, 0)
 				v513 := b51.NewValueInt(441, 456, ssafir.OpParameter, types.Uint64, 1)
 				v514 := b51.NewValue(469, 480, ssafir.OpMultiplyUint64, types.Uint64, v512, v513)
@@ -289,7 +289,7 @@ func TestCompile(t *testing.T) {
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b61 := f6.NewBlock(508, ssafir.BlockReturn)
-				v611 := b61.NewValue(484, 606, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
+				v611 := b61.NewValue(485, 506, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
 				v613 := b61.NewValueInt(520, 531, ssafir.OpConstantInt64, types.Int, 3)
 				v614 := b61.NewValue(508, 532, ssafir.OpCopy, types.Int, v613)
 				v615 := b61.NewValue(543, 563, ssafir.OpCastInt64ToUint64, types.Uint64, v614)
@@ -610,8 +610,7 @@ func TestCompileTestValues(t *testing.T) {
 					(let _ a))
 			`,
 			Want: []*TestValue{
-				{ID: 1, Op: ssafir.OpMakeMemoryState, Uses: 1, Code: `(func (test (a string) (b int))
-					(let _ a))`},
+				{ID: 1, Op: ssafir.OpMakeMemoryState, Uses: 1, Code: `func (test (a string) (b int))`},
 				{ID: 2, Op: ssafir.OpParameter, Extra: int64(0), Uses: 0, Code: `(a string)`},
 				{ID: 3, Op: ssafir.OpParameter, Extra: int64(1), Uses: 0, Code: `(b int)`},
 				{ID: 4, Op: ssafir.OpMakeResult, Uses: 0, Code: `(let _ a)`},
@@ -627,9 +626,7 @@ func TestCompileTestValues(t *testing.T) {
 					c)
 			`,
 			Want: []*TestValue{
-				{ID: 1, Op: ssafir.OpMakeMemoryState, Uses: 1, Code: `(func (test (a string) (b int) int)
-					(let c b)
-					c)`},
+				{ID: 1, Op: ssafir.OpMakeMemoryState, Uses: 1, Code: `func (test (a string) (b int) int)`},
 				{ID: 2, Op: ssafir.OpParameter, Extra: int64(0), Uses: 0, Code: `(a string)`},
 				{ID: 3, Op: ssafir.OpParameter, Extra: int64(1), Uses: 1, Code: `(b int)`},
 				{ID: 4, Op: ssafir.OpCopy, Uses: 1, Code: `(let c b)`},
@@ -655,10 +652,7 @@ func TestCompileTestValues(t *testing.T) {
 					(double length))
 			`,
 			Want: []*TestValue{
-				{ID: 1, Op: ssafir.OpMakeMemoryState, Uses: 1, Code: `(func (test int)
-					(let length (len "foobar"))
-					(double (len "bar"))
-					(double length))`},
+				{ID: 1, Op: ssafir.OpMakeMemoryState, Uses: 1, Code: `func (test int)`},
 				{ID: 2, Op: ssafir.OpConstantInt64, Extra: int64(6), Uses: 1, Code: `(len "foobar")`},
 				{ID: 3, Op: ssafir.OpCopy, Uses: 1, Code: `(let length (len "foobar"))`},
 				{ID: 4, Op: ssafir.OpConstantInt64, Extra: int64(3), Uses: 1, Code: `(len "bar")`},

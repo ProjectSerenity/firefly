@@ -261,7 +261,7 @@ func (c *compiler) AddFunctionPrelude() {
 }
 
 func (c *compiler) AddFunctionInitialValues() {
-	c.lastMemoryState = c.fun.Entry.NewValue(c.list.ParenOpen, c.list.ParenClose+1, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
+	c.lastMemoryState = c.fun.Entry.NewValue(c.list.Elements[0].Pos(), c.list.Elements[1].End(), ssafir.OpMakeMemoryState, ssafir.MemoryState{})
 	params := c.fun.Type.Params()
 	if len(params) == 0 {
 		return
