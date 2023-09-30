@@ -181,6 +181,20 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 		}
 
 		switch obj := c.info.Uses[x].(type) {
+		case *types.Constant:
+			var op ssafir.Op
+			val := obj.Value()
+			switch val.Kind() {
+			case constant.Int:
+				op = ssafir.OpConstantUntypedInt
+			case constant.String:
+				op = ssafir.OpConstantString
+			default:
+				return nil, fmt.Errorf("%s: failed to compile %s (%T): unsupported expression type %s constant", c.fset.Position(expr.Pos()), expr.Print(), expr, val.Kind())
+			}
+
+			v := c.ValueExtra(x.Pos(), x.End(), op, obj.Type(), val)
+			return v, nil
 		case *types.Variable:
 			if v := c.vars[obj]; v != nil {
 				return v, nil
