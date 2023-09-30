@@ -21,6 +21,8 @@ go_library(
         "allocator.go",
         "compiler.go",
         "expr.go",
+        "lower.go",
+        "lower-x86.go",
         "x86-assemble.go",
         "x86-encode.go",
         "x86-generated.go",
@@ -43,6 +45,7 @@ go_test(
     srcs = [
         "allocator_test.go",
         "compiler_test.go",
+        "lower_test.go",
         "x86-encode_test.go",
         "x86_test.go",
     ],
