@@ -536,7 +536,7 @@ func main() {
 		Instructions []*x86.Instruction
 	}
 
-	data.Command = "//tools/ruse/internal/x86/x86gen"
+	data.Command = "//tools/ruse/internal/x86/gen-x86"
 	data.Instructions = instructions
 
 	var b bytes.Buffer
