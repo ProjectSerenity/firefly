@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 
+	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/binary"
 	"firefly-os.dev/tools/ruse/sys"
 	"firefly-os.dev/tools/ruse/token"
@@ -479,6 +480,7 @@ func (l *Link) Perform(arch *sys.Arch, object []byte, fun *binary.Symbol, addres
 // Each function is compiled separately.
 type Function struct {
 	Name   string           // The function name.
+	Code   *ast.List        // The function's abstract syntax tree.
 	Func   *types.Function  // The function's type information.
 	Type   *types.Signature // The function signature.
 	Params [][]sys.Location // The memory locations for the function's parameters.

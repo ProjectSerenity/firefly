@@ -68,6 +68,7 @@ func compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, expr *ast.
 	signature := function.Type().(*types.Signature)
 	fun := &ssafir.Function{
 		Name: name.Name,
+		Code: expr,
 		Func: function,
 		Type: signature,
 

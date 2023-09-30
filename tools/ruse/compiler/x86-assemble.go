@@ -115,6 +115,7 @@ func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assemb
 	signature := function.Type().(*types.Signature)
 	fun := &ssafir.Function{
 		Name: name.Name,
+		Code: assembly,
 		Func: function,
 		Type: signature,
 

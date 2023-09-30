@@ -469,9 +469,9 @@ func TestCompile(t *testing.T) {
 	}
 
 	compareOptions := []cmp.Option{
-		cmp.Exporter(func(t reflect.Type) bool { return true }),                            // Allow unexported types to be compared.
-		cmpopts.IgnoreTypes(new(types.Package), new(types.Scope), new(types.Function)),     // Ignore *types.Package and *types.Scope values.
-		cmpopts.SortMaps(func(v1, v2 *types.Variable) bool { return v1.Pos() < v2.Pos() }), // Sort NamedValues to improve comparisons.
+		cmp.Exporter(func(t reflect.Type) bool { return true }),                                       // Allow unexported types to be compared.
+		cmpopts.IgnoreTypes(new(types.Package), new(types.Scope), new(types.Function), new(ast.List)), // Ignore *types.Package, *types.Scope, *types.Function, and *ast.List values.
+		cmpopts.SortMaps(func(v1, v2 *types.Variable) bool { return v1.Pos() < v2.Pos() }),            // Sort NamedValues to improve comparisons.
 	}
 
 	// Use x86-64.
