@@ -476,6 +476,15 @@ func (l *x86Lowerer) MoveString(v *ssafir.Value) {
 	}
 
 	switch imm := alloc.Data.(type) {
+	case string:
+		// Unnamed string literal.
+		link := &ssafir.Link{
+			Pos:  v.Pos,
+			Name: "." + imm,
+			Type: ssafir.LinkFullAddress,
+			Size: 64,
+		}
+		data.Args[1] = link
 	case constant.Value:
 		val := constant.StringVal(imm)
 		data.Args[1] = uint64(len(val))
