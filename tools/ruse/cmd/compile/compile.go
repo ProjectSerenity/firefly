@@ -164,7 +164,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			continue
 		}
 
-		err = compiler.Allocate(fset, arch, sizes, fun)
+		err = compiler.Allocate(fset, arch, sizes, p, fun)
 		if err != nil {
 			return err
 		}

@@ -60,8 +60,8 @@ type Alloc struct {
 // location and tracking these through the life of
 // the function. This produces an implementation
 // that is ready to be lowered to assembly.
-func Allocate(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafir.Function) error {
-	return newAllocator(fset, arch, sizes, fun).run()
+func Allocate(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, pkg *Package, fun *ssafir.Function) error {
+	return newAllocator(fset, arch, sizes, pkg, fun).run()
 }
 
 // run is the main loop for register allocation.
@@ -215,6 +215,7 @@ func (a *allocator) run() error {
 type allocator struct {
 	fset      *token.FileSet
 	arch      *sys.Arch
+	pkg       *Package
 	sizes     types.Sizes
 	block     *ssafir.Block
 	allocs    []*ssafir.Value
@@ -228,7 +229,7 @@ type allocator struct {
 
 // newAllocator prepares a register allocator for
 // the given function.
-func newAllocator(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafir.Function) *allocator {
+func newAllocator(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, pkg *Package, fun *ssafir.Function) *allocator {
 	// Take a copy of the registers, placing
 	// scratch registers at the start so that
 	// we avoid using callee-preserved as much
@@ -277,6 +278,7 @@ func newAllocator(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *s
 	a := &allocator{
 		fset:  fset,
 		arch:  arch,
+		pkg:   pkg,
 		sizes: sizes,
 		// We don't ever modify registers, so
 		// it's fine to use a shallow copy.

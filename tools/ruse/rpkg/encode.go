@@ -606,6 +606,14 @@ func Encode(w io.Writer, fset *token.FileSet, arch *sys.Arch, pkg *compiler.Pack
 		}
 	}
 
+	noPkg := &compiler.Package{}
+	for _, lit := range pkg.Literals {
+		err := e.AddConstant(noPkg, lit)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Add any exports.
 	scope := pkg.Types.Scope()
 	names := scope.Names()

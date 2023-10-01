@@ -1714,7 +1714,11 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 		symbol := symbols[i]
 		switch obj := obj.(type) {
 		case *types.Constant:
-			pkg.Constants = append(pkg.Constants, obj)
+			if symbol.PackageName == "" {
+				pkg.Literals = append(pkg.Literals, obj)
+			} else {
+				pkg.Constants = append(pkg.Constants, obj)
+			}
 		case *types.Function:
 			code, ok := symbol.Value.(compiler.MachineCode)
 			if !ok {

@@ -221,7 +221,7 @@ func TestAllocator(t *testing.T) {
 			}
 
 			// Use the allocator.
-			a := newAllocator(fset, arch, sizes, testFunc)
+			a := newAllocator(fset, arch, sizes, p, testFunc)
 			err = a.run()
 			if err != nil {
 				t.Fatalf("Allocate(): unexpected error: %v", err)

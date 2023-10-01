@@ -161,6 +161,27 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		symbols[sym.Name] = sym
 	}
 
+	for _, lit := range p.Literals {
+		val := lit.Value()
+		if val.Kind() != constant.String {
+			// Non-string constants are inlined.
+			continue
+		}
+
+		s := constant.StringVal(val)
+		sym := &binary.Symbol{
+			Name:    "." + s,
+			Kind:    binary.SymbolString,
+			Section: 1,
+			Offset:  uintptr(stringsData.Len()), // Just the offset within the section for now.
+			Length:  len(s),
+		}
+
+		stringsData.WriteString(s)
+		table = append(table, sym)
+		symbols[sym.Name] = sym
+	}
+
 	rpkgsData := cryptobyte.NewBuilder(nil)
 	rpkgsData.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
 		b.AddBytes([]byte(p.Path))

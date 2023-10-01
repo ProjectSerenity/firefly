@@ -25,7 +25,8 @@ type Package struct {
 	Path      string
 	Types     *types.Package
 	Imports   []string
-	Constants []*types.Constant
+	Constants []*types.Constant // Named constants.
+	Literals  []*types.Constant // Unnamed constant literals.
 	Functions []*ssafir.Function
 }
 

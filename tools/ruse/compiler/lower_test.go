@@ -273,7 +273,7 @@ func TestLower(t *testing.T) {
 			}
 
 			// Use the allocator.
-			err = Allocate(fset, arch, sizes, testFunc)
+			err = Allocate(fset, arch, sizes, p, testFunc)
 			if err != nil {
 				t.Fatalf("Allocate(): unexpected error: %v", err)
 			}
