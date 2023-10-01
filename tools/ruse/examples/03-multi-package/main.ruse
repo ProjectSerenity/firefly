@@ -16,21 +16,15 @@
 (import
 	("firefly-os.dev/tools/ruse/examples/syscalls"))
 
-'(arch x86-64)
-(asm-func (main)
-	; Note the syntax syscalls.Default-message. The
-	; import statement does not specify an override
-	; for the local name for the package, so the
-	; name `syscalls` is derived by being the final
+(func (main)
+	; Note the syntax syscalls.Print. The import
+	; statement does not specify an override for
+	; the local name for the package, so the name
+	; `syscalls` is derived by being the final
 	; path element.
 	;
 	; We can then access exported symbols within
 	; the package using the dot qualifier.
 
-	(mov rsi (string-pointer syscalls.Default-message))
-	(mov rdx (len syscalls.Default-message))
-	(call (func syscalls.Print))
-
-	(mov eax 60)   ; sys_exit
-	(xor rdi rdi)  ; int error_code
-	(syscall))     ; exit(0)
+	(syscalls.Print 1 "Hello, World!\n")
+	(syscalls.Exit 0))
