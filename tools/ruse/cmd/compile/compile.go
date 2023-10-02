@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 
 	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/compiler"
@@ -35,7 +36,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 	var help bool
 	var out, pkgName string
-	var rpkgs []string
+	var rpkgs, debugFunctions []string
 	var arch *sys.Arch
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
 	flags.Func("arch", "The target architecture (x86-64).", func(s string) error {
@@ -56,6 +57,10 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		rpkgs = append(rpkgs, s)
 		return nil
 	})
+	flags.Func("debug", "One or more function names to debug.", func(s string) error {
+		debugFunctions = append(debugFunctions, s)
+		return nil
+	})
 	flags.StringVar(&pkgName, "package", "", "The full package name.")
 	flags.StringVar(&out, "o", "", "The name of the compiled rpkg.")
 
@@ -63,6 +68,16 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		log.Printf("Usage:\n  %s %s OPTIONS FILE...\n\n", program, flags.Name())
 		flags.PrintDefaults()
 		os.Exit(2)
+	}
+
+	debug := func(s string) bool {
+		for _, want := range debugFunctions {
+			if want == s {
+				return true
+			}
+		}
+
+		return false
 	}
 
 	err := flags.Parse(args)
@@ -159,6 +174,17 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	// Allocate registers and lower the instructions
 	// for Ruse functions.
 	for _, fun := range p.Functions {
+		// If we've been asked to debug this
+		// function, we print its name once
+		// and each phase description. We trim
+		// The first line from the debug output,
+		// which contains its name.
+		shouldDebug := debug(fun.Name)
+		if shouldDebug {
+			_, text, _ := strings.Cut(fun.Print(), "\n")
+			fmt.Fprintf(os.Stderr, "debug: %s %s\ncompile/assemble:\n%s\n", fun.Name, fun.Type, text)
+		}
+
 		// Skip assembly functions.
 		if fun.Code.Elements[0].(*ast.Identifier).Name != "func" {
 			continue
@@ -169,9 +195,19 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			return err
 		}
 
+		if shouldDebug {
+			_, text, _ := strings.Cut(fun.Print(), "\n")
+			fmt.Fprintf(os.Stderr, "allocate:\n%s\n", text)
+		}
+
 		err = compiler.Lower(fset, arch, sizes, fun)
 		if err != nil {
 			return err
+		}
+
+		if shouldDebug {
+			_, text, _ := strings.Cut(fun.Print(), "\n")
+			fmt.Fprintf(os.Stderr, "lower:\n%s\n", text)
 		}
 	}
 
