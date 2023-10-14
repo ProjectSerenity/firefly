@@ -5,6 +5,12 @@
 
 (package syscalls)
 
+; The syscall ABI.
+;
+(let ABI (abi
+	(params rdi rsi rdx r10 r8 r9)
+	(result rax)))
+
 ; Print is an exported function, as its name
 ; starts with an upper-case letter.
 ;
@@ -12,16 +18,14 @@
 ; example, we would encounter an error when
 ; trying to import it from another package.
 ;
-'(abi (abi
-	(params rdi rsi rdx)))
+'(abi ABI)
 (asm-func (Print (fd int) (msg string))
 	(mov eax 1) ; sys_write
 	(syscall)   ; write(fd, msg, len(msg))
 
 	(ret))
 
-'(abi (abi
-	(params rdi)))
+'(abi ABI)
 (asm-func (Exit (code int))
 	(mov eax 60) ; sys_exit
 	(syscall)    ; exit(code)
