@@ -118,5 +118,6 @@ func NewRawABI(arch *sys.Arch, invertedStack *ast.Identifier, params, result, sc
 	return ABI{abi: abi}, nil
 }
 
+func (a ABI) ABI() *sys.ABI    { return a.abi }
 func (a ABI) Underlying() Type { return a }
 func (a ABI) String() string   { return "abi" }
