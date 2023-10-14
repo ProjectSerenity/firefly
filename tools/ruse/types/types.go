@@ -478,15 +478,16 @@ func (c *checker) GetNameTypePair(scope *Scope, x ast.Expression) (name *ast.Ide
 
 func (c *checker) checkABI(anno *ast.QuotedList) error {
 	// For now, we just check that the ABI is either
-	// an identifier or an ABI expression. We actually
-	// resolve it later, as the ABI may be defined
-	// further down the file.
+	// a (possibly qualified) identifier or an ABI
+	// expression. We actually resolve it later, as
+	// the ABI may be defined further down the file.
 	if len(anno.X.Elements[1:]) != 1 {
 		return c.errorf(anno.X.ParenOpen, "invalid ABI: got %d ABIs, want 1", len(anno.X.Elements[1:]))
 	}
 
 	abi := anno.X.Elements[1]
 	switch v := abi.(type) {
+	case *ast.Qualified:
 	case *ast.Identifier:
 	case *ast.List:
 		kind, _, err := c.interpretDefinition(v, "abi spec")
