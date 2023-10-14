@@ -93,6 +93,17 @@ func sectPermissions(perm binary.Permissions) uint64 {
 	return out
 }
 
+func symbolData(sym *binary.Symbol) (typ uint8, value, size uint64) {
+	switch sym.Kind {
+	case binary.SymbolFunction:
+		return 0x02, uint64(sym.Address), uint64(sym.Length)
+	case binary.SymbolString:
+		return 0x01, uint64(sym.Address), uint64(sym.Length)
+	default:
+		panic(fmt.Errorf("symbol %q: invalid symbol kind %d", sym.Name, sym.Kind))
+	}
+}
+
 func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 	// See https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
 	bo := bin.Arch.ByteOrder
@@ -106,17 +117,23 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 		elfHeaderSize  = 0x40   // ELF header size in bytes.
 		progHeaderSize = 0x38   // Program header size in bytes.
 		sectHeaderSize = 0x40   // Section header size in bytes.
+		symtabSize     = 24     // Symbol table entry size in bytes.
 
 		// Section names table.
-		shstrtabName = "section names"
+		shstrtabName  = "section names"
+		symtabName    = "symbol table"
+		symstrtabName = "symbol names"
 
 		// Value constants.
 		ET_EXEC      = 0x02
 		PT_LOAD      = 0x01
 		SHT_PROGBITS = 0x01
+		SHT_SYMTAB   = 0x02
 		SHT_STRTAB   = 0x03
 		SHF_ALLOC    = 0x02
 		SHF_STRINGS  = 0x20
+		STB_GLOBAL   = 0x10
+		STV_DEFAULT  = 0x00
 	)
 
 	nextPage := func(offset uint64) uint64 {
@@ -125,6 +142,113 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 		remainder := offset % pageSize
 		topUp := pageSize - remainder
 		return offset + topUp
+	}
+
+	// Copy the section table in case
+	// we need to add to it.
+	sections := bin.Sections
+
+	// Build the symbol table.
+	var symtab, symstrtab *binary.Section
+	symbolAddrs := make([]int, len(bin.Symbols))
+	if bin.SymbolTable {
+		anonymousStrings := 0
+		var symtabData, symstrtabData bytes.Buffer
+		symtabData.Write(make([]byte, symtabSize)) // Add the empty symbol.
+		symstrtabData.WriteByte(0)                 // Add the null terminator for the empty string.
+		for i, sym := range bin.Symbols {
+			// Start with the index into symstrtab
+			// where the name begins as a null-terminated
+			// string.
+			if sym.Name == "" {
+				gobinary.Write(&symtabData, bo, uint32(0))
+			} else if sym.Name[0] == '.' {
+				anonymousStrings++
+				gobinary.Write(&symtabData, bo, uint32(symstrtabData.Len()))
+				symstrtabData.WriteString(fmt.Sprintf("<anonymous %s %d>", sym.Kind, anonymousStrings))
+				symstrtabData.WriteByte(0)
+			} else {
+				gobinary.Write(&symtabData, bo, uint32(symstrtabData.Len()))
+				symstrtabData.WriteString(sym.Name)
+				symstrtabData.WriteByte(0)
+			}
+
+			typ, value, size := symbolData(sym)
+			symtabData.WriteByte(STB_GLOBAL | typ)                 // Symbol info.
+			symtabData.WriteByte(STV_DEFAULT)                      // Symbol visibility.
+			gobinary.Write(&symtabData, bo, uint16(sym.Section+2)) // Symbol section (add 2 for the null section and section names).
+			symbolAddrs[i] = symtabData.Len()
+			gobinary.Write(&symtabData, bo, value) // Symbol value.
+			gobinary.Write(&symtabData, bo, size)  // Symbol size.
+		}
+
+		// Find the address of the final
+		// byte in the existing sections,
+		// so we know where to place the
+		// symbol table.
+		var lastAddr uint64
+		for _, section := range sections {
+			this := uint64(section.Address) + uint64(len(section.Data)-1)
+			if lastAddr < this {
+				lastAddr = this
+			}
+		}
+
+		nextAddr := uintptr(nextPage(lastAddr))
+		symtab = &binary.Section{
+			Name:        symtabName,
+			Address:     nextAddr,
+			Permissions: binary.Read,
+			Data:        symtabData.Bytes(),
+		}
+
+		nextAddr = uintptr(nextPage(uint64(nextAddr) + uint64(symtabData.Len())))
+		symstrtab = &binary.Section{
+			Name:        symstrtabName,
+			Address:     nextAddr,
+			Permissions: binary.Read,
+			Data:        symstrtabData.Bytes(),
+		}
+
+		sections = append(sections[:len(sections):len(sections)], symtab, symstrtab)
+	}
+
+	sectionType := func(section *binary.Section) uint32 {
+		switch section {
+		case symtab:
+			return SHT_SYMTAB
+		case symstrtab:
+			return SHT_STRTAB
+		default:
+			return SHT_PROGBITS
+		}
+	}
+
+	sectionLink := func(section *binary.Section) uint32 {
+		switch section {
+		case symtab:
+			return uint32(len(sections)) - 1 + 2 // The final entry (add 2 for the null section and section names).
+		default:
+			return 0
+		}
+	}
+
+	sectionInfo := func(section *binary.Section) uint32 {
+		switch section {
+		case symtab:
+			return 1 // One more than the index of the last local symbol (which is the empty symbol; all others are global).
+		default:
+			return 0
+		}
+	}
+
+	sectionEntrySize := func(section *binary.Section) uint64 {
+		switch section {
+		case symtab:
+			return symtabSize
+		default:
+			return 0
+		}
 	}
 
 	// Build the section names table.
@@ -144,21 +268,21 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 
 	addSectionName("")
 	addSectionName(shstrtabName)
-	for _, section := range bin.Sections {
+	for _, section := range sections {
 		addSectionName(section.Name)
 	}
 
 	// Start with the offsets that we don't align.
-	progHeadOff := uint64(elfHeaderSize)                        // Offset of the program headers (ELF header length).
-	progHeadLen := progHeaderSize * uint64(len(bin.Sections))   // Length of the program headers.
-	progHeadEnd := progHeadOff + progHeadLen                    // Offset where the program headers end.
-	sectHeadOff := progHeadEnd                                  // Offset of the section headers.
-	sectHeadLen := sectHeaderSize * uint64(2+len(bin.Sections)) // Length of the section headers (including the NULL section and an extra for the section names table).
-	sectHeadEnd := sectHeadOff + sectHeadLen                    // Offset where the section headers end.
-	sectDataOff := sectHeadEnd                                  // Offset of the section names table.
-	sectDataLen := uint64(shstrtab.Len())                       // Length of the section names table.
-	sectDataEnd := sectDataOff + sectDataLen                    // Offset where the section names table ends.
-	progDataOff := nextPage(sectDataEnd)                        // Offset of the program data.
+	progHeadOff := uint64(elfHeaderSize)                    // Offset of the program headers (ELF header length).
+	progHeadLen := progHeaderSize * uint64(len(sections))   // Length of the program headers.
+	progHeadEnd := progHeadOff + progHeadLen                // Offset where the program headers end.
+	sectHeadOff := progHeadEnd                              // Offset of the section headers.
+	sectHeadLen := sectHeaderSize * uint64(2+len(sections)) // Length of the section headers (including the NULL section and an extra for the section names table).
+	sectHeadEnd := sectHeadOff + sectHeadLen                // Offset where the section headers end.
+	sectDataOff := sectHeadEnd                              // Offset of the section names table.
+	sectDataLen := uint64(shstrtab.Len())                   // Length of the section names table.
+	sectDataEnd := sectDataOff + sectDataLen                // Offset where the section names table ends.
+	progDataOff := nextPage(sectDataEnd)                    // Offset of the program data.
 
 	// The entry point needs to be the start
 	// of one of the sections so we can find
@@ -179,21 +303,21 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 
 	// Determine the section offsets.
 	offset := progDataOff
-	offsets := make([]SectionOffsets, len(bin.Sections))
+	offsets := make([]SectionOffsets, len(sections))
 	for i := range offsets {
 		// Memory offsets.
-		offsets[i].MemStart = uint64(bin.Sections[i].Address)
-		offsets[i].MemSize = uint64(len(bin.Sections[i].Data))
+		offsets[i].MemStart = uint64(sections[i].Address)
+		offsets[i].MemSize = uint64(len(sections[i].Data))
 		offsets[i].MemEnd = offsets[i].MemStart + offsets[i].MemSize
 
 		// File offsets.
 		offsets[i].FileStart = offset
-		offsets[i].FileSize = uint64(len(bin.Sections[i].Data))
+		offsets[i].FileSize = uint64(len(sections[i].Data))
 		offsets[i].FileEnd = offsets[i].FileStart + offsets[i].FileSize
 		offsets[i].FilePadded = nextPage(offsets[i].FileEnd)
 
 		// No data when it's zeroed.
-		if bin.Sections[i].IsZeroed {
+		if sections[i].IsZeroed {
 			offsets[i].FileSize = 0
 			offsets[i].FileEnd = offsets[i].FileStart
 			offsets[i].FilePadded = offsets[i].FileStart
@@ -224,13 +348,13 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 	write(uint32(0))                     // Flags (which we don't use).
 	write(uint16(elfHeaderSize))         // File header size.
 	write(uint16(progHeaderSize))        // Program header size.
-	write(uint16(len(bin.Sections)))     // Number of program headers.
+	write(uint16(len(sections)))         // Number of program headers.
 	write(uint16(sectHeaderSize))        // Section header size.
-	write(uint16(2 + len(bin.Sections))) // Number of section headers.
+	write(uint16(2 + len(sections)))     // Number of section headers.
 	write(uint16(1))                     // Section header table index for section names (always second).
 
 	// Add the program headers.
-	for i, section := range bin.Sections {
+	for i, section := range sections {
 		sectionOffsets := offsets[i]
 		section.Offset = uintptr(sectionOffsets.FileStart)
 		write(uint32(PT_LOAD))                      // Loadable segment.
@@ -255,18 +379,18 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 	write(uint32(0))                      // sh_info
 	write(uint64(1))                      // Alignment in memory.
 	write(uint64(0))                      // sh_entsize
-	for i, section := range bin.Sections {
+	for i, section := range sections {
 		sectionOffsets := offsets[i]
 		write(sectionNames[section.Name])                       // Section name offset in section names table.
-		write(uint32(SHT_PROGBITS))                             // Loadable segment.
+		write(sectionType(section))                             // Section type (loadable by default, or symbol/string table).
 		write(SHF_ALLOC | sectPermissions(section.Permissions)) // Section flags.
 		write(sectionOffsets.MemStart)                          // Section virtual address in memory.
 		write(sectionOffsets.FileStart)                         // File offset where segment begins.
 		write(sectionOffsets.FileSize)                          // Size in the binary file.
-		write(uint32(0))                                        // sh_link
-		write(uint32(0))                                        // sh_info
+		write(sectionLink(section))                             // sh_link
+		write(sectionInfo(section))                             // sh_info
 		write(uint64(pageSize))                                 // Alignment in memory.
-		write(uint64(0))                                        // sh_entsize
+		write(sectionEntrySize(section))                        // sh_entsize
 	}
 
 	// Add the section names table.
@@ -277,8 +401,20 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 	// section data (which is page-aligned).
 	b.Write(make([]byte, progDataOff-sectDataEnd))
 
+	// Finish the symbol table.
+	for i, sym := range bin.Symbols {
+		sectionOffset := sym.Offset
+		sym.Offset = bin.Sections[sym.Section].Offset + sectionOffset
+		sym.Address = bin.Sections[sym.Section].Address + sectionOffset
+		if bin.SymbolTable {
+			offset := symbolAddrs[i]
+			_, value, _ := symbolData(sym)
+			bo.PutUint64(symtab.Data[offset:], value)
+		}
+	}
+
 	// Add the section data.
-	for i, section := range bin.Sections {
+	for i, section := range sections {
 		sectionOffsets := offsets[i]
 		if !section.IsZeroed {
 			b.Write(section.Data)

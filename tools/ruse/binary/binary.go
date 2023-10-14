@@ -19,6 +19,8 @@ type Binary struct {
 	BaseAddr uintptr // Binary base address.
 	Sections []*Section
 	Symbols  []*Symbol
+
+	SymbolTable bool
 }
 
 // Section describes a single logical section

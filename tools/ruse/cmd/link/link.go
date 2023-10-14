@@ -305,6 +305,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				Data:        rpkgsData.BytesOrPanic(),
 			},
 		},
+		Symbols: table,
 	}
 
 	var b bytes.Buffer
@@ -314,13 +315,6 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	object := b.Bytes()
-
-	// Finish the symbol table.
-	for _, sym := range table {
-		sectionOffset := sym.Offset
-		sym.Offset = bin.Sections[sym.Section].Offset + sectionOffset
-		sym.Address = bin.Sections[sym.Section].Address + sectionOffset
-	}
 
 	// Perform any linkages.
 	for _, fun := range p.Functions {
