@@ -36,11 +36,12 @@ type binaryEncoder func(w io.Writer, bin *binary.Binary) error
 func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("link", flag.ExitOnError)
 
-	var help bool
+	var help, symbolTable bool
 	var out string
 	var rpkgs []string
 	var encode binaryEncoder
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
+	flags.BoolVar(&symbolTable, "symbol-table", true, "Include a symbol table in the compiled binary.")
 	flags.Func("binary", "The binary encoding (elf).", func(s string) error {
 		if encode != nil {
 			return fmt.Errorf("-binary can only be specified once")
@@ -305,7 +306,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				Data:        rpkgsData.BytesOrPanic(),
 			},
 		},
-		Symbols: table,
+		Symbols:     table,
+		SymbolTable: symbolTable,
 	}
 
 	var b bytes.Buffer
