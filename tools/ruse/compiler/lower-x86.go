@@ -221,8 +221,8 @@ func (l *x86Lowerer) addInst(v *ssafir.Value, op ssafir.Op, data *x86Instruction
 			continue
 		}
 
-		if l.code.CodeOffsetLen == 0 && l.code.ImmediateLen == 0 {
-			panic(fmt.Errorf("%s: internal error: instruction specified a link to %s, but no code offset or immediate was produced", l.fset.Position(v.Pos), link.Name))
+		if l.code.CodeOffsetLen == 0 && l.code.ImmediateLen == 0 && l.code.DisplacementLen == 0 {
+			panic(fmt.Errorf("%s: internal error: instruction specified a link to %s, but no code offset, immediate, or displacement was produced", l.fset.Position(v.Pos), link.Name))
 		}
 
 		// Update the link's offsets. The
@@ -234,7 +234,7 @@ func (l *x86Lowerer) addInst(v *ssafir.Value, op ssafir.Op, data *x86Instruction
 		// we replace it with the full offset
 		// later.
 		link2 := &tempLink{
-			InnerOffset:  l.code.Len() - (l.code.CodeOffsetLen + l.code.ImmediateLen),
+			InnerOffset:  l.code.Len() - (l.code.CodeOffsetLen + l.code.ImmediateLen + l.code.DisplacementLen),
 			InnerAddress: uintptr(l.code.Len()), // The instruction is relative to the next instruction.
 			Link:         link,
 		}

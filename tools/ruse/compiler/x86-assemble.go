@@ -424,8 +424,8 @@ func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assemb
 					continue
 				}
 
-				if code.CodeOffsetLen == 0 && code.ImmediateLen == 0 {
-					return nil, ctx.Errorf(link.Pos, "internal error: instruction specified a link to %s, but no code offset or immediate was produced", link.Name)
+				if code.CodeOffsetLen == 0 && code.ImmediateLen == 0 && code.DisplacementLen == 0 {
+					return nil, ctx.Errorf(link.Pos, "internal error: instruction specified a link to %s, but no code offset, immediate, or displacement was produced", link.Name)
 				}
 
 				// Update the link's offsets. The
@@ -437,7 +437,7 @@ func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assemb
 				// we replace it with the full offset
 				// later.
 				link2 := &tempLink{
-					InnerOffset:  code.Len() - (code.CodeOffsetLen + code.ImmediateLen),
+					InnerOffset:  code.Len() - (code.CodeOffsetLen + code.ImmediateLen + code.DisplacementLen),
 					InnerAddress: uintptr(code.Len()), // The instruction is relative to the next instruction.
 					Link:         link,
 				}
