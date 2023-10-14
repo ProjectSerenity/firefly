@@ -79,6 +79,7 @@ def _ruse_binary_impl(ctx):
         format = ctx.attr.format,
         package = ctx.attr.package[RusePackageInfo].info.rpkg,
         deps = [ctx.attr.package[RusePackageInfo]],
+        symbol_table = ctx.attr.symbol_table,
         out = executable,
     )
 
@@ -103,6 +104,10 @@ ruse_binary = rule(
             mandatory = True,
             providers = [RusePackageInfo],
             doc = "The main package.",
+        ),
+        "symbol_table": attr.bool(
+            default = True,
+            doc = "Whether to include a symbol table.",
         ),
         "_ruse": attr.label(
             default = "//tools/ruse",
