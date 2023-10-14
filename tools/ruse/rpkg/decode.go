@@ -358,6 +358,21 @@ func (d *decoded) decodeTypes(s cryptobyte.String) (types map[uint64]typeSplat, 
 				Result:       result,
 				Name:         name,
 			}
+		case TypeKindABI:
+			var offset uint32
+			if !rest.ReadUint32(&offset) {
+				return nil, fmt.Errorf("invalid type: failed to read %s type kind: %w", TypeKind(kind), io.ErrUnexpectedEOF)
+			}
+
+			if !rest.Empty() {
+				return nil, fmt.Errorf("invalid type: got type kind %s with %d bytes of further data", TypeKind(kind), len(rest))
+			}
+
+			types[here] = typeSplat{
+				Kind:   TypeKind(kind),
+				Length: uint32(length),
+				ABI:    offset,
+			}
 		default:
 			return nil, fmt.Errorf("invalid type: got unrecognised type kind %d", kind)
 		}
@@ -403,6 +418,10 @@ func (d *decoded) decodeSymbols(s cryptobyte.String) (symbols map[uint64]*symbol
 		case SymKindFunction:
 			if sym.Value >= d.header.CodeLength {
 				return nil, fmt.Errorf("invalid symbol: %s value %d is beyond code section", sym.Kind, sym.Value)
+			}
+		case SymKindABI:
+			if sym.Value != 0 {
+				return nil, fmt.Errorf("invalid symbol: %s value %d is not zero", sym.Kind, sym.Value)
 			}
 		default:
 			return nil, fmt.Errorf("invalid symbol: unrecognised kind %d", sym.Kind)
@@ -1126,6 +1145,12 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 
 			abi = fun.ABI
 			value = compiler.MachineCode(fun.Code)
+		case SymKindABI:
+			if rawValue != 0 {
+				return nil, nil, fmt.Errorf("invalid symbol: %s value %d is not zero", SymKind(kind), rawValue)
+			}
+
+			value = nil
 		default:
 			return nil, nil, fmt.Errorf("invalid symbol: unrecognised kind %d", SymKind(kind))
 		}
@@ -1185,6 +1210,13 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 			fun := types.NewFunction(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, sig)
 			fun.SetABI(abi)
 			object = fun
+		case SymKindABI:
+			abi, ok := symbol.Type.(types.ABI)
+			if !ok {
+				return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with kind %v and unexpected type %#v", symbol.Name, symbol.Kind, symbol.Type)
+			}
+
+			object = types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, abi, nil)
 		default:
 			return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with unsupported kind: %v", symbol.Name, symbol.Kind)
 		}

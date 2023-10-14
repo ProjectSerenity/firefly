@@ -198,6 +198,11 @@ func (e *encoder) appendType(b *cryptobyte.Builder, t types.Type) {
 			b.AddUint64(e.AddType(t.Result()))
 			b.AddUint64(e.AddString(t.String()))
 		})
+	case types.ABI:
+		b.AddUint8(uint8(TypeKindABI))
+		b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
+			b.AddUint32(e.AddABI(t.ABI()))
+		})
 	default:
 		panic(fmt.Sprintf("AddType(%T): type not supported", t))
 	}
@@ -291,6 +296,12 @@ func (e *encoder) AddConstant(pkg *compiler.Package, con *types.Constant) error 
 		kind = SymKindStringConstant
 		value = e.AddString(constant.StringVal(val))
 	default:
+		if _, ok := conType.(types.ABI); ok {
+			kind = SymKindABI
+			value = 0
+			break
+		}
+
 		return fmt.Errorf("failed to record the type for constant %s.%s (%#v)", pkg.Path, con.Name(), conType)
 	}
 
@@ -562,7 +573,6 @@ func Encode(w io.Writer, fset *token.FileSet, arch *sys.Arch, pkg *compiler.Pack
 	// We build the sections individually, using
 	// the cryptobyte package to ensure a correct
 	// encoding.
-	var _ = (*cryptobyte.Builder)(nil)
 	e := &encoder{
 		arch:          arch,
 		typesOffsets:  make(map[string]uint64),

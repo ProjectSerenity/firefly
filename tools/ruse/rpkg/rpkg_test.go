@@ -350,8 +350,13 @@ var tests = []struct {
 			(asm-func (string-copy (str string) (len uint64) uint64)
 				(repnz movsb))
 
-			(asm-func (looper)
-				(mov rcx (len msg))
+			(let custom-abi (abi
+				(params rsi rcx rdx)
+				(result rax)))
+
+			'(abi custom-abi)
+			(asm-func (looper (msg string))
+				(test rcx rcx)
 				(jz 'done)
 
 				'again
@@ -372,12 +377,12 @@ var tests = []struct {
 			0, 0, 0, 72, // ImportsOffset: 72.
 			0, 0, 0, 72, // ExportsOffset: 72.
 			0, 0, 0, 0, 0, 0, 0, 72, // TypesOffset: 72.
-			0, 0, 0, 0, 0, 0, 0, 180, // SymbolsOffset: 180.
-			0, 0, 0, 0, 0, 0, 1, 68, // ABIsOffset: 324.
-			0, 0, 0, 0, 0, 0, 1, 96, // StringsOffset: 352.
-			0, 0, 0, 0, 0, 0, 2, 0, // LinkagesOffset: 512.
-			0, 0, 0, 0, 0, 0, 2, 36, // CodeOffset: 548.
-			0, 0, 0, 0, 0, 0, 2, 92, // ChecksumOffset: 604.
+			0, 0, 0, 0, 0, 0, 0, 228, // SymbolsOffset: 228.
+			0, 0, 0, 0, 0, 0, 1, 152, // ABIsOffset: 408.
+			0, 0, 0, 0, 0, 0, 1, 204, // StringsOffset: 460.
+			0, 0, 0, 0, 0, 0, 2, 144, // LinkagesOffset: 656.
+			0, 0, 0, 0, 0, 0, 2, 180, // CodeOffset: 692.
+			0, 0, 0, 0, 0, 0, 2, 232, // ChecksumOffset: 744.
 			// Imports.
 			// Exports.
 			// Types.
@@ -408,10 +413,22 @@ var tests = []struct {
 			0, 0, 0, 0, 0, 0, 0, 36, // Param 1 Type: 36 (uint64).
 			0, 0, 0, 0, 0, 0, 0, 36, // Result: 36 (uint64).
 			0, 0, 0, 0, 0, 0, 0, 84, // Name: 84 ("(func (string) (uint64) uint64)").
+			// - Function.
+			3,        // Kind: 3 (function signature).
+			0, 0, 36, // Length: 36.
+			0, 0, 0, 16, // ParamsLength: 16.
+			0, 0, 0, 0, 0, 0, 0, 132, // Param 0 Name: 132 ("msg").
+			0, 0, 0, 0, 0, 0, 0, 28, // Param 0 Type: 28 (string).
+			0, 0, 0, 0, 0, 0, 0, 0, // Result: 0 (nil).
+			0, 0, 0, 0, 0, 0, 0, 140, // Name: 140 ("(func (string)").
 			// - Untyped string.
 			2,       // Kind: 2 (basic).
 			0, 0, 4, // Length: 4.
 			0, 0, 0, 17, // BasicKind: 17 (untyped string).
+			// - ABI.
+			4,       // Kind: 4 (ABI).
+			0, 0, 4, // Length: 4.
+			0, 0, 0, 28, // ABI: custom-abi.
 			// Symbols.
 			// - triple-nop.
 			0, 0, 0, 6, // Kind: 6 (function).
@@ -429,14 +446,20 @@ var tests = []struct {
 			0, 0, 0, 6, // Kind: 6 (function).
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
 			0, 0, 0, 0, 0, 0, 0, 120, // Name: 120 ("looper").
-			0, 0, 0, 0, 0, 0, 0, 4, // Type: 4 (func).
+			0, 0, 0, 0, 0, 0, 0, 100, // Type: 100 (func (string)).
 			0, 0, 0, 0, 0, 0, 0, 24, // Value: 24 (function 2).
 			// - msg
 			0, 0, 0, 5, // Kind: 5 (string constant).
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
 			0, 0, 0, 0, 0, 0, 0, 132, // Name: 132 ("msg").
-			0, 0, 0, 0, 0, 0, 0, 100, // Type: 100 (untyped string).
-			0, 0, 0, 0, 0, 0, 0, 140, // Value: 140 ("Hello, world!").
+			0, 0, 0, 0, 0, 0, 0, 140, // Type: 140 (untyped string).
+			0, 0, 0, 0, 0, 0, 0, 160, // Value: 160 ("Hello, world!").
+			// - custom-abi
+			0, 0, 0, 7, // Kind: 7 (ABI).
+			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
+			0, 0, 0, 0, 0, 0, 0, 180, // Name: 180 ("custom-abi").
+			0, 0, 0, 0, 0, 0, 0, 148, // Type: 148 (ABI custom-abi).
+			0, 0, 0, 0, 0, 0, 0, 0, // Value: 0 (ABI).
 			// ABIs.
 			// - The nil ABI.
 			0, 0, 0, 0, // Length: 0.
@@ -446,8 +469,16 @@ var tests = []struct {
 			2, 5, 1, // ParamRegisters length: 2, ParamRegisters: RSI, RCX.
 			0,                       // ResultRegisters length: 0.
 			0,                       // ScratchRegisters length: 0.
-			13, 0, 2, 3, 4, 6, 7, 8, // UnusedRegisters length: 15, UnusedRegisters: RAX, RDX, RBX, RBP, RDI, R8.
-			9, 10, 11, 12, 13, 14, // UnusedRegisters: R9, R10, R11, R12, R13, R14, R15.
+			13, 0, 2, 3, 4, 6, 7, 8, // UnusedRegisters length: 13, UnusedRegisters: RAX, RDX, RBX, RBP, RDI, R8.
+			9, 10, 11, 12, 13, 14, // UnusedRegisters: R9, R10, R11, R12, R13, R14.
+			// - custom-abi.
+			0, 0, 0, 20, // Length: 20.
+			0,          // InvertedStack: 0 (false).
+			3, 5, 1, 2, // ParamRegisters length: 3, ParamRegisters: RSI, RCX, RDX.
+			1, 0, // ResultRegisters length: 1, ResultRegisters: RAX.
+			0,                        // ScratchRegisters length: 0.
+			11, 3, 4, 6, 7, 8, 9, 10, // UnusedRegisters length: 11, UnusedRegisters: RBX, RBP, RDI, R8, R9, R10.
+			11, 12, 13, 14, // UnusedRegisters: R11, R12, R13, R14.
 			// Strings.
 			// - The empty string.
 			0, 0, 0, 0, // Length: 0.
@@ -487,10 +518,18 @@ var tests = []struct {
 			0, 0, 0, 3, // Length: 3.
 			'm', 's', 'g', // Text.
 			0, // Padding
+			// - "(func (string))"
+			0, 0, 0, 15, // Length: 15.
+			'(', 'f', 'u', 'n', 'c', ' ', '(', 's', 't', 'r', 'i', 'n', 'g', ')', ')', // Text.
+			0, // Padding
 			// - "Hello, world!".
 			0, 0, 0, 13, // Length: 13.
 			'H', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd', '!', // Text.
 			0, 0, 0, // Padding
+			// - "custom-abi".
+			0, 0, 0, 10, // Length: 10.
+			'c', 'u', 's', 't', 'o', 'm', '-', 'a', 'b', 'i', // Text.
+			0, 0, // Padding.
 			// Linkages.
 			// - looper calling triple-nop.
 			0, 0, 0, 0, 0, 0, 0, 72, // Source: 72 (looper).
@@ -498,8 +537,8 @@ var tests = []struct {
 			0, 0, 0, 0, 0, 0, 0, 24, // TargetSymbol: 24 (triple-nop).
 			1,        // Type: 1 (relative address).
 			0, 0, 32, // Size: 32 (32-bit address).
-			0, 0, 0, 10, // Offset: 10.
-			0, 0, 0, 14, // Address: 14.
+			0, 0, 0, 6, // Offset: 6.
+			0, 0, 0, 10, // Address: 10.
 			// Code.
 			// - triple-nop.
 			0, 0, 0, 0, // ABI: nil.
@@ -514,9 +553,9 @@ var tests = []struct {
 			0xf2, 0xa4, // (repnz movsb)
 			0, 0, // Padding.
 			// - looper.
-			0, 0, 0, 0, // ABI: nil.
-			0, 0, 0, 22, // Length: 22.
-			0x48, 0xc7, 0xc1, 0x0d, 0x00, 0x00, 0x00, // (mov rcx (len msg))
+			0, 0, 0, 28, // ABI: custom-abi.
+			0, 0, 0, 18, // Length: 18.
+			0x48, 0x85, 0xc9, // (test rcx rcx)
 			0x74, 0x0c, // (jz 'done)
 			0xe8, 0x3f, 0x33, 0x22, 0x11, // (call (func triple-nop))
 			0x48, 0xff, 0xc9, // (dec rcx)
@@ -525,10 +564,10 @@ var tests = []struct {
 			0xc3, // (ret)
 			0, 0, // Padding.
 			// Checksum.
-			0x01, 0x32, 0xc9, 0x89, 0x72, 0xa4, 0xe3, 0xb4,
-			0x5c, 0x1f, 0x95, 0xac, 0xd5, 0x1b, 0x59, 0x67,
-			0xd8, 0x2b, 0xb8, 0x0e, 0x96, 0x13, 0x5a, 0xb1,
-			0x2c, 0x3b, 0x05, 0x0e, 0xbb, 0x07, 0xf6, 0xb1,
+			0x99, 0x0b, 0x13, 0xcc, 0xf2, 0xae, 0x0e, 0x2a,
+			0x8e, 0xe5, 0xed, 0x8a, 0x63, 0x87, 0x33, 0x09,
+			0xbb, 0x98, 0x4f, 0x4e, 0x80, 0xa5, 0xab, 0xfb,
+			0x85, 0x5c, 0x81, 0x3b, 0x37, 0x89, 0x67, 0x9b,
 		},
 		Decoded: &decoded{
 			header: header{
@@ -541,18 +580,18 @@ var tests = []struct {
 				ExportsOffset:  72,
 				ExportsLength:  0,
 				TypesOffset:    72,
-				TypesLength:    108,
-				SymbolsOffset:  180,
-				SymbolsLength:  144,
-				ABIsOffset:     324,
-				ABIsLength:     28,
-				StringsOffset:  352,
-				StringsLength:  160,
-				LinkagesOffset: 512,
+				TypesLength:    156,
+				SymbolsOffset:  228,
+				SymbolsLength:  180,
+				ABIsOffset:     408,
+				ABIsLength:     52,
+				StringsOffset:  460,
+				StringsLength:  196,
+				LinkagesOffset: 656,
 				LinkagesLength: 36,
-				CodeOffset:     548,
-				CodeLength:     56,
-				ChecksumOffset: 604,
+				CodeOffset:     692,
+				CodeLength:     52,
+				ChecksumOffset: 744,
 				ChecksumLength: 32,
 			},
 			imports: []uint32{},
@@ -592,9 +631,24 @@ var tests = []struct {
 					Name:   84,
 				},
 				100: {
+					Kind:         TypeKindFunction,
+					Length:       36,
+					ParamsLength: 16,
+					Params: []variable{
+						{Name: 132, Type: 28},
+					},
+					Result: 0,
+					Name:   140,
+				},
+				140: {
 					Kind:   TypeKindBasic,
 					Length: 4,
 					Basic:  BasicKindUntypedString,
+				},
+				148: {
+					Kind:   TypeKindABI,
+					Length: 4,
+					ABI:    28,
 				},
 			},
 			symbols: map[uint64]*symbol{
@@ -616,15 +670,22 @@ var tests = []struct {
 					Kind:        SymKindFunction,
 					PackageName: 4,
 					Name:        120,
-					Type:        4,
+					Type:        100,
 					Value:       24,
 				},
 				108: {
 					Kind:        SymKindStringConstant,
 					PackageName: 4,
 					Name:        132,
-					Type:        100,
-					Value:       140,
+					Type:        140,
+					Value:       160,
+				},
+				144: {
+					Kind:        SymKindABI,
+					PackageName: 4,
+					Name:        180,
+					Type:        148,
+					Value:       0,
 				},
 			},
 			abis: map[uint32]*abi{
@@ -635,6 +696,13 @@ var tests = []struct {
 					Result:  []uint8{},
 					Scratch: []uint8{},
 					Unused:  []uint8{0, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14},
+				},
+				28: {
+					Length:  20,
+					Params:  []uint8{5, 1, 2},
+					Result:  []uint8{0},
+					Scratch: []uint8{},
+					Unused:  []uint8{3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14},
 				},
 			},
 			strings: map[uint64]string{
@@ -648,7 +716,9 @@ var tests = []struct {
 				84:  "(func (string) (uint64) uint64)",
 				120: "looper",
 				132: "msg",
-				140: "Hello, world!",
+				140: "(func (string))",
+				160: "Hello, world!",
+				180: "custom-abi",
 			},
 			linkages: map[uint64]*linkage{
 				0: {
@@ -657,8 +727,8 @@ var tests = []struct {
 					TargetSymbol:  24,
 					Type:          ssafir.LinkRelativeAddress,
 					Size:          32,
-					Offset:        10,
-					Address:       14,
+					Offset:        6,
+					Address:       10,
 				},
 			},
 			code: map[uint64]*function{
@@ -677,9 +747,9 @@ var tests = []struct {
 					},
 				},
 				16: {
-					ABI: 0,
+					ABI: 28,
 					Code: []byte{
-						0x48, 0xc7, 0xc1, 0x0d, 0x00, 0x00, 0x00, // (mov rcx (len msg))
+						0x48, 0x85, 0xc9, // (test rcx rcx)
 						0x74, 0x0c, // (jz 'done)
 						0xe8, 0x3f, 0x33, 0x22, 0x11, // (call (func triple-nop))
 						0x48, 0xff, 0xc9, // (dec rcx)

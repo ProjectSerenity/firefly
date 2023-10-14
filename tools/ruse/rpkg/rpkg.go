@@ -485,6 +485,9 @@ type typeSplat struct {
 	Params       []variable // Successive variables for each parameter.
 	Result       uint64     // The offset into the types section where the result type begins.
 	Name         uint64     // The offset into the strings section where the signature name begins.
+
+	// ABI fields.
+	ABI uint32 // The offset into the ABIs section.
 }
 
 // variable represents a type with
@@ -563,6 +566,11 @@ const (
 	// The Value field contains an
 	// offset into the code section.
 	SymKindFunction SymKind = 0x06
+
+	// A named ABI.
+	// The Value field is zero, as
+	// the ABI is stored in the type.
+	SymKindABI SymKind = 0x07
 )
 
 func (k SymKind) String() string {
@@ -581,6 +589,8 @@ func (k SymKind) String() string {
 		return "string constant"
 	case SymKindFunction:
 		return "function"
+	case SymKindABI:
+		return "abi"
 	default:
 		return fmt.Sprintf("SymKind(%d)", k)
 	}

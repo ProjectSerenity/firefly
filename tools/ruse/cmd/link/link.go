@@ -239,7 +239,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 		for _, con := range p.Constants {
 			val := con.Value()
-			if val.Kind() != constant.String {
+			if val == nil || val.Kind() != constant.String {
 				// Non-string constants are inlined.
 				continue
 			}
