@@ -20,4 +20,5 @@ ruse_binary(
     name = "hello-world",
     format = "elf",
     package = ":hello-world_lib",
+    provenance = False,
 )
