@@ -17,6 +17,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 
 	"golang.org/x/crypto/cryptobyte"
 
@@ -281,6 +282,15 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	baseAddr := uintptr(0x20_0000) // 2 MiB in.
+	if p.BaseAddr != nil {
+		addr, err := strconv.ParseUint(p.BaseAddr.Value, 0, 64)
+		if err != nil {
+			return fmt.Errorf("internal error: failed to parse package base address %q: %v", p.BaseAddr.Value, err)
+		}
+
+		baseAddr = uintptr(addr)
+	}
+
 	bin := &binary.Binary{
 		Arch:        arch,
 		BaseAddr:    baseAddr,
