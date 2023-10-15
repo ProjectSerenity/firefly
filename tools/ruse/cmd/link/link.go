@@ -103,19 +103,30 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		rpkgsSection   = "rpkgs"
 	)
 
+	type explicitSection struct {
+		binary.Section
+		FixedAddr bool
+	}
+
 	// Prepare the list of sections.
-	sections := []*binary.Section{
+	sections := []*explicitSection{
 		{
-			Name:        codeSection,
-			Permissions: binary.Read | binary.Execute,
+			Section: binary.Section{
+				Name:        codeSection,
+				Permissions: binary.Read | binary.Execute,
+			},
 		},
 		{
-			Name:        stringsSection,
-			Permissions: binary.Read,
+			Section: binary.Section{
+				Name:        stringsSection,
+				Permissions: binary.Read,
+			},
 		},
 		{
-			Name:        rpkgsSection,
-			Permissions: binary.Read,
+			Section: binary.Section{
+				Name:        rpkgsSection,
+				Permissions: binary.Read,
+			},
 		},
 	}
 
@@ -361,7 +372,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		baseAddr = uintptr(addr)
 	}
 
-	addSection := func(fixedAddr bool, section *binary.Section) {
+	addSection := func(section *explicitSection) {
 		if len(section.Data) == 0 {
 			return
 		}
@@ -371,11 +382,11 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			nextAddr = nextPage(lastAddr)
 		}
 
-		if !fixedAddr {
+		if !section.FixedAddr {
 			section.Address = nextAddr
 		}
 
-		bin.Sections = append(bin.Sections, section)
+		bin.Sections = append(bin.Sections, &section.Section)
 		lastAddr = nextAddr + uintptr(len(section.Data)) - 1
 	}
 
@@ -384,7 +395,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	sections[sectionIndices[rpkgsSection]].Data = rpkgsData.BytesOrPanic()
 
 	for _, section := range sections {
-		addSection(false, section)
+		addSection(section)
 	}
 
 	var b bytes.Buffer
