@@ -78,8 +78,9 @@ def _ruse_binary_impl(ctx):
         ctx,
         format = ctx.attr.format,
         package = ctx.attr.package[RusePackageInfo].info.rpkg,
-        deps = [ctx.attr.package[RusePackageInfo]],
+        provenance = ctx.attr.provenance,
         symbol_table = ctx.attr.symbol_table,
+        deps = [ctx.attr.package[RusePackageInfo]],
         out = executable,
     )
 
@@ -104,6 +105,10 @@ ruse_binary = rule(
             mandatory = True,
             providers = [RusePackageInfo],
             doc = "The main package.",
+        ),
+        "provenance": attr.bool(
+            default = True,
+            doc = "Whether to include rpkg provenance data.",
         ),
         "symbol_table": attr.bool(
             default = True,

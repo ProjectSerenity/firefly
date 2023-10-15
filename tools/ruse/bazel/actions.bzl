@@ -43,13 +43,15 @@ def ruse_compile(ctx, arch, package_path, srcs, out, deps = []):
         mnemonic = "RuseCompile",
     )
 
-def ruse_link(ctx, format, package, symbol_table, out, deps = []):
+def ruse_link(ctx, format, package, provenance, symbol_table, out, deps = []):
     """Links a single executable binary from a Ruse package.
 
     Args:
         ctx: Analysis context.
         format: The executable binary format.
         package: The compiled package to link.
+        provenance: Whether to include rpkg provenance data.
+        symbol_table: Whether to include a symbol table.
         out: The path to the resulting binary.
         deps: The list of RusePackageInfo objects for transitive
             dependencies.
@@ -61,6 +63,7 @@ def ruse_link(ctx, format, package, symbol_table, out, deps = []):
     args.add("-binary", format)
     dep_paths = [rpkg.path for rpkg in transitive_deps]
     args.add_all(dep_paths, before_each = "-rpkg")
+    args.add("-provenance=" + str(provenance).lower())
     args.add("-symbol-table=" + str(symbol_table).lower())
     args.add("-o", out)
     args.add(package)

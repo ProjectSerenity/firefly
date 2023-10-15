@@ -37,12 +37,13 @@ type binaryEncoder func(w io.Writer, bin *binary.Binary) error
 func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("link", flag.ExitOnError)
 
-	var help, symbolTable bool
+	var help, symbolTable, provenance bool
 	var out string
 	var rpkgs []string
 	var encode binaryEncoder
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
 	flags.BoolVar(&symbolTable, "symbol-table", true, "Include a symbol table in the compiled binary.")
+	flags.BoolVar(&provenance, "provenance", true, "Include the set of input rpkg files in the compiled binary.")
 	flags.Func("binary", "The binary encoding (elf).", func(s string) error {
 		if encode != nil {
 			return fmt.Errorf("-binary can only be specified once")
@@ -185,10 +186,12 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	var rpkgsData cryptobyte.Builder
-	rpkgsData.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-		b.AddBytes([]byte(p.Path))
-	})
-	rpkgsData.AddBytes(checksum)
+	if provenance {
+		rpkgsData.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+			b.AddBytes([]byte(p.Path))
+		})
+		rpkgsData.AddBytes(checksum)
+	}
 
 	// Add the dependencies, checking
 	// that we have all the imports we
@@ -259,10 +262,12 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			symbols[sym.Name] = sym
 		}
 
-		rpkgsData.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-			b.AddBytes([]byte(p.Path))
-		})
-		rpkgsData.AddBytes(checksum)
+		if provenance {
+			rpkgsData.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+				b.AddBytes([]byte(p.Path))
+			})
+			rpkgsData.AddBytes(checksum)
+		}
 	}
 
 	// Check that we have seen every package
