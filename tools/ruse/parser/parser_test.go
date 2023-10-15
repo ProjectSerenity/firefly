@@ -449,8 +449,15 @@ func TestParseFile(t *testing.T) {
 			Src: `(package foo)
 			      (let x 1)`,
 			Want: &ast.File{
-				Package: 1,
-				Name:    &ast.Identifier{NamePos: 10, Name: "foo"},
+				Package: &ast.List{
+					ParenOpen: 1,
+					Elements: []ast.Expression{
+						&ast.Identifier{NamePos: 2, Name: "package"},
+						&ast.Identifier{NamePos: 10, Name: "foo"},
+					},
+					ParenClose: 13,
+				},
+				Name: &ast.Identifier{NamePos: 10, Name: "foo"},
 				Expressions: []*ast.List{
 					{
 						ParenOpen: 24,
@@ -471,8 +478,15 @@ func TestParseFile(t *testing.T) {
 			      (let x 1)
 			      (let y 2)`,
 			Want: &ast.File{
-				Package: 1,
-				Name:    &ast.Identifier{NamePos: 10, Name: "foo"},
+				Package: &ast.List{
+					ParenOpen: 1,
+					Elements: []ast.Expression{
+						&ast.Identifier{NamePos: 2, Name: "package"},
+						&ast.Identifier{NamePos: 10, Name: "foo"},
+					},
+					ParenClose: 13,
+				},
+				Name: &ast.Identifier{NamePos: 10, Name: "foo"},
 				Imports: []*ast.Import{
 					{
 						List: &ast.List{

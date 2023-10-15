@@ -286,14 +286,14 @@ func NewIdentifier(name string) *Identifier { return &Identifier{token.NoPos, na
 // are "free-floating" (see also issues #18593, #20744).
 type File struct {
 	Doc         *CommentGroup   // associated documentation; or nil
-	Package     token.Pos       // position of "package" expression
+	Package     *List           // the "package" expression
 	Name        *Identifier     // package name
 	Imports     []*Import       // imports in this file
 	Expressions []*List         // top-level expressions; or nil
 	Comments    []*CommentGroup // list of all comments in the source file
 }
 
-func (f *File) Pos() token.Pos { return f.Package }
+func (f *File) Pos() token.Pos { return f.Package.ParenOpen }
 func (f *File) End() token.Pos {
 	if n := len(f.Expressions); n > 0 {
 		return f.Expressions[n-1].End()

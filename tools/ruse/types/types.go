@@ -311,13 +311,13 @@ func (c *checker) Check(files []*ast.File) error {
 		if c.pkg.Name == "" {
 			c.pkg.Name = file.Name.Name
 		} else if file.Name.Name != c.pkg.Name {
-			return c.errorf(file.Package, "found package name %q, expected %q", file.Name.Name, c.pkg.Name)
+			return c.errorf(file.Package.ParenOpen, "found package name %q, expected %q", file.Name.Name, c.pkg.Name)
 		}
 
 		// Check that the path is valid, given
 		// the package name.
 		if c.pkg.Name != "main" && strings.TrimSuffix(c.pkg.Name, "_test") != path.Base(c.pkg.Path) {
-			return c.errorf(file.Package, "found package name %q, expected %q or %q", file.Name.Name, "main", path.Base(c.pkg.Path))
+			return c.errorf(file.Package.ParenOpen, "found package name %q, expected %q or %q", file.Name.Name, "main", path.Base(c.pkg.Path))
 		}
 
 		// Create the file scope.

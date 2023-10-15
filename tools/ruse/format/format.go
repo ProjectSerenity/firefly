@@ -96,7 +96,7 @@ func Fprint(w io.Writer, fset *token.FileSet, file *ast.File) error {
 	// First, we check for any comments before
 	// the package statement and do those,
 	// then the package statement.
-	for len(comments) > 0 && comments[0].Pos() < file.Package {
+	for len(comments) > 0 && comments[0].Pos() < file.Package.ParenOpen {
 		comment := comments[0]
 		comments = comments[1:]
 		fprintCommentGroup(buf, 0, comment)

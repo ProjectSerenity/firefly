@@ -760,7 +760,7 @@ func (p *parser) parseFile() *ast.File {
 
 	f := &ast.File{
 		Doc:         doc,
-		Package:     list.ParenOpen,
+		Package:     list,
 		Name:        name,
 		Imports:     imports,
 		Expressions: exprs,

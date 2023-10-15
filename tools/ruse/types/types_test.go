@@ -632,7 +632,7 @@ func TestCheck(t *testing.T) {
 					// Every expression should have a type
 					// (and possibly value), except the
 					// package statement in each file.
-					if expr, ok := n.(ast.Expression); ok && info.Types[expr].Type == nil && expr.Pos() != file.Package && expr.Pos() != file.Name.NamePos {
+					if expr, ok := n.(ast.Expression); ok && info.Types[expr].Type == nil && expr.Pos() != file.Package.ParenOpen && expr.Pos() != file.Name.NamePos {
 						t.Errorf("%s: expression %s is absent from info.Types", fset.Position(expr.Pos()), expr.Print())
 					}
 
