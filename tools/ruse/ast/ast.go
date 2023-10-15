@@ -304,6 +304,7 @@ func (f *File) End() token.Pos {
 // An ImportSpec node represents a single package import.
 type Import struct {
 	Doc     *CommentGroup // associated documentation; or nil.
+	Group   *List         // parent list node, if any.
 	List    *List         // underlying list node.
 	Name    *Identifier   // local package name; or nil.
 	Path    *Literal      // import path.

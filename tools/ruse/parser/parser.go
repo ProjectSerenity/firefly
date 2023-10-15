@@ -728,9 +728,10 @@ func (p *parser) parseFile() *ast.File {
 			}
 
 			imports = append(imports, &ast.Import{
-				List: list,
-				Name: name,
-				Path: path,
+				Group: e,
+				List:  list,
+				Name:  name,
+				Path:  path,
 			})
 
 			continue
