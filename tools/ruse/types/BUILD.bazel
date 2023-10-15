@@ -9,6 +9,7 @@ go_library(
     name = "types",
     srcs = [
         "abi.go",
+        "annotations.go",
         "basic.go",
         "constants.go",
         "functions.go",

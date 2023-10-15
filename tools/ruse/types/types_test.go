@@ -464,10 +464,44 @@ func TestCheck(t *testing.T) {
 			Err: `found package name "wrong", expected "minimal"`,
 		},
 		{
-			Name: "let assignment to integer",
+			Name: "incorrect package name",
 			Path: "tests/foo",
 			Text: `(package bar)`,
 			Err:  `found package name "bar", expected "main" or "foo"`,
+		},
+		{
+			Name: "incorrect package annotation",
+			Path: "tests/foo",
+			Text: `'(bar)(package foo)`,
+			Err:  `invalid package annotation: unrecognised annotation type: bar`,
+		},
+		{
+			Name: "incorrect import annotation",
+			Path: "tests/foo",
+			Text: `(package foo)
+			       '(bar)(import "baz")`,
+			Err: `invalid import annotation: unrecognised annotation type: bar`,
+		},
+		{
+			Name: "incorrect imports annotation",
+			Path: "tests/foo",
+			Text: `(package foo)
+			       '(bar)(import (other "baz"))`,
+			Err: `invalid import annotation: unrecognised annotation type: bar`,
+		},
+		{
+			Name: "incorrect imports local annotations",
+			Path: "tests/foo",
+			Text: `(package foo)
+			       (import '(bar)(other "baz"))`,
+			Err: `invalid import annotation: unrecognised annotation type: bar`,
+		},
+		{
+			Name: "incorrect let annotation",
+			Path: "tests/foo",
+			Text: `(package foo)
+			       '(bar)(let baz "text")`,
+			Err: `invalid annotation: unrecognised annotation type: bar`,
 		},
 		{
 			Name: "let assignment to integer and type",
@@ -534,6 +568,57 @@ func TestCheck(t *testing.T) {
 			       '(arch pdp11)
 			       (func (foo int) 1)`,
 			Err: "unrecognised architecture: pdp11",
+		},
+		{
+			Name: "incorrect asm-func annotation",
+			Path: "tests/foo",
+			Text: `(package foo)
+			       '(bar)(asm-func (baz))`,
+			Err: `invalid function annotation: unrecognised annotation type: bar`,
+		},
+		{
+			Name: "incorrect asm-func signature annotation",
+			Path: "tests/foo",
+			Text: `(package foo)
+			       (asm-func '(bar)(baz))`,
+			Err: `invalid function annotation: unrecognised annotation type: bar`,
+		},
+		{
+			Name: "incorrect asm-func parameter annotation",
+			Path: "tests/foo",
+			Text: `(package foo)
+			       (asm-func (baz '(bar)(msg string)))`,
+			Err: `invalid function annotation: unrecognised annotation type: bar`,
+		},
+		{
+			Name: "incorrect func annotation",
+			Path: "tests/foo",
+			Text: `(package foo)
+			       '(bar)(func (baz))`,
+			Err: `invalid function annotation: unrecognised annotation type: bar`,
+		},
+		{
+			Name: "incorrect func signature annotation",
+			Path: "tests/foo",
+			Text: `(package foo)
+			       (func '(bar)(baz))`,
+			Err: `invalid function annotation: unrecognised annotation type: bar`,
+		},
+		{
+			Name: "incorrect func parameter annotation",
+			Path: "tests/foo",
+			Text: `(package foo)
+			       (func (baz '(bar)(msg string)))`,
+			Err: `invalid function annotation: unrecognised annotation type: bar`,
+		},
+		{
+			Name: "incorrect expression annotation",
+			Path: "tests/foo",
+			Text: `(package foo)
+			       (func (baz int)
+			           '(bar)(let (num int) 1)
+			           num)`,
+			Err: `invalid expression annotation: unrecognised annotation type: bar`,
 		},
 	}
 

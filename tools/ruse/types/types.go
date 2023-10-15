@@ -305,6 +305,12 @@ func (c *checker) record(expr ast.Expression, typ Type, value constant.Value) {
 }
 
 func (c *checker) Check(files []*ast.File) error {
+	// Start by checking for any unexpected
+	// annotations.
+	if err := c.CheckAnnotations(files); err != nil {
+		return err
+	}
+
 	seenImport := make(map[string]bool)
 	fileScopes := make([]*Scope, len(files))
 	for i, file := range files {
@@ -476,35 +482,6 @@ func (c *checker) GetNameTypePair(scope *Scope, x ast.Expression) (name *ast.Ide
 	return name, typ, nil
 }
 
-func (c *checker) checkABI(anno *ast.QuotedList) error {
-	// For now, we just check that the ABI is either
-	// a (possibly qualified) identifier or an ABI
-	// expression. We actually resolve it later, as
-	// the ABI may be defined further down the file.
-	if len(anno.X.Elements[1:]) != 1 {
-		return c.errorf(anno.X.ParenOpen, "invalid ABI: got %d ABIs, want 1", len(anno.X.Elements[1:]))
-	}
-
-	abi := anno.X.Elements[1]
-	switch v := abi.(type) {
-	case *ast.Qualified:
-	case *ast.Identifier:
-	case *ast.List:
-		kind, _, err := c.interpretDefinition(v, "abi spec")
-		if err != nil {
-			return c.errorf(v.ParenOpen, "invalid ABI spec: %v", err)
-		}
-
-		if kind.Name != "abi" {
-			return c.errorf(v.ParenOpen, "invalid ABI spec: got identifier %s, want %s", kind.Name, "abi")
-		}
-	default:
-		return c.errorf(abi.Pos(), "invalid ABI: got ABI spec %s, want spec or value", v.Print())
-	}
-
-	return nil
-}
-
 func (c *checker) checkArchitectures(anno *ast.QuotedList) (ok bool, err error) {
 	var archOk bool
 	for _, x := range anno.X.Elements[1:] {
@@ -656,11 +633,6 @@ func (c *checker) CheckTopLevelAsmFuncDecl(parent *Scope, fun *ast.List) error {
 			}
 
 			seenABI = true
-
-			err := c.checkABI(anno)
-			if err != nil {
-				return err
-			}
 		case "arch":
 			// Check that this matches the target architecture.
 			archOk, err := c.checkArchitectures(anno)
@@ -677,18 +649,6 @@ func (c *checker) CheckTopLevelAsmFuncDecl(parent *Scope, fun *ast.List) error {
 		case "mode":
 			if len(anno.X.Elements[1:]) != 1 {
 				return c.errorf(anno.X.ParenOpen, "invalid mode: expected one mode value")
-			}
-
-			// We accept an integer or identifier, depending
-			// on architecture.
-			switch mode := anno.X.Elements[1].(type) {
-			case *ast.Identifier:
-			case *ast.Literal:
-				if mode.Kind != token.Integer {
-					return c.errorf(mode.Pos(), "invalid mode: expected identifier or integer, got %s", mode.Print())
-				}
-			default:
-				return c.errorf(anno.X.Elements[1].Pos(), "invalid mode: expected identifier or integer, got %s", anno.X.Elements[1].Print())
 			}
 
 			// Otherwise ignored by the type checker.
@@ -732,11 +692,6 @@ func (c *checker) CheckTopLevelFuncDecl(parent *Scope, fun *ast.List) error {
 			}
 
 			seenABI = true
-
-			err := c.checkABI(anno)
-			if err != nil {
-				return err
-			}
 		case "arch":
 			// Check that this matches the target architecture.
 			archOk, err := c.checkArchitectures(anno)
@@ -753,18 +708,6 @@ func (c *checker) CheckTopLevelFuncDecl(parent *Scope, fun *ast.List) error {
 		case "mode":
 			if len(anno.X.Elements[1:]) != 1 {
 				return c.errorf(anno.X.ParenOpen, "invalid mode: expected one mode value")
-			}
-
-			// We accept an integer or identifier, depending
-			// on architecture.
-			switch mode := anno.X.Elements[1].(type) {
-			case *ast.Identifier:
-			case *ast.Literal:
-				if mode.Kind != token.Integer {
-					return c.errorf(mode.Pos(), "invalid mode: expected identifier or integer, got %s", mode.Print())
-				}
-			default:
-				return c.errorf(anno.X.Elements[1].Pos(), "invalid mode: expected identifier or integer, got %s", anno.X.Elements[1].Print())
 			}
 
 			// Otherwise ignored by the type checker.
