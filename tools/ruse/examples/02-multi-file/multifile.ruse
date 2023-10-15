@@ -3,6 +3,7 @@
 ; Use of this source code is governed by a BSD 3-clause
 ; license that can be found in the LICENSE file.
 
+'(base-address 0x10_0000)
 (package main)
 
 ; This is a straightforward Hello world program in Ruse,
