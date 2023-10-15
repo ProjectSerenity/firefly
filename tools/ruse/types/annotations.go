@@ -11,6 +11,19 @@ import (
 	"firefly-os.dev/tools/ruse/token"
 )
 
+// listElement1 checks that the list consists of exactly two
+// elements, returning the second.
+func (c *checker) listElement1(list *ast.List, name, element string) (ast.Expression, error) {
+	switch len(list.Elements) {
+	case 1:
+		return nil, c.errorf(list.ParenClose, "invalid %s: %s missing", name, element)
+	case 2:
+		return list.Elements[1], nil
+	default:
+		return nil, c.errorf(list.Elements[2].Pos(), "invalid %s: %s after %s", name, list.Elements[2], element)
+	}
+}
+
 // iterAnnotations is a simple helper function for looping over
 // the annotations on a list.
 //
@@ -75,16 +88,11 @@ func (c *checker) checkAnnotationNoneRecurse(name string, list *ast.List) error 
 
 // Allow an ABI reference/declaration.
 func (c *checker) checkAnnotationABI(list, anno *ast.List) error {
-	switch len(anno.Elements) {
-	case 1:
-		return c.errorf(anno.ParenClose, "invalid ABI annotation: ABI missing")
-	case 2:
-		// Ok.
-	default:
-		return c.errorf(anno.Elements[2].Pos(), "invalid ABI annotation: %s after ABI", anno.Elements[2])
+	abi, err := c.listElement1(anno, "ABI annotation", "ABI")
+	if err != nil {
+		return err
 	}
 
-	abi := anno.Elements[1]
 	switch x := abi.(type) {
 	case *ast.Identifier: // A named ABI, which we check more later.
 	case *ast.Qualified: // An imported named ABI, which we check more later.
@@ -128,18 +136,13 @@ func (c *checker) checkAnnotationArchitecture(list, anno *ast.List) error {
 
 // Allow a CPU mode.
 func (c *checker) checkAnnotationMode(list, anno *ast.List) error {
-	switch len(anno.Elements) {
-	case 1:
-		return c.errorf(anno.ParenClose, "invalid mode annotation: mode missing")
-	case 2:
-		// Ok.
-	default:
-		return c.errorf(anno.Elements[2].Pos(), "invalid mode annotation: %s after mode", anno.Elements[2])
+	mode, err := c.listElement1(anno, "mode annotation", "mode")
+	if err != nil {
+		return err
 	}
 
 	// We accept an integer or identifier, depending
 	// on architecture.
-	mode := anno.Elements[1]
 	switch x := mode.(type) {
 	case *ast.Identifier: // A named mode, which we check more later.
 	case *ast.Literal:
@@ -208,16 +211,11 @@ func (c *checker) checkAnnotationAsmFunc(list *ast.List) error {
 			case "mask":
 				// The meaning is defined per-architecture.
 			case "match":
-				switch len(anno.Elements) {
-				case 1:
-					return c.errorf(anno.ParenClose, "invalid match annotation: instruction missing")
-				case 2:
-					// Ok.
-				default:
-					return c.errorf(anno.Elements[2].Pos(), "invalid match annotation: %s after instruction", anno.Elements[2])
+				instruction, err := c.listElement1(anno, "match annotation", "instruction")
+				if err != nil {
+					return err
 				}
 
-				instruction := anno.Elements[1]
 				if _, ok := instruction.(*ast.Identifier); !ok {
 					return c.errorf(instruction.Pos(), "invalid match annotation: got %s, want instruction identifier", instruction)
 				}
@@ -243,16 +241,11 @@ func (c *checker) checkAnnotationAsmFunc(list *ast.List) error {
 			err := c.iterAnnotations(mem, func(list, anno *ast.List, keyword *ast.Identifier) error {
 				switch keyword.Name {
 				case "bits", "bytes":
-					switch len(anno.Elements) {
-					case 1:
-						return c.errorf(anno.ParenClose, "invalid size annotation: size missing")
-					case 2:
-						// Ok.
-					default:
-						return c.errorf(anno.Elements[2].Pos(), "invalid size annotation: %s after size", anno.Elements[2])
+					size, err := c.listElement1(anno, "size annotation", "size")
+					if err != nil {
+						return err
 					}
 
-					size := anno.Elements[1]
 					if lit, ok := size.(*ast.Literal); !ok || lit.Kind != token.Integer {
 						return c.errorf(size.Pos(), "invalid size annotation: got %s, want size integer", size)
 					}
