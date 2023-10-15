@@ -107,10 +107,24 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			Name: "separated integer",
+			Src:  "0_4",
+			Want: []Lexeme{
+				{token.Integer, 1, "0_4"},
+			},
+		},
+		{
 			Name: "large decimal integer",
 			Src:  "123456789",
 			Want: []Lexeme{
 				{token.Integer, 1, "123456789"},
+			},
+		},
+		{
+			Name: "separated large decimal integer",
+			Src:  "12_34_56_78_9",
+			Want: []Lexeme{
+				{token.Integer, 1, "12_34_56_78_9"},
 			},
 		},
 		{
@@ -345,6 +359,16 @@ func TestError(t *testing.T) {
 			Name: "short octal literal",
 			Src:  "01",
 			Want: Lexeme{token.Error, 1, "invalid number: short octal literals are not supported"},
+		},
+		{
+			Name: "successive integer separator",
+			Src:  "1__0",
+			Want: Lexeme{token.Error, 1, "invalid number: multiple successive separators"},
+		},
+		{
+			Name: "trailing integer separator",
+			Src:  "1_",
+			Want: Lexeme{token.Error, 1, "invalid number: trailing separator"},
 		},
 		{
 			Name: "binary raix prefix with no digits",

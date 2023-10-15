@@ -298,6 +298,16 @@ func (l *lexer) scanNumber(r rune) {
 			// Octal short literal.
 			l.errorf("invalid number: short octal literals are not supported")
 			return
+		case '_':
+			r = l.next()
+			if r == '_' {
+				l.errorf("invalid number: multiple successive separators")
+				return
+			}
+			if digitVal(r) == 16 {
+				l.errorf("invalid number: trailing separator")
+				return
+			}
 		default:
 			// A decimal zero.
 			//
@@ -324,8 +334,30 @@ func (l *lexer) scanNumber(r rune) {
 	}
 
 	r = l.next()
+	if r == '_' {
+		r = l.next()
+		if r == '_' {
+			l.errorf("invalid number: multiple successive separators")
+			return
+		}
+		if digitVal(r) == 16 {
+			l.errorf("invalid number: trailing separator")
+			return
+		}
+	}
 	for digitVal(r) < base {
 		r = l.next()
+		if r == '_' {
+			r = l.next()
+			if r == '_' {
+				l.errorf("invalid number: multiple successive separators")
+				return
+			}
+			if digitVal(r) == 16 {
+				l.errorf("invalid number: trailing separator")
+				return
+			}
+		}
 	}
 
 	// Check the next token is appropriate; a
