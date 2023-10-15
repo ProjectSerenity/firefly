@@ -183,7 +183,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		symbols[sym.Name] = sym
 	}
 
-	rpkgsData := cryptobyte.NewBuilder(nil)
+	var rpkgsData cryptobyte.Builder
 	rpkgsData.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
 		b.AddBytes([]byte(p.Path))
 	})
@@ -280,34 +280,46 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return n + gap
 	}
 
-	codeAddr := uintptr(0x20_0000)
-	stringsAddr := nextPage(codeAddr + uintptr(code.Len()))
-	rpkgsAddr := nextPage(stringsAddr + uintptr(stringsData.Len()))
+	baseAddr := uintptr(0x20_0000) // 2 MiB in.
 	bin := &binary.Binary{
-		Arch:     arch,
-		BaseAddr: 0x20_0000, // 2 MiB in.
-		Sections: []*binary.Section{
-			{
-				Name:        "code",
-				Address:     codeAddr,
-				Permissions: binary.Read | binary.Execute,
-				Data:        code.Bytes(),
-			},
-			{
-				Name:        "strings",
-				Address:     stringsAddr, // The start of the next page after code.
-				Permissions: binary.Read,
-				Data:        stringsData.Bytes(),
-			},
-			{
-				Name:        "rpkgs",
-				Address:     rpkgsAddr, // The start of the next page after strings.
-				Permissions: binary.Read,
-				Data:        rpkgsData.BytesOrPanic(),
-			},
-		},
+		Arch:        arch,
+		BaseAddr:    baseAddr,
+		Sections:    make([]*binary.Section, 0, 3),
 		Symbols:     table,
 		SymbolTable: symbolTable,
+	}
+
+	bin.Sections = append(bin.Sections, &binary.Section{
+		Name:        "code",
+		Address:     baseAddr,
+		Permissions: binary.Read | binary.Execute,
+		Data:        code.Bytes(),
+	})
+
+	lastAddr := baseAddr + uintptr(code.Len()) - 1
+	if stringsData.Len() != 0 {
+		nextAddr := nextPage(lastAddr)
+		bin.Sections = append(bin.Sections, &binary.Section{
+			Name:        "strings",
+			Address:     nextAddr,
+			Permissions: binary.Read,
+			Data:        stringsData.Bytes(),
+		})
+
+		lastAddr = nextAddr + uintptr(stringsData.Len()) - 1
+	}
+
+	rpkgsBytes := rpkgsData.BytesOrPanic()
+	if len(rpkgsBytes) != 0 {
+		nextAddr := nextPage(lastAddr)
+		bin.Sections = append(bin.Sections, &binary.Section{
+			Name:        "rpkgs",
+			Address:     nextAddr,
+			Permissions: binary.Read,
+			Data:        rpkgsBytes,
+		})
+
+		lastAddr = nextAddr + uintptr(len(rpkgsBytes)) - 1
 	}
 
 	var b bytes.Buffer
