@@ -330,6 +330,19 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 		}
 
 		offset = offsets[i].FilePadded
+		sections[i].Offset = uintptr(offsets[i].FileStart)
+	}
+
+	// Finish the symbol table.
+	for i, sym := range bin.Symbols {
+		sectionOffset := sym.Offset
+		sym.Offset = bin.Sections[sym.Section].Offset + sectionOffset
+		sym.Address = bin.Sections[sym.Section].Address + sectionOffset
+		if bin.SymbolTable {
+			offset := symbolAddrs[i]
+			_, value, _ := symbolData(sym)
+			bo.PutUint64(symtab.Data[offset:], value)
+		}
 	}
 
 	b.Write([]byte{0x7f, 'E', 'L', 'F'}) // Magic number.
@@ -356,7 +369,6 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 	// Add the program headers.
 	for i, section := range sections {
 		sectionOffsets := offsets[i]
-		section.Offset = uintptr(sectionOffsets.FileStart)
 		write(uint32(PT_LOAD))                      // Loadable segment.
 		write(progPermissions(section.Permissions)) // Section flags.
 		write(sectionOffsets.FileStart)             // File offset where segment begins.
@@ -400,18 +412,6 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 	// program headers and the start of the
 	// section data (which is page-aligned).
 	b.Write(make([]byte, progDataOff-sectDataEnd))
-
-	// Finish the symbol table.
-	for i, sym := range bin.Symbols {
-		sectionOffset := sym.Offset
-		sym.Offset = bin.Sections[sym.Section].Offset + sectionOffset
-		sym.Address = bin.Sections[sym.Section].Address + sectionOffset
-		if bin.SymbolTable {
-			offset := symbolAddrs[i]
-			_, value, _ := symbolData(sym)
-			bo.PutUint64(symtab.Data[offset:], value)
-		}
-	}
 
 	// Add the section data.
 	for i, section := range sections {
