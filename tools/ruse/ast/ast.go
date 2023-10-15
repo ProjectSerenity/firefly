@@ -303,16 +303,15 @@ func (f *File) End() token.Pos {
 
 // An ImportSpec node represents a single package import.
 type Import struct {
-	Doc        *CommentGroup // associated documentation; or nil.
-	ParenOpen  token.Pos     // position of "("
-	Name       *Identifier   // local package name; or nil.
-	Path       *Literal      // import path.
-	Comment    *CommentGroup // line comments; or nil.
-	ParenClose token.Pos     // position of ")"
+	Doc     *CommentGroup // associated documentation; or nil.
+	List    *List         // underlying list node.
+	Name    *Identifier   // local package name; or nil.
+	Path    *Literal      // import path.
+	Comment *CommentGroup // line comments; or nil.
 }
 
-func (s *Import) Pos() token.Pos { return s.ParenOpen }
-func (s *Import) End() token.Pos { return s.ParenClose + 1 }
+func (s *Import) Pos() token.Pos { return s.List.ParenOpen }
+func (s *Import) End() token.Pos { return s.List.ParenClose + 1 }
 
 // A Package node represents a set of source files
 // collectively building a Go package.

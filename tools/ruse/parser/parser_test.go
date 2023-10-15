@@ -475,10 +475,17 @@ func TestParseFile(t *testing.T) {
 				Name:    &ast.Identifier{NamePos: 10, Name: "foo"},
 				Imports: []*ast.Import{
 					{
-						ParenOpen:  24,
-						Name:       &ast.Identifier{NamePos: 32, Name: "b"},
-						Path:       &ast.Literal{ValuePos: 34, Kind: token.String, Value: `"bar"`},
-						ParenClose: 39,
+						List: &ast.List{
+							ParenOpen: 24,
+							Elements: []ast.Expression{
+								&ast.Identifier{NamePos: 25, Name: "import"},
+								&ast.Identifier{NamePos: 32, Name: "b"},
+								&ast.Literal{ValuePos: 34, Kind: token.String, Value: `"bar"`},
+							},
+							ParenClose: 39,
+						},
+						Name: &ast.Identifier{NamePos: 32, Name: "b"},
+						Path: &ast.Literal{ValuePos: 34, Kind: token.String, Value: `"bar"`},
 					},
 				},
 				Expressions: []*ast.List{

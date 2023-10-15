@@ -682,10 +682,9 @@ func (p *parser) parseFile() *ast.File {
 			}
 
 			imports = append(imports, &ast.Import{
-				ParenOpen:  e.ParenOpen,
-				Name:       name,
-				Path:       path,
-				ParenClose: e.ParenClose,
+				List: e,
+				Name: name,
+				Path: path,
 			})
 
 			continue
@@ -729,10 +728,9 @@ func (p *parser) parseFile() *ast.File {
 			}
 
 			imports = append(imports, &ast.Import{
-				ParenOpen:  list.ParenOpen,
-				Name:       name,
-				Path:       path,
-				ParenClose: list.ParenClose,
+				List: list,
+				Name: name,
+				Path: path,
 			})
 
 			continue

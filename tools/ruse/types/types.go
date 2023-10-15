@@ -358,7 +358,7 @@ func (c *checker) Check(files []*ast.File) error {
 				c.pkg.Imports = append(c.pkg.Imports, importPath)
 			}
 
-			ref := NewImport(scope, imp.ParenOpen, imp.ParenClose, c.pkg, name, dep)
+			ref := NewImport(scope, imp.List.ParenOpen, imp.List.ParenClose, c.pkg, name, dep)
 
 			// Imports only affect the file scope,
 			// not the entire package.
