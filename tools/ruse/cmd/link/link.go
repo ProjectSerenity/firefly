@@ -282,6 +282,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	baseAddr := uintptr(0x20_0000) // 2 MiB in.
+	lastAddr := uintptr(0)
 	if p.BaseAddr != nil {
 		addr, err := strconv.ParseUint(p.BaseAddr.Value, 0, 64)
 		if err != nil {
@@ -299,37 +300,41 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		SymbolTable: symbolTable,
 	}
 
-	bin.Sections = append(bin.Sections, &binary.Section{
+	addSection := func(fixedAddr bool, section *binary.Section) {
+		nextAddr := baseAddr
+		if lastAddr > baseAddr {
+			nextAddr = nextPage(lastAddr)
+		}
+
+		if !fixedAddr {
+			section.Address = nextAddr
+		}
+
+		bin.Sections = append(bin.Sections, section)
+		lastAddr = nextAddr + uintptr(len(section.Data)) - 1
+	}
+
+	addSection(false, &binary.Section{
 		Name:        "code",
-		Address:     baseAddr,
 		Permissions: binary.Read | binary.Execute,
 		Data:        code.Bytes(),
 	})
 
-	lastAddr := baseAddr + uintptr(code.Len()) - 1
 	if stringsData.Len() != 0 {
-		nextAddr := nextPage(lastAddr)
-		bin.Sections = append(bin.Sections, &binary.Section{
+		addSection(false, &binary.Section{
 			Name:        "strings",
-			Address:     nextAddr,
 			Permissions: binary.Read,
 			Data:        stringsData.Bytes(),
 		})
-
-		lastAddr = nextAddr + uintptr(stringsData.Len()) - 1
 	}
 
 	rpkgsBytes := rpkgsData.BytesOrPanic()
 	if len(rpkgsBytes) != 0 {
-		nextAddr := nextPage(lastAddr)
-		bin.Sections = append(bin.Sections, &binary.Section{
+		addSection(false, &binary.Section{
 			Name:        "rpkgs",
-			Address:     nextAddr,
 			Permissions: binary.Read,
 			Data:        rpkgsBytes,
 		})
-
-		lastAddr = nextAddr + uintptr(len(rpkgsBytes)) - 1
 	}
 
 	var b bytes.Buffer
