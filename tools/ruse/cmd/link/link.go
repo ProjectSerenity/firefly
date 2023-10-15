@@ -122,6 +122,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 	// Build the symbol table.
 	symbols := make(map[string]*binary.Symbol)
+	var main *binary.Symbol
 	var table []*binary.Symbol
 	var code, stringsData bytes.Buffer
 	for _, fun := range p.Functions {
@@ -141,6 +142,13 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		sym.Length = code.Len() - prev
 		table = append(table, sym)
 		symbols[sym.Name] = sym
+		if fun.Name == "main" {
+			if main != nil {
+				return fmt.Errorf("main function: unexpectedly found a second main function")
+			}
+
+			main = sym
+		}
 	}
 
 	for _, con := range p.Constants {
@@ -286,6 +294,14 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return n + gap
 	}
 
+	bin := &binary.Binary{
+		Arch:        arch,
+		Entry:       main,
+		Sections:    make([]*binary.Section, 0, 3),
+		Symbols:     table,
+		SymbolTable: symbolTable,
+	}
+
 	baseAddr := uintptr(0x20_0000) // 2 MiB in.
 	lastAddr := uintptr(0)
 	if p.BaseAddr != nil {
@@ -295,14 +311,6 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		baseAddr = uintptr(addr)
-	}
-
-	bin := &binary.Binary{
-		Arch:        arch,
-		BaseAddr:    baseAddr,
-		Sections:    make([]*binary.Section, 0, 3),
-		Symbols:     table,
-		SymbolTable: symbolTable,
 	}
 
 	addSection := func(fixedAddr bool, section *binary.Section) {

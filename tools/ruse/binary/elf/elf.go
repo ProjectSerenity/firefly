@@ -111,6 +111,15 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 		gobinary.Write(b, bo, data)
 	}
 
+	// Check the entry point is an
+	// existing function.
+	if bin.Entry == nil {
+		return fmt.Errorf("no entry point symbol")
+	}
+	if bin.Entry.Kind != binary.SymbolFunction {
+		return fmt.Errorf("entry point is %s symbol, want function", bin.Entry.Kind)
+	}
+
 	const (
 		// Size constants.
 		pageSize       = 0x1000 // 4kB page size in bytes.
@@ -284,11 +293,6 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 	sectDataEnd := sectDataOff + sectDataLen                // Offset where the section names table ends.
 	progDataOff := nextPage(sectDataEnd)                    // Offset of the program data.
 
-	// The entry point needs to be the start
-	// of one of the sections so we can find
-	// the right address.
-	entry := uint64(bin.BaseAddr) // Entry point.
-
 	// SectionOffsets is used to simplify the
 	// calculation of section offsets.
 	type SectionOffsets struct {
@@ -344,6 +348,9 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 			bo.PutUint64(symtab.Data[offset:], value)
 		}
 	}
+
+	// The entry point is now absolute.
+	entry := uint64(bin.Entry.Address)
 
 	b.Write([]byte{0x7f, 'E', 'L', 'F'}) // Magic number.
 	b.WriteByte(2)                       // 64-bit format.

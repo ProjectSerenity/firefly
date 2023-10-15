@@ -16,7 +16,7 @@ import (
 // Binary represents a compiled Ruse binary.
 type Binary struct {
 	Arch     *sys.Arch
-	BaseAddr uintptr // Binary base address.
+	Entry    *Symbol // Binary entry point, must be a function.
 	Sections []*Section
 	Symbols  []*Symbol
 

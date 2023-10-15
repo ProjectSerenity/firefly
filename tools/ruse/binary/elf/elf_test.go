@@ -28,8 +28,13 @@ func TestEncode(t *testing.T) {
 		{
 			Name: "simple",
 			Binary: &binary.Binary{
-				Arch:     sys.X86_64,
-				BaseAddr: 0x0123456789abcdef,
+				Arch: sys.X86_64,
+				Entry: &binary.Symbol{
+					Name:    "example.com/first.main",
+					Kind:    binary.SymbolFunction,
+					Section: 0,
+					Address: 0x0123456789abcdef,
+				},
 				Sections: []*binary.Section{
 					{
 						Name:        "code",
@@ -199,8 +204,13 @@ func TestEncode(t *testing.T) {
 		{
 			Name: "simple-with-symbols",
 			Binary: &binary.Binary{
-				Arch:     sys.X86_64,
-				BaseAddr: 0x0123456789abcdef,
+				Arch: sys.X86_64,
+				Entry: &binary.Symbol{
+					Name:    "example.com/first.main",
+					Kind:    binary.SymbolFunction,
+					Section: 0,
+					Address: 0x0123456789abcdef,
+				},
 				Sections: []*binary.Section{
 					{
 						Name:        "code",
