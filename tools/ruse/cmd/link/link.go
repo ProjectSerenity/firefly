@@ -97,6 +97,33 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("failed to parse %s: %v", filenames[0], err)
 	}
 
+	const (
+		codeSection    = "code"
+		stringsSection = "strings"
+		rpkgsSection   = "rpkgs"
+	)
+
+	// Prepare the list of sections.
+	sections := []*binary.Section{
+		{
+			Name:        codeSection,
+			Permissions: binary.Read | binary.Execute,
+		},
+		{
+			Name:        stringsSection,
+			Permissions: binary.Read,
+		},
+		{
+			Name:        rpkgsSection,
+			Permissions: binary.Read,
+		},
+	}
+
+	sectionIndices := make(map[string]int)
+	for i, section := range sections {
+		sectionIndices[section.Name] = i
+	}
+
 	// Put the main function first.
 	sort.Slice(p.Functions, func(i, j int) bool {
 		switch {
@@ -130,7 +157,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		sym := &binary.Symbol{
 			Name:    p.Path + "." + fun.Name,
 			Kind:    binary.SymbolFunction,
-			Section: 0,
+			Section: sectionIndices[codeSection],
 			Offset:  uintptr(prev), // Just the offset within the section for now.
 		}
 
@@ -162,7 +189,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		sym := &binary.Symbol{
 			Name:    p.Path + "." + con.Name(),
 			Kind:    binary.SymbolString,
-			Section: 1,
+			Section: sectionIndices[stringsSection],
 			Offset:  uintptr(stringsData.Len()), // Just the offset within the section for now.
 			Length:  len(s),
 		}
@@ -183,7 +210,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		sym := &binary.Symbol{
 			Name:    "." + s,
 			Kind:    binary.SymbolString,
-			Section: 1,
+			Section: sectionIndices[stringsSection],
 			Offset:  uintptr(stringsData.Len()), // Just the offset within the section for now.
 			Length:  len(s),
 		}
@@ -235,7 +262,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			sym := &binary.Symbol{
 				Name:    p.Path + "." + fun.Name,
 				Kind:    binary.SymbolFunction,
-				Section: 0,
+				Section: sectionIndices[codeSection],
 				Offset:  uintptr(prev), // Just the offset within the section for now.
 			}
 
@@ -260,7 +287,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			sym := &binary.Symbol{
 				Name:    p.Path + "." + con.Name(),
 				Kind:    binary.SymbolString,
-				Section: 1,
+				Section: sectionIndices[stringsSection],
 				Offset:  uintptr(stringsData.Len()), // Just the offset within the section for now.
 				Length:  len(s),
 			}
@@ -314,6 +341,10 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	addSection := func(fixedAddr bool, section *binary.Section) {
+		if len(section.Data) == 0 {
+			return
+		}
+
 		nextAddr := baseAddr
 		if lastAddr > baseAddr {
 			nextAddr = nextPage(lastAddr)
@@ -327,27 +358,12 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		lastAddr = nextAddr + uintptr(len(section.Data)) - 1
 	}
 
-	addSection(false, &binary.Section{
-		Name:        "code",
-		Permissions: binary.Read | binary.Execute,
-		Data:        code.Bytes(),
-	})
+	sections[sectionIndices[codeSection]].Data = code.Bytes()
+	sections[sectionIndices[stringsSection]].Data = stringsData.Bytes()
+	sections[sectionIndices[rpkgsSection]].Data = rpkgsData.BytesOrPanic()
 
-	if stringsData.Len() != 0 {
-		addSection(false, &binary.Section{
-			Name:        "strings",
-			Permissions: binary.Read,
-			Data:        stringsData.Bytes(),
-		})
-	}
-
-	rpkgsBytes := rpkgsData.BytesOrPanic()
-	if len(rpkgsBytes) != 0 {
-		addSection(false, &binary.Section{
-			Name:        "rpkgs",
-			Permissions: binary.Read,
-			Data:        rpkgsBytes,
-		})
+	for _, section := range sections {
+		addSection(false, section)
 	}
 
 	var b bytes.Buffer
