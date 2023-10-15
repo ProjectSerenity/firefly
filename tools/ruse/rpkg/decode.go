@@ -17,6 +17,7 @@ import (
 
 	"golang.org/x/crypto/cryptobyte"
 
+	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/compiler"
 	"firefly-os.dev/tools/ruse/ssafir"
 	"firefly-os.dev/tools/ruse/sys"
@@ -40,6 +41,7 @@ func decodeHeader(h *header, b []byte) error {
 		!s.ReadUint8(&arch) ||
 		!s.ReadUint8(&h.Version) ||
 		!s.ReadUint16(&h.PackageName) ||
+		!s.ReadUint64(&h.BaseAddress) ||
 		!s.ReadUint32(&h.ImportsOffset) ||
 		!s.ReadUint32(&h.ExportsOffset) ||
 		!s.ReadUint64(&h.TypesOffset) ||
@@ -782,6 +784,7 @@ func (d *Decoder) Header() *Header {
 		Checksum:     bytes.Clone(d.b[d.header.ChecksumOffset : d.header.ChecksumOffset+d.header.ChecksumLength]),
 
 		PackageName: d.packageName,
+		BaseAddress: d.header.BaseAddress,
 
 		ImportsOffset: d.header.ImportsOffset,
 		ImportsLength: d.header.ImportsLength,
@@ -1665,9 +1668,10 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 
 	arch = d.arch
 	pkg = &compiler.Package{
-		Name:  d.pkg.Name,
-		Path:  d.pkg.Path,
-		Types: d.pkg,
+		Name:     d.pkg.Name,
+		Path:     d.pkg.Path,
+		BaseAddr: &ast.Literal{Kind: token.Integer, Value: fmt.Sprintf("%#x", d.header.BaseAddress)},
+		Types:    d.pkg,
 	}
 
 	// Pull all the data from the package.

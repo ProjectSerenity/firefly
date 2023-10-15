@@ -13,6 +13,7 @@ import (
 	"io"
 	"math"
 	"math/big"
+	"strconv"
 	"strings"
 
 	"golang.org/x/crypto/cryptobyte"
@@ -77,11 +78,25 @@ func (e *encoder) AddHeader(arch *sys.Arch, pkg *compiler.Package) error {
 		return fmt.Errorf("unsupported architecture: %v", arch)
 	}
 
+	var baseAddr uint64
+	if pkg.BaseAddr == nil {
+		if pkg.Name == "main" {
+			baseAddr = 0x20_0000 // 2 MiB in by default.
+		}
+	} else {
+		var err error
+		baseAddr, err = strconv.ParseUint(pkg.BaseAddr.Value, 0, 64)
+		if err != nil {
+			return fmt.Errorf("invalid base address: %v", err)
+		}
+	}
+
 	// Build the header.
 	e.header.Magic = magic
 	e.header.Architecture = architecture
 	e.header.Version = version
 	e.header.PackageName = uint16(e.AddString(pkg.Path))
+	e.header.BaseAddress = baseAddr
 	e.header.ImportsOffset = headerSize
 	e.header.ImportsLength = 4 * uint32(len(e.imports))
 	e.header.ExportsOffset = e.header.ImportsOffset + e.header.ImportsLength
@@ -445,6 +460,7 @@ func (h *header) Marshal(b *cryptobyte.Builder) error {
 	b.AddUint8(uint8(h.Architecture))
 	b.AddUint8(h.Version)
 	b.AddUint16(h.PackageName)
+	b.AddUint64(h.BaseAddress)
 	b.AddUint32(h.ImportsOffset)
 	b.AddUint32(h.ExportsOffset)
 	b.AddUint64(h.TypesOffset)

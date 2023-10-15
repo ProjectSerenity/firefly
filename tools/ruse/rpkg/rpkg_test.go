@@ -41,15 +41,16 @@ var tests = []struct {
 			1,    // Arch: x86-64.
 			1,    // Version: 1.
 			0, 4, // PackageName: 4.
-			0, 0, 0, 72, // ImportsOffset: 72.
-			0, 0, 0, 72, // ExportsOffset: 72.
-			0, 0, 0, 0, 0, 0, 0, 72, // TypesOffset: 72.
-			0, 0, 0, 0, 0, 0, 0, 76, // SymbolsOffset: 76.
-			0, 0, 0, 0, 0, 0, 0, 76, // ABIsOffset: 76.
-			0, 0, 0, 0, 0, 0, 0, 80, // StringsOffset: 80.
-			0, 0, 0, 0, 0, 0, 0, 104, // LinkagesOffset: 104.
-			0, 0, 0, 0, 0, 0, 0, 104, // CodeOffset: 104.
-			0, 0, 0, 0, 0, 0, 0, 104, // ChecksumOffset: 104.
+			0, 0, 0, 0, 0, 0, 0, 0, // BaseAddress: 0.
+			0, 0, 0, 80, // ImportsOffset: 80.
+			0, 0, 0, 80, // ExportsOffset: 80.
+			0, 0, 0, 0, 0, 0, 0, 80, // TypesOffset: 80.
+			0, 0, 0, 0, 0, 0, 0, 84, // SymbolsOffset: 84.
+			0, 0, 0, 0, 0, 0, 0, 84, // ABIsOffset: 84.
+			0, 0, 0, 0, 0, 0, 0, 88, // StringsOffset: 88.
+			0, 0, 0, 0, 0, 0, 0, 112, // LinkagesOffset: 112.
+			0, 0, 0, 0, 0, 0, 0, 112, // CodeOffset: 112.
+			0, 0, 0, 0, 0, 0, 0, 112, // ChecksumOffset: 112.
 			// Imports.
 			// Exports.
 			// Types.
@@ -70,10 +71,10 @@ var tests = []struct {
 			// Linkages.
 			// Code.
 			// Checksum.
-			0x32, 0x96, 0xdd, 0xf9, 0x29, 0x5a, 0x09, 0xa9,
-			0x53, 0xed, 0xc9, 0x7c, 0x6f, 0xa5, 0x78, 0x83,
-			0x25, 0x7a, 0x2a, 0xca, 0xf7, 0x09, 0xa4, 0x1d,
-			0x44, 0xeb, 0xb2, 0x29, 0x41, 0x89, 0xe4, 0x35,
+			0x35, 0x61, 0xf1, 0x4f, 0x41, 0xa5, 0x17, 0x2d,
+			0xac, 0x94, 0x6b, 0x31, 0x80, 0x7c, 0x1c, 0x65,
+			0x1b, 0x7c, 0xff, 0x6e, 0x09, 0x7c, 0xc2, 0xfe,
+			0xb0, 0x4f, 0xdc, 0x7c, 0x26, 0xdd, 0xee, 0xe4,
 		},
 		Decoded: &decoded{
 			header: header{
@@ -81,23 +82,24 @@ var tests = []struct {
 				Architecture:   ArchX86_64,
 				Version:        1,
 				PackageName:    4,
-				ImportsOffset:  72,
+				BaseAddress:    0,
+				ImportsOffset:  80,
 				ImportsLength:  0,
-				ExportsOffset:  72,
+				ExportsOffset:  80,
 				ExportsLength:  0,
-				TypesOffset:    72,
+				TypesOffset:    80,
 				TypesLength:    4,
-				SymbolsOffset:  76,
+				SymbolsOffset:  84,
 				SymbolsLength:  0,
-				ABIsOffset:     76,
+				ABIsOffset:     84,
 				ABIsLength:     4,
-				StringsOffset:  80,
+				StringsOffset:  88,
 				StringsLength:  24,
-				LinkagesOffset: 104,
+				LinkagesOffset: 112,
 				LinkagesLength: 0,
-				CodeOffset:     104,
+				CodeOffset:     112,
 				CodeLength:     0,
-				ChecksumOffset: 104,
+				ChecksumOffset: 112,
 				ChecksumLength: 32,
 			},
 			imports: []uint32{},
@@ -137,15 +139,16 @@ var tests = []struct {
 			1,    // Arch: x86-64.
 			1,    // Version: 1.
 			0, 4, // PackageName: 4.
-			0, 0, 0, 72, // ImportsOffset: 72.
-			0, 0, 0, 72, // ExportsOffset: 72.
-			0, 0, 0, 0, 0, 0, 0, 88, // TypesOffset: 88.
-			0, 0, 0, 0, 0, 0, 0, 116, // SymbolsOffset: 116.
-			0, 0, 0, 0, 0, 0, 1, 4, // ABIsOffset: 260.
-			0, 0, 0, 0, 0, 0, 1, 8, // StringsOffset: 264.
-			0, 0, 0, 0, 0, 0, 1, 112, // LinkagesOffset: 368.
-			0, 0, 0, 0, 0, 0, 1, 112, // CodeOffset: 368.
-			0, 0, 0, 0, 0, 0, 1, 112, // ChecksumOffset: 368.
+			0, 0, 0, 0, 0, 0, 0, 0, // BaseAddress: 0.
+			0, 0, 0, 80, // ImportsOffset: 80.
+			0, 0, 0, 80, // ExportsOffset: 80.
+			0, 0, 0, 0, 0, 0, 0, 96, // TypesOffset: 96.
+			0, 0, 0, 0, 0, 0, 0, 124, // SymbolsOffset: 124.
+			0, 0, 0, 0, 0, 0, 1, 12, // ABIsOffset: 268.
+			0, 0, 0, 0, 0, 0, 1, 16, // StringsOffset: 272.
+			0, 0, 0, 0, 0, 0, 1, 120, // LinkagesOffset: 376.
+			0, 0, 0, 0, 0, 0, 1, 120, // CodeOffset: 376.
+			0, 0, 0, 0, 0, 0, 1, 120, // ChecksumOffset: 376.
 			// Imports.
 			// Exports (sorted).
 			// - Big-negative.
@@ -228,10 +231,10 @@ var tests = []struct {
 			// Linkages.
 			// Code.
 			// Checksum.
-			0x36, 0x98, 0x35, 0x10, 0x7c, 0xd0, 0x5b, 0x8a,
-			0xdf, 0x7a, 0x54, 0xe0, 0x0f, 0xbd, 0xd5, 0xcf,
-			0xa2, 0x09, 0xab, 0x7a, 0x37, 0x7a, 0x8c, 0xec,
-			0x14, 0x87, 0xc4, 0x6f, 0x64, 0xf0, 0xce, 0xd8,
+			0x85, 0x5c, 0x7e, 0xbc, 0x86, 0x71, 0x7c, 0x91,
+			0x8f, 0x1e, 0x6f, 0xba, 0x50, 0xc4, 0x83, 0x6d,
+			0xae, 0x71, 0x83, 0xb3, 0xc5, 0x76, 0x91, 0x0f,
+			0xa5, 0x72, 0xcd, 0xd9, 0x5b, 0x79, 0xad, 0x44,
 		},
 		Decoded: &decoded{
 			header: header{
@@ -239,23 +242,24 @@ var tests = []struct {
 				Architecture:   ArchX86_64,
 				Version:        1,
 				PackageName:    4,
-				ImportsOffset:  72,
+				BaseAddress:    0,
+				ImportsOffset:  80,
 				ImportsLength:  0,
-				ExportsOffset:  72,
+				ExportsOffset:  80,
 				ExportsLength:  16,
-				TypesOffset:    88,
+				TypesOffset:    96,
 				TypesLength:    28,
-				SymbolsOffset:  116,
+				SymbolsOffset:  124,
 				SymbolsLength:  144,
-				ABIsOffset:     260,
+				ABIsOffset:     268,
 				ABIsLength:     4,
-				StringsOffset:  264,
+				StringsOffset:  272,
 				StringsLength:  104,
-				LinkagesOffset: 368,
+				LinkagesOffset: 376,
 				LinkagesLength: 0,
-				CodeOffset:     368,
+				CodeOffset:     376,
 				CodeLength:     0,
-				ChecksumOffset: 368,
+				ChecksumOffset: 376,
 				ChecksumLength: 32,
 			},
 			imports: []uint32{},
@@ -336,7 +340,8 @@ var tests = []struct {
 		Arch:    sys.X86_64,
 		Package: "example.com/foo",
 		Code: `
-			(package foo)
+			'(base-address 0x10_0000)
+			(package main)
 
 			(let msg "Hello, world!")
 
@@ -374,15 +379,16 @@ var tests = []struct {
 			1,    // Arch: x86-64.
 			1,    // Version: 1.
 			0, 4, // PackageName: 4.
-			0, 0, 0, 72, // ImportsOffset: 72.
-			0, 0, 0, 72, // ExportsOffset: 72.
-			0, 0, 0, 0, 0, 0, 0, 72, // TypesOffset: 72.
-			0, 0, 0, 0, 0, 0, 0, 228, // SymbolsOffset: 228.
-			0, 0, 0, 0, 0, 0, 1, 152, // ABIsOffset: 408.
-			0, 0, 0, 0, 0, 0, 1, 204, // StringsOffset: 460.
-			0, 0, 0, 0, 0, 0, 2, 144, // LinkagesOffset: 656.
-			0, 0, 0, 0, 0, 0, 2, 180, // CodeOffset: 692.
-			0, 0, 0, 0, 0, 0, 2, 232, // ChecksumOffset: 744.
+			0, 0, 0, 0, 0, 16, 0, 0, // BaseAddress: 0x10_0000.
+			0, 0, 0, 80, // ImportsOffset: 80.
+			0, 0, 0, 80, // ExportsOffset: 80.
+			0, 0, 0, 0, 0, 0, 0, 80, // TypesOffset: 80.
+			0, 0, 0, 0, 0, 0, 0, 236, // SymbolsOffset: 236.
+			0, 0, 0, 0, 0, 0, 1, 160, // ABIsOffset: 416.
+			0, 0, 0, 0, 0, 0, 1, 212, // StringsOffset: 468.
+			0, 0, 0, 0, 0, 0, 2, 152, // LinkagesOffset: 664.
+			0, 0, 0, 0, 0, 0, 2, 188, // CodeOffset: 700.
+			0, 0, 0, 0, 0, 0, 2, 240, // ChecksumOffset: 752.
 			// Imports.
 			// Exports.
 			// Types.
@@ -564,10 +570,10 @@ var tests = []struct {
 			0xc3, // (ret)
 			0, 0, // Padding.
 			// Checksum.
-			0x99, 0x0b, 0x13, 0xcc, 0xf2, 0xae, 0x0e, 0x2a,
-			0x8e, 0xe5, 0xed, 0x8a, 0x63, 0x87, 0x33, 0x09,
-			0xbb, 0x98, 0x4f, 0x4e, 0x80, 0xa5, 0xab, 0xfb,
-			0x85, 0x5c, 0x81, 0x3b, 0x37, 0x89, 0x67, 0x9b,
+			0xe7, 0x51, 0xc6, 0x1f, 0xf5, 0x3f, 0xab, 0xad,
+			0xfc, 0x79, 0x3a, 0xf8, 0x3d, 0x49, 0xb6, 0x74,
+			0xc5, 0x5e, 0x1d, 0x18, 0x20, 0x19, 0x94, 0xe4,
+			0xdc, 0xf2, 0x0f, 0x5e, 0xf6, 0x67, 0x3b, 0x6a,
 		},
 		Decoded: &decoded{
 			header: header{
@@ -575,23 +581,24 @@ var tests = []struct {
 				Architecture:   ArchX86_64,
 				Version:        1,
 				PackageName:    4,
-				ImportsOffset:  72,
+				BaseAddress:    0x10_0000,
+				ImportsOffset:  80,
 				ImportsLength:  0,
-				ExportsOffset:  72,
+				ExportsOffset:  80,
 				ExportsLength:  0,
-				TypesOffset:    72,
+				TypesOffset:    80,
 				TypesLength:    156,
-				SymbolsOffset:  228,
+				SymbolsOffset:  236,
 				SymbolsLength:  180,
-				ABIsOffset:     408,
+				ABIsOffset:     416,
 				ABIsLength:     52,
-				StringsOffset:  460,
+				StringsOffset:  468,
 				StringsLength:  196,
-				LinkagesOffset: 656,
+				LinkagesOffset: 664,
 				LinkagesLength: 36,
-				CodeOffset:     692,
+				CodeOffset:     700,
 				CodeLength:     52,
-				ChecksumOffset: 744,
+				ChecksumOffset: 752,
 				ChecksumLength: 32,
 			},
 			imports: []uint32{},

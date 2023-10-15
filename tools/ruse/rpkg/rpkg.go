@@ -45,6 +45,7 @@
 //
 //		// Details about the package.
 //		PackageName     uint16  // The offset into the strings section where the package name begins.
+//		BaseAddress     uint64  // The base address of the executable (0 for non-main packages).
 //
 //		// Location of the imports section.
 //		ImportsOffset   uint32  // The offset into the file where the imports section begins.
@@ -253,6 +254,7 @@ type header struct {
 
 	// Details about the package.
 	PackageName uint16 // The offset into the strings section where the package name begins.
+	BaseAddress uint64 // The base address of the executable (0 for non-main packages).
 
 	// Location of the imports section.
 	ImportsOffset uint32 // The offset into the file where the imports section begins.
@@ -295,6 +297,7 @@ const headerSize = 4 + // 32-bit magic.
 	1 + // 8-bit architecture.
 	1 + // 8-bit version.
 	2 + // 16-bit package name string offset.
+	8 + // 64-bit base address.
 	4 + // 32-bit imports section offset.
 	4 + // 32-bit exports section offset.
 	8 + // 64-bit types section offset.
@@ -315,6 +318,7 @@ type Header struct {
 
 	// Details about the package.
 	PackageName string // The offset into the strings section where the package name begins.
+	BaseAddress uint64 // The base address of the executable (0 for non-main packages).
 
 	// Location of the imports section.
 	ImportsOffset uint32 // The offset into the file where the imports section begins.
