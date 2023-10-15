@@ -23,6 +23,7 @@ import (
 type Package struct {
 	Name      string
 	Path      string
+	BaseAddr  *ast.Literal
 	Types     *types.Package
 	Imports   []string
 	Constants []*types.Constant // Named constants.
@@ -126,6 +127,28 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 		Path:    pkg.Path,
 		Types:   pkg,
 		Imports: pkg.Imports,
+	}
+
+	// Process any package-level annotations.
+	for _, file := range files {
+		for _, x := range file.Package.Annotations {
+			anno := x.X
+			keyword := anno.Elements[0].(*ast.Identifier)
+			switch keyword.Name {
+			case "base-address":
+				addr := anno.Elements[1].(*ast.Literal)
+				if p.Name != "main" {
+					return nil, fmt.Errorf("%s: invalid package annotation: base address can only be specified by package main", fset.Position(x.Quote))
+				}
+				if p.BaseAddr != nil {
+					return nil, fmt.Errorf("%s: invalid package annotation: base address already specified at %s", fset.Position(x.Quote), fset.Position(p.BaseAddr.ValuePos))
+				}
+
+				p.BaseAddr = addr
+			default:
+				panic("unexpected keyword " + keyword.Name)
+			}
+		}
 	}
 
 	// Identify all package-level constants.

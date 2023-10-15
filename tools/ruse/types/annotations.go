@@ -353,7 +353,25 @@ func (c *checker) checkAnnotationExpression(expr ast.Expression) error {
 func (c *checker) CheckAnnotations(files []*ast.File) error {
 	for _, file := range files {
 		// Package statement.
-		if err := c.checkAnnotationNone("package", file.Package); err != nil {
+		err := c.iterAnnotations(file.Package, func(list, anno *ast.List, keyword *ast.Identifier) error {
+			switch keyword.Name {
+			case "base-address":
+				addr, err := c.listElement1(anno, "package annotation", "address")
+				if err != nil {
+					return err
+				}
+
+				// We expect an integer.
+				if lit, ok := addr.(*ast.Literal); !ok || lit.Kind != token.Integer {
+					return c.errorf(addr.Pos(), "invalid package annotation: got %s base address, want integer", addr)
+				}
+
+				return nil
+			default:
+				return c.errorf(anno.ParenOpen, "invalid package annotation: unrecognised annotation type: %s", keyword.Name)
+			}
+		})
+		if err != nil {
 			return err
 		}
 
