@@ -591,13 +591,18 @@ func (p *parser) parseFile() *ast.File {
 
 	// Package clause.
 	doc := p.leadComment
-	if p.lex.Token != token.ParenOpen {
+	if p.lex.Token != token.ParenOpen && p.lex.Token != token.Quote {
 		p.errorExpected(errorPos(p.lex.Position), "package name")
 		return nil
 	}
 
-	list := p.parseList()
-	p.next()
+	x := p.parseExpr()
+	list, ok := x.(*ast.List)
+	if !ok {
+		p.errorExpected(errorPos(p.lex.Position), "package name")
+		return nil
+	}
+
 	if len(list.Elements) != 2 {
 		p.errorExpected(list, "package name")
 		return nil
