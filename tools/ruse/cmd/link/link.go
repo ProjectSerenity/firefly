@@ -239,35 +239,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		rpkgsData.AddBytes(checksum)
 	}
 
-	// Add the dependencies, checking
-	// that we have all the imports we
-	// need.
-	seenPackages := make(map[string]bool)
-	needPackages := make(map[string]bool)
-	seenPackages[p.Path] = true
-	for _, imp := range p.Imports {
-		needPackages[imp] = true
-	}
-	for _, name := range rpkgs {
-		data, err := os.ReadFile(name)
-		if err != nil {
-			return fmt.Errorf("failed to read rpkg %q: %v", name, err)
-		}
-
-		depArch, p, checksum, err := rpkg.Decode(info, data)
-		if err != nil {
-			return fmt.Errorf("failed to parse rpkg %q: %v", name, err)
-		}
-
-		if depArch != arch {
-			return fmt.Errorf("cannot import rpkg %q: compiled for %s: need %s", name, depArch.Name, arch.Name)
-		}
-
-		seenPackages[p.Path] = true
-		for _, imp := range p.Imports {
-			needPackages[imp] = true
-		}
-
+	addPackage := func(p *compiler.Package, checksum []byte) error {
 		for _, fun := range p.Functions {
 			prev := code.Len()
 			sym := &binary.Symbol{
@@ -334,6 +306,42 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				b.AddBytes([]byte(p.Path))
 			})
 			rpkgsData.AddBytes(checksum)
+		}
+
+		return nil
+	}
+
+	// Add the dependencies, checking
+	// that we have all the imports we
+	// need.
+	seenPackages := make(map[string]bool)
+	needPackages := make(map[string]bool)
+	seenPackages[p.Path] = true
+	for _, imp := range p.Imports {
+		needPackages[imp] = true
+	}
+	for _, name := range rpkgs {
+		data, err := os.ReadFile(name)
+		if err != nil {
+			return fmt.Errorf("failed to read rpkg %q: %v", name, err)
+		}
+
+		depArch, p, checksum, err := rpkg.Decode(info, data)
+		if err != nil {
+			return fmt.Errorf("failed to parse rpkg %q: %v", name, err)
+		}
+
+		if depArch != arch {
+			return fmt.Errorf("cannot import rpkg %q: compiled for %s: need %s", name, depArch.Name, arch.Name)
+		}
+
+		seenPackages[p.Path] = true
+		for _, imp := range p.Imports {
+			needPackages[imp] = true
+		}
+
+		if err := addPackage(p, checksum); err != nil {
+			return err
 		}
 	}
 
