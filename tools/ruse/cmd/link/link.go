@@ -214,44 +214,83 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	const (
-		codeSection    = "code"
-		stringsSection = "strings"
-		rpkgsSection   = "rpkgs"
+		defaultCodeSectionSymbol    = "sections.Code"
+		defaultStringsSectionSymbol = "sections.Strings"
+		defaultRPKGsSectionSymbol   = "sections.RPKGs"
 	)
 
 	// Prepare the list of sections.
-	sections := []types.Section{
-		types.NewSection(&binary.Section{Name: codeSection, Permissions: binary.Read | binary.Execute}, false),
-		types.NewSection(&binary.Section{Name: stringsSection, Permissions: binary.Read}, false),
-		types.NewSection(&binary.Section{Name: rpkgsSection, Permissions: binary.Read}, false),
+	var sections []types.Section
+	var sectionsData []*bytes.Buffer
+	symbolToSection := make(map[string]*binary.Section)
+	symbolToSectionIndex := make(map[string]int)
+	for _, p := range packages {
+		// Look for any named sections.
+		for _, con := range p.Constants {
+			section, ok := con.Type().(types.Section)
+			if !ok {
+				continue
+			}
+
+			symbolName := con.Package().Path + "." + con.Name()
+			if _, ok := symbolToSection[symbolName]; !ok {
+				symbolToSection[symbolName] = section.Section()
+				symbolToSectionIndex[symbolName] = len(sections)
+				sections = append(sections, section)
+				sectionsData = append(sectionsData, new(bytes.Buffer))
+			}
+		}
 	}
 
-	sectionIndices := make(map[string]int)
-	for i, section := range sections {
-		sectionIndices[section.Section().Name] = i
+	// Track the default sections, which should be
+	// declared in the sections package in the
+	// standard library and we error if not.
+	defaultCodeSection := symbolToSection[defaultCodeSectionSymbol]
+	defaultStringsSection := symbolToSection[defaultStringsSectionSymbol]
+	defaultRPKGsSection := symbolToSection[defaultRPKGsSectionSymbol]
+	if defaultCodeSection == nil {
+		return fmt.Errorf("internal error: could not find default code section")
+	}
+	if defaultStringsSection == nil {
+		return fmt.Errorf("internal error: could not find default strings section")
+	}
+	if defaultRPKGsSection == nil {
+		return fmt.Errorf("internal error: could not find default rpkgs section")
+	}
+
+	// Add the rpkgs data.
+	sectionsData[symbolToSectionIndex[defaultRPKGsSectionSymbol]].Write(rpkgsData.BytesOrPanic())
+
+	sectionData := func(fallback, symbol string) *bytes.Buffer {
+		index, ok := symbolToSectionIndex[symbol]
+		if !ok {
+			index = symbolToSectionIndex[fallback]
+		}
+
+		return sectionsData[index]
 	}
 
 	// Build the symbol table.
 	var main *binary.Symbol
 	var table []*binary.Symbol
 	symbols := make(map[string]*binary.Symbol)
-	var code, stringsData bytes.Buffer
 	for i, p := range packages {
 		for _, fun := range p.Functions {
-			prev := code.Len()
+			data := sectionData(defaultCodeSectionSymbol, "")
+			prev := data.Len()
 			sym := &binary.Symbol{
 				Name:    p.Path + "." + fun.Name,
 				Kind:    binary.SymbolFunction,
-				Section: sectionIndices[codeSection],
+				Section: symbolToSectionIndex[defaultCodeSectionSymbol],
 				Offset:  uintptr(prev), // Just the offset within the section for now.
 			}
 
-			err = compiler.EncodeTo(&code, nil, arch, fun)
+			err = compiler.EncodeTo(data, nil, arch, fun)
 			if err != nil {
 				return err
 			}
 
-			sym.Length = code.Len() - prev
+			sym.Length = data.Len() - prev
 			table = append(table, sym)
 			symbols[sym.Name] = sym
 			if i == 0 && fun.Name == "main" {
@@ -264,6 +303,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		for _, con := range p.Constants {
+			data := sectionData(defaultStringsSectionSymbol, "")
 			val := con.Value()
 			if val == nil || val.Kind() != constant.String {
 				// Non-string constants are inlined.
@@ -274,17 +314,18 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			sym := &binary.Symbol{
 				Name:    p.Path + "." + con.Name(),
 				Kind:    binary.SymbolString,
-				Section: sectionIndices[stringsSection],
-				Offset:  uintptr(stringsData.Len()), // Just the offset within the section for now.
+				Section: symbolToSectionIndex[defaultStringsSectionSymbol],
+				Offset:  uintptr(data.Len()), // Just the offset within the section for now.
 				Length:  len(s),
 			}
 
-			stringsData.WriteString(s)
+			data.WriteString(s)
 			table = append(table, sym)
 			symbols[sym.Name] = sym
 		}
 
 		for _, lit := range p.Literals {
+			data := sectionData(defaultStringsSectionSymbol, "")
 			val := lit.Value()
 			if val.Kind() != constant.String {
 				// Non-string constants are inlined.
@@ -295,12 +336,12 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			sym := &binary.Symbol{
 				Name:    "." + s,
 				Kind:    binary.SymbolString,
-				Section: sectionIndices[stringsSection],
-				Offset:  uintptr(stringsData.Len()), // Just the offset within the section for now.
+				Section: symbolToSectionIndex[defaultStringsSectionSymbol],
+				Offset:  uintptr(data.Len()), // Just the offset within the section for now.
 				Length:  len(s),
 			}
 
-			stringsData.WriteString(s)
+			data.WriteString(s)
 			table = append(table, sym)
 			symbols[sym.Name] = sym
 		}
@@ -333,6 +374,11 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		baseAddr = uintptr(addr)
 	}
 
+	// Store the section data to each section.
+	for i := range sections {
+		sections[i].Section().Data = sectionsData[i].Bytes()
+	}
+
 	addSection := func(section types.Section) {
 		if len(section.Section().Data) == 0 {
 			return
@@ -350,10 +396,6 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		bin.Sections = append(bin.Sections, section.Section())
 		lastAddr = nextAddr + uintptr(len(section.Section().Data)) - 1
 	}
-
-	sections[sectionIndices[codeSection]].Section().Data = code.Bytes()
-	sections[sectionIndices[stringsSection]].Section().Data = stringsData.Bytes()
-	sections[sectionIndices[rpkgsSection]].Section().Data = rpkgsData.BytesOrPanic()
 
 	for _, section := range sections {
 		addSection(section)
