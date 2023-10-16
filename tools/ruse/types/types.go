@@ -1080,6 +1080,7 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 		}
 
 		typ := rhs.Type()
+		c.use(x.X, pkg)
 		c.use(x.Y, rhs)
 		c.record(x, typ, nil)
 		return rhs, typ, nil
