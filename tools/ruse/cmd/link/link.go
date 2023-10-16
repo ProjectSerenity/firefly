@@ -98,24 +98,6 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("failed to parse %s: %v", filenames[0], err)
 	}
 
-	const (
-		codeSection    = "code"
-		stringsSection = "strings"
-		rpkgsSection   = "rpkgs"
-	)
-
-	// Prepare the list of sections.
-	sections := []types.Section{
-		types.NewSection(&binary.Section{Name: codeSection, Permissions: binary.Read | binary.Execute}, false),
-		types.NewSection(&binary.Section{Name: stringsSection, Permissions: binary.Read}, false),
-		types.NewSection(&binary.Section{Name: rpkgsSection, Permissions: binary.Read}, false),
-	}
-
-	sectionIndices := make(map[string]int)
-	for i, section := range sections {
-		sectionIndices[section.Section().Name] = i
-	}
-
 	// Put the main function first.
 	sort.Slice(p.Functions, func(i, j int) bool {
 		switch {
@@ -139,79 +121,6 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("main function: must have no parameters or result, found function signature %s", p.Functions[0].Type)
 	}
 
-	// Build the symbol table.
-	symbols := make(map[string]*binary.Symbol)
-	var main *binary.Symbol
-	var table []*binary.Symbol
-	var code, stringsData bytes.Buffer
-	for _, fun := range p.Functions {
-		prev := code.Len()
-		sym := &binary.Symbol{
-			Name:    p.Path + "." + fun.Name,
-			Kind:    binary.SymbolFunction,
-			Section: sectionIndices[codeSection],
-			Offset:  uintptr(prev), // Just the offset within the section for now.
-		}
-
-		err = compiler.EncodeTo(&code, nil, arch, fun)
-		if err != nil {
-			return err
-		}
-
-		sym.Length = code.Len() - prev
-		table = append(table, sym)
-		symbols[sym.Name] = sym
-		if fun.Name == "main" {
-			if main != nil {
-				return fmt.Errorf("main function: unexpectedly found a second main function")
-			}
-
-			main = sym
-		}
-	}
-
-	for _, con := range p.Constants {
-		val := con.Value()
-		if val.Kind() != constant.String {
-			// Non-string constants are inlined.
-			continue
-		}
-
-		s := constant.StringVal(val)
-		sym := &binary.Symbol{
-			Name:    p.Path + "." + con.Name(),
-			Kind:    binary.SymbolString,
-			Section: sectionIndices[stringsSection],
-			Offset:  uintptr(stringsData.Len()), // Just the offset within the section for now.
-			Length:  len(s),
-		}
-
-		stringsData.WriteString(s)
-		table = append(table, sym)
-		symbols[sym.Name] = sym
-	}
-
-	for _, lit := range p.Literals {
-		val := lit.Value()
-		if val.Kind() != constant.String {
-			// Non-string constants are inlined.
-			continue
-		}
-
-		s := constant.StringVal(val)
-		sym := &binary.Symbol{
-			Name:    "." + s,
-			Kind:    binary.SymbolString,
-			Section: sectionIndices[stringsSection],
-			Offset:  uintptr(stringsData.Len()), // Just the offset within the section for now.
-			Length:  len(s),
-		}
-
-		stringsData.WriteString(s)
-		table = append(table, sym)
-		symbols[sym.Name] = sym
-	}
-
 	var rpkgsData cryptobyte.Builder
 	if provenance {
 		rpkgsData.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
@@ -220,7 +129,114 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		rpkgsData.AddBytes(checksum)
 	}
 
-	addPackage := func(p *compiler.Package, checksum []byte) error {
+	// Add the dependencies, checking
+	// that we have all the imports we
+	// need.
+	seenPackages := make(map[string]bool)
+	needPackages := make(map[string]bool)
+	seenPackages[p.Path] = true
+	packages := []*compiler.Package{p}
+	for _, imp := range p.Imports {
+		needPackages[imp] = true
+	}
+	for _, name := range rpkgs {
+		data, err := os.ReadFile(name)
+		if err != nil {
+			return fmt.Errorf("failed to read rpkg %q: %v", name, err)
+		}
+
+		depArch, p, checksum, err := rpkg.Decode(info, data)
+		if err != nil {
+			return fmt.Errorf("failed to parse rpkg %q: %v", name, err)
+		}
+
+		if depArch != arch {
+			return fmt.Errorf("cannot import rpkg %q: compiled for %s: need %s", name, depArch.Name, arch.Name)
+		}
+
+		seenPackages[p.Path] = true
+		for _, imp := range p.Imports {
+			needPackages[imp] = true
+		}
+
+		packages = append(packages, p)
+		if provenance {
+			rpkgsData.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+				b.AddBytes([]byte(p.Path))
+			})
+			rpkgsData.AddBytes(checksum)
+		}
+	}
+
+	isStdlib := make(map[string]bool)
+	if stdlib != "" {
+		data, err := os.ReadFile(stdlib)
+		if err != nil {
+			return fmt.Errorf("failed to read stdlib rpkg %q: %v", stdlib, err)
+		}
+
+		rstd, err := rpkg.NewStdlibDecoder(data)
+		if err != nil {
+			return fmt.Errorf("failed to parse stdlib rstd %q: %v", stdlib, err)
+		}
+
+		pkgs := rstd.Packages()
+		for _, hdr := range pkgs {
+			info := new(types.Info)
+			depArch, p, checksum, err := rstd.Decode(info, hdr)
+			if err != nil {
+				return fmt.Errorf("failed to parse stdlib rpkg %q from %q: %v", hdr.PackageName, stdlib, err)
+			}
+
+			if depArch != arch {
+				return fmt.Errorf("cannot import stdlib rpkg %q: compiled for %s: need %s", hdr.PackageName, depArch.Name, arch.Name)
+			}
+
+			isStdlib[hdr.PackageName] = true
+			seenPackages[hdr.PackageName] = true
+
+			packages = append(packages, p)
+			if provenance {
+				rpkgsData.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+					b.AddBytes([]byte(p.Path))
+				})
+				rpkgsData.AddBytes(checksum)
+			}
+		}
+	}
+
+	// Check that we have seen every package
+	// that we need.
+	for pkg := range needPackages {
+		if !seenPackages[pkg] {
+			return fmt.Errorf("no rpkg provided for package %q", pkg)
+		}
+	}
+
+	const (
+		codeSection    = "code"
+		stringsSection = "strings"
+		rpkgsSection   = "rpkgs"
+	)
+
+	// Prepare the list of sections.
+	sections := []types.Section{
+		types.NewSection(&binary.Section{Name: codeSection, Permissions: binary.Read | binary.Execute}, false),
+		types.NewSection(&binary.Section{Name: stringsSection, Permissions: binary.Read}, false),
+		types.NewSection(&binary.Section{Name: rpkgsSection, Permissions: binary.Read}, false),
+	}
+
+	sectionIndices := make(map[string]int)
+	for i, section := range sections {
+		sectionIndices[section.Section().Name] = i
+	}
+
+	// Build the symbol table.
+	var main *binary.Symbol
+	var table []*binary.Symbol
+	symbols := make(map[string]*binary.Symbol)
+	var code, stringsData bytes.Buffer
+	for i, p := range packages {
 		for _, fun := range p.Functions {
 			prev := code.Len()
 			sym := &binary.Symbol{
@@ -238,6 +254,13 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			sym.Length = code.Len() - prev
 			table = append(table, sym)
 			symbols[sym.Name] = sym
+			if i == 0 && fun.Name == "main" {
+				if main != nil {
+					return fmt.Errorf("main function: unexpectedly found a second main function")
+				}
+
+				main = sym
+			}
 		}
 
 		for _, con := range p.Constants {
@@ -280,90 +303,6 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			stringsData.WriteString(s)
 			table = append(table, sym)
 			symbols[sym.Name] = sym
-		}
-
-		if provenance {
-			rpkgsData.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-				b.AddBytes([]byte(p.Path))
-			})
-			rpkgsData.AddBytes(checksum)
-		}
-
-		return nil
-	}
-
-	// Add the dependencies, checking
-	// that we have all the imports we
-	// need.
-	seenPackages := make(map[string]bool)
-	needPackages := make(map[string]bool)
-	seenPackages[p.Path] = true
-	for _, imp := range p.Imports {
-		needPackages[imp] = true
-	}
-	for _, name := range rpkgs {
-		data, err := os.ReadFile(name)
-		if err != nil {
-			return fmt.Errorf("failed to read rpkg %q: %v", name, err)
-		}
-
-		depArch, p, checksum, err := rpkg.Decode(info, data)
-		if err != nil {
-			return fmt.Errorf("failed to parse rpkg %q: %v", name, err)
-		}
-
-		if depArch != arch {
-			return fmt.Errorf("cannot import rpkg %q: compiled for %s: need %s", name, depArch.Name, arch.Name)
-		}
-
-		seenPackages[p.Path] = true
-		for _, imp := range p.Imports {
-			needPackages[imp] = true
-		}
-
-		if err := addPackage(p, checksum); err != nil {
-			return err
-		}
-	}
-
-	isStdlib := make(map[string]bool)
-	if stdlib != "" {
-		data, err := os.ReadFile(stdlib)
-		if err != nil {
-			return fmt.Errorf("failed to read stdlib rpkg %q: %v", stdlib, err)
-		}
-
-		rstd, err := rpkg.NewStdlibDecoder(data)
-		if err != nil {
-			return fmt.Errorf("failed to parse stdlib rstd %q: %v", stdlib, err)
-		}
-
-		pkgs := rstd.Packages()
-		for _, hdr := range pkgs {
-			info := new(types.Info)
-			depArch, p, checksum, err := rstd.Decode(info, hdr)
-			if err != nil {
-				return fmt.Errorf("failed to parse stdlib rpkg %q from %q: %v", hdr.PackageName, stdlib, err)
-			}
-
-			if depArch != arch {
-				return fmt.Errorf("cannot import stdlib rpkg %q: compiled for %s: need %s", hdr.PackageName, depArch.Name, arch.Name)
-			}
-
-			isStdlib[hdr.PackageName] = true
-			seenPackages[hdr.PackageName] = true
-
-			if err := addPackage(p, checksum); err != nil {
-				return err
-			}
-		}
-	}
-
-	// Check that we have seen every package
-	// that we need.
-	for pkg := range needPackages {
-		if !seenPackages[pkg] {
-			return fmt.Errorf("no rpkg provided for package %q", pkg)
 		}
 	}
 
