@@ -104,36 +104,16 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		rpkgsSection   = "rpkgs"
 	)
 
-	type explicitSection struct {
-		binary.Section
-		FixedAddr bool
-	}
-
 	// Prepare the list of sections.
-	sections := []*explicitSection{
-		{
-			Section: binary.Section{
-				Name:        codeSection,
-				Permissions: binary.Read | binary.Execute,
-			},
-		},
-		{
-			Section: binary.Section{
-				Name:        stringsSection,
-				Permissions: binary.Read,
-			},
-		},
-		{
-			Section: binary.Section{
-				Name:        rpkgsSection,
-				Permissions: binary.Read,
-			},
-		},
+	sections := []types.Section{
+		types.NewSection(&binary.Section{Name: codeSection, Permissions: binary.Read | binary.Execute}, false),
+		types.NewSection(&binary.Section{Name: stringsSection, Permissions: binary.Read}, false),
+		types.NewSection(&binary.Section{Name: rpkgsSection, Permissions: binary.Read}, false),
 	}
 
 	sectionIndices := make(map[string]int)
 	for i, section := range sections {
-		sectionIndices[section.Name] = i
+		sectionIndices[section.Section().Name] = i
 	}
 
 	// Put the main function first.
@@ -414,8 +394,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		baseAddr = uintptr(addr)
 	}
 
-	addSection := func(section *explicitSection) {
-		if len(section.Data) == 0 {
+	addSection := func(section types.Section) {
+		if len(section.Section().Data) == 0 {
 			return
 		}
 
@@ -424,17 +404,17 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			nextAddr = nextPage(lastAddr)
 		}
 
-		if !section.FixedAddr {
-			section.Address = nextAddr
+		if !section.FixedAddr() {
+			section.Section().Address = nextAddr
 		}
 
-		bin.Sections = append(bin.Sections, &section.Section)
-		lastAddr = nextAddr + uintptr(len(section.Data)) - 1
+		bin.Sections = append(bin.Sections, section.Section())
+		lastAddr = nextAddr + uintptr(len(section.Section().Data)) - 1
 	}
 
-	sections[sectionIndices[codeSection]].Data = code.Bytes()
-	sections[sectionIndices[stringsSection]].Data = stringsData.Bytes()
-	sections[sectionIndices[rpkgsSection]].Data = rpkgsData.BytesOrPanic()
+	sections[sectionIndices[codeSection]].Section().Data = code.Bytes()
+	sections[sectionIndices[stringsSection]].Section().Data = stringsData.Bytes()
+	sections[sectionIndices[rpkgsSection]].Section().Data = rpkgsData.BytesOrPanic()
 
 	for _, section := range sections {
 		addSection(section)
