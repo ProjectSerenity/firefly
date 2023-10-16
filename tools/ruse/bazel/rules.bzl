@@ -5,7 +5,7 @@
 
 # Rules for building Ruse programs.
 
-load(":actions.bzl", "ruse_compile", "ruse_link")
+load(":actions.bzl", "ruse_compile", "ruse_compile_stdlib", "ruse_link")
 load(":providers.bzl", "RusePackageInfo")
 
 def _ruse_internal_library_impl(ctx):
@@ -127,8 +127,67 @@ ruse_library = rule(
             doc = "The Ruse tool.",
             cfg = "exec",
         ),
+        "_stdlib": attr.label(
+            default = "//tools/ruse:stdlib",
+            providers = [RusePackageInfo],
+            doc = "The Ruse standard library",
+        ),
     },
     doc = "Compiles a Ruse rpkg from Ruse source code and dependencies.",
+)
+
+def _ruse_standard_library_impl(ctx):
+    rpkg = ctx.actions.declare_file("{name}_/{name}.rstd".format(
+        name = ctx.label.name,
+    ))
+
+    ruse_compile_stdlib(
+        ctx,
+        arch = ctx.attr.arch,
+        deps = [dep[RusePackageInfo] for dep in ctx.attr.deps],
+        out = rpkg,
+    )
+
+    return [
+        DefaultInfo(files = depset([rpkg])),
+        RusePackageInfo(
+            info = struct(
+                package_path = ctx.attr.package_path,
+                rpkg = rpkg,
+            ),
+            deps = depset(
+                direct = [dep[RusePackageInfo].info for dep in ctx.attr.deps],
+                transitive = [dep[RusePackageInfo].deps for dep in ctx.attr.deps],
+            ),
+        ),
+    ]
+
+ruse_standard_library = rule(
+    implementation = _ruse_standard_library_impl,
+    attrs = {
+        "arch": attr.string(
+            mandatory = True,
+            values = [
+                "x86-64",
+            ],
+            doc = "The target architecture.",
+        ),
+        "deps": attr.label_list(
+            providers = [RusePackageInfo],
+            doc = "Direct dependencies of the package.",
+        ),
+        "package_path": attr.string(
+            mandatory = True,
+            doc = "The package's full package path.",
+        ),
+        "_ruse": attr.label(
+            default = "//tools/ruse",
+            executable = True,
+            doc = "The Ruse tool.",
+            cfg = "exec",
+        ),
+    },
+    doc = "Compiles the Ruse standard library from its rpkg files.",
 )
 
 def _ruse_binary_impl(ctx):

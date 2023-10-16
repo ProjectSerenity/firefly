@@ -48,6 +48,36 @@ def ruse_compile(ctx, arch, package_path, stdlib, srcs, out, deps = []):
         mnemonic = "RuseCompile",
     )
 
+def ruse_compile_stdlib(ctx, arch, out, deps = []):
+    """Compiles the Ruse standard library from its rpkg files.
+
+    Args:
+        ctx: Analysis context.
+        arch: The target architecture.
+        out: The path to the resulting .rpkg file. The path
+            should start with the package path. That is, the
+            package "example.com/foo" should have the out path
+            "example.com/foo.rpkg".
+        deps: The list of RusePackageInfo objects for direct
+            dependencies.
+    """
+    args = ctx.actions.args()
+    args.add("compile-stdlib")
+    args.add("-arch", arch)
+    dep_paths = [dep.info.rpkg.path for dep in deps]
+    args.add("-o", out)
+    args.add_all(dep_paths)
+
+    inputs = ([dep.info.rpkg for dep in deps])
+
+    ctx.actions.run(
+        outputs = [out],
+        inputs = inputs,
+        executable = ctx.executable._ruse,
+        arguments = [args],
+        mnemonic = "RuseCompileStdlib",
+    )
+
 def ruse_link(ctx, format, package, stdlib, provenance, symbol_table, out, deps = []):
     """Links a single executable binary from a Ruse package.
 

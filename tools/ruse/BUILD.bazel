@@ -4,6 +4,7 @@
 # license that can be found in the LICENSE file.
 
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("//tools/ruse/bazel:rules.bzl", "ruse_standard_library")
 
 go_library(
     name = "ruse_lib",
@@ -25,4 +26,14 @@ go_binary(
     name = "ruse",
     embed = [":ruse_lib"],
     visibility = ["//visibility:public"],
+)
+
+ruse_standard_library(
+    name = "stdlib",
+    arch = "x86-64",
+    package_path = "stdlib",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tools/ruse/stdlib/sections",
+    ],
 )
