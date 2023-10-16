@@ -261,13 +261,17 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	// Add the rpkgs data.
 	sectionsData[symbolToSectionIndex[defaultRPKGsSectionSymbol]].Write(rpkgsData.BytesOrPanic())
 
-	sectionData := func(fallback, symbol string) *bytes.Buffer {
+	sectionData := func(fallback, symbol string) (*bytes.Buffer, error) {
 		index, ok := symbolToSectionIndex[symbol]
 		if !ok {
+			if symbol != "" {
+				return nil, fmt.Errorf("internal error: no section was found at symbol %q", symbol)
+			}
+
 			index = symbolToSectionIndex[fallback]
 		}
 
-		return sectionsData[index]
+		return sectionsData[index], nil
 	}
 
 	// Build the symbol table.
@@ -276,7 +280,11 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	symbols := make(map[string]*binary.Symbol)
 	for i, p := range packages {
 		for _, fun := range p.Functions {
-			data := sectionData(defaultCodeSectionSymbol, "")
+			data, err := sectionData(defaultCodeSectionSymbol, "")
+			if err != nil {
+				return err
+			}
+
 			prev := data.Len()
 			sym := &binary.Symbol{
 				Name:    p.Path + "." + fun.Name,
@@ -303,7 +311,11 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		for _, con := range p.Constants {
-			data := sectionData(defaultStringsSectionSymbol, "")
+			data, err := sectionData(defaultStringsSectionSymbol, "")
+			if err != nil {
+				return err
+			}
+
 			val := con.Value()
 			if val == nil || val.Kind() != constant.String {
 				// Non-string constants are inlined.
@@ -325,7 +337,11 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		for _, lit := range p.Literals {
-			data := sectionData(defaultStringsSectionSymbol, "")
+			data, err := sectionData(defaultStringsSectionSymbol, "")
+			if err != nil {
+				return err
+			}
+
 			val := lit.Value()
 			if val.Kind() != constant.String {
 				// Non-string constants are inlined.
