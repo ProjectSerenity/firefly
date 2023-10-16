@@ -19,6 +19,8 @@
 //     from (or including) types from dependent packages.
 //   - The symbols section contains the symbol table.
 //   - The ABIs section contains any custom ABIs.
+//   - The sections section contains any program sections that
+//     will store parts of the executable binary.
 //   - The strings section contains length-prefixed string data
 //     used by other sections.
 //   - The linkages section contains liinkages and relocations
@@ -61,6 +63,9 @@
 //
 //		// Location of the ABIs section.
 //		ABIsOffset      uint64  // The offset into the file where the ABIs section begins.
+//
+//		// Location of the sections section.
+//		SectionsOffset  uint64  // The offset into the file where the sections section begins.
 //
 //		// Location of the strings section.
 //		StringsOffset   uint64  // The offset into the file where the strings section begins.
@@ -126,6 +131,8 @@
 //			Name          uint64         // The offset into the strings section where the signature name begins.
 //		case TypeKindABI:
 //			ABIOffset     uint32         // The offset into the ABIs section where the ABI begins.
+//		case TypeKindSection:
+//			SectionOffset uint32         // The offset into the sections section where the section begins.
 //		}
 //	}
 //
@@ -171,6 +178,24 @@
 // length is not a multiple of four are followed by up to three
 // bytes of padding to ensure that each `ABI` has 32-bit
 // alignment.
+//
+// # Sections section
+//
+// The sections section consists of a sequence of contiguous
+// program sections, where each section is described with the
+// following pseudocode:
+//
+//	type Section struct {
+//		Name         uint64       // The offset into the strings section where the symbol name begins. (e.g. "Bar")
+//		Address      uint64       // A 64-bit address where the section resides in memory (0 if the address is placed relative to other sections).
+//		Permissions  Permissions  // The permissions that should be applied to the section at runtime.
+//		FixedAddr    bool         // Whether the section has a fixed address in memory.
+//	}
+//
+// Note that the first section is zero so that references to
+// it can be used to represent the default section for the
+// symbol. Sections are followed by six bytes of padding to
+// ensure that each `Section` has 64-bit alignment.
 //
 // # Strings section
 //
@@ -276,6 +301,10 @@ type header struct {
 	ABIsOffset uint64 // The offset into the file where the ABIs section begins.
 	ABIsLength uint32 // The length in bytes of the ABIs section.
 
+	// Location of the sections section.
+	SectionsOffset uint64 // The offset into the file where the sections section begins.
+	SectionsLength uint32 // The length in bytes of the sections section.
+
 	// Location of the strings section.
 	StringsOffset uint64 // The offset into the file where the strings section begins.
 	StringsLength uint64 // The lenght in bytes of the strings section.
@@ -303,6 +332,7 @@ const headerSize = 4 + // 32-bit magic.
 	8 + // 64-bit types section offset.
 	8 + // 64-bit symbols section offset.
 	8 + // 64-bit ABIs section offset.
+	8 + // 64-bit sections section offset.
 	8 + // 64-bit strings section offset.
 	8 + // 64-bit linkages section offset.
 	8 + // 64-bit code section offset.
@@ -339,6 +369,10 @@ type Header struct {
 	// Location of the ABIs section.
 	ABIsOffset uint64 // The offset into the file where the ABIs section begins.
 	ABIsLength uint32 // The length in bytes of the ABIs section.
+
+	// Location of the sections section.
+	SectionsOffset uint64 // The offset into the file where the sections section begins.
+	SectionsLength uint32 // The length in bytes of the sections section.
 
 	// Location of the strings section.
 	StringsOffset uint64 // The offset into the file where the strings section begins.
@@ -386,6 +420,7 @@ const (
 	TypeKindBasic    TypeKind = 0x02 // A basic type (bool, int, etc).
 	TypeKindFunction TypeKind = 0x03 // A function signature.
 	TypeKindABI      TypeKind = 0x04 // An ABI.
+	TypeKindSection  TypeKind = 0x05 // A program section.
 )
 
 func (k TypeKind) String() string {
@@ -400,6 +435,8 @@ func (k TypeKind) String() string {
 		return "function"
 	case TypeKindABI:
 		return "ABI"
+	case TypeKindSection:
+		return "section"
 	default:
 		return fmt.Sprintf("TypeKind(%d)", k)
 	}
@@ -492,6 +529,9 @@ type typeSplat struct {
 
 	// ABI fields.
 	ABI uint32 // The offset into the ABIs section.
+
+	// Section fields.
+	Section uint32 // The offset into the sections section.
 }
 
 // variable represents a type with
@@ -575,6 +615,11 @@ const (
 	// The Value field is zero, as
 	// the ABI is stored in the type.
 	SymKindABI SymKind = 0x07
+
+	// A program section.
+	// The Value field is zero, as
+	// the section is stored in the type.
+	SymKindSection SymKind = 0x08
 )
 
 func (k SymKind) String() string {
@@ -595,6 +640,8 @@ func (k SymKind) String() string {
 		return "function"
 	case SymKindABI:
 		return "abi"
+	case SymKindSection:
+		return "section"
 	default:
 		return fmt.Sprintf("SymKind(%d)", k)
 	}
@@ -613,6 +660,19 @@ type abi struct {
 	Scratch       []uint8
 	Unused        []uint8
 }
+
+type programSection struct {
+	Name        uint64
+	Address     uint64
+	Permissions uint8
+	FixedAddr   bool
+}
+
+const programSectionSize = 8 + // 64-bit name offset.
+	8 + // 64-bit address.
+	1 + // 8-bit permissions.
+	1 + // 8-bit fixed address bool.
+	6 // 48-bit padding.
 
 type linkage struct {
 	Source        uint64          // The offset into the symbols section where the source symbol begins.

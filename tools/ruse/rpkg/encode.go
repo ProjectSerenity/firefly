@@ -52,6 +52,13 @@ type encoder struct {
 	abisOffset  uint32
 	abisOffsets map[string]uint32
 
+	// Used to build the sections section
+	// efficiently. This state is managed
+	// by AddSection.
+	sections        [][]byte
+	sectionsOffset  uint32
+	sectionsOffsets map[string]uint32
+
 	// Used to build the strings section
 	// efficiently. This state is managed
 	// by AddString.
@@ -107,7 +114,9 @@ func (e *encoder) AddHeader(arch *sys.Arch, pkg *compiler.Package) error {
 	e.header.SymbolsLength = symbolSize * uint64(len(e.symbols))
 	e.header.ABIsOffset = e.header.SymbolsOffset + e.header.SymbolsLength
 	e.header.ABIsLength = e.abisOffset
-	e.header.StringsOffset = e.header.ABIsOffset + uint64(e.header.ABIsLength)
+	e.header.SectionsOffset = e.header.ABIsOffset + uint64(e.header.ABIsLength)
+	e.header.SectionsLength = e.sectionsOffset
+	e.header.StringsOffset = e.header.SectionsOffset + uint64(e.header.SectionsLength)
 	e.header.StringsLength = e.stringOffset
 	e.header.LinkagesOffset = e.header.StringsOffset + e.header.StringsLength
 	e.header.LinkagesLength = linkageSize * uint64(len(e.linkages))
@@ -218,6 +227,11 @@ func (e *encoder) appendType(b *cryptobyte.Builder, t types.Type) {
 		b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
 			b.AddUint32(e.AddABI(t.ABI()))
 		})
+	case types.Section:
+		b.AddUint8(uint8(TypeKindSection))
+		b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
+			b.AddUint32(e.AddSection(t))
+		})
 	default:
 		panic(fmt.Sprintf("AddType(%T): type not supported", t))
 	}
@@ -317,6 +331,12 @@ func (e *encoder) AddConstant(pkg *compiler.Package, con *types.Constant) error 
 			break
 		}
 
+		if _, ok := conType.(types.Section); ok {
+			kind = SymKindSection
+			value = 0
+			break
+		}
+
 		return fmt.Errorf("failed to record the type for constant %s.%s (%#v)", pkg.Path, con.Name(), conType)
 	}
 
@@ -407,6 +427,44 @@ func (e *encoder) AddABI(abi *sys.ABI) uint32 {
 	return offset
 }
 
+// AddSection appends the program section to
+// the sections section.
+func (e *encoder) AddSection(section types.Section) uint32 {
+	var b *cryptobyte.Builder
+	if section == (types.Section{}) {
+		b = cryptobyte.NewFixedBuilder(make([]byte, 24))
+	} else {
+		base := section.Section()
+		fixedAddr := section.FixedAddr()
+		b = cryptobyte.NewFixedBuilder(make([]byte, 0, 24))
+		b.AddUint64(e.AddString(base.Name))
+		b.AddUint64(uint64(base.Address))
+		b.AddUint8(uint8(base.Permissions))
+		if fixedAddr {
+			b.AddUint8(1)
+		} else {
+			b.AddUint8(0)
+		}
+		b.AddUint16(0) // Padding.
+		b.AddUint32(0) // Padding.
+	}
+
+	data := b.BytesOrPanic()
+
+	offset, ok := e.sectionsOffsets[string(data)]
+	if ok {
+		return offset
+	}
+
+	offset = e.sectionsOffset
+	e.sections = append(e.sections, data)
+	e.sectionsOffset += uint32(len(data))
+
+	e.sectionsOffsets[string(data)] = offset
+
+	return offset
+}
+
 // AddString ensures that `s` is included
 // exactly once in the rpkg file. The string's
 // offset into the string section is returned.
@@ -466,6 +524,7 @@ func (h *header) Marshal(b *cryptobyte.Builder) error {
 	b.AddUint64(h.TypesOffset)
 	b.AddUint64(h.SymbolsOffset)
 	b.AddUint64(h.ABIsOffset)
+	b.AddUint64(h.SectionsOffset)
 	b.AddUint64(h.StringsOffset)
 	b.AddUint64(h.LinkagesOffset)
 	b.AddUint64(h.CodeOffset)
@@ -537,6 +596,10 @@ func (e *encoder) WriteTo(w io.Writer) (n int64, err error) {
 		}
 	}
 
+	for _, section := range e.sections {
+		b.AddBytes(section)
+	}
+
 	for _, s := range e.strings {
 		b.AddUint32(uint32(len(s)))
 		b.AddBytes([]byte(s))
@@ -590,17 +653,19 @@ func Encode(w io.Writer, fset *token.FileSet, arch *sys.Arch, pkg *compiler.Pack
 	// the cryptobyte package to ensure a correct
 	// encoding.
 	e := &encoder{
-		arch:          arch,
-		typesOffsets:  make(map[string]uint64),
-		symbolOffsets: make(map[types.Object]uint64),
-		abisOffsets:   make(map[string]uint32),
-		stringOffsets: make(map[string]uint64),
+		arch:            arch,
+		typesOffsets:    make(map[string]uint64),
+		symbolOffsets:   make(map[types.Object]uint64),
+		abisOffsets:     make(map[string]uint32),
+		sectionsOffsets: make(map[string]uint32),
+		stringOffsets:   make(map[string]uint64),
 	}
 
 	// Build the rpkg file.
-	e.AddType(nil)  // The nil type is always at offset 0.
-	e.AddABI(nil)   // The nil ABI is always at offset 0.
-	e.AddString("") // The empty string is always at offset 0.
+	e.AddType(nil)                // The nil type is always at offset 0.
+	e.AddABI(nil)                 // The nil ABI is always at offset 0.
+	e.AddSection(types.Section{}) // The nil section is always at offset 0.
+	e.AddString("")               // The empty string is always at offset 0.
 	e.AddString(pkg.Path)
 
 	// Add the imports early, so that

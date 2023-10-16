@@ -14,10 +14,12 @@ import (
 	"math"
 	"math/big"
 	"path"
+	"slices"
 
 	"golang.org/x/crypto/cryptobyte"
 
 	"firefly-os.dev/tools/ruse/ast"
+	"firefly-os.dev/tools/ruse/binary"
 	"firefly-os.dev/tools/ruse/compiler"
 	"firefly-os.dev/tools/ruse/ssafir"
 	"firefly-os.dev/tools/ruse/sys"
@@ -47,6 +49,7 @@ func decodeHeader(h *header, b []byte) error {
 		!s.ReadUint64(&h.TypesOffset) ||
 		!s.ReadUint64(&h.SymbolsOffset) ||
 		!s.ReadUint64(&h.ABIsOffset) ||
+		!s.ReadUint64(&h.SectionsOffset) ||
 		!s.ReadUint64(&h.StringsOffset) ||
 		!s.ReadUint64(&h.LinkagesOffset) ||
 		!s.ReadUint64(&h.CodeOffset) ||
@@ -64,7 +67,8 @@ func decodeHeader(h *header, b []byte) error {
 	h.ExportsLength = uint32(h.TypesOffset) - h.ExportsOffset
 	h.TypesLength = h.SymbolsOffset - h.TypesOffset
 	h.SymbolsLength = h.ABIsOffset - h.SymbolsOffset
-	h.ABIsLength = uint32(h.StringsOffset - h.ABIsOffset)
+	h.ABIsLength = uint32(h.SectionsOffset - h.ABIsOffset)
+	h.SectionsLength = uint32(h.StringsOffset - h.SectionsOffset)
 	h.StringsLength = h.LinkagesOffset - h.StringsOffset
 	h.LinkagesLength = h.CodeOffset - h.LinkagesOffset
 	h.CodeLength = h.ChecksumOffset - h.CodeOffset
@@ -102,8 +106,11 @@ func decodeHeader(h *header, b []byte) error {
 	if h.SymbolsLength%symbolSize != 0 {
 		return fmt.Errorf("invalid rpkg header: got invalid symbols length %d", h.SymbolsLength)
 	}
-	if h.ABIsOffset > h.StringsOffset || h.ABIsOffset%4 != 0 {
+	if h.ABIsOffset > h.SectionsOffset || h.ABIsOffset%4 != 0 {
 		return fmt.Errorf("invalid rpkg header: got invalid ABIs offset %d", h.ABIsOffset)
+	}
+	if h.SectionsOffset > h.StringsOffset || h.SectionsOffset%4 != 0 {
+		return fmt.Errorf("invalid rpkg header: got invalid sections offset %d", h.SectionsOffset)
 	}
 	if (h.StringsOffset - h.ABIsOffset) > math.MaxUint32 {
 		return fmt.Errorf("invalid rpkg header: ABIs length %d overflows uint32", h.ABIsLength)
@@ -150,6 +157,7 @@ type decoded struct {
 	types    map[uint64]typeSplat
 	symbols  map[uint64]*symbol
 	abis     map[uint32]*abi
+	sections map[uint32]*programSection
 	strings  map[uint64]string
 	linkages map[uint64]*linkage
 	code     map[uint64]*function
@@ -192,8 +200,15 @@ func decodeSimple(b []byte) (*decoded, error) {
 	}
 
 	// Read the ABIs section.
-	s = cryptobyte.String(b[d.header.ABIsOffset:d.header.StringsOffset])
+	s = cryptobyte.String(b[d.header.ABIsOffset:d.header.SectionsOffset])
 	d.abis, err = d.decodeABIs(s)
+	if err != nil {
+		return nil, err
+	}
+
+	// Read the sections section.
+	s = cryptobyte.String(b[d.header.SectionsOffset:d.header.StringsOffset])
+	d.sections, err = d.decodeSections(s)
 	if err != nil {
 		return nil, err
 	}
@@ -375,6 +390,21 @@ func (d *decoded) decodeTypes(s cryptobyte.String) (types map[uint64]typeSplat, 
 				Length: uint32(length),
 				ABI:    offset,
 			}
+		case TypeKindSection:
+			var offset uint32
+			if !rest.ReadUint32(&offset) {
+				return nil, fmt.Errorf("invalid type: failed to read %s type kind: %w", TypeKind(kind), io.ErrUnexpectedEOF)
+			}
+
+			if !rest.Empty() {
+				return nil, fmt.Errorf("invalid type: got type kind %s with %d bytes of further data", TypeKind(kind), len(rest))
+			}
+
+			types[here] = typeSplat{
+				Kind:    TypeKind(kind),
+				Length:  uint32(length),
+				Section: offset,
+			}
 		default:
 			return nil, fmt.Errorf("invalid type: got unrecognised type kind %d", kind)
 		}
@@ -422,6 +452,10 @@ func (d *decoded) decodeSymbols(s cryptobyte.String) (symbols map[uint64]*symbol
 				return nil, fmt.Errorf("invalid symbol: %s value %d is beyond code section", sym.Kind, sym.Value)
 			}
 		case SymKindABI:
+			if sym.Value != 0 {
+				return nil, fmt.Errorf("invalid symbol: %s value %d is not zero", sym.Kind, sym.Value)
+			}
+		case SymKindSection:
 			if sym.Value != 0 {
 				return nil, fmt.Errorf("invalid symbol: %s value %d is not zero", sym.Kind, sym.Value)
 			}
@@ -528,6 +562,51 @@ func (d *decoded) decodeABIs(s cryptobyte.String) (ABIs map[uint32]*abi, err err
 	}
 
 	return ABIs, nil
+}
+
+// decodeSections reads the sections from `s`,
+// checking that each section is valid.
+func (d *decoded) decodeSections(s cryptobyte.String) (sections map[uint32]*programSection, err error) {
+	var offset uint32
+	sections = make(map[uint32]*programSection)
+	for !s.Empty() {
+		var section programSection
+		var fixedAddr uint8
+		var padding []byte
+		if !s.ReadUint64(&section.Name) ||
+			!s.ReadUint64(&section.Address) ||
+			!s.ReadUint8(&section.Permissions) ||
+			!s.ReadUint8(&fixedAddr) ||
+			!s.ReadBytes(&padding, 6) {
+			return nil, fmt.Errorf("invalid sections section: %w", io.ErrUnexpectedEOF)
+		}
+
+		here := offset
+		offset += programSectionSize
+		if section.Name == 0 {
+			sections[here] = nil
+			continue
+		}
+
+		if section.Name > d.header.StringsLength {
+			return nil, fmt.Errorf("invalid section: name offset %d is beyond strings section", section.Name)
+		}
+		if section.Permissions&0b111 != section.Permissions {
+			return nil, fmt.Errorf("invalid section: permissions %b is not valid", section.Permissions)
+		}
+		if fixedAddr != 0 && fixedAddr != 1 {
+			return nil, fmt.Errorf("invalid section: fixed address %d is not valid", fixedAddr)
+		}
+		if !slices.Equal(padding, make([]byte, 6)) {
+			return nil, fmt.Errorf("invalid section: got non-zero padding % x", padding)
+		}
+
+		section.FixedAddr = fixedAddr == 1
+
+		sections[here] = &section
+	}
+
+	return sections, nil
 }
 
 // decodeStrings reads the strings from `s`,
@@ -713,29 +792,32 @@ type Decoder struct {
 
 	packageName string
 
-	allImports  []string                // Cached result from Imports.
-	allExports  []types.Object          // Cached result from Exports.
-	allTypes    []types.Type            // Cached result from Types.
-	types       map[uint64]types.Type   // Cached lookup of each type.
-	allSymbols  []*Symbol               // Cached result from Symbols.
-	allObjects  []types.Object          // Cached result from Symbols.
-	symbols     map[uint64]*Symbol      // Cached lookup of each symbol.
-	objects     map[uint64]types.Object // Cached lookup of each object.
-	allABIs     []*sys.ABI              // Cached result from ABIs.
-	abis        map[uint32]*sys.ABI     // Cached lookup of each ABI.
-	allStrings  []string                // Cached result from Strings.
-	strings     map[uint64]string       // Cached lookup of each string.
-	allLinkages []*Linkage              // Cached result from Linkages.
-	code        map[uint64]*Function    // Cached lookup of each function.
+	allImports  []string                 // Cached result from Imports.
+	allExports  []types.Object           // Cached result from Exports.
+	allTypes    []types.Type             // Cached result from Types.
+	types       map[uint64]types.Type    // Cached lookup of each type.
+	allSymbols  []*Symbol                // Cached result from Symbols.
+	allObjects  []types.Object           // Cached result from Symbols.
+	symbols     map[uint64]*Symbol       // Cached lookup of each symbol.
+	objects     map[uint64]types.Object  // Cached lookup of each object.
+	allABIs     []*sys.ABI               // Cached result from ABIs.
+	abis        map[uint32]*sys.ABI      // Cached lookup of each ABI.
+	allSections []types.Section          // Cached result from Sections.
+	sections    map[uint32]types.Section // Cached lookup of each section.
+	allStrings  []string                 // Cached result from Strings.
+	strings     map[uint64]string        // Cached lookup of each string.
+	allLinkages []*Linkage               // Cached result from Linkages.
+	code        map[uint64]*Function     // Cached lookup of each function.
 }
 
 // NewDecoder helps parse an rpkg into a compiled package.
 func NewDecoder(b []byte) (*Decoder, error) {
 	d := &Decoder{
-		b:     b,
-		types: make(map[uint64]types.Type),
-		abis:  make(map[uint32]*sys.ABI),
-		code:  make(map[uint64]*Function),
+		b:        b,
+		types:    make(map[uint64]types.Type),
+		abis:     make(map[uint32]*sys.ABI),
+		sections: make(map[uint32]types.Section),
+		code:     make(map[uint64]*Function),
 	}
 
 	err := decodeHeader(&d.header, b)
@@ -800,6 +882,9 @@ func (d *Decoder) Header() *Header {
 
 		ABIsOffset: d.header.ABIsOffset,
 		ABIsLength: d.header.ABIsLength,
+
+		SectionsOffset: d.header.SectionsOffset,
+		SectionsLength: d.header.SectionsLength,
 
 		StringsOffset: d.header.StringsOffset,
 		StringsLength: d.header.StringsLength,
@@ -1058,6 +1143,22 @@ func (d *Decoder) getTypeFrom(s *cryptobyte.String) (types.Type, error) {
 		}
 
 		return types.NewABI(abi), nil
+	case TypeKindSection:
+		var offset uint32
+		if !rest.ReadUint32(&offset) {
+			return nil, fmt.Errorf("invalid type: failed to read %s type kind: %w", TypeKind(kind), io.ErrUnexpectedEOF)
+		}
+
+		if !rest.Empty() {
+			return nil, fmt.Errorf("invalid type: got type kind %s with %d bytes of further data", TypeKind(kind), len(rest))
+		}
+
+		section, ok := d.sections[offset]
+		if !ok {
+			return nil, fmt.Errorf("invalid type: invalid section offset %d", offset)
+		}
+
+		return section, nil
 	default:
 		return nil, fmt.Errorf("invalid type: got unrecognised type kind %d", kind)
 	}
@@ -1154,6 +1255,12 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 			}
 
 			value = nil
+		case SymKindSection:
+			if rawValue != 0 {
+				return nil, nil, fmt.Errorf("invalid symbol: %s value %d is not zero", SymKind(kind), rawValue)
+			}
+
+			value = nil
 		default:
 			return nil, nil, fmt.Errorf("invalid symbol: unrecognised kind %d", SymKind(kind))
 		}
@@ -1220,6 +1327,13 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 			}
 
 			object = types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, abi, nil)
+		case SymKindSection:
+			section, ok := symbol.Type.(types.Section)
+			if !ok {
+				return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with kind %v and unexpected type %#v", symbol.Name, symbol.Kind, symbol.Type)
+			}
+
+			object = types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, section, nil)
 		default:
 			return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with unsupported kind: %v", symbol.Name, symbol.Kind)
 		}
@@ -1246,7 +1360,7 @@ func (d *Decoder) ABIs() ([]*sys.ABI, error) {
 	var offset uint32
 	var out []*sys.ABI
 	d.abis = make(map[uint32]*sys.ABI)
-	s := cryptobyte.String(d.b[d.header.ABIsOffset:d.header.StringsOffset])
+	s := cryptobyte.String(d.b[d.header.ABIsOffset:d.header.SectionsOffset])
 	for !s.Empty() {
 		var length uint32
 		var rest []byte
@@ -1366,6 +1480,69 @@ func (d *Decoder) ABIs() ([]*sys.ABI, error) {
 	}
 
 	d.allABIs = out
+
+	return out, nil
+}
+
+// Sections reads all program sections in
+// the rpkg, caching them in the decoder.
+func (d *Decoder) Sections() ([]types.Section, error) {
+	if d.allSections != nil {
+		return d.allSections, nil
+	}
+
+	var offset uint32
+	var out []types.Section
+	d.sections = make(map[uint32]types.Section)
+	s := cryptobyte.String(d.b[d.header.SectionsOffset:d.header.StringsOffset])
+	for !s.Empty() {
+		var section programSection
+		var fixedAddr uint8
+		var padding []byte
+		if !s.ReadUint64(&section.Name) ||
+			!s.ReadUint64(&section.Address) ||
+			!s.ReadUint8(&section.Permissions) ||
+			!s.ReadUint8(&fixedAddr) ||
+			!s.ReadBytes(&padding, 6) {
+			return nil, fmt.Errorf("invalid sections section: %w", io.ErrUnexpectedEOF)
+		}
+
+		here := offset
+		offset += programSectionSize
+		if section.Name == 0 {
+			d.sections[here] = types.Section{}
+			continue
+		}
+
+		name, err := d.getString(section.Name)
+		if err != nil {
+			return nil, fmt.Errorf("invalid section: bad name offset %d: %v", section.Name, err)
+		}
+
+		permissions := binary.Permissions(section.Permissions)
+		if !permissions.Valid() {
+			return nil, fmt.Errorf("invalid section: permissions %b is not valid", section.Permissions)
+		}
+		if fixedAddr != 0 && fixedAddr != 1 {
+			return nil, fmt.Errorf("invalid section: fixed address %d is not valid", fixedAddr)
+		}
+		if !slices.Equal(padding, make([]byte, 6)) {
+			return nil, fmt.Errorf("invalid section: got non-zero padding % x", padding)
+		}
+
+		bin := &binary.Section{
+			Name:        name,
+			Address:     uintptr(section.Address),
+			Permissions: permissions,
+		}
+
+		typed := types.NewSection(bin, fixedAddr == 1)
+
+		d.sections[here] = typed
+		out = append(out, typed)
+	}
+
+	d.allSections = out
 
 	return out, nil
 }
@@ -1678,6 +1855,11 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 	// The order of these steps is important.
 
 	_, err = d.ABIs()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	_, err = d.Sections()
 	if err != nil {
 		return nil, nil, nil, err
 	}
