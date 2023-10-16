@@ -1,0 +1,23 @@
+; Copyright 2023 The Firefly Authors.
+;
+; Use of this source code is governed by a BSD 3-clause
+; license that can be found in the LICENSE file.
+
+(package sections)
+
+; Code is the section that contains all functions by default.
+(let Code (section
+	(name "code")
+	(permissions r_x)))
+
+; Strings is the section that contains all string constants
+; by default, including string literals.
+(let Strings (section
+	(name "strings")
+	(permissions r__)))
+
+; RPKGs is the section that contains all rpkg provenance
+; data by default.
+(let RPKGs (section
+	(name "rpkgs")
+	(permissions r__)))

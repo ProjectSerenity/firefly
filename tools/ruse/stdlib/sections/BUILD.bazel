@@ -1,0 +1,14 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("//tools/ruse/bazel:rules.bzl", "ruse_internal_library")
+
+ruse_internal_library(
+    name = "sections",
+    srcs = ["sections.ruse"],
+    arch = "x86-64",
+    package_path = "sections",
+    visibility = ["//visibility:public"],
+)
