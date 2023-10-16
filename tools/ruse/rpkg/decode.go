@@ -1687,6 +1687,11 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 		return nil, nil, nil, err
 	}
 
+	pkg.Imports, err = d.Imports()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	typs, err := d.Types()
 	if err != nil {
 		return nil, nil, nil, err
