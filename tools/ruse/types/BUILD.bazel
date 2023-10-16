@@ -17,6 +17,7 @@ go_library(
         "init.go",
         "object.go",
         "scope.go",
+        "sections.go",
         "special-forms.go",
         "types.go",
         "utils.go",
@@ -26,6 +27,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//tools/ruse/ast",
+        "//tools/ruse/binary",
         "//tools/ruse/parser",
         "//tools/ruse/sys",
         "//tools/ruse/token",

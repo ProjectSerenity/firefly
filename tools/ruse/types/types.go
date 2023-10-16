@@ -1283,7 +1283,8 @@ func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 
 		value = c.consts[v]
 		_, isABI := constantType.(ABI)
-		if value == nil && !isABI {
+		_, isSection := constantType.(Section)
+		if value == nil && !isABI && !isSection {
 			return c.errorf(v.ParenOpen, "cannot use non-constant value %s in constant declaration", v.Print())
 		}
 

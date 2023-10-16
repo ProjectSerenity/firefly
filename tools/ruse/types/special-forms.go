@@ -41,6 +41,7 @@ const (
 	SpecialFormFunc
 	SpecialFormLen
 	SpecialFormLet
+	SpecialFormSection
 
 	// Arithmetic forms.
 	SpecialFormAdd
@@ -61,6 +62,8 @@ func (id SpecialFormID) String() string {
 		return "len"
 	case SpecialFormLet:
 		return "let"
+	case SpecialFormSection:
+		return "section"
 	case SpecialFormAdd:
 		return "+"
 	case SpecialFormSubtract:
@@ -80,6 +83,7 @@ var specialForms = [...]*SpecialForm{
 	SpecialFormFunc:    {},
 	SpecialFormLen:     {},
 	SpecialFormLet:     {},
+	SpecialFormSection: {},
 
 	// Arithmetic forms.
 	SpecialFormAdd:      {},
@@ -236,6 +240,77 @@ func defPredeclaredSpecialForms() {
 		}
 
 		return sig, sig, nil
+	}
+
+	specialFormTypes[SpecialFormSection] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+		// Build a section object and return
+		// only the result. We don't include
+		// a function signature, as sections
+		// are resolved immediately.
+		var name, fixedAddr *ast.Literal
+		var permissions *ast.Identifier
+		for _, elt := range fun.Elements[1:] {
+			list, ok := elt.(*ast.List)
+			if !ok {
+				return nil, nil, c.errorf(elt.Pos(), "invalid section field %s: got %s, want list", elt.Print(), elt)
+			}
+
+			kind, rest, err := c.interpretDefinition(list, "section spec field")
+			if err != nil {
+				return nil, nil, c.error(err)
+			}
+
+			switch kind.Name {
+			case "name":
+				if name != nil {
+					return nil, nil, c.errorf(kind.NamePos, "duplicate section field %s", kind.Name)
+				}
+
+				if len(rest) != 1 {
+					return nil, nil, c.errorf(kind.NamePos, "invalid section field %s: got %d values, want 1 string", kind.Name, len(rest))
+				}
+
+				name, ok = rest[0].(*ast.Literal)
+				if !ok {
+					return nil, nil, c.errorf(kind.NamePos, "invalid section field %s: got %s, want string", kind.Name, rest[0])
+				}
+			case "fixed-address":
+				if fixedAddr != nil {
+					return nil, nil, c.errorf(kind.NamePos, "duplicate section field %s", kind.Name)
+				}
+
+				if len(rest) != 1 {
+					return nil, nil, c.errorf(kind.NamePos, "invalid section field %s: got %d values, want 1 integer", kind.Name, len(rest))
+				}
+
+				fixedAddr, ok = rest[0].(*ast.Literal)
+				if !ok {
+					return nil, nil, c.errorf(kind.NamePos, "invalid section field %s: got %s, want integer", kind.Name, rest[0])
+				}
+			case "permissions":
+				if permissions != nil {
+					return nil, nil, c.errorf(kind.NamePos, "duplicate section field %s", kind.Name)
+				}
+
+				if len(rest) != 1 {
+					return nil, nil, c.errorf(kind.NamePos, "invalid section field %s: got %d values, want 1 identifier", kind.Name, len(rest))
+				}
+
+				permissions, ok = rest[0].(*ast.Identifier)
+				if !ok {
+					return nil, nil, c.errorf(kind.NamePos, "invalid section field %s: got %s, want identifier", kind.Name, rest[0])
+				}
+			default:
+				return nil, nil, c.errorf(kind.NamePos, "unrecognised section field %s", kind.Name)
+			}
+		}
+
+		section, err := NewRawSection(name, fixedAddr, permissions)
+		if err != nil {
+			return nil, nil, c.errorf(fun.ParenOpen, "%v", err)
+		}
+
+		return nil, section, nil
 	}
 
 	// Arithmetic forms.
