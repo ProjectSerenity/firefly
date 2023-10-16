@@ -7,6 +7,8 @@
 // Ruse packages. The result is similar to a traditional object
 // file.
 //
+// # The rpkg format
+//
 // The rpkg format consists of a header, followed by a series
 // of sections, each of which is length prefixed:
 //
@@ -34,7 +36,7 @@
 // All integers are stored in big-endian form. Each section must
 // have a length that is an exact multiple of 32 bits.
 //
-// # Header
+// ## Header
 //
 // The header structure is described with the following pseudocode
 // (see [Arch] separately):
@@ -43,7 +45,7 @@
 //		// Details about the rpkg file.
 //		Magic           uint32  // The magic value that identifies an rpkg file. (value: "rpkg")
 //		Architecture    Arch    // The architecture this file targets (defined below).
-//		Version         uint8   // The rpkg file format version. (value: rpkg.version)
+//		Version         uint8   // The rpkg file format version (value: rpkg.version).
 //
 //		// Details about the package.
 //		PackageName     uint16  // The offset into the strings section where the package name begins.
@@ -85,7 +87,7 @@
 // is, the first byte of the symbols section must immediately
 // follow the last byte of the types section.
 //
-// # Imports section
+// ## Imports section
 //
 // The imports section consists of a sequence of string
 // references, one for each imported package name. As the
@@ -99,7 +101,7 @@
 //
 //	type ImportReference uint32
 //
-// # Exports section
+// ## Exports section
 //
 // The exports section consists of a sequence of symbol
 // references, one for each exported symbol.The exports
@@ -110,7 +112,7 @@
 //
 //	type ExportReference uint64
 //
-// # Types section
+// ## Types section
 //
 // The types section contains type definitions. Each type
 // definition is described with the following pseudocode
@@ -144,7 +146,7 @@
 // Note that the first type has length zero so that references
 // to it can be used to represent the nil type.
 //
-// # Symbols section
+// ## Symbols section
 //
 // The symbols section consists of a sequence of contiguous
 // symbols, where each symbol is described with the following
@@ -158,7 +160,7 @@
 //		Value        uint64   // The symbol's value. The value format is explained below.
 //	}
 //
-// # ABIs section
+// ## ABIs section
 //
 // The ABIs section consists of a sequence of contiguous
 // ABIs, where each ABI is described with the following
@@ -179,7 +181,7 @@
 // bytes of padding to ensure that each `ABI` has 32-bit
 // alignment.
 //
-// # Sections section
+// ## Sections section
 //
 // The sections section consists of a sequence of contiguous
 // program sections, where each section is described with the
@@ -197,7 +199,7 @@
 // symbol. Sections are followed by six bytes of padding to
 // ensure that each `Section` has 64-bit alignment.
 //
-// # Strings section
+// ## Strings section
 //
 // The strings section consists of a sequence of contiguous
 // strings, where each string is described with the following
@@ -214,7 +216,7 @@
 // bytes of padding to ensure that each `String` has 32-bit
 // alignment.
 //
-// # Linkages section
+// ## Linkages section
 //
 // The linkages section contains a sequence of link-time actions
 // that must be conducted to connect sections of code by writing
@@ -231,7 +233,7 @@
 //		Address        uint32           // The offset into the function code used to calculate relative addresses.
 //	}
 //
-// # Code section
+// ## Code section
 //
 // The code section consists of a sequence of contiguous
 // functions, where each function is described with the
@@ -246,11 +248,37 @@
 // Each `Function` is followed by 0 to 3 bytes of padding so
 // that the subsequent `Function` has 32-bit alignment.
 //
-// # Crypographic checksum
+// ## Crypographic checksum
 //
 // Immediately after the code section is a 32-byte SHA-256
 // checksum of the rest of the file. There must be no trailing
 // data after the checksum.
+//
+// # The rstd format
+//
+// The rstd format consists of a header, followed by a series
+// of rpkg files, each of which is length prefixed.
+//
+// ## Header
+//
+// The header structure is described with the following pseudocode
+// (see [Arch] separately). An entry is included in the header for
+// each package. After all of hte package entries come the rpkg
+// files in the same order.
+//
+//	type Header struct {
+//		// Details about the rpkg file.
+//		Magic           uint32  // The magic value that identifies an rstd file. (value: "rstd")
+//		Architecture    Arch    // The architecture this file targets (defined below).
+//		Version         uint8   // The rstd file format version (value: rpkg.rstdVersion).
+//		NumPackages     uint16  // The number of packages.
+//
+//		// Package prefix (repeated).
+//		PackageLength   uint16  // The length of the package name in bytes.
+//		PackageName     string  // The package name, padded to a multiple of 8 in length.
+//		DataOffset      uint64  // The offset into the file where the rpkg data begins.
+//		DataLength      uint64  // The length of the rpkg data in bytes.
+//	}
 package rpkg
 
 import (
@@ -275,7 +303,7 @@ type header struct {
 	// Details about the rpkg file.
 	Magic        uint32 // The magic value that identifies an rpkg file. (value: "rpkg")
 	Architecture Arch   // The architecture this file targets (defined below).
-	Version      uint8  // The rpkg file format version. (value: rpkg.version)
+	Version      uint8  // The rpkg file format version (value: rpkg.version).
 
 	// Details about the package.
 	PackageName uint16 // The offset into the strings section where the package name begins.
@@ -343,7 +371,7 @@ type Header struct {
 	// Details about the rpkg file.
 	Magic        uint32 // The magic value that identifies an rpkg file. (value: "rpkg")
 	Architecture Arch   // The architecture this file targets (defined below).
-	Version      uint8  // The rpkg file format version. (value: rpkg.version)
+	Version      uint8  // The rpkg file format version (value: rpkg.version).
 	Checksum     []byte // The rpkg checksum.
 
 	// Details about the package.

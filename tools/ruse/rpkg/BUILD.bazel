@@ -11,6 +11,7 @@ go_library(
         "decode.go",
         "encode.go",
         "rpkg.go",
+        "stdlib.go",
     ],
     importpath = "firefly-os.dev/tools/ruse/rpkg",
     visibility = ["//visibility:public"],
