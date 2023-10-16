@@ -8,6 +8,68 @@
 load(":actions.bzl", "ruse_compile", "ruse_link")
 load(":providers.bzl", "RusePackageInfo")
 
+def _ruse_internal_library_impl(ctx):
+    rpkg = ctx.actions.declare_file("{name}_/{package_path}.rpkg".format(
+        name = ctx.label.name,
+        package_path = ctx.attr.package_path,
+    ))
+
+    ruse_compile(
+        ctx,
+        arch = ctx.attr.arch,
+        package_path = ctx.attr.package_path,
+        stdlib = None,
+        srcs = ctx.files.srcs,
+        deps = [dep[RusePackageInfo] for dep in ctx.attr.deps],
+        out = rpkg,
+    )
+
+    return [
+        DefaultInfo(files = depset([rpkg])),
+        RusePackageInfo(
+            info = struct(
+                package_path = ctx.attr.package_path,
+                rpkg = rpkg,
+            ),
+            deps = depset(
+                direct = [dep[RusePackageInfo].info for dep in ctx.attr.deps],
+                transitive = [dep[RusePackageInfo].deps for dep in ctx.attr.deps],
+            ),
+        ),
+    ]
+
+ruse_internal_library = rule(
+    implementation = _ruse_internal_library_impl,
+    attrs = {
+        "arch": attr.string(
+            mandatory = True,
+            values = [
+                "x86-64",
+            ],
+            doc = "The target architecture.",
+        ),
+        "deps": attr.label_list(
+            providers = [RusePackageInfo],
+            doc = "Direct dependencies of the package.",
+        ),
+        "package_path": attr.string(
+            mandatory = True,
+            doc = "The package's full package path.",
+        ),
+        "srcs": attr.label_list(
+            allow_files = [".ruse"],
+            doc = "Source files to compile.",
+        ),
+        "_ruse": attr.label(
+            default = "//tools/ruse",
+            executable = True,
+            doc = "The Ruse tool.",
+            cfg = "exec",
+        ),
+    },
+    doc = "Compiles an internal Ruse rpkg from Ruse source code and dependencies.",
+)
+
 def _ruse_library_impl(ctx):
     rpkg = ctx.actions.declare_file("{name}_/{package_path}.rpkg".format(
         name = ctx.label.name,

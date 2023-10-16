@@ -8,13 +8,14 @@
 
 load(":providers.bzl", "RusePackageInfo")
 
-def ruse_compile(ctx, arch, package_path, srcs, out, deps = []):
+def ruse_compile(ctx, arch, package_path, stdlib, srcs, out, deps = []):
     """Compiles a single Ruse package from source code.
 
     Args:
         ctx: Analysis context.
         arch: The target architecture.
         package_path: The compiled package's full package path.
+        stdlib: An optional path to the standard library's rpkg file.
         srcs: The list of source files that will be compiled.
         out: The path to the resulting .rpkg file. The path
             should start with the package path. That is, the
@@ -27,6 +28,8 @@ def ruse_compile(ctx, arch, package_path, srcs, out, deps = []):
     args.add("compile")
     args.add("-arch", arch)
     args.add("-package", package_path)
+    if stdlib:
+        args.add("-stdlib", stdlib[RusePackageInfo].info.rpkg.path)
     dep_paths = [dep.info.rpkg.path for dep in deps]
     args.add_all(dep_paths, before_each = "-rpkg")
     args.add("-o", out)
@@ -34,6 +37,8 @@ def ruse_compile(ctx, arch, package_path, srcs, out, deps = []):
 
     inputs = (srcs +
               [dep.info.rpkg for dep in deps])
+    if stdlib:
+        inputs = inputs + [stdlib[RusePackageInfo].info.rpkg]
 
     ctx.actions.run(
         outputs = [out],
@@ -43,13 +48,14 @@ def ruse_compile(ctx, arch, package_path, srcs, out, deps = []):
         mnemonic = "RuseCompile",
     )
 
-def ruse_link(ctx, format, package, provenance, symbol_table, out, deps = []):
+def ruse_link(ctx, format, package, stdlib, provenance, symbol_table, out, deps = []):
     """Links a single executable binary from a Ruse package.
 
     Args:
         ctx: Analysis context.
         format: The executable binary format.
         package: The compiled package to link.
+        stdlib: An optional path to the standard library's rpkg file.
         provenance: Whether to include rpkg provenance data.
         symbol_table: Whether to include a symbol table.
         out: The path to the resulting binary.
@@ -61,6 +67,8 @@ def ruse_link(ctx, format, package, provenance, symbol_table, out, deps = []):
     args = ctx.actions.args()
     args.add("link")
     args.add("-binary", format)
+    if stdlib:
+        args.add("-stdlib", stdlib[RusePackageInfo].info.rpkg.path)
     dep_paths = [rpkg.path for rpkg in transitive_deps]
     args.add_all(dep_paths, before_each = "-rpkg")
     args.add("-provenance=" + str(provenance).lower())
@@ -70,6 +78,8 @@ def ruse_link(ctx, format, package, provenance, symbol_table, out, deps = []):
 
     inputs = ([package] +
               transitive_deps)
+    if stdlib:
+        inputs = inputs + [stdlib[RusePackageInfo].info.rpkg]
 
     ctx.actions.run(
         outputs = [out],
