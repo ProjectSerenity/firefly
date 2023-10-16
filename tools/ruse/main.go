@@ -17,6 +17,7 @@ import (
 	"sort"
 
 	"firefly-os.dev/tools/ruse/cmd/compile"
+	"firefly-os.dev/tools/ruse/cmd/compile-stdlib"
 	"firefly-os.dev/tools/ruse/cmd/debug"
 	"firefly-os.dev/tools/ruse/cmd/link"
 	"firefly-os.dev/tools/ruse/cmd/rpkg"
@@ -56,6 +57,7 @@ func RegisterCommand(name, description string, fun func(ctx context.Context, w i
 
 func init() {
 	RegisterCommand("compile", "Compile a Ruse package into an rpkg file", compile.Main)
+	RegisterCommand("compile-stdlib", "Compile the Ruse standard library packages into an rpkg file", compilestdlib.Main)
 	RegisterCommand("debug", "Print debug information about a Ruse executable binary", debug.Main)
 	RegisterCommand("link", "Link one or more Ruse packages into an executable binary", link.Main)
 	RegisterCommand("rpkg", "Print debug information about a Ruse package", rpkg.Main)
