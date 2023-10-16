@@ -47,6 +47,7 @@ const (
 func (p Permissions) Read() bool    { return p&Read != 0 }
 func (p Permissions) Write() bool   { return p&Write != 0 }
 func (p Permissions) Execute() bool { return p&Execute != 0 }
+func (p Permissions) Valid() bool   { return (p & (Read | Write | Execute)) == p }
 
 func (p Permissions) String() string {
 	s := [3]byte{'-', '-', '-'}
