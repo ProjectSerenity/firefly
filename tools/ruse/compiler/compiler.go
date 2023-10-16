@@ -153,10 +153,34 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 
 	// Identify all package-level constants.
 	for _, file := range files {
+	consts:
 		for _, expr := range file.Expressions {
 			// Skip other definitions.
 			if expr.Elements[0].(*ast.Identifier).Name != "let" {
 				continue
+			}
+
+			// Process any annotations.
+			for _, anno := range expr.Annotations {
+				keyword := anno.X.Elements[0].(*ast.Identifier)
+				switch keyword.Name {
+				case "arch":
+					// Ignore declarations for other architectures.
+					nameElt := anno.X.Elements[1]
+					ident, ok := nameElt.(*ast.Identifier)
+					if !ok {
+						return nil, fmt.Errorf("%s: invalid architecture declaration: got %s, want identifier", fset.Position(nameElt.Pos()), nameElt)
+					}
+
+					got, ok := sys.ArchByName[ident.Name]
+					if !ok {
+						return nil, fmt.Errorf("%s: invalid architecture declaration: architecture %s undefined", fset.Position(ident.NamePos), ident.Name)
+					}
+
+					if got != arch {
+						continue consts
+					}
+				}
 			}
 
 			// Find the identifier.
@@ -174,34 +198,40 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 
 	// Compile the functions.
 	for _, file := range files {
-	exprs:
+	funcs:
 		for _, expr := range file.Expressions {
-			// Ignore functions for other architectures.
+			// Skip constant definitions.
+			keyword := expr.Elements[0].(*ast.Identifier)
+			if keyword.Name != "func" && keyword.Name != "asm-func" {
+				continue
+			}
+
+			// Process any annotations.
 			for _, anno := range expr.Annotations {
-				if ident, ok := anno.X.Elements[0].(*ast.Identifier); !ok || ident.Name != "arch" {
-					continue
-				}
+				keyword := anno.X.Elements[0].(*ast.Identifier)
+				switch keyword.Name {
+				case "arch":
+					// Ignore declarations for other architectures.
+					nameElt := anno.X.Elements[1]
+					ident, ok := nameElt.(*ast.Identifier)
+					if !ok {
+						return nil, fmt.Errorf("%s: invalid architecture declaration: got %s, want identifier", fset.Position(nameElt.Pos()), nameElt)
+					}
 
-				nameElt := anno.X.Elements[1]
-				ident, ok := nameElt.(*ast.Identifier)
-				if !ok {
-					return nil, fmt.Errorf("%s: invalid architecture declaration: got %s, want identifier", fset.Position(nameElt.Pos()), nameElt)
-				}
+					got, ok := sys.ArchByName[ident.Name]
+					if !ok {
+						return nil, fmt.Errorf("%s: invalid architecture declaration: architecture %s undefined", fset.Position(ident.NamePos), ident.Name)
+					}
 
-				got, ok := sys.ArchByName[ident.Name]
-				if !ok {
-					return nil, fmt.Errorf("%s: invalid architecture declaration: architecture %s undefined", fset.Position(ident.NamePos), ident.Name)
-				}
-
-				if got != arch {
-					continue exprs
+					if got != arch {
+						continue funcs
+					}
 				}
 			}
 
-			// Skip constant definitions.
 			var err error
 			var fun *ssafir.Function
-			switch expr.Elements[0].(*ast.Identifier).Name {
+			switch keyword.Name {
 			case "func":
 				fun, err = compile(fset, arch, pkg, expr, info, sizes)
 			case "asm-func":
