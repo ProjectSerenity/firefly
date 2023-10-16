@@ -35,7 +35,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("compile", flag.ExitOnError)
 
 	var help bool
-	var out, pkgName string
+	var out, pkgName, stdlib string
 	var rpkgs, debugFunctions []string
 	var arch *sys.Arch
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
@@ -62,6 +62,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return nil
 	})
 	flags.StringVar(&pkgName, "package", "", "The full package name.")
+	flags.StringVar(&stdlib, "stdlib", "", "The standard library rpkg file.")
 	flags.StringVar(&out, "o", "", "The name of the compiled rpkg.")
 
 	flags.Usage = func() {
@@ -114,6 +115,35 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		availableImports[pkg.Path] = pkg.Types
 	}
 
+	isStdlib := make(map[string]bool)
+	if stdlib != "" {
+		data, err := os.ReadFile(stdlib)
+		if err != nil {
+			return fmt.Errorf("failed to read stdlib rpkg %q: %v", stdlib, err)
+		}
+
+		rstd, err := rpkg.NewStdlibDecoder(data)
+		if err != nil {
+			return fmt.Errorf("failed to parse stdlib rstd %q: %v", stdlib, err)
+		}
+
+		pkgs := rstd.Packages()
+		for _, hdr := range pkgs {
+			info := new(types.Info)
+			depArch, p, _, err := rstd.Decode(info, hdr)
+			if err != nil {
+				return fmt.Errorf("failed to parse stdlib rpkg %q from %q: %v", hdr.PackageName, stdlib, err)
+			}
+
+			if depArch != arch {
+				return fmt.Errorf("cannot import stdlib rpkg %q: compiled for %s: need %s", hdr.PackageName, depArch.Name, arch.Name)
+			}
+
+			isStdlib[hdr.PackageName] = true
+			availableImports[hdr.PackageName] = p.Types
+		}
+	}
+
 	filenames := flags.Args()
 	if len(filenames) == 0 {
 		flags.Usage()
@@ -148,7 +178,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 	// Check that we have no redundant rpkg files.
 	for imp := range availableImports {
-		if !seenImport[imp] {
+		if !seenImport[imp] && !isStdlib[imp] {
 			return fmt.Errorf("rpkg file %s (package %q) was provided but not imported", rpkgFiles[imp], imp)
 		}
 	}
