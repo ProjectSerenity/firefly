@@ -28,13 +28,14 @@ var program = filepath.Base(os.Args[0])
 func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("rpkg", flag.ExitOnError)
 
-	var help, header, imports, exports, types, symbols, strings, linkages, functions bool
+	var help, header, imports, exports, types, symbols, sections, strings, linkages, functions bool
 	all := [...]*bool{
 		&header,
 		&imports,
 		&exports,
 		&types,
 		&symbols,
+		&sections,
 		&strings,
 		&linkages,
 		&functions,
@@ -46,6 +47,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags.BoolVar(&exports, "exports", false, "Print the list of exported symbols.")
 	flags.BoolVar(&types, "types", false, "Print the set of types defined.")
 	flags.BoolVar(&symbols, "symbols", false, "Print the set of symbols defined.")
+	flags.BoolVar(&sections, "sections", false, "Print the set of sections defined.")
 	flags.BoolVar(&strings, "strings", false, "Print the set of strings defined.")
 	flags.BoolVar(&linkages, "linkages", false, "Print the set of linkages defined.")
 	flags.BoolVar(&functions, "functions", false, "Print the set of functions defined.")
@@ -93,7 +95,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	var numSections int
-	for _, b := range []bool{header, imports, exports, types, symbols, strings, linkages, functions} {
+	for _, b := range []bool{header, imports, exports, types, symbols, sections, strings, linkages, functions} {
 		if b {
 			numSections++
 		}
@@ -135,6 +137,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		fmt.Printf("\ttypes offset:    %d\n", hdr.TypesOffset)
 		fmt.Printf("\tsymbols offset:  %d\n", hdr.SymbolsOffset)
 		fmt.Printf("\tABIs offset:     %d\n", hdr.ABIsOffset)
+		fmt.Printf("\tsections offset: %d\n", hdr.SectionsOffset)
 		fmt.Printf("\tstrings offset:  %d\n", hdr.StringsOffset)
 		fmt.Printf("\tlinkages offset: %d\n", hdr.LinkagesOffset)
 		fmt.Printf("\tcode offset:     %d\n", hdr.CodeOffset)
@@ -153,6 +156,11 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	_, err = d.ABIs()
+	if err != nil {
+		return fmt.Errorf("failed to parse %s: %v", name, err)
+	}
+
+	gotSections, err := d.Sections()
 	if err != nil {
 		return fmt.Errorf("failed to parse %s: %v", name, err)
 	}
@@ -219,6 +227,19 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			default:
 				printText("%s %s (%s): %v\n", sym.Kind, sym.AbsoluteName(), sym.Type, sym.Value)
 			}
+		}
+	}
+
+	if sections {
+		printSection("sections")
+		for _, section := range gotSections {
+			var fixed string
+			if section.FixedAddr() {
+				fixed = " (fixed)"
+			}
+
+			sect := section.Section()
+			printText("%#016x %s %s%s\n", sect.Address, sect.Permissions, sect.Name, fixed)
 		}
 	}
 
