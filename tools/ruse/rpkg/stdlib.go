@@ -23,7 +23,9 @@ const (
 	rstdVersion uint8  = 1
 )
 
-type rstdHeader struct {
+// StdlibHeader contains the information from an
+// rstd header.
+type StdlibHeader struct {
 	// Details about the rpkg file.
 	Magic        uint32 // The magic value that identifies an rstd file. (value: "rstd")
 	Architecture Arch   // The architecture this file targets (defined below).
@@ -145,7 +147,13 @@ type StdlibDecoder struct {
 
 	arch *sys.Arch
 
+	header  StdlibHeader
 	headers []StdlibPackageHeader
+}
+
+// Header returns the rstd header.
+func (d *StdlibDecoder) Header() *StdlibHeader {
+	return &d.header
 }
 
 // Packages returns the list of packages.
@@ -182,38 +190,37 @@ func NewStdlibDecoder(b []byte) (*StdlibDecoder, error) {
 	s := cryptobyte.String(b)
 
 	// Decode the header.
-	var magic uint32
-	var arch, version uint8
-	var numPackages uint16
-	if !s.ReadUint32(&magic) ||
+	var arch uint8
+	if !s.ReadUint32(&d.header.Magic) ||
 		!s.ReadUint8(&arch) ||
-		!s.ReadUint8(&version) ||
-		!s.ReadUint16(&numPackages) {
+		!s.ReadUint8(&d.header.Version) ||
+		!s.ReadUint16(&d.header.NumPackages) {
 		return nil, fmt.Errorf("rpkg: internal error: failed to read rstd header: %w", io.ErrUnexpectedEOF)
 	}
 
 	// Sanity-check the header.
-	if magic != rstdMagic {
-		return nil, fmt.Errorf("invalid rstd header: got magic %x, want %x", magic, rstdMagic)
+	if d.header.Magic != rstdMagic {
+		return nil, fmt.Errorf("invalid rstd header: got magic %x, want %x", d.header.Magic, rstdMagic)
 	}
 
-	switch Arch(arch) {
+	d.header.Architecture = Arch(arch)
+	switch d.header.Architecture {
 	case ArchX86_64:
 		d.arch = sys.X86_64
 	default:
-		return nil, fmt.Errorf("invalid rstd header: unrecognised architecture %d", Arch(arch))
+		return nil, fmt.Errorf("invalid rstd header: unrecognised architecture %d", d.header.Architecture)
 	}
 
-	if version != rstdVersion {
-		return nil, fmt.Errorf("unsupported rstd header: got version %d, but only %d is supported", version, rstdVersion)
+	if d.header.Version != rstdVersion {
+		return nil, fmt.Errorf("unsupported rstd header: got version %d, but only %d is supported", d.header.Version, rstdVersion)
 	}
 
-	if numPackages == 0 {
+	if d.header.NumPackages == 0 {
 		return nil, fmt.Errorf("invalid rstd header: no packages")
 	}
 
-	d.headers = make([]StdlibPackageHeader, numPackages)
-	for i := 0; i < int(numPackages); i++ {
+	d.headers = make([]StdlibPackageHeader, d.header.NumPackages)
+	for i := 0; i < int(d.header.NumPackages); i++ {
 		var name cryptobyte.String
 		if !s.ReadUint16LengthPrefixed(&name) {
 			return nil, fmt.Errorf("invalid rstd header: failed to read package %d name: %w", i+1, io.ErrUnexpectedEOF)
