@@ -156,6 +156,7 @@
 //		Kind         SymKind  // The symbol kind (defined below).
 //		PackageName  uint64   // The offset into the strings section where the package name begins. (e.g. "example.com/foo")
 //		Name         uint64   // The offset into the strings section where the symbol name begins. (e.g. "Bar")
+//		SectionName  uint64   // The offset into the strings section where any section name begins. (e.g. "example.com/foo.Code")
 //		Type         uint64   // The offset into the types section where the symbol's type begins.
 //		Value        uint64   // The symbol's value. The value format is explained below.
 //	}
@@ -574,6 +575,7 @@ type symbol struct {
 	Kind        SymKind // The symbol kind (defined below).
 	PackageName uint64  // The offset into the strings section where the package name begins. (e.g. "example.com/foo")
 	Name        uint64  // The offset into the strings section where the symbol name begins. (e.g. "Bar")
+	SectionName uint64  // The offset into the strings section where any section name begins. (e.g. "example.com/foo.Code")
 	Type        uint64  // The offset into the types section where the symbol's type begins.
 	Value       uint64  // The symbol's value. The value format is explained below.
 }
@@ -581,6 +583,7 @@ type symbol struct {
 const symbolSize = 4 + // 32-bit symbol kind.
 	8 + // 64-bit package path string offset.
 	8 + // 64-bit name string offset.
+	8 + // 64-bit section name offset.
 	8 + // 64-bit symbol type.
 	8 // 64-bit symbol value.
 
@@ -590,6 +593,7 @@ type Symbol struct {
 	Kind        SymKind        // The symbol kind (defined below).
 	PackageName string         // The symbol's package name.
 	Name        string         // The symbol name.
+	SectionName string         // The offset into the strings section where any section name begins. (e.g. "example.com/foo.Code")
 	Type        types.Type     // The symbol type.
 	Value       any            // The symbol value.
 	Links       []*ssafir.Link // Any linkages the symbol has.

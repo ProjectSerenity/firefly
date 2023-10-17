@@ -250,6 +250,7 @@ func (e *encoder) AddFunction(fset *token.FileSet, arch *sys.Arch, pkg *compiler
 		Kind:        SymKindFunction,
 		PackageName: e.AddString(pkg.Path),
 		Name:        e.AddString(fun.Name),
+		SectionName: e.AddString(fun.Section),
 		Type:        e.AddType(fun.Type),
 		Value:       e.AddCode(e.AddABI(fun.Func.ABI()), code.Bytes()),
 	}
@@ -344,6 +345,7 @@ func (e *encoder) AddConstant(pkg *compiler.Package, con *types.Constant) error 
 		Kind:        kind,
 		PackageName: packageName,
 		Name:        name,
+		SectionName: e.AddString(con.Section()),
 		Type:        e.AddType(conType),
 		Value:       value,
 	}
@@ -537,6 +539,7 @@ func (s *symbol) Marshal(b *cryptobyte.Builder) error {
 	b.AddUint32(uint32(s.Kind))
 	b.AddUint64(s.PackageName)
 	b.AddUint64(s.Name)
+	b.AddUint64(s.SectionName)
 	b.AddUint64(s.Type)
 	b.AddUint64(s.Value)
 

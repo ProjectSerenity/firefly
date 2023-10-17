@@ -424,6 +424,7 @@ func (d *decoded) decodeSymbols(s cryptobyte.String) (symbols map[uint64]*symbol
 		if !s.ReadUint32(&kind) ||
 			!s.ReadUint64(&sym.PackageName) ||
 			!s.ReadUint64(&sym.Name) ||
+			!s.ReadUint64(&sym.SectionName) ||
 			!s.ReadUint64(&sym.Type) ||
 			!s.ReadUint64(&sym.Value) {
 			return nil, fmt.Errorf("failed to read symbol: %w", io.ErrUnexpectedEOF)
@@ -1181,10 +1182,11 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 	for !s.Empty() {
 		here := offset
 		var kind uint32
-		var packageOffset, nameOffset, typeOffset, rawValue uint64
+		var packageOffset, nameOffset, sectionOffset, typeOffset, rawValue uint64
 		if !s.ReadUint32(&kind) ||
 			!s.ReadUint64(&packageOffset) ||
 			!s.ReadUint64(&nameOffset) ||
+			!s.ReadUint64(&sectionOffset) ||
 			!s.ReadUint64(&typeOffset) ||
 			!s.ReadUint64(&rawValue) {
 			return nil, nil, fmt.Errorf("failed to read symbol: %w", io.ErrUnexpectedEOF)
@@ -1271,6 +1273,9 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 		if nameOffset >= d.header.StringsLength {
 			return nil, nil, fmt.Errorf("invalid symbol: name offset %d is beyond strings section", nameOffset)
 		}
+		if sectionOffset >= d.header.StringsLength {
+			return nil, nil, fmt.Errorf("invalid symbol: section name offset %d is beyond strings section", sectionOffset)
+		}
 		if typeOffset == 0 {
 			return nil, nil, fmt.Errorf("invalid symbol: got type %d for kind %q", typeOffset, SymKind(kind))
 		}
@@ -1285,6 +1290,11 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 			return nil, nil, fmt.Errorf("invalid symbol: invalid symbol name: %v", err)
 		}
 
+		sectionName, err := d.getString(sectionOffset)
+		if err != nil {
+			return nil, nil, fmt.Errorf("invalid symbol: invalid section name: %v", err)
+		}
+
 		typ, err := d.getType(typeOffset)
 		if err != nil {
 			return nil, nil, fmt.Errorf("invalid symbol: invalid type: %v", err)
@@ -1294,6 +1304,7 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 			Kind:        SymKind(kind),
 			PackageName: pkgName,
 			Name:        name,
+			SectionName: sectionName,
 			Type:        typ,
 			Value:       value,
 		}
@@ -1310,7 +1321,9 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 				return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with kind %v and unexpected value type %#v", symbol.Name, symbol.Kind, symbol.Value)
 			}
 
-			object = types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, symbol.Type, value)
+			con := types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, symbol.Type, value)
+			con.SetSection(symbol.SectionName)
+			object = con
 		case SymKindFunction:
 			sig, ok := symbol.Type.(*types.Signature)
 			if !ok {
@@ -1949,11 +1962,12 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 			}
 
 			fun := &ssafir.Function{
-				Name:  symbol.Name,
-				Func:  obj,
-				Type:  obj.Type().(*types.Signature),
-				Extra: code,
-				Links: symbol.Links,
+				Name:    symbol.Name,
+				Func:    obj,
+				Type:    obj.Type().(*types.Signature),
+				Extra:   code,
+				Links:   symbol.Links,
+				Section: symbol.SectionName,
 			}
 
 			pkg.Functions = append(pkg.Functions, fun)
