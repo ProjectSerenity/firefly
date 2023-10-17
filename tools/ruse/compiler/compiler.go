@@ -161,6 +161,7 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 			}
 
 			// Process any annotations.
+			var sectionSymbol string
 			for _, anno := range expr.Annotations {
 				keyword := anno.X.Elements[0].(*ast.Identifier)
 				switch keyword.Name {
@@ -180,6 +181,52 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 					if got != arch {
 						continue consts
 					}
+				case "section":
+					switch ref := anno.X.Elements[1].(type) {
+					case *ast.Identifier:
+						obj := info.Uses[ref]
+						if obj == nil {
+							return nil, fmt.Errorf("%s: invalid section reference %q", fset.Position(ref.Pos()), ref.Print())
+						}
+
+						con, ok := obj.(*types.Constant)
+						if !ok {
+							return nil, fmt.Errorf("%s: invalid section reference %q: got %s, want constant", fset.Position(ref.Pos()), ref.Print(), obj)
+						}
+
+						if _, ok := con.Type().(types.Section); !ok {
+							return nil, fmt.Errorf("%s: invalid section reference %q: got %s, want section", fset.Position(ref.Pos()), ref.Print(), con.Type())
+						}
+
+						sectionSymbol = pkg.Path + "." + ref.Name
+					case *ast.Qualified:
+						obj := info.Uses[ref.X]
+						if obj == nil {
+							return nil, fmt.Errorf("%s: invalid section reference %q", fset.Position(ref.Pos()), ref.Print())
+						}
+
+						imp, ok := obj.(*types.Import)
+						if !ok {
+							return nil, fmt.Errorf("%s: invalid section reference %q: got %s, want import", fset.Position(ref.Pos()), ref.Print(), obj)
+						}
+
+						imported := imp.Imported()
+						obj = info.Uses[ref.Y]
+						if obj == nil {
+							return nil, fmt.Errorf("%s: invalid section reference %q: not found in package %s", fset.Position(ref.Pos()), ref.Print(), imported.Path)
+						}
+
+						con, ok := obj.(*types.Constant)
+						if !ok {
+							return nil, fmt.Errorf("%s: invalid section reference %q: got %s, want constant", fset.Position(ref.Pos()), ref.Print(), obj)
+						}
+
+						if _, ok := con.Type().(types.Section); !ok {
+							return nil, fmt.Errorf("%s: invalid section reference %q: got %s, want section", fset.Position(ref.Pos()), ref.Print(), con.Type())
+						}
+
+						sectionSymbol = imported.Path + "." + ref.Y.Name
+					}
 				}
 			}
 
@@ -192,7 +239,9 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 				name = x.Elements[0].(*ast.Identifier)
 			}
 
-			p.Constants = append(p.Constants, info.Definitions[name].(*types.Constant))
+			con := info.Definitions[name].(*types.Constant)
+			con.SetSection(sectionSymbol)
+			p.Constants = append(p.Constants, con)
 		}
 	}
 
@@ -207,6 +256,7 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 			}
 
 			// Process any annotations.
+			var sectionSymbol string
 			for _, anno := range expr.Annotations {
 				keyword := anno.X.Elements[0].(*ast.Identifier)
 				switch keyword.Name {
@@ -226,6 +276,52 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 					if got != arch {
 						continue funcs
 					}
+				case "section":
+					switch ref := anno.X.Elements[1].(type) {
+					case *ast.Identifier:
+						obj := info.Uses[ref]
+						if obj == nil {
+							return nil, fmt.Errorf("%s: invalid section reference %q", fset.Position(ref.Pos()), ref.Print())
+						}
+
+						con, ok := obj.(*types.Constant)
+						if !ok {
+							return nil, fmt.Errorf("%s: invalid section reference %q: got %s, want constant", fset.Position(ref.Pos()), ref.Print(), obj)
+						}
+
+						if _, ok := con.Type().(types.Section); !ok {
+							return nil, fmt.Errorf("%s: invalid section reference %q: got %s, want section", fset.Position(ref.Pos()), ref.Print(), con.Type())
+						}
+
+						sectionSymbol = pkg.Path + "." + ref.Name
+					case *ast.Qualified:
+						obj := info.Uses[ref.X]
+						if obj == nil {
+							return nil, fmt.Errorf("%s: invalid section reference %q", fset.Position(ref.Pos()), ref.Print())
+						}
+
+						imp, ok := obj.(*types.Import)
+						if !ok {
+							return nil, fmt.Errorf("%s: invalid section reference %q: got %s, want import", fset.Position(ref.Pos()), ref.Print(), obj)
+						}
+
+						imported := imp.Imported()
+						obj = info.Uses[ref.Y]
+						if obj == nil {
+							return nil, fmt.Errorf("%s: invalid section reference %q: not found in package %s", fset.Position(ref.Pos()), ref.Print(), imported.Path)
+						}
+
+						con, ok := obj.(*types.Constant)
+						if !ok {
+							return nil, fmt.Errorf("%s: invalid section reference %q: got %s, want constant", fset.Position(ref.Pos()), ref.Print(), obj)
+						}
+
+						if _, ok := con.Type().(types.Section); !ok {
+							return nil, fmt.Errorf("%s: invalid section reference %q: got %s, want section", fset.Position(ref.Pos()), ref.Print(), con.Type())
+						}
+
+						sectionSymbol = imported.Path + "." + ref.Y.Name
+					}
 				}
 			}
 
@@ -244,6 +340,7 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 				return nil, err
 			}
 
+			fun.Section = sectionSymbol
 			p.Functions = append(p.Functions, fun)
 		}
 	}

@@ -16,7 +16,8 @@ import (
 // declared at compile time.
 type Constant struct {
 	object
-	value constant.Value
+	value   constant.Value
+	section string // Optional symbol to the section.
 }
 
 var _ Object = (*Constant)(nil)
@@ -41,4 +42,12 @@ func (c *Constant) String() string {
 
 func (c *Constant) Value() constant.Value {
 	return c.value
+}
+
+func (c *Constant) Section() string {
+	return c.section
+}
+
+func (c *Constant) SetSection(section string) {
+	c.section = section
 }

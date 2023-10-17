@@ -440,7 +440,10 @@ func (c *checker) Check(files []*ast.File) error {
 					return err
 				}
 			case "let":
-				// Nothing to do in the second pass.
+				err := c.ResolveLetBody(scope, expr)
+				if err != nil {
+					return err
+				}
 			default:
 				return c.errorf(kind.NamePos, "invalid top-level function: %s is not a builtin function", kind.Name)
 			}
@@ -653,6 +656,8 @@ func (c *checker) CheckTopLevelAsmFuncDecl(parent *Scope, fun *ast.List) error {
 
 			// Otherwise ignored by the type checker.
 			continue
+		case "section":
+			// Nothing to do yet.
 		default:
 			return c.errorf(kind.NamePos, "unrecognised annotation: %s", kind.Name)
 		}
@@ -712,6 +717,8 @@ func (c *checker) CheckTopLevelFuncDecl(parent *Scope, fun *ast.List) error {
 
 			// Otherwise ignored by the type checker.
 			continue
+		case "section":
+			// Nothing to do yet.
 		default:
 			return c.errorf(kind.NamePos, "unrecognised annotation: %s", kind.Name)
 		}
@@ -753,7 +760,17 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 			}
 
 			function.SetABI(abi.abi)
-			break
+		case "section":
+			elt := anno.X.Elements[1]
+			_, typ, err := c.ResolveExpression(scope, elt)
+			if err != nil {
+				return err
+			}
+
+			_, ok := typ.(Section)
+			if !ok {
+				return c.errorf(elt.Pos(), "cannot use %s (%s) as section", elt.Print(), elt)
+			}
 		}
 	}
 
@@ -918,7 +935,17 @@ func (c *checker) ResolveFuncBody(scope *Scope, fun *ast.List) (result Type, err
 			}
 
 			function.SetABI(abi.abi)
-			break
+		case "section":
+			elt := anno.X.Elements[1]
+			_, typ, err := c.ResolveExpression(scope, elt)
+			if err != nil {
+				return nil, err
+			}
+
+			_, ok := typ.(Section)
+			if !ok {
+				return nil, c.errorf(elt.Pos(), "cannot use %s (%s) as section", elt.Print(), elt)
+			}
 		}
 	}
 
@@ -952,6 +979,28 @@ func (c *checker) ResolveFuncBody(scope *Scope, fun *ast.List) (result Type, err
 	}
 
 	return sig.result, nil
+}
+
+func (c *checker) ResolveLetBody(scope *Scope, let *ast.List) (err error) {
+	// Resolve the section if one is specified.
+	for _, anno := range let.Annotations {
+		kind := anno.X.Elements[0].(*ast.Identifier) // Enforced by the parser.
+		switch kind.Name {
+		case "section":
+			elt := anno.X.Elements[1]
+			_, typ, err := c.ResolveExpression(scope, elt)
+			if err != nil {
+				return err
+			}
+
+			_, ok := typ.(Section)
+			if !ok {
+				return c.errorf(elt.Pos(), "cannot use %s (%s) as section", elt.Print(), elt)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, Type, error) {

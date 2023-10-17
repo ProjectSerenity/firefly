@@ -500,6 +500,9 @@ type Function struct {
 
 	// Linking actions, if any.
 	Links []*Link
+
+	// Optional symbol to a section.
+	Section string
 }
 
 // Print returns a textual representation for f.

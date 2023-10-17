@@ -134,6 +134,23 @@ func (c *checker) checkAnnotationArchitecture(list, anno *ast.List) error {
 	return nil
 }
 
+// Allow a section reference.
+func (c *checker) checkAnnotationSection(list, anno *ast.List) error {
+	section, err := c.listElement1(anno, "section annotation", "section")
+	if err != nil {
+		return err
+	}
+
+	switch x := section.(type) {
+	case *ast.Identifier: // A named section, which we check more later.
+	case *ast.Qualified: // An imported named section, which we check more later.
+	default:
+		return c.errorf(section.Pos(), "invalid section annotation: got section declaration %s, want reference", x.Print())
+	}
+
+	return nil
+}
+
 // Allow a CPU mode.
 func (c *checker) checkAnnotationMode(list, anno *ast.List) error {
 	mode, err := c.listElement1(anno, "mode annotation", "mode")
@@ -167,6 +184,8 @@ func (c *checker) checkAnnotationAsmFunc(list *ast.List) error {
 			return c.checkAnnotationArchitecture(list, anno)
 		case "mode":
 			return c.checkAnnotationMode(list, anno)
+		case "section":
+			return c.checkAnnotationSection(list, anno)
 		default:
 			return c.errorf(anno.ParenOpen, "invalid function annotation: unrecognised annotation type: %s", keyword.Name)
 		}
@@ -273,6 +292,8 @@ func (c *checker) checkAnnotationFunc(list *ast.List) error {
 			return c.checkAnnotationABI(list, anno)
 		case "arch":
 			return c.checkAnnotationArchitecture(list, anno)
+		case "section":
+			return c.checkAnnotationSection(list, anno)
 		default:
 			return c.errorf(anno.ParenOpen, "invalid function annotation: unrecognised annotation type: %s", keyword.Name)
 		}
@@ -400,6 +421,8 @@ func (c *checker) CheckAnnotations(files []*ast.File) error {
 					switch keyword.Name {
 					case "arch":
 						return c.checkAnnotationArchitecture(list, anno)
+					case "section":
+						return c.checkAnnotationSection(list, anno)
 					default:
 						return c.errorf(anno.ParenOpen, "invalid annotation: unrecognised annotation type: %s", keyword.Name)
 					}
