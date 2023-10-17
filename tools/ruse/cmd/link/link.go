@@ -261,17 +261,17 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	// Add the rpkgs data.
 	sectionsData[symbolToSectionIndex[defaultRPKGsSectionSymbol]].Write(rpkgsData.BytesOrPanic())
 
-	sectionData := func(fallback, symbol string) (*bytes.Buffer, error) {
+	pickSection := func(fallback, symbol string) (index int, data *bytes.Buffer, err error) {
 		index, ok := symbolToSectionIndex[symbol]
 		if !ok {
 			if symbol != "" {
-				return nil, fmt.Errorf("internal error: no section was found at symbol %q", symbol)
+				return 0, nil, fmt.Errorf("internal error: no section was found at symbol %q", symbol)
 			}
 
 			index = symbolToSectionIndex[fallback]
 		}
 
-		return sectionsData[index], nil
+		return index, sectionsData[index], nil
 	}
 
 	// Build the symbol table.
@@ -280,7 +280,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	symbols := make(map[string]*binary.Symbol)
 	for i, p := range packages {
 		for _, fun := range p.Functions {
-			data, err := sectionData(defaultCodeSectionSymbol, "")
+			index, data, err := pickSection(defaultCodeSectionSymbol, "")
 			if err != nil {
 				return err
 			}
@@ -289,7 +289,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			sym := &binary.Symbol{
 				Name:    p.Path + "." + fun.Name,
 				Kind:    binary.SymbolFunction,
-				Section: symbolToSectionIndex[defaultCodeSectionSymbol],
+				Section: index,
 				Offset:  uintptr(prev), // Just the offset within the section for now.
 			}
 
@@ -311,7 +311,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		for _, con := range p.Constants {
-			data, err := sectionData(defaultStringsSectionSymbol, "")
+			index, data, err := pickSection(defaultStringsSectionSymbol, "")
 			if err != nil {
 				return err
 			}
@@ -326,7 +326,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			sym := &binary.Symbol{
 				Name:    p.Path + "." + con.Name(),
 				Kind:    binary.SymbolString,
-				Section: symbolToSectionIndex[defaultStringsSectionSymbol],
+				Section: index,
 				Offset:  uintptr(data.Len()), // Just the offset within the section for now.
 				Length:  len(s),
 			}
@@ -337,7 +337,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		for _, lit := range p.Literals {
-			data, err := sectionData(defaultStringsSectionSymbol, "")
+			index, data, err := pickSection(defaultStringsSectionSymbol, "")
 			if err != nil {
 				return err
 			}
@@ -352,7 +352,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			sym := &binary.Symbol{
 				Name:    "." + s,
 				Kind:    binary.SymbolString,
-				Section: symbolToSectionIndex[defaultStringsSectionSymbol],
+				Section: index,
 				Offset:  uintptr(data.Len()), // Just the offset within the section for now.
 				Length:  len(s),
 			}
