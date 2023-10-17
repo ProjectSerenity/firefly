@@ -213,19 +213,24 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	if symbols {
 		printSection("symbols")
 		for _, sym := range gotSymbols {
+			var section string
+			if sym.SectionName != "" {
+				section = fmt.Sprintf(" (section %s)", sym.SectionName)
+			}
+
 			switch sym.Kind {
 			case rpkg.SymKindFunction:
 				// The type is already printed in parentheses,
 				// so there's no need to add more. Also, the
 				// data isn't meaningfully printable.
-				printText("%s %s %s\n", sym.Kind, sym.AbsoluteName(), sym.Type)
+				printText("%s %s %s%s\n", sym.Kind, sym.AbsoluteName(), sym.Type, section)
 			case rpkg.SymKindStringConstant:
 				// We want to quote the string.
 				v := sym.Value.(constant.Value)
 				s := constant.StringVal(v)
-				printText("%s %s (%s): %q\n", sym.Kind, sym.AbsoluteName(), sym.Type, s)
+				printText("%s %s (%s): %q%s\n", sym.Kind, sym.AbsoluteName(), sym.Type, s, section)
 			default:
-				printText("%s %s (%s): %v\n", sym.Kind, sym.AbsoluteName(), sym.Type, sym.Value)
+				printText("%s %s (%s): %v%s\n", sym.Kind, sym.AbsoluteName(), sym.Type, sym.Value, section)
 			}
 		}
 	}
