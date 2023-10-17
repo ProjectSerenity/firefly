@@ -35,6 +35,7 @@ func NewImport(scope *Scope, pos, end token.Pos, pkg *Package, name string, impo
 	}
 }
 
+func (i *Import) Imported() *Package { return i.imported }
 func (i *Import) String() string {
 	return fmt.Sprintf("import %s (%q)", i.object.name, i.imported.Path)
 }
