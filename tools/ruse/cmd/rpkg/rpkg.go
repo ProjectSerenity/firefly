@@ -24,34 +24,33 @@ import (
 
 var program = filepath.Base(os.Args[0])
 
-// Main prints debug information about a Ruse rpkg file.
-func Main(ctx context.Context, w io.Writer, args []string) error {
-	flags := flag.NewFlagSet("rpkg", flag.ExitOnError)
+// Flags.
+var Flags = flag.NewFlagSet("rpkg", flag.ExitOnError)
+var help, header, imports, exports, types, symbols, sections, strings, linkages, functions bool
+var all = [...]*bool{
+	&header,
+	&imports,
+	&exports,
+	&types,
+	&symbols,
+	&sections,
+	&strings,
+	&linkages,
+	&functions,
+}
 
-	var help, header, imports, exports, types, symbols, sections, strings, linkages, functions bool
-	all := [...]*bool{
-		&header,
-		&imports,
-		&exports,
-		&types,
-		&symbols,
-		&sections,
-		&strings,
-		&linkages,
-		&functions,
-	}
-
-	flags.BoolVar(&help, "h", false, "Show this message and exit.")
-	flags.BoolVar(&header, "header", true, "Print information about the rpkg header.")
-	flags.BoolVar(&imports, "imports", false, "Print the list of imported package names.")
-	flags.BoolVar(&exports, "exports", false, "Print the list of exported symbols.")
-	flags.BoolVar(&types, "types", false, "Print the set of types defined.")
-	flags.BoolVar(&symbols, "symbols", false, "Print the set of symbols defined.")
-	flags.BoolVar(&sections, "sections", false, "Print the set of sections defined.")
-	flags.BoolVar(&strings, "strings", false, "Print the set of strings defined.")
-	flags.BoolVar(&linkages, "linkages", false, "Print the set of linkages defined.")
-	flags.BoolVar(&functions, "functions", false, "Print the set of functions defined.")
-	flags.BoolFunc("all", "Print all information.", func(s string) error {
+func init() {
+	Flags.BoolVar(&help, "h", false, "Show this message and exit.")
+	Flags.BoolVar(&header, "header", true, "Print information about the rpkg header.")
+	Flags.BoolVar(&imports, "imports", false, "Print the list of imported package names.")
+	Flags.BoolVar(&exports, "exports", false, "Print the list of exported symbols.")
+	Flags.BoolVar(&types, "types", false, "Print the set of types defined.")
+	Flags.BoolVar(&symbols, "symbols", false, "Print the set of symbols defined.")
+	Flags.BoolVar(&sections, "sections", false, "Print the set of sections defined.")
+	Flags.BoolVar(&strings, "strings", false, "Print the set of strings defined.")
+	Flags.BoolVar(&linkages, "linkages", false, "Print the set of linkages defined.")
+	Flags.BoolVar(&functions, "functions", false, "Print the set of functions defined.")
+	Flags.BoolFunc("all", "Print all information.", func(s string) error {
 		v, err := strconv.ParseBool(s)
 		if err != nil {
 			return err
@@ -65,21 +64,24 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 		return nil
 	})
+}
 
-	flags.Usage = func() {
-		log.Printf("Usage:\n  %s %s [OPTIONS] RPKG\n\n", program, flags.Name())
-		flags.PrintDefaults()
+// Main prints debug information about a Ruse rpkg file.
+func Main(ctx context.Context, w io.Writer, args []string) error {
+	Flags.Usage = func() {
+		log.Printf("Usage:\n  %s %s [OPTIONS] RPKG\n\n", program, Flags.Name())
+		Flags.PrintDefaults()
 		os.Exit(2)
 	}
 
-	err := flags.Parse(args)
+	err := Flags.Parse(args)
 	if err != nil || help {
-		flags.Usage()
+		Flags.Usage()
 	}
 
-	filenames := flags.Args()
+	filenames := Flags.Args()
 	if len(filenames) != 1 {
-		flags.Usage()
+		Flags.Usage()
 		os.Exit(2)
 	}
 
@@ -89,6 +91,12 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return fmt.Errorf("failed to read %s: %v", name, err)
 	}
 
+	return Print(name, data)
+}
+
+// Print processes the given rpkg data, printing according
+// to the Flags.
+func Print(name string, data []byte) error {
 	d, err := rpkg.NewDecoder(data)
 	if err != nil {
 		return fmt.Errorf("failed to parse %s: %v", name, err)
