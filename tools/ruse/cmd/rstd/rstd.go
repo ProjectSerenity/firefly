@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 
+	cmdrpkg "firefly-os.dev/tools/ruse/cmd/rpkg"
 	"firefly-os.dev/tools/ruse/rpkg"
 )
 
@@ -24,12 +25,13 @@ var program = filepath.Base(os.Args[0])
 func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("rstd", flag.ExitOnError)
 
-	var help, header, checksums, packages, short bool
+	var help, header, checksums, packages, short, rpkgs bool
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
 	flags.BoolVar(&header, "header", true, "Print information about the rstd header.")
 	flags.BoolVar(&checksums, "checksums", false, "Print the list of packages and their checksums.")
 	flags.BoolVar(&short, "short", false, "Print only the first 8 characters of checksums")
 	flags.BoolVar(&packages, "packages", false, "Print the list of packages.")
+	flags.BoolVar(&rpkgs, "rpkgs", false, "Pass each package through rpkg printing.")
 
 	flags.Usage = func() {
 		log.Printf("Usage:\n  %s %s [OPTIONS] RSTD\n\n", program, flags.Name())
@@ -46,7 +48,20 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		flags.Usage()
 	}
 
-	filenames := flags.Args()
+	if (checksums && packages) ||
+		(checksums && rpkgs) ||
+		(packages && rpkgs) {
+		log.Println("Only one of -checksums, -packages, and -rpkgs can be chosen.")
+		flags.Usage()
+	}
+
+	// Process any rpkg flags.
+	err = cmdrpkg.Flags.Parse(flags.Args())
+	if err != nil {
+		cmdrpkg.Flags.Usage()
+	}
+
+	filenames := cmdrpkg.Flags.Args()
 	if len(filenames) != 1 {
 		flags.Usage()
 		os.Exit(2)
@@ -64,7 +79,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	var numSections int
-	for _, b := range []bool{header, checksums || packages} {
+	for _, b := range []bool{header, checksums, packages, rpkgs} {
 		if b {
 			numSections++
 		}
@@ -116,11 +131,26 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				printText("%x  %s\n", d.Header().Checksum, pkg.PackageName)
 			}
 		}
-	} else if packages {
+	}
+
+	if packages {
 		printSection("packages")
 		pkgs := d.Packages()
 		for _, pkg := range pkgs {
 			printText("%s\n", pkg.PackageName)
+		}
+	}
+
+	if rpkgs {
+		printSection("rpkgs")
+		pkgs := d.Packages()
+		for _, pkg := range pkgs {
+			data := d.Extract(pkg)
+			printText("%q\n", pkg.PackageName)
+			err := cmdrpkg.Print(pkg.PackageName, data)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
