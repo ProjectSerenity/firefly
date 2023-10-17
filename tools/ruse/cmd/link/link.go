@@ -280,7 +280,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	symbols := make(map[string]*binary.Symbol)
 	for i, p := range packages {
 		for _, fun := range p.Functions {
-			index, data, err := pickSection(defaultCodeSectionSymbol, "")
+			index, data, err := pickSection(defaultCodeSectionSymbol, fun.Section)
 			if err != nil {
 				return err
 			}
@@ -311,7 +311,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		for _, con := range p.Constants {
-			index, data, err := pickSection(defaultStringsSectionSymbol, "")
+			index, data, err := pickSection(defaultStringsSectionSymbol, con.Section())
 			if err != nil {
 				return err
 			}
@@ -337,7 +337,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		for _, lit := range p.Literals {
-			index, data, err := pickSection(defaultStringsSectionSymbol, "")
+			index, data, err := pickSection(defaultStringsSectionSymbol, lit.Section())
 			if err != nil {
 				return err
 			}
