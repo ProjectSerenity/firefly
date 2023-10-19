@@ -24,6 +24,7 @@ type Package struct {
 	Name      string
 	Path      string
 	BaseAddr  *ast.Literal
+	Sections  []string
 	Types     *types.Package
 	Imports   []string
 	Constants []*types.Constant // Named constants.
@@ -145,6 +146,59 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 				}
 
 				p.BaseAddr = addr
+			case "sections":
+				if p.Sections != nil {
+					return nil, fmt.Errorf("%s: invalid package annotation: sections already specified", fset.Position(x.Quote))
+				}
+
+				p.Sections = make([]string, len(anno.Elements[1:]))
+				for i, x := range anno.Elements[1:] {
+					switch ref := x.(type) {
+					case *ast.Identifier:
+						obj := info.Uses[ref]
+						if obj == nil {
+							return nil, fmt.Errorf("%s: invalid section reference %q", fset.Position(ref.Pos()), ref.Print())
+						}
+
+						con, ok := obj.(*types.Constant)
+						if !ok {
+							return nil, fmt.Errorf("%s: invalid section reference %q: got %s, want constant", fset.Position(ref.Pos()), ref.Print(), obj)
+						}
+
+						if _, ok := con.Type().(types.Section); !ok {
+							return nil, fmt.Errorf("%s: invalid section reference %q: got %s, want section", fset.Position(ref.Pos()), ref.Print(), con.Type())
+						}
+
+						p.Sections[i] = pkg.Path + "." + ref.Name
+					case *ast.Qualified:
+						obj := info.Uses[ref.X]
+						if obj == nil {
+							return nil, fmt.Errorf("%s: invalid section reference %q", fset.Position(ref.Pos()), ref.Print())
+						}
+
+						imp, ok := obj.(*types.Import)
+						if !ok {
+							return nil, fmt.Errorf("%s: invalid section reference %q: got %s, want import", fset.Position(ref.Pos()), ref.Print(), obj)
+						}
+
+						imported := imp.Imported()
+						obj = info.Uses[ref.Y]
+						if obj == nil {
+							return nil, fmt.Errorf("%s: invalid section reference %q: not found in package %s", fset.Position(ref.Pos()), ref.Print(), imported.Path)
+						}
+
+						con, ok := obj.(*types.Constant)
+						if !ok {
+							return nil, fmt.Errorf("%s: invalid section reference %q: got %s, want constant", fset.Position(ref.Pos()), ref.Print(), obj)
+						}
+
+						if _, ok := con.Type().(types.Section); !ok {
+							return nil, fmt.Errorf("%s: invalid section reference %q: got %s, want section", fset.Position(ref.Pos()), ref.Print(), con.Type())
+						}
+
+						p.Sections[i] = imported.Path + "." + ref.Y.Name
+					}
+				}
 			default:
 				panic("unexpected keyword " + keyword.Name)
 			}

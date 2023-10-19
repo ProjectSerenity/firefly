@@ -450,6 +450,37 @@ func (c *checker) Check(files []*ast.File) error {
 		}
 	}
 
+	// Finally, we process any
+	// annotations on the package
+	// statement.
+	for i, file := range files {
+		err := c.iterAnnotations(file.Package, func(list, anno *ast.List, keyword *ast.Identifier) error {
+			switch keyword.Name {
+			case "base-address":
+				// Nothing to do here.
+			case "sections":
+				for _, elt := range anno.Elements[1:] {
+					_, typ, err := c.ResolveExpression(fileScopes[i], elt)
+					if err != nil {
+						return err
+					}
+
+					_, ok := typ.(Section)
+					if !ok {
+						return c.errorf(elt.Pos(), "cannot use %s (%s) as section", elt.Print(), elt)
+					}
+				}
+			default:
+				return c.errorf(anno.ParenOpen, "invalid package annotation: unrecognised annotation type: %s", keyword.Name)
+			}
+
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

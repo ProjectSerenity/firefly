@@ -151,6 +151,24 @@ func (c *checker) checkAnnotationSection(list, anno *ast.List) error {
 	return nil
 }
 
+// Allow an arbitrary number of section references.
+func (c *checker) checkAnnotationSections(list, anno *ast.List) error {
+	if len(anno.Elements) == 1 {
+		return c.errorf(anno.ParenClose, "invalid sections annotation: sections missing")
+	}
+
+	for _, section := range anno.Elements[1:] {
+		switch x := section.(type) {
+		case *ast.Identifier: // A named section, which we check more later.
+		case *ast.Qualified: // An imported named section, which we check more later.
+		default:
+			return c.errorf(section.Pos(), "invalid section annotation: got section declaration %s, want reference", x.Print())
+		}
+	}
+
+	return nil
+}
+
 // Allow a CPU mode.
 func (c *checker) checkAnnotationMode(list, anno *ast.List) error {
 	mode, err := c.listElement1(anno, "mode annotation", "mode")
@@ -388,6 +406,8 @@ func (c *checker) CheckAnnotations(files []*ast.File) error {
 				}
 
 				return nil
+			case "sections":
+				return c.checkAnnotationSections(list, anno)
 			default:
 				return c.errorf(anno.ParenOpen, "invalid package annotation: unrecognised annotation type: %s", keyword.Name)
 			}
