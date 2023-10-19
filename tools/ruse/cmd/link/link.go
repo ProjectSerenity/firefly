@@ -259,7 +259,12 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	// Add the rpkgs data.
-	sectionsData[symbolToSectionIndex[defaultRPKGsSectionSymbol]].Write(rpkgsData.BytesOrPanic())
+	rpkgsDataRaw := rpkgsData.BytesOrPanic()
+	rpkgsDataSized := cryptobyte.NewFixedBuilder(make([]byte, 0, 4+len(rpkgsDataRaw)))
+	rpkgsDataSized.AddUint32LengthPrefixed(func(b *cryptobyte.Builder) {
+		b.AddBytes(rpkgsDataRaw)
+	})
+	sectionsData[symbolToSectionIndex[defaultRPKGsSectionSymbol]].Write(rpkgsDataSized.BytesOrPanic())
 
 	pickSection := func(fallback, symbol string) (index int, data *bytes.Buffer, err error) {
 		index, ok := symbolToSectionIndex[symbol]

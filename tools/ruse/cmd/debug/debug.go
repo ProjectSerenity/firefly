@@ -75,6 +75,14 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	s := cryptobyte.String(rpkgs)
+	var rpkgsLen uint32
+	var rpkgsData []byte
+	if !s.ReadUint32(&rpkgsLen) ||
+		!s.ReadBytes(&rpkgsData, int(rpkgsLen)) {
+		return fmt.Errorf("failed to parse %s: failed to read rpkgs data: %v", filenames[0], io.ErrUnexpectedEOF)
+	}
+
+	s = cryptobyte.String(rpkgsData)
 	for !s.Empty() {
 		var pkg, checksum []byte
 		var pkgString cryptobyte.String
