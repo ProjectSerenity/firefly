@@ -50,6 +50,8 @@
 //		// Details about the package.
 //		PackageName     uint16  // The offset into the strings section where the package name begins.
 //		BaseAddress     uint64  // The base address of the executable (0 for non-main packages).
+//		NumSections     uint32  // The number of program section offsets that follow.
+//		Section...      uint32  // Successive offsets into the strings section where a section symbol name begins.
 //
 //		// Location of the imports section.
 //		ImportsOffset   uint32  // The offset into the file where the imports section begins.
@@ -307,8 +309,10 @@ type header struct {
 	Version      uint8  // The rpkg file format version (value: rpkg.version).
 
 	// Details about the package.
-	PackageName uint16 // The offset into the strings section where the package name begins.
-	BaseAddress uint64 // The base address of the executable (0 for non-main packages).
+	PackageName uint16   // The offset into the strings section where the package name begins.
+	BaseAddress uint64   // The base address of the executable (0 for non-main packages).
+	NumSections uint32   // The number of program section offsets that follow.
+	Sections    []uint32 // Successive offsets into the strings section where a section symbol name begins.
 
 	// Location of the imports section.
 	ImportsOffset uint32 // The offset into the file where the imports section begins.
@@ -351,11 +355,12 @@ type header struct {
 	ChecksumLength uint64 // The length in bytes of the checksum.
 }
 
-const headerSize = 4 + // 32-bit magic.
+const minHeaderSize = 4 + // 32-bit magic.
 	1 + // 8-bit architecture.
 	1 + // 8-bit version.
 	2 + // 16-bit package name string offset.
 	8 + // 64-bit base address.
+	4 + // 32-bit number of section offsets.
 	4 + // 32-bit imports section offset.
 	4 + // 32-bit exports section offset.
 	8 + // 64-bit types section offset.
@@ -376,8 +381,9 @@ type Header struct {
 	Checksum     []byte // The rpkg checksum.
 
 	// Details about the package.
-	PackageName string // The offset into the strings section where the package name begins.
-	BaseAddress uint64 // The base address of the executable (0 for non-main packages).
+	PackageName string   // The offset into the strings section where the package name begins.
+	BaseAddress uint64   // The base address of the executable (0 for non-main packages).
+	Sections    []string // The set of program sections.
 
 	// Location of the imports section.
 	ImportsOffset uint32 // The offset into the file where the imports section begins.

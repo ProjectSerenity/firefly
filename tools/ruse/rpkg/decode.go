@@ -31,11 +31,11 @@ import (
 // decoding an rpkg; reading the header and
 // verifying the checksum.
 func decodeHeader(h *header, b []byte) error {
-	if len(b) < headerSize {
+	if len(b) < minHeaderSize {
 		return fmt.Errorf("invalid rpkg header: %w", io.ErrUnexpectedEOF)
 	}
 
-	s := cryptobyte.String(b[:headerSize])
+	s := cryptobyte.String(b)
 
 	// Start with the header.
 	var arch uint8
@@ -44,7 +44,18 @@ func decodeHeader(h *header, b []byte) error {
 		!s.ReadUint8(&h.Version) ||
 		!s.ReadUint16(&h.PackageName) ||
 		!s.ReadUint64(&h.BaseAddress) ||
-		!s.ReadUint32(&h.ImportsOffset) ||
+		!s.ReadUint32(&h.NumSections) {
+		return fmt.Errorf("rpkg: internal error: failed to read rpkg header: %w", io.ErrUnexpectedEOF)
+	}
+
+	if h.NumSections != 0 {
+		h.Sections = make([]uint32, h.NumSections)
+		for i := 0; i < int(h.NumSections); i++ {
+			s.ReadUint32(&h.Sections[i])
+		}
+	}
+
+	if !s.ReadUint32(&h.ImportsOffset) ||
 		!s.ReadUint32(&h.ExportsOffset) ||
 		!s.ReadUint64(&h.TypesOffset) ||
 		!s.ReadUint64(&h.SymbolsOffset) ||
@@ -85,8 +96,8 @@ func decodeHeader(h *header, b []byte) error {
 	if uint64(h.PackageName) >= h.StringsLength {
 		return fmt.Errorf("invalid rpkg header: package name offset %d is beyond strings section", h.PackageName)
 	}
-	if h.ImportsOffset != headerSize {
-		return fmt.Errorf("invalid rpkg header: got imports offset %d, want %d", h.ImportsOffset, headerSize)
+	if h.ImportsOffset < minHeaderSize {
+		return fmt.Errorf("invalid rpkg header: got imports offset %d, want %d", h.ImportsOffset, minHeaderSize)
 	}
 	if h.ImportsLength%4 != 0 {
 		return fmt.Errorf("invalid rpkg header: got invalid imports length %d", h.ImportsLength)
@@ -791,7 +802,8 @@ type Decoder struct {
 
 	pkg *types.Package
 
-	packageName string
+	packageName    string
+	sectionSymbols []string
 
 	allImports  []string                 // Cached result from Imports.
 	allExports  []types.Object           // Cached result from Exports.
@@ -843,6 +855,16 @@ func NewDecoder(b []byte) (*Decoder, error) {
 		return nil, fmt.Errorf("invalid rpkg header: invalid package name: %v", err)
 	}
 
+	if len(d.header.Sections) != 0 {
+		d.sectionSymbols = make([]string, len(d.header.Sections))
+		for i, offset := range d.header.Sections {
+			d.sectionSymbols[i], err = d.getString(uint64(offset))
+			if err != nil {
+				return nil, fmt.Errorf("invalid rpkg header: invalid section name %d: %v", offset, err)
+			}
+		}
+	}
+
 	switch d.header.Architecture {
 	case ArchX86_64:
 		d.arch = sys.X86_64
@@ -868,6 +890,7 @@ func (d *Decoder) Header() *Header {
 
 		PackageName: d.packageName,
 		BaseAddress: d.header.BaseAddress,
+		Sections:    d.sectionSymbols,
 
 		ImportsOffset: d.header.ImportsOffset,
 		ImportsLength: d.header.ImportsLength,
@@ -1861,6 +1884,7 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 		Name:     d.pkg.Name,
 		Path:     d.pkg.Path,
 		BaseAddr: &ast.Literal{Kind: token.Integer, Value: fmt.Sprintf("%#x", d.header.BaseAddress)},
+		Sections: d.sectionSymbols,
 		Types:    d.pkg,
 	}
 

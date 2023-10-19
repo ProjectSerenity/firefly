@@ -42,16 +42,17 @@ var tests = []struct {
 			1,    // Version: 1.
 			0, 4, // PackageName: 4.
 			0, 0, 0, 0, 0, 0, 0, 0, // BaseAddress: 0.
-			0, 0, 0, 88, // ImportsOffset: 88.
-			0, 0, 0, 88, // ExportsOffset: 88.
-			0, 0, 0, 0, 0, 0, 0, 88, // TypesOffset: 88.
-			0, 0, 0, 0, 0, 0, 0, 92, // SymbolsOffset: 92.
-			0, 0, 0, 0, 0, 0, 0, 92, // ABIsOffset: 92.
-			0, 0, 0, 0, 0, 0, 0, 96, // SectionsOffset: 96.
-			0, 0, 0, 0, 0, 0, 0, 120, // StringsOffset: 120.
-			0, 0, 0, 0, 0, 0, 0, 144, // LinkagesOffset: 144.
-			0, 0, 0, 0, 0, 0, 0, 144, // CodeOffset: 144.
-			0, 0, 0, 0, 0, 0, 0, 144, // ChecksumOffset: 144.
+			0, 0, 0, 0, // NumSections: 0.
+			0, 0, 0, 92, // ImportsOffset: 92.
+			0, 0, 0, 92, // ExportsOffset: 92.
+			0, 0, 0, 0, 0, 0, 0, 92, // TypesOffset: 92.
+			0, 0, 0, 0, 0, 0, 0, 96, // SymbolsOffset: 96.
+			0, 0, 0, 0, 0, 0, 0, 96, // ABIsOffset: 96.
+			0, 0, 0, 0, 0, 0, 0, 100, // SectionsOffset: 100.
+			0, 0, 0, 0, 0, 0, 0, 124, // StringsOffset: 124.
+			0, 0, 0, 0, 0, 0, 0, 148, // LinkagesOffset: 148.
+			0, 0, 0, 0, 0, 0, 0, 148, // CodeOffset: 148.
+			0, 0, 0, 0, 0, 0, 0, 148, // ChecksumOffset: 148.
 			// Imports.
 			// Exports.
 			// Types.
@@ -79,10 +80,10 @@ var tests = []struct {
 			// Linkages.
 			// Code.
 			// Checksum.
-			0x18, 0x94, 0x17, 0x7b, 0x1c, 0x1c, 0xa0, 0x54,
-			0x6e, 0x75, 0xfe, 0xbf, 0x59, 0x9f, 0x06, 0x29,
-			0x00, 0x29, 0xca, 0xea, 0xa6, 0x1d, 0xce, 0x78,
-			0x70, 0xcf, 0xcd, 0xb8, 0x32, 0x2f, 0xbc, 0x7e,
+			0x40, 0x16, 0xc4, 0xa6, 0x72, 0xb1, 0x46, 0xa0,
+			0x14, 0xa6, 0xe5, 0xa5, 0x6a, 0xb6, 0x70, 0x18,
+			0xe2, 0x48, 0x5a, 0xcf, 0xe7, 0x38, 0xdf, 0xbe,
+			0x24, 0x5f, 0xb8, 0xca, 0x69, 0x7e, 0x8a, 0x8d,
 		},
 		Decoded: &decoded{
 			header: header{
@@ -91,25 +92,26 @@ var tests = []struct {
 				Version:        1,
 				PackageName:    4,
 				BaseAddress:    0,
-				ImportsOffset:  88,
+				NumSections:    0,
+				ImportsOffset:  92,
 				ImportsLength:  0,
-				ExportsOffset:  88,
+				ExportsOffset:  92,
 				ExportsLength:  0,
-				TypesOffset:    88,
+				TypesOffset:    92,
 				TypesLength:    4,
-				SymbolsOffset:  92,
+				SymbolsOffset:  96,
 				SymbolsLength:  0,
-				ABIsOffset:     92,
+				ABIsOffset:     96,
 				ABIsLength:     4,
-				SectionsOffset: 96,
+				SectionsOffset: 100,
 				SectionsLength: 24,
-				StringsOffset:  120,
+				StringsOffset:  124,
 				StringsLength:  24,
-				LinkagesOffset: 144,
+				LinkagesOffset: 148,
 				LinkagesLength: 0,
-				CodeOffset:     144,
+				CodeOffset:     148,
 				CodeLength:     0,
-				ChecksumOffset: 144,
+				ChecksumOffset: 148,
 				ChecksumLength: 32,
 			},
 			imports: []uint32{},
@@ -153,16 +155,17 @@ var tests = []struct {
 			1,    // Version: 1.
 			0, 4, // PackageName: 4.
 			0, 0, 0, 0, 0, 0, 0, 0, // BaseAddress: 0.
-			0, 0, 0, 88, // ImportsOffset: 88.
-			0, 0, 0, 88, // ExportsOffset: 88.
-			0, 0, 0, 0, 0, 0, 0, 104, // TypesOffset: 104.
-			0, 0, 0, 0, 0, 0, 0, 132, // SymbolsOffset: 132.
-			0, 0, 0, 0, 0, 0, 1, 52, // ABIsOffset: 308.
-			0, 0, 0, 0, 0, 0, 1, 56, // SectionsOffset: 312.
-			0, 0, 0, 0, 0, 0, 1, 80, // StringsOffset: 336.
-			0, 0, 0, 0, 0, 0, 1, 184, // LinkagesOffset: 440.
-			0, 0, 0, 0, 0, 0, 1, 184, // CodeOffset: 440.
-			0, 0, 0, 0, 0, 0, 1, 184, // ChecksumOffset: 440.
+			0, 0, 0, 0, // NumSections: 0.
+			0, 0, 0, 92, // ImportsOffset: 92.
+			0, 0, 0, 92, // ExportsOffset: 92.
+			0, 0, 0, 0, 0, 0, 0, 108, // TypesOffset: 108.
+			0, 0, 0, 0, 0, 0, 0, 136, // SymbolsOffset: 136.
+			0, 0, 0, 0, 0, 0, 1, 56, // ABIsOffset: 312.
+			0, 0, 0, 0, 0, 0, 1, 60, // SectionsOffset: 316.
+			0, 0, 0, 0, 0, 0, 1, 84, // StringsOffset: 340.
+			0, 0, 0, 0, 0, 0, 1, 188, // LinkagesOffset: 444.
+			0, 0, 0, 0, 0, 0, 1, 188, // CodeOffset: 444.
+			0, 0, 0, 0, 0, 0, 1, 188, // ChecksumOffset: 444.
 			// Imports.
 			// Exports (sorted).
 			// - Big-negative.
@@ -256,10 +259,10 @@ var tests = []struct {
 			// Linkages.
 			// Code.
 			// Checksum.
-			0x4d, 0x64, 0x7d, 0xd6, 0x80, 0x01, 0x90, 0x58,
-			0xfa, 0x3d, 0x36, 0x30, 0xe7, 0xa4, 0xf3, 0x98,
-			0x33, 0xdd, 0x3a, 0x74, 0xfb, 0x07, 0x87, 0xea,
-			0x02, 0xa5, 0xc0, 0x29, 0x01, 0x51, 0xd9, 0x20,
+			0x0a, 0x99, 0x64, 0x43, 0x5e, 0xa0, 0x76, 0x12,
+			0x0d, 0xfa, 0x35, 0x7c, 0xe7, 0x58, 0xaa, 0x83,
+			0x3b, 0x1d, 0x32, 0x62, 0xba, 0x54, 0x63, 0x45,
+			0x37, 0xd5, 0x62, 0xd1, 0x95, 0x82, 0xe6, 0x7b,
 		},
 		Decoded: &decoded{
 			header: header{
@@ -268,25 +271,26 @@ var tests = []struct {
 				Version:        1,
 				PackageName:    4,
 				BaseAddress:    0,
-				ImportsOffset:  88,
+				NumSections:    0,
+				ImportsOffset:  92,
 				ImportsLength:  0,
-				ExportsOffset:  88,
+				ExportsOffset:  92,
 				ExportsLength:  16,
-				TypesOffset:    104,
+				TypesOffset:    108,
 				TypesLength:    28,
-				SymbolsOffset:  132,
+				SymbolsOffset:  136,
 				SymbolsLength:  176,
-				ABIsOffset:     308,
+				ABIsOffset:     312,
 				ABIsLength:     4,
-				SectionsOffset: 312,
+				SectionsOffset: 316,
 				SectionsLength: 24,
-				StringsOffset:  336,
+				StringsOffset:  340,
 				StringsLength:  104,
-				LinkagesOffset: 440,
+				LinkagesOffset: 444,
 				LinkagesLength: 0,
-				CodeOffset:     440,
+				CodeOffset:     444,
 				CodeLength:     0,
-				ChecksumOffset: 440,
+				ChecksumOffset: 444,
 				ChecksumLength: 32,
 			},
 			imports: []uint32{},
@@ -371,6 +375,7 @@ var tests = []struct {
 		Package: "example.com/foo",
 		Code: `
 			'(base-address 0x10_0000)
+			'(sections extra-section extra-section)
 			(package main)
 
 			(let msg "Hello, world!")
@@ -415,16 +420,19 @@ var tests = []struct {
 			1,    // Version: 1.
 			0, 4, // PackageName: 4.
 			0, 0, 0, 0, 0, 16, 0, 0, // BaseAddress: 0x10_0000.
-			0, 0, 0, 88, // ImportsOffset: 88.
-			0, 0, 0, 88, // ExportsOffset: 88.
-			0, 0, 0, 0, 0, 0, 0, 88, // TypesOffset: 88.
-			0, 0, 0, 0, 0, 0, 0, 252, // SymbolsOffset: 256.
-			0, 0, 0, 0, 0, 0, 2, 4, // ABIsOffset: 516.
-			0, 0, 0, 0, 0, 0, 2, 56, // SectionsOffset: 568.
-			0, 0, 0, 0, 0, 0, 2, 104, // StringsOffset: 616.
-			0, 0, 0, 0, 0, 0, 3, 76, // LinkagesOffset: 844.
-			0, 0, 0, 0, 0, 0, 3, 112, // CodeOffset: 880.
-			0, 0, 0, 0, 0, 0, 3, 164, // ChecksumOffset: 932.
+			0, 0, 0, 2, // NumSections: 2.
+			0, 0, 0, 24, // Section: 24 ("example.com/foo.extra-section").
+			0, 0, 0, 24, // Section: 24 ("example.com/foo.extra-section").
+			0, 0, 0, 100, // ImportsOffset: 100.
+			0, 0, 0, 100, // ExportsOffset: 100.
+			0, 0, 0, 0, 0, 0, 0, 100, // TypesOffset: 100.
+			0, 0, 0, 0, 0, 0, 1, 8, // SymbolsOffset: 264.
+			0, 0, 0, 0, 0, 0, 2, 16, // ABIsOffset: 528.
+			0, 0, 0, 0, 0, 0, 2, 68, // SectionsOffset: 580.
+			0, 0, 0, 0, 0, 0, 2, 116, // StringsOffset: 628.
+			0, 0, 0, 0, 0, 0, 3, 124, // LinkagesOffset: 892.
+			0, 0, 0, 0, 0, 0, 3, 160, // CodeOffset: 928.
+			0, 0, 0, 0, 0, 0, 3, 212, // ChecksumOffset: 980.
 			// Imports.
 			// Exports.
 			// Types.
@@ -436,7 +444,7 @@ var tests = []struct {
 			0, 0, 20, // Length: 20.
 			0, 0, 0, 0, // ParamsLength: 0.
 			0, 0, 0, 0, 0, 0, 0, 0, // Result: 0 (nil type).
-			0, 0, 0, 0, 0, 0, 0, 40, // Name: 40 ("(func)").
+			0, 0, 0, 0, 0, 0, 0, 76, // Name: 76 ("(func)").
 			// - String.
 			2,       // Kind: 2 (basic).
 			0, 0, 4, // Length: 4.
@@ -449,20 +457,20 @@ var tests = []struct {
 			3,        // Kind: 3 (function signature).
 			0, 0, 52, // Length: 52.
 			0, 0, 0, 32, // ParamsLength: 32.
-			0, 0, 0, 0, 0, 0, 0, 68, // Param 0 Name: 68 ("str").
+			0, 0, 0, 0, 0, 0, 0, 104, // Param 0 Name: 104 ("str").
 			0, 0, 0, 0, 0, 0, 0, 28, // Param 0 Type: 28 (string).
-			0, 0, 0, 0, 0, 0, 0, 76, // Param 1 Name: 76 ("len").
+			0, 0, 0, 0, 0, 0, 0, 112, // Param 1 Name: 112 ("len").
 			0, 0, 0, 0, 0, 0, 0, 36, // Param 1 Type: 36 (uint64).
 			0, 0, 0, 0, 0, 0, 0, 36, // Result: 36 (uint64).
-			0, 0, 0, 0, 0, 0, 0, 84, // Name: 84 ("(func (string) (uint64) uint64)").
+			0, 0, 0, 0, 0, 0, 0, 120, // Name: 120 ("(func (string) (uint64) uint64)").
 			// - Function.
 			3,        // Kind: 3 (function signature).
 			0, 0, 36, // Length: 36.
 			0, 0, 0, 16, // ParamsLength: 16.
-			0, 0, 0, 0, 0, 0, 0, 132, // Param 0 Name: 132 ("msg").
+			0, 0, 0, 0, 0, 0, 0, 168, // Param 0 Name: 168 ("msg").
 			0, 0, 0, 0, 0, 0, 0, 28, // Param 0 Type: 28 (string).
 			0, 0, 0, 0, 0, 0, 0, 0, // Result: 0 (nil).
-			0, 0, 0, 0, 0, 0, 0, 140, // Name: 140 ("(func (string)").
+			0, 0, 0, 0, 0, 0, 0, 176, // Name: 176 ("(func (string)").
 			// - Untyped string.
 			2,       // Kind: 2 (basic).
 			0, 0, 4, // Length: 4.
@@ -479,42 +487,42 @@ var tests = []struct {
 			// - triple-nop.
 			0, 0, 0, 6, // Kind: 6 (function).
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
-			0, 0, 0, 0, 0, 0, 0, 24, // Name: 24 ("triple-nop").
+			0, 0, 0, 0, 0, 0, 0, 60, // Name: 60 ("triple-nop").
 			0, 0, 0, 0, 0, 0, 0, 0, // SectionName: 0 (default).
 			0, 0, 0, 0, 0, 0, 0, 4, // Type: 4 (func).
 			0, 0, 0, 0, 0, 0, 0, 0, // Value: 0 (function 0).
 			// - string-copy
 			0, 0, 0, 6, // Kind: 6 (function).
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
-			0, 0, 0, 0, 0, 0, 0, 52, // Name: 52 ("string-copy").
+			0, 0, 0, 0, 0, 0, 0, 88, // Name: 88 ("string-copy").
 			0, 0, 0, 0, 0, 0, 0, 0, // SectionName: 0 (default).
 			0, 0, 0, 0, 0, 0, 0, 44, // Type: 44 (func (string) (uint64) uint64).
 			0, 0, 0, 0, 0, 0, 0, 12, // Value: 12 (function 1).
 			// - looper
 			0, 0, 0, 6, // Kind: 6 (function).
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
-			0, 0, 0, 0, 0, 0, 0, 120, // Name: 120 ("looper").
+			0, 0, 0, 0, 0, 0, 0, 156, // Name: 156 ("looper").
 			0, 0, 0, 0, 0, 0, 0, 0, // SectionName: 0 (default).
 			0, 0, 0, 0, 0, 0, 0, 100, // Type: 100 (func (string)).
 			0, 0, 0, 0, 0, 0, 0, 24, // Value: 24 (function 2).
 			// - msg
 			0, 0, 0, 5, // Kind: 5 (string constant).
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
-			0, 0, 0, 0, 0, 0, 0, 132, // Name: 132 ("msg").
+			0, 0, 0, 0, 0, 0, 0, 168, // Name: 168 ("msg").
 			0, 0, 0, 0, 0, 0, 0, 0, // SectionName: 0 (default).
 			0, 0, 0, 0, 0, 0, 0, 140, // Type: 140 (untyped string).
-			0, 0, 0, 0, 0, 0, 0, 160, // Value: 160 ("Hello, world!").
+			0, 0, 0, 0, 0, 0, 0, 196, // Value: 196 ("Hello, world!").
 			// - custom-abi
 			0, 0, 0, 7, // Kind: 7 (ABI).
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
-			0, 0, 0, 0, 0, 0, 0, 180, // Name: 180 ("custom-abi").
+			0, 0, 0, 0, 0, 0, 0, 216, // Name: 216 ("custom-abi").
 			0, 0, 0, 0, 0, 0, 0, 0, // SectionName: 0 (default).
 			0, 0, 0, 0, 0, 0, 0, 148, // Type: 148 (ABI custom-abi).
 			0, 0, 0, 0, 0, 0, 0, 0, // Value: 0 (ABI).
 			// - extra-section
 			0, 0, 0, 8, // Kind: 8 (section).
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
-			0, 0, 0, 0, 0, 0, 0, 196, // Name: 196 ("extra-section").
+			0, 0, 0, 0, 0, 0, 0, 232, // Name: 23 ("extra-section").
 			0, 0, 0, 0, 0, 0, 0, 0, // SectionName: 0 (default).
 			0, 0, 0, 0, 0, 0, 0, 156, // Type: 156 (section extra-section).
 			0, 0, 0, 0, 0, 0, 0, 0, // Value: 0 (Section).
@@ -545,7 +553,7 @@ var tests = []struct {
 			0,                // FixedAddr: 0 (false).
 			0, 0, 0, 0, 0, 0, // Padding.
 			// - extra-section.
-			0, 0, 0, 0, 0, 0, 0, 216, // Name: 216 ("extra").
+			0, 0, 0, 0, 0, 0, 0, 252, // Name: 252 ("extra").
 			17, 34, 51, 68, 85, 102, 119, 136, // Address: 0x1122334455667788,
 			5,                // Permissions: 5 (r-x).
 			1,                // FixedAddr: 1 (true).
@@ -557,6 +565,10 @@ var tests = []struct {
 			0, 0, 0, 15, // Length: 15.
 			'e', 'x', 'a', 'm', 'p', 'l', 'e', '.', 'c', 'o', 'm', '/', 'f', 'o', 'o', // Text.
 			0, // Padding.
+			// - "example.com/foo.extra-section"
+			0, 0, 0, 29, // Length: 29.
+			'e', 'x', 'a', 'm', 'p', 'l', 'e', '.', 'c', 'o', 'm', '/', 'f', 'o', 'o', '.', 'e', 'x', 't', 'r', 'a', '-', 's', 'e', 'c', 't', 'i', 'o', 'n', // Text.
+			0, 0, 0, // Padding.
 			// - "triple-nop".
 			0, 0, 0, 10, // Length: 10.
 			't', 'r', 'i', 'p', 'l', 'e', '-', 'n', 'o', 'p', // Text.
@@ -613,7 +625,7 @@ var tests = []struct {
 			// - looper calling triple-nop.
 			0, 0, 0, 0, 0, 0, 0, 88, // Source: 88 (looper).
 			0, 0, 0, 0, 0, 0, 0, 4, // TargetPackage: 4 (example.com/foo).
-			0, 0, 0, 0, 0, 0, 0, 24, // TargetSymbol: 24 (triple-nop).
+			0, 0, 0, 0, 0, 0, 0, 60, // TargetSymbol: 60 ("triple-nop").
 			1,        // Type: 1 (relative address).
 			0, 0, 32, // Size: 32 (32-bit address).
 			0, 0, 0, 6, // Offset: 6.
@@ -643,10 +655,10 @@ var tests = []struct {
 			0xc3, // (ret)
 			0, 0, // Padding.
 			// Checksum.
-			0x35, 0x3c, 0xd2, 0x4a, 0xa1, 0x56, 0xe1, 0xbf,
-			0xd4, 0x9a, 0xf6, 0x42, 0x2c, 0x3d, 0x37, 0x1c,
-			0x7b, 0x80, 0xc7, 0x36, 0xf3, 0x87, 0xde, 0xce,
-			0xf8, 0xc0, 0x0c, 0x47, 0x7e, 0xd3, 0x60, 0xf6,
+			0x73, 0xa7, 0xdd, 0x9d, 0xda, 0xb7, 0x9b, 0x9d,
+			0x4b, 0x45, 0xc0, 0xa3, 0xa2, 0x29, 0xf5, 0xca,
+			0x99, 0x9d, 0xe9, 0x66, 0x12, 0xae, 0xa5, 0x93,
+			0x2d, 0xaf, 0x10, 0x4a, 0x06, 0x94, 0x1d, 0xfe,
 		},
 		Decoded: &decoded{
 			header: header{
@@ -655,25 +667,27 @@ var tests = []struct {
 				Version:        1,
 				PackageName:    4,
 				BaseAddress:    0x10_0000,
-				ImportsOffset:  88,
+				NumSections:    2,
+				Sections:       []uint32{24, 24},
+				ImportsOffset:  100,
 				ImportsLength:  0,
-				ExportsOffset:  88,
+				ExportsOffset:  100,
 				ExportsLength:  0,
-				TypesOffset:    88,
+				TypesOffset:    100,
 				TypesLength:    164,
-				SymbolsOffset:  252,
+				SymbolsOffset:  264,
 				SymbolsLength:  264,
-				ABIsOffset:     516,
+				ABIsOffset:     528,
 				ABIsLength:     52,
-				SectionsOffset: 568,
+				SectionsOffset: 580,
 				SectionsLength: 48,
-				StringsOffset:  616,
-				StringsLength:  228,
-				LinkagesOffset: 844,
+				StringsOffset:  628,
+				StringsLength:  264,
+				LinkagesOffset: 892,
 				LinkagesLength: 36,
-				CodeOffset:     880,
+				CodeOffset:     928,
 				CodeLength:     52,
-				ChecksumOffset: 932,
+				ChecksumOffset: 980,
 				ChecksumLength: 32,
 			},
 			imports: []uint32{},
@@ -689,7 +703,7 @@ var tests = []struct {
 					ParamsLength: 0,
 					Params:       []variable{},
 					Result:       0,
-					Name:         40,
+					Name:         76,
 				},
 				28: {
 					Kind:   TypeKindBasic,
@@ -706,21 +720,21 @@ var tests = []struct {
 					Length:       52,
 					ParamsLength: 32,
 					Params: []variable{
-						{Name: 68, Type: 28},
-						{Name: 76, Type: 36},
+						{Name: 104, Type: 28},
+						{Name: 112, Type: 36},
 					},
 					Result: 36,
-					Name:   84,
+					Name:   120,
 				},
 				100: {
 					Kind:         TypeKindFunction,
 					Length:       36,
 					ParamsLength: 16,
 					Params: []variable{
-						{Name: 132, Type: 28},
+						{Name: 168, Type: 28},
 					},
 					Result: 0,
-					Name:   140,
+					Name:   176,
 				},
 				140: {
 					Kind:   TypeKindBasic,
@@ -742,42 +756,42 @@ var tests = []struct {
 				0: {
 					Kind:        SymKindFunction,
 					PackageName: 4,
-					Name:        24,
+					Name:        60,
 					Type:        4,
 					Value:       0,
 				},
 				44: {
 					Kind:        SymKindFunction,
 					PackageName: 4,
-					Name:        52,
+					Name:        88,
 					Type:        44,
 					Value:       12,
 				},
 				88: {
 					Kind:        SymKindFunction,
 					PackageName: 4,
-					Name:        120,
+					Name:        156,
 					Type:        100,
 					Value:       24,
 				},
 				132: {
 					Kind:        SymKindStringConstant,
 					PackageName: 4,
-					Name:        132,
+					Name:        168,
 					Type:        140,
-					Value:       160,
+					Value:       196,
 				},
 				176: {
 					Kind:        SymKindABI,
 					PackageName: 4,
-					Name:        180,
+					Name:        216,
 					Type:        148,
 					Value:       0,
 				},
 				220: {
 					Kind:        SymKindSection,
 					PackageName: 4,
-					Name:        196,
+					Name:        232,
 					Type:        156,
 					Value:       0,
 				},
@@ -802,7 +816,7 @@ var tests = []struct {
 			sections: map[uint32]*programSection{
 				0: nil,
 				24: {
-					Name:        216,
+					Name:        252,
 					Address:     0x1122334455667788,
 					Permissions: 0b101,
 					FixedAddr:   true,
@@ -811,25 +825,26 @@ var tests = []struct {
 			strings: map[uint64]string{
 				0:   "",
 				4:   "example.com/foo",
-				24:  "triple-nop",
-				40:  "(func)",
-				52:  "string-copy",
-				68:  "str",
-				76:  "len",
-				84:  "(func (string) (uint64) uint64)",
-				120: "looper",
-				132: "msg",
-				140: "(func (string))",
-				160: "Hello, world!",
-				180: "custom-abi",
-				196: "extra-section",
-				216: "extra",
+				24:  "example.com/foo.extra-section",
+				60:  "triple-nop",
+				76:  "(func)",
+				88:  "string-copy",
+				104: "str",
+				112: "len",
+				120: "(func (string) (uint64) uint64)",
+				156: "looper",
+				168: "msg",
+				176: "(func (string))",
+				196: "Hello, world!",
+				216: "custom-abi",
+				232: "extra-section",
+				252: "extra",
 			},
 			linkages: map[uint64]*linkage{
 				0: {
 					Source:        88,
 					TargetPackage: 4,
-					TargetSymbol:  24,
+					TargetSymbol:  60,
 					Type:          ssafir.LinkRelativeAddress,
 					Size:          32,
 					Offset:        6,

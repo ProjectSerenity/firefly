@@ -35,6 +35,8 @@ type encoder struct {
 
 	exports []uint64
 
+	sectionSymbols []uint32
+
 	// Used to build the types section
 	// efficiently. This state is managed
 	// by AddType.
@@ -104,7 +106,9 @@ func (e *encoder) AddHeader(arch *sys.Arch, pkg *compiler.Package) error {
 	e.header.Version = version
 	e.header.PackageName = uint16(e.AddString(pkg.Path))
 	e.header.BaseAddress = baseAddr
-	e.header.ImportsOffset = headerSize
+	e.header.NumSections = uint32(len(e.sectionSymbols))
+	e.header.Sections = e.sectionSymbols
+	e.header.ImportsOffset = minHeaderSize + uint32(4*len(e.sectionSymbols))
 	e.header.ImportsLength = 4 * uint32(len(e.imports))
 	e.header.ExportsOffset = e.header.ImportsOffset + e.header.ImportsLength
 	e.header.ExportsLength = 8 * uint32(len(e.exports))
@@ -521,6 +525,10 @@ func (h *header) Marshal(b *cryptobyte.Builder) error {
 	b.AddUint8(h.Version)
 	b.AddUint16(h.PackageName)
 	b.AddUint64(h.BaseAddress)
+	b.AddUint32(h.NumSections)
+	for _, section := range h.Sections {
+		b.AddUint32(section)
+	}
 	b.AddUint32(h.ImportsOffset)
 	b.AddUint32(h.ExportsOffset)
 	b.AddUint64(h.TypesOffset)
@@ -670,6 +678,11 @@ func Encode(w io.Writer, fset *token.FileSet, arch *sys.Arch, pkg *compiler.Pack
 	e.AddSection(types.Section{}) // The nil section is always at offset 0.
 	e.AddString("")               // The empty string is always at offset 0.
 	e.AddString(pkg.Path)
+
+	e.sectionSymbols = make([]uint32, len(pkg.Sections))
+	for i, section := range pkg.Sections {
+		e.sectionSymbols[i] = uint32(e.AddString(section))
+	}
 
 	// Add the imports early, so that
 	// they're at the beginning of the
