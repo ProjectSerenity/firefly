@@ -133,6 +133,16 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 				v := c.ValueExtra(x.ParenOpen, x.ParenClose+1, ssafir.OpFunctionCall, sig.Result(), obj, params...)
 
 				return v, nil
+			case *types.TypeName:
+				// Cast.
+				v, err := c.CompileExpression(x.Elements[1])
+				if err != nil {
+					return nil, err
+				}
+
+				v = c.ValueExtra(x.ParenOpen, x.ParenClose+1, v.Op, typ.Type, v.Extra, v)
+
+				return v, nil
 			default:
 				panic(fmt.Sprintf("bad identifier %T", obj))
 			}
