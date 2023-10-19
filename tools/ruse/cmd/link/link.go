@@ -245,16 +245,13 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	// Track the default sections, which should be
 	// declared in the sections package in the
 	// standard library and we error if not.
-	defaultCodeSection := symbolToSection[defaultCodeSectionSymbol]
-	defaultStringsSection := symbolToSection[defaultStringsSectionSymbol]
-	defaultRPKGsSection := symbolToSection[defaultRPKGsSectionSymbol]
-	if defaultCodeSection == nil {
+	if symbolToSection[defaultCodeSectionSymbol] == nil {
 		return fmt.Errorf("internal error: could not find default code section")
 	}
-	if defaultStringsSection == nil {
+	if symbolToSection[defaultStringsSectionSymbol] == nil {
 		return fmt.Errorf("internal error: could not find default strings section")
 	}
-	if defaultRPKGsSection == nil {
+	if symbolToSection[defaultRPKGsSectionSymbol] == nil {
 		return fmt.Errorf("internal error: could not find default rpkgs section")
 	}
 
@@ -269,7 +266,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	pickSection := func(fallback, symbol string) (index int, data *bytes.Buffer, err error) {
 		index, ok := symbolToSectionIndex[symbol]
 		if !ok {
-			if symbol != "" {
+			if symbol != "" || fallback == "" {
 				return 0, nil, fmt.Errorf("internal error: no section was found at symbol %q", symbol)
 			}
 
@@ -277,6 +274,36 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		return index, sectionsData[index], nil
+	}
+
+	// If the package declares the set of sections,
+	// we may need to change the order and drop any
+	// sections that have been omitted.
+	if len(p.Sections) != 0 {
+		indices := make([]int, len(p.Sections))
+		mapping := make(map[string]int)
+		for i, section := range p.Sections {
+			index, _, err := pickSection("", section)
+			if err != nil {
+				return err
+			}
+
+			indices[i] = index
+			if _, ok := mapping[section]; !ok {
+				mapping[section] = i
+			}
+		}
+
+		list := make([]types.Section, len(p.Sections))
+		data := make([]*bytes.Buffer, len(p.Sections))
+		for i, index := range indices {
+			list[i] = sections[index]
+			data[i] = sectionsData[index]
+		}
+
+		sections = list
+		sectionsData = data
+		symbolToSectionIndex = mapping
 	}
 
 	// Build the symbol table.
