@@ -5,7 +5,7 @@
 
 workspace(name = "firefly")
 
-GO_VERSION = "1.21.2"
+GO_VERSION = "1.21.3"
 
 # Initialise external dependencies.
 
