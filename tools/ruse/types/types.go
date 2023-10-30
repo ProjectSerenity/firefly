@@ -1078,28 +1078,32 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 		if !ok {
 			// Check for a type cast.
 			typeName, ok := x.Elements[0].(*ast.Identifier)
-			if ok && len(x.Elements[1:]) == 1 {
-				_, obj := scope.LookupParent(typeName.Name, token.NoPos)
-				if obj == nil {
-					return nil, nil, c.errorf(typeName.NamePos, "undefined type: %s", typeName.Name)
-				}
-
-				typ = obj.Type()
-				obj, argType, err := c.ResolveExpression(scope, x.Elements[1])
-				if err != nil {
-					return nil, nil, err
-				}
-
-				if !AssignableTo(typ, argType) {
-					return nil, nil, c.errorf(x.Elements[1].Pos(), "cannot cast %s (%s) to %s", x.Elements[1].Print(), argType, typ)
-				}
-
-				c.record(x, typ, nil)
-
-				return obj, typ, nil
+			if !ok {
+				return nil, nil, c.errorf(x.Elements[0].Pos(), "cannot call non-function type %s", typ)
 			}
 
-			return nil, nil, c.errorf(x.Elements[0].Pos(), "cannot call non-function type %s", typ)
+			_, obj := scope.LookupParent(typeName.Name, token.NoPos)
+			if obj == nil {
+				return nil, nil, c.errorf(typeName.NamePos, "undefined type: %s", typeName.Name)
+			}
+
+			typ = obj.Type()
+			if len(x.Elements[1:]) != 1 {
+				return nil, nil, c.errorf(x.Elements[1].Pos(), "cannot cast %d values to %s", len(x.Elements[1:]), typ)
+			}
+
+			obj, argType, err := c.ResolveExpression(scope, x.Elements[1])
+			if err != nil {
+				return nil, nil, err
+			}
+
+			if !AssignableTo(typ, argType) {
+				return nil, nil, c.errorf(x.Elements[1].Pos(), "cannot cast %s (%s) to %s", x.Elements[1].Print(), argType, typ)
+			}
+
+			c.record(x, typ, nil)
+
+			return obj, typ, nil
 		}
 
 		// Check the parameters, then if they match,
