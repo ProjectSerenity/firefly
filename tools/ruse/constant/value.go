@@ -255,6 +255,17 @@ func StringVal(v Value) string {
 	return constant.StringVal(g.v)
 }
 
+// ArrayVal returns the values of v if v is an Array,
+// or a panic otherwise.
+func ArrayVal(v Value) []Value {
+	a, ok := v.(arrayVal)
+	if !ok {
+		panic(fmt.Sprintf("%v is not an Array", v))
+	}
+
+	return a.v
+}
+
 // Val returns the underlying value of constant v.
 //
 //	v Kind        type of result
