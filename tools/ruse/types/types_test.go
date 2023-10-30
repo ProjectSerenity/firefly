@@ -89,7 +89,7 @@ func TestCheck(t *testing.T) {
 					},
 				}
 
-				file0 := NewScope(pkg.scope, 58, 483, "file 0")
+				file0 := NewScope(pkg.scope, 58, 519, "file 0")
 				file0.readonly = true
 
 				pkg.scope.Insert(&Constant{
@@ -214,6 +214,17 @@ func TestCheck(t *testing.T) {
 						constant.MakeString("foobar"),
 						constant.MakeString("baz"),
 					}),
+				})
+
+				pkg.scope.Insert(&Constant{
+					object: object{
+						pos:  485,
+						end:  518,
+						pkg:  pkg,
+						name: "strings-length",
+						typ:  Int,
+					},
+					value: constant.MakeInt64(4),
 				})
 
 				return pkg

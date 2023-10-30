@@ -197,7 +197,8 @@ func defPredeclaredSpecialForms() {
 		}
 
 		// TODO: Add support for more types to special form len.
-		if !AssignableTo(String, typ) {
+		array, isArray := typ.(*Array)
+		if !isArray && !AssignableTo(String, typ) {
 			return nil, nil, c.errorf(arg.Pos(), "invalid argument: %s (%s) for len", arg.Print(), typ)
 		}
 
@@ -213,8 +214,12 @@ func defPredeclaredSpecialForms() {
 		// a constant.
 		var value constant.Value
 		if con, ok := obj.(*Constant); ok {
-			val := constant.StringVal(con.value)
-			value = constant.MakeInt64(int64(len(val)))
+			if isArray {
+				value = constant.MakeInt64(int64(array.Length()))
+			} else {
+				val := constant.StringVal(con.value)
+				value = constant.MakeInt64(int64(len(val)))
+			}
 		}
 
 		c.record(fun, sig.result, value)

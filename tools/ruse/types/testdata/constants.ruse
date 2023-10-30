@@ -32,3 +32,5 @@
 	"bar"
 	"foobar"
 	"baz"))
+
+(let strings-length (len strings))
