@@ -1101,7 +1101,8 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 				return nil, nil, c.errorf(x.Elements[1].Pos(), "cannot cast %s (%s) to %s", x.Elements[1].Print(), argType, typ)
 			}
 
-			c.record(x, typ, nil)
+			value := c.consts[x.Elements[1]]
+			c.record(x, typ, value)
 
 			return obj, typ, nil
 		}
