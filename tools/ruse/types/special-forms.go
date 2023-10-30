@@ -36,6 +36,7 @@ type SpecialFormID int
 const (
 	// Syntactic forms.
 	SpecialFormAsmFunc SpecialFormID = iota
+	SpecialFormAt
 	SpecialFormABI
 	SpecialFormFunc
 	SpecialFormLen
@@ -53,6 +54,8 @@ func (id SpecialFormID) String() string {
 	switch id {
 	case SpecialFormAsmFunc:
 		return "asm-func"
+	case SpecialFormAt:
+		return "at"
 	case SpecialFormABI:
 		return "abi"
 	case SpecialFormFunc:
@@ -78,6 +81,7 @@ func (id SpecialFormID) String() string {
 
 var specialForms = [...]*SpecialForm{
 	SpecialFormAsmFunc: {},
+	SpecialFormAt:      {},
 	SpecialFormABI:     {},
 	SpecialFormFunc:    {},
 	SpecialFormLen:     {},
@@ -112,6 +116,62 @@ func defPredeclaredSpecialForms() {
 	specialFormTypes[SpecialFormAsmFunc] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
 		// TODO: implement (asm-func)
 		return nil, nil, fmt.Errorf("(asm-func) not supported")
+	}
+
+	specialFormTypes[SpecialFormAt] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+		if len(fun.Elements[1:]) < 2 {
+			return nil, nil, c.errorf(fun.ParenOpen, "too few arguments in call to at: expected %d, found %d", 2, len(fun.Elements[1:]))
+		} else if len(fun.Elements[1:]) > 2 {
+			return nil, nil, c.errorf(fun.ParenOpen, "too many arguments in call to at: expected %d, found %d", 2, len(fun.Elements[1:]))
+		}
+
+		arg0 := fun.Elements[1]
+		arg1 := fun.Elements[2]
+		obj, arrayType, err := c.ResolveExpression(scope, arg0)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// TODO: Add support for more types to special form at.
+		array, ok := arrayType.(*Array)
+		if !ok {
+			return nil, nil, c.errorf(arg0.Pos(), "invalid argument: %s (%s) for at: want array", arg0.Print(), arrayType)
+		}
+
+		_, indexType, err := c.ResolveExpression(scope, arg1)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		index, ok := constant.Val(c.consts[arg1]).(int64)
+		if !ok {
+			return nil, nil, c.errorf(arg1.Pos(), "invalid argument: %s (%s) for at: want integer", arg1.Print(), indexType)
+		}
+
+		if index < 0 || uint(index) > array.length {
+			return nil, nil, c.errorf(fun.ParenOpen, "invalid argument: index %s (%d) overflows array with length %d", arg1.Print(), index, array.length)
+		}
+
+		sig = &Signature{
+			name: "at",
+			params: []*Variable{
+				NewParameter(nil, arg0.Pos(), arg0.End(), nil, "v", arrayType),
+				NewParameter(nil, arg1.Pos(), arg1.End(), nil, "i", indexType),
+			},
+			result: array.Element(),
+		}
+
+		// Make the length of a constant string also
+		// a constant.
+		var value constant.Value
+		if con, ok := obj.(*Constant); ok {
+			value = constant.ArrayVal(con.value)[index]
+		}
+
+		c.record(fun, sig.result, value)
+		c.record(fun.Elements[0], sig, nil)
+
+		return sig, sig, nil
 	}
 
 	specialFormTypes[SpecialFormABI] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {

@@ -34,3 +34,5 @@
 	"baz"))
 
 (let strings-length (len strings))
+
+(let second (at strings 1))
