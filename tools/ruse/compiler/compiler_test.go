@@ -7,8 +7,6 @@ package compiler
 
 import (
 	"fmt"
-	"go/constant"
-	gotoken "go/token"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -19,6 +17,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"firefly-os.dev/tools/ruse/ast"
+	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/internal/x86"
 	"firefly-os.dev/tools/ruse/parser"
 	"firefly-os.dev/tools/ruse/ssafir"
@@ -140,7 +139,7 @@ func TestCompile(t *testing.T) {
 								((0xff-250)-2)+
 								((2*3)*4)+
 								((12/6)/2))),
-						types.NewConstant(nil, 359, 395, nil, "compound-string", types.String, constant.BinaryOp(constant.MakeString("string 2"), gotoken.ADD, constant.MakeString("foo"))),
+						types.NewConstant(nil, 359, 395, nil, "compound-string", types.String, constant.Operation(constant.OpAdd, constant.MakeString("string 2"), constant.MakeString("foo"))),
 					},
 				}
 

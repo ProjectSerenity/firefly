@@ -7,10 +7,9 @@ package types
 
 import (
 	"fmt"
-	"go/constant"
-	gotoken "go/token"
 
 	"firefly-os.dev/tools/ruse/ast"
+	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/token"
 )
 
@@ -331,7 +330,7 @@ func defPredeclaredSpecialForms() {
 			Uint64,
 			Uintptr,
 		},
-		GoToken: gotoken.ADD,
+		Op: constant.OpAdd,
 	}).signature
 
 	specialFormTypes[SpecialFormSubtract] = (&arithmeticOp{
@@ -345,19 +344,19 @@ func defPredeclaredSpecialForms() {
 			Int64,
 		},
 		BinaryTypes: numericTypes,
-		GoToken:     gotoken.SUB,
+		Op:          constant.OpSubtract,
 	}).signature
 
 	specialFormTypes[SpecialFormMultiply] = (&arithmeticOp{
 		Name:        "*",
 		BinaryTypes: numericTypes,
-		GoToken:     gotoken.MUL,
+		Op:          constant.OpMultiply,
 	}).signature
 
 	specialFormTypes[SpecialFormDivide] = (&arithmeticOp{
 		Name:        "/",
 		BinaryTypes: numericTypes,
-		GoToken:     gotoken.QUO_ASSIGN, // QUO_ASSIGN to force integer division.
+		Op:          constant.OpDivide,
 	}).signature
 
 	for id, form := range specialForms {
@@ -371,7 +370,7 @@ type arithmeticOp struct {
 	Name        string
 	UnaryTypes  []Type
 	BinaryTypes []Type
-	GoToken     gotoken.Token
+	Op          constant.Op
 }
 
 func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
@@ -442,14 +441,7 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig 
 	// may get a constant result.
 	var value constant.Value
 	if allConst {
-		if len(constants) == 1 {
-			value = constant.UnaryOp(op.GoToken, constants[0], 0)
-		} else {
-			value = constant.BinaryOp(constants[0], op.GoToken, constants[1])
-			for _, param := range constants[2:] {
-				value = constant.BinaryOp(value, op.GoToken, param)
-			}
-		}
+		value = constant.Operation(op.Op, constants...)
 	}
 
 	c.record(fun, sig.result, value)

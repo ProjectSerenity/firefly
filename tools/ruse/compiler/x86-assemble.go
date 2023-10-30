@@ -10,13 +10,13 @@ package compiler
 import (
 	"errors"
 	"fmt"
-	"go/constant"
 	"math"
 	"sort"
 	"strconv"
 	"strings"
 
 	"firefly-os.dev/tools/ruse/ast"
+	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/internal/x86"
 	"firefly-os.dev/tools/ruse/ssafir"
 	"firefly-os.dev/tools/ruse/sys"

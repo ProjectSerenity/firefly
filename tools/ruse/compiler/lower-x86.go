@@ -7,11 +7,11 @@ package compiler
 
 import (
 	"fmt"
-	"go/constant"
 	"math"
 	"strconv"
 
 	"firefly-os.dev/tools/ruse/ast"
+	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/internal/x86"
 	"firefly-os.dev/tools/ruse/ssafir"
 	"firefly-os.dev/tools/ruse/sys"

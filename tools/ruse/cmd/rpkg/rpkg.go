@@ -11,7 +11,6 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"go/constant"
 	"io"
 	"log"
 	"os"
@@ -19,6 +18,7 @@ import (
 	"strconv"
 
 	"firefly-os.dev/tools/ruse/compiler"
+	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/rpkg"
 )
 

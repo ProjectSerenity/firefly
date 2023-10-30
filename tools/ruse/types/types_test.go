@@ -6,8 +6,6 @@
 package types
 
 import (
-	"go/constant"
-	gotoken "go/token"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -16,6 +14,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"firefly-os.dev/tools/ruse/ast"
+	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/parser"
 	"firefly-os.dev/tools/ruse/sys"
 	"firefly-os.dev/tools/ruse/token"
@@ -184,7 +183,7 @@ func TestCheck(t *testing.T) {
 						name: "compound-string",
 						typ:  String,
 					},
-					value: constant.BinaryOp(constant.MakeString("string 2"), gotoken.ADD, constant.MakeString("foo")),
+					value: constant.Operation(constant.OpAdd, constant.MakeString("string 2"), constant.MakeString("foo")),
 				})
 
 				pkg.scope.Insert(&Constant{

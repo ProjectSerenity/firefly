@@ -14,6 +14,7 @@ go_library(
         "//tools/ruse/binary",
         "//tools/ruse/binary/elf",
         "//tools/ruse/compiler",
+        "//tools/ruse/constant",
         "//tools/ruse/rpkg",
         "//tools/ruse/types",
         "//vendor/golang.org/x/crypto/cryptobyte",

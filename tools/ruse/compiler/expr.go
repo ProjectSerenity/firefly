@@ -7,9 +7,9 @@ package compiler
 
 import (
 	"fmt"
-	"go/constant"
 
 	"firefly-os.dev/tools/ruse/ast"
+	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/ssafir"
 	"firefly-os.dev/tools/ruse/types"
 )
@@ -195,7 +195,7 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 			var op ssafir.Op
 			val := obj.Value()
 			switch val.Kind() {
-			case constant.Int:
+			case constant.Integer:
 				op = ssafir.OpConstantUntypedInt
 			case constant.String:
 				op = ssafir.OpConstantString
@@ -225,7 +225,7 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 			var op ssafir.Op
 			val := obj.Value()
 			switch val.Kind() {
-			case constant.Int:
+			case constant.Integer:
 				op = ssafir.OpConstantUntypedInt
 			case constant.String:
 				op = ssafir.OpConstantString

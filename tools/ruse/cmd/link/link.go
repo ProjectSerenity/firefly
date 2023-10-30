@@ -11,7 +11,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"go/constant"
 	"io"
 	"log"
 	"os"
@@ -24,6 +23,7 @@ import (
 	"firefly-os.dev/tools/ruse/binary"
 	"firefly-os.dev/tools/ruse/binary/elf"
 	"firefly-os.dev/tools/ruse/compiler"
+	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/rpkg"
 	"firefly-os.dev/tools/ruse/types"
 )

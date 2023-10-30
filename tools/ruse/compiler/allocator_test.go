@@ -6,7 +6,6 @@
 package compiler
 
 import (
-	"go/constant"
 	"strings"
 	"testing"
 
@@ -15,6 +14,7 @@ import (
 	"rsc.io/diff"
 
 	"firefly-os.dev/tools/ruse/ast"
+	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/internal/x86"
 	"firefly-os.dev/tools/ruse/parser"
 	"firefly-os.dev/tools/ruse/ssafir"
@@ -166,6 +166,9 @@ func TestAllocator(t *testing.T) {
 
 	compareOptions := []cmp.Option{
 		cmpopts.IgnoreTypes(new(types.Function)),
+		cmp.Comparer(func(a, b constant.Value) bool {
+			return cmp.Equal(constant.Val(a), constant.Val(b))
+		}),
 	}
 
 	arch := sys.X86_64

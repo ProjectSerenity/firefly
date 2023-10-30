@@ -19,6 +19,7 @@ go_library(
         "//tools/ruse/ast",
         "//tools/ruse/binary",
         "//tools/ruse/compiler",
+        "//tools/ruse/constant",
         "//tools/ruse/ssafir",
         "//tools/ruse/sys",
         "//tools/ruse/token",

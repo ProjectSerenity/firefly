@@ -9,14 +9,13 @@ package types
 import (
 	"errors"
 	"fmt"
-	"go/constant"
-	gotoken "go/token"
 	"path"
 	"sort"
 	"strconv"
 	"strings"
 
 	"firefly-os.dev/tools/ruse/ast"
+	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/parser"
 	"firefly-os.dev/tools/ruse/sys"
 	"firefly-os.dev/tools/ruse/token"
@@ -1153,10 +1152,10 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 		switch x.Kind {
 		case token.Integer:
 			typ = UntypedInt
-			value = constant.MakeFromLiteral(x.Value, gotoken.INT, 0)
+			value = constant.MakeFromLiteral(x.Value, token.Integer)
 		case token.String:
 			typ = UntypedString
-			value = constant.MakeFromLiteral(x.Value, gotoken.STRING, 0)
+			value = constant.MakeFromLiteral(x.Value, token.String)
 		case token.Period:
 			return nil, nil, c.errorf(x.ValuePos, "unexpected %s", x.Kind)
 		default:
@@ -1287,7 +1286,7 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 				}
 			}
 
-			value = constant.MakeFromLiteral(v.Value, gotoken.INT, 0)
+			value = constant.MakeFromLiteral(v.Value, token.Integer)
 		case token.String:
 			// Check any declared type matches.
 			if typeName == nil {
@@ -1306,7 +1305,7 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 				}
 			}
 
-			value = constant.MakeFromLiteral(v.Value, gotoken.STRING, 0)
+			value = constant.MakeFromLiteral(v.Value, token.String)
 		default:
 			return nil, c.errorf(v.ValuePos, "invalid value declaration: unexpected value type for value %s: %s", name.Name, v)
 		}
@@ -1433,7 +1432,7 @@ func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 				}
 			}
 
-			value = constant.MakeFromLiteral(v.Value, gotoken.INT, 0)
+			value = constant.MakeFromLiteral(v.Value, token.Integer)
 		case token.String:
 			// Check any declared type matches.
 			if typeName == nil {
@@ -1452,7 +1451,7 @@ func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 				}
 			}
 
-			value = constant.MakeFromLiteral(v.Value, gotoken.STRING, 0)
+			value = constant.MakeFromLiteral(v.Value, token.String)
 		default:
 			return c.errorf(v.ValuePos, "invalid constant declaration: unexpected value type for constant %s: %s", name.Name, v)
 		}

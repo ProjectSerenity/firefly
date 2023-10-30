@@ -7,8 +7,8 @@ package types
 
 import (
 	"fmt"
-	"go/constant"
 
+	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/token"
 )
 

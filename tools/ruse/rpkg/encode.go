@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"go/constant"
 	"io"
 	"math"
 	"math/big"
@@ -19,6 +18,7 @@ import (
 	"golang.org/x/crypto/cryptobyte"
 
 	"firefly-os.dev/tools/ruse/compiler"
+	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/ssafir"
 	"firefly-os.dev/tools/ruse/sys"
 	"firefly-os.dev/tools/ruse/token"

@@ -12,6 +12,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//tools/ruse/compiler",
+        "//tools/ruse/constant",
         "//tools/ruse/rpkg",
     ],
 )
