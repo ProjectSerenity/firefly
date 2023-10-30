@@ -1033,6 +1033,42 @@ func (c *checker) ResolveLetBody(scope *Scope, let *ast.List) (err error) {
 	return nil
 }
 
+func (c *checker) checkArrayType(scope *Scope, typeName *ast.Identifier, elements int) (element, array Type, err error) {
+	parts := strings.Split(typeName.Name, "/")
+	switch len(parts) {
+	case 3:
+		length, err := strconv.ParseUint(parts[1], 0, 64)
+		if err != nil {
+			return nil, nil, c.errorf(typeName.NamePos, "invalid array type %q: bad array length %s: %v", typeName.Name, parts[1], err)
+		}
+
+		if elements >= 0 && length != uint64(elements) {
+			return nil, nil, c.errorf(typeName.NamePos, "invalid array type %q: got array length %d with %d elements", typeName.Name, length, elements)
+		}
+
+		_, elt := scope.LookupParent(parts[2], token.NoPos)
+		if elt == nil {
+			return nil, nil, c.errorf(typeName.NamePos, "undefined array element type: %s", parts[2])
+		}
+
+		element = elt.Type()
+		array = NewArray(uint(length), element)
+	case 2:
+		_, elt := scope.LookupParent(parts[1], token.NoPos)
+		if elt == nil {
+			return nil, nil, c.errorf(typeName.NamePos, "undefined array element type: %s", parts[1])
+		}
+
+		element = elt.Type()
+		array = NewArray(uint(elements), element)
+	default:
+		// TODO: add support for multi-dimensional arrays.
+		return nil, nil, c.errorf(typeName.NamePos, "invalid array type: %s", typeName.Name)
+	}
+
+	return element, array, nil
+}
+
 func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, Type, error) {
 	switch x := expr.(type) {
 	case *ast.List:
@@ -1082,6 +1118,42 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 			}
 
 			_, obj := scope.LookupParent(typeName.Name, token.NoPos)
+			if obj == nil && strings.HasPrefix(typeName.Name, "array/") {
+				// Array types are of the form array/length/element
+				// (or array/element for literals).
+				eltType, typ, err := c.checkArrayType(scope, typeName, len(x.Elements[1:]))
+				if err != nil {
+					return nil, nil, err
+				}
+
+				obj = NewTypeName(nil, token.NoPos, token.NoPos, nil, typ.String(), typ)
+
+				// Build the array.
+				values := make([]constant.Value, len(x.Elements[1:]))
+				for i, v := range x.Elements[1:] {
+					_, argType, err := c.ResolveExpression(scope, v)
+					if err != nil {
+						return nil, nil, err
+					}
+
+					if !AssignableTo(eltType, argType) {
+						return nil, nil, c.errorf(v.Pos(), "cannot cast %s (%s) to %s in %s", v.Print(), argType, eltType, typeName.Name)
+					}
+
+					values[i] = c.consts[v]
+					if values[i] == nil {
+						return nil, nil, c.errorf(v.Pos(), "cannot use non-constant value %s in array constant", v.Print())
+					}
+				}
+
+				value := constant.MakeArray(typ.String(), values)
+				c.record(x, typ, value)
+
+				obj = NewConstant(scope, x.ParenOpen, x.ParenClose+1, c.pkg, typeName.Name, typ, value)
+
+				return obj, typ, nil
+			}
+
 			if obj == nil {
 				return nil, nil, c.errorf(typeName.NamePos, "undefined type: %s", typeName.Name)
 			}
@@ -1138,6 +1210,20 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 		return obj, sig.result, nil
 	case *ast.Identifier:
 		_, obj := scope.LookupParent(x.Name, token.NoPos)
+		if obj == nil && strings.HasPrefix(x.Name, "array/") {
+			_, typ, err := c.checkArrayType(scope, x, -1)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			obj = NewTypeName(nil, token.NoPos, token.NoPos, nil, typ.String(), typ)
+
+			c.use(x, obj)
+			c.record(x, typ, nil)
+
+			return obj, typ, nil
+		}
+
 		if obj == nil {
 			return nil, nil, c.errorf(x.NamePos, "undefined: %s", x.Name)
 		}

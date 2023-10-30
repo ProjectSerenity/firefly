@@ -89,7 +89,7 @@ func TestCheck(t *testing.T) {
 					},
 				}
 
-				file0 := NewScope(pkg.scope, 58, 422, "file 0")
+				file0 := NewScope(pkg.scope, 58, 483, "file 0")
 				file0.readonly = true
 
 				pkg.scope.Insert(&Constant{
@@ -195,6 +195,25 @@ func TestCheck(t *testing.T) {
 						typ:  Int64,
 					},
 					value: constant.MakeInt64(1),
+				})
+
+				pkg.scope.Insert(&Constant{
+					object: object{
+						pos:  424,
+						end:  482,
+						pkg:  pkg,
+						name: "strings",
+						typ: &Array{
+							length:  4,
+							element: String,
+						},
+					},
+					value: constant.MakeArray("array/4/string", []constant.Value{
+						constant.MakeString("foo"),
+						constant.MakeString("bar"),
+						constant.MakeString("foobar"),
+						constant.MakeString("baz"),
+					}),
 				})
 
 				return pkg

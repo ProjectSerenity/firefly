@@ -10,6 +10,7 @@ go_library(
     srcs = [
         "abi.go",
         "annotations.go",
+        "arrays.go",
         "basic.go",
         "constants.go",
         "functions.go",

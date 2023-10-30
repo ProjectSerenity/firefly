@@ -26,3 +26,9 @@
 (let compound-string (+ NAMED "foo"))
 
 (let typecast (int64 1))
+
+(let strings (array/string
+	"foo"
+	"bar"
+	"foobar"
+	"baz"))
