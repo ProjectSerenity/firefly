@@ -24,3 +24,5 @@
 		(/ 12 6 2)))
 
 (let compound-string (+ NAMED "foo"))
+
+(let typecast (int64 1))

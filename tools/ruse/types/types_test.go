@@ -90,7 +90,7 @@ func TestCheck(t *testing.T) {
 					},
 				}
 
-				file0 := NewScope(pkg.scope, 58, 396, "file 0")
+				file0 := NewScope(pkg.scope, 58, 422, "file 0")
 				file0.readonly = true
 
 				pkg.scope.Insert(&Constant{
@@ -185,6 +185,17 @@ func TestCheck(t *testing.T) {
 						typ:  String,
 					},
 					value: constant.BinaryOp(constant.MakeString("string 2"), gotoken.ADD, constant.MakeString("foo")),
+				})
+
+				pkg.scope.Insert(&Constant{
+					object: object{
+						pos:  398,
+						end:  421,
+						pkg:  pkg,
+						name: "typecast",
+						typ:  Int64,
+					},
+					value: constant.MakeInt64(1),
 				})
 
 				return pkg
