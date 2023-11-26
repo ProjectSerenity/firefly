@@ -8,13 +8,13 @@
 go = [
     module(
         name = "github.com/google/go-cmp",
-        version = "v0.5.9",
-        digest = "sha256:f124ca277a734000353d9dea2d5f72e095847ae0e460a9837014a4af84255cc7",
+        version = "v0.6.0",
+        digest = "sha256:f444ca1845736d42046147acc216f47126c6eb0bd916290d397aa67007ba2b65",
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.11.0",
-        digest = "sha256:1f22370f4780afab9ff0c4c4d6c9d5db72520874e26b9c9c1807b0e346275f01",
+        version = "v0.15.0",
+        digest = "sha256:bd93952fff5fb622701cf3c0d14118ee3962ad828ae01dfca528bb646edae835",
     ),
     module(
         name = "rsc.io/diff",

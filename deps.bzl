@@ -6,7 +6,7 @@
 go = [
     module(
         name = "github.com/google/go-cmp",
-        version = "v0.5.9",
+        version = "v0.6.0",
         packages = [
             package(
                 name = "github.com/google/go-cmp/cmp",
@@ -71,7 +71,7 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.11.0",
+        version = "v0.15.0",
         packages = [
             package(
                 name = "golang.org/x/crypto/cryptobyte/asn1",
