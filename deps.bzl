@@ -5,23 +5,6 @@
 
 go = [
     module(
-        name = "github.com/bazelbuild/buildtools",
-        version = "v0.0.0-20230713145820-b31f2c13c407",
-        packages = [
-            package(
-                name = "github.com/bazelbuild/buildtools/build",
-                build_file = "bazel/patches/github.com_bazelbuild_buildtools_build.BUILD",
-            ),
-            package(
-                name = "github.com/bazelbuild/buildtools/tables",
-                no_tests = True,  # The tests don't play nicely when vendored into another Bazel workspace.
-            ),
-            package(
-                name = "github.com/bazelbuild/buildtools/testutils",
-            ),
-        ],
-    ),
-    module(
         name = "github.com/google/go-cmp",
         version = "v0.5.9",
         packages = [
@@ -87,42 +70,6 @@ go = [
         ],
     ),
     module(
-        name = "github.com/google/osv-scanner",
-        version = "v1.3.6",
-        packages = [
-            package(
-                name = "github.com/google/osv-scanner/pkg/models",
-                deps = [
-                    "github.com/google/go-cmp/cmp",
-                    "github.com/package-url/packageurl-go",
-                    "golang.org/x/exp/slices",
-                    "gopkg.in/yaml.v3",
-                ],
-            ),
-            package(
-                name = "github.com/google/osv-scanner/pkg/osv",
-                deps = [
-                    "github.com/google/osv-scanner/pkg/models",
-                    "golang.org/x/sync/semaphore",
-                ],
-            ),
-        ],
-        patch_args = ["-p1"],
-        patches = [
-            "bazel/patches/github.com_google_osv-scanner_pkg_osv_osv.go",
-        ],
-    ),
-    module(
-        name = "github.com/package-url/packageurl-go",
-        version = "v0.1.1",
-        packages = [
-            package(
-                name = "github.com/package-url/packageurl-go",
-                no_tests = True,  # The tests require an external file.
-            ),
-        ],
-    ),
-    module(
         name = "golang.org/x/crypto",
         version = "v0.11.0",
         packages = [
@@ -134,142 +81,6 @@ go = [
                 deps = [
                     "golang.org/x/crypto/cryptobyte/asn1",
                 ],
-            ),
-            package(
-                name = "golang.org/x/crypto/ed25519",
-            ),
-        ],
-    ),
-    module(
-        name = "golang.org/x/exp",
-        version = "v0.0.0-20230801115018-d63ba01acd4b",
-        packages = [
-            package(
-                name = "golang.org/x/exp/constraints",
-            ),
-            package(
-                name = "golang.org/x/exp/slices",
-                deps = [
-                    "golang.org/x/exp/constraints",
-                ],
-            ),
-        ],
-    ),
-    module(
-        name = "golang.org/x/mod",
-        version = "v0.12.0",
-        packages = [
-            package(
-                name = "golang.org/x/mod/internal/lazyregexp",
-            ),
-            package(
-                name = "golang.org/x/mod/module",
-                deps = [
-                    "golang.org/x/mod/internal/lazyregexp",
-                    "golang.org/x/mod/semver",
-                    "golang.org/x/xerrors",
-                ],
-            ),
-            package(
-                name = "golang.org/x/mod/semver",
-            ),
-            package(
-                name = "golang.org/x/mod/sumdb",
-                deps = [
-                    "golang.org/x/mod/internal/lazyregexp",
-                    "golang.org/x/mod/module",
-                    "golang.org/x/mod/sumdb/note",
-                    "golang.org/x/mod/sumdb/tlog",
-                ],
-                test_deps = [
-                    "golang.org/x/mod/sumdb/note",
-                    "golang.org/x/mod/sumdb/tlog",
-                ],
-            ),
-            package(
-                name = "golang.org/x/mod/sumdb/dirhash",
-            ),
-            package(
-                name = "golang.org/x/mod/sumdb/note",
-                deps = [
-                    "golang.org/x/crypto/ed25519",
-                ],
-                test_deps = [
-                    "golang.org/x/crypto/ed25519",
-                ],
-            ),
-            package(
-                name = "golang.org/x/mod/sumdb/tlog",
-            ),
-            package(
-                name = "golang.org/x/mod/zip",
-                deps = [
-                    "golang.org/x/mod/module",
-                ],
-                test_size = "medium",
-                test_deps = [
-                    "golang.org/x/mod/module",
-                    "golang.org/x/mod/sumdb/dirhash",
-                    "golang.org/x/tools/txtar",
-                ],
-            ),
-        ],
-    ),
-    module(
-        name = "golang.org/x/sync",
-        version = "v0.3.0",
-        packages = [
-            package(
-                name = "golang.org/x/sync/errgroup",
-            ),
-            package(
-                name = "golang.org/x/sync/semaphore",
-                test_deps = [
-                    "golang.org/x/sync/errgroup",
-                ],
-            ),
-        ],
-    ),
-    module(
-        name = "golang.org/x/time",
-        version = "v0.3.0",
-        packages = [
-            package(
-                name = "golang.org/x/time/rate",
-            ),
-        ],
-    ),
-    module(
-        name = "golang.org/x/tools",
-        version = "v0.11.1",
-        packages = [
-            package(
-                name = "golang.org/x/tools/txtar",
-            ),
-        ],
-    ),
-    module(
-        name = "golang.org/x/xerrors",
-        version = "v0.0.0-20220907171357-04be3eba64a2",
-        packages = [
-            package(
-                name = "golang.org/x/xerrors",
-                deps = [
-                    "golang.org/x/xerrors/internal",
-                ],
-            ),
-            package(
-                name = "golang.org/x/xerrors/internal",
-            ),
-        ],
-    ),
-    module(
-        name = "gopkg.in/yaml.v3",
-        version = "v3.0.1",
-        packages = [
-            package(
-                name = "gopkg.in/yaml.v3",
-                no_tests = True,  # The tests require more dependencies.
             ),
         ],
     ),

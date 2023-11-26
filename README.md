@@ -25,16 +25,19 @@ While Bazel manages most of the build, some tools are currently used from the ho
 - Clang (expected in `/usr/bin/clang`)
 - LLD (expected in `/usr/bin/ld`)
 
+External dependencies are managed by [VDM](https://github.com/ProjectSerenity/vdm).
+
 Once Bazel and the above host tools are prepared, the following commands are common:
 
-- `bazel build //kernel`:          Build the kernel binary.
-- `bazel build //bootloader`:      Build the bootloader binary.
-- `bazel build //:image`:          Build a bootable Firefly disk image.
-- `bazel build //...`:             Build all code, documentation, and lints.
-- `bazel test //...`:              Run all tests.
-- `bazel run //tools/update-deps`: Update managed dependencies.
-- `bazel run //tools/vendor-deps`: Vendor managed dependencies from [`deps.bzl`](/deps.bzl).
-- `bazel run //:qemu`:             Build a bootable disk image and run it in Qemu.
+- `bazel build //kernel`:               Build the kernel binary.
+- `bazel build //bootloader`:           Build the bootloader binary.
+- `bazel build //:image`:               Build a bootable Firefly disk image.
+- `bazel build //...`:                  Build all code, documentation, and lints.
+- `bazel test //...`:                   Run all tests.
+- `vdm update`:                         Update managed dependencies.
+- `vdm vendor`:                         Vendor managed dependencies from [`deps.bzl`](/deps.bzl).
+- `vdm check //shared/... //tools/...`: Check for vulnerabilities in dependencies.
+- `bazel run //:qemu`:                  Build a bootable disk image and run it in Qemu.
 
 # FAQ
 
