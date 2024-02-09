@@ -16,7 +16,7 @@ go_library(
 
 go_binary(
     name = "gen-a64",
-    data = ["@a64manual//:xml"],
+    data = ["//tools/ruse/internal/a64/gen-a64/a64manual:xml"],  # Arm A64 instruction set architecture, version ID030323, March 2023.
     embed = [":gen-a64_lib"],
     visibility = ["//visibility:public"],
 )
