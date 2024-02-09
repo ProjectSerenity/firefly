@@ -30,7 +30,9 @@ go_library(
         "stats.go",
         "structs.go",
     ],
-    embedsrcs = glob(["templates/**"]) + ["@x86manual//file"],
+    embedsrcs = glob(["templates/**"]) + [
+        "x86manual-volume2-325383-03_2023.pdf",  # Intel x86 manual, volume 2, version 325383-079US, March 2023.
+    ],
     importpath = "firefly-os.dev/tools/ruse/internal/x86/gen-x86",
     visibility = ["//visibility:public"],
     deps = [

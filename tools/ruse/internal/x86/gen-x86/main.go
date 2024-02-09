@@ -52,7 +52,7 @@ var (
 	program   = filepath.Base(os.Args[0])
 	data_go   = filepath.Join("tools", "ruse", "internal", "x86", "data.go")
 	x86_json  = filepath.Join("tools", "ruse", "internal", "x86", "x86.json")
-	x86manual = filepath.Join("bazel-firefly-os.dev", "external", "x86manual", "file", "downloaded")
+	x86manual = "x86manual-volume2-325383-03_2023.pdf"
 )
 
 func init() {
