@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 3,
-  "moduleFileHash": "26a2485cc35eeb5568564ab32225c1525481036826b96c34d12c07aab857c1bb",
+  "moduleFileHash": "6ba28ba79ed09759e38615445883adbc376a61ca3295ff8efea821bc6ed54ba9",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -58,7 +58,7 @@
           "hasNonDevUseExtension": true
         },
         {
-          "extensionBzlFile": "@io_bazel_rules_go//go:extension.bzl",
+          "extensionBzlFile": "@rules_go//go:extension.bzl",
           "extensionName": "go_sdk",
           "usingModule": "<root>",
           "location": {
@@ -87,7 +87,7 @@
         }
       ],
       "deps": {
-        "io_bazel_rules_go": "rules_go@0.45.1",
+        "rules_go": "rules_go@0.45.1",
         "bazel_tools": "bazel_tools@_",
         "local_config_platform": "local_config_platform@_"
       }
