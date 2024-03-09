@@ -36,6 +36,12 @@ type Arch struct {
 	// pointer or stack pointer.
 	ABIRegisters []Location
 
+	// A mapping of child registers to their
+	// parent registers. That is, writes to
+	// the key register will affect the contents
+	// of all value registers.
+	ParentRegisters map[Location][]Location
+
 	// The architecture's stack register.
 	StackPointer Location
 
@@ -86,14 +92,36 @@ func (a *Arch) WritePointer(b []byte, ptr uintptr) {
 }
 
 var X86 = &Arch{
-	Name:           "x86",
-	Family:         FamilyX86,
-	PointerSize:    4,
-	RegisterSize:   4,
-	LocationSize:   4,
-	MaxAlignment:   1,
-	ByteOrder:      binary.LittleEndian,
-	ABIRegisters:   []Location{x86.EAX, x86.ECX, x86.EDX, x86.EBX, x86.EBP, x86.ESI, x86.EDI},
+	Name:         "x86",
+	Family:       FamilyX86,
+	PointerSize:  4,
+	RegisterSize: 4,
+	LocationSize: 4,
+	MaxAlignment: 1,
+	ByteOrder:    binary.LittleEndian,
+	ABIRegisters: []Location{x86.EAX, x86.ECX, x86.EDX, x86.EBX, x86.EBP, x86.ESI, x86.EDI},
+	ParentRegisters: map[Location][]Location{
+		// 8-bit registers.
+		x86.AL: {x86.AX, x86.EAX},
+		x86.CL: {x86.CX, x86.ECX},
+		x86.DL: {x86.DX, x86.EDX},
+		x86.BL: {x86.BX, x86.EBX},
+		x86.AH: {x86.AX, x86.EAX},
+		x86.CH: {x86.CX, x86.ECX},
+		x86.DH: {x86.DX, x86.EDX},
+		x86.BH: {x86.BX, x86.EBX},
+
+		// 16-bit registers.
+		x86.AX: {x86.EAX},
+		x86.CX: {x86.ECX},
+		x86.DX: {x86.EDX},
+		x86.BX: {x86.EBX},
+		x86.SP: {x86.ESP},
+		x86.BP: {x86.EBP},
+		x86.SI: {x86.ESI},
+		x86.DI: {x86.EDI},
+		x86.IP: {x86.EIP},
+	},
 	StackPointer:   x86.ESP,
 	StackGrowsDown: true,
 	StackAlignment: 0,
@@ -106,14 +134,75 @@ var X86 = &Arch{
 }
 
 var X86_64 = &Arch{
-	Name:           "x86-64",
-	Family:         FamilyX86_64,
-	PointerSize:    8,
-	RegisterSize:   8,
-	LocationSize:   8,
-	MaxAlignment:   1,
-	ByteOrder:      binary.LittleEndian,
-	ABIRegisters:   []Location{x86.RAX, x86.RCX, x86.RDX, x86.RBX, x86.RBP, x86.RSI, x86.RDI, x86.R8, x86.R9, x86.R10, x86.R11, x86.R12, x86.R13, x86.R14, x86.R15},
+	Name:         "x86-64",
+	Family:       FamilyX86_64,
+	PointerSize:  8,
+	RegisterSize: 8,
+	LocationSize: 8,
+	MaxAlignment: 1,
+	ByteOrder:    binary.LittleEndian,
+	ABIRegisters: []Location{x86.RAX, x86.RCX, x86.RDX, x86.RBX, x86.RBP, x86.RSI, x86.RDI, x86.R8, x86.R9, x86.R10, x86.R11, x86.R12, x86.R13, x86.R14, x86.R15},
+	ParentRegisters: map[Location][]Location{
+		// 8-bit registers.
+		x86.AL:   {x86.AX, x86.EAX, x86.RAX},
+		x86.CL:   {x86.CX, x86.ECX, x86.RCX},
+		x86.DL:   {x86.DX, x86.EDX, x86.RDX},
+		x86.BL:   {x86.BX, x86.EBX, x86.RBX},
+		x86.AH:   {x86.AX, x86.EAX, x86.RAX},
+		x86.CH:   {x86.CX, x86.ECX, x86.RCX},
+		x86.DH:   {x86.DX, x86.EDX, x86.RDX},
+		x86.BH:   {x86.BX, x86.EBX, x86.RBX},
+		x86.SPL:  {x86.SP, x86.ESP, x86.RSP},
+		x86.BPL:  {x86.BP, x86.EBP, x86.RBP},
+		x86.SIL:  {x86.SI, x86.ESI, x86.RSI},
+		x86.DIL:  {x86.DI, x86.EDI, x86.RDI},
+		x86.R8L:  {x86.R8W, x86.R8D, x86.R8},
+		x86.R9L:  {x86.R9W, x86.R9D, x86.R9},
+		x86.R10L: {x86.R10W, x86.R10D, x86.R10},
+		x86.R11L: {x86.R11W, x86.R11D, x86.R11},
+		x86.R12L: {x86.R12W, x86.R12D, x86.R12},
+		x86.R13L: {x86.R13W, x86.R13D, x86.R13},
+		x86.R14L: {x86.R14W, x86.R14D, x86.R14},
+		x86.R15L: {x86.R15W, x86.R15D, x86.R15},
+
+		// 16-bit registers.
+		x86.AX:   {x86.EAX, x86.RAX},
+		x86.CX:   {x86.ECX, x86.RCX},
+		x86.DX:   {x86.EDX, x86.RDX},
+		x86.BX:   {x86.EBX, x86.RBX},
+		x86.SP:   {x86.ESP, x86.RSP},
+		x86.BP:   {x86.EBP, x86.RBP},
+		x86.SI:   {x86.ESI, x86.RSI},
+		x86.DI:   {x86.EDI, x86.RDI},
+		x86.R8W:  {x86.R8D, x86.R8},
+		x86.R9W:  {x86.R9D, x86.R9},
+		x86.R10W: {x86.R10D, x86.R10},
+		x86.R11W: {x86.R11D, x86.R11},
+		x86.R12W: {x86.R12D, x86.R12},
+		x86.R13W: {x86.R13D, x86.R13},
+		x86.R14W: {x86.R14D, x86.R14},
+		x86.R15W: {x86.R15D, x86.R15},
+		x86.IP:   {x86.EIP, x86.RIP},
+
+		// 32-bit registers.
+		x86.EAX:  {x86.RAX},
+		x86.ECX:  {x86.RCX},
+		x86.EDX:  {x86.RDX},
+		x86.EBX:  {x86.RBX},
+		x86.ESP:  {x86.RSP},
+		x86.EBP:  {x86.RBP},
+		x86.ESI:  {x86.RSI},
+		x86.EDI:  {x86.RDI},
+		x86.R8D:  {x86.R8},
+		x86.R9D:  {x86.R9},
+		x86.R10D: {x86.R10},
+		x86.R11D: {x86.R11},
+		x86.R12D: {x86.R12},
+		x86.R13D: {x86.R13},
+		x86.R14D: {x86.R14},
+		x86.R15D: {x86.R15},
+		x86.EIP:  {x86.RIP},
+	},
 	StackPointer:   x86.RSP,
 	StackGrowsDown: true,
 	StackAlignment: 16,
