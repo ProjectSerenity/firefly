@@ -468,12 +468,12 @@ func (l *Link) Perform(arch *sys.Arch, object []byte, fun *binary.Symbol, addres
 		rel := address - base
 		switch l.Size {
 		case 16:
-			if uintptr(uint16(rel)) != rel {
+			if uintptr(uint16(rel)) != rel && int64(int16(int64(rel))) != int64(rel) {
 				return fmt.Errorf("cannot link %s at offset %d: address offset %#x does not fit in %d bits", l.Name, l.Offset, rel, l.Size)
 			}
 			arch.ByteOrder.PutUint16(object[offset:], uint16(rel))
 		case 32:
-			if uintptr(uint32(rel)) != rel {
+			if uintptr(uint32(rel)) != rel && int64(int32(int64(rel))) != int64(rel) {
 				return fmt.Errorf("cannot link %s at offset %d: address offset %#x does not fit in %d bits", l.Name, l.Offset, rel, l.Size)
 			}
 			arch.ByteOrder.PutUint32(object[offset:], uint32(rel))
