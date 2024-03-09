@@ -497,6 +497,7 @@ func (p *parser) parseExpr() ast.Expression {
 		annotations := []*ast.QuotedList{{Quote: pos, X: list}}
 		for p.lex.Token == token.Quote {
 			// Must be another annotation.
+			quotePos := p.lex.Position
 			p.next()
 			list := p.expectList()
 			if list == nil {
@@ -520,7 +521,7 @@ func (p *parser) parseExpr() ast.Expression {
 				return nil
 			}
 
-			annotations = append(annotations, &ast.QuotedList{Quote: pos, X: list})
+			annotations = append(annotations, &ast.QuotedList{Quote: quotePos, X: list})
 			pos = p.lex.Position
 		}
 
