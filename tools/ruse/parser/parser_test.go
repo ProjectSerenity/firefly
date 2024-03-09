@@ -197,6 +197,42 @@ func TestParseExpression(t *testing.T) {
 			},
 		},
 		{
+			Name: "big quoted list",
+			Src:  "'(x\n  foo\n  bar)\n'(baz\n  bamf)\n(y)",
+			Want: &ast.List{
+				ParenOpen: 32,
+				Annotations: []*ast.QuotedList{
+					{
+						Quote: 1,
+						X: &ast.List{
+							ParenOpen: 2,
+							Elements: []ast.Expression{
+								&ast.Identifier{NamePos: 3, Name: "x"},
+								&ast.Identifier{NamePos: 7, Name: "foo"},
+								&ast.Identifier{NamePos: 13, Name: "bar"},
+							},
+							ParenClose: 16,
+						},
+					},
+					{
+						Quote: 18,
+						X: &ast.List{
+							ParenOpen: 19,
+							Elements: []ast.Expression{
+								&ast.Identifier{NamePos: 20, Name: "baz"},
+								&ast.Identifier{NamePos: 26, Name: "bamf"},
+							},
+							ParenClose: 30,
+						},
+					},
+				},
+				Elements: []ast.Expression{
+					&ast.Identifier{NamePos: 33, Name: "y"},
+				},
+				ParenClose: 34,
+			},
+		},
+		{
 			Name: "qualified identifier",
 			Src:  "x.y",
 			Want: &ast.Qualified{
