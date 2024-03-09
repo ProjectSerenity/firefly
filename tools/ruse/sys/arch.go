@@ -36,6 +36,9 @@ type Arch struct {
 	// pointer or stack pointer.
 	ABIRegisters []Location
 
+	// Internal cache of the ABI registers.
+	abiRegisters map[Location]bool
+
 	// A mapping of child registers to their
 	// parent registers. That is, writes to
 	// the key register will affect the contents
@@ -218,6 +221,16 @@ var X86_64 = &Arch{
 var All = [...]*Arch{
 	X86,
 	X86_64,
+}
+
+func init() {
+	// Populate arch.abiRegisters.
+	for _, arch := range All {
+		arch.abiRegisters = make(map[Location]bool)
+		for _, reg := range arch.ABIRegisters {
+			arch.abiRegisters[reg] = true
+		}
+	}
 }
 
 // ArchByName maps architecture names to their

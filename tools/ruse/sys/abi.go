@@ -202,6 +202,27 @@ func (arch *Arch) Result(abi *ABI, size int) []Location {
 	return alloc.Allocate(size)
 }
 
+// IsABIRegister returns whether the given
+// location is an ABI register, or is the
+// child of an ABI register.
+func (arch *Arch) IsABIRegister(reg Location) bool {
+	var listBuf [5]Location // Used as a buffer to reduce allocations.
+
+	// Allow child registers of ABI registers by
+	// looking up any parents and considering the
+	// list as a whole.
+	options := append(listBuf[:0], reg)
+	options = append(options, arch.ParentRegisters[reg]...)
+
+	for _, option := range options {
+		if arch.abiRegisters[option] {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Validate checks that the ABI is
 // internally consistent for the given
 // architecture.

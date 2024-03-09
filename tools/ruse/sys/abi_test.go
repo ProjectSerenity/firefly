@@ -125,3 +125,49 @@ func TestABIs(t *testing.T) {
 		})
 	}
 }
+
+func TestIsABIRegister(t *testing.T) {
+	type Reg struct {
+		Register Location
+		Want     bool
+	}
+
+	tests := []struct {
+		Arch      *Arch
+		Registers []Reg
+	}{
+		{
+			Arch: X86,
+			Registers: []Reg{
+				{x86.AL, true},
+				{x86.R8L, false},
+				{x86.AX, true},
+				{x86.EAX, true},
+				{x86.ESP, false},
+			},
+		},
+		{
+			Arch: X86_64,
+			Registers: []Reg{
+				{x86.AL, true},
+				{x86.R8L, true},
+				{x86.AX, true},
+				{x86.EAX, true},
+				{x86.ESP, false},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Arch.Name, func(t *testing.T) {
+			for _, reg := range test.Registers {
+				t.Run(reg.Register.String(), func(t *testing.T) {
+					got := test.Arch.IsABIRegister(reg.Register)
+					if got != reg.Want {
+						t.Fatalf("%s.IsABIRegister(%s): got %v, want %v", test.Arch, reg.Register, got, reg.Want)
+					}
+				})
+			}
+		})
+	}
+}
