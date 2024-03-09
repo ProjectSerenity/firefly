@@ -495,6 +495,7 @@ func (p *parser) parseExpr() ast.Expression {
 		// lists become the annotations on the list.
 		// A quoted list cannot be unattached.
 		annotations := []*ast.QuotedList{{Quote: pos, X: list}}
+		prevList := list
 		for p.lex.Token == token.Quote {
 			// Must be another annotation.
 			quotePos := p.lex.Position
@@ -516,12 +517,13 @@ func (p *parser) parseExpr() ast.Expression {
 
 			// There must not be a blank line between
 			// annotations.
-			if p.file.Line(pos)+1 < p.file.Line(list.ParenOpen) {
+			if p.file.Line(prevList.ParenClose)+1 < p.file.Line(list.ParenOpen) {
 				p.errorExpected(annotations[len(annotations)-1], "attached list or annotation")
 				return nil
 			}
 
 			annotations = append(annotations, &ast.QuotedList{Quote: quotePos, X: list})
+			prevList = list
 			pos = p.lex.Position
 		}
 
