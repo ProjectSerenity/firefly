@@ -26,12 +26,6 @@ func NewABI(abi *sys.ABI) ABI {
 }
 
 func NewRawABI(arch *sys.Arch, invertedStack *ast.Identifier, params, result, scratch, unused []*ast.Identifier) (ABI, error) {
-	// Build up the set of registers we support.
-	registers := make(map[string]sys.Location, len(arch.ABIRegisters))
-	for _, reg := range arch.ABIRegisters {
-		registers[reg.String()] = reg
-	}
-
 	abi := &sys.ABI{
 		ParamRegisters:   make([]sys.Location, 0, len(params)),
 		ResultRegisters:  make([]sys.Location, 0, len(result)),
@@ -52,27 +46,27 @@ func NewRawABI(arch *sys.Arch, invertedStack *ast.Identifier, params, result, sc
 	}
 
 	for _, param := range params {
-		reg, ok := registers[param.Name]
+		reg, ok := arch.RegisterNames[param.Name]
 		if !ok {
-			return ABI{}, fmt.Errorf("invalid ABI: bad parameter register %s: not an ABI register for %s", param.Name, arch.Name)
+			return ABI{}, fmt.Errorf("invalid ABI: bad parameter register %s: register not recognised for %s", param.Name, arch.Name)
 		}
 
 		abi.ParamRegisters = append(abi.ParamRegisters, reg)
 	}
 
 	for _, result := range result {
-		reg, ok := registers[result.Name]
+		reg, ok := arch.RegisterNames[result.Name]
 		if !ok {
-			return ABI{}, fmt.Errorf("invalid ABI: bad result register %s: not an ABI register for %s", result.Name, arch.Name)
+			return ABI{}, fmt.Errorf("invalid ABI: bad result register %s: register not recognised for %s", result.Name, arch.Name)
 		}
 
 		abi.ResultRegisters = append(abi.ResultRegisters, reg)
 	}
 
 	for _, scratch := range scratch {
-		reg, ok := registers[scratch.Name]
+		reg, ok := arch.RegisterNames[scratch.Name]
 		if !ok {
-			return ABI{}, fmt.Errorf("invalid ABI: bad scratch register %s: not an ABI register for %s", scratch.Name, arch.Name)
+			return ABI{}, fmt.Errorf("invalid ABI: bad scratch register %s: register not recognised for %s", scratch.Name, arch.Name)
 		}
 
 		abi.ScratchRegisters = append(abi.ScratchRegisters, reg)
@@ -80,9 +74,9 @@ func NewRawABI(arch *sys.Arch, invertedStack *ast.Identifier, params, result, sc
 
 	if unused != nil {
 		for _, unused := range unused {
-			reg, ok := registers[unused.Name]
+			reg, ok := arch.RegisterNames[unused.Name]
 			if !ok {
-				return ABI{}, fmt.Errorf("invalid ABI: bad unused register %s: not an ABI register for %s", unused.Name, arch.Name)
+				return ABI{}, fmt.Errorf("invalid ABI: bad unused register %s: register not recognised for %s", unused.Name, arch.Name)
 			}
 
 			abi.UnusedRegisters = append(abi.UnusedRegisters, reg)
@@ -94,6 +88,11 @@ func NewRawABI(arch *sys.Arch, invertedStack *ast.Identifier, params, result, sc
 		// We do this by deleting from the
 		// registers map each register in
 		// the used set.
+		registers := make(map[string]sys.Location)
+		for _, reg := range arch.ABIRegisters {
+			registers[reg.String()] = reg
+		}
+
 		for _, reg := range params {
 			delete(registers, reg.Name)
 		}

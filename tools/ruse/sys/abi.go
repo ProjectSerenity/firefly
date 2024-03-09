@@ -242,17 +242,37 @@ func (arch *Arch) Validate(abi *ABI) error {
 		seen[reg] = false
 	}
 
+	check := func(kind string, reg Location) error {
+		// First, check whether it's an ABI
+		// register. If not, give up.
+		if !arch.IsABIRegister(reg) {
+			return fmt.Errorf("invalid %s register %s: not an ABI register for %s", kind, reg, arch.Name)
+		}
+
+		// Allow child registers of ABI registers by
+		// looking up any parents and considering the
+		// list as a whole.
+		var listBuf [5]Location // Used as a buffer to reduce allocations.
+		options := append(listBuf[:0], reg)
+		options = append(options, arch.ParentRegisters[reg]...)
+
+		// Check none of the registers is repeated.
+		for _, option := range options {
+			if seen[option] {
+				return fmt.Errorf("invalid %s register %s: repeated as %s in %s registers", kind, reg, option, kind)
+			}
+
+			seen[option] = true
+		}
+
+		return nil
+	}
+
 	for _, reg := range abi.ParamRegisters {
-		repeat, ok := seen[reg]
-		if !ok {
-			return fmt.Errorf("invalid parameter register %s: not an ABI register for %s", reg, arch.Name)
+		err := check("parameter", reg)
+		if err != nil {
+			return err
 		}
-
-		if repeat {
-			return fmt.Errorf("invalid parameter register %s: repeated in parameter registers", reg)
-		}
-
-		seen[reg] = true
 	}
 
 	// Reset the map.
@@ -261,16 +281,10 @@ func (arch *Arch) Validate(abi *ABI) error {
 	}
 
 	for _, reg := range abi.ResultRegisters {
-		repeat, ok := seen[reg]
-		if !ok {
-			return fmt.Errorf("invalid result register %s: not an ABI register for %s", reg, arch.Name)
+		err := check("result", reg)
+		if err != nil {
+			return err
 		}
-
-		if repeat {
-			return fmt.Errorf("invalid result register %s: repeated in result registers", reg)
-		}
-
-		seen[reg] = true
 	}
 
 	// Reset the map.
@@ -279,16 +293,10 @@ func (arch *Arch) Validate(abi *ABI) error {
 	}
 
 	for _, reg := range abi.ScratchRegisters {
-		repeat, ok := seen[reg]
-		if !ok {
-			return fmt.Errorf("invalid scratch register %s: not an ABI register for %s", reg, arch.Name)
+		err := check("scratch", reg)
+		if err != nil {
+			return err
 		}
-
-		if repeat {
-			return fmt.Errorf("invalid scratch register %s: repeated in scratch registers", reg)
-		}
-
-		seen[reg] = true
 	}
 
 	// Reset the map.
@@ -298,7 +306,17 @@ func (arch *Arch) Validate(abi *ABI) error {
 
 	seenStackPointer := false
 	for _, reg := range abi.UnusedRegisters {
-		if reg == arch.StackPointer {
+		isStackPointer := false
+		options := append(make([]Location, 0, 5), reg)
+		options = append(options, arch.ParentRegisters[reg]...)
+		for _, reg := range options {
+			if reg == arch.StackPointer {
+				isStackPointer = true
+				break
+			}
+		}
+
+		if isStackPointer {
 			if seenStackPointer {
 				return fmt.Errorf("invalid unused register %s: repeated in unused registers", reg)
 			}
@@ -307,16 +325,10 @@ func (arch *Arch) Validate(abi *ABI) error {
 			continue
 		}
 
-		repeat, ok := seen[reg]
-		if !ok {
-			return fmt.Errorf("invalid unused register %s: not an ABI register for %s", reg, arch.Name)
+		err := check("unused", reg)
+		if err != nil {
+			return err
 		}
-
-		if repeat {
-			return fmt.Errorf("invalid unused register %s: repeated in unused registers", reg)
-		}
-
-		seen[reg] = true
 	}
 
 	// Check that unused registers really
