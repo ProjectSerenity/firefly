@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 3,
-  "moduleFileHash": "a12c5a7e263afb0b9cf2820ab9d29368681d6059351dc66341fa1df7968776fc",
+  "moduleFileHash": "a0cc022032335a11050dc23fd974062322cfd780981576d0f617cc472fb3ae50",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -46,6 +46,18 @@
                 "file": "@@//:MODULE.bazel",
                 "line": 12,
                 "column": 16
+              }
+            },
+            {
+              "tagName": "nogo",
+              "attributeValues": {
+                "nogo": "//:nogo"
+              },
+              "devDependency": false,
+              "location": {
+                "file": "@@//:MODULE.bazel",
+                "line": 13,
+                "column": 12
               }
             }
           ],
