@@ -531,20 +531,20 @@ var tests = []struct {
 			0, 0, 0, 0, // Length: 0.
 			// - string-copy's ABI.
 			0, 0, 0, 20, // Length: 20.
-			0,       // InvertedStack: 0 (false).
-			2, 5, 1, // ParamRegisters length: 2, ParamRegisters: RSI, RCX.
-			0,                       // ResultRegisters length: 0.
-			0,                       // ScratchRegisters length: 0.
-			13, 0, 2, 3, 4, 6, 7, 8, // UnusedRegisters length: 13, UnusedRegisters: RAX, RDX, RBX, RBP, RDI, R8.
-			9, 10, 11, 12, 13, 14, // UnusedRegisters: R9, R10, R11, R12, R13, R14.
+			0,         // InvertedStack: 0 (false).
+			2, 59, 53, // ParamRegisters length: 2, ParamRegisters: RSI, RCX.
+			0,                              // ResultRegisters length: 0.
+			0,                              // ScratchRegisters length: 0.
+			13, 52, 54, 55, 56, 58, 60, 61, // UnusedRegisters length: 13, UnusedRegisters: RAX, RDX, RBX, RBP, RDI, R8.
+			62, 63, 64, 65, 66, 67, // UnusedRegisters: R9, R10, R11, R12, R13, R14.
 			// - custom-abi.
 			0, 0, 0, 20, // Length: 20.
-			0,          // InvertedStack: 0 (false).
-			3, 5, 1, 2, // ParamRegisters length: 3, ParamRegisters: RSI, RCX, RDX.
-			1, 0, // ResultRegisters length: 1, ResultRegisters: RAX.
-			0,                        // ScratchRegisters length: 0.
-			11, 3, 4, 6, 7, 8, 9, 10, // UnusedRegisters length: 11, UnusedRegisters: RBX, RBP, RDI, R8, R9, R10.
-			11, 12, 13, 14, // UnusedRegisters: R11, R12, R13, R14.
+			0,             // InvertedStack: 0 (false).
+			3, 59, 53, 54, // ParamRegisters length: 3, ParamRegisters: RSI, RCX, RDX.
+			1, 52, // ResultRegisters length: 1, ResultRegisters: RAX.
+			0,                              // ScratchRegisters length: 0.
+			11, 55, 56, 58, 60, 61, 62, 63, // UnusedRegisters length: 11, UnusedRegisters: RBX, RBP, RDI, R8, R9, R10.
+			64, 65, 66, 67, // UnusedRegisters: R11, R12, R13, R14.
 			// Sections.
 			// - The nil section.
 			0, 0, 0, 0, 0, 0, 0, 0, // Name: 0.
@@ -655,10 +655,10 @@ var tests = []struct {
 			0xc3, // (ret)
 			0, 0, // Padding.
 			// Checksum.
-			0x73, 0xa7, 0xdd, 0x9d, 0xda, 0xb7, 0x9b, 0x9d,
-			0x4b, 0x45, 0xc0, 0xa3, 0xa2, 0x29, 0xf5, 0xca,
-			0x99, 0x9d, 0xe9, 0x66, 0x12, 0xae, 0xa5, 0x93,
-			0x2d, 0xaf, 0x10, 0x4a, 0x06, 0x94, 0x1d, 0xfe,
+			0x93, 0x8a, 0x3f, 0xa7, 0xc9, 0x44, 0x13, 0x02,
+			0x6f, 0xb4, 0xa7, 0x2d, 0xe3, 0xa8, 0x21, 0x0a,
+			0xbf, 0x23, 0x6a, 0xe9, 0xbd, 0x38, 0x4d, 0xfa,
+			0xb1, 0x53, 0xd1, 0x8e, 0x1a, 0x00, 0xf1, 0xc9,
 		},
 		Decoded: &decoded{
 			header: header{
@@ -800,17 +800,17 @@ var tests = []struct {
 				0: nil,
 				4: {
 					Length:  20,
-					Params:  []uint8{5, 1},
+					Params:  []uint8{59, 53},
 					Result:  []uint8{},
 					Scratch: []uint8{},
-					Unused:  []uint8{0, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14},
+					Unused:  []uint8{52, 54, 55, 56, 58, 60, 61, 62, 63, 64, 65, 66, 67},
 				},
 				28: {
 					Length:  20,
-					Params:  []uint8{5, 1, 2},
-					Result:  []uint8{0},
+					Params:  []uint8{59, 53, 54},
+					Result:  []uint8{52},
 					Scratch: []uint8{},
-					Unused:  []uint8{3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14},
+					Unused:  []uint8{55, 56, 58, 60, 61, 62, 63, 64, 65, 66, 67},
 				},
 			},
 			sections: map[uint32]*programSection{

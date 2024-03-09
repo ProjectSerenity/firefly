@@ -382,9 +382,8 @@ func (e *encoder) AddABI(abi *sys.ABI) uint32 {
 			invertedStack = 1
 		}
 
-		regs := make(map[sys.Location]uint8, len(e.arch.ABIRegisters)+1)
-		regs[e.arch.StackPointer] = abiStackPointer
-		for i, reg := range e.arch.ABIRegisters {
+		regs := make(map[sys.Location]uint8, len(e.arch.Registers)+1)
+		for i, reg := range e.arch.Registers {
 			regs[reg] = uint8(i)
 		}
 

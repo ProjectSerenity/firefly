@@ -1471,44 +1471,39 @@ func (d *Decoder) ABIs() ([]*sys.ABI, error) {
 		}
 
 		for i, param := range params {
-			if int(param) >= len(d.arch.ABIRegisters) {
-				return nil, fmt.Errorf("invalid ABI: invalid parameter register index %d: overflows %s.ABIRegisters (length %d)", param, d.arch.Name, len(d.arch.ABIRegisters))
+			if int(param) >= len(d.arch.Registers) {
+				return nil, fmt.Errorf("invalid ABI: invalid parameter register index %d: overflows %s.ABIRegisters (length %d)", param, d.arch.Name, len(d.arch.Registers))
 			}
 
-			abi.ParamRegisters[i] = d.arch.ABIRegisters[param]
+			abi.ParamRegisters[i] = d.arch.Registers[param]
 		}
 
 		for i, result := range result {
-			if int(result) >= len(d.arch.ABIRegisters) {
-				return nil, fmt.Errorf("invalid ABI: invalid result register index %d: overflows %s.ABIRegisters (length %d)", result, d.arch.Name, len(d.arch.ABIRegisters))
+			if int(result) >= len(d.arch.Registers) {
+				return nil, fmt.Errorf("invalid ABI: invalid result register index %d: overflows %s.ABIRegisters (length %d)", result, d.arch.Name, len(d.arch.Registers))
 			}
 
-			abi.ResultRegisters[i] = d.arch.ABIRegisters[result]
+			abi.ResultRegisters[i] = d.arch.Registers[result]
 		}
 
 		for i, scratch := range scratch {
-			if int(scratch) >= len(d.arch.ABIRegisters) {
-				return nil, fmt.Errorf("invalid ABI: invalid scratch register index %d: overflows %s.ABIRegisters (length %d)", scratch, d.arch.Name, len(d.arch.ABIRegisters))
+			if int(scratch) >= len(d.arch.Registers) {
+				return nil, fmt.Errorf("invalid ABI: invalid scratch register index %d: overflows %s.ABIRegisters (length %d)", scratch, d.arch.Name, len(d.arch.Registers))
 			}
 
-			abi.ScratchRegisters[i] = d.arch.ABIRegisters[scratch]
+			abi.ScratchRegisters[i] = d.arch.Registers[scratch]
 		}
 
 		for i, unused := range unused {
-			if unused == abiStackPointer {
-				abi.UnusedRegisters[i] = d.arch.StackPointer
-				continue
+			if int(unused) >= len(d.arch.Registers) {
+				return nil, fmt.Errorf("invalid ABI: invalid unused register index %d: overflows %s.ABIRegisters (length %d)", unused, d.arch.Name, len(d.arch.Registers))
 			}
 
-			if int(unused) >= len(d.arch.ABIRegisters) {
-				return nil, fmt.Errorf("invalid ABI: invalid unused register index %d: overflows %s.ABIRegisters (length %d)", unused, d.arch.Name, len(d.arch.ABIRegisters))
-			}
-
-			abi.UnusedRegisters[i] = d.arch.ABIRegisters[unused]
+			abi.UnusedRegisters[i] = d.arch.Registers[unused]
 		}
 
 		if err := d.arch.Validate(abi); err != nil {
-			return nil, fmt.Errorf("invalid ABI: %v", err)
+			return nil, fmt.Errorf("invalid ABI: %v (%#v)", err, abi)
 		}
 
 		d.abis[here] = abi
