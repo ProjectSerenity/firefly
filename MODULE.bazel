@@ -5,7 +5,7 @@
 
 module(name = "firefly")
 
-bazel_dep(name = "rules_go", version = "0.45.1")
+bazel_dep(name = "rules_go", version = "0.46.0")
 
 go_sdk = use_extension("@rules_go//go:extension.bzl", "go_sdk")
 
