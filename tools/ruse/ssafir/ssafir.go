@@ -447,6 +447,11 @@ func (l *Link) Perform(arch *sys.Arch, object []byte, fun *binary.Symbol, addres
 	case LinkFullAddress:
 		offset := int(fun.Offset) + l.Offset
 		switch l.Size {
+		case 16:
+			if uintptr(uint16(address)) != address {
+				return fmt.Errorf("cannot link %s at offset %d: address %#x does not fit in %d bits", l.Name, l.Offset, address, l.Size)
+			}
+			arch.ByteOrder.PutUint16(object[offset:], uint16(address))
 		case 32:
 			if uintptr(uint32(address)) != address {
 				return fmt.Errorf("cannot link %s at offset %d: address %#x does not fit in %d bits", l.Name, l.Offset, address, l.Size)
