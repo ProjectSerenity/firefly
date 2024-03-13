@@ -990,8 +990,12 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, operand *x86.Operand) an
 			}
 		case x86.EncodingCodeOffset:
 			size = 32
+			if ctx.Mode.Int == 16 {
+				size = 16
+			}
+
 			linkType = ssafir.LinkRelativeAddress
-			if operand.Bits != 32 {
+			if operand.Bits != int(size) {
 				return nil
 			}
 		default:
