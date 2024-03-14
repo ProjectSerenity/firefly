@@ -1113,7 +1113,15 @@ func (ctx *x86Context) matchSint(arg ast.Expression, bits int) any {
 
 	v, err := strconv.ParseInt(lit.Value, 0, bits)
 	if err != nil {
-		return nil
+		// Signed integers are encoded as unsigned
+		// integers, so we also accept unsigned
+		// values.
+		x, err := strconv.ParseUint(lit.Value, 0, bits)
+		if err != nil {
+			return nil
+		}
+
+		return x
 	}
 
 	return uint64(v)
