@@ -1228,9 +1228,14 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 			return nil, nil, c.errorf(x.NamePos, "undefined: %s", x.Name)
 		}
 
+		var value constant.Value
+		if con, ok := obj.(*Constant); ok {
+			value = con.Value()
+		}
+
 		typ := obj.Type()
 		c.use(x, obj)
-		c.record(x, typ, nil)
+		c.record(x, typ, value)
 		return obj, typ, nil
 	case *ast.Literal:
 		var typ Type
