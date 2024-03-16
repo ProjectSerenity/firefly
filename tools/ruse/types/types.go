@@ -49,6 +49,8 @@ func AssignableTo(base, value Type) bool {
 	}
 
 	switch uValue {
+	case UntypedBool:
+		return uBase == Bool
 	case UntypedInt:
 		switch uBase {
 		case Int,
