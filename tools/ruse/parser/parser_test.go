@@ -69,19 +69,6 @@ func TestParseExpression(t *testing.T) {
 			},
 		},
 		{
-			Name: "pair",
-			Src:  "(1 . \"foo\")",
-			Want: &ast.List{
-				ParenOpen: 1,
-				Elements: []ast.Expression{
-					&ast.Literal{ValuePos: 2, Kind: token.Integer, Value: "1"},
-					&ast.Identifier{NamePos: 4, Name: "."},
-					&ast.Literal{ValuePos: 6, Kind: token.String, Value: "\"foo\""},
-				},
-				ParenClose: 11,
-			},
-		},
-		{
 			Name: "list expression",
 			Src:  "(+ a b)",
 			Want: &ast.List{
@@ -625,22 +612,6 @@ func TestTraceExpression(t *testing.T) {
 			},
 		},
 		{
-			Name: "pair",
-			Src:  "(1 . \"foo\")",
-			Want: []string{
-				`    1:  1: parseExpression (`,
-				`    1:  1: . parseList (`,
-				`    1:  1: . . opening parenthesis`,
-				`    1:  2: . . integer 1`,
-				`    1:  4: . . identifier "."`,
-				`    1:  6: . . string "foo"`,
-				`    1: 11: . )`,
-				`    1: 11: . closing parenthesis`,
-				`    0:  0: )`,
-				``,
-			},
-		},
-		{
 			Name: "list expression",
 			Src:  "(+ a b)",
 			Want: []string{
@@ -857,33 +828,6 @@ func TestTraceFile(t *testing.T) {
 				`    2:  2: . . . identifier "bar"`,
 				`    2:  5: . . )`,
 				`    2:  5: . . closing parenthesis`,
-				`    0:  0: . )`,
-				`    0:  0: )`,
-				``,
-			},
-		},
-		{
-			Name: "pair",
-			Lines: []string{
-				"(package foo)",
-				"(1 . \"foo\")",
-			},
-			Want: []string{
-				`    1:  1: parseFile (`,
-				`    1:  1: . parseList (`,
-				`    1:  1: . . opening parenthesis`,
-				`    1:  2: . . identifier "package"`,
-				`    1: 10: . . identifier "foo"`,
-				`    1: 13: . )`,
-				`    1: 13: . closing parenthesis`,
-				`    2:  1: . parseExpression (`,
-				`    2:  1: . . parseList (`,
-				`    2:  1: . . . opening parenthesis`,
-				`    2:  2: . . . integer 1`,
-				`    2:  4: . . . identifier "."`,
-				`    2:  6: . . . string "foo"`,
-				`    2: 11: . . )`,
-				`    2: 11: . . closing parenthesis`,
 				`    0:  0: . )`,
 				`    0:  0: )`,
 				``,

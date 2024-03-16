@@ -43,13 +43,6 @@ func TestLexeme_String(t *testing.T) {
 				"test.ruse:1:1: integer (123456789)",
 			},
 		},
-		{
-			Src: " 123456789 .",
-			Want: []string{
-				"test.ruse:1:2: integer (123456789)",
-				"test.ruse:1:12: identifier (.)",
-			},
-		},
 	}
 
 	for _, test := range tests {
@@ -255,17 +248,6 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
-			Name: "pair",
-			Src:  "(foo . baz)",
-			Want: []Lexeme{
-				{token.ParenOpen, 1, "("},
-				{token.Identifier, 2, "foo"},
-				{token.Identifier, 6, "."},
-				{token.Identifier, 8, "baz"},
-				{token.ParenClose, 11, ")"},
-			},
-		},
-		{
 			Name: "list of one element",
 			Src:  "(foo)",
 			Want: []Lexeme{
@@ -435,11 +417,6 @@ func TestError(t *testing.T) {
 			Name: "string literal with abutting identifier",
 			Src:  `"foo"a`,
 			Want: Lexeme{token.Error, 6, "invalid attached token: 'a' after string"},
-		},
-		{
-			Name: "period with abutting string literal",
-			Src:  ".\"foo\"",
-			Want: Lexeme{token.Error, 2, "invalid attached token: '\"' after identifier"},
 		},
 		{
 			Name: "unattached quote",

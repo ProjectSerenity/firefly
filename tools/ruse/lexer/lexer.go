@@ -94,15 +94,6 @@ func (l *lexer) run() {
 			l.lexeme(token.ParenOpen)
 		case r == ')':
 			l.lexeme(token.ParenClose)
-		case r == '.':
-			// A period on its own is treated like an
-			// identifier. It must be on its own, or
-			// it would be ambiguous with a qualified
-			// identifier (which uses the Period token).
-			//
-			// Check the next token is appropriate; a
-			// closing parenthesis, comment, or space.
-			l.detatchedLexeme(token.Identifier, l.next())
 		case r == '-', r == '+':
 			// These are ambiguous so we need to read
 			// the next rune.
