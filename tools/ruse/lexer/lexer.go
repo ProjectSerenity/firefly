@@ -104,9 +104,7 @@ func (l *lexer) run() {
 			}
 
 			l.backup()
-
-			// Identifier handling.
-			fallthrough
+			l.detatchedLexeme(token.Identifier, l.next())
 		case isIdentifierInitial(r):
 			// Keep going until we get a non-identifier
 			// token.
