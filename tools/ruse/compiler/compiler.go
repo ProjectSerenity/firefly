@@ -293,6 +293,11 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 				name = x.Elements[0].(*ast.Identifier)
 			}
 
+			// Enforce keywords.
+			if isKeyword(name.Name) {
+				return nil, fmt.Errorf("%s: cannot declare constant %q: %s is a keyword", fset.Position(expr.Elements[0].Pos()), name.Name, name.Name)
+			}
+
 			con := info.Definitions[name].(*types.Constant)
 			con.SetSection(sectionSymbol)
 			p.Constants = append(p.Constants, con)
@@ -400,6 +405,20 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 	}
 
 	return p, nil
+}
+
+func isKeyword(s string) bool {
+	switch s {
+	case "asm-func":
+	case "func":
+	case "import":
+	case "let":
+	case "package":
+	default:
+		return false
+	}
+
+	return true
 }
 
 type compiler struct {

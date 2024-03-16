@@ -596,9 +596,10 @@ func TestCompileTestValues(t *testing.T) {
 	// See also TestCompile.
 
 	tests := []struct {
-		Name string
-		Code string
-		Want []*TestValue
+		Name  string
+		Code  string
+		Want  []*TestValue
+		Error string
 	}{
 		{
 			Name: "no-op",
@@ -660,6 +661,26 @@ func TestCompileTestValues(t *testing.T) {
 				{ID: 7, Op: ssafir.OpMakeResult, Uses: 1, Code: `(double length)`},
 			},
 		},
+		{
+			Name: "keyword constant",
+			Code: `
+				(package test)
+
+				(let func 1)
+			`,
+			Error: "cannot declare constant \"func\": func is a keyword",
+		},
+		{
+			Name: "keyword variable",
+			Code: `
+				(package test)
+
+				(func (test int)
+					(let func (len "foobar"))
+					func)
+			`,
+			Error: "cannot declare variable \"func\": func is a keyword",
+		},
 	}
 
 	compareOptions := []cmp.Option{
@@ -696,6 +717,19 @@ func TestCompileTestValues(t *testing.T) {
 			}
 
 			p, err := Compile(fset, arch, pkg, files, info, sizes)
+			if test.Error != "" {
+				if err == nil {
+					t.Fatalf("got no error, expected %s", test.Error)
+				}
+
+				e := err.Error()
+				if !strings.Contains(e, test.Error) {
+					t.Fatalf("error mismatch:\nGot:  %s\nWant: %s", e, test.Error)
+				}
+
+				return
+			}
+
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

@@ -672,6 +672,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		}
 
 		// Find the identifier.
+		var ident *ast.Identifier
 		var lhs *types.Variable
 		switch elt := list.Elements[1].(type) {
 		case *ast.Identifier:
@@ -681,12 +682,17 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 				return nil, nil
 			}
 
-			lhs = c.info.Definitions[elt].(*types.Variable)
+			ident = elt
+			lhs = c.info.Definitions[ident].(*types.Variable)
 		case *ast.List:
-			ident := elt.Elements[0].(*ast.Identifier)
+			ident = elt.Elements[0].(*ast.Identifier)
 			lhs = c.info.Definitions[ident].(*types.Variable)
 		default:
 			return nil, fmt.Errorf("unexpected expression type for let left-hand side: %s %s", list.Elements[1], list.Elements[1].Print())
+		}
+
+		if isKeyword(ident.Name) {
+			return nil, fmt.Errorf("cannot declare variable %q: %s is a keyword", ident.Name, ident.Name)
 		}
 
 		v := c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpCopy, value.Type, value)
