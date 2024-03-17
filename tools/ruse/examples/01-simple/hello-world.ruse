@@ -50,7 +50,7 @@
 	; At link-time, the linker will insert the final
 	; address of print-hello-world into this instruction
 	; as a relative address.
-	(call (func print-hello-world))
+	(call (@ print-hello-world))
 
 	(mov eax 60)  ; sys_exit
 	(xor rdi rdi) ; int error_code

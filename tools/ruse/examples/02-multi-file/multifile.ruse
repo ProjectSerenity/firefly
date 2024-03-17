@@ -19,7 +19,7 @@
 
 	(mov rsi (string-pointer default-message))
 	(mov rdx (len default-message))
-	(call (func print))
+	(call (@ print))
 
 	(mov eax 60)   ; sys_exit
 	(xor rdi rdi)  ; int error_code

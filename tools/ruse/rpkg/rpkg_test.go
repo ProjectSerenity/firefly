@@ -405,7 +405,7 @@ var tests = []struct {
 				(jz 'done)
 
 				'again
-				(call (func triple-nop))
+				(call (@ triple-nop))
 				(dec rcx)
 				(jz 'done)
 				(jmp 'again)
