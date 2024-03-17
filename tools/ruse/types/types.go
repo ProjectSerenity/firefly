@@ -863,25 +863,6 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 			}
 
 			switch ident.Name {
-			case "func":
-				// Function reference; must consist of an
-				// identifier that is bound to a function.
-				if len(fun.Elements) != 2 {
-					return c.errorf(fun.Elements[2].Pos(), "%s has too many arguments in call to func: expected %d, found %d", name, 1, len(fun.Elements)-1)
-				}
-
-				arg := fun.Elements[1]
-				obj, typ, err := c.ResolveExpression(scope, arg)
-				if err != nil {
-					return err
-				}
-
-				_, ok := obj.(*Function)
-				if !ok {
-					return c.errorf(arg.Pos(), "%s has invalid argument: %s (%s)", name, arg.Print(), typ)
-				}
-
-				c.record(fun, typ, nil)
 			case "len":
 				// String reference: must consist of an
 				// identifier that is bound to a string
