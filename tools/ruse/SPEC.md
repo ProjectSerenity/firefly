@@ -491,6 +491,29 @@ AsmFunctionDecl = "(" "asm-func" "(" FunctionName Signature ")" AsmFunctionBody 
 AsmFunctionBody = AsmBlock .
 ```
 
+#### Assembly function annotations
+
+Assembly functions support attached annotations, which may vary depending on the target architecture. Common annotations include:
+
+- `'(arch [arch identifier])`: Specify the target architecture. Assembly functions that specify a different architecture than the current compile target will be ignored.
+- `'(mode [mode integer])`: Specify the target CPU mode. This affects the assembler's encoding process and may constrain the set of instructions available. If omitted, the target architecture's default CPU mode is assumed.
+- `'(section [section reference])`: Specify which program section should own the assembled function. If omitted, "sections/Code" is assumed.
+
+```
+'(arch x86-64)              ; Target x86-64.
+'(mode 32)                  ; Override the CPU mode from 64 to 32 bits.
+'(section sections.Strings) ; Store the assmebled function in the Strings section. Note that this would likely fail to execute, as Strings is not executable.
+(asm-func (main)
+	(syscalls.Exit 0))
+```
+
+#### Assembly function macros
+
+Assembly functions can use macros to reference data outside the function. Supported macros include:
+
+- `(@ [reference])`: Substitute the address of the referenced object. Supports functions, array constants, and string constants.
+- '(string-pointer [string reference])`: Substitute a string's data pointer.
+
 ## Expressions
 
 An expression specifies the computation of a value by applying functions to operands.
