@@ -1049,6 +1049,40 @@ func (c *checker) ResolveLetBody(scope *Scope, let *ast.List) (err error) {
 
 func (c *checker) checkArrayType(scope *Scope, typeName *ast.Identifier, elements int) (element, array Type, err error) {
 	parts := strings.Split(typeName.Name, "/")
+
+	// Handle multi-dimensional arrays by starting
+	// with the deepest (right-most) element type
+	// and working backwards to the ancestor type.
+	for len(parts) > 3 {
+		// Take the last three elements, which
+		// must be array/<length>/<element>.
+		if parts[len(parts)-3] != "array" {
+			return nil, nil, c.errorf(typeName.NamePos, "invalid array type %s: subtype %s/%s/%s is not a valid array type", typeName.Name, parts[len(parts)-3], parts[len(parts)-2], parts[len(parts)-1])
+		}
+
+		length, err := strconv.ParseUint(parts[len(parts)-2], 0, 64)
+		if err != nil {
+			return nil, nil, c.errorf(typeName.NamePos, "invalid array type %q: bad array length %s: %v", typeName.Name, parts[len(parts)-2], err)
+		}
+
+		if element == nil {
+			_, elt := scope.LookupParent(parts[len(parts)-1], token.NoPos)
+			if elt == nil {
+				return nil, nil, c.errorf(typeName.NamePos, "undefined array element type: %s", parts[len(parts)-1])
+			}
+
+			element = elt.Type()
+		}
+
+		// Build this type.
+		array = NewArray(uint(length), element)
+
+		// Save this type as the element type
+		// and move to the parent type.
+		element = array
+		parts = parts[:len(parts)-2]
+	}
+
 	switch len(parts) {
 	case 3:
 		length, err := strconv.ParseUint(parts[1], 0, 64)
@@ -1060,23 +1094,28 @@ func (c *checker) checkArrayType(scope *Scope, typeName *ast.Identifier, element
 			return nil, nil, c.errorf(typeName.NamePos, "invalid array type %q: got array length %d with %d elements", typeName.Name, length, elements)
 		}
 
-		_, elt := scope.LookupParent(parts[2], token.NoPos)
-		if elt == nil {
-			return nil, nil, c.errorf(typeName.NamePos, "undefined array element type: %s", parts[2])
+		if element == nil {
+			_, elt := scope.LookupParent(parts[2], token.NoPos)
+			if elt == nil {
+				return nil, nil, c.errorf(typeName.NamePos, "undefined array element type: %s", parts[2])
+			}
+
+			element = elt.Type()
 		}
 
-		element = elt.Type()
 		array = NewArray(uint(length), element)
 	case 2:
-		_, elt := scope.LookupParent(parts[1], token.NoPos)
-		if elt == nil {
-			return nil, nil, c.errorf(typeName.NamePos, "undefined array element type: %s", parts[1])
+		if element == nil {
+			_, elt := scope.LookupParent(parts[1], token.NoPos)
+			if elt == nil {
+				return nil, nil, c.errorf(typeName.NamePos, "undefined array element type: %s", parts[1])
+			}
+
+			element = elt.Type()
 		}
 
-		element = elt.Type()
 		array = NewArray(uint(elements), element)
 	default:
-		// TODO: add support for multi-dimensional arrays.
 		return nil, nil, c.errorf(typeName.NamePos, "invalid array type: %s", typeName.Name)
 	}
 
