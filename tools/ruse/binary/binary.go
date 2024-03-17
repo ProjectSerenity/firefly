@@ -82,6 +82,7 @@ const (
 	SymbolInvalid SymbolKind = iota
 	SymbolFunction
 	SymbolString
+	SymbolArray
 )
 
 func (k SymbolKind) String() string {
@@ -92,6 +93,8 @@ func (k SymbolKind) String() string {
 		return "function"
 	case SymbolString:
 		return "string"
+	case SymbolArray:
+		return "array"
 	default:
 		return fmt.Sprintf("SymbolKind(%d)", k)
 	}

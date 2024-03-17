@@ -99,6 +99,8 @@ func symbolData(sym *binary.Symbol) (typ uint8, value, size uint64) {
 		return 0x02, uint64(sym.Address), uint64(sym.Length)
 	case binary.SymbolString:
 		return 0x01, uint64(sym.Address), uint64(sym.Length)
+	case binary.SymbolArray:
+		return 0x01, uint64(sym.Address), uint64(sym.Length)
 	default:
 		panic(fmt.Errorf("symbol %q: invalid symbol kind %d", sym.Name, sym.Kind))
 	}
