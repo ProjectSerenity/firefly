@@ -73,6 +73,17 @@ func AssignableTo(base, value Type) bool {
 		}
 	}
 
+	if aBase, ok := uBase.(*Array); ok {
+		aValue, ok := uValue.(*Array)
+		if ok &&
+			aBase.Length() == aValue.Length() &&
+			aBase.Element() == aValue.Element() {
+			return true
+		}
+
+		return false
+	}
+
 	return false
 }
 
