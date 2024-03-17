@@ -83,7 +83,7 @@ Tokens form the vocabulary of the Ruse language. There are three classes: _ident
 Identifiers name program entities such as variables and types. An identifier is a sequence of one or more letters and digits, or a single plus or minus. The first character in an identifier must be a letter or punctuation.
 
 ```
-identifier_initial    = letter | "!" | "$" | "%" | "&" | "*" | "/" | ":" | "<" | "=" | ">" | "?" | "~" | "_" | "^" | "|" .
+identifier_initial    = letter | "!" | "$" | "%" | "&" | "*" | "/" | ":" | "<" | "=" | ">" | "?" | "@" | "~" | "_" | "^" | "|" .
 identifier_subsequent = letter | unicode_digit | "+" | "-" .
 identifier            = "+" | "-" | identifier_initial { identifier_subsequent } .
 ```
