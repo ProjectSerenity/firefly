@@ -1048,6 +1048,24 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, operand *x86.Operand) an
 				panic(ctx.Errorf(ident.NamePos, "cannot use %s (%s) as string constant in symbol reference", con, con.Type()))
 			}
 		case "@":
+			// First, handle function references.
+			if fun, ok := obj.(*types.Function); ok {
+				// The default ABI is not guaranteed
+				// to be stable so if the function we're
+				// calling uses it and has any params
+				// or result, we return an error.
+				if fun.ABI() == nil {
+					sig := fun.Type().(*types.Signature)
+					if len(sig.Params()) != 0 || sig.Result() != nil {
+						panic(ctx.Errorf(ident.NamePos, "cannot call %s from assembly: function uses default ABI so its calling convention is unstable", ident.Name))
+					}
+				}
+
+				// All good.
+				break
+			}
+
+			// Otherwise, we expect a constant.
 			con, ok := obj.(*types.Constant)
 			if !ok {
 				panic(ctx.Errorf(ident.NamePos, "cannot take the address of %s in symbol reference", obj))

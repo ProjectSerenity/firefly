@@ -950,6 +950,12 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 					return err
 				}
 
+				// Handle function references first.
+				if _, ok := obj.(*Function); ok {
+					c.record(fun, typ, nil)
+					break
+				}
+
 				underlying := Underlying(typ)
 				if _, isArray := underlying.(*Array); !isArray && underlying != String && underlying != UntypedString {
 					return c.errorf(arg.Pos(), "%s has invalid argument: %s (%s) for reference", name, arg.Print(), typ)
