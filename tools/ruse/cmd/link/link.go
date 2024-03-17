@@ -9,6 +9,7 @@ package link
 import (
 	"bytes"
 	"context"
+	gobinary "encoding/binary"
 	"flag"
 	"fmt"
 	"io"
@@ -309,6 +310,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	// Build the symbol table.
 	var main *binary.Symbol
 	var table []*binary.Symbol
+	var arrayLiterals int
 	symbols := make(map[string]*binary.Symbol)
 	for i, p := range packages {
 		for _, fun := range p.Functions {
@@ -349,23 +351,50 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			}
 
 			val := con.Value()
-			if val == nil || val.Kind() != constant.String {
-				// Non-string constants are inlined.
+			if val == nil {
 				continue
 			}
 
-			s := constant.StringVal(val)
-			sym := &binary.Symbol{
-				Name:    p.Path + "." + con.Name(),
-				Kind:    binary.SymbolString,
-				Section: index,
-				Offset:  uintptr(data.Len()), // Just the offset within the section for now.
-				Length:  len(s),
-			}
+			switch val.Kind() {
+			case constant.String:
+				s := constant.StringVal(val)
+				offset := uintptr(data.Len()) // Just the offset within the section for now.
 
-			data.WriteString(s)
-			table = append(table, sym)
-			symbols[sym.Name] = sym
+				data.WriteString(s)
+
+				sym := &binary.Symbol{
+					Name:    p.Path + "." + con.Name(),
+					Kind:    binary.SymbolString,
+					Section: index,
+					Offset:  offset,
+					Length:  len(s),
+				}
+
+				table = append(table, sym)
+				symbols[sym.Name] = sym
+			case constant.Array:
+				offset := uintptr(data.Len()) // Just the offset within the section for now.
+
+				name := p.Path + "." + con.Name()
+				err := encodeConstant(data, arch.ByteOrder, val, con.Type())
+				if err != nil {
+					return fmt.Errorf("failed to encode symbol %s: %v", name, err)
+				}
+
+				sym := &binary.Symbol{
+					Name:    name,
+					Kind:    binary.SymbolArray,
+					Section: index,
+					Offset:  offset,
+					Length:  data.Len() - int(offset),
+				}
+
+				table = append(table, sym)
+				symbols[sym.Name] = sym
+			default:
+				// Non-string, non-array constants are inlined.
+				continue
+			}
 		}
 
 		for _, lit := range p.Literals {
@@ -375,23 +404,48 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			}
 
 			val := lit.Value()
-			if val.Kind() != constant.String {
-				// Non-string constants are inlined.
+
+			switch val.Kind() {
+			case constant.String:
+				s := constant.StringVal(val)
+				offset := uintptr(data.Len()) // Just the offset within the section for now.
+
+				data.WriteString(s)
+
+				sym := &binary.Symbol{
+					Name:    "." + s,
+					Kind:    binary.SymbolString,
+					Section: index,
+					Offset:  offset,
+					Length:  len(s),
+				}
+
+				table = append(table, sym)
+				symbols[sym.Name] = sym
+			case constant.Array:
+				offset := uintptr(data.Len()) // Just the offset within the section for now.
+
+				name := fmt.Sprintf(".<array-literal-%d>", arrayLiterals)
+				err := encodeConstant(data, arch.ByteOrder, val, lit.Type())
+				if err != nil {
+					return fmt.Errorf("failed to encode symbol %s: %v", name, err)
+				}
+
+				arrayLiterals++
+				sym := &binary.Symbol{
+					Name:    name,
+					Kind:    binary.SymbolArray,
+					Section: index,
+					Offset:  offset,
+					Length:  data.Len() - int(offset),
+				}
+
+				table = append(table, sym)
+				symbols[sym.Name] = sym
+			default:
+				// Non-string, non-array constants are inlined.
 				continue
 			}
-
-			s := constant.StringVal(val)
-			sym := &binary.Symbol{
-				Name:    "." + s,
-				Kind:    binary.SymbolString,
-				Section: index,
-				Offset:  uintptr(data.Len()), // Just the offset within the section for now.
-				Length:  len(s),
-			}
-
-			data.WriteString(s)
-			table = append(table, sym)
-			symbols[sym.Name] = sym
 		}
 	}
 
@@ -482,6 +536,65 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	err = os.WriteFile(out, object, 0755)
 	if err != nil {
 		return fmt.Errorf("failed to write %s: %v", out, err)
+	}
+
+	return nil
+}
+
+// encodeConstant writes the given constant to a
+// section.
+func encodeConstant(b *bytes.Buffer, byteOrder gobinary.ByteOrder, v constant.Value, t types.Type) error {
+	switch v.Kind() {
+	case constant.Bool:
+		if constant.BoolVal(v) {
+			b.WriteByte(1)
+		} else {
+			b.WriteByte(0)
+		}
+	case constant.Integer:
+		typ := types.Underlying(t)
+		switch typ {
+		case types.Int, types.Int64:
+			val, _ := constant.Int64Val(v)
+			gobinary.Write(b, byteOrder, uint64(val))
+		case types.Int32:
+			val, _ := constant.Int64Val(v)
+			gobinary.Write(b, byteOrder, uint32(val))
+		case types.Int16:
+			val, _ := constant.Int64Val(v)
+			gobinary.Write(b, byteOrder, uint16(val))
+		case types.Int8:
+			val, _ := constant.Int64Val(v)
+			gobinary.Write(b, byteOrder, uint8(val))
+		case types.Uint, types.Uint64, types.Uintptr:
+			val, _ := constant.Uint64Val(v)
+			gobinary.Write(b, byteOrder, uint64(val))
+		case types.Uint32:
+			val, _ := constant.Uint64Val(v)
+			gobinary.Write(b, byteOrder, uint32(val))
+		case types.Uint16:
+			val, _ := constant.Uint64Val(v)
+			gobinary.Write(b, byteOrder, uint16(val))
+		case types.Uint8, types.Byte:
+			val, _ := constant.Uint64Val(v)
+			gobinary.Write(b, byteOrder, uint8(val))
+		default:
+			return fmt.Errorf("unexpected value kind %s with type %s", v.Kind(), t)
+		}
+	case constant.String:
+		// TODO: add support for arrays of strings.
+		return fmt.Errorf("unsupported value kind %s with type %s", v.Kind(), t)
+	case constant.Array:
+		values := constant.ArrayVal(v)
+		element := t.(*types.Array).Element()
+		for _, value := range values {
+			err := encodeConstant(b, byteOrder, value, element)
+			if err != nil {
+				return err
+			}
+		}
+	default:
+		return fmt.Errorf("unexpected value kind %s", v.Kind())
 	}
 
 	return nil

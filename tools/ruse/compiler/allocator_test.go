@@ -138,7 +138,7 @@ func TestAllocator(t *testing.T) {
 				{ID: 9, Op: ssafir.OpConstantString, Extra: &Alloc{Dst: x86.RDI, Data: "foo"}, Uses: 1, Code: `"foo"`},
 				{ID: 9, Op: ssafir.OpConstantUntypedInt, Extra: &Alloc{Dst: x86.RSI, Data: int64(3)}, Uses: 1, Code: `"foo"`},
 				{ID: 10, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 0, Code: `(half-string-length "foo")`},
-				{ID: 12, Op: ssafir.OpConstantUntypedInt, Extra: &Alloc{Dst: x86.RDI, Data: constant.MakeInt64(17)}, Uses: 1, Code: `val`},
+				{ID: 12, Op: ssafir.OpConstantInt64, Extra: &Alloc{Dst: x86.RDI, Data: int64(17)}, Uses: 1, Code: `val`},
 				{ID: 13, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 1, Code: `(double val)`},
 				{ID: 13, Op: ssafir.OpMakeResult, Extra: &Alloc{Dst: x86.RAX, Src: x86.RAX}, Uses: 1, Code: `(double val)`},
 				{ID: 14, Op: ssafir.OpMakeResult, Extra: &Alloc{Dst: x86.RAX, Src: x86.RAX}, Uses: 1, Code: `(double val)`},
