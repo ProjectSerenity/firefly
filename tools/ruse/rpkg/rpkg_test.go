@@ -412,6 +412,14 @@ var tests = []struct {
 
 				'done
 				(ret))
+
+			(let simple-array (array/2/uint16 0x0033 0x0044))
+
+			(let multi-dimensional-array
+				(array/3/array/2/uint16
+					(array/2/uint16 0x0011 0x0022)
+					simple-array
+					(array/uint16 0x5566 0x789a)))
 		`,
 		Raw: []byte{
 			// Header.
@@ -426,13 +434,13 @@ var tests = []struct {
 			0, 0, 0, 100, // ImportsOffset: 100.
 			0, 0, 0, 100, // ExportsOffset: 100.
 			0, 0, 0, 0, 0, 0, 0, 100, // TypesOffset: 100.
-			0, 0, 0, 0, 0, 0, 1, 8, // SymbolsOffset: 264.
-			0, 0, 0, 0, 0, 0, 2, 16, // ABIsOffset: 528.
-			0, 0, 0, 0, 0, 0, 2, 68, // SectionsOffset: 580.
-			0, 0, 0, 0, 0, 0, 2, 116, // StringsOffset: 628.
-			0, 0, 0, 0, 0, 0, 3, 124, // LinkagesOffset: 892.
-			0, 0, 0, 0, 0, 0, 3, 160, // CodeOffset: 928.
-			0, 0, 0, 0, 0, 0, 3, 212, // ChecksumOffset: 980.
+			0, 0, 0, 0, 0, 0, 1, 56, // SymbolsOffset: 312.
+			0, 0, 0, 0, 0, 0, 2, 152, // ABIsOffset: 664.
+			0, 0, 0, 0, 0, 0, 2, 204, // SectionsOffset: 716.
+			0, 0, 0, 0, 0, 0, 2, 252, // StringsOffset: 764.
+			0, 0, 0, 0, 0, 0, 4, 72, // LinkagesOffset: 1096.
+			0, 0, 0, 0, 0, 0, 4, 108, // CodeOffset: 1132.
+			0, 0, 0, 0, 0, 0, 4, 160, // ChecksumOffset: 1184.
 			// Imports.
 			// Exports.
 			// Types.
@@ -483,6 +491,20 @@ var tests = []struct {
 			5,       // Kind: 5 (section).
 			0, 0, 4, // Length: 4,
 			0, 0, 0, 24, // Section: extra-section.
+			// - Uint16.
+			2,       // Kind: 2 (basic).
+			0, 0, 4, // Length 4.
+			0, 0, 0, 10, // BasicKind: 10 (uint16).
+			// - Array of 2 uint16s.
+			6,        // Kind: 6 (array).
+			0, 0, 16, // Length: 16.
+			0, 0, 0, 0, 0, 0, 0, 2, // Array length: 2.
+			0, 0, 0, 0, 0, 0, 0, 164, // Element type: 164 (uint16).
+			// - Array of 3 arrays of 2 uint16s.
+			6,        // Kind: 6 (array).
+			0, 0, 16, // Length: 16.
+			0, 0, 0, 0, 0, 0, 0, 3, // Array length: 3.
+			0, 0, 0, 0, 0, 0, 0, 172, // Element type: 172 (array/2/uint16).
 			// Symbols.
 			// - triple-nop.
 			0, 0, 0, 6, // Kind: 6 (function).
@@ -522,10 +544,24 @@ var tests = []struct {
 			// - extra-section
 			0, 0, 0, 8, // Kind: 8 (section).
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
-			0, 0, 0, 0, 0, 0, 0, 232, // Name: 23 ("extra-section").
+			0, 0, 0, 0, 0, 0, 0, 232, // Name: 232 ("extra-section").
 			0, 0, 0, 0, 0, 0, 0, 0, // SectionName: 0 (default).
 			0, 0, 0, 0, 0, 0, 0, 156, // Type: 156 (section extra-section).
 			0, 0, 0, 0, 0, 0, 0, 0, // Value: 0 (Section).
+			// - simple-array
+			0, 0, 0, 9, // Kind: 9 (array constant).
+			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
+			0, 0, 0, 0, 0, 0, 1, 8, // Name: 264 ("simple-array").
+			0, 0, 0, 0, 0, 0, 0, 0, // SectionName: 0 (default).
+			0, 0, 0, 0, 0, 0, 0, 172, // Type: 172 (array/2/uint16).
+			0, 0, 0, 0, 0, 0, 1, 24, // Value: 280 (array data).
+			// - multi-dimensional-array
+			0, 0, 0, 9, // Kind: 9 (array constant).
+			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
+			0, 0, 0, 0, 0, 0, 1, 32, // Name: 288 ("multi-dimensional-array").
+			0, 0, 0, 0, 0, 0, 0, 0, // SectionName: 0 (default).
+			0, 0, 0, 0, 0, 0, 0, 192, // Type: 192 (array/3/array/2/uint16).
+			0, 0, 0, 0, 0, 0, 1, 60, // Value: 316 (array data).
 			// ABIs.
 			// - The nil ABI.
 			0, 0, 0, 0, // Length: 0.
@@ -621,6 +657,22 @@ var tests = []struct {
 			0, 0, 0, 5, // Length: 5.
 			'e', 'x', 't', 'r', 'a', // Text.
 			0, 0, 0, // Padding.
+			// - "simple-array".
+			0, 0, 0, 12, // Length: 11.
+			's', 'i', 'm', 'p', 'l', 'e', '-', 'a', 'r', 'r', 'a', 'y', // Text.
+			// Padding.
+			// encoded simple-array data.
+			0, 0, 0, 4, // Length: 4.
+			0x00, 0x33, 0x00, 0x44, // Data.
+			// Padding.
+			// - "multi-dimensional-array".
+			0, 0, 0, 23, // Length: 23.
+			'm', 'u', 'l', 't', 'i', '-', 'd', 'i', 'm', 'e', 'n', 's', 'i', 'o', 'n', 'a', 'l', '-', 'a', 'r', 'r', 'a', 'y', // text
+			0, // Padding.
+			// - encoded multi-dimensional-array data.
+			0, 0, 0, 12, // Length: 12.
+			0x00, 0x11, 0x00, 0x22, 0x00, 0x33, 0x00, 0x44, 0x55, 0x66, 0x78, 0x9a, // Data.
+			// Padding.
 			// Linkages.
 			// - looper calling triple-nop.
 			0, 0, 0, 0, 0, 0, 0, 88, // Source: 88 (looper).
@@ -655,10 +707,8 @@ var tests = []struct {
 			0xc3, // (ret)
 			0, 0, // Padding.
 			// Checksum.
-			0x93, 0x8a, 0x3f, 0xa7, 0xc9, 0x44, 0x13, 0x02,
-			0x6f, 0xb4, 0xa7, 0x2d, 0xe3, 0xa8, 0x21, 0x0a,
-			0xbf, 0x23, 0x6a, 0xe9, 0xbd, 0x38, 0x4d, 0xfa,
-			0xb1, 0x53, 0xd1, 0x8e, 0x1a, 0x00, 0xf1, 0xc9,
+			0x10, 0x3f, 0xe7, 0x26, 0x0a, 0x4f, 0x5f, 0x0e, 0x90, 0xe9, 0x36, 0xc1, 0x19, 0xf7, 0x08, 0x1e,
+			0xc1, 0xff, 0x0c, 0x7c, 0x4e, 0x00, 0x3c, 0x74, 0x95, 0x40, 0xd9, 0x8e, 0x79, 0x5b, 0x08, 0x51,
 		},
 		Decoded: &decoded{
 			header: header{
@@ -674,20 +724,20 @@ var tests = []struct {
 				ExportsOffset:  100,
 				ExportsLength:  0,
 				TypesOffset:    100,
-				TypesLength:    164,
-				SymbolsOffset:  264,
-				SymbolsLength:  264,
-				ABIsOffset:     528,
+				TypesLength:    212,
+				SymbolsOffset:  312,
+				SymbolsLength:  352,
+				ABIsOffset:     664,
 				ABIsLength:     52,
-				SectionsOffset: 580,
+				SectionsOffset: 716,
 				SectionsLength: 48,
-				StringsOffset:  628,
-				StringsLength:  264,
-				LinkagesOffset: 892,
+				StringsOffset:  764,
+				StringsLength:  332,
+				LinkagesOffset: 1096,
 				LinkagesLength: 36,
-				CodeOffset:     928,
+				CodeOffset:     1132,
 				CodeLength:     52,
-				ChecksumOffset: 980,
+				ChecksumOffset: 1184,
 				ChecksumLength: 32,
 			},
 			imports: []uint32{},
@@ -751,6 +801,23 @@ var tests = []struct {
 					Length:  4,
 					Section: 24,
 				},
+				164: {
+					Kind:   TypeKindBasic,
+					Length: 4,
+					Basic:  BasicKindUint16,
+				},
+				172: {
+					Kind:        TypeKindArray,
+					Length:      16,
+					ArrayLength: 2,
+					Element:     164,
+				},
+				192: {
+					Kind:        TypeKindArray,
+					Length:      16,
+					ArrayLength: 3,
+					Element:     172,
+				},
 			},
 			symbols: map[uint64]*symbol{
 				0: {
@@ -794,6 +861,20 @@ var tests = []struct {
 					Name:        232,
 					Type:        156,
 					Value:       0,
+				},
+				264: {
+					Kind:        SymKindArrayConstant,
+					PackageName: 4,
+					Name:        264,
+					Type:        172,
+					Value:       280,
+				},
+				308: {
+					Kind:        SymKindArrayConstant,
+					PackageName: 4,
+					Name:        288,
+					Type:        192,
+					Value:       316,
 				},
 			},
 			abis: map[uint32]*abi{
@@ -839,6 +920,10 @@ var tests = []struct {
 				216: "custom-abi",
 				232: "extra-section",
 				252: "extra",
+				264: "simple-array",
+				280: "\x00\x33\x00\x44",
+				288: "multi-dimensional-array",
+				316: "\x00\x11\x00\x22\x00\x33\x00\x44\x55\x66\x78\x9a",
 			},
 			linkages: map[uint64]*linkage{
 				0: {

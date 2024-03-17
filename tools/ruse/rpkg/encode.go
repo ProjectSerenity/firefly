@@ -236,6 +236,12 @@ func (e *encoder) appendType(b *cryptobyte.Builder, t types.Type) {
 		b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
 			b.AddUint32(e.AddSection(t))
 		})
+	case *types.Array:
+		b.AddUint8(uint8(TypeKindArray))
+		b.AddUint24LengthPrefixed(func(b *cryptobyte.Builder) {
+			b.AddUint64(uint64(t.Length()))
+			b.AddUint64(e.AddType(t.Element()))
+		})
 	default:
 		panic(fmt.Sprintf("AddType(%T): type not supported", t))
 	}
@@ -342,6 +348,19 @@ func (e *encoder) AddConstant(pkg *compiler.Package, con *types.Constant) error 
 			break
 		}
 
+		if a, ok := conType.(*types.Array); ok {
+			kind = SymKindArrayConstant
+			// Encode the value as a string.
+			var b cryptobyte.Builder
+			err := e.appendConstant(&b, val, a)
+			if err != nil {
+				return fmt.Errorf("failed to record the value for constant %s.%s (%#v): %v", pkg.Path, con.Name(), conType, err)
+			}
+
+			value = e.AddString(string(b.BytesOrPanic()))
+			break
+		}
+
 		return fmt.Errorf("failed to record the type for constant %s.%s (%#v)", pkg.Path, con.Name(), conType)
 	}
 
@@ -356,6 +375,66 @@ func (e *encoder) AddConstant(pkg *compiler.Package, con *types.Constant) error 
 
 	e.symbolOffsets[con] = symbolSize * uint64(len(e.symbols))
 	e.symbols = append(e.symbols, sym)
+
+	return nil
+}
+
+// appendConstant writes the given constant value
+// to the builder. If the value is an array, this
+// may lead to recursive calls to appendConstant.
+func (e *encoder) appendConstant(b *cryptobyte.Builder, v constant.Value, t types.Type) error {
+	switch v.Kind() {
+	case constant.Bool:
+		if constant.BoolVal(v) {
+			b.AddUint8(1)
+		} else {
+			b.AddUint8(0)
+		}
+	case constant.Integer:
+		typ := types.Underlying(t)
+		switch typ {
+		case types.Int, types.Int64:
+			val, _ := constant.Int64Val(v)
+			b.AddUint64(uint64(val))
+		case types.Int32:
+			val, _ := constant.Int64Val(v)
+			b.AddUint32(uint32(val))
+		case types.Int16:
+			val, _ := constant.Int64Val(v)
+			b.AddUint16(uint16(val))
+		case types.Int8:
+			val, _ := constant.Int64Val(v)
+			b.AddUint8(uint8(val))
+		case types.Uint, types.Uint64, types.Uintptr:
+			val, _ := constant.Uint64Val(v)
+			b.AddUint64(val)
+		case types.Uint32:
+			val, _ := constant.Uint64Val(v)
+			b.AddUint32(uint32(val))
+		case types.Uint16:
+			val, _ := constant.Uint64Val(v)
+			b.AddUint16(uint16(val))
+		case types.Uint8, types.Byte:
+			val, _ := constant.Uint64Val(v)
+			b.AddUint8(uint8(val))
+		default:
+			return fmt.Errorf("unexpected value kind %s with type %s", v.Kind(), t)
+		}
+	case constant.String:
+		s := constant.StringVal(v)
+		b.AddUint64(e.AddString(s))
+	case constant.Array:
+		values := constant.ArrayVal(v)
+		element := t.(*types.Array).Element()
+		for _, value := range values {
+			err := e.appendConstant(b, value, element)
+			if err != nil {
+				return err
+			}
+		}
+	default:
+		return fmt.Errorf("unexpected value kind %s", v.Kind())
+	}
 
 	return nil
 }

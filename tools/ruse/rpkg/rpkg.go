@@ -137,6 +137,9 @@
 //			ABIOffset     uint32         // The offset into the ABIs section where the ABI begins.
 //		case TypeKindSection:
 //			SectionOffset uint32         // The offset into the sections section where the section begins.
+//		case TypeKindArray:
+//			Length        uint64         // The array length.
+//			Element       uint64         // The offset into the types section where the array's element type begins.
 //		}
 //	}
 //
@@ -456,6 +459,7 @@ const (
 	TypeKindFunction TypeKind = 0x03 // A function signature.
 	TypeKindABI      TypeKind = 0x04 // An ABI.
 	TypeKindSection  TypeKind = 0x05 // A program section.
+	TypeKindArray    TypeKind = 0x06 // An array.
 )
 
 func (k TypeKind) String() string {
@@ -472,6 +476,8 @@ func (k TypeKind) String() string {
 		return "ABI"
 	case TypeKindSection:
 		return "section"
+	case TypeKindArray:
+		return "array"
 	default:
 		return fmt.Sprintf("TypeKind(%d)", k)
 	}
@@ -567,6 +573,10 @@ type typeSplat struct {
 
 	// Section fields.
 	Section uint32 // The offset into the sections section.
+
+	// Array fields.
+	ArrayLength uint64 // The number of elements in the array.
+	Element     uint64 // Teh offset into the types section where the element type begins.
 }
 
 // variable represents a type with
@@ -658,6 +668,13 @@ const (
 	// The Value field is zero, as
 	// the section is stored in the type.
 	SymKindSection SymKind = 0x08
+
+	// An array constant.
+	// The Value field contains an
+	// offset into the strings section,
+	// containing the value as raw
+	// bytes.
+	SymKindArrayConstant SymKind = 0x09
 )
 
 func (k SymKind) String() string {
@@ -680,6 +697,8 @@ func (k SymKind) String() string {
 		return "abi"
 	case SymKindSection:
 		return "section"
+	case SymKindArrayConstant:
+		return "array constant"
 	default:
 		return fmt.Sprintf("SymKind(%d)", k)
 	}

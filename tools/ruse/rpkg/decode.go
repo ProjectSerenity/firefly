@@ -416,6 +416,23 @@ func (d *decoded) decodeTypes(s cryptobyte.String) (types map[uint64]typeSplat, 
 				Length:  uint32(length),
 				Section: offset,
 			}
+		case TypeKindArray:
+			var arrayLength, offset uint64
+			if !rest.ReadUint64(&arrayLength) ||
+				!rest.ReadUint64(&offset) {
+				return nil, fmt.Errorf("invalid type: failed to read %s type kind: %w", TypeKind(kind), io.ErrUnexpectedEOF)
+			}
+
+			if !rest.Empty() {
+				return nil, fmt.Errorf("invalid type: got type kind %s with %d bytes of further data", TypeKind(kind), len(rest))
+			}
+
+			types[here] = typeSplat{
+				Kind:        TypeKind(kind),
+				Length:      uint32(length),
+				ArrayLength: arrayLength,
+				Element:     offset,
+			}
 		default:
 			return nil, fmt.Errorf("invalid type: got unrecognised type kind %d", kind)
 		}
@@ -470,6 +487,10 @@ func (d *decoded) decodeSymbols(s cryptobyte.String) (symbols map[uint64]*symbol
 		case SymKindSection:
 			if sym.Value != 0 {
 				return nil, fmt.Errorf("invalid symbol: %s value %d is not zero", sym.Kind, sym.Value)
+			}
+		case SymKindArrayConstant:
+			if sym.Value > d.header.StringsLength {
+				return nil, fmt.Errorf("invalid symbol: %s value %d is beyond strings section", sym.Kind, sym.Value)
 			}
 		default:
 			return nil, fmt.Errorf("invalid symbol: unrecognised kind %d", sym.Kind)
@@ -1183,6 +1204,23 @@ func (d *Decoder) getTypeFrom(s *cryptobyte.String) (types.Type, error) {
 		}
 
 		return section, nil
+	case TypeKindArray:
+		var length, offset uint64
+		if !rest.ReadUint64(&length) ||
+			!rest.ReadUint64(&offset) {
+			return nil, fmt.Errorf("invalid type: failed to read %s type kind: %w", TypeKind(kind), io.ErrUnexpectedEOF)
+		}
+
+		if !rest.Empty() {
+			return nil, fmt.Errorf("invalid type: got type kind %s with %d bytes of further data", TypeKind(kind), len(rest))
+		}
+
+		element, ok := d.types[offset]
+		if !ok {
+			return nil, fmt.Errorf("invalid type: failed to read %s type kind element: no type information at offset %d", TypeKind(kind), offset)
+		}
+
+		return types.NewArray(uint(length), element), nil
 	default:
 		return nil, fmt.Errorf("invalid type: got unrecognised type kind %d", kind)
 	}
@@ -1286,6 +1324,18 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 			}
 
 			value = nil
+		case SymKindArrayConstant:
+			if rawValue >= d.header.StringsLength {
+				return nil, nil, fmt.Errorf("invalid symbol: %s value %d is beyond strings section", SymKind(kind), rawValue)
+			}
+
+			data, err := d.getString(rawValue)
+			if err != nil {
+				return nil, nil, fmt.Errorf("invalid symbol: invalid %s: %v", SymKind(kind), err)
+			}
+
+			// Decode the data, once we have the type.
+			value = cryptobyte.String(data)
 		default:
 			return nil, nil, fmt.Errorf("invalid symbol: unrecognised kind %d", SymKind(kind))
 		}
@@ -1370,6 +1420,31 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 			}
 
 			object = types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, section, nil)
+		case SymKindArrayConstant:
+			array, ok := symbol.Type.(*types.Array)
+			if !ok {
+				return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with kind %v and unexpected type %#v", symbol.Name, symbol.Kind, symbol.Type)
+			}
+
+			// Parse the data.
+			s := value.(cryptobyte.String)
+			element := array.Element()
+			values := make([]constant.Value, array.Length())
+			for i := range values {
+				v, err := d.decodeConstant(&s, element)
+				if err != nil {
+					return nil, nil, fmt.Errorf("rpkg: found symbol %q with kind %v: failed to decode data: %v", symbol.Name, symbol.Kind, err)
+				}
+
+				values[i] = v
+			}
+
+			if !s.Empty() {
+				return nil, nil, fmt.Errorf("rpkg: unexpected extra data after symbol %q with kind %v", symbol.Name, symbol.Kind)
+			}
+
+			value := constant.MakeArray(array.String(), values)
+			object = types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, array, value)
 		default:
 			return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with unsupported kind: %v", symbol.Name, symbol.Kind)
 		}
@@ -1384,6 +1459,113 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 	d.allObjects = objects
 
 	return result, objects, nil
+}
+
+// decodeConstant reads the given constant value
+// from the string. If the type is an array, this
+// may lead ot recursive calls to decodeConstant.
+func (d *Decoder) decodeConstant(s *cryptobyte.String, t types.Type) (constant.Value, error) {
+	typ := types.Underlying(t)
+	switch typ {
+	case types.Bool, types.UntypedBool:
+		var b uint8
+		if !s.ReadUint8(&b) {
+			return nil, io.EOF
+		}
+
+		if b != 1 && b != 0 {
+			return nil, fmt.Errorf("invalid bool data %#x", b)
+		}
+
+		return constant.MakeBool(b == 1), nil
+	// Integers.
+	case types.Int, types.Int64:
+		var i uint64
+		if !s.ReadUint64(&i) {
+			return nil, io.EOF
+		}
+
+		return constant.MakeInt64(int64(i)), nil
+	case types.Int32:
+		var i uint32
+		if !s.ReadUint32(&i) {
+			return nil, io.EOF
+		}
+
+		return constant.MakeInt64(int64(int32(i))), nil
+	case types.Int16:
+		var i uint16
+		if !s.ReadUint16(&i) {
+			return nil, io.EOF
+		}
+
+		return constant.MakeInt64(int64(int16(i))), nil
+	case types.Int8:
+		var i uint8
+		if !s.ReadUint8(&i) {
+			return nil, io.EOF
+		}
+
+		return constant.MakeInt64(int64(int8(i))), nil
+	case types.Uint, types.Uint64, types.Uintptr:
+		var u uint64
+		if !s.ReadUint64(&u) {
+			return nil, io.EOF
+		}
+
+		return constant.MakeUint64(u), nil
+	case types.Uint32:
+		var u uint32
+		if !s.ReadUint32(&u) {
+			return nil, io.EOF
+		}
+
+		return constant.MakeUint64(uint64(u)), nil
+	case types.Uint16:
+		var u uint16
+		if !s.ReadUint16(&u) {
+			return nil, io.EOF
+		}
+
+		return constant.MakeUint64(uint64(u)), nil
+	case types.Uint8, types.Byte:
+		var u uint8
+		if !s.ReadUint8(&u) {
+			return nil, io.EOF
+		}
+
+		return constant.MakeUint64(uint64(u)), nil
+	// Strings.
+	case types.String, types.UntypedString:
+		var offset uint64
+		if !s.ReadUint64(&offset) {
+			return nil, io.EOF
+		}
+
+		str, err := d.getString(offset)
+		if err != nil {
+			return nil, fmt.Errorf("bad string at offset %d: %v", offset, err)
+		}
+
+		return constant.MakeString(str), nil
+	}
+
+	if array, ok := typ.(*types.Array); ok {
+		values := make([]constant.Value, array.Length())
+		element := array.Element()
+		for i := range values {
+			v, err := d.decodeConstant(s, element)
+			if err != nil {
+				return nil, fmt.Errorf("bad array element %d/%d: %v", i+1, array.Length(), err)
+			}
+
+			values[i] = v
+		}
+
+		return constant.MakeArray(array.String(), values), nil
+	}
+
+	return nil, fmt.Errorf("unexpected constant type %s", t)
 }
 
 // ABIs reads all ABIs in the rpkg, caching
