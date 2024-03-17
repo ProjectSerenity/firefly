@@ -936,6 +936,31 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 				}
 
 				c.record(fun, String, con.value)
+			case "@":
+				// Memory reference; must consist of an
+				// identifier that is bound to a string
+				// or array constant.
+				if len(fun.Elements) != 2 {
+					return c.errorf(fun.Elements[2].Pos(), "%s has too many arguments in reference: expected %d, found %d", name, 1, len(fun.Elements)-1)
+				}
+
+				arg := fun.Elements[1]
+				obj, typ, err := c.ResolveExpression(scope, arg)
+				if err != nil {
+					return err
+				}
+
+				underlying := Underlying(typ)
+				if _, isArray := underlying.(*Array); !isArray && underlying != String && underlying != UntypedString {
+					return c.errorf(arg.Pos(), "%s has invalid argument: %s (%s) for reference", name, arg.Print(), typ)
+				}
+
+				con, ok := obj.(*Constant)
+				if !ok {
+					return c.errorf(arg.Pos(), "%s has invalid argument: %s (non-constant reference)", name, arg.Print())
+				}
+
+				c.record(fun, typ, con.value)
 			default:
 				// Ignore unrecognised syntax.
 				continue

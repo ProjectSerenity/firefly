@@ -973,7 +973,7 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, operand *x86.Operand) an
 
 	ref := ident.Name
 	switch ref {
-	case "func", "string-pointer":
+	case "func", "string-pointer", "@":
 		// This must be an immediate with
 		// enough space for a pointer, or
 		// a relative address with plenty
@@ -1046,6 +1046,19 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, operand *x86.Operand) an
 			typ := types.Underlying(con.Type())
 			if typ != types.String && typ != types.UntypedString {
 				panic(ctx.Errorf(ident.NamePos, "cannot use %s (%s) as string constant in symbol reference", con, con.Type()))
+			}
+		case "@":
+			con, ok := obj.(*types.Constant)
+			if !ok {
+				panic(ctx.Errorf(ident.NamePos, "cannot take the address of %s in symbol reference", obj))
+			}
+
+			val := con.Value()
+			kind := val.Kind()
+			switch kind {
+			case constant.String, constant.Array:
+			default:
+				panic(ctx.Errorf(ident.NamePos, "cannot take the address of %s in symbol reference", kind))
 			}
 		}
 
