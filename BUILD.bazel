@@ -4,6 +4,8 @@
 # license that can be found in the LICENSE file.
 
 load("@rules_go//go:def.bzl", "nogo")
+load("//bazel:qemu.bzl", "qemu")
+load("//tools/bootimage:defs.bzl", "disk_image")
 
 # Expose the license to the rest of the workspace.
 exports_files(
@@ -34,4 +36,62 @@ nogo(
         "@org_golang_x_tools//go/analysis/passes/structtag",
         "@org_golang_x_tools//go/analysis/passes/unsafeptr",
     ],
+)
+
+disk_image(
+    name = "image",
+    out = "image.bin",
+    bootloader = "//bootloader",
+    visibility = ["//visibility:public"],
+)
+
+qemu(
+    name = "qemu",
+    image = ":image",
+    options = [
+        "-serial",
+        "stdio",
+        "-display",
+        "none",
+        "-no-reboot",
+        "-cpu",
+        "Skylake-Server",
+        "-device",
+        "isa-debug-exit,iobase=0xf4,iosize=0x04",
+    ],
+    qemu = "qemu-system-i386",
+)
+
+qemu(
+    name = "qemu-gdb",
+    image = ":image",
+    options = [
+        "-serial",
+        "stdio",
+        "-display",
+        "none",
+        "-no-reboot",
+        "-cpu",
+        "Skylake-Server",
+        "-device",
+        "isa-debug-exit,iobase=0xf4,iosize=0x04",
+        "-s",
+        "-S",
+    ],
+    qemu = "qemu-system-i386",
+)
+
+qemu(
+    name = "qemu-display",
+    image = ":image",
+    options = [
+        "-serial",
+        "stdio",
+        "-no-reboot",
+        "-cpu",
+        "Skylake-Server",
+        "-device",
+        "isa-debug-exit,iobase=0xf4,iosize=0x04",
+    ],
+    qemu = "qemu-system-i386",
 )
