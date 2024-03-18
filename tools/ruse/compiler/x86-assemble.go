@@ -985,7 +985,7 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, operand *x86.Operand) an
 		case x86.EncodingImmediate:
 			size = ctx.Mode.Int
 			linkType = ssafir.LinkFullAddress
-			if operand.Bits != int(ctx.Mode.Int) {
+			if operand.Bits < int(ctx.Mode.Int) {
 				return nil
 			}
 		case x86.EncodingCodeOffset:
