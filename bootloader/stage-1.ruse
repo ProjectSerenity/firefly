@@ -1,0 +1,385 @@
+; Copyright 2024 The Firefly Authors.
+;
+; Use of this source code is governed by a BSD 3-clause
+; license that can be found in the LICENSE file.
+
+'(sections
+	boot-stage-1
+	boot-stage-2)
+(package main)
+
+; This is the first stage of the bootloader, which
+; starts in 16-bit real mode. We initialise the stack,
+; enable the A20 line, load the rest of the bootloader
+; from disk, and jump to stage 2.
+
+(let boot-stage-1 (section
+	(name "boot-stage-1")
+	(fixed-address 0x7c00)
+	(permissions r_x)))
+
+; main is the entry point for the bootloader.
+;
+; We start in 16-bit real mode. We begin by
+; preparing the registers and the stack.
+;
+'(arch x86-64)
+'(mode 16)
+'(section boot-stage-1)
+(asm-func (main)
+	; Zero the segment registers.
+	(xor ax ax)
+	(mov ds ax)
+	(mov es ax)
+	(mov ss ax)
+	(mov fs ax)
+	(mov gs ax)
+
+	; Initialise the stack.
+	(mov sp 0x7c00)
+
+	; Print a debug message.
+	(mov cx (len stage-1-debug-msg))
+	(mov si (string-pointer stage-1-debug-msg))
+	(call (@ real-mode-print))
+
+	; Enable the A20 line via IO port 0x92.
+	; This may not work on some motherboards,
+	; but SeaBIOS is fine with it, which is
+	; the main thing for now.
+	(in al 0x92)
+	(test al 2)
+	(jnz 'a20-enabled)
+	(or al 2)
+	(and al 0xfe)
+	(out 0x92 al)
+
+	'a20-enabled
+
+	; Enter protected mode.
+	(cli)        ; Clear interrupts.
+	(push ds)
+	(push es)
+
+	; Populate the address
+	; of the global descriptor
+	; table header.
+	(mov cx (@ global-descriptor-table))
+	(mov bx (@ global-descriptor-table-header))
+	(mov (+ bx 2) cx) ; Copy the address of the table to the final 2 bytes of the header.
+
+	; Load the global descriptor table.
+	(lgdt (bx))
+
+	; Enable and start protected mode.
+	(mov eax cr0)
+	(or al 1)     ; Set the protected mode bit.
+	(mov cr0 eax)
+
+	(jmp 'protected-mode-setup) ; Jump to force the processor to recognise protected mode.
+
+	'protected-mode-setup
+
+	; Set the data and extra segments.
+	(mov bx 0x10)
+	(mov ds bx)
+	(mov es bx)
+
+	(and al 0xfe) ; Clear the protected mode bit.
+	(mov cr0 eax)
+
+	; We're now in unreal mode (16-bit
+	; real mode, but with protected mode
+	; ready). We start by restoring our
+	; data and extra segments.
+	(pop es)
+	(pop ds)
+	(sti)       ; Set interrupts.
+
+	; We're back in real mode, but the
+	; internal data segment regsiter is
+	; still loaded with the GDT segment,
+	; so we can access the full 4 GiB of
+	; memory.
+	(mov bx 0x0f01)   ; The attributes and character for a smiley.
+	(mov eax 0xb8f00) ; Note the 32-bit offset.
+	(mov (ds eax) bx) ; Print the smiley to the VGA display.
+
+	; Check that the BIOS supports extensions
+	; using interrupt 0x13.
+	(mov ah 0x41)
+	(mov bx 0x55aa)
+	; dl already has the boot drive number.
+	(int 0x13)
+	(jnc 'int-0x13-extensions-ok)
+
+	; The extensions aren't supported.
+	; Print an error.
+	(mov cx (len no-int-0x13))
+	(mov si (string-pointer no-int-0x13))
+	(call (@ real-mode-print))
+	; Exit.
+	(mov ax 0x11)
+	(out 0xf4 ax)
+	; Fallback busy loop.
+	'no-int-0x13-loop
+	(jmp 'no-int-0x13-loop)
+
+	'int-0x13-extensions-ok
+
+	(mov eax (@ load-bootloader-from-disk))
+	(jmp eax))
+
+; Load the rest of the bootloader
+; from disk. We copy the rest to
+; address 0x7e00, which is exactly
+; 512 bytes (1 sector) after stage
+; 1.
+;
+; We use logical block addressing
+; (LBA) to copy data address packet
+; (DAP) structures. Address 0x500
+; is guaranteed not to be used by
+; the BIOS and it's far away from
+; our stack, so that's what we'll
+; use.
+;
+; The DAP layout is as follows:
+;
+; 	Offset   Size  Description
+; 	   0      1    Size of packet (16 bytes).
+; 	   1      1    Always zero.
+; 	   2      2    Number of sectors to transfer (max 127 on some BIOSes).
+; 	   4      4    Transfer buffer (16-bit segment:16-bit offset).
+; 	   8      4    Lower 32 bits of 48-bit starting LBA.
+; 	  12      4    Upper 16 bits of 48-bit starting LBA.
+'(arch x86-64)
+'(mode 16)
+'(section boot-stage-1)
+(asm-func (load-bootloader-from-disk)
+	(xor ecx ecx)                  ; Set the initial offset of zero.
+	(mov esi 0x500)                ; Address of the DAP.
+	(mov '(bits 32)(esi) ecx)      ; Zero the first quarter of the packet.
+	(mov '(bits 32)(+ esi 4) ecx)  ; Zero the second quarter of the packet.
+	(mov '(bits 32)(+ esi 8) ecx ) ; Zero the third quarter of the packet.
+	(mov '(bits 32)(+ esi 12) ecx) ; Zero the fourth quarter of the packet.
+	(mov '(bits 8)(esi) 16)        ; Set the DAP packet size.
+
+	; In the bootimage tool, we write
+	; the address of the end of the
+	; bootloader in the 4 bytes before
+	; the MBR magic in the first sector.
+	;
+	; By now, this will be address 0x7dfa.
+	; We pull this out of memory and store
+	; it in EBP so we can determine when
+	; we have copied the rest of the
+	; bootloader.
+	(mov eax 0x7dfa)
+	(mov ebp (eax))
+
+	'load-from-disk
+
+	(mov eax 0x7e00 )       ; Start of the rest of the bootloader.
+	(add eax ecx)           ; Skip over what we've copied already.
+
+	; Prepare the packet segment.
+	(mov ebx eax)
+	(shr ebx 4)             ; Divide by 16.
+	(mov (+ esi 6) bx)      ; Set the segment.
+
+	; Prepare the packet offset.
+	(shl ebx 4)             ; Multiply by 16.
+	(sub eax ebx)           ; EAX now just has the remainder.
+	(mov (+ esi 4) ax)      ; Set the offset.
+
+	(mov eax 0x7e00)        ; Start of the rest of the bootloader.
+	(add eax ecx)           ; Skip over what we've copied already.
+
+	; Set the number of blocks to load.
+	(mov ebx ebp)           ; Load the bootloader's end address.
+	(sub ebx eax)           ; Determine the number of bytes.
+	(jz 'load-from-disk-ok) ; Stop if we've copied everything.
+	(shr ebx 9)             ; Divide by 512 (block size).
+	(cmp ebx 127)
+	(jle 'copy-from-disk)
+	(mov ebx 127)           ; Cap the number of blocks at 127.
+	'copy-from-disk
+	(mov (+ esi 2) bx)      ; Set the number of blocks.
+
+	; Increment the number of bytes copied.
+	(shl ebx 9)             ; Multiply by 512 (block size).
+	(add ecx ebx)
+
+	; Set the block number to copy from.
+	(mov ebx 0x7c00)        ; The start of stage 1.
+	(sub eax ebx)           ; Set EAX to the disk offset in bytes.
+	(shr eax 9)             ; Divide by 512 (block size).
+	(mov (+ esi 8) eax)     ; Set the logical block address.
+
+	; Do the read.
+	(mov ah 0x42)           ; Read.
+	(int 0x13)
+	(jnc 'load-from-disk)   ; Continue to the next block.
+
+	; The read failed.
+	; Print an error.
+	(mov cx (len failed-to-load-bootloader))
+	(mov si (string-pointer failed-to-load-bootloader))
+	(call (@ real-mode-print))
+	; Exit.
+	(mov ax 0x11)
+	(out 0xf4 ax)
+	; Fallback busy loop.
+	'failed-to-load-bootloader-loop
+	(jmp 'failed-to-load-bootloader-loop)
+
+	'load-from-disk-ok
+
+	; Reset the break pointer and jump
+	; to stage 2.
+	(xor eax eax)
+	(mov ebp eax)
+	(mov eax (@ stage-2))
+	(jmp eax))
+
+; real-mode-print-char prints a single character
+; in the al 8-bit register. Note that this will
+; only work in 16-bit real mode.
+'(abi (abi
+	(params al)
+	(scratch ax)))
+'(arch x86-64)
+'(mode 16)
+'(section boot-stage-1)
+(asm-func (real-mode-print-char (char uint8))
+	(push dx)   ; Save dx.
+	(xor dx dx) ; Set dx to 0 (serial port COM1).
+	(mov ah 1)  ; Transmit.
+	(int 0x14)  ; Serial port services.
+	(pop dx)    ; Restore dx.
+
+	(ret))
+
+; real-mode-print prints a string. Note that this
+; will only work in 16-bit real mode.
+'(abi (abi
+	(params cx si)
+	(scratch ax)))
+'(arch x86-64)
+'(mode 16)
+'(section boot-stage-1)
+(asm-func (real-mode-print (s string))
+	(cld) ; Ensure we scan through the string forwards.
+
+	'real-mode-print-loop
+
+	; Read and print the next byte.
+	(lodsb)  ; Read the next byte from *SI into AL.
+	(call (@ real-mode-print-char))
+
+	; Decrement the string length and
+	; continue if there's more to print.
+	(dec cx)
+	(jnz 'real-mode-print-loop)
+
+	(ret))
+
+; This string is printed early in stage 1,
+; so we need it to be in the same section.
+'(section boot-stage-1)
+(let stage-1-debug-msg "Booting (first stage)...\r\n")
+
+; This string is printed if the BIOS doesn't
+; seem to support extensions with interrupt
+; 0x13.
+'(section boot-stage-1)
+(let no-int-0x13 "Boot error: int 0x13 not supported.\r\n")
+
+; This string is printed if we fail to use
+; the BIOS's LBA extension to read the bootloader
+; from disk.
+'(section boot-stage-1)
+(let failed-to-load-bootloader "Boot error: failed to load bootloader from disk.\r\n")
+
+; This is our initial global descriptor table contents.
+; As we plan to go to 64-bit long mode as quickly as
+; possible, we don't make much use of segmentation.
+; Therefore, we just set up one code and one data
+; segment, with linear addressing.
+;
+; Descriptors are 8 bytes long and contain four fields:
+; - Base address (32 bits)
+; - Segment limit (20 bits)
+; - Flags (4 bits)
+; - Access byte (8 bits)
+;
+; However, these are not encoded sequentially. Instead,
+; the base address and segment limit fields are split
+; into parts as follows:
+;
+; 	  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
+; 	|------------------------------------------------|
+; 	|                 Limit bits 0-15                |
+; 	|------------------------------------------------|
+; 	|                 Base bits 0-15                 |
+; 	|------------------------------------------------|
+; 	|    Base bits 16-23     |      Access byte      |
+; 	|------------------------------------------------|
+; 	|    Flags   |   Limit   |    Base bits 24-31    |
+; 	|------------------------------------------------|
+;
+; We use three descriptors:
+; - The null descriptor (all zeros)
+; - Kernel code descriptor:
+;   - Base address: 0x00_00_00_00
+;   - Segment limit: 0xff_ff_f
+;   - Flags: 0b1100 (G=1, DB=1, L=0, _=0)
+;   - Access byte: 0b1001_1010 (P=1, DPL=00, S=1, E=1, DC=0, RW=1, A=0)
+; - Kernel data descriptor:
+;   - Base address: 0x00_00_00_00
+;   - Segment limit: 0xff_ff_f
+;   - Flags: 0b1100 (G=1, DB=1, L=0, _=0)
+;   - Access byte: 0b1001_0010 (P=1, DPL=00, S=1, E=0, DC=0, RW=1, A=0)
+'(section boot-stage-1)
+(let global-descriptor-table
+	(array/array/8/byte
+		; The null descriptor.
+		(array/byte
+			0x00 0x00      ; Limit bits 0-15.
+			0x00 0x00 0x00 ; Base bits 0-23.
+			0b0000_0000    ; Access byte.
+			0b0000_0000    ; Flags and limit bits 16-19.
+			0x00)          ; Base bits 24-31.
+		; Kernel code descriptor.
+		(array/byte
+			0xff 0xff      ; Limit bits 0-15.
+			0x00 0x00 0x00 ; Base bits 0-23.
+			0b1001_1010    ; Access byte.
+			0b1100_1111    ; Flags and limit bits 16-19.
+			0x00)          ; Base bits 24-31.
+		; Kernel data descriptor.
+		(array/byte
+			0xff 0xff      ; Limit bits 0-15.
+			0x00 0x00 0x00 ; Base bits 0-23.
+			0b1001_0010    ; Access byte.
+			0b1100_1111    ; Flags and limit bits 16-19.
+			0x00)))        ; Base bits 24-31.
+
+; This is our global descriptor table header,
+; which points to the table entries above.
+;
+; The table consists of a 32-bit pointer to
+; the first table entry and a 16-bit size of
+; the table in bytes. Note that the size is
+; actually one smaller than the actual size,
+; as the table size is in the range 1-2**16.
+;
+; As we're describing this as an array, we
+; make it of bytes. We set the address of
+; the table entries in assembly anyway.
+'(section boot-stage-1)
+(let global-descriptor-table-header
+	(array/byte
+		0 23      ; Size-1.
+		0 0 0 0)) ; Address.

@@ -1,0 +1,43 @@
+; Copyright 2024 The Firefly Authors.
+;
+; Use of this source code is governed by a BSD 3-clause
+; license that can be found in the LICENSE file.
+
+(package main)
+
+; This is the second stage of the bootloader, which
+; starts in 16-bit real mode, loads the kernel from
+; disk, creates an e820 memory map, enters protected
+; mode, and jumps to the third stage.
+
+(let boot-stage-2 (section
+	(name "boot-stage-2")
+	(fixed-address 0x7e00) ; Immediately after the padded stage 1 (max 512 bytes).
+	(permissions r_x)))
+
+; stage-2 is the code started by the stage-1 loader,
+; once it has copied the rest of the bootloader into
+; memory.
+;
+; We start in 16-bit real mode.
+'(arch x86-64)
+'(mode 16)
+'(section boot-stage-2)
+(asm-func (stage-2)
+	; Print a debug message.
+	(mov cx (len stage-2-debug-msg))
+	(mov si (string-pointer stage-2-debug-msg))
+	(call (@ real-mode-print))
+
+	; Exit.
+	(mov ax 0x11)
+	(out 0xf4 ax)
+
+	; Busy loop.
+	'loop
+	(jmp 'loop))
+
+; This string is printed early in stage 1,
+; so we need it to be in the same section.
+'(section boot-stage-2)
+(let stage-2-debug-msg "Booting (second stage)...\r\n")
