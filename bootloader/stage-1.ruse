@@ -76,10 +76,15 @@
 	(or al 1)     ; Set the protected mode bit.
 	(mov cr0 eax)
 
-	(jmp 'protected-mode-setup) ; Jump to force the processor to recognise protected mode.
+	(jmp (@ protected-mode-setup))) ; Jump to force the processor to recognise protected mode.
 
-	'protected-mode-setup
-
+; Set up the protected mode handling, which
+; needs to start with a jump to force the
+; processor to recognised the new CPU mode.
+'(arch x86-64)
+'(mode 16)
+'(section boot-stage-1)
+(asm-func (protected-mode-setup)
 	; Set the data and extra segments.
 	(mov bx 0x10)
 	(mov ds bx)
@@ -127,8 +132,7 @@
 
 	'int-0x13-extensions-ok
 
-	(mov eax (@ load-bootloader-from-disk))
-	(jmp eax))
+	(jmp (@ load-bootloader-from-disk)))
 
 ; Load the rest of the bootloader
 ; from disk. We copy the rest to
@@ -240,8 +244,7 @@
 	; to stage 2.
 	(xor eax eax)
 	(mov ebp eax)
-	(mov eax (@ stage-2))
-	(jmp eax))
+	(jmp (@ stage-2)))
 
 ; real-mode-print-char prints a single character
 ; in the al 8-bit register. Note that this will
