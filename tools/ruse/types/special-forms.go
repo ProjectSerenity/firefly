@@ -7,6 +7,7 @@ package types
 
 import (
 	"fmt"
+	"strings"
 
 	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/constant"
@@ -42,6 +43,7 @@ const (
 	SpecialFormLen
 	SpecialFormLet
 	SpecialFormSection
+	SpecialFormSizeOf
 
 	// Arithmetic forms.
 	SpecialFormAdd
@@ -66,6 +68,8 @@ func (id SpecialFormID) String() string {
 		return "let"
 	case SpecialFormSection:
 		return "section"
+	case SpecialFormSizeOf:
+		return "size-of"
 	case SpecialFormAdd:
 		return "+"
 	case SpecialFormSubtract:
@@ -87,6 +91,7 @@ var specialForms = [...]*SpecialForm{
 	SpecialFormLen:     {},
 	SpecialFormLet:     {},
 	SpecialFormSection: {},
+	SpecialFormSizeOf:  {},
 
 	// Arithmetic forms.
 	SpecialFormAdd:      {},
@@ -375,6 +380,62 @@ func defPredeclaredSpecialForms() {
 		}
 
 		return nil, section, nil
+	}
+
+	specialFormTypes[SpecialFormSizeOf] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+		// Return the size of a specified type
+		// as an unsigned integer.
+		if len(fun.Elements[1:]) != 1 {
+			return nil, nil, c.errorf(fun.ParenClose, "too many arguments in call to size-of: expected %d, found %d", 1, len(fun.Elements[1:]))
+		}
+
+		arg := fun.Elements[1]
+		typeName, ok := arg.(*ast.Identifier)
+		if !ok {
+			return nil, nil, c.errorf(arg.Pos(), "invalid type: want an identifier, found %s", arg)
+		}
+
+		// Try array types first, as they're a little different.
+		if strings.HasPrefix(typeName.Name, "array/") {
+			_, typ, err = c.checkArrayType(scope, typeName, -1)
+			if err != nil {
+				return nil, nil, c.errorf(typeName.NamePos, "%v", err)
+			}
+		}
+
+		if typ == nil {
+			_, obj := scope.LookupParent(typeName.Name, token.NoPos)
+			if obj == nil {
+				return nil, nil, c.errorf(typeName.NamePos, "undefined type: %s", typeName.Name)
+			}
+
+			c.use(typeName, obj)
+			typ = obj.Type()
+		}
+
+		if typ == nil {
+			return nil, nil, c.errorf(typeName.NamePos, "undefined type: %s", typeName.Name)
+		}
+
+		c.record(typeName, typ, nil)
+
+		sizes := SizesFor(c.arch)
+		size := sizes.SizeOf(typ)
+
+		sig = &Signature{
+			name: "len",
+			params: []*Variable{
+				NewParameter(nil, arg.Pos(), arg.End(), nil, "t", typ),
+			},
+			result: UntypedInt,
+		}
+
+		value := constant.MakeInt64(int64(size))
+
+		c.record(fun, sig.result, value)
+		c.record(fun.Elements[0], sig, nil)
+
+		return sig, sig, nil
 	}
 
 	// Arithmetic forms.
