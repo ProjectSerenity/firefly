@@ -216,7 +216,8 @@ func TestCheck(t *testing.T) {
 						name: "INFERRED-STRING",
 						typ:  UntypedString,
 					},
-					value: constant.MakeString("string 1"),
+					value:     constant.MakeString("string 1"),
+					alignment: 1,
 				})
 
 				pkg.scope.Insert(&Constant{
@@ -227,7 +228,8 @@ func TestCheck(t *testing.T) {
 						name: "InferredInt",
 						typ:  UntypedInt,
 					},
-					value: constant.MakeInt64(123),
+					value:     constant.MakeInt64(123),
+					alignment: 1,
 				})
 
 				pkg.scope.Insert(&Constant{
@@ -238,7 +240,8 @@ func TestCheck(t *testing.T) {
 						name: "big",
 						typ:  Uint64,
 					},
-					value: constant.MakeUint64(1),
+					value:     constant.MakeUint64(1),
+					alignment: 1,
 				})
 
 				pkg.scope.Insert(&Constant{
@@ -249,7 +252,8 @@ func TestCheck(t *testing.T) {
 						name: "NAMED",
 						typ:  String,
 					},
-					value: constant.MakeString("string 2"),
+					value:     constant.MakeString("string 2"),
+					alignment: 1,
 				})
 
 				pkg.scope.Insert(&Constant{
@@ -260,7 +264,8 @@ func TestCheck(t *testing.T) {
 						name: "SMALL",
 						typ:  Int8,
 					},
-					value: constant.MakeInt64(-127),
+					value:     constant.MakeInt64(-127),
+					alignment: 1,
 				})
 
 				pkg.scope.Insert(&Constant{
@@ -271,7 +276,8 @@ func TestCheck(t *testing.T) {
 						name: "derived",
 						typ:  Int,
 					},
-					value: constant.MakeInt64(3),
+					value:     constant.MakeInt64(3),
+					alignment: 1,
 				})
 
 				pkg.scope.Insert(&Constant{
@@ -289,6 +295,7 @@ func TestCheck(t *testing.T) {
 							((0xff - 250) - 2) +
 							((2 * 3) * 4) +
 							((12 / 6) / 2)),
+					alignment: 1,
 				})
 
 				pkg.scope.Insert(&Constant{
@@ -299,7 +306,8 @@ func TestCheck(t *testing.T) {
 						name: "compound-string",
 						typ:  String,
 					},
-					value: constant.Operation(constant.OpAdd, constant.MakeString("string 2"), constant.MakeString("foo")),
+					value:     constant.Operation(constant.OpAdd, constant.MakeString("string 2"), constant.MakeString("foo")),
+					alignment: 1,
 				})
 
 				pkg.scope.Insert(&Constant{
@@ -310,7 +318,8 @@ func TestCheck(t *testing.T) {
 						name: "typecast",
 						typ:  Int64,
 					},
-					value: constant.MakeInt64(1),
+					value:     constant.MakeInt64(1),
+					alignment: 1,
 				})
 
 				pkg.scope.Insert(&Constant{
@@ -330,6 +339,7 @@ func TestCheck(t *testing.T) {
 						constant.MakeString("foobar"),
 						constant.MakeString("baz"),
 					}),
+					alignment: 1,
 				})
 
 				pkg.scope.Insert(&Constant{
@@ -340,7 +350,8 @@ func TestCheck(t *testing.T) {
 						name: "strings-length",
 						typ:  Int,
 					},
-					value: constant.MakeInt64(4),
+					value:     constant.MakeInt64(4),
+					alignment: 1,
 				})
 
 				pkg.scope.Insert(&Constant{
@@ -351,7 +362,8 @@ func TestCheck(t *testing.T) {
 						name: "second",
 						typ:  String,
 					},
-					value: constant.MakeString("bar"),
+					value:     constant.MakeString("bar"),
+					alignment: 1,
 				})
 
 				return pkg
@@ -375,7 +387,7 @@ func TestCheck(t *testing.T) {
 				file0.readonly = true
 
 				fun1Scope := NewScope(file0, 93, 109, "function nullary-function")
-				fun1Scope.Insert(NewConstant(fun1Scope, 108, 109, pkg, "_", Int8, constant.MakeInt64(0)))
+				fun1Scope.Insert(NewConstant(fun1Scope, 108, 109, pkg, "_", Int8, constant.MakeInt64(0), 1))
 				pkg.scope.Insert(&Function{
 					object: object{
 						pos:  67,
@@ -387,6 +399,7 @@ func TestCheck(t *testing.T) {
 							params: []*Variable{},
 						},
 					},
+					alignment: 1,
 				})
 
 				fun2Scope := NewScope(file0, 145, 154, "function unary-function")
@@ -404,6 +417,7 @@ func TestCheck(t *testing.T) {
 							params: []*Variable{param1},
 						},
 					},
+					alignment: 1,
 				})
 
 				fun3Scope := NewScope(file0, 203, 237, "function binary-function")
@@ -423,6 +437,7 @@ func TestCheck(t *testing.T) {
 							params: []*Variable{param1, param2},
 						},
 					},
+					alignment: 1,
 				})
 
 				fun4Scope := NewScope(file0, 268, 275, "function add1")
@@ -440,6 +455,7 @@ func TestCheck(t *testing.T) {
 							result: Int8,
 						},
 					},
+					alignment: 1,
 				})
 
 				invertedStack := &ast.Identifier{NamePos: 0, Name: "false"}
@@ -479,6 +495,7 @@ func TestCheck(t *testing.T) {
 						name: "system-v",
 						typ:  abi,
 					},
+					alignment: 1,
 				})
 
 				fun5Scope := NewScope(file0, 504, 519, "function product")
@@ -498,7 +515,8 @@ func TestCheck(t *testing.T) {
 							result: Uint64,
 						},
 					},
-					abi: abi.abi,
+					abi:       abi.abi,
+					alignment: 1,
 				})
 
 				// Check that we correctly handle an untyped
@@ -519,6 +537,7 @@ func TestCheck(t *testing.T) {
 							result: Int,
 						},
 					},
+					alignment: 1,
 				})
 
 				return pkg
@@ -571,6 +590,7 @@ func TestCheck(t *testing.T) {
 						name: "syscall",
 						typ:  abi,
 					},
+					alignment: 1,
 				})
 
 				funcScope := NewScope(file0, 246, 255, "function syscall6")
@@ -600,7 +620,8 @@ func TestCheck(t *testing.T) {
 							result: Uintptr,
 						},
 					},
-					abi: abi.abi,
+					abi:       abi.abi,
+					alignment: 1,
 				})
 
 				return pkg

@@ -543,7 +543,7 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 			if s, ok := v.Extra.(string); ok {
 				switch i {
 				case 0:
-					con := types.NewConstant(nil, v.Pos, v.End, nil, "", v.Type, constant.MakeString(s))
+					con := types.NewConstant(nil, v.Pos, v.End, nil, "", v.Type, constant.MakeString(s), 1)
 					a.pkg.Literals = append(a.pkg.Literals, con)
 					a.addAlloc(v, &Alloc{Dst: loc, Data: s})
 				case 1:

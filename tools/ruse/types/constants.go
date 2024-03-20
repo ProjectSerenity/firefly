@@ -16,13 +16,14 @@ import (
 // declared at compile time.
 type Constant struct {
 	object
-	value   constant.Value
-	section string // Optional symbol to the section.
+	value     constant.Value
+	alignment int    // Optional symbol alignment.
+	section   string // Optional symbol to the section.
 }
 
 var _ Object = (*Constant)(nil)
 
-func NewConstant(scope *Scope, pos, end token.Pos, pkg *Package, name string, typ Type, value constant.Value) *Constant {
+func NewConstant(scope *Scope, pos, end token.Pos, pkg *Package, name string, typ Type, value constant.Value, alignment int) *Constant {
 	return &Constant{
 		object: object{
 			parent: scope,
@@ -32,7 +33,8 @@ func NewConstant(scope *Scope, pos, end token.Pos, pkg *Package, name string, ty
 			name:   name,
 			typ:    typ,
 		},
-		value: value,
+		value:     value,
+		alignment: alignment,
 	}
 }
 
@@ -42,6 +44,10 @@ func (c *Constant) String() string {
 
 func (c *Constant) Value() constant.Value {
 	return c.value
+}
+
+func (c *Constant) Alignment() int {
+	return c.alignment
 }
 
 func (c *Constant) Section() string {

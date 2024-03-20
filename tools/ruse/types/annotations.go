@@ -112,6 +112,22 @@ func (c *checker) checkAnnotationABI(list, anno *ast.List) error {
 	return nil
 }
 
+// Allow an alignment constraint.
+func (c *checker) checkAnnotationAlign(list, anno *ast.List) error {
+	abi, err := c.listElement1(anno, "alignment annotation", "alignment")
+	if err != nil {
+		return err
+	}
+
+	switch x := abi.(type) {
+	case *ast.Literal: // A literal alignment value, which we check more later.
+	default:
+		return c.errorf(abi.Pos(), "invalid alignment annotation: got alignment declaration %s, want value", x.Print())
+	}
+
+	return nil
+}
+
 // Allow one or more architectures.
 func (c *checker) checkAnnotationArchitecture(list, anno *ast.List) error {
 	for _, x := range anno.Elements[1:] {
@@ -198,6 +214,8 @@ func (c *checker) checkAnnotationAsmFunc(list *ast.List) error {
 		switch keyword.Name {
 		case "abi":
 			return c.checkAnnotationABI(list, anno)
+		case "align":
+			return c.checkAnnotationAlign(list, anno)
 		case "arch":
 			return c.checkAnnotationArchitecture(list, anno)
 		case "mode":
@@ -308,6 +326,8 @@ func (c *checker) checkAnnotationFunc(list *ast.List) error {
 		switch keyword.Name {
 		case "abi":
 			return c.checkAnnotationABI(list, anno)
+		case "align":
+			return c.checkAnnotationAlign(list, anno)
 		case "arch":
 			return c.checkAnnotationArchitecture(list, anno)
 		case "section":
@@ -439,6 +459,8 @@ func (c *checker) CheckAnnotations(files []*ast.File) error {
 				// We do have some annotations on the let expression.
 				err := c.iterAnnotations(list, func(list, anno *ast.List, keyword *ast.Identifier) error {
 					switch keyword.Name {
+					case "align":
+						return c.checkAnnotationAlign(list, anno)
 					case "arch":
 						return c.checkAnnotationArchitecture(list, anno)
 					case "section":

@@ -567,6 +567,40 @@ func (c *checker) checkArchitectures(anno *ast.QuotedList) (ok bool, err error) 
 }
 
 func (c *checker) checkFuncSignature(parent *Scope, fun *ast.List) error {
+	// Handle any common annotations.
+	alignment := 1
+	for _, anno := range fun.Annotations {
+		kind := anno.X.Elements[0].(*ast.Identifier) // Enforced by the parser.
+		switch kind.Name {
+		case "align":
+			// We expect a single uint32.
+			if len(anno.X.Elements) != 2 {
+				return c.errorf(anno.X.ParenOpen, "invalid alignment annotation: must specify one alignment value, got %d arguments", len(anno.X.Elements)-1)
+			}
+
+			alignElt := anno.X.Elements[1]
+			lit, ok := alignElt.(*ast.Literal)
+			if !ok || lit.Kind != token.Integer {
+				return c.errorf(alignElt.Pos(), "invalid alignment annotation: must specify one alignment value, got %s", alignElt)
+			}
+
+			val, err := strconv.ParseUint(lit.Value, 0, 32)
+			if err != nil {
+				return c.errorf(lit.ValuePos, "invalid alignment annotation: %v", err)
+			}
+
+			if val == 0 {
+				return c.errorf(alignElt.Pos(), "invalid alignment annotation: invalid alignment %s", lit.Value)
+			}
+
+			if alignment != 1 {
+				return c.errorf(lit.ValuePos, "cannot specify alignment more than once")
+			}
+
+			alignment = int(val)
+		}
+	}
+
 	// Unpack the declaration.
 	decl, ok := fun.Elements[1].(*ast.List)
 	if !ok {
@@ -638,7 +672,7 @@ func (c *checker) checkFuncSignature(parent *Scope, fun *ast.List) error {
 
 	signature := NewSignature(buf.String(), paramTypes, resultType)
 	c.newType(signature)
-	function := NewFunction(parent, fun.ParenOpen, fun.ParenClose, c.pkg, name.Name, signature)
+	function := NewFunction(parent, fun.ParenOpen, fun.ParenClose, c.pkg, name.Name, signature, alignment)
 	c.sigs[fun.ParenOpen] = signature
 	c.funcs[fun.ParenOpen] = function
 	c.names[fun.ParenOpen] = "function " + name.Name
@@ -686,6 +720,8 @@ func (c *checker) CheckTopLevelAsmFuncDecl(parent *Scope, fun *ast.List) error {
 			}
 
 			seenABI = true
+		case "align":
+			// We handle this in checkFuncSignature.
 		case "arch":
 			// Check that this matches the target architecture.
 			archOk, err := c.checkArchitectures(anno)
@@ -747,6 +783,8 @@ func (c *checker) CheckTopLevelFuncDecl(parent *Scope, fun *ast.List) error {
 			}
 
 			seenABI = true
+		case "align":
+			// We handle this in checkFuncSignature.
 		case "arch":
 			// Check that this matches the target architecture.
 			archOk, err := c.checkArchitectures(anno)
@@ -1166,7 +1204,7 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 					return nil, typ, nil
 				}
 
-				fun := NewFunction(nil, x.ParenOpen, x.ParenClose, nil, form.Name(), signature)
+				fun := NewFunction(nil, x.ParenOpen, x.ParenClose, nil, form.Name(), signature, 1)
 
 				c.use(name, form)
 				c.record(name, signature, nil)
@@ -1220,7 +1258,7 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 				value := constant.MakeArray(typ.String(), values)
 				c.record(x, typ, value)
 
-				obj = NewConstant(scope, x.ParenOpen, x.ParenClose+1, c.pkg, typeName.Name, typ, value)
+				obj = NewConstant(scope, x.ParenOpen, x.ParenClose+1, c.pkg, typeName.Name, typ, value, 1)
 
 				return obj, typ, nil
 			}
@@ -1324,7 +1362,7 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 			return nil, nil, c.errorf(x.ValuePos, "unexpected literal kind %s", x.Kind)
 		}
 
-		obj := NewConstant(nil, token.NoPos, token.NoPos, nil, x.Value, typ, value)
+		obj := NewConstant(nil, token.NoPos, token.NoPos, nil, x.Value, typ, value, 1)
 
 		c.record(x, typ, value)
 		return obj, typ, nil
@@ -1372,6 +1410,40 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 	var name, typeName *ast.Identifier
 	if err := c.checkFixedArgsList(let, "value declaration", "name", "value"); err != nil {
 		return nil, c.error(err)
+	}
+
+	// Check the annotations.
+	alignment := 1
+	for _, anno := range let.Annotations {
+		keyword := anno.X.Elements[0].(*ast.Identifier)
+		switch keyword.Name {
+		case "align":
+			// We expect a single uint32.
+			if len(anno.X.Elements) != 2 {
+				return nil, c.errorf(anno.X.ParenOpen, "invalid alignment annotation: must specify one alignment value, got %d arguments", len(anno.X.Elements)-1)
+			}
+
+			alignElt := anno.X.Elements[1]
+			lit, ok := alignElt.(*ast.Literal)
+			if !ok || lit.Kind != token.Integer {
+				return nil, c.errorf(alignElt.Pos(), "invalid alignment annotation: must specify one alignment value, got %s", alignElt)
+			}
+
+			val, err := strconv.ParseUint(lit.Value, 0, 32)
+			if err != nil {
+				return nil, c.errorf(lit.ValuePos, "invalid alignment annotation: %v", err)
+			}
+
+			if val == 0 {
+				return nil, c.errorf(alignElt.Pos(), "invalid alignment annotation: invalid alignment %s", lit.Value)
+			}
+
+			if alignment != 1 {
+				return nil, c.errorf(lit.ValuePos, "cannot specify alignment more than once")
+			}
+
+			alignment = int(val)
+		}
 	}
 
 	// Determine whether we're binding to a name (with an
@@ -1472,7 +1544,7 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 			return nil, c.errorf(v.ValuePos, "invalid value declaration: unexpected value type for value %s: %s", name.Name, v)
 		}
 
-		obj = NewConstant(scope, let.ParenClose, scope.End(), c.pkg, name.Name, typ, value)
+		obj = NewConstant(scope, let.ParenClose, scope.End(), c.pkg, name.Name, typ, value, alignment)
 		c.names[let.ParenOpen] = "constant " + name.Name
 	default:
 		// TODO: handle top-level lets that assign another constant to a new name.
@@ -1512,6 +1584,40 @@ func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 	var name, typeName *ast.Identifier
 	if err := c.checkFixedArgsList(let, "constant declaration", "name", "value"); err != nil {
 		return c.error(err)
+	}
+
+	// Check the annotations.
+	alignment := 1
+	for _, anno := range let.Annotations {
+		keyword := anno.X.Elements[0].(*ast.Identifier)
+		switch keyword.Name {
+		case "align":
+			// We expect a single uint32.
+			if len(anno.X.Elements) != 2 {
+				return c.errorf(anno.X.ParenOpen, "invalid alignment annotation: must specify one alignment value, got %d arguments", len(anno.X.Elements)-1)
+			}
+
+			alignElt := anno.X.Elements[1]
+			lit, ok := alignElt.(*ast.Literal)
+			if !ok || lit.Kind != token.Integer {
+				return c.errorf(alignElt.Pos(), "invalid alignment annotation: must specify one alignment value, got %s", alignElt)
+			}
+
+			val, err := strconv.ParseUint(lit.Value, 0, 32)
+			if err != nil {
+				return c.errorf(lit.ValuePos, "invalid alignment annotation: %v", err)
+			}
+
+			if val == 0 {
+				return c.errorf(alignElt.Pos(), "invalid alignment annotation: invalid alignment %s", lit.Value)
+			}
+
+			if alignment != 1 {
+				return c.errorf(lit.ValuePos, "cannot specify alignment more than once")
+			}
+
+			alignment = int(val)
+		}
 	}
 
 	// Determine whether we're binding to a name (with an
@@ -1674,7 +1780,7 @@ func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 		result: typ,
 	}
 
-	obj := NewConstant(parent, let.ParenOpen, let.ParenClose, c.pkg, name.Name, typ, value)
+	obj := NewConstant(parent, let.ParenOpen, let.ParenClose, c.pkg, name.Name, typ, value, alignment)
 	c.names[let.ParenOpen] = "constant " + name.Name
 	c.define(name, obj)
 	c.record(let, typ, value)

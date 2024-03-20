@@ -15,12 +15,13 @@ import (
 // Function represents a function signature.
 type Function struct {
 	object
-	abi *sys.ABI
+	abi       *sys.ABI
+	alignment int
 }
 
 var _ Object = (*Function)(nil)
 
-func NewFunction(scope *Scope, pos, end token.Pos, pkg *Package, name string, signature *Signature) *Function {
+func NewFunction(scope *Scope, pos, end token.Pos, pkg *Package, name string, signature *Signature, alignment int) *Function {
 	var typ Type
 	if signature != nil {
 		typ = signature
@@ -35,11 +36,13 @@ func NewFunction(scope *Scope, pos, end token.Pos, pkg *Package, name string, si
 			name:   name,
 			typ:    typ,
 		},
+		alignment: alignment,
 	}
 }
 
 func (f *Function) ABI() *sys.ABI       { return f.abi }
 func (f *Function) SetABI(abi *sys.ABI) { f.abi = abi }
+func (f *Function) Alignment() int      { return f.alignment }
 func (f *Function) String() string {
 	return fmt.Sprintf("function %s (%s)", f.object.name, f.object.typ)
 }

@@ -126,20 +126,20 @@ func TestCompile(t *testing.T) {
 					Name: "constants",
 					Path: "tests/constants",
 					Constants: []*types.Constant{
-						types.NewConstant(nil, 79, 110, nil, "INFERRED-STRING", types.UntypedString, constant.MakeString("string 1")),
-						types.NewConstant(nil, 113, 133, nil, "InferredInt", types.UntypedInt, constant.MakeInt64(123)),
-						types.NewConstant(nil, 136, 155, nil, "big", types.Uint64, constant.MakeUint64(1)),
-						types.NewConstant(nil, 158, 188, nil, "NAMED", types.String, constant.MakeString("string 2")),
-						types.NewConstant(nil, 191, 213, nil, "SMALL", types.Int8, constant.MakeInt64(-127)),
-						types.NewConstant(nil, 216, 240, nil, "derived", types.Int, constant.MakeInt64(3)),
+						types.NewConstant(nil, 79, 110, nil, "INFERRED-STRING", types.UntypedString, constant.MakeString("string 1"), 1),
+						types.NewConstant(nil, 113, 133, nil, "InferredInt", types.UntypedInt, constant.MakeInt64(123), 1),
+						types.NewConstant(nil, 136, 155, nil, "big", types.Uint64, constant.MakeUint64(1), 1),
+						types.NewConstant(nil, 158, 188, nil, "NAMED", types.String, constant.MakeString("string 2"), 1),
+						types.NewConstant(nil, 191, 213, nil, "SMALL", types.Int8, constant.MakeInt64(-127), 1),
+						types.NewConstant(nil, 216, 240, nil, "derived", types.Int, constant.MakeInt64(3), 1),
 						types.NewConstant(nil, 243, 356, nil, "complex-constant-op", types.Int, constant.MakeInt64(
 							int64(len("foo"))+
 								3+
 								int64(len("other"))+
 								((0xff-250)-2)+
 								((2*3)*4)+
-								((12/6)/2))),
-						types.NewConstant(nil, 359, 395, nil, "compound-string", types.String, constant.Operation(constant.OpAdd, constant.MakeString("string 2"), constant.MakeString("foo"))),
+								((12/6)/2)), 1),
+						types.NewConstant(nil, 359, 395, nil, "compound-string", types.String, constant.Operation(constant.OpAdd, constant.MakeString("string 2"), constant.MakeString("foo")), 1),
 					},
 				}
 
@@ -255,7 +255,7 @@ func TestCompile(t *testing.T) {
 				if err != nil {
 					panic(err.Error())
 				}
-				pkg.Constants = append(pkg.Constants, types.NewConstant(nil, 293, 390, nil, "windows-x64", abi, nil))
+				pkg.Constants = append(pkg.Constants, types.NewConstant(nil, 293, 390, nil, "windows-x64", abi, nil, 1))
 
 				p51 := types.NewParameter(nil, 427, 440, nil, "base", types.Uint64)
 				p52 := types.NewParameter(nil, 441, 456, nil, "scalar", types.Uint64)
@@ -266,7 +266,7 @@ func TestCompile(t *testing.T) {
 					Result:      []sys.Location{x86.RAX},
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
-				o5 := types.NewFunction(nil, 466, 481, nil, "product", f5.Type)
+				o5 := types.NewFunction(nil, 466, 481, nil, "product", f5.Type, 1)
 				b51 := f5.NewBlock(466, ssafir.BlockReturn)
 				v511 := b51.NewValue(413, 464, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
 				v512 := b51.NewValueInt(427, 440, ssafir.OpParameter, types.Uint64, 0)
@@ -415,7 +415,7 @@ func TestCompile(t *testing.T) {
 				if err != nil {
 					panic(err.Error())
 				}
-				pkg.Constants = append(pkg.Constants, types.NewConstant(nil, 273, 360, nil, "syscall", abi, nil))
+				pkg.Constants = append(pkg.Constants, types.NewConstant(nil, 273, 360, nil, "syscall", abi, nil, 1))
 
 				funcScope := types.NewScope(nil, 246, 255, "function syscall6")
 				syscall := types.NewParameter(funcScope, 120, 133, nil, "sys", types.Uintptr)
