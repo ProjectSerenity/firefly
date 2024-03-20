@@ -183,6 +183,8 @@ func (s standardSizes) SizeOf(typ Type) int {
 		if t.kind == KindString || t.kind == KindUntypedString {
 			return 2 * s.WordSize
 		}
+	case *Array:
+		return int(t.Length()) * s.SizeOf(t.Element())
 	default:
 		panic(fmt.Sprintf("unexpected underlying type: %T", t))
 	}
@@ -191,6 +193,10 @@ func (s standardSizes) SizeOf(typ Type) int {
 }
 
 func (s standardSizes) AlignmentOf(typ Type) int {
+	if array, ok := typ.(*Array); ok {
+		return s.AlignmentOf(array.Element())
+	}
+
 	size := s.SizeOf(typ)
 	if size <= s.MaxAlignment {
 		return size
