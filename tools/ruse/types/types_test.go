@@ -20,12 +20,128 @@ import (
 	"firefly-os.dev/tools/ruse/token"
 )
 
-func TestCheck(t *testing.T) {
+// TestExpression is a somewhat more friendly
+// set of tests than TestCheck. This is for
+// testing that individual expressions result
+// in the correct type (and optionally, value).
+func TestExpression(t *testing.T) {
 	tests := []struct {
 		Name  string
 		Path  string
 		Text  string
-		Files []string
+		Ident string // Identifier to check.
+		Want  TypeAndValue
+	}{
+		{
+			Name: "untyped integer constant",
+			Path: "tests/minimal",
+			Text: `
+				(package minimal)
+				(let foo 3)
+			`,
+			Ident: "foo",
+			Want: TypeAndValue{
+				Type:  UntypedInt,
+				Value: constant.MakeInt64(3),
+			},
+		},
+		{
+			Name: "untyped string constant",
+			Path: "tests/minimal",
+			Text: `
+				(package minimal)
+				(let foo "bar")
+			`,
+			Ident: "foo",
+			Want: TypeAndValue{
+				Type:  UntypedString,
+				Value: constant.MakeString("bar"),
+			},
+		},
+		{
+			Name: "size-of int",
+			Path: "tests/minimal",
+			Text: `
+				(package minimal)
+				(let foo (size-of int))
+			`,
+			Ident: "foo",
+			Want: TypeAndValue{
+				Type:  UntypedInt,
+				Value: constant.MakeInt64(8), // 64 bits on x86-64.
+			},
+		},
+		{
+			Name: "size-of array",
+			Path: "tests/minimal",
+			Text: `
+				(package minimal)
+				(let foo (size-of array/3/uint16))
+			`,
+			Ident: "foo",
+			Want: TypeAndValue{
+				Type:  UntypedInt,
+				Value: constant.MakeInt64(3 * 2),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, "test.ruse", test.Text, 0)
+			if err != nil {
+				t.Fatalf("failed to parse text: %v", err)
+			}
+
+			// Find the expression to check.
+			var expr ast.Expression
+			ast.Inspect(file, func(n ast.Node) bool {
+				if expr != nil {
+					return false
+				}
+
+				if n == nil {
+					return true
+				}
+
+				ident, ok := n.(*ast.Identifier)
+				if !ok || ident.Name != test.Ident {
+					return true
+				}
+
+				expr = ident
+				return false
+			})
+
+			files := []*ast.File{file}
+			info := &Info{
+				Types: make(map[ast.Expression]TypeAndValue),
+			}
+
+			_, err = Check(test.Path, fset, files, sys.X86_64, info)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			got := info.Types[expr]
+			if diff := cmp.Diff(test.Want, got, cmp.Exporter(func(t reflect.Type) bool { return true })); diff != "" {
+				t.Fatalf("Check(): (-want, +got)\n%s", diff)
+			}
+		})
+	}
+}
+
+// TestCheck is quite a complex set of tests
+// that cover the Check function. New non-error
+// tests should probably be added to
+// TestExpression instead.
+func TestCheck(t *testing.T) {
+	tests := []struct {
+		Name  string
+		Path  string
+		Text  string   // Full code text (not compatible with Files).
+		Files []string // List of filenames (not compatible with Text).
 		Err   string
 		Want  *Package
 	}{
