@@ -392,7 +392,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 				table = append(table, sym)
 				symbols[sym.Name] = sym
-			case constant.Array:
+			case constant.Array, constant.Bool, constant.Integer:
 				offset := uintptr(data.Len()) // Just the offset within the section for now.
 
 				// If necessary, add padding to
@@ -410,9 +410,19 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 					return fmt.Errorf("failed to encode symbol %s: %v", name, err)
 				}
 
+				var kind binary.SymbolKind
+				switch val.Kind() {
+				case constant.Array:
+					kind = binary.SymbolArray
+				case constant.Bool:
+					kind = binary.SymbolBool
+				case constant.Integer:
+					kind = binary.SymbolInteger
+				}
+
 				sym := &binary.Symbol{
 					Name:    name,
-					Kind:    binary.SymbolArray,
+					Kind:    kind,
 					Section: index,
 					Offset:  offset,
 					Length:  data.Len() - int(offset),
@@ -420,9 +430,6 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 				table = append(table, sym)
 				symbols[sym.Name] = sym
-			default:
-				// Non-string, non-array constants are inlined.
-				continue
 			}
 		}
 

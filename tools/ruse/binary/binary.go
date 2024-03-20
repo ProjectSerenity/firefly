@@ -80,21 +80,27 @@ type SymbolKind uint8
 
 const (
 	SymbolInvalid SymbolKind = iota
-	SymbolFunction
-	SymbolString
 	SymbolArray
+	SymbolBool
+	SymbolFunction
+	SymbolInteger
+	SymbolString
 )
 
 func (k SymbolKind) String() string {
 	switch k {
 	case SymbolInvalid:
 		return "invalid"
-	case SymbolFunction:
-		return "function"
-	case SymbolString:
-		return "string"
 	case SymbolArray:
 		return "array"
+	case SymbolBool:
+		return "bool"
+	case SymbolFunction:
+		return "function"
+	case SymbolInteger:
+		return "integer"
+	case SymbolString:
+		return "string"
 	default:
 		return fmt.Sprintf("SymbolKind(%d)", k)
 	}
