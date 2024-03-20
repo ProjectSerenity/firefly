@@ -589,6 +589,7 @@ type variable struct {
 
 type symbol struct {
 	Kind        SymKind // The symbol kind (defined below).
+	Alignment   uint32  // An optional alignment constraint. The symbol's address in memory will be an exact multiple of this.
 	PackageName uint64  // The offset into the strings section where the package name begins. (e.g. "example.com/foo")
 	Name        uint64  // The offset into the strings section where the symbol name begins. (e.g. "Bar")
 	SectionName uint64  // The offset into the strings section where any section name begins. (e.g. "example.com/foo.Code")
@@ -597,6 +598,7 @@ type symbol struct {
 }
 
 const symbolSize = 4 + // 32-bit symbol kind.
+	4 + // 32-bit alignment constraint.
 	8 + // 64-bit package path string offset.
 	8 + // 64-bit name string offset.
 	8 + // 64-bit section name offset.
@@ -607,6 +609,7 @@ const symbolSize = 4 + // 32-bit symbol kind.
 // file.
 type Symbol struct {
 	Kind        SymKind        // The symbol kind (defined below).
+	Alignment   uint32         // An optional alignment constraint. The symbol's address in memory will be an exact multiple of this.
 	PackageName string         // The symbol's package name.
 	Name        string         // The symbol name.
 	SectionName string         // The offset into the strings section where any section name begins. (e.g. "example.com/foo.Code")

@@ -258,6 +258,7 @@ func (e *encoder) AddFunction(fset *token.FileSet, arch *sys.Arch, pkg *compiler
 
 	sym := &symbol{
 		Kind:        SymKindFunction,
+		Alignment:   uint32(fun.Func.Alignment()),
 		PackageName: e.AddString(pkg.Path),
 		Name:        e.AddString(fun.Name),
 		SectionName: e.AddString(fun.Section),
@@ -366,6 +367,7 @@ func (e *encoder) AddConstant(pkg *compiler.Package, con *types.Constant) error 
 
 	sym := &symbol{
 		Kind:        kind,
+		Alignment:   uint32(con.Alignment()),
 		PackageName: packageName,
 		Name:        name,
 		SectionName: e.AddString(con.Section()),
@@ -623,6 +625,7 @@ func (h *header) Marshal(b *cryptobyte.Builder) error {
 
 func (s *symbol) Marshal(b *cryptobyte.Builder) error {
 	b.AddUint32(uint32(s.Kind))
+	b.AddUint32(s.Alignment)
 	b.AddUint64(s.PackageName)
 	b.AddUint64(s.Name)
 	b.AddUint64(s.SectionName)

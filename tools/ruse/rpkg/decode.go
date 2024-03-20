@@ -450,6 +450,7 @@ func (d *decoded) decodeSymbols(s cryptobyte.String) (symbols map[uint64]*symbol
 		var sym symbol
 		var kind uint32
 		if !s.ReadUint32(&kind) ||
+			!s.ReadUint32(&sym.Alignment) ||
 			!s.ReadUint64(&sym.PackageName) ||
 			!s.ReadUint64(&sym.Name) ||
 			!s.ReadUint64(&sym.SectionName) ||
@@ -1242,9 +1243,10 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 	s := cryptobyte.String(d.b[d.header.SymbolsOffset:d.header.ABIsOffset])
 	for !s.Empty() {
 		here := offset
-		var kind uint32
+		var kind, alignment uint32
 		var packageOffset, nameOffset, sectionOffset, typeOffset, rawValue uint64
 		if !s.ReadUint32(&kind) ||
+			!s.ReadUint32(&alignment) ||
 			!s.ReadUint64(&packageOffset) ||
 			!s.ReadUint64(&nameOffset) ||
 			!s.ReadUint64(&sectionOffset) ||
@@ -1375,6 +1377,7 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 
 		symbol := &Symbol{
 			Kind:        SymKind(kind),
+			Alignment:   alignment,
 			PackageName: pkgName,
 			Name:        name,
 			SectionName: sectionName,
@@ -1394,7 +1397,7 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 				return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with kind %v and unexpected value type %#v", symbol.Name, symbol.Kind, symbol.Value)
 			}
 
-			con := types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, symbol.Type, value)
+			con := types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, symbol.Type, value, int(alignment))
 			con.SetSection(symbol.SectionName)
 			object = con
 		case SymKindFunction:
@@ -1403,7 +1406,7 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 				return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with kind %v and unexpected type %#v", symbol.Name, symbol.Kind, symbol.Type)
 			}
 
-			fun := types.NewFunction(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, sig)
+			fun := types.NewFunction(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, sig, int(alignment))
 			fun.SetABI(abi)
 			object = fun
 		case SymKindABI:
@@ -1412,14 +1415,14 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 				return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with kind %v and unexpected type %#v", symbol.Name, symbol.Kind, symbol.Type)
 			}
 
-			object = types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, abi, nil)
+			object = types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, abi, nil, int(alignment))
 		case SymKindSection:
 			section, ok := symbol.Type.(types.Section)
 			if !ok {
 				return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with kind %v and unexpected type %#v", symbol.Name, symbol.Kind, symbol.Type)
 			}
 
-			object = types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, section, nil)
+			object = types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, section, nil, int(alignment))
 		case SymKindArrayConstant:
 			array, ok := symbol.Type.(*types.Array)
 			if !ok {
@@ -1444,7 +1447,7 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 			}
 
 			value := constant.MakeArray(array.String(), values)
-			object = types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, array, value)
+			object = types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, array, value, int(alignment))
 		default:
 			return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with unsupported kind: %v", symbol.Name, symbol.Kind)
 		}
