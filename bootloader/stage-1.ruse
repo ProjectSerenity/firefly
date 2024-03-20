@@ -379,10 +379,10 @@
 ; as the table size is in the range 1-2**16.
 ;
 ; As we're describing this as an array, we
-; make it of bytes. We set the address of
+; make it of uint16s. We set the address of
 ; the table entries in assembly anyway.
 '(section boot-stage-1)
 (let global-descriptor-table-header
-	(array/byte
-		0 23      ; Size-1.
-		0 0 0 0)) ; Address.
+	(array/uint16
+		(- (size-of global-descriptor-table) 1) ; Size-1.
+		0 0))                                   ; Address.
