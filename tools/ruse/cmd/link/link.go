@@ -33,6 +33,8 @@ var program = filepath.Base(os.Args[0])
 
 type binaryEncoder func(w io.Writer, bin *binary.Binary) error
 
+var zeros [512]uint8
+
 // Main links together a set of Ruse rpkg files into an executable
 // binary.
 func Main(ctx context.Context, w io.Writer, args []string) error {
@@ -319,7 +321,16 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				return err
 			}
 
+			// If necessary, add padding to
+			// meet alignment constraints.
 			prev := data.Len()
+			align := fun.Func.Alignment()
+			padding := align - (prev % align)
+			if padding != align {
+				data.Write(zeros[:padding])
+				prev += padding
+			}
+
 			sym := &binary.Symbol{
 				Name:    p.Path + "." + fun.Name,
 				Kind:    binary.SymbolFunction,
@@ -360,6 +371,15 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				s := constant.StringVal(val)
 				offset := uintptr(data.Len()) // Just the offset within the section for now.
 
+				// If necessary, add padding to
+				// meet alignment constraints.
+				align := uintptr(con.Alignment())
+				padding := align - (offset % align)
+				if padding != align {
+					data.Write(zeros[:padding])
+					offset += padding
+				}
+
 				data.WriteString(s)
 
 				sym := &binary.Symbol{
@@ -374,6 +394,15 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				symbols[sym.Name] = sym
 			case constant.Array:
 				offset := uintptr(data.Len()) // Just the offset within the section for now.
+
+				// If necessary, add padding to
+				// meet alignment constraints.
+				align := uintptr(con.Alignment())
+				padding := align - (offset % align)
+				if padding != align {
+					data.Write(zeros[:padding])
+					offset += padding
+				}
 
 				name := p.Path + "." + con.Name()
 				err := encodeConstant(data, arch.ByteOrder, val, con.Type())
@@ -410,6 +439,15 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				s := constant.StringVal(val)
 				offset := uintptr(data.Len()) // Just the offset within the section for now.
 
+				// If necessary, add padding to
+				// meet alignment constraints.
+				align := uintptr(lit.Alignment())
+				padding := align - (offset % align)
+				if padding != align {
+					data.Write(zeros[:padding])
+					offset += padding
+				}
+
 				data.WriteString(s)
 
 				sym := &binary.Symbol{
@@ -424,6 +462,15 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				symbols[sym.Name] = sym
 			case constant.Array:
 				offset := uintptr(data.Len()) // Just the offset within the section for now.
+
+				// If necessary, add padding to
+				// meet alignment constraints.
+				align := uintptr(lit.Alignment())
+				padding := align - (offset % align)
+				if padding != align {
+					data.Write(zeros[:padding])
+					offset += padding
+				}
 
 				name := fmt.Sprintf(".<array-literal-%d>", arrayLiterals)
 				err := encodeConstant(data, arch.ByteOrder, val, lit.Type())
