@@ -84,7 +84,6 @@ func main() {
 	// sectors.
 	const (
 		sectorSize         = 512
-		firstSectorSize    = sectorSize - (4 + 2) // 32-bit bootloader end address, 2-byte MBR magic.
 		maxStageTwoSectors = 127
 	)
 
@@ -139,31 +138,16 @@ func main() {
 	// The boot section must fit in the first
 	// sector, with enough space for the trailing
 	// MBR marker 0xaa55.
-	if sections[0].Size > firstSectorSize {
-		log.Fatalf("Bootloader stage 1 does not fit in one disk sector: got %d bytes, need <= %d.", sections[0].Size, firstSectorSize)
+	if sections[0].Size != sectorSize {
+		log.Fatalf("Bootloader stage 1 does not fit in one disk sector: got %d bytes, need %d.", sections[0].Size, sectorSize)
 	}
 
 	var buf bytes.Buffer
-	for i, section := range sections {
+	for _, section := range sections {
 		_, err := io.Copy(&buf, section.Open())
 		if err != nil {
 			log.Fatalf("Failed to copy section %q: %v", section.Name, err)
 		}
-
-		if i > 0 {
-			continue
-		}
-
-		// Pad the first section to fill the
-		// sector and end with the MBR magic.
-		written := int64(buf.Len())
-		bootPadding := firstSectorSize - (written % firstSectorSize)
-		if bootPadding != firstSectorSize {
-			buf.Write(zeros[:bootPadding])
-		}
-
-		binary.Write(&buf, binary.LittleEndian, uint32(0))      // 32-bit ddress where the bootlaoder ends, which we overwrite later.
-		binary.Write(&buf, binary.LittleEndian, uint16(0xaa55)) // MBR magic.
 	}
 
 	// Ensure the bootloader fills an
@@ -180,7 +164,7 @@ func main() {
 	// Overwrite the 32-bit address where
 	// the bootloader ends.
 	bootloaderEndAddr := sections[0].Addr + uint64(written)
-	binary.LittleEndian.PutUint32(buf.Bytes()[firstSectorSize:], uint32(bootloaderEndAddr))
+	binary.LittleEndian.PutUint32(buf.Bytes()[sectorSize-(4+2):], uint32(bootloaderEndAddr))
 
 	// Write out the modified bootloader.
 	out, err := os.Create(outName)

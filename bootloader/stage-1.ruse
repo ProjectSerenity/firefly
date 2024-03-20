@@ -386,3 +386,12 @@
 	(array/uint16
 		(- (size-of global-descriptor-table) 1) ; Size-1.
 		0 0))                                   ; Address.
+
+; This is the magic value that the MBR checks
+; to see whether our disk is bootable. It must
+; be the final two bytes of the first (512-byte)
+; sector. Since we put this section at the
+; beginning of the disk, all we need is to be
+; 510-byte aligned.
+'(align 510)
+(let MBR-magic (uint16 0xaa55))
