@@ -982,7 +982,7 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 				}
 
 				underlying := Underlying(typ)
-				if _, isArray := underlying.(*Array); !isArray && underlying != String && underlying != UntypedString {
+				if underlying == Bool && underlying == UntypedBool {
 					return c.errorf(arg.Pos(), "%s has invalid argument: %s (%s) for reference", name, arg.Print(), typ)
 				}
 

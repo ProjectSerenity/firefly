@@ -1058,7 +1058,7 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, operand *x86.Operand) an
 			val := con.Value()
 			kind := val.Kind()
 			switch kind {
-			case constant.String, constant.Array:
+			case constant.Array, constant.Integer, constant.String:
 			default:
 				panic(ctx.Errorf(ident.NamePos, "cannot take the address of %s in symbol reference", kind))
 			}
