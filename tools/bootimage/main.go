@@ -190,6 +190,12 @@ func main() {
 	bootloaderEndAddr := sections[0].Addr + uint64(written)
 	binary.LittleEndian.PutUint32(buf.Bytes()[stage2EndAddr-sections[0].Addr:], uint32(bootloaderEndAddr))
 
+	stageTwoSize := written - sectorSize
+	stageTwoSectors := (stageTwoSize + sectorSize - 1) / sectorSize
+	if stageTwoSectors > maxStageTwoSectors {
+		log.Fatalf("Stage two bootloader is too large: %d bytes (%d sectors)", stageTwoSize, stageTwoSectors)
+	}
+
 	// Write out the modified bootloader.
 	out, err := os.Create(outName)
 	if err != nil {
