@@ -485,7 +485,6 @@ func defPredeclaredSpecialForms() {
 	specialFormTypes[SpecialFormSubtract] = (&arithmeticOp{
 		Name: "-",
 		UnaryTypes: []Type{
-
 			Int,
 			Int8,
 			Int16,

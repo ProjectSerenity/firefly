@@ -992,6 +992,39 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 				}
 
 				c.record(fun, typ, con.value)
+			case "int8", "int16", "int32", "int64",
+				"uint8", "uint16", "uint32", "uint64":
+				// This is where we reference a Ruse constant
+				// and insert it into the assembly.
+				if len(fun.Elements) != 2 {
+					return c.errorf(fun.Elements[2].Pos(), "%s has too many arguments in constant: expected %d, found %d", name, 1, len(fun.Elements)-1)
+				}
+
+				// First, get the result type.
+				_, obj := scope.LookupParent(ident.Name, token.NoPos)
+
+				result := obj.Type()
+				c.use(ident, obj)
+				c.record(ident, result, nil)
+
+				// Next, resolve the value and check
+				// it's assignable to the type.
+				arg := fun.Elements[1]
+				obj, typ, err := c.ResolveExpression(scope, arg)
+				if err != nil {
+					return c.errorf(arg.Pos(), "%s has invalid argument: %v", name, err)
+				}
+
+				if !AssignableTo(result, typ) {
+					return c.errorf(arg.Pos(), "%s has invalid argument: cannot assign %s (%s) to %s", name, arg, typ, result)
+				}
+
+				value, ok := c.consts[arg]
+				if !ok {
+					return c.errorf(arg.Pos(), "%s has invalid argument: %s (non-constant value %s)", name, arg.Print(), obj)
+				}
+
+				c.record(fun, result, value)
 			default:
 				// Ignore unrecognised syntax.
 				continue

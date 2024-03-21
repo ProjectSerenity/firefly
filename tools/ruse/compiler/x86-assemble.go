@@ -1091,6 +1091,22 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, operand *x86.Operand) an
 		}
 
 		return uint64(length)
+	case "int8", "int16", "int32", "int64",
+		"uint8", "uint16", "uint32", "uint64":
+		// This is where we reference a Ruse constant
+		// and insert it into the assembly.
+		typeAndValue := ctx.Comp.info.Types[list]
+		size := ctx.Comp.sizes.SizeOf(typeAndValue.Type)
+		if size*8 != operand.Bits {
+			return nil
+		}
+
+		val, ok := constant.Uint64Val(typeAndValue.Value)
+		if !ok {
+			panic("internal error: unexpected result value from " + ref + ": " + typeAndValue.Value.String())
+		}
+
+		return val
 	default:
 		return nil
 	}
