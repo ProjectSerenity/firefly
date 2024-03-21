@@ -161,10 +161,34 @@ func main() {
 	written += bootPadding
 	buf.Write(zeros[:bootPadding])
 
+	symbols, err := bootloader.Symbols()
+	if err != nil {
+		log.Fatalf("Failed to read bootloader symbol table: %v", err)
+	}
+
+	var stage2EndAddr uint64
+	const stage2End = "firefly-os.dev/bootloader.stage-2-end"
+	for _, sym := range symbols {
+		if sym.Name != stage2End {
+			continue
+		}
+
+		if sym.Size != 4 {
+			log.Fatalf("Symbol %s has size %d, want %d", sym.Name, sym.Size, 4)
+		}
+
+		stage2EndAddr = sym.Value
+		break
+	}
+
+	if stage2EndAddr == 0 {
+		log.Fatalf("Failed to find symbol %s in bootloader", stage2End)
+	}
+
 	// Overwrite the 32-bit address where
 	// the bootloader ends.
 	bootloaderEndAddr := sections[0].Addr + uint64(written)
-	binary.LittleEndian.PutUint32(buf.Bytes()[sectorSize-(4+2):], uint32(bootloaderEndAddr))
+	binary.LittleEndian.PutUint32(buf.Bytes()[stage2EndAddr-sections[0].Addr:], uint32(bootloaderEndAddr))
 
 	// Write out the modified bootloader.
 	out, err := os.Create(outName)
