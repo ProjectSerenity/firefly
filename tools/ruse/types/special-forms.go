@@ -316,7 +316,8 @@ func defPredeclaredSpecialForms() {
 		// only the result. We don't include
 		// a function signature, as sections
 		// are resolved immediately.
-		var name, fixedAddr *ast.Literal
+		var name *ast.Literal
+		var fixedAddr uintptr
 		var permissions *ast.Identifier
 		for _, elt := range fun.Elements[1:] {
 			list, ok := elt.(*ast.List)
@@ -344,7 +345,7 @@ func defPredeclaredSpecialForms() {
 					return nil, nil, c.errorf(kind.NamePos, "invalid section field %s: got %s, want string", kind.Name, rest[0])
 				}
 			case "fixed-address":
-				if fixedAddr != nil {
+				if fixedAddr != 0 {
 					return nil, nil, c.errorf(kind.NamePos, "duplicate section field %s", kind.Name)
 				}
 
@@ -352,10 +353,32 @@ func defPredeclaredSpecialForms() {
 					return nil, nil, c.errorf(kind.NamePos, "invalid section field %s: got %d values, want 1 integer", kind.Name, len(rest))
 				}
 
-				fixedAddr, ok = rest[0].(*ast.Literal)
-				if !ok {
-					return nil, nil, c.errorf(kind.NamePos, "invalid section field %s: got %s, want integer", kind.Name, rest[0])
+				obj, typ, err := c.ResolveExpression(scope, rest[0])
+				if err != nil {
+					return nil, nil, c.errorf(rest[0].Pos(), "invalid section field %s: %v", kind.Name, err)
 				}
+
+				if !AssignableTo(Uintptr, typ) {
+					return nil, nil, c.errorf(rest[0].Pos(), "invalid section field %s: invalid type %s", kind.Name, typ)
+				}
+
+				// Extract the value.
+				con, ok := obj.(*Constant)
+				if !ok {
+					return nil, nil, c.errorf(rest[0].Pos(), "invalid section field %s: value must be a positive integer constant, got %s", kind.Name, obj)
+				}
+
+				value := constant.Val(con.Value())
+				val, ok := value.(int64)
+				if !ok {
+					return nil, nil, c.errorf(rest[0].Pos(), "invalid section field %s: value must be a positive integer constant, got %s", kind.Name, obj)
+				}
+
+				if val <= 0 {
+					return nil, nil, c.errorf(rest[0].Pos(), "invalid section field %s: value must be a positive integer constant, got %s", kind.Name, val)
+				}
+
+				fixedAddr = uintptr(val)
 			case "permissions":
 				if permissions != nil {
 					return nil, nil, c.errorf(kind.NamePos, "duplicate section field %s", kind.Name)

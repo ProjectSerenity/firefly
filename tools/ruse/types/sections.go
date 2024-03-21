@@ -27,7 +27,7 @@ func NewSection(section *binary.Section, fixedAddr bool) Section {
 	return Section{section: section, fixedAddr: fixedAddr}
 }
 
-func NewRawSection(name, fixedAddr *ast.Literal, permissions *ast.Identifier) (Section, error) {
+func NewRawSection(name *ast.Literal, fixedAddr uintptr, permissions *ast.Identifier) (Section, error) {
 	// Check the name.
 	if name == nil {
 		return Section{}, fmt.Errorf("invalid section: name missing")
@@ -38,20 +38,6 @@ func NewRawSection(name, fixedAddr *ast.Literal, permissions *ast.Identifier) (S
 	parsedName, err := strconv.Unquote(name.Value)
 	if err != nil {
 		return Section{}, fmt.Errorf("invalid section: got bad name %s: %v", name.Value, err)
-	}
-
-	// Check any fixed address.
-	if fixedAddr != nil && fixedAddr.Kind != token.Integer {
-		return Section{}, fmt.Errorf("invalid section: got %s fixed-address, want integer", fixedAddr.Kind)
-	}
-	address := uintptr(0)
-	if fixedAddr != nil {
-		fixed, err := strconv.ParseUint(fixedAddr.Value, 0, 64)
-		if err != nil {
-			return Section{}, fmt.Errorf("invalid section: invalid fixed-address %q: %v", fixedAddr.Value, err)
-		}
-
-		address = uintptr(fixed)
 	}
 
 	// Check the permissions.
@@ -78,10 +64,10 @@ func NewRawSection(name, fixedAddr *ast.Literal, permissions *ast.Identifier) (S
 	section := Section{
 		section: &binary.Section{
 			Name:        parsedName,
-			Address:     address,
+			Address:     fixedAddr,
 			Permissions: parsedPermissions,
 		},
-		fixedAddr: fixedAddr != nil,
+		fixedAddr: fixedAddr != 0,
 	}
 
 	return section, nil

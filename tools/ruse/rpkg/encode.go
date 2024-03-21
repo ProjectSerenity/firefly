@@ -407,7 +407,7 @@ func (e *encoder) appendConstant(b *cryptobyte.Builder, v constant.Value, t type
 		case types.Int8:
 			val, _ := constant.Int64Val(v)
 			b.AddUint8(uint8(val))
-		case types.Uint, types.Uint64, types.Uintptr:
+		case types.Uint, types.Uint64, types.Uintptr, types.UntypedInt:
 			val, _ := constant.Uint64Val(v)
 			b.AddUint64(val)
 		case types.Uint32:

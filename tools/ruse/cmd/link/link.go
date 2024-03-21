@@ -620,7 +620,7 @@ func encodeConstant(b *bytes.Buffer, byteOrder gobinary.ByteOrder, v constant.Va
 		case types.Int8:
 			val, _ := constant.Int64Val(v)
 			gobinary.Write(b, byteOrder, uint8(val))
-		case types.Uint, types.Uint64, types.Uintptr:
+		case types.Uint, types.Uint64, types.Uintptr, types.UntypedInt:
 			val, _ := constant.Uint64Val(v)
 			gobinary.Write(b, byteOrder, uint64(val))
 		case types.Uint32:
