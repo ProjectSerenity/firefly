@@ -18,6 +18,9 @@
 	(fixed-address 0x7c00)
 	(permissions r_x)))
 
+'(section boot-stage-1)
+(let stage-2-start 0x7e00) ; Immediately after stage 1 (512 bytes).
+
 ; main is the entry point for the bootloader.
 ;
 ; We start in 16-bit real mode. We begin by
