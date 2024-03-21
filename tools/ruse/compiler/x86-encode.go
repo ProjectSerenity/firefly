@@ -162,6 +162,17 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 			break
 		}
 
+		// Handle string arguments, which also
+		// affect prefixes.
+		if data.Args[i] != nil && (operand.Type == x86.TypeStringDst || operand.Type == x86.TypeStringSrc) {
+			reg := data.Args[i].(*x86.Register)
+			if 8 < reg.Bits && reg.Bits < 64 && reg.Bits != int(mode.Int) {
+				addPrefix(x86.PrefixAddressSize)
+			}
+
+			continue
+		}
+
 		if operand.Type != x86.TypeMemory && operand.Type != x86.TypeMemoryOffset {
 			continue
 		}

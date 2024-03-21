@@ -644,6 +644,41 @@ var x86TestCases = []*x86TestCase{
 		},
 	},
 	{
+		Name:     "memory strings 32-bit",
+		Mode:     x86.Mode32,
+		Assembly: "(movsd (edi) (esi))",
+		Op:       ssafir.OpX86MOVSD,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.EDI,
+				x86.ESI,
+			},
+			Length: 1,
+		},
+		Code: &x86.Code{
+			Opcode:    [3]byte{0xa5},
+			OpcodeLen: 1,
+		},
+	},
+	{
+		Name:     "memory strings 16-bit",
+		Mode:     x86.Mode16,
+		Assembly: "(movsd (edi) (esi))",
+		Op:       ssafir.OpX86MOVSD,
+		Data: &x86InstructionData{
+			Args: [4]any{
+				x86.EDI,
+				x86.ESI,
+			},
+			Length: 3,
+		},
+		Code: &x86.Code{
+			Prefixes:  [14]x86.Prefix{x86.PrefixAddressSize, x86.PrefixOperandSize},
+			Opcode:    [3]byte{0xa5},
+			OpcodeLen: 1,
+		},
+	},
+	{
 		Name:     "call absolute address",
 		Mode:     x86.Mode32,
 		Assembly: "(call-far (0x1122 0x33445566))",
