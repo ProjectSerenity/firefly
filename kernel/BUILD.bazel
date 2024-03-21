@@ -1,0 +1,23 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("//tools/ruse:def.bzl", "ruse_binary", "ruse_library")
+
+ruse_library(
+    name = "kernel_lib",
+    srcs = [
+        "main.ruse",
+    ],
+    arch = "x86-64",
+    package_path = "firefly-os.dev/kernel",
+    visibility = ["//visibility:private"],
+)
+
+ruse_binary(
+    name = "kernel",
+    format = "elf",
+    package = ":kernel_lib",
+    visibility = ["//visibility:public"],
+)

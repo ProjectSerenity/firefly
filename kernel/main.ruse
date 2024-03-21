@@ -1,0 +1,16 @@
+; Copyright 2024 The Firefly Authors.
+;
+; Use of this source code is governed by a BSD 3-clause
+; license that can be found in the LICENSE file.
+
+(package main)
+
+; main is the entry point for the kernel.
+;
+; We start in 64-bit long mode.
+;
+'(arch x86-64)
+(asm-func (main)
+	; Busy loop.
+	'loop
+	(jmp 'loop))
