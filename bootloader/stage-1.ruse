@@ -8,6 +8,12 @@
 	boot-stage-2)
 (package main)
 
+'(section boot-stage-1)
+(let stage-1-start 0x7c00) ; The load address chosen by the BIOS.
+
+'(section boot-stage-1)
+(let stage-2-start (+ stage-1-start 512)) ; Immediately after stage 1 (512 bytes).
+
 ; This is the first stage of the bootloader, which
 ; starts in 16-bit real mode. We initialise the stack,
 ; enable the A20 line, load the rest of the bootloader
@@ -15,11 +21,8 @@
 
 (let boot-stage-1 (section
 	(name "boot-stage-1")
-	(fixed-address 0x7c00)
+	(fixed-address stage-1-start)
 	(permissions r_x)))
-
-'(section boot-stage-1)
-(let stage-2-start 0x7e00) ; Immediately after stage 1 (512 bytes).
 
 ; main is the entry point for the bootloader.
 ;
@@ -39,7 +42,7 @@
 	(mov gs ax)
 
 	; Initialise the stack.
-	(mov sp 0x7c00)
+	(mov sp (uint16 stage-1-start))
 
 	; Print a debug message.
 	(mov cx (len stage-1-debug-msg))
@@ -182,12 +185,12 @@
 	; it in EBP so we can determine when
 	; we have copied the rest of the
 	; bootloader.
-	(mov eax 0x7dfa)
+	(mov eax (uint32 (- stage-2-start 6)))
 	(mov ebp (eax))
 
 	'load-from-disk
 
-	(mov eax 0x7e00 )       ; Start of the rest of the bootloader.
+	(mov eax (uint32 stage-2-start)) ; Start of the rest of the bootloader.
 	(add eax ecx)           ; Skip over what we've copied already.
 
 	; Prepare the packet segment.
@@ -200,7 +203,7 @@
 	(sub eax ebx)           ; EAX now just has the remainder.
 	(mov (+ esi 4) ax)      ; Set the offset.
 
-	(mov eax 0x7e00)        ; Start of the rest of the bootloader.
+	(mov eax (uint32 stage-2-start)) ; Start of the rest of the bootloader.
 	(add eax ecx)           ; Skip over what we've copied already.
 
 	; Set the number of blocks to load.
@@ -219,7 +222,7 @@
 	(add ecx ebx)
 
 	; Set the block number to copy from.
-	(mov ebx 0x7c00)        ; The start of stage 1.
+	(mov ebx (uint32 stage-1-start)) ; The start of stage 1.
 	(sub eax ebx)           ; Set EAX to the disk offset in bytes.
 	(shr eax 9)             ; Divide by 512 (block size).
 	(mov (+ esi 8) eax)     ; Set the logical block address.
