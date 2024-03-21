@@ -42,6 +42,7 @@ disk_image(
     name = "image",
     out = "image.bin",
     bootloader = "//bootloader",
+    kernel = "//kernel",
     visibility = ["//visibility:public"],
 )
 

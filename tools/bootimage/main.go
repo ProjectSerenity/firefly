@@ -42,9 +42,10 @@ func init() {
 
 func main() {
 	var help bool
-	var bootloaderName, outName string
+	var bootloaderName, kernelName, outName string
 	flag.BoolVar(&help, "h", false, "Print this help message and exit.")
 	flag.StringVar(&bootloaderName, "bootloader", "", "Path to the bootloader binary.")
+	flag.StringVar(&kernelName, "kernel", "", "Path to the kernel binary.")
 	flag.StringVar(&outName, "out", "", "Path to where the bootable image should be written.")
 	flag.Usage = func() {
 		log.Printf("Usage:\n  %s [OPTIONS]\n\nOptions:", filepath.Base(os.Args[0]))
@@ -60,6 +61,12 @@ func main() {
 
 	if bootloaderName == "" {
 		log.Println("Missing -bootloader argument.")
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	if kernelName == "" {
+		log.Println("Missing -kernel argument.")
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -196,6 +203,30 @@ func main() {
 		log.Fatalf("Stage two bootloader is too large: %d bytes (%d sectors)", stageTwoSize, stageTwoSectors)
 	}
 
+	kernel, err := os.Open(kernelName)
+	if err != nil {
+		log.Fatalf("Failed to open kernel at %s: %v", kernelName, err)
+	}
+
+	defer kernel.Close()
+
+	kernelInfo, err := kernel.Stat()
+	if err != nil {
+		log.Fatalf("Failed to stat kernel: %v", err)
+	}
+
+	kernelSize := kernelInfo.Size()
+
+	// Round the image size up to the next multiple
+	// of 512.
+	written += kernelSize
+	kernelPadding := sectorSize - (written % sectorSize)
+	if kernelPadding == sectorSize {
+		kernelPadding = 0
+	}
+
+	written += kernelPadding
+
 	// Write out the modified bootloader.
 	out, err := os.Create(outName)
 	if err != nil {
@@ -205,6 +236,19 @@ func main() {
 	_, err = out.Write(buf.Bytes())
 	if err != nil {
 		log.Fatalf("Failed to write bootloader to %s: %v", outName, err)
+	}
+
+	// Then the kernel.
+	_, err = io.Copy(out, kernel)
+	if err != nil {
+		log.Fatalf("Failed to write kernel to %s: %v", outName, err)
+	}
+
+	if kernelPadding != 0 {
+		_, err = out.Write(zeros[:kernelPadding])
+		if err != nil {
+			log.Fatalf("Failed to write padding to %s: %v", outName, err)
+		}
 	}
 
 	err = out.Close()
