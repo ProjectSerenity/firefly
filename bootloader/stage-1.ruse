@@ -17,6 +17,9 @@
 '(section boot-stage-1)
 (let stage-2-end (uint32 stage-2-start))  ; We populate this in the bootimage tool. Default to a length of 0.
 
+'(section boot-stage-1)
+(let kernel-size (uint32 0))              ; We populate this in the bootimage tool. Default to a length of 0.
+
 ; This is the first stage of the bootloader, which
 ; starts in 16-bit real mode. We initialise the stack,
 ; enable the A20 line, load the rest of the bootloader
