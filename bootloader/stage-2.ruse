@@ -29,6 +29,141 @@
 	(mov si (string-pointer stage-2-debug-msg))
 	(call (@ real-mode-print))
 
+	; Some BIOS implementations assume that the
+	; processor will only operate in Legacy Mode.
+	; We change the Target Operating Mode to
+	; "Long Mode Target Only" so that the firmware
+	; expects each CPU to enter long mode once and
+	; then stay in it. This allows the firmware to
+	; enable mode-specific optimisations.
+	;
+	; We save the flags, as CF is set if the callback
+	; is not supported (in which case this is a
+	; no-op).
+	(pushf)
+	(mov ax 0xec00)
+	(mov bl 0x2)
+	(int 0x15)
+	(popf)
+
+	; Load the kernel from disk.
+	(jmp (@ load-kernel-from-disk)))
+
+; We copy the kernel binary into
+; memory one 512-byte sector at a
+; time, immediately copying the
+; sector to the destination in
+; memory. This is because we can't
+; use BIOS helpers to write to
+; such high address spaces.
+;
+; We know 0x700 is free, so we
+; use that as our 512-byte buffer.
+'(section boot-stage-2)
+(let kernel-copy-buffer 0x700)
+
+; Load the kernel from disk. For more info
+; on how this works, see stage 1's function
+; load-bootloader-from-disk.
+;
+; The DAP layout is as follows:
+;
+; 	Offset   Size  Description
+; 	   0      1    Size of packet (16 bytes).
+; 	   1      1    Always zero.
+; 	   2      2    Number of sectors to transfer (max 127 on some BIOSes).
+; 	   4      4    Transfer buffer (16-bit segment:16-bit offset).
+; 	   8      4    Lower 32 bits of 48-bit starting LBA.
+; 	  12      4    Upper 16 bits of 48-bit starting LBA.
+'(arch x86-64)
+'(mode 16)
+'(section boot-stage-2)
+(asm-func (load-kernel-from-disk)
+	(xor ecx ecx)                  ; Set the initial offset of zero.
+	(mov esi 0x500)                ; Address of the DAP.
+	(mov '(bits 32)(esi) ecx)      ; Zero the first quarter of the packet.
+	(mov '(bits 32)(+ esi 4) ecx)  ; Zero the second quarter of the packet.
+	(mov '(bits 32)(+ esi 8) ecx ) ; Zero the third quarter of the packet.
+	(mov '(bits 32)(+ esi 12) ecx) ; Zero the fourth quarter of the packet.
+	(mov '(bits 8)(esi) 16)        ; Set the DAP packet size.
+
+	; We copy the kernel binary into
+	; memory one 512-byte sector at a
+	; time, immediately copying the
+	; sector to the destination in
+	; memory. This is because we can't
+	; use BIOS helpers to write to
+	; such high address spaces.
+	(mov ax (uint16 kernel-copy-buffer))
+	(mov (+ esi 4) ax)      ; Set the offset.
+
+	; Set the number of blocks to load.
+	(xor eax eax)
+	(inc eax)
+	(mov (+ esi 2) ax)      ; Set the number of blocks (1).
+
+	; Set the block number to copy from.
+	(mov ebx (@ stage-2-end)) ; The start of the kernel.
+	(mov eax (ebx))         ; Read the kernel start address.
+	(mov ebx (uint32 stage-1-start)) ; The start of the bootloader.
+	(sub eax ebx)           ; Set EAX to the disk offset in bytes.
+	(shr eax 9)             ; Divide by 512 (block size).
+	(mov (+ esi 8) eax)     ; Set the logical block address.
+
+	; Set the destination address we'll
+	; copy to (2MiB).
+	(mov edi 0x400000)
+
+	; In the bootimage tool, we write
+	; the length of the kernel binary
+	; into the kernel-size symbol.
+	;
+	; We pull this out of memory and store
+	; it in EBP so we can determine when
+	; we have copied the whole kernel.
+	(mov eax (@ kernel-size))
+	(mov ecx (eax))
+	(add ecx 511)           ; Align up to whole sectors just in case.
+	(shr ecx 9)             ; Divide by 512 (block size).
+
+	'load-from-disk
+
+	; Do the read.
+	(mov ah 0x42)           ; Read.
+	(int 0x13)
+	(jnc 'load-from-disk-ok) ; Continue to the next block.
+
+	; The read failed.
+	; Print an error.
+	(mov cx (len failed-to-load-kernel))
+	(mov si (string-pointer failed-to-load-kernel))
+	(call (@ real-mode-print))
+	; Exit.
+	(mov ax 0x11)
+	(out 0xf4 ax)
+	; Fallback busy loop.
+	'failed-to-load-kernel-loop
+	(jmp 'failed-to-load-kernel-loop)
+
+	'load-from-disk-ok
+
+	; Copy block to the 2MiB address.
+	(push ecx)
+	(push esi)
+	(mov ecx (uint32 (/ 512 4))) ; The loaded sector, divide by 4 (32-bit copy in movsd).
+	(mov esi (uint32 kernel-copy-buffer))
+	; Copy ECX dwords from ESI to EDI.
+	(rep movsd (edi) (esi))
+	(pop esi)
+	(pop ecx)
+
+	; Next block.
+	(mov eax (+ esi 8))
+	(inc eax)
+	(mov (+ esi 8) eax)
+	(dec ecx)
+	(jnz 'load-from-disk)
+
 	; Exit.
 	(mov ax 0x11)
 	(out 0xf4 ax)
@@ -41,3 +176,9 @@
 ; so we need it to be in the same section.
 '(section boot-stage-2)
 (let stage-2-debug-msg "Booting (second stage)...\r\n")
+
+; This string is printed if we fail to use
+; the BIOS's LBA extension to read the kernel
+; from disk.
+'(section boot-stage-2)
+(let failed-to-load-kernel "Boot error: failed to load kernel from disk.\r\n")
