@@ -422,6 +422,7 @@ var tests = []struct {
 			'(align 512)
 			(let simple-array (array/2/uint16 0x0033 0x0044))
 
+			'(section extra-section)
 			(let multi-dimensional-array
 				(array/3/array/2/uint16
 					(array/2/uint16 0x0011 0x0022)
@@ -574,7 +575,7 @@ var tests = []struct {
 			0, 0, 0, 1, // Alignment: 1.
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
 			0, 0, 0, 0, 0, 0, 1, 32, // Name: 288 ("multi-dimensional-array").
-			0, 0, 0, 0, 0, 0, 0, 0, // SectionName: 0 (default).
+			0, 0, 0, 0, 0, 0, 0, 24, // SectionName: 24 (extra-section).
 			0, 0, 0, 0, 0, 0, 0, 192, // Type: 192 (array/3/array/2/uint16).
 			0, 0, 0, 0, 0, 0, 1, 60, // Value: 316 (array data).
 			// ABIs.
@@ -722,8 +723,8 @@ var tests = []struct {
 			0xc3, // (ret)
 			0, 0, // Padding.
 			// Checksum.
-			0x5a, 0xfd, 0x36, 0x08, 0x45, 0xcf, 0x2f, 0xe1, 0x67, 0xab, 0xf0, 0xc0, 0x75, 0x9c, 0x35, 0x59,
-			0x0e, 0x61, 0xfe, 0xfc, 0xd4, 0x8d, 0x93, 0xbe, 0xe9, 0xb7, 0x80, 0xd2, 0xca, 0x43, 0x03, 0xa8,
+			0xfc, 0xec, 0x3e, 0x4e, 0x1b, 0x98, 0x04, 0x8d, 0xf5, 0x99, 0xf9, 0x91, 0x3f, 0xf8, 0x64, 0x03,
+			0x03, 0xa5, 0x2e, 0x60, 0x13, 0x10, 0x9e, 0x0d, 0x7a, 0x8e, 0xa8, 0x3b, 0x78, 0xec, 0xcd, 0xf9,
 		},
 		Decoded: &decoded{
 			header: header{
@@ -896,6 +897,7 @@ var tests = []struct {
 					Alignment:   1,
 					PackageName: 4,
 					Name:        288,
+					SectionName: 24,
 					Type:        192,
 					Value:       316,
 				},

@@ -1447,7 +1447,9 @@ func (d *Decoder) Symbols() ([]*Symbol, []types.Object, error) {
 			}
 
 			value := constant.MakeArray(array.String(), values)
-			object = types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, array, value, int(alignment))
+			con := types.NewConstant(nil, token.NoPos, token.NoPos, d.pkg, symbol.Name, array, value, int(alignment))
+			con.SetSection(symbol.SectionName)
+			object = con
 		default:
 			return nil, nil, fmt.Errorf("rpkg: internal error: found symbol %q with unsupported kind: %v", symbol.Name, symbol.Kind)
 		}
