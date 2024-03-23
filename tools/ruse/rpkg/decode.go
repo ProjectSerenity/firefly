@@ -17,7 +17,6 @@ import (
 
 	"golang.org/x/crypto/cryptobyte"
 
-	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/binary"
 	"firefly-os.dev/tools/ruse/compiler"
 	"firefly-os.dev/tools/ruse/constant"
@@ -2065,7 +2064,7 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 	pkg = &compiler.Package{
 		Name:     d.pkg.Name,
 		Path:     d.pkg.Path,
-		BaseAddr: &ast.Literal{Kind: token.Integer, Value: fmt.Sprintf("%#x", d.header.BaseAddress)},
+		BaseAddr: fmt.Sprintf("%#x", d.header.BaseAddress),
 		Sections: d.sectionSymbols,
 		Types:    d.pkg,
 	}

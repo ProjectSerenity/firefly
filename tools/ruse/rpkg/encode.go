@@ -88,13 +88,13 @@ func (e *encoder) AddHeader(arch *sys.Arch, pkg *compiler.Package) error {
 	}
 
 	var baseAddr uint64
-	if pkg.BaseAddr == nil {
+	if pkg.BaseAddr == "" {
 		if pkg.Name == "main" {
 			baseAddr = 0x20_0000 // 2 MiB in by default.
 		}
 	} else {
 		var err error
-		baseAddr, err = strconv.ParseUint(pkg.BaseAddr.Value, 0, 64)
+		baseAddr, err = strconv.ParseUint(pkg.BaseAddr, 0, 64)
 		if err != nil {
 			return fmt.Errorf("invalid base address: %v", err)
 		}

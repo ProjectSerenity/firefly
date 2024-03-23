@@ -421,7 +421,14 @@ func (c *checker) CheckAnnotations(files []*ast.File) error {
 				}
 
 				// We expect an integer.
-				if lit, ok := addr.(*ast.Literal); !ok || lit.Kind != token.Integer {
+				switch addr := addr.(type) {
+				case *ast.Literal:
+					if addr.Kind != token.Integer {
+						return c.errorf(addr.Pos(), "invalid package annotation: got %s base address, want integer", addr)
+					}
+				case *ast.Identifier:
+					// We check this later.
+				default:
 					return c.errorf(addr.Pos(), "invalid package annotation: got %s base address, want integer", addr)
 				}
 

@@ -521,10 +521,10 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 	baseAddr := uintptr(0x20_0000) // 2 MiB in.
 	lastAddr := uintptr(0)
-	if p.BaseAddr != nil {
-		addr, err := strconv.ParseUint(p.BaseAddr.Value, 0, 64)
+	if p.BaseAddr != "" {
+		addr, err := strconv.ParseUint(p.BaseAddr, 0, 64)
 		if err != nil {
-			return fmt.Errorf("internal error: failed to parse package base address %q: %v", p.BaseAddr.Value, err)
+			return fmt.Errorf("internal error: failed to parse package base address %q: %v", p.BaseAddr, err)
 		}
 
 		baseAddr = uintptr(addr)

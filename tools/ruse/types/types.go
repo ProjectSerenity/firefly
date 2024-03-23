@@ -476,7 +476,16 @@ func (c *checker) Check(files []*ast.File) error {
 		err := c.iterAnnotations(file.Package, func(list, anno *ast.List, keyword *ast.Identifier) error {
 			switch keyword.Name {
 			case "base-address":
-				// Nothing to do here.
+				for _, elt := range anno.Elements[1:] {
+					_, typ, err := c.ResolveExpression(fileScopes[i], elt)
+					if err != nil {
+						return err
+					}
+
+					if !AssignableTo(Uintptr, typ) {
+						return c.errorf(elt.Pos(), "cannot use %s (%s) as base address", elt.Print(), elt)
+					}
+				}
 			case "sections":
 				for _, elt := range anno.Elements[1:] {
 					_, typ, err := c.ResolveExpression(fileScopes[i], elt)

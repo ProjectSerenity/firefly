@@ -12,6 +12,7 @@ import (
 	"io"
 
 	"firefly-os.dev/tools/ruse/ast"
+	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/ssafir"
 	"firefly-os.dev/tools/ruse/sys"
 	"firefly-os.dev/tools/ruse/token"
@@ -23,7 +24,7 @@ import (
 type Package struct {
 	Name      string
 	Path      string
-	BaseAddr  *ast.Literal
+	BaseAddr  string
 	Sections  []string
 	Types     *types.Package
 	Imports   []string
@@ -137,15 +138,41 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 			keyword := anno.Elements[0].(*ast.Identifier)
 			switch keyword.Name {
 			case "base-address":
-				addr := anno.Elements[1].(*ast.Literal)
-				if p.Name != "main" {
-					return nil, fmt.Errorf("%s: invalid package annotation: base address can only be specified by package main", fset.Position(x.Quote))
-				}
-				if p.BaseAddr != nil {
-					return nil, fmt.Errorf("%s: invalid package annotation: base address already specified at %s", fset.Position(x.Quote), fset.Position(p.BaseAddr.ValuePos))
-				}
+				switch addr := anno.Elements[1].(type) {
+				case *ast.Literal:
+					if p.Name != "main" {
+						return nil, fmt.Errorf("%s: invalid package annotation: base address can only be specified by package main", fset.Position(x.Quote))
+					}
 
-				p.BaseAddr = addr
+					if p.BaseAddr != "" {
+						return nil, fmt.Errorf("%s: invalid package annotation: base address already specified", fset.Position(x.Quote))
+					}
+
+					p.BaseAddr = addr.Value
+				case *ast.Identifier:
+					obj := info.Uses[addr]
+					if obj == nil {
+						return nil, fmt.Errorf("%s: invalid base address reference %q", fset.Position(addr.NamePos), addr.Print())
+					}
+
+					con, ok := obj.(*types.Constant)
+					if !ok {
+						return nil, fmt.Errorf("%s: invalid base address reference %q: got %s, want constant", fset.Position(addr.NamePos), addr.Print(), obj)
+					}
+
+					val := con.Value()
+					if val.Kind() != constant.Integer {
+						return nil, fmt.Errorf("%s: invalid base address reference %q: got %s, want integer", fset.Position(addr.NamePos), addr.Print(), val.Kind())
+					}
+
+					if p.BaseAddr != "" {
+						return nil, fmt.Errorf("%s: invalid package annotation: base address already specified", fset.Position(x.Quote))
+					}
+
+					p.BaseAddr = val.ExactString()
+				default:
+					return nil, fmt.Errorf("%s: invalid package annotation: base address has %s value, want literal/identifier", fset.Position(x.Quote), anno.Elements[1].Print())
+				}
 			case "sections":
 				if p.Sections != nil {
 					return nil, fmt.Errorf("%s: invalid package annotation: sections already specified", fset.Position(x.Quote))
