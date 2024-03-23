@@ -74,8 +74,8 @@
 	; Populate the address
 	; of the global descriptor
 	; table header.
-	(mov cx (@ global-descriptor-table))
-	(mov bx (@ global-descriptor-table-header))
+	(mov cx (@ global-descriptor-table-32))
+	(mov bx (@ global-descriptor-table-32-header))
 	(mov (+ bx 2) cx) ; Copy the address of the table to the final 2 bytes of the header.
 
 	; Load the global descriptor table.
@@ -355,7 +355,7 @@
 ;   - Access byte: 0b1001_0010 (P=1, DPL=00, S=1, E=0, DC=0, RW=1, A=0)
 '(align 4)
 '(section boot-stage-1)
-(let global-descriptor-table
+(let global-descriptor-table-32
 	(array/array/8/byte
 		; The null descriptor.
 		(array/byte
@@ -392,10 +392,10 @@
 ; make it of uint16s. We set the address of
 ; the table entries in assembly anyway.
 '(section boot-stage-1)
-(let global-descriptor-table-header
+(let global-descriptor-table-32-header
 	(array/uint16
-		(- (size-of global-descriptor-table) 1) ; Size-1.
-		0 0))                                   ; Address.
+		(- (size-of global-descriptor-table-32) 1) ; Size-1.
+		0 0))                                      ; Address.
 
 ; This is the magic value that the MBR checks
 ; to see whether our disk is bootable. It must
