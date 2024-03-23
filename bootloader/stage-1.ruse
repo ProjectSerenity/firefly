@@ -3,7 +3,7 @@
 ; Use of this source code is governed by a BSD 3-clause
 ; license that can be found in the LICENSE file.
 
-'(base-address 0x7c00)
+'(base-address stage-1-start)
 (package main)
 
 '(section boot-stage-1)
