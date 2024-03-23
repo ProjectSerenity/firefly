@@ -353,6 +353,7 @@
 ;   - Segment limit: 0xff_ff_f
 ;   - Flags: 0b1100 (G=1, DB=1, L=0, _=0)
 ;   - Access byte: 0b1001_0010 (P=1, DPL=00, S=1, E=0, DC=0, RW=1, A=0)
+'(align 4)
 '(section boot-stage-1)
 (let global-descriptor-table
 	(array/array/8/byte
