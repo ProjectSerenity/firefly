@@ -10,6 +10,8 @@
 ; disk, creates an e820 memory map, enters protected
 ; mode, and jumps to the third stage.
 
+(let stage-2-debug-msg "Booting (second stage)...\r\n")
+
 ; stage-2 is the code started by the stage-1 loader,
 ; once it has copied the rest of the bootloader into
 ; memory.
@@ -151,10 +153,6 @@
 	; Busy loop.
 	'loop
 	(jmp 'loop))
-
-; This string is printed early in stage 1,
-; so we need it to be in the same section.
-(let stage-2-debug-msg "Booting (second stage)...\r\n")
 
 ; This string is printed if we fail to use
 ; the BIOS's LBA extension to read the kernel
