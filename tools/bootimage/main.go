@@ -151,6 +151,19 @@ func main() {
 
 	var buf bytes.Buffer
 	for _, section := range sections {
+		// For every section, we add padding to
+		// maintain the relative address spaces.
+		padding := section.Addr - (sections[0].Addr + uint64(buf.Len()))
+		for padding > 0 {
+			n := padding
+			if n > uint64(len(zeros)) {
+				n = uint64(len(zeros))
+			}
+
+			buf.Write(zeros[:n])
+			padding -= n
+		}
+
 		_, err := io.Copy(&buf, section.Open())
 		if err != nil {
 			log.Fatalf("Failed to copy section %q: %v", section.Name, err)
