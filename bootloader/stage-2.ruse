@@ -10,11 +10,6 @@
 ; disk, creates an e820 memory map, enters protected
 ; mode, and jumps to the third stage.
 
-(let boot-stage-2 (section
-	(name "boot-stage-2")
-	(fixed-address stage-2-start)
-	(permissions r_x)))
-
 ; stage-2 is the code started by the stage-1 loader,
 ; once it has copied the rest of the bootloader into
 ; memory.
@@ -22,7 +17,6 @@
 ; We start in 16-bit real mode.
 '(arch x86-64)
 '(mode 16)
-'(section boot-stage-2)
 (asm-func (stage-2)
 	; Print a debug message.
 	(mov cx (len stage-2-debug-msg))
@@ -59,7 +53,6 @@
 ;
 ; We know 0x700 is free, so we
 ; use that as our 512-byte buffer.
-'(section boot-stage-2)
 (let kernel-copy-buffer 0x700)
 
 ; Load the kernel from disk. For more info
@@ -77,7 +70,6 @@
 ; 	  12      4    Upper 16 bits of 48-bit starting LBA.
 '(arch x86-64)
 '(mode 16)
-'(section boot-stage-2)
 (asm-func (load-kernel-from-disk)
 	(xor ecx ecx)                  ; Set the initial offset of zero.
 	(mov esi 0x500)                ; Address of the DAP.
@@ -174,11 +166,9 @@
 
 ; This string is printed early in stage 1,
 ; so we need it to be in the same section.
-'(section boot-stage-2)
 (let stage-2-debug-msg "Booting (second stage)...\r\n")
 
 ; This string is printed if we fail to use
 ; the BIOS's LBA extension to read the kernel
 ; from disk.
-'(section boot-stage-2)
 (let failed-to-load-kernel "Boot error: failed to load kernel from disk.\r\n")
