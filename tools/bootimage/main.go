@@ -217,10 +217,14 @@ func main() {
 		log.Fatalf("Failed to find symbol %s in bootloader", kernelSizeSym)
 	}
 
+	// Finalise the bootloader so we
+	// can write any data into it.
+	image := buf.Bytes()
+
 	// Overwrite the 32-bit address where
 	// the bootloader ends.
 	bootloaderEndAddr := sections[0].Addr + uint64(written)
-	binary.LittleEndian.PutUint32(buf.Bytes()[bootloaderEndSymAddr-sections[0].Addr:], uint32(bootloaderEndAddr))
+	binary.LittleEndian.PutUint32(image[bootloaderEndSymAddr-sections[0].Addr:], uint32(bootloaderEndAddr))
 
 	stageTwoSize := written - sectorSize
 	stageTwoSectors := (stageTwoSize + sectorSize - 1) / sectorSize
@@ -254,7 +258,7 @@ func main() {
 
 	// Overwrite the 32-bit address where
 	// the kernel ends.
-	binary.LittleEndian.PutUint32(buf.Bytes()[kernelSizeAddr-sections[0].Addr:], uint32(kernelSize+kernelPadding))
+	binary.LittleEndian.PutUint32(image[kernelSizeAddr-sections[0].Addr:], uint32(kernelSize+kernelPadding))
 
 	// Write out the modified bootloader.
 	out, err := os.Create(outName)
@@ -262,7 +266,7 @@ func main() {
 		log.Fatalf("Failed to create out at %s: %v", outName, err)
 	}
 
-	_, err = out.Write(buf.Bytes())
+	_, err = out.Write(image)
 	if err != nil {
 		log.Fatalf("Failed to write bootloader to %s: %v", outName, err)
 	}
