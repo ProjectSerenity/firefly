@@ -405,4 +405,5 @@
 ; beginning of the disk, all we need is to be
 ; 510-byte aligned.
 '(align 510)
+'(section boot-stage-1)
 (let MBR-magic (uint16 0xaa55))
