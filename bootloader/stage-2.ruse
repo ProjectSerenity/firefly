@@ -95,7 +95,7 @@
 	(mov (+ esi 2) ax)      ; Set the number of blocks (1).
 
 	; Set the block number to copy from.
-	(mov ebx (@ stage-2-end)) ; The start of the kernel.
+	(mov ebx (@ bootloader-end)) ; The start of the kernel.
 	(mov eax (ebx))         ; Read the kernel start address.
 	(mov ebx (uint32 stage-1-start)) ; The start of the bootloader.
 	(sub eax ebx)           ; Set EAX to the disk offset in bytes.

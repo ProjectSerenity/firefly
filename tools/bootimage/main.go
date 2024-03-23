@@ -186,16 +186,16 @@ func main() {
 		log.Fatalf("Failed to read bootloader symbol table: %v", err)
 	}
 
-	var stage2EndAddr, kernelSizeAddr uint64
-	const stage2EndSym = "firefly-os.dev/bootloader.stage-2-end"
+	var bootloaderEndSymAddr, kernelSizeAddr uint64
+	const bootloaderEndSym = "firefly-os.dev/bootloader.bootloader-end"
 	const kernelSizeSym = "firefly-os.dev/bootloader.kernel-size"
 	for _, sym := range symbols {
-		if sym.Name == stage2EndSym {
+		if sym.Name == bootloaderEndSym {
 			if sym.Size != 4 {
 				log.Fatalf("Symbol %s has size %d, want %d", sym.Name, sym.Size, 4)
 			}
 
-			stage2EndAddr = sym.Value
+			bootloaderEndSymAddr = sym.Value
 			continue
 		}
 
@@ -209,8 +209,8 @@ func main() {
 		}
 	}
 
-	if stage2EndAddr == 0 {
-		log.Fatalf("Failed to find symbol %s in bootloader", stage2EndSym)
+	if bootloaderEndSymAddr == 0 {
+		log.Fatalf("Failed to find symbol %s in bootloader", bootloaderEndSym)
 	}
 
 	if kernelSizeAddr == 0 {
@@ -220,7 +220,7 @@ func main() {
 	// Overwrite the 32-bit address where
 	// the bootloader ends.
 	bootloaderEndAddr := sections[0].Addr + uint64(written)
-	binary.LittleEndian.PutUint32(buf.Bytes()[stage2EndAddr-sections[0].Addr:], uint32(bootloaderEndAddr))
+	binary.LittleEndian.PutUint32(buf.Bytes()[bootloaderEndSymAddr-sections[0].Addr:], uint32(bootloaderEndAddr))
 
 	stageTwoSize := written - sectorSize
 	stageTwoSectors := (stageTwoSize + sectorSize - 1) / sectorSize

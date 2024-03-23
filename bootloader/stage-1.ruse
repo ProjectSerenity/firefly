@@ -10,10 +10,10 @@
 (let stage-1-start 0x7c00) ; The load address chosen by the BIOS.
 
 '(section boot-stage-1)
-(let stage-2-start (+ stage-1-start 512)) ; Immediately after stage 1 (512 bytes).
+(let stage-1-end (+ stage-1-start 512))
 
 '(section boot-stage-1)
-(let stage-2-end (uint32 stage-2-start))  ; We populate this in the bootimage tool. Default to a length of 0.
+(let bootloader-end (uint32 stage-1-end)) ; We populate this in the bootimage tool. Default to a length of 0.
 
 '(section boot-stage-1)
 (let kernel-size (uint32 0))              ; We populate this in the bootimage tool. Default to a length of 0.
@@ -188,12 +188,12 @@
 	; it in EBP so we can determine when
 	; we have copied the rest of the
 	; bootloader.
-	(mov eax (@ stage-2-end))
+	(mov eax (@ bootloader-end))
 	(mov ebp (eax))
 
 	'load-from-disk
 
-	(mov eax (uint32 stage-2-start)) ; Start of the rest of the bootloader.
+	(mov eax (uint32 stage-1-end)) ; Start of the rest of the bootloader.
 	(add eax ecx)           ; Skip over what we've copied already.
 
 	; Prepare the packet segment.
@@ -206,7 +206,7 @@
 	(sub eax ebx)           ; EAX now just has the remainder.
 	(mov (+ esi 4) ax)      ; Set the offset.
 
-	(mov eax (uint32 stage-2-start)) ; Start of the rest of the bootloader.
+	(mov eax (uint32 stage-1-end)) ; Start of the rest of the bootloader.
 	(add eax ecx)           ; Skip over what we've copied already.
 
 	; Set the number of blocks to load.
