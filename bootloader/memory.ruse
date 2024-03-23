@@ -1,0 +1,49 @@
+; Copyright 2024 The Firefly Authors.
+;
+; Use of this source code is governed by a BSD 3-clause
+; license that can be found in the LICENSE file.
+
+(package main)
+
+; This is where we manage the memory layout used by
+; the bootloader. We define a constant for each
+; significant memory address so that we can ensure
+; none overlaps and that they're used consistently.
+;
+; We only include those used direclty by stage 1 in
+; the stage 1 section, as its space is limited.
+;
+; Memory below 0x500 is reserved for the BIOS. We
+; are allowed to use 0x500 and above. The first
+; section of the bootloader is loaded at 0x7c00.
+; The rest we manage ourselves.
+;
+; The memory layout is summarised below:
+;
+; | Region                | Start address | Last address |     Size |
+; |-----------------------|---------------|--------------|----------|
+; | BIOS memory           |           0x0 |        0x4ff | 1.25 kiB |
+; | DAP for BIOS int 0x13 |         0x500 |        0x510 |     16 B |
+; | Kernel copy buffer    |         0x700 |        0x8ff |    512 B |
+; | Bootloader stage 1    |        0x7c00 |       0x7dfd |    510 B |
+; | MBR magic (0xaa55)    |        0x7dfd |       0x7dff |      2 B |
+; | Bootloader (rest)     |        0x7e00 |          ... |      ... |
+; | VGA memory            |      0xb_8000 |     0xb_8fa0 |     4 kB |
+; | Kernel                |     0x40_0000 |          ... |      ... |
+
+(let data-address-packet 0x500)           ; Used with BIOS int 0x13.
+
+(let kernel-copy-buffer 0x700)            ; Used with BIOS int 0x13.
+
+(let stage-1-start 0x7c00) ; The load address chosen by the BIOS.
+
+(let stage-1-end (+ stage-1-start 512))
+
+'(section boot-stage-1)
+(let bootloader-end (uint32 stage-1-end)) ; We populate this in the bootimage tool. Default to a length of 0.
+
+(let kernel-start 0x40_0000)              ; 2 MiB.
+
+(let kernel-size (uint32 0))              ; We populate this in the bootimage tool. Default to a length of 0.
+
+(let VGA-memory 0xb_8000)

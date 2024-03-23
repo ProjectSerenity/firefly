@@ -6,18 +6,6 @@
 '(base-address stage-1-start)
 (package main)
 
-'(section boot-stage-1)
-(let stage-1-start 0x7c00) ; The load address chosen by the BIOS.
-
-'(section boot-stage-1)
-(let stage-1-end (+ stage-1-start 512))
-
-'(section boot-stage-1)
-(let bootloader-end (uint32 stage-1-end)) ; We populate this in the bootimage tool. Default to a length of 0.
-
-'(section boot-stage-1)
-(let kernel-size (uint32 0))              ; We populate this in the bootimage tool. Default to a length of 0.
-
 ; This is the first stage of the bootloader, which
 ; starts in 16-bit real mode. We initialise the stack,
 ; enable the A20 line, load the rest of the bootloader
@@ -116,9 +104,9 @@
 	; still loaded with the GDT segment,
 	; so we can access the full 4 GiB of
 	; memory.
-	(mov bx 0x0f01)   ; The attributes and character for a smiley.
-	(mov eax 0xb8f00) ; Note the 32-bit offset.
-	(mov (ds eax) bx) ; Print the smiley to the VGA display.
+	(mov bx 0x0f01)               ; The attributes and character for a smiley.
+	(mov eax (uint32 VGA-memory)) ; Note the 32-bit offset.
+	(mov (ds eax) bx)             ; Print the smiley to the VGA display.
 
 	; Check that the BIOS supports extensions
 	; using interrupt 0x13.
@@ -171,13 +159,13 @@
 '(mode 16)
 '(section boot-stage-1)
 (asm-func (load-bootloader-from-disk)
-	(xor ecx ecx)                  ; Set the initial offset of zero.
-	(mov esi 0x500)                ; Address of the DAP.
-	(mov '(bits 32)(esi) ecx)      ; Zero the first quarter of the packet.
-	(mov '(bits 32)(+ esi 4) ecx)  ; Zero the second quarter of the packet.
-	(mov '(bits 32)(+ esi 8) ecx ) ; Zero the third quarter of the packet.
-	(mov '(bits 32)(+ esi 12) ecx) ; Zero the fourth quarter of the packet.
-	(mov '(bits 8)(esi) 16)        ; Set the DAP packet size.
+	(xor ecx ecx)                          ; Set the initial offset of zero.
+	(mov esi (uint32 data-address-packet)) ; Address of the DAP.
+	(mov '(bits 32)(esi) ecx)              ; Zero the first quarter of the packet.
+	(mov '(bits 32)(+ esi 4) ecx)          ; Zero the second quarter of the packet.
+	(mov '(bits 32)(+ esi 8) ecx )         ; Zero the third quarter of the packet.
+	(mov '(bits 32)(+ esi 12) ecx)         ; Zero the fourth quarter of the packet.
+	(mov '(bits 8)(esi) 16)                ; Set the DAP packet size.
 
 	; In the bootimage tool, we write
 	; the address of the end of the

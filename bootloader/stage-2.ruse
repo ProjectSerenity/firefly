@@ -43,18 +43,6 @@
 	; Load the kernel from disk.
 	(jmp (@ load-kernel-from-disk)))
 
-; We copy the kernel binary into
-; memory one 512-byte sector at a
-; time, immediately copying the
-; sector to the destination in
-; memory. This is because we can't
-; use BIOS helpers to write to
-; such high address spaces.
-;
-; We know 0x700 is free, so we
-; use that as our 512-byte buffer.
-(let kernel-copy-buffer 0x700)
-
 ; Load the kernel from disk. For more info
 ; on how this works, see stage 1's function
 ; load-bootloader-from-disk.
@@ -71,13 +59,13 @@
 '(arch x86-64)
 '(mode 16)
 (asm-func (load-kernel-from-disk)
-	(xor ecx ecx)                  ; Set the initial offset of zero.
-	(mov esi 0x500)                ; Address of the DAP.
-	(mov '(bits 32)(esi) ecx)      ; Zero the first quarter of the packet.
-	(mov '(bits 32)(+ esi 4) ecx)  ; Zero the second quarter of the packet.
-	(mov '(bits 32)(+ esi 8) ecx ) ; Zero the third quarter of the packet.
-	(mov '(bits 32)(+ esi 12) ecx) ; Zero the fourth quarter of the packet.
-	(mov '(bits 8)(esi) 16)        ; Set the DAP packet size.
+	(xor ecx ecx)                          ; Set the initial offset of zero.
+	(mov esi (uint32 data-address-packet)) ; Address of the DAP.
+	(mov '(bits 32)(esi) ecx)              ; Zero the first quarter of the packet.
+	(mov '(bits 32)(+ esi 4) ecx)          ; Zero the second quarter of the packet.
+	(mov '(bits 32)(+ esi 8) ecx )         ; Zero the third quarter of the packet.
+	(mov '(bits 32)(+ esi 12) ecx)         ; Zero the fourth quarter of the packet.
+	(mov '(bits 8)(esi) 16)                ; Set the DAP packet size.
 
 	; We copy the kernel binary into
 	; memory one 512-byte sector at a
@@ -104,7 +92,7 @@
 
 	; Set the destination address we'll
 	; copy to (2MiB).
-	(mov edi 0x400000)
+	(mov edi (uint32 kernel-start))
 
 	; In the bootimage tool, we write
 	; the length of the kernel binary

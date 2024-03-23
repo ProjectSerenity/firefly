@@ -8,6 +8,7 @@ load("//tools/ruse:def.bzl", "ruse_binary", "ruse_library")
 ruse_library(
     name = "bootloader_lib",
     srcs = [
+        "memory.ruse",
         "stage-1.ruse",
         "stage-2.ruse",
     ],
