@@ -1,0 +1,52 @@
+; Copyright 2024 The Firefly Authors.
+;
+; Use of this source code is governed by a BSD 3-clause
+; license that can be found in the LICENSE file.
+
+(package main)
+
+; Print a string to the serial port.
+'(abi (abi
+	(params ecx esi)
+	(scratch eax)))
+'(arch x86-64)
+(asm-func (serial-print (s string))
+	(cld)             ; Clear the direction flag so we print forward.
+	(jecxz 'done)     ; Skip printing if the string is empty.
+
+	'print-loop
+
+	; Read and print the next byte.
+	(lodsb)           ; Read the next byte from *ESI into AL.
+	(call (@ serial-print-char))
+
+	; Decrement the string length and
+	; continue if there's more to print.
+	(dec ecx)
+	(jnz 'print-loop)
+
+	'done
+	(ret))
+
+; Print a single character to the serial
+; port.
+'(abi (abi
+	(params al)
+	(scratch eax)))
+'(arch x86-64)
+(asm-func (serial-print-char (c byte))
+	(push dx)         ; Save DX.
+	(push ax)         ; Save the character.
+
+	'check-ready-to-send
+	(mov dx 0x03fd)   ; Line status register.
+	(in al dx)        ; Check if we're clear to send.
+	(test al 0x20)    ; Use bit 5 to see if the transmitter holding register is clear.
+	(jz 'check-ready-to-send)
+
+	; We're good to go.
+	(pop ax)          ; Restore the character.
+	(mov dx 0x03f8)   ; Data register.
+	(out dx al)       ; Write the character.
+	(pop dx)          ; Restore DX.
+	(ret))

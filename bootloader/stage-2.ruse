@@ -146,15 +146,139 @@
 	(dec ecx)
 	(jnz 'load-from-disk)
 
+	(jmp (@ get-physical-memory-map)))
+
+; The number of entries in the physical memory
+; map. We populate this in get-physical-memory-map
+; below.
+(let memory-physical-map-entries (uint32 0))
+
+; Load the map of physical memory from the BIOS,
+; using int 0x15 with EAX 0xe820.
+;
+; Once we're finished, the number of entries
+; will be in memory-physical-map-entries.
+;
+; Each entry has the following structure:
+;
+; 	Offset   Size  Description
+; 	   0      8    Start address.
+; 	   8      8    Length.
+; 	  16      4    Region type (only 1 and 3 are useful).
+; 	  20      4    ACPI extended attributes (must be 1 beforehand).
+;
+; The defined region types are:
+; - 1: Usable (normal RAM).
+; - 2: Reserved (unavailable).
+; - 3: ACPI reclaimable memory (usable if cleared).
+; - 4: ACPI non-volatile storage (unavailable).
+; - 5: Bad memory (unavailable).
+;
+; The defined ACPI extended attributes are:
+; - Bit 0: Present (ignore if unset).
+; - Bit 1: Non-volatile (handle with caution).
+;
+; See http://wiki.osdev.org/Detecting_Memory_(x86).
+'(arch x86-64)
+'(mode 16)
+(asm-func (get-physical-memory-map)
+	; Set up our initial register values.
+	(mov edi (uint32 physical-memory-map)) ; Destination we write to.
+	(xor ebx ebx)         ; EBX must be 0 to start.
+	(xor ebp ebp)         ; Keep an entry count in EBP.
+	(mov edx 0x0534d4150) ; EDX must be "SMAP".
+	(mov eax 0xe820)      ; EAX must be 0xe820.
+	(mov '(bytes 4)(+ es di 20) 1) ; Force a valid ACPI 3.X entry by setting the extended attributes to 1.
+	(mov ecx 24)          ; Ask for 24 bytes, rather than the older 20-byte scheme.
+
+	; Do the first read.
+	(int 0x15)
+	(jc 'failed)          ; A carry bit on the first call means the feature is unsupported.
+
+	; Prepare for subsequent reads.
+	(mov edx 0x0534d4150) ; Some BIOSes trash this.
+	(cmp eax edx)         ; On success, EAX will have been set to "SMAP".
+	(jne 'failed)
+	(test ebx ebx)        ; If EBX is zero, the list is only 1 entry long and is useless.
+	(je 'failed)
+	(jmp 'handle-entry)
+
+	'next-read
+	(mov eax 0xe820)      ; EAX and ECX get trashed by int 0x15.
+	(mov ecx 24)
+	(mov '(bytes 4)(+ es di 20) 1) ; Force a valid ACPI 3.X entry by setting the extended attributes to 1.
+	(int 0x15)
+	(jc 'finished)
+	(mov edx 0x0534d4150) ; Some BIOSes trash this.
+
+	'handle-entry
+	(jcxz 'skip-entry)    ; Skip any 0-length entries.
+	(cmp cl 20)           ; Check whether we got a 24-byte ACPI 3.X response.
+	(jbe 'not-extended)
+	(test '(bytes 1)(+ es di 20) 1) ; We got an extended response; is the "ignore this entry" bit clear?
+	(je 'skip-entry)
+
+	'not-extended
+	(mov ecx (+ es di 8)) ; Get the lower 4 bytes of the length.
+	(or ecx (+ es di 12)) ; Or with the upper 4 bytes to test for zero.
+	(jz 'skip-entry)      ; If the length is zero, skip the entry.
+
+	; We got an entry!
+	(inc ebp)               ; Record the entry.
+	(add di 24)             ; Move our pointer to the next slot.
+
+	'skip-entry
+	(test ebx ebx)          ; If EBX is zero, the list is complete.
+	(jne 'next-read)
+	(jmp 'finished)
+
+	'failed
+	; Print an error.
+	(mov cx (len failed-to-load-physical-memory-map))
+	(mov si (string-pointer failed-to-load-physical-memory-map))
+	(call (@ real-mode-print))
 	; Exit.
 	(mov ax 0x11)
 	(out 0xf4 ax)
+	; Fallback busy loop.
+	'failed-to-load-physical-memory-map-loop
+	(jmp 'failed-to-load-physical-memory-map-loop)
 
-	; Busy loop.
-	'loop
-	(jmp 'loop))
+	; All done.
+	'finished
+	(mov eax (@ memory-physical-map-entries))
+	(mov (eax) ebp)       ; Record the number of entries.
+	(clc)                 ; Clear the carry flag.
+	(jmp (@ enter-protected-mode-again)))
+
+; Enter protected mode for good this time.
+; We've done everything we need to in unreal
+; mode using the BIOS functions. Now we can
+; move on to preparing for long mode.
+'(arch x86-64)
+'(mode 16)
+(asm-func (enter-protected-mode-again)
+	; Load the global descriptor table.
+	(cli)                 ; Pause interrupts.
+	(mov bx (@ global-descriptor-table-32-header))
+	(lgdt (bx))
+
+	; Enable and resume protected mode.
+	(mov eax cr0)
+	(or al 1)             ; Set the protected mode bit.
+	(mov cr0 eax)
+
+	; Start stage 3 with a far return.
+	(push 0x08)
+	(mov eax (@ stage-3))
+	(push eax)
+	(data32 ret-far))
 
 ; This string is printed if we fail to use
 ; the BIOS's LBA extension to read the kernel
 ; from disk.
 (let failed-to-load-kernel "Boot error: failed to load kernel from disk.\r\n")
+
+; This string is printed if we fail to load
+; the map of physical memory from the BIOS.
+(let failed-to-load-physical-memory-map "Boot error: failed to load physical mmeory map from BIOS.\r\n")

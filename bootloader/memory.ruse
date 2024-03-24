@@ -25,6 +25,7 @@
 ; | BIOS memory           |           0x0 |        0x4ff | 1.25 kiB |
 ; | DAP for BIOS int 0x13 |         0x500 |        0x510 |     16 B |
 ; | Kernel copy buffer    |         0x700 |        0x8ff |    512 B |
+; | Physical memory map   |        0x1000 |       0x1fff |    4 kiB |
 ; | Bootloader stage 1    |        0x7c00 |       0x7dfd |    510 B |
 ; | MBR magic (0xaa55)    |        0x7dfd |       0x7dff |      2 B |
 ; | Bootloader (rest)     |        0x7e00 |          ... |      ... |
@@ -34,6 +35,8 @@
 (let data-address-packet 0x500)           ; Used with BIOS int 0x13.
 
 (let kernel-copy-buffer 0x700)            ; Used with BIOS int 0x13.
+
+(let physical-memory-map 0x1000)          ; Used with BIOS int 0x15 and EAX 0xe820.
 
 (let stage-1-start 0x7c00) ; The load address chosen by the BIOS.
 
