@@ -308,11 +308,11 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 					}
 
 					fun := p.Functions[0]
-					if len(fun.Entry.Values) != 2 {
+					if len(fun.Entry.Values) != 1 {
 						t.Fatalf("bad compile of %s   (%s): got %d values, want 1: %#v", test.Ruse, test.Intel, len(fun.Entry.Values), fun.Entry.Values)
 					}
 
-					v := fun.Entry.Values[1]
+					v := fun.Entry.Values[0]
 
 					data, ok := v.Extra.(*x86InstructionData)
 					if !ok {
