@@ -60,7 +60,7 @@ qemu(
         "-device",
         "isa-debug-exit,iobase=0xf4,iosize=0x04",
     ],
-    qemu = "qemu-system-i386",
+    qemu = "qemu-system-x86_64",
 )
 
 qemu(
@@ -79,7 +79,7 @@ qemu(
         "-s",
         "-S",
     ],
-    qemu = "qemu-system-i386",
+    qemu = "qemu-system-x86_64",
 )
 
 qemu(
@@ -94,5 +94,5 @@ qemu(
         "-device",
         "isa-debug-exit,iobase=0xf4,iosize=0x04",
     ],
-    qemu = "qemu-system-i386",
+    qemu = "qemu-system-x86_64",
 )
