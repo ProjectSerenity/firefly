@@ -300,11 +300,14 @@ const (
 	OpBitwiseOr
 	OpBitwiseAnd
 	OpBitwiseXor
+	OpShiftLeft
+	OpShiftRight
 )
 
 // Operation performs the given operation on at least
 // one parameter.
 func Operation(op Op, v ...Value) Value {
+	isShift := false
 	var tok gotoken.Token
 	switch op {
 	case OpAdd:
@@ -321,6 +324,12 @@ func Operation(op Op, v ...Value) Value {
 		tok = gotoken.AND
 	case OpBitwiseXor:
 		tok = gotoken.XOR
+	case OpShiftLeft:
+		isShift = true
+		tok = gotoken.SHL
+	case OpShiftRight:
+		isShift = true
+		tok = gotoken.SHR
 	default:
 		panic(fmt.Sprintf("unrecognised operation Op(%d)", op))
 	}
@@ -342,6 +351,16 @@ func Operation(op Op, v ...Value) Value {
 		gv1, ok := v[1].(goVal)
 		if !ok {
 			return goVal{v: constant.MakeUnknown()}
+		}
+
+		// Shifts have to be handled
+		// differently.
+		if isShift {
+			// Arg 2 must be a uint.
+			shift, _ := constant.Uint64Val(gv1.v)
+			value = constant.Shift(gv0.v, tok, uint(shift))
+
+			return goVal{v: value}
 		}
 
 		value = constant.BinaryOp(gv0.v, tok, gv1.v)

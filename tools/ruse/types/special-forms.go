@@ -53,6 +53,8 @@ const (
 	SpecialFormBitwiseOr
 	SpecialFormBitwiseAnd
 	SpecialFormBitwiseXor
+	SpecialFormShiftLeft
+	SpecialFormShiftRight
 )
 
 func (id SpecialFormID) String() string {
@@ -87,6 +89,10 @@ func (id SpecialFormID) String() string {
 		return "&"
 	case SpecialFormBitwiseXor:
 		return "^"
+	case SpecialFormShiftLeft:
+		return "<<"
+	case SpecialFormShiftRight:
+		return ">>"
 	}
 
 	return fmt.Sprintf("specialFormId(%d)", id)
@@ -110,6 +116,8 @@ var specialForms = [...]*SpecialForm{
 	SpecialFormBitwiseOr:  {},
 	SpecialFormBitwiseAnd: {},
 	SpecialFormBitwiseXor: {},
+	SpecialFormShiftLeft:  {},
+	SpecialFormShiftRight: {},
 }
 
 var specialFormTypes [len(specialForms)]func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error)
@@ -537,6 +545,20 @@ func defPredeclaredSpecialForms() {
 		Op:          constant.OpBitwiseXor,
 	}).signature
 
+	specialFormTypes[SpecialFormShiftLeft] = (&arithmeticOp{
+		Name:        "<<",
+		BinaryTypes: numericTypes,
+		MaxOperands: 2,
+		Op:          constant.OpShiftLeft,
+	}).signature
+
+	specialFormTypes[SpecialFormShiftRight] = (&arithmeticOp{
+		Name:        ">>",
+		BinaryTypes: numericTypes,
+		MaxOperands: 2,
+		Op:          constant.OpShiftRight,
+	}).signature
+
 	for id, form := range specialForms {
 		form.id = SpecialFormID(id)
 		form.object = object{name: SpecialFormID(id).String()}
@@ -594,6 +616,8 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig 
 		params: make([]*Variable, len(argTypes)),
 	}
 
+	isShift := op.Op == constant.OpShiftLeft || op.Op == constant.OpShiftRight
+
 	for i, arg := range argTypes {
 		// TODO: work out how to handle the case where
 		// the first argument is an untyped constant.
@@ -615,7 +639,12 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig 
 			continue
 		}
 
-		if !AssignableTo(sig.result, arg) {
+		if isShift && i == 1 {
+			// The shift must be a uint.
+			if !AssignableTo(Uint, arg) {
+				return nil, nil, c.errorf(fun.Elements[i+1].Pos(), "expected %s parameter, found %s", Uint, arg)
+			}
+		} else if !AssignableTo(sig.result, arg) {
 			return nil, nil, c.errorf(fun.Elements[i+1].Pos(), "expected %s parameter, found %s", sig.result, arg)
 		}
 	}
