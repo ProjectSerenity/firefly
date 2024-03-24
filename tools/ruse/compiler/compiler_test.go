@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -25,59 +24,6 @@ import (
 	"firefly-os.dev/tools/ruse/token"
 	"firefly-os.dev/tools/ruse/types"
 )
-
-func humaniseNumber(v int) string {
-	prefix, suffix := strconv.Itoa(v), ""
-	for len(prefix) > 3 {
-		suffix = "," + prefix[len(prefix)-3:] + suffix
-		prefix = prefix[:len(prefix)-3]
-	}
-
-	return prefix + suffix
-}
-
-type TestAssemblyGroup struct {
-	Name  string
-	fail  int
-	wrong int
-	skip  int
-	total int
-}
-
-func (g *TestAssemblyGroup) Start()      { g.total++ }
-func (g *TestAssemblyGroup) Fail()       { g.fail++ }
-func (g *TestAssemblyGroup) Wrong()      { g.wrong++ }
-func (g *TestAssemblyGroup) Skip()       { g.skip++ }
-func (g *TestAssemblyGroup) Ok() bool    { return g.fail <= 10 }
-func (g *TestAssemblyGroup) Right() bool { return g.wrong <= 10 }
-
-func (g *TestAssemblyGroup) Print() {
-	if g.skip > 0 {
-		pc := (100 * g.skip) / g.total
-		n := humaniseNumber(g.skip)
-		max := humaniseNumber(g.total)
-		println(fmt.Sprintf("%-8s skipped           %3d%% (%9s of %9s) test instructions", g.Name, pc, n, max))
-	}
-
-	if g.fail > 0 {
-		pc := (100 * g.fail) / (g.total - g.skip)
-		n := humaniseNumber(g.fail)
-		max := humaniseNumber(g.total - g.skip)
-		println(fmt.Sprintf("%-8s failed to compile %3d%% (%9s of %9s) test instructions", g.Name, pc, n, max))
-	}
-
-	if g.wrong > 0 {
-		pc := (100 * g.wrong) / (g.total - g.skip - g.fail)
-		n := humaniseNumber(g.wrong)
-		max := humaniseNumber(g.total - g.skip - g.fail)
-		println(fmt.Sprintf("%-8s failed to encode  %3d%% (%9s of %9s) test instructions", g.Name, pc, n, max))
-	}
-
-	if g.fail == 0 && g.wrong == 0 && g.skip == 0 {
-		n := humaniseNumber(g.total)
-		println(fmt.Sprintf("%-8s passed all %s test instructions", g.Name, n))
-	}
-}
 
 func TestCompile(t *testing.T) {
 	// These tests are quite verbose, as we try

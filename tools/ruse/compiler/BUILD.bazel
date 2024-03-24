@@ -49,9 +49,29 @@ go_test(
         "lower_test.go",
         "x86-encode_test.go",
         "x86_test.go",
+        # "x86-vectors_test.go", # Do not include here! See :compiler_vectors_test below.
     ],
     data = glob(["testdata/**"]),
     embed = [":compiler"],
+    deps = [
+        "//tools/ruse/parser",
+        "//vendor/github.com/google/go-cmp/cmp",
+        "//vendor/github.com/google/go-cmp/cmp/cmpopts",
+        "//vendor/rsc.io/diff",
+    ],
+)
+
+go_test(
+    name = "compiler_vectors_test",
+    size = "large",
+    srcs = [
+        "x86-vectors_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":compiler"],
+    tags = [
+        "manual",  # Only run tests if we ask explicitly.
+    ],
     deps = [
         "//tools/ruse/parser",
         "//vendor/github.com/google/go-cmp/cmp",
