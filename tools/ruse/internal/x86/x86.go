@@ -573,6 +573,35 @@ const (
 	PrefixAddressSize Prefix = 0x67
 )
 
+func (p Prefix) String() string {
+	switch p {
+	case PrefixLock:
+		return "lock"
+	case PrefixRepeatNot:
+		return "repnz/repne"
+	case PrefixRepeat:
+		return "rep/repe/repz"
+	case PrefixCS:
+		return "cs/unlikely"
+	case PrefixSS:
+		return "ss"
+	case PrefixDS:
+		return "ds/likely"
+	case PrefixES:
+		return "es"
+	case PrefixFS:
+		return "fs"
+	case PrefixGS:
+		return "gs"
+	case PrefixOperandSize:
+		return "data16/data32"
+	case PrefixAddressSize:
+		return "addr16/addr32"
+	default:
+		return fmt.Sprintf("Prefix(%#02x)", byte(p))
+	}
+}
+
 // b2i is a helper function to convert
 // a boolean to an integer. The result
 // is one if `b` is true and 0 otherwise.
