@@ -860,25 +860,25 @@ func (ctx *x86Context) Match(list *ast.List, args []ast.Expression, op ssafir.Op
 		var arg any
 		switch operand.Type {
 		case x86.TypeSignedImmediate:
-			arg = ctx.matchSignedImmediate(args[i], operand)
+			arg = ctx.matchSignedImmediate(inst, args[i], operand)
 		case x86.TypeUnsignedImmediate:
-			arg = ctx.matchUnsignedImmediate(args[i], operand)
+			arg = ctx.matchUnsignedImmediate(inst, args[i], operand)
 		case x86.TypeRegister:
-			arg = ctx.matchRegister(args[i], operand)
+			arg = ctx.matchRegister(inst, args[i], operand)
 		case x86.TypeStackIndex:
-			arg = ctx.matchStackIndex(args[i], operand)
+			arg = ctx.matchStackIndex(inst, args[i], operand)
 		case x86.TypeRelativeAddress:
-			arg = ctx.matchRelativeAddress(args[i], operand)
+			arg = ctx.matchRelativeAddress(inst, args[i], operand)
 		case x86.TypeFarPointer:
-			arg = ctx.matchFarPointer(args[i], operand)
+			arg = ctx.matchFarPointer(inst, args[i], operand)
 		case x86.TypeMemory:
-			arg = ctx.matchMemory(args[i], operand)
+			arg = ctx.matchMemory(inst, args[i], operand)
 		case x86.TypeMemoryOffset:
-			arg = ctx.matchMemoryOffset(args[i], operand)
+			arg = ctx.matchMemoryOffset(inst, args[i], operand)
 		case x86.TypeStringDst:
-			arg = ctx.matchStringDst(args[i], operand)
+			arg = ctx.matchStringDst(inst, args[i], operand)
 		case x86.TypeStringSrc:
-			arg = ctx.matchStringSrc(args[i], operand)
+			arg = ctx.matchStringSrc(inst, args[i], operand)
 		default:
 			panic("unexpected parameter type: " + operand.Type.String())
 		}
@@ -961,7 +961,7 @@ func (ctx *x86Context) rejectedBySizeHint(list *ast.List, bits int) bool {
 	return false
 }
 
-func (ctx *x86Context) matchSpecialForm(list *ast.List, operand *x86.Operand) any {
+func (ctx *x86Context) matchSpecialForm(inst *x86.Instruction, list *ast.List, operand *x86.Operand) any {
 	if len(list.Elements) != 2 {
 		return nil
 	}
@@ -1112,7 +1112,7 @@ func (ctx *x86Context) matchSpecialForm(list *ast.List, operand *x86.Operand) an
 	}
 }
 
-func (ctx *x86Context) matchUint(arg ast.Expression, bits int) any {
+func (ctx *x86Context) matchUint(inst *x86.Instruction, arg ast.Expression, bits int) any {
 	lit, ok := arg.(*ast.Literal)
 	if !ok || lit.Kind != token.Integer {
 		return nil
@@ -1136,7 +1136,7 @@ func (ctx *x86Context) matchUint(arg ast.Expression, bits int) any {
 	return v
 }
 
-func (ctx *x86Context) matchSint(arg ast.Expression, bits int) any {
+func (ctx *x86Context) matchSint(inst *x86.Instruction, arg ast.Expression, bits int) any {
 	lit, ok := arg.(*ast.Literal)
 	if !ok || lit.Kind != token.Integer {
 		return nil
@@ -1158,7 +1158,7 @@ func (ctx *x86Context) matchSint(arg ast.Expression, bits int) any {
 	return uint64(v)
 }
 
-func (ctx *x86Context) matchSpecificUint(arg ast.Expression, want ...uint8) any {
+func (ctx *x86Context) matchSpecificUint(inst *x86.Instruction, arg ast.Expression, want ...uint8) any {
 	lit, ok := arg.(*ast.Literal)
 	if !ok || lit.Kind != token.Integer {
 		return nil
@@ -1178,7 +1178,7 @@ func (ctx *x86Context) matchSpecificUint(arg ast.Expression, want ...uint8) any 
 	return nil
 }
 
-func (ctx *x86Context) matchReg(arg ast.Expression, registers ...*x86.Register) *x86.Register {
+func (ctx *x86Context) matchReg(inst *x86.Instruction, arg ast.Expression, registers ...*x86.Register) *x86.Register {
 	ident, ok := arg.(*ast.Identifier)
 	if !ok {
 		return nil
@@ -1203,7 +1203,7 @@ func (ctx *x86Context) matchReg(arg ast.Expression, registers ...*x86.Register) 
 	return nil
 }
 
-func (ctx *x86Context) matchRegPair(base, index *x86.Register) *x86.Register {
+func (ctx *x86Context) matchRegPair(inst *x86.Instruction, base, index *x86.Register) *x86.Register {
 	switch {
 	case base == x86.BX && index == x86.SI:
 		return x86.BX_SI
@@ -1218,7 +1218,7 @@ func (ctx *x86Context) matchRegPair(base, index *x86.Register) *x86.Register {
 	return nil
 }
 
-func (ctx *x86Context) matchSignedImmediate(arg ast.Expression, operand *x86.Operand) any {
+func (ctx *x86Context) matchSignedImmediate(inst *x86.Instruction, arg ast.Expression, operand *x86.Operand) any {
 	if operand.Encoding == x86.EncodingNone {
 		lit, ok := arg.(*ast.Literal)
 		if !ok || lit.Kind != token.Integer {
@@ -1234,13 +1234,13 @@ func (ctx *x86Context) matchSignedImmediate(arg ast.Expression, operand *x86.Ope
 	}
 
 	if list, ok := arg.(*ast.List); ok {
-		return ctx.matchSpecialForm(list, operand)
+		return ctx.matchSpecialForm(inst, list, operand)
 	}
 
-	return ctx.matchSint(arg, operand.Bits)
+	return ctx.matchSint(inst, arg, operand.Bits)
 }
 
-func (ctx *x86Context) matchUnsignedImmediate(arg ast.Expression, operand *x86.Operand) any {
+func (ctx *x86Context) matchUnsignedImmediate(inst *x86.Instruction, arg ast.Expression, operand *x86.Operand) any {
 	if operand.Encoding == x86.EncodingNone {
 		lit, ok := arg.(*ast.Literal)
 		if !ok || lit.Kind != token.Integer {
@@ -1256,14 +1256,14 @@ func (ctx *x86Context) matchUnsignedImmediate(arg ast.Expression, operand *x86.O
 	}
 
 	if list, ok := arg.(*ast.List); ok {
-		return ctx.matchSpecialForm(list, operand)
+		return ctx.matchSpecialForm(inst, list, operand)
 	}
 
-	return ctx.matchUint(arg, operand.Bits)
+	return ctx.matchUint(inst, arg, operand.Bits)
 }
 
-func (ctx *x86Context) matchRegister(arg ast.Expression, operand *x86.Operand) any {
-	reg := ctx.matchReg(arg, operand.Registers...)
+func (ctx *x86Context) matchRegister(inst *x86.Instruction, arg ast.Expression, operand *x86.Operand) any {
+	reg := ctx.matchReg(inst, arg, operand.Registers...)
 	if reg == nil {
 		return nil
 	}
@@ -1271,7 +1271,7 @@ func (ctx *x86Context) matchRegister(arg ast.Expression, operand *x86.Operand) a
 	return reg
 }
 
-func (ctx *x86Context) matchStackIndex(arg ast.Expression, operand *x86.Operand) any {
+func (ctx *x86Context) matchStackIndex(inst *x86.Instruction, arg ast.Expression, operand *x86.Operand) any {
 	ident, ok := arg.(*ast.Identifier)
 	if !ok {
 		return nil
@@ -1301,7 +1301,7 @@ func (ctx *x86Context) matchStackIndex(arg ast.Expression, operand *x86.Operand)
 	return nil
 }
 
-func (ctx *x86Context) matchRelativeAddress(arg ast.Expression, operand *x86.Operand) any {
+func (ctx *x86Context) matchRelativeAddress(inst *x86.Instruction, arg ast.Expression, operand *x86.Operand) any {
 	// Handle labels. We only accept labels for
 	// 32-bit relative jumps so that optimisations
 	// don't increase any jump distances.
@@ -1322,21 +1322,21 @@ func (ctx *x86Context) matchRelativeAddress(arg ast.Expression, operand *x86.Ope
 	}
 
 	if list, ok := arg.(*ast.List); ok {
-		return ctx.matchSpecialForm(list, operand)
+		return ctx.matchSpecialForm(inst, list, operand)
 	}
 
 	// Relative addresses can't be unsigned.
-	return ctx.matchSint(arg, operand.Bits)
+	return ctx.matchSint(inst, arg, operand.Bits)
 }
 
-func (ctx *x86Context) matchFarPointer(arg ast.Expression, operand *x86.Operand) any {
+func (ctx *x86Context) matchFarPointer(inst *x86.Instruction, arg ast.Expression, operand *x86.Operand) any {
 	pair, ok := arg.(*ast.List)
 	if !ok || len(pair.Elements) != 2 {
 		return nil
 	}
 
-	base := ctx.matchUint(pair.Elements[0], 16)
-	index := ctx.matchUint(pair.Elements[1], operand.Bits-16)
+	base := ctx.matchUint(inst, pair.Elements[0], 16)
+	index := ctx.matchUint(inst, pair.Elements[1], operand.Bits-16)
 	if base == nil || index == nil {
 		return nil
 	}
@@ -1349,7 +1349,7 @@ func (ctx *x86Context) matchFarPointer(arg ast.Expression, operand *x86.Operand)
 	return (base.(uint64) << (operand.Bits - 16)) | index.(uint64)
 }
 
-func (ctx *x86Context) matchMemory(arg ast.Expression, operand *x86.Operand) any {
+func (ctx *x86Context) matchMemory(inst *x86.Instruction, arg ast.Expression, operand *x86.Operand) any {
 	list, ok := arg.(*ast.List)
 	if !ok {
 		return nil
@@ -1375,12 +1375,12 @@ func (ctx *x86Context) matchMemory(arg ast.Expression, operand *x86.Operand) any
 	elements := list.Elements
 	var segment *x86.Register
 	if len(elements) > 1 && ctx.isIdent(elements[0], "+") {
-		if sreg := ctx.matchReg(elements[1], x86.Registers16bitSegment...); sreg != nil {
+		if sreg := ctx.matchReg(inst, elements[1], x86.Registers16bitSegment...); sreg != nil {
 			segment = sreg
 			elements = append([]ast.Expression{elements[0]}, elements[2:]...)
 		}
 	} else if len(elements) > 0 {
-		if sreg := ctx.matchReg(elements[0], x86.Registers16bitSegment...); sreg != nil {
+		if sreg := ctx.matchReg(inst, elements[0], x86.Registers16bitSegment...); sreg != nil {
 			segment = sreg
 			elements = elements[1:]
 		}
@@ -1402,11 +1402,11 @@ func (ctx *x86Context) matchMemory(arg ast.Expression, operand *x86.Operand) any
 	case 4: // 1, 5.
 		// 5. (+ base index displacement)
 		if ctx.isIdent(elements[0], "+") {
-			base := ctx.matchReg(elements[1], x86.RegistersAddress...)
-			index := ctx.matchReg(elements[2], x86.RegistersIndex...)
-			displ, ok4 := ctx.matchSint(elements[3], displacementSize).(uint64)
+			base := ctx.matchReg(inst, elements[1], x86.RegistersAddress...)
+			index := ctx.matchReg(inst, elements[2], x86.RegistersIndex...)
+			displ, ok4 := ctx.matchSint(inst, elements[3], displacementSize).(uint64)
 			if base != nil && index != nil && ok4 {
-				if pair := ctx.matchRegPair(base, index); pair != nil {
+				if pair := ctx.matchRegPair(inst, base, index); pair != nil {
 					// Legacy 16-bit addressing form.
 					return &x86.Memory{Segment: segment, Base: pair, Displacement: int64(displ)}
 				}
@@ -1418,10 +1418,10 @@ func (ctx *x86Context) matchMemory(arg ast.Expression, operand *x86.Operand) any
 		// 1. (+ base (* index scale) displacement)
 		mul, ok := elements[2].(*ast.List)
 		if ctx.isIdent(elements[0], "+") && ok && ctx.isIdent(mul.Elements[0], "*") {
-			base := ctx.matchReg(elements[1], x86.RegistersAddress...)
-			index := ctx.matchReg(mul.Elements[1], x86.RegistersIndex...)
-			scale, ok3 := ctx.matchSpecificUint(mul.Elements[2], 1, 2, 4, 8).(uint8)
-			displ, ok4 := ctx.matchSint(elements[3], displacementSize).(uint64)
+			base := ctx.matchReg(inst, elements[1], x86.RegistersAddress...)
+			index := ctx.matchReg(inst, mul.Elements[1], x86.RegistersIndex...)
+			scale, ok3 := ctx.matchSpecificUint(inst, mul.Elements[2], 1, 2, 4, 8).(uint8)
+			displ, ok4 := ctx.matchSint(inst, elements[3], displacementSize).(uint64)
 			if base != nil && index != nil && ok3 && ok4 {
 				// We can't have a register pair here, as we have a scale, so we don't check for one.
 				return &x86.Memory{Segment: segment, Base: base, Index: index, Scale: scale, Displacement: int64(displ)}
@@ -1430,8 +1430,8 @@ func (ctx *x86Context) matchMemory(arg ast.Expression, operand *x86.Operand) any
 	case 3: // 2, 3, 4, 6, 7.
 		// 6. (+ base displacement)
 		if ctx.isIdent(elements[0], "+") {
-			base := ctx.matchReg(elements[1], x86.RegistersAddress...)
-			displ, ok4 := ctx.matchSint(elements[2], displacementSize).(uint64)
+			base := ctx.matchReg(inst, elements[1], x86.RegistersAddress...)
+			displ, ok4 := ctx.matchSint(inst, elements[2], displacementSize).(uint64)
 			if base != nil && ok4 {
 				return &x86.Memory{Segment: segment, Base: base, Displacement: int64(displ)}
 			}
@@ -1439,10 +1439,10 @@ func (ctx *x86Context) matchMemory(arg ast.Expression, operand *x86.Operand) any
 
 		// 7. (+ base index)
 		if ctx.isIdent(elements[0], "+") {
-			base := ctx.matchReg(elements[1], x86.RegistersAddress...)
-			index := ctx.matchReg(elements[2], x86.RegistersIndex...)
+			base := ctx.matchReg(inst, elements[1], x86.RegistersAddress...)
+			index := ctx.matchReg(inst, elements[2], x86.RegistersIndex...)
 			if base != nil && index != nil {
-				if pair := ctx.matchRegPair(base, index); pair != nil {
+				if pair := ctx.matchRegPair(inst, base, index); pair != nil {
 					// Legacy 16-bit addressing form.
 					return &x86.Memory{Segment: segment, Base: pair}
 				}
@@ -1453,8 +1453,8 @@ func (ctx *x86Context) matchMemory(arg ast.Expression, operand *x86.Operand) any
 
 		// 4. (* index scale)
 		if ctx.isIdent(elements[0], "*") {
-			index := ctx.matchReg(elements[1], x86.RegistersIndex...)
-			scale, ok3 := ctx.matchSpecificUint(elements[2], 1, 2, 4, 8).(uint8)
+			index := ctx.matchReg(inst, elements[1], x86.RegistersIndex...)
+			scale, ok3 := ctx.matchSpecificUint(inst, elements[2], 1, 2, 4, 8).(uint8)
 			if index != nil && ok3 {
 				return &x86.Memory{Segment: segment, Index: index, Scale: scale}
 			}
@@ -1463,9 +1463,9 @@ func (ctx *x86Context) matchMemory(arg ast.Expression, operand *x86.Operand) any
 		// 2. (+ (* index scale) displacement)
 		mul, ok := elements[1].(*ast.List)
 		if ctx.isIdent(elements[0], "+") && ok && ctx.isIdent(mul.Elements[0], "*") {
-			index := ctx.matchReg(mul.Elements[1], x86.RegistersIndex...)
-			scale, ok3 := ctx.matchSpecificUint(mul.Elements[2], 1, 2, 4, 8).(uint8)
-			displ, ok4 := ctx.matchSint(elements[2], displacementSize).(uint64)
+			index := ctx.matchReg(inst, mul.Elements[1], x86.RegistersIndex...)
+			scale, ok3 := ctx.matchSpecificUint(inst, mul.Elements[2], 1, 2, 4, 8).(uint8)
+			displ, ok4 := ctx.matchSint(inst, elements[2], displacementSize).(uint64)
 			if index != nil && ok3 && ok4 {
 				return &x86.Memory{Segment: segment, Index: index, Scale: scale, Displacement: int64(displ)}
 			}
@@ -1474,9 +1474,9 @@ func (ctx *x86Context) matchMemory(arg ast.Expression, operand *x86.Operand) any
 		// 3. (+ base (* index scale))
 		mul, ok = elements[2].(*ast.List)
 		if ctx.isIdent(elements[0], "+") && ok && ctx.isIdent(mul.Elements[0], "*") {
-			base := ctx.matchReg(elements[1], x86.RegistersAddress...)
-			index := ctx.matchReg(mul.Elements[1], x86.RegistersIndex...)
-			scale, ok := ctx.matchSpecificUint(mul.Elements[2], 1, 2, 4, 8).(uint8)
+			base := ctx.matchReg(inst, elements[1], x86.RegistersAddress...)
+			index := ctx.matchReg(inst, mul.Elements[1], x86.RegistersIndex...)
+			scale, ok := ctx.matchSpecificUint(inst, mul.Elements[2], 1, 2, 4, 8).(uint8)
 			if base != nil && index != nil && ok {
 				// We can't have a register pair here, as we have a scale, so we don't check for one.
 
@@ -1485,13 +1485,13 @@ func (ctx *x86Context) matchMemory(arg ast.Expression, operand *x86.Operand) any
 		}
 	case 1: // 8, 9.
 		// 8. (base)
-		base := ctx.matchReg(elements[0], x86.RegistersAddress...)
+		base := ctx.matchReg(inst, elements[0], x86.RegistersAddress...)
 		if base != nil {
 			return &x86.Memory{Segment: segment, Base: base}
 		}
 
 		// 9. (displacement)
-		displ, ok := ctx.matchSint(elements[0], displacementSize).(uint64)
+		displ, ok := ctx.matchSint(inst, elements[0], displacementSize).(uint64)
 		if ok {
 			return &x86.Memory{Segment: segment, Displacement: int64(displ)}
 		}
@@ -1500,7 +1500,7 @@ func (ctx *x86Context) matchMemory(arg ast.Expression, operand *x86.Operand) any
 	return nil
 }
 
-func (ctx *x86Context) matchMemoryOffset(arg ast.Expression, operand *x86.Operand) any {
+func (ctx *x86Context) matchMemoryOffset(inst *x86.Instruction, arg ast.Expression, operand *x86.Operand) any {
 	deref, ok := arg.(*ast.List)
 	if !ok {
 		return nil
@@ -1515,13 +1515,13 @@ func (ctx *x86Context) matchMemoryOffset(arg ast.Expression, operand *x86.Operan
 	elements := deref.Elements
 	switch len(elements) {
 	case 2:
-		segment := ctx.matchReg(elements[0], x86.Registers16bitSegment...)
-		offset, ok2 := ctx.matchUint(elements[1], int(ctx.Mode.Int)).(uint64)
+		segment := ctx.matchReg(inst, elements[0], x86.Registers16bitSegment...)
+		offset, ok2 := ctx.matchUint(inst, elements[1], int(ctx.Mode.Int)).(uint64)
 		if ctx.Mode.Int < 64 && segment != nil && ok2 {
 			return &x86.Memory{Segment: segment, Displacement: int64(offset)}
 		}
 	case 1:
-		offset, ok := ctx.matchUint(elements[0], int(ctx.Mode.Int)).(uint64)
+		offset, ok := ctx.matchUint(inst, elements[0], int(ctx.Mode.Int)).(uint64)
 		if ok {
 			return &x86.Memory{Displacement: int64(offset)}
 		}
@@ -1530,7 +1530,7 @@ func (ctx *x86Context) matchMemoryOffset(arg ast.Expression, operand *x86.Operan
 	return nil
 }
 
-func (ctx *x86Context) matchStringDst(arg ast.Expression, operand *x86.Operand) any {
+func (ctx *x86Context) matchStringDst(inst *x86.Instruction, arg ast.Expression, operand *x86.Operand) any {
 	deref, ok := arg.(*ast.List)
 	if !ok {
 		return nil
@@ -1548,13 +1548,13 @@ func (ctx *x86Context) matchStringDst(arg ast.Expression, operand *x86.Operand) 
 	elements := deref.Elements
 	switch len(elements) {
 	case 2:
-		seg := ctx.matchReg(elements[0], x86.ES)
-		reg := ctx.matchReg(elements[1], x86.DI, x86.EDI)
+		seg := ctx.matchReg(inst, elements[0], x86.ES)
+		reg := ctx.matchReg(inst, elements[1], x86.DI, x86.EDI)
 		if seg != nil && reg != nil {
 			return reg
 		}
 	case 1:
-		reg := ctx.matchReg(elements[0], x86.DI, x86.EDI, x86.RDI)
+		reg := ctx.matchReg(inst, elements[0], x86.DI, x86.EDI, x86.RDI)
 		if reg != nil {
 			return reg
 		}
@@ -1563,7 +1563,7 @@ func (ctx *x86Context) matchStringDst(arg ast.Expression, operand *x86.Operand) 
 	return nil
 }
 
-func (ctx *x86Context) matchStringSrc(arg ast.Expression, operand *x86.Operand) any {
+func (ctx *x86Context) matchStringSrc(inst *x86.Instruction, arg ast.Expression, operand *x86.Operand) any {
 	deref, ok := arg.(*ast.List)
 	if !ok {
 		return nil
@@ -1581,13 +1581,13 @@ func (ctx *x86Context) matchStringSrc(arg ast.Expression, operand *x86.Operand) 
 	elements := deref.Elements
 	switch len(elements) {
 	case 2:
-		seg := ctx.matchReg(elements[0], x86.DS)
-		reg := ctx.matchReg(elements[1], x86.SI, x86.ESI)
+		seg := ctx.matchReg(inst, elements[0], x86.DS)
+		reg := ctx.matchReg(inst, elements[1], x86.SI, x86.ESI)
 		if seg != nil && reg != nil {
 			return reg
 		}
 	case 1:
-		reg := ctx.matchReg(elements[0], x86.SI, x86.ESI, x86.RSI)
+		reg := ctx.matchReg(inst, elements[0], x86.SI, x86.ESI, x86.RSI)
 		if reg != nil {
 			return reg
 		}
