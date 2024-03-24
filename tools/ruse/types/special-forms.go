@@ -518,6 +518,7 @@ type arithmeticOp struct {
 	Name        string
 	UnaryTypes  []Type
 	BinaryTypes []Type
+	MaxOperands int
 	Op          constant.Op
 }
 
@@ -530,6 +531,10 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig 
 
 	if minOperands > numOperands {
 		return nil, nil, c.errorf(fun.ParenClose, "expected at least %d parameters, found %d", minOperands, numOperands)
+	}
+
+	if op.MaxOperands != 0 && numOperands > op.MaxOperands {
+		return nil, nil, c.errorf(fun.ParenClose, "%s supports no more than %d operands, found %d", op.Name, op.MaxOperands, numOperands)
 	}
 
 	// Start by resolving the types of the arguments,
