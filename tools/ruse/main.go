@@ -22,6 +22,7 @@ import (
 	"firefly-os.dev/tools/ruse/cmd/link"
 	"firefly-os.dev/tools/ruse/cmd/rpkg"
 	"firefly-os.dev/tools/ruse/cmd/rstd"
+	"firefly-os.dev/tools/ruse/cmd/x86"
 )
 
 func init() {
@@ -63,6 +64,7 @@ func init() {
 	RegisterCommand("link", "Link one or more Ruse packages into an executable binary", link.Main)
 	RegisterCommand("rpkg", "Print debug information about a Ruse package", rpkg.Main)
 	RegisterCommand("rstd", "Print debug information about the Ruse standard library", rstd.Main)
+	RegisterCommand("x86", "Print debug information about the x86 instruction set", x86.Main)
 }
 
 func main() {

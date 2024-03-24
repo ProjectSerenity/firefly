@@ -20,6 +20,7 @@ go_library(
         "//tools/ruse/cmd/link",
         "//tools/ruse/cmd/rpkg",
         "//tools/ruse/cmd/rstd",
+        "//tools/ruse/cmd/x86",
     ],
 )
 

@@ -1,0 +1,30 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@rules_go//go:def.bzl", "go_library")
+
+genrule(
+    name = "assembler",
+    outs = [
+        "x86-generated.go",
+    ],
+    cmd = """./$(location //tools/ruse/internal/x86/gen-assembler) -package=x86 -out=$(location x86-generated.go)""",
+    tools = ["//tools/ruse/internal/x86/gen-assembler"],
+    visibility = ["//visibility:private"],
+)
+
+go_library(
+    name = "x86",
+    srcs = [
+        "x86.go",
+        "x86-generated.go",
+    ],
+    importpath = "firefly-os.dev/tools/ruse/cmd/x86",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tools/ruse/internal/x86",
+        "//tools/ruse/ssafir",
+    ],
+)
