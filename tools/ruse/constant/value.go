@@ -297,6 +297,9 @@ const (
 	OpSubtract
 	OpMultiply
 	OpDivide
+	OpBitwiseOr
+	OpBitwiseAnd
+	OpBitwiseXor
 )
 
 // Operation performs the given operation on at least
@@ -312,6 +315,12 @@ func Operation(op Op, v ...Value) Value {
 		tok = gotoken.MUL
 	case OpDivide:
 		tok = gotoken.QUO_ASSIGN // Force integer division.
+	case OpBitwiseOr:
+		tok = gotoken.OR
+	case OpBitwiseAnd:
+		tok = gotoken.AND
+	case OpBitwiseXor:
+		tok = gotoken.XOR
 	default:
 		panic(fmt.Sprintf("unrecognised operation Op(%d)", op))
 	}
