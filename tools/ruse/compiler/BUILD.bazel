@@ -10,7 +10,7 @@ genrule(
     outs = [
         "x86-generated.go",
     ],
-    cmd = """./$(location //tools/ruse/internal/x86/gen-assembler) -out=$(location x86-generated.go)""",
+    cmd = """./$(location //tools/ruse/internal/x86/gen-assembler) -package=compiler -out=$(location x86-generated.go)""",
     tools = ["//tools/ruse/internal/x86/gen-assembler"],
     visibility = ["//visibility:private"],
 )

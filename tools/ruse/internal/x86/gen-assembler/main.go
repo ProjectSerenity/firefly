@@ -37,9 +37,10 @@ var statsOnly bool
 
 func main() {
 	var help bool
-	var output string
+	var output, outPackage string
 	flag.BoolVar(&help, "h", false, "Show this message and exit.")
 	flag.StringVar(&output, "out", "", "Path to the generated assembler data")
+	flag.StringVar(&outPackage, "package", "", "Package name to use in the generated code.")
 	flag.BoolVar(&statsOnly, "stats", false, "Print stats then exit.")
 
 	flag.Usage = func() {
@@ -53,12 +54,12 @@ func main() {
 		flag.Usage()
 	}
 
-	if output == "" && !statsOnly {
+	if (output == "" || outPackage == "") && !statsOnly {
 		flag.Usage()
 		os.Exit(2)
 	}
 
-	err := genAssembler(output)
+	err := genAssembler(output, outPackage)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,7 +73,7 @@ var templates = template.Must(template.New("").ParseFS(templatesFS, "templates/*
 // genAssembler reads the x86 architecture
 // CSV from input and writes an x86 assembler
 // in Go to output.
-func genAssembler(output string) error {
+func genAssembler(output, outPackage string) error {
 	// Build the combined data.
 	var data struct {
 		Command      string
@@ -82,7 +83,7 @@ func genAssembler(output string) error {
 	}
 
 	data.Command = filepath.Base(os.Args[0]) + " " + strings.Join(os.Args[1:], " ")
-	data.Package = "compiler"
+	data.Package = outPackage
 	data.UIDs = make([]string, len(x86.Instructions))
 	data.Instructions = make(map[string][]*x86.Instruction)
 
