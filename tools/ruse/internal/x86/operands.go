@@ -16,7 +16,7 @@ type Operand struct {
 	Syntax    string          `json:"syntax"`              // The consistent syntax for the operand.
 	UID       string          `json:"uid"`                 // The unique identifier of the operand.
 	Type      OperandType     `json:"type"`                // The operand type.
-	Encoding  OperandEncoding `json:"encoding"`            // The way the operand is encoded in machien code.
+	Encoding  OperandEncoding `json:"encoding"`            // The way the operand is encoded in machine code.
 	Bits      int             `json:"bits,omitempty"`      // The operand size in bits.
 	Registers []*Register     `json:"registers,omitempty"` // The set of acceptable registers (if any) for this operand.
 }
