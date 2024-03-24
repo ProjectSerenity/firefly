@@ -25,6 +25,10 @@
 ; | BIOS memory           |           0x0 |        0x4ff | 1.25 kiB |
 ; | DAP for BIOS int 0x13 |         0x500 |        0x510 |     16 B |
 ; | Kernel copy buffer    |         0x700 |        0x8ff |    512 B |
+; | Level 1 page table    |        0x1000 |       0x1fff |    4 kiB |
+; | Level 2 page table    |        0x2000 |       0x2fff |    4 kiB |
+; | Level 3 page table    |        0x3000 |       0x3fff |    4 kiB |
+; | Level 4 page table    |        0x4000 |       0x4fff |    4 kiB |
 ; | Physical memory map   |        0x5000 |       0x5fff |    4 kiB |
 ; | Bootloader stage 1    |        0x7c00 |       0x7dfd |    510 B |
 ; | MBR magic (0xaa55)    |        0x7dfd |       0x7dff |      2 B |
@@ -35,6 +39,13 @@
 (let data-address-packet 0x500)           ; Used with BIOS int 0x13.
 
 (let kernel-copy-buffer 0x700)            ; Used with BIOS int 0x13.
+
+(let page-table-start 0x1000)
+(let level-1-page-table 0x1000)
+(let level-2-page-table 0x2000)
+(let level-3-page-table 0x3000)
+(let level-4-page-table 0x4000)
+(let page-table-end 0x5000)
 
 (let physical-memory-map 0x5000)          ; Used with BIOS int 0x15 and EAX 0xe820.
 
@@ -50,3 +61,55 @@
 (let kernel-size (uint32 0))              ; We populate this in the bootimage tool. Default to a length of 0.
 
 (let VGA-memory 0xb_8000)
+
+; Level-4 page table code. See Intel x86-64
+; manual, Volume 3A, section 4.5.
+
+(let page-4kiB 0x1000)
+(let page-2MiB 0x20_0000)
+(let page-1GiB 0x4000_0000)
+
+; Page table level 4 header flags, mainly
+; from table 4-15.
+(let pml4-present (<< 1 0))
+(let pml4-read/write (<< 1 1))
+(let pml4-user (<< 1 2))
+(let pml4-write-through (<< 1 3))
+(let pml4-no-cache (<< 1 4))
+(let pml4-accessed (<< 1 5))
+(let pml4-no-execute (<< 1 63))
+
+; Page table level 3 header flags, mainly
+; from table 4-17.
+(let pdpt-present (<< 1 0))
+(let pdpt-read/write (<< 1 1))
+(let pdpt-user (<< 1 2))
+(let pdpt-write-through (<< 1 3))
+(let pdpt-no-cache (<< 1 4))
+(let pdpt-accessed (<< 1 5))
+(let pdpt-page-size-1GiB (<< 1 7))
+(let pdpt-no-execute (<< 1 63))
+
+; Page table level 2 header flags, mainly
+; from table 4-19.
+(let pd-present (<< 1 0))
+(let pd-read/write (<< 1 1))
+(let pd-user (<< 1 2))
+(let pd-write-through (<< 1 3))
+(let pd-no-cache (<< 1 4))
+(let pd-accessed (<< 1 5))
+(let pd-page-size-2MiB (<< 1 7))
+(let pd-no-execute (<< 1 63))
+
+; Page table level 1 header flags, mainly
+; from table 4-20.
+(let pt-present (<< 1 0))
+(let pt-read/write (<< 1 1))
+(let pt-user (<< 1 2))
+(let pt-write-through (<< 1 3))
+(let pt-no-cache (<< 1 4))
+(let pt-accessed (<< 1 5))
+(let pt-dirty (<< 1 6))
+(let pt-page-size-4kiB (<< 1 7))
+(let pt-global (<< 1 8))
+(let pt-no-execute (<< 1 63))

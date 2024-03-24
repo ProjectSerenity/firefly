@@ -19,16 +19,318 @@
 	(mov bx 0x10)
 	(mov ds bx)
 	(mov es bx)
+	(mov ss bx)
 
 	; Print a debug message.
 	(mov ecx (len stage-3-debug-msg))
 	(mov esi (string-pointer stage-3-debug-msg))
-	(call (@ serial-print))
+	(call (@ serial-print-32))
 
+	(jmp (@ check-cpuid)))
+
+; Check whether CPUID is supported by attempting
+; to flip the ID bit (bit 21) in the FLAGS
+; register. If we can flip the bit, CPUID is
+; available.
+'(arch x86-64)
+'(mode 32)
+(asm-func (check-cpuid)
+	; Copy FLAGS to EAX via the stack.
+	(pushfd)
+	(pop eax)
+
+	; Copy to ECX too so we can compare them later.
+	(mov ecx eax)
+
+	; Flip the ID bit.
+	(xor eax (uint32 (<< 1 21)))
+
+	; Copy EAX to FLAGS via the stack.
+	(push eax)
+	(popfd)
+
+	; Copy FLAGS to EAX (with the flipped bit if CPUID is supported).
+	(pushfd)
+	(pop eax)
+
+	; Restore FLAGS from the old version in ECX, flipping the
+	; ID bit back if we did flip it.
+	(push ecx)
+	(popfd)
+
+	; Compare EAX and ECX. If they're equal, then that means
+	; the bit wasn't flipped and CPUID isn't supported.
+	(cmp eax ecx)
+	(jne (@ check-long-mode))
+
+	; CPUID isn't supported.
+	; Print an error.
+	(mov ecx (len cpuid-not-supported))
+	(mov esi (string-pointer cpuid-not-supported))
+	(call (@ serial-print-32))
 	; Exit.
 	(mov ax 0x11)
 	(out 0xf4 ax)
+	; Fallback busy loop.
+	'cpuid-not-supported-loop
+	(jmp 'cpuid-not-supported-loop))
 
-	; Busy loop.
-	'loop
-	(jmp 'loop))
+; Check whether 64-bit long mode is supported.
+'(arch x86-64)
+'(mode 32)
+(asm-func (check-long-mode)
+	; Check whether extended processor info is
+	; available.
+	(mov eax 0x8000_0000)         ; Implicit argument to CPUID.
+	(cpuid)                       ; Get highest supported argument.
+	(cmp eax 0x8000_0001)         ; It needs to be at least 0x8000_0001.
+	(jb 'no-long-mode)            ; If it's less, the CPU is too old.
+
+	; Use extended info to check whether long
+	; mode is available.
+	(mov eax 0x8000_0001)         ; Argument for extended processor info.
+	(cpuid)                       ; Returns feature bits in ECX and EDX.
+	(bt edx 29)                   ; Test if the LM bit is set in the D register.
+	(jnc 'no-long-mode)           ; If it's not set, there's no long mode.
+
+	; Load a zero-length interrupt descriptor
+	; table so that any interrupt causes a
+	; triple fault.
+	(cli)                         ; Disable interrupts.
+	(mov ebx (@ null-interrupt-descriptor-table-32-header))
+	(lidt (ebx))                  ; Load the table.
+
+	(jmp (@ setup-page-tables))
+
+	; The CPU is too old.
+	'no-long-mode
+	; Print an error.
+	(mov ecx (len long-mode-not-supported))
+	(mov esi (string-pointer long-mode-not-supported))
+	(call (@ serial-print-32))
+	; Exit.
+	(mov ax 0x11)
+	(out 0xf4 ax)
+	; Fallback busy loop.
+	'long-mode-not-supported-loop
+	(hlt)
+	(jmp 'long-mode-not-supported-loop))
+
+; Load a set of page tables in preparation
+; for 64-bit long mode.
+'(arch x86-64)
+'(mode 32)
+(asm-func (setup-page-tables)
+	; Zero out our page tables in memory.
+	(mov edi (uint32 page-table-start)) ; Start at level 1.
+	(mov ecx (uint32 page-table-end))   ; Finish at level 4.
+	(sub ecx edi)                 ; Calculate the length.
+	(shr ecx 2)                   ; Divide by 4 (size of each stosd operation).
+	(xor eax eax)
+	(rep stosd)                   ; Write EAX (0) across the page tables.
+
+	; Set up level 4.
+	(mov edi (uint32 level-4-page-table))
+	(mov eax (uint32 level-3-page-table))
+	(or eax (uint32 (| pml4-present pml4-read/write)))
+	(mov (edi) eax)
+
+	; Set up level 3.
+	(mov edi (uint32 level-3-page-table))
+	(mov eax (uint32 level-2-page-table))
+	(or eax (uint32 (| pdpt-present pdpt-read/write)))
+	(mov (edi) eax)
+
+	; Set up level 2.
+	(mov edi (uint32 level-2-page-table))
+	(mov eax (uint32 level-1-page-table))
+	(or eax (uint32 (| pd-present pd-read/write)))
+	(mov (edi) eax)
+	(mov eax (uint32 (| kernel-start pd-present pd-read/write pd-page-size-2MiB)))
+	(mov ecx 2)                   ; Offset into the table.
+	(mov edx (@ kernel-size))     ; Load the address of the kernel size.
+	(mov edx (edx))               ; Load the kernel size.
+	(add edx (uint32 kernel-start))
+	(add edx (uint32 (- page-2MiB 1))) ; Align up to the next 2 MiB page.
+	(shr edx 21)                  ; The page number of the final huge page.
+	'map-level-2-table
+	(mov (+ edi (* ecx 8)) eax)   ; Write the page directory entry.
+	(add eax (uint32 page-2MiB))  ; Move on to the next 2 MiB page.
+	(inc ecx)                     ; Record another page done.
+	(cmp ecx edx)                 ; Check whether we've done all of them.
+	(jb 'map-level-2-table)       ; Keep going until we've done all the pages.
+
+	; Set up level 1.
+	; Mirror map the page tables, as
+	; we need to be able to change them
+	; later. We also need to map the
+	; bootloader, or it'll stop working
+	; once we enter long mode.
+	(mov edi (uint32 level-1-page-table))
+	(mov eax (uint32 page-table-start))
+	(or eax (uint32 (| pt-present pt-read/write)))
+	(mov ecx (uint32 page-table-start))
+	(shr ecx 12)                  ; Divide by 4096 to get the 4 kiB page number where we start.
+	(mov edx (@ bootloader-end))  ; Load the address of the address where the bootloader ends.
+	(mov edx (edx))               ; Load the address where the bootloader ends.
+	(add edx (uint32 (- page-4kiB 1))) ; Align up to the next 1 kiB page.
+	(shr edx 12)                  ; Divide by 4096 to get the 4 kiB page number where we finish.
+	'map-level-1-table
+	(mov (+ edi (* ecx 8)) eax)   ; Write the page table entry.
+	(add eax (uint32 page-4kiB))  ; Move on to the next 4 kiB page.
+	(inc ecx)                     ; Record another page done.
+	(cmp ecx edx)                 ; Check whether we've done all of them.
+	(jb 'map-level-1-table)       ; Keep going until we've done all the pages.
+
+	(jmp (@ enable-paging)))
+
+; Enable paging in the CPU, using the page
+; tables we prepared in setup-page-tables.
+'(arch x86-64)
+'(mode 32)
+(asm-func (enable-paging)
+	; Flush the CPU cache and perform a
+	; memory fence. This may not be necessary,
+	; but we're playing it safe.
+	(wbinvd)
+	(mfence)
+
+	; Load the address of the level 4 page
+	; table into the CR3 register.
+	(mov eax (uint32 level-4-page-table))
+	(mov cr3 eax)
+
+	; Enable the Physical Address Extension
+	; (PAE) flag in the CR4 register.
+	(mov eax cr4)
+	(or eax (uint32 (<< 1 5)))
+	(mov cr4 eax)
+
+	; Set the Long Mode Enabled bit in the
+	; EFER model-specific register (MSR).
+	(mov ecx 0xc000_0080)
+	(rdmsr)
+	(or eax (uint32 (<< 1 8)))
+	(wrmsr)
+
+	; Enable paging in the CR0 register.
+	(mov eax cr0)
+	(or eax (uint32 (<< 1 31)))
+	(mov cr0 eax)
+
+	; Load the 64-bit global descriptor
+	; table, which is defined below.
+	; First, we need to populate its
+	; address in the header.
+	(mov ecx (@ global-descriptor-table-64))
+	(mov ebx (@ global-descriptor-table-64-header))
+	(mov (+ ebx 2) ecx)      ; Copy the address of the table to the final 2 bytes of the header.
+
+	; Load the table.
+	(lgdt (ebx))
+
+	; Jump to 64-bit long mode.
+	(push 8)
+	(mov eax (@ stage-4))
+	(push eax)
+	(ret-far))               ; Load CS with a 64-bit segment and flush the instruction cache.
+
+; This is our temporary interrupt descriptor
+; table header, which has no entries. We set
+; this to ensure that there is no handler for
+; any interrupts, so that any interrupts will
+; result in a triple fault.
+;
+; The table consists of a 32-bit pointer to
+; the first table entry and a 16-bit size of
+; the table in bytes. Note that the size is
+; actually one smaller than the actual size,
+; as the table size is in the range 1-2**16.
+;
+; As we're describing this as an array, we
+; make it of uint16s.
+(let null-interrupt-descriptor-table-32-header
+	(array/uint16
+		0     ; Size-1.
+		0 0)) ; Address.
+
+; This is our final global descriptor table contents.
+;
+; Descriptors are 8 bytes long and contain four fields:
+; - Base address (32 bits), ignored in long mode.
+; - Segment limit (20 bits), ignored in long mode.
+; - Flags (4 bits)
+; - Access byte (8 bits)
+;
+; However, these are not encoded sequentially. Instead,
+; the base address and segment limit fields are split
+; into parts as follows:
+;
+; 	  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
+; 	|------------------------------------------------|
+; 	|                 Limit bits 0-15                |
+; 	|------------------------------------------------|
+; 	|                 Base bits 0-15                 |
+; 	|------------------------------------------------|
+; 	|    Base bits 16-23     |      Access byte      |
+; 	|------------------------------------------------|
+; 	|    Flags   |   Limit   |    Base bits 24-31    |
+; 	|------------------------------------------------|
+;
+; We use three descriptors:
+; - The null descriptor (all zeros)
+; - Kernel code descriptor:
+;   - Base address: 0x00_00_00_00
+;   - Segment limit: 0x00_00_0
+;   - Flags: 0b0010 (G=0, DB=0, L=1, _=0)
+;   - Access byte: 0b1001_1010 (P=1, DPL=00, S=1, E=1, DC=0, RW=1, A=0)
+; - Kernel data descriptor:
+;   - Base address: 0x00_00_00_00
+;   - Segment limit: 0x00_00_0
+;   - Flags: 0b0000 (G=0, DB=0, L=0, _=0)
+;   - Access byte: 0b1001_0010 (P=1, DPL=00, S=1, E=0, DC=0, RW=1, A=0)
+'(align 4)
+(let global-descriptor-table-64
+	(array/array/8/byte
+		; The null descriptor.
+		(array/byte
+			0x00 0x00      ; Limit bits 0-15.
+			0x00 0x00 0x00 ; Base bits 0-23.
+			0b0000_0000    ; Access byte.
+			0b0000_0000    ; Flags and limit bits 16-19.
+			0x00)          ; Base bits 24-31.
+		; Kernel code descriptor.
+		(array/byte
+			0x00 0x00      ; Limit bits 0-15.
+			0x00 0x00 0x00 ; Base bits 0-23.
+			0b1001_1010    ; Access byte.
+			0b0010_0000    ; Flags and limit bits 16-19.
+			0x00)          ; Base bits 24-31.
+		; Kernel data descriptor.
+		(array/byte
+			0xff 0xff      ; Limit bits 0-15.
+			0x00 0x00 0x00 ; Base bits 0-23.
+			0b1001_0010    ; Access byte.
+			0b0000_0000    ; Flags and limit bits 16-19.
+			0x00)))        ; Base bits 24-31.
+
+; This is our global descriptor table header,
+; which points to the table entries above.
+;
+; The table consists of a 32-bit pointer to
+; the first table entry and a 16-bit size of
+; the table in bytes. Note that the size is
+; actually one smaller than the actual size,
+; as the table size is in the range 1-2**16.
+;
+; As we're describing this as an array, we
+; make it of uint16s. We set the address of
+; the table entries in assembly anyway.
+(let global-descriptor-table-64-header
+	(array/uint16
+		(- (size-of global-descriptor-table-64) 1) ; Size-1.
+		0 0))                                      ; Address.
+
+(let cpuid-not-supported "Boot error: CPU does not support the CPUID instruction.\r\n")
+
+(let long-mode-not-supported "Boot error: CPU does not support 64-bit long mode.\r\n")

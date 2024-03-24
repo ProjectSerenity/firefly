@@ -7,8 +7,8 @@
 
 ; Print a string to the serial port.
 '(abi (abi
-	(params ecx esi)
-	(scratch eax)))
+	(params rsi rcx)
+	(scratch rax)))
 '(arch x86-64)
 (asm-func (serial-print (s string))
 	(cld)             ; Clear the direction flag so we print forward.
@@ -18,7 +18,32 @@
 
 	; Read and print the next byte.
 	(lodsb)           ; Read the next byte from *ESI into AL.
-	(call (@ serial-print-char))
+	(call (@ serial-print-32-char))
+
+	; Decrement the string length and
+	; continue if there's more to print.
+	(dec ecx)
+	(jnz 'print-loop)
+
+	'done
+	(ret))
+
+; Print a string to the serial port
+; (32-bit version).
+'(abi (abi
+	(params esi ecx)
+	(scratch eax)))
+'(arch x86-64)
+'(mode 32)
+(asm-func (serial-print-32 (s string))
+	(cld)             ; Clear the direction flag so we print forward.
+	(jecxz 'done)     ; Skip printing if the string is empty.
+
+	'print-loop
+
+	; Read and print the next byte.
+	(lodsb)           ; Read the next byte from *ESI into AL.
+	(call (@ serial-print-32-char))
 
 	; Decrement the string length and
 	; continue if there's more to print.
@@ -29,12 +54,13 @@
 	(ret))
 
 ; Print a single character to the serial
-; port.
+; port (32-bit version).
 '(abi (abi
 	(params al)
 	(scratch eax)))
 '(arch x86-64)
-(asm-func (serial-print-char (c byte))
+'(mode 32)
+(asm-func (serial-print-32-char (c byte))
 	(push dx)         ; Save DX.
 	(push ax)         ; Save the character.
 

@@ -1,0 +1,25 @@
+; Copyright 2024 The Firefly Authors.
+;
+; Use of this source code is governed by a BSD 3-clause
+; license that can be found in the LICENSE file.
+
+(package main)
+
+; This stage does the final preparation for the kernel before then starting
+; it.
+
+(func (stage-4)
+	(serial-print "Booting (fourth stage)...\r\n")
+	(exit))
+
+; Terminate the processor.
+'(arch x86-64)
+(asm-func (exit)
+	; Exit using the Qemu exit device.
+	(mov ax 0x11)
+	(out 0xf4 ax)
+
+	; Busy loop.
+	'loop
+	(hlt)
+	(jmp 'loop))

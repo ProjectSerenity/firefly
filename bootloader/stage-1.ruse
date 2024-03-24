@@ -264,7 +264,7 @@
 ; real-mode-print prints a string. Note that this
 ; will only work in 16-bit real mode.
 '(abi (abi
-	(params cx si)
+	(params si cx)
 	(scratch ax)))
 '(arch x86-64)
 '(mode 16)

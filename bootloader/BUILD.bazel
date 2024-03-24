@@ -13,6 +13,7 @@ ruse_library(
         "stage-1.ruse",
         "stage-2.ruse",
         "stage-3.ruse",
+        "stage-4.ruse",
     ],
     arch = "x86-64",
     package_path = "firefly-os.dev/bootloader",
