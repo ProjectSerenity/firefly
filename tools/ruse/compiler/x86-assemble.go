@@ -1306,7 +1306,11 @@ func (ctx *x86Context) matchRelativeAddress(inst *x86.Instruction, arg ast.Expre
 	// 32-bit relative jumps so that optimisations
 	// don't increase any jump distances.
 	if label, ok := arg.(*ast.QuotedIdentifier); ok {
-		if operand.Bits < 32 {
+		// Most jumps/calls have different forms
+		// with different relative address sizes.
+		// However, jrcxz/jecxz/jcxz only have an
+		// 8-bit form.
+		if operand.Bits < 32 && inst.Mnemonic != "JRCXZ" && inst.Mnemonic != "JECXZ" && inst.Mnemonic != "JCXZ" {
 			return nil
 		}
 
