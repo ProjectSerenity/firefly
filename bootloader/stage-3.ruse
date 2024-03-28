@@ -69,8 +69,9 @@
 	(mov esi (string-pointer cpuid-not-supported))
 	(call (@ serial-print-32))
 	; Exit.
-	(mov ax 0x11)
-	(out 0xf4 ax)
+	(mov dx 0x604)
+	(mov ax 0x2000)
+	(out dx ax)
 	; Fallback busy loop.
 	'cpuid-not-supported-loop
 	(jmp 'cpuid-not-supported-loop))
@@ -109,8 +110,9 @@
 	(mov esi (string-pointer long-mode-not-supported))
 	(call (@ serial-print-32))
 	; Exit.
-	(mov ax 0x11)
-	(out 0xf4 ax)
+	(mov dx 0x604)
+	(mov ax 0x2000)
+	(out dx ax)
 	; Fallback busy loop.
 	'long-mode-not-supported-loop
 	(hlt)

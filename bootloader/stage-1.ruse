@@ -122,8 +122,9 @@
 	(mov si (string-pointer no-int-0x13))
 	(call (@ real-mode-print))
 	; Exit.
-	(mov ax 0x11)
-	(out 0xf4 ax)
+	(mov dx 0x604)
+	(mov ax 0x2000)
+	(out dx ax)
 	; Fallback busy loop.
 	'no-int-0x13-loop
 	(jmp 'no-int-0x13-loop)
@@ -229,8 +230,9 @@
 	(mov si (string-pointer failed-to-load-bootloader))
 	(call (@ real-mode-print))
 	; Exit.
-	(mov ax 0x11)
-	(out 0xf4 ax)
+	(mov dx 0x604)
+	(mov ax 0x2000)
+	(out dx ax)
 	; Fallback busy loop.
 	'failed-to-load-bootloader-loop
 	(jmp 'failed-to-load-bootloader-loop)

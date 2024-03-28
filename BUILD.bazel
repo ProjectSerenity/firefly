@@ -57,8 +57,6 @@ qemu(
         "-no-reboot",
         "-cpu",
         "Skylake-Server",
-        "-device",
-        "isa-debug-exit,iobase=0xf4,iosize=0x04",
     ],
     qemu = "qemu-system-x86_64",
 )
@@ -74,8 +72,6 @@ qemu(
         "-no-reboot",
         "-cpu",
         "Skylake-Server",
-        "-device",
-        "isa-debug-exit,iobase=0xf4,iosize=0x04",
         "-s",
         "-S",
     ],
@@ -91,8 +87,6 @@ qemu(
         "-no-reboot",
         "-cpu",
         "Skylake-Server",
-        "-device",
-        "isa-debug-exit,iobase=0xf4,iosize=0x04",
     ],
     qemu = "qemu-system-x86_64",
 )
