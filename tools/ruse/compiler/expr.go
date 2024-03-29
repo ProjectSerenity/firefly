@@ -716,7 +716,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			op = ssafir.OpAddInt16
 		case types.Int32:
 			op = ssafir.OpAddInt32
-		case types.Int64:
+		case types.Int64, types.Int:
 			op = ssafir.OpAddInt64
 		case types.Uint8:
 			op = ssafir.OpAddUint8
@@ -724,10 +724,10 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			op = ssafir.OpAddUint16
 		case types.Uint32:
 			op = ssafir.OpAddUint32
-		case types.Uint64:
+		case types.Uint64, types.Uint, types.Uintptr:
 			op = ssafir.OpAddUint64
 		default:
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %T", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
 		}
 
 		return c.CompileBinaryOperation(args, op, sig.Result())
@@ -747,10 +747,10 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 				op = ssafir.OpNegateInt16
 			case types.Int32:
 				op = ssafir.OpNegateInt32
-			case types.Int64:
+			case types.Int64, types.Int:
 				op = ssafir.OpNegateInt64
 			default:
-				return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %T", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+				return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
 			}
 
 			v := c.Value(list.ParenOpen, list.ParenClose+1, op, value.Type, value)
@@ -766,7 +766,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			op = ssafir.OpSubtractInt16
 		case types.Int32:
 			op = ssafir.OpSubtractInt32
-		case types.Int64:
+		case types.Int64, types.Int:
 			op = ssafir.OpSubtractInt64
 		case types.Uint8:
 			op = ssafir.OpSubtractUint8
@@ -774,10 +774,10 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			op = ssafir.OpSubtractUint16
 		case types.Uint32:
 			op = ssafir.OpSubtractUint32
-		case types.Uint64:
+		case types.Uint64, types.Uint, types.Uintptr:
 			op = ssafir.OpSubtractUint64
 		default:
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %T", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
 		}
 
 		return c.CompileBinaryOperation(args, op, sig.Result())
@@ -796,7 +796,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			op = ssafir.OpMultiplyInt16
 		case types.Int32:
 			op = ssafir.OpMultiplyInt32
-		case types.Int64:
+		case types.Int64, types.Int:
 			op = ssafir.OpMultiplyInt64
 		case types.Uint8:
 			op = ssafir.OpMultiplyUint8
@@ -804,10 +804,10 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			op = ssafir.OpMultiplyUint16
 		case types.Uint32:
 			op = ssafir.OpMultiplyUint32
-		case types.Uint64:
+		case types.Uint64, types.Uint, types.Uintptr:
 			op = ssafir.OpMultiplyUint64
 		default:
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %T", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
 		}
 
 		return c.CompileBinaryOperation(args, op, sig.Result())
@@ -826,7 +826,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			op = ssafir.OpDivideInt16
 		case types.Int32:
 			op = ssafir.OpDivideInt32
-		case types.Int64:
+		case types.Int64, types.Int:
 			op = ssafir.OpDivideInt64
 		case types.Uint8:
 			op = ssafir.OpDivideUint8
@@ -834,10 +834,10 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			op = ssafir.OpDivideUint16
 		case types.Uint32:
 			op = ssafir.OpDivideUint32
-		case types.Uint64:
+		case types.Uint64, types.Uint, types.Uintptr:
 			op = ssafir.OpDivideUint64
 		default:
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %T", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
 		}
 
 		return c.CompileBinaryOperation(args, op, sig.Result())
