@@ -237,6 +237,161 @@ func TestLower(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "add",
+			Code: `
+				(package test)
+
+				'(abi (abi
+					(params rax)
+					(result rax)))
+				(asm-func (copy-n (n int) int)
+					(ret))
+
+				(func (test int)
+					(let a (copy-n 7))
+					(let b (copy-n 3))
+					(+ a b))
+			`,
+			Disasm: []string{
+				"000000:	b8 07 00 00 00       	mov eax, 0x7",    // Prepare arg 7
+				"000005:	e8 3f 33 22 11       	call 0x11223349", // Call func   (copy-n 7)
+				"00000a:	48 8b c8             	mov rcx, rax",    // Save result (let a (copy-n 7))
+				"00000d:	b8 03 00 00 00       	mov eax, 0x3",    // Prepare arg 3
+				"000012:	e8 3f 33 22 11       	call 0x11223356", // Call func   (copy-n 3)
+				"000017:	48 8b d1             	mov rdx, rcx",    // Save result (let b (copy-n 3))
+				"00001a:	48 03 d0             	add rdx, rax",    // Perform op  (+ a b)
+				"00001d:	48 8b c2             	mov rax, rdx",    // Return      (+ a b)
+				"000020:	c3                   	ret",
+			},
+			Want: []*TestValue{
+				{
+					ID: 2,
+					Op: ssafir.OpX86MOV_R32op_Imm32,
+					Extra: &x86InstructionData{
+						Args: [4]any{
+							x86.EAX,
+							uint64(7),
+						},
+						Length: 5,
+					},
+					Uses: 1,
+					Code: `7`,
+				},
+				{
+					ID: 3,
+					Op: ssafir.OpX86CALL_Rel32,
+					Extra: &x86InstructionData{
+						Args: [4]any{
+							&ssafir.Link{
+								Pos:     156,
+								Name:    "tests/test.copy-n",
+								Type:    ssafir.LinkRelativeAddress,
+								Size:    32,
+								Offset:  6,
+								Address: 0x0a,
+							},
+						},
+						Length: 5,
+					},
+					Uses: 1,
+					Code: `(copy-n 7)`,
+				},
+				{
+					ID: 4,
+					Op: ssafir.OpX86MOV_R64_Rmr64_REX,
+					Extra: &x86InstructionData{
+						Args: [4]any{
+							x86.RCX,
+							x86.RAX,
+						},
+						Length: 3,
+					},
+					Uses: 1,
+					Code: `(let a (copy-n 7))`,
+				},
+				{
+					ID: 5,
+					Op: ssafir.OpX86MOV_R32op_Imm32,
+					Extra: &x86InstructionData{
+						Args: [4]any{
+							x86.EAX,
+							uint64(3),
+						},
+						Length: 5,
+					},
+					Uses: 1,
+					Code: `3`,
+				},
+				{
+					ID: 6,
+					Op: ssafir.OpX86CALL_Rel32,
+					Extra: &x86InstructionData{
+						Args: [4]any{
+							&ssafir.Link{
+								Pos:     180,
+								Name:    "tests/test.copy-n",
+								Type:    ssafir.LinkRelativeAddress,
+								Size:    32,
+								Offset:  19,
+								Address: 0x17,
+							},
+						},
+						Length: 5,
+					},
+					Uses: 1,
+					Code: `(copy-n 3)`,
+				},
+				{
+					ID: 8,
+					Op: ssafir.OpX86MOV_R64_Rmr64_REX,
+					Extra: &x86InstructionData{
+						Args: [4]any{
+							x86.RDX,
+							x86.RCX,
+						},
+						Length: 3,
+					},
+					Uses: 1,
+					Code: `a b`,
+				},
+				{
+					ID: 8,
+					Op: ssafir.OpX86ADD_R64_Rmr64_REX,
+					Extra: &x86InstructionData{
+						Args: [4]any{
+							x86.RDX,
+							x86.RAX,
+						},
+						Length: 3,
+					},
+					Uses: 1,
+					Code: `a b`,
+				},
+				{
+					ID: 9,
+					Op: ssafir.OpX86MOV_R64_Rmr64_REX,
+					Extra: &x86InstructionData{
+						Args: [4]any{
+							x86.RAX,
+							x86.RDX,
+						},
+						Length: 3,
+					},
+					Uses: 1,
+					Code: `(+ a b)`,
+				},
+				{
+					ID: 9,
+					Op: ssafir.OpX86RET,
+					Extra: &x86InstructionData{
+						Length: 1,
+					},
+					Uses: 1,
+					Code: `(+ a b)`,
+				},
+			},
+		},
 	}
 
 	compareOptions := []cmp.Option{

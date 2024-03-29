@@ -131,6 +131,18 @@ func (a *allocator) run() error {
 			}
 		case ssafir.OpParameter:
 			a.NoteParameter(v)
+		case ssafir.OpAddInt8, ssafir.OpAddUint8,
+			ssafir.OpAddInt16, ssafir.OpAddUint16,
+			ssafir.OpAddInt32, ssafir.OpAddUint32,
+			ssafir.OpAddInt64, ssafir.OpAddUint64:
+			// We just add this for now and resolve
+			// it when we lower the code.
+			dst := a.GetLocation()
+			src := a.locations[v.Args[0]][0] // The first operand.
+			arg := a.locations[v.Args[1]][0] // The other operand.
+			a.locations[v] = []sys.Location{dst}
+			alloc := &Alloc{Dst: dst, Src: src, Data: arg}
+			a.addAlloc(v, alloc)
 		case ssafir.OpConstantInt64,
 			ssafir.OpConstantUint64,
 			ssafir.OpConstantString,
@@ -454,6 +466,26 @@ func (a *allocator) SaveValue(reg sys.Location, avoid map[sys.Location]bool) {
 	// No registers are available,
 	// so we spill to the stack.
 	// TODO: implement spilling to the stack.
+	panic("failed to find spare location")
+}
+
+// GetLocation finds a spare location we can
+// use for a temporary or result value.
+func (a *allocator) GetLocation() sys.Location {
+	for _, candidate := range a.registers {
+		if a.allocated[candidate] != nil {
+			// This register is occupied.
+			continue
+		}
+
+		// We can save to candidate.
+		return candidate
+	}
+
+	// No registers are available,
+	// so we spill to the stack.
+	// TODO: implement spilling to the stack.
+	panic("failed to find spare location")
 }
 
 // MoveValue records the new value as taking

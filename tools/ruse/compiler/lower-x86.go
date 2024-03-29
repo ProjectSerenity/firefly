@@ -118,6 +118,10 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 			l.MoveNumber(v)
 		case ssafir.OpConstantString:
 			l.MoveString(v)
+		case ssafir.OpAddInt8, ssafir.OpAddInt16, ssafir.OpAddInt32, ssafir.OpAddInt64:
+			l.DoArithmetic(v)
+		case ssafir.OpAddUint8, ssafir.OpAddUint16, ssafir.OpAddUint32, ssafir.OpAddUint64:
+			l.DoArithmetic(v)
 		case ssafir.OpDrop:
 			// Nothing to do here, this is just debugging
 			// information for the register allocator.
@@ -499,6 +503,50 @@ func (l *x86Lowerer) MoveString(v *ssafir.Value) {
 func (l *x86Lowerer) Return(v *ssafir.Value) {
 	op := ssafir.OpX86RET
 	data := &x86InstructionData{}
+
+	l.addInst(v, op, data)
+}
+
+// DoArithmetic performs a binary arithmetic
+// operation described by the given value.
+func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
+	// Ideally, we would like to use the current
+	// location for both arguments and skip straight
+	// to the arithmetic instruction. However, we
+	// will need to do a copy if:
+	//
+	// - The first parameter is reused (since x86
+	//   arithmetic instructions overwrite it)
+	// - Both parameters are stack addresses
+	//
+	// For now, we always create a new result
+	// value to prioritise correctness over speed.
+
+	// Copy the first parameter to the destination.
+	l.MoveNumber(v)
+
+	// Perform the op.
+	var op ssafir.Op
+	switch v.Op {
+	case ssafir.OpAddInt8, ssafir.OpAddUint8:
+		op = ssafir.OpX86ADD_R8_Rmr8
+	case ssafir.OpAddInt16, ssafir.OpAddUint16:
+		op = ssafir.OpX86ADD_R16_Rmr16
+	case ssafir.OpAddInt32, ssafir.OpAddUint32:
+		op = ssafir.OpX86ADD_R32_Rmr32
+	case ssafir.OpAddInt64, ssafir.OpAddUint64:
+		op = ssafir.OpX86ADD_R64_Rmr64_REX
+	default:
+		panic(fmt.Errorf("%s: unexpoected op %s", l.fset.Position(v.Pos), v.Op))
+	}
+
+	alloc := v.Extra.(*Alloc)
+	data := &x86InstructionData{
+		Args: [4]any{
+			alloc.Dst,
+			alloc.Data.(sys.Location),
+		},
+	}
 
 	l.addInst(v, op, data)
 }
