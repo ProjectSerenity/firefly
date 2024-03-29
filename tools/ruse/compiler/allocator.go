@@ -522,8 +522,20 @@ func (a *allocator) PrepareResult(v *ssafir.Value) {
 // function parameter is in the appropriate
 // memory location(s).
 func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, locs []sys.Location, v *ssafir.Value) {
+	avoid := make(map[sys.Location]bool)
+	for _, loc := range locs {
+		avoid[loc] = true
+	}
+
 	// Add move actions.
 	for i, loc := range locs {
+		// If we already have a value in the
+		// destination location, we need to
+		// save it before overwriting.
+		if a.allocated[loc] != nil {
+			a.SaveValue(loc, avoid)
+		}
+
 		a.allocated[loc] = v
 
 		// Constants are floating.
