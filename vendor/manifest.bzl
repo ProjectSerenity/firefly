@@ -12,6 +12,11 @@ go = [
         digest = "sha256:f444ca1845736d42046147acc216f47126c6eb0bd916290d397aa67007ba2b65",
     ),
     module(
+        name = "golang.org/x/arch",
+        version = "v0.7.0",
+        digest = "sha256:55ca1b0926a1944d818713ea11438b51c9806cf3a76f37a609dd21829f0e0709",
+    ),
+    module(
         name = "golang.org/x/crypto",
         version = "v0.15.0",
         digest = "sha256:bd93952fff5fb622701cf3c0d14118ee3962ad828ae01dfca528bb646edae835",

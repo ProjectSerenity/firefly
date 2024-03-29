@@ -70,6 +70,15 @@ go = [
         ],
     ),
     module(
+        name = "golang.org/x/arch",
+        version = "v0.7.0",
+        packages = [
+            package(
+                name = "golang.org/x/arch/x86/x86asm",
+            ),
+        ],
+    ),
+    module(
         name = "golang.org/x/crypto",
         version = "v0.15.0",
         packages = [
