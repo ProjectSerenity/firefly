@@ -405,7 +405,7 @@ func TestLower(t *testing.T) {
 	}
 
 	var code bytes.Buffer
-	var opcodes, disasm strings.Builder
+	var disasm strings.Builder
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			// Compile the code.
@@ -486,9 +486,7 @@ func TestLower(t *testing.T) {
 					size = 1
 				}
 
-				opcodes.Reset()
-				fmt.Fprintf(&opcodes, "% x", src[:size])
-				fmt.Fprintf(&disasm, "%06x:\t%-21s\t", pc, opcodes.String())
+				fmt.Fprintf(&disasm, "%06x:\t% -21x\t", pc, src[:size])
 				disasm.WriteString(x86asm.IntelSyntax(inst, pc, nil))
 				disasm.WriteByte('\n')
 
