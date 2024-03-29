@@ -33,3 +33,14 @@ ruse_binary(
     format = "elf",
     package = ":hello-world_lib",
 )
+
+sh_test(
+    name = "hello-world_test",
+    size = "small",
+    srcs = ["linux_test.sh"],
+    data = [":hello-world"],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+)

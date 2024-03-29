@@ -13,7 +13,7 @@
 ; Note that it contains the terminating newline. Ruse
 ; strings are length-prefixed and not NULL terminating.
 ;
-(let hello-world "Hello, world!\n")
+(let hello-world "Hello, World!\n")
 
 ; print-hello-world is a function written in x86-64
 ; assembly. We don't specify the architecture explicitly
@@ -30,7 +30,7 @@
 	(mov rdi 1)                            ; unsigned int fd stdout
 	(mov rsi (string-pointer hello-world)) ; const char *buf
 	(mov rdx (len hello-world))            ; size_t count
-	(syscall)                              ; write(1, "Hello, world!\n", 14)
+	(syscall)                              ; write(1, "Hello, World!\n", 14)
 
 	(ret))
 
