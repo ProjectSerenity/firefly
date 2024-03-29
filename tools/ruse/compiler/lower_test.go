@@ -6,11 +6,15 @@
 package compiler
 
 import (
+	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"golang.org/x/arch/x86/x86asm"
+	"rsc.io/diff"
 
 	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/internal/x86"
@@ -23,9 +27,10 @@ import (
 
 func TestLower(t *testing.T) {
 	tests := []struct {
-		Name string
-		Code string
-		Want []*TestValue
+		Name   string
+		Code   string
+		Disasm []string
+		Want   []*TestValue
 	}{
 		{
 			Name: "no-op",
@@ -35,6 +40,9 @@ func TestLower(t *testing.T) {
 				(func (test (a string) (b int))
 					(let _ a))
 			`,
+			Disasm: []string{
+				"000000:	c3                   	ret",
+			},
 			Want: []*TestValue{
 				{ID: 0, Op: ssafir.OpX86RET, Extra: &x86InstructionData{Length: 1}, Uses: 0, Code: `)`},
 			},
@@ -48,6 +56,10 @@ func TestLower(t *testing.T) {
 					(let c b)
 					c)
 			`,
+			Disasm: []string{
+				"000000:	48 8b c2             	mov rax, rdx",
+				"000003:	c3                   	ret",
+			},
 			Want: []*TestValue{
 				{ID: 5, Op: ssafir.OpX86MOV_R64_Rmr64_REX, Extra: &x86InstructionData{Args: [4]any{x86.RAX, x86.RDX}, Length: 3}, Uses: 1, Code: `c`},
 				{ID: 5, Op: ssafir.OpX86RET, Extra: &x86InstructionData{Length: 1}, Uses: 1, Code: `c`},
@@ -74,6 +86,20 @@ func TestLower(t *testing.T) {
 					(let (val int) 17)
 					(double val))
 			`,
+			Disasm: []string{
+				"000000:	bf 03 00 00 00       	mov edi, 0x3",    // Prepare arg (len "bar")
+				"000005:	e8 3f 33 22 11       	call 0x11223349", // Call func   (double (len "bar"))
+				"00000a:	48 8b c7             	mov rax, rdi",    // Save result (double (len "bar"))
+				"00000d:	bf 06 00 00 00       	mov edi, 0x6",    // Prepare arg (let length (len "foobar")))
+				"000012:	e8 3f 33 22 11       	call 0x11223356", // Call func   (double length)
+				"000017:	48 8b cf             	mov rcx, rdi",    // Save result (double length)
+				"00001a:	bf 07 00 00 00       	mov edi, 0x7",    // Prepare arg 7
+				"00001f:	e8 3f 33 22 11       	call 0x11223363", // Call func   (double 7)
+				"000024:	48 8b d7             	mov rdx, rdi",    // Save result (double 7)
+				"000027:	bf 11 00 00 00       	mov edi, 0x11",   // Prepare arg (let (val int) 17)
+				"00002c:	e8 3f 33 22 11       	call 0x11223370", // Call func   (double val)
+				"000031:	c3                   	ret",             // Return      (double val)
+			},
 			Want: []*TestValue{
 				{
 					ID: 4,
@@ -265,6 +291,8 @@ func TestLower(t *testing.T) {
 		t.Fatalf("invalid test ABI: %v", err)
 	}
 
+	var code bytes.Buffer
+	var opcodes, disasm strings.Builder
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			// Compile the code.
@@ -321,6 +349,44 @@ func TestLower(t *testing.T) {
 			err = Lower(fset, arch, sizes, testFunc)
 			if err != nil {
 				t.Fatalf("Lower(): unexpected error: %v", err)
+			}
+
+			// Encode the instructions.
+			code.Reset()
+			err = EncodeTo(&code, fset, arch, testFunc)
+			if err != nil {
+				t.Fatalf("EncodeTo(): unexpected error: %v", err)
+			}
+
+			// Check the disassembly.
+			disasm.Reset()
+			src := code.Bytes()
+			var pc uint64
+			for len(src) > 0 {
+				inst, err := x86asm.Decode(src, 64)
+				if err != nil {
+					t.Fatalf("x86asm.Decode(): unexpected error: %v", err)
+				}
+
+				size := inst.Len
+				if size == 0 {
+					size = 1
+				}
+
+				opcodes.Reset()
+				fmt.Fprintf(&opcodes, "% x", src[:size])
+				fmt.Fprintf(&disasm, "%06x:\t%-21s\t", pc, opcodes.String())
+				disasm.WriteString(x86asm.IntelSyntax(inst, pc, nil))
+				disasm.WriteByte('\n')
+
+				src = src[size:]
+				pc += uint64(size)
+			}
+
+			got := disasm.String()
+			want := strings.Join(test.Disasm, "\n") + "\n"
+			if got != want {
+				t.Fatalf("Lower(): (-want, +got)\n%s", diff.Format(want, got))
 			}
 
 			var testValues []*TestValue

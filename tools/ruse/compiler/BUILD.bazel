@@ -57,6 +57,7 @@ go_test(
         "//tools/ruse/parser",
         "//vendor/github.com/google/go-cmp/cmp",
         "//vendor/github.com/google/go-cmp/cmp/cmpopts",
+        "//vendor/golang.org/x/arch/x86/x86asm",
         "//vendor/rsc.io/diff",
     ],
 )
