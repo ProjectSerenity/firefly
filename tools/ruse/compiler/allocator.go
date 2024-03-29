@@ -189,6 +189,11 @@ func (a *allocator) run() error {
 		default:
 			return fmt.Errorf("failed to allocate value %s: unexpected op %s", v, v.Op)
 		}
+
+		// Drop any unused values.
+		for _, drop := range dropped {
+			a.DropValue(drop)
+		}
 	}
 
 	a.block.Values = a.allocs

@@ -89,16 +89,13 @@ func TestLower(t *testing.T) {
 			Disasm: []string{
 				"000000:	bf 03 00 00 00       	mov edi, 0x3",    // Prepare arg (len "bar")
 				"000005:	e8 3f 33 22 11       	call 0x11223349", // Call func   (double (len "bar"))
-				"00000a:	48 8b c7             	mov rax, rdi",    // Save result (double (len "bar"))
-				"00000d:	bf 06 00 00 00       	mov edi, 0x6",    // Prepare arg (let length (len "foobar")))
-				"000012:	e8 3f 33 22 11       	call 0x11223356", // Call func   (double length)
-				"000017:	48 8b cf             	mov rcx, rdi",    // Save result (double length)
-				"00001a:	bf 07 00 00 00       	mov edi, 0x7",    // Prepare arg 7
-				"00001f:	e8 3f 33 22 11       	call 0x11223363", // Call func   (double 7)
-				"000024:	48 8b d7             	mov rdx, rdi",    // Save result (double 7)
-				"000027:	bf 11 00 00 00       	mov edi, 0x11",   // Prepare arg (let (val int) 17)
-				"00002c:	e8 3f 33 22 11       	call 0x11223370", // Call func   (double val)
-				"000031:	c3                   	ret",             // Return      (double val)
+				"00000a:	bf 06 00 00 00       	mov edi, 0x6",    // Prepare arg (let length (len "foobar")))
+				"00000f:	e8 3f 33 22 11       	call 0x11223353", // Call func   (double length)
+				"000014:	bf 07 00 00 00       	mov edi, 0x7",    // Prepare arg 7
+				"000019:	e8 3f 33 22 11       	call 0x1122335d", // Call func   (double 7)
+				"00001e:	bf 11 00 00 00       	mov edi, 0x11",   // Prepare arg (let (val int) 17)
+				"000023:	e8 3f 33 22 11       	call 0x11223367", // Call func   (double val)
+				"000028:	c3                   	ret",             // Return      (double val)
 			},
 			Want: []*TestValue{
 				{
@@ -134,19 +131,6 @@ func TestLower(t *testing.T) {
 					Code: `(double (len "bar"))`,
 				},
 				{
-					ID: 4,
-					Op: ssafir.OpX86MOV_R64_Rmr64_REX,
-					Extra: &x86InstructionData{
-						Args: [4]any{
-							x86.RAX,
-							x86.RDI,
-						},
-						Length: 3,
-					},
-					Uses: 1,
-					Code: `(len "bar")`,
-				},
-				{
 					ID: 3,
 					Op: ssafir.OpX86MOV_R32op_Imm32,
 					Extra: &x86InstructionData{
@@ -169,27 +153,14 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.double",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  19,
-								Address: 0x17,
+								Offset:  16,
+								Address: 0x14,
 							},
 						},
 						Length: 5,
 					},
 					Uses: 0,
 					Code: `(double length)`,
-				},
-				{
-					ID: 3,
-					Op: ssafir.OpX86MOV_R64_Rmr64_REX,
-					Extra: &x86InstructionData{
-						Args: [4]any{
-							x86.RCX,
-							x86.RDI,
-						},
-						Length: 3,
-					},
-					Uses: 1,
-					Code: `(let length (len "foobar"))`,
 				},
 				{
 					ID: 7,
@@ -214,27 +185,14 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.double",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  32,
-								Address: 0x24,
+								Offset:  26,
+								Address: 0x1e,
 							},
 						},
 						Length: 5,
 					},
 					Uses: 0,
 					Code: `(double 7)`,
-				},
-				{
-					ID: 7,
-					Op: ssafir.OpX86MOV_R64_Rmr64_REX,
-					Extra: &x86InstructionData{
-						Args: [4]any{
-							x86.RDX,
-							x86.RDI,
-						},
-						Length: 3,
-					},
-					Uses: 1,
-					Code: `7`,
 				},
 				{
 					ID: 10,
@@ -259,8 +217,8 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.double",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  45,
-								Address: 0x31,
+								Offset:  36,
+								Address: 0x28,
 							},
 						},
 						Length: 5,
