@@ -148,6 +148,17 @@ func (a *allocator) run() error {
 			a.locations[v] = []sys.Location{dst}
 			alloc := &Alloc{Dst: dst, Src: src, Data: arg}
 			a.addAlloc(v, alloc)
+		case ssafir.OpNegateInt8,
+			ssafir.OpNegateInt16,
+			ssafir.OpNegateInt32,
+			ssafir.OpNegateInt64:
+			// We just add this for now and resolve
+			// it when we lower the code.
+			dst := a.GetLocation()
+			src := a.locations[v.Args[0]][0] // The first operand.
+			a.locations[v] = []sys.Location{dst}
+			alloc := &Alloc{Dst: dst, Src: src, Data: src}
+			a.addAlloc(v, alloc)
 		case ssafir.OpMultiplyInt8, ssafir.OpMultiplyUint8,
 			ssafir.OpMultiplyInt16, ssafir.OpMultiplyUint16,
 			ssafir.OpMultiplyInt32, ssafir.OpMultiplyUint32,

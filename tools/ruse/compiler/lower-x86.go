@@ -121,7 +121,8 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 		case ssafir.OpAddInt8, ssafir.OpAddInt16, ssafir.OpAddInt32, ssafir.OpAddInt64,
 			ssafir.OpSubtractInt8, ssafir.OpSubtractInt16, ssafir.OpSubtractInt32, ssafir.OpSubtractInt64,
 			ssafir.OpMultiplyInt8, ssafir.OpMultiplyInt16, ssafir.OpMultiplyInt32, ssafir.OpMultiplyInt64,
-			ssafir.OpDivideInt8, ssafir.OpDivideInt16, ssafir.OpDivideInt32, ssafir.OpDivideInt64:
+			ssafir.OpDivideInt8, ssafir.OpDivideInt16, ssafir.OpDivideInt32, ssafir.OpDivideInt64,
+			ssafir.OpNegateInt8, ssafir.OpNegateInt16, ssafir.OpNegateInt32, ssafir.OpNegateInt64:
 			l.DoArithmetic(v)
 		case ssafir.OpAddUint8, ssafir.OpAddUint16, ssafir.OpAddUint32, ssafir.OpAddUint64,
 			ssafir.OpSubtractUint8, ssafir.OpSubtractUint16, ssafir.OpSubtractUint32, ssafir.OpSubtractUint64,
@@ -582,6 +583,18 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 	case ssafir.OpDivideInt64, ssafir.OpDivideUint64:
 		op = ssafir.OpX86DIV_Rmr64_REX
 		data.Args[0], data.Args[1] = data.Args[1], nil
+	case ssafir.OpNegateInt8:
+		op = ssafir.OpX86NEG_Rmr8
+		data.Args[1] = nil
+	case ssafir.OpNegateInt16:
+		op = ssafir.OpX86NEG_Rmr16
+		data.Args[1] = nil
+	case ssafir.OpNegateInt32:
+		op = ssafir.OpX86NEG_Rmr32
+		data.Args[1] = nil
+	case ssafir.OpNegateInt64:
+		op = ssafir.OpX86NEG_Rmr64_REX
+		data.Args[1] = nil
 	default:
 		panic(fmt.Errorf("%s: unexpoected op %s", l.fset.Position(v.Pos), v.Op))
 	}
