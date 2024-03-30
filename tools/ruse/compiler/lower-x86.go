@@ -122,12 +122,18 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 			ssafir.OpSubtractInt8, ssafir.OpSubtractInt16, ssafir.OpSubtractInt32, ssafir.OpSubtractInt64,
 			ssafir.OpMultiplyInt8, ssafir.OpMultiplyInt16, ssafir.OpMultiplyInt32, ssafir.OpMultiplyInt64,
 			ssafir.OpDivideInt8, ssafir.OpDivideInt16, ssafir.OpDivideInt32, ssafir.OpDivideInt64,
-			ssafir.OpNegateInt8, ssafir.OpNegateInt16, ssafir.OpNegateInt32, ssafir.OpNegateInt64:
+			ssafir.OpNegateInt8, ssafir.OpNegateInt16, ssafir.OpNegateInt32, ssafir.OpNegateInt64,
+			ssafir.OpBitwiseOrInt8, ssafir.OpBitwiseOrInt16, ssafir.OpBitwiseOrInt32, ssafir.OpBitwiseOrInt64,
+			ssafir.OpBitwiseAndInt8, ssafir.OpBitwiseAndInt16, ssafir.OpBitwiseAndInt32, ssafir.OpBitwiseAndInt64,
+			ssafir.OpBitwiseXorInt8, ssafir.OpBitwiseXorInt16, ssafir.OpBitwiseXorInt32, ssafir.OpBitwiseXorInt64:
 			l.DoArithmetic(v)
 		case ssafir.OpAddUint8, ssafir.OpAddUint16, ssafir.OpAddUint32, ssafir.OpAddUint64,
 			ssafir.OpSubtractUint8, ssafir.OpSubtractUint16, ssafir.OpSubtractUint32, ssafir.OpSubtractUint64,
 			ssafir.OpMultiplyUint8, ssafir.OpMultiplyUint16, ssafir.OpMultiplyUint32, ssafir.OpMultiplyUint64,
-			ssafir.OpDivideUint8, ssafir.OpDivideUint16, ssafir.OpDivideUint32, ssafir.OpDivideUint64:
+			ssafir.OpDivideUint8, ssafir.OpDivideUint16, ssafir.OpDivideUint32, ssafir.OpDivideUint64,
+			ssafir.OpBitwiseOrUint8, ssafir.OpBitwiseOrUint16, ssafir.OpBitwiseOrUint32, ssafir.OpBitwiseOrUint64,
+			ssafir.OpBitwiseAndUint8, ssafir.OpBitwiseAndUint16, ssafir.OpBitwiseAndUint32, ssafir.OpBitwiseAndUint64,
+			ssafir.OpBitwiseXorUint8, ssafir.OpBitwiseXorUint16, ssafir.OpBitwiseXorUint32, ssafir.OpBitwiseXorUint64:
 			l.DoArithmetic(v)
 		case ssafir.OpDrop:
 			// Nothing to do here, this is just debugging
@@ -595,6 +601,30 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 	case ssafir.OpNegateInt64:
 		op = ssafir.OpX86NEG_Rmr64_REX
 		data.Args[1] = nil
+	case ssafir.OpBitwiseOrInt8, ssafir.OpBitwiseOrUint8:
+		op = ssafir.OpX86OR_R8_Rmr8
+	case ssafir.OpBitwiseOrInt16, ssafir.OpBitwiseOrUint16:
+		op = ssafir.OpX86OR_R16_Rmr16
+	case ssafir.OpBitwiseOrInt32, ssafir.OpBitwiseOrUint32:
+		op = ssafir.OpX86OR_R32_Rmr32
+	case ssafir.OpBitwiseOrInt64, ssafir.OpBitwiseOrUint64:
+		op = ssafir.OpX86OR_R64_Rmr64_REX
+	case ssafir.OpBitwiseAndInt8, ssafir.OpBitwiseAndUint8:
+		op = ssafir.OpX86AND_R8_Rmr8
+	case ssafir.OpBitwiseAndInt16, ssafir.OpBitwiseAndUint16:
+		op = ssafir.OpX86AND_R16_Rmr16
+	case ssafir.OpBitwiseAndInt32, ssafir.OpBitwiseAndUint32:
+		op = ssafir.OpX86AND_R32_Rmr32
+	case ssafir.OpBitwiseAndInt64, ssafir.OpBitwiseAndUint64:
+		op = ssafir.OpX86AND_R64_Rmr64_REX
+	case ssafir.OpBitwiseXorInt8, ssafir.OpBitwiseXorUint8:
+		op = ssafir.OpX86XOR_R8_Rmr8
+	case ssafir.OpBitwiseXorInt16, ssafir.OpBitwiseXorUint16:
+		op = ssafir.OpX86XOR_R16_Rmr16
+	case ssafir.OpBitwiseXorInt32, ssafir.OpBitwiseXorUint32:
+		op = ssafir.OpX86XOR_R32_Rmr32
+	case ssafir.OpBitwiseXorInt64, ssafir.OpBitwiseXorUint64:
+		op = ssafir.OpX86XOR_R64_Rmr64_REX
 	default:
 		panic(fmt.Errorf("%s: unexpoected op %s", l.fset.Position(v.Pos), v.Op))
 	}

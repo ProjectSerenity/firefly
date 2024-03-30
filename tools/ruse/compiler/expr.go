@@ -831,6 +831,81 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		}
 
 		return c.CompileBinaryOperation(args, op, sig.Result())
+	case types.SpecialFormBitwiseOr:
+		args := list.Elements[1:]
+		var op ssafir.Op
+		switch types.Underlying(sig.Result()) {
+		case types.Int8:
+			op = ssafir.OpBitwiseOrInt8
+		case types.Int16:
+			op = ssafir.OpBitwiseOrInt16
+		case types.Int32:
+			op = ssafir.OpBitwiseOrInt32
+		case types.Int64, types.Int:
+			op = ssafir.OpBitwiseOrInt64
+		case types.Uint8:
+			op = ssafir.OpBitwiseOrUint8
+		case types.Uint16:
+			op = ssafir.OpBitwiseOrUint16
+		case types.Uint32:
+			op = ssafir.OpBitwiseOrUint32
+		case types.Uint64, types.Uint, types.Uintptr:
+			op = ssafir.OpBitwiseOrUint64
+		default:
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+		}
+
+		return c.CompileBinaryOperation(args, op, sig.Result())
+	case types.SpecialFormBitwiseAnd:
+		args := list.Elements[1:]
+		var op ssafir.Op
+		switch types.Underlying(sig.Result()) {
+		case types.Int8:
+			op = ssafir.OpBitwiseAndInt8
+		case types.Int16:
+			op = ssafir.OpBitwiseAndInt16
+		case types.Int32:
+			op = ssafir.OpBitwiseAndInt32
+		case types.Int64, types.Int:
+			op = ssafir.OpBitwiseAndInt64
+		case types.Uint8:
+			op = ssafir.OpBitwiseAndUint8
+		case types.Uint16:
+			op = ssafir.OpBitwiseAndUint16
+		case types.Uint32:
+			op = ssafir.OpBitwiseAndUint32
+		case types.Uint64, types.Uint, types.Uintptr:
+			op = ssafir.OpBitwiseAndUint64
+		default:
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+		}
+
+		return c.CompileBinaryOperation(args, op, sig.Result())
+	case types.SpecialFormBitwiseXor:
+		args := list.Elements[1:]
+		var op ssafir.Op
+		switch types.Underlying(sig.Result()) {
+		case types.Int8:
+			op = ssafir.OpBitwiseXorInt8
+		case types.Int16:
+			op = ssafir.OpBitwiseXorInt16
+		case types.Int32:
+			op = ssafir.OpBitwiseXorInt32
+		case types.Int64, types.Int:
+			op = ssafir.OpBitwiseXorInt64
+		case types.Uint8:
+			op = ssafir.OpBitwiseXorUint8
+		case types.Uint16:
+			op = ssafir.OpBitwiseXorUint16
+		case types.Uint32:
+			op = ssafir.OpBitwiseXorUint32
+		case types.Uint64, types.Uint, types.Uintptr:
+			op = ssafir.OpBitwiseXorUint64
+		default:
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+		}
+
+		return c.CompileBinaryOperation(args, op, sig.Result())
 	}
 
 	return nil, fmt.Errorf("%s: failed to compile %s: unsupported special form %s", c.fset.Position(list.ParenOpen), list.Print(), form.ID())

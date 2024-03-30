@@ -139,7 +139,19 @@ func (a *allocator) run() error {
 			ssafir.OpSubtractInt8, ssafir.OpSubtractUint8,
 			ssafir.OpSubtractInt16, ssafir.OpSubtractUint16,
 			ssafir.OpSubtractInt32, ssafir.OpSubtractUint32,
-			ssafir.OpSubtractInt64, ssafir.OpSubtractUint64:
+			ssafir.OpSubtractInt64, ssafir.OpSubtractUint64,
+			ssafir.OpBitwiseOrInt8, ssafir.OpBitwiseOrUint8,
+			ssafir.OpBitwiseOrInt16, ssafir.OpBitwiseOrUint16,
+			ssafir.OpBitwiseOrInt32, ssafir.OpBitwiseOrUint32,
+			ssafir.OpBitwiseOrInt64, ssafir.OpBitwiseOrUint64,
+			ssafir.OpBitwiseAndInt8, ssafir.OpBitwiseAndUint8,
+			ssafir.OpBitwiseAndInt16, ssafir.OpBitwiseAndUint16,
+			ssafir.OpBitwiseAndInt32, ssafir.OpBitwiseAndUint32,
+			ssafir.OpBitwiseAndInt64, ssafir.OpBitwiseAndUint64,
+			ssafir.OpBitwiseXorInt8, ssafir.OpBitwiseXorUint8,
+			ssafir.OpBitwiseXorInt16, ssafir.OpBitwiseXorUint16,
+			ssafir.OpBitwiseXorInt32, ssafir.OpBitwiseXorUint32,
+			ssafir.OpBitwiseXorInt64, ssafir.OpBitwiseXorUint64:
 			// We just add this for now and resolve
 			// it when we lower the code.
 			dst := a.GetLocation()
