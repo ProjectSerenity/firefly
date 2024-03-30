@@ -783,11 +783,6 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		return c.CompileBinaryOperation(args, op, sig.Result())
 	case types.SpecialFormMultiply:
 		args := list.Elements[1:]
-		// Unary positive is essentially a no-op.
-		if len(args) == 1 {
-			return c.CompileExpression(args[0])
-		}
-
 		var op ssafir.Op
 		switch types.Underlying(sig.Result()) {
 		case types.Int8:
@@ -813,11 +808,6 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		return c.CompileBinaryOperation(args, op, sig.Result())
 	case types.SpecialFormDivide:
 		args := list.Elements[1:]
-		// Unary positive is essentially a no-op.
-		if len(args) == 1 {
-			return c.CompileExpression(args[0])
-		}
-
 		var op ssafir.Op
 		switch types.Underlying(sig.Result()) {
 		case types.Int8:
