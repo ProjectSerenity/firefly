@@ -19,6 +19,7 @@ import (
 	"firefly-os.dev/tools/ruse/cmd/compile"
 	"firefly-os.dev/tools/ruse/cmd/compile-stdlib"
 	"firefly-os.dev/tools/ruse/cmd/debug"
+	"firefly-os.dev/tools/ruse/cmd/disasm"
 	"firefly-os.dev/tools/ruse/cmd/link"
 	"firefly-os.dev/tools/ruse/cmd/rpkg"
 	"firefly-os.dev/tools/ruse/cmd/rstd"
@@ -61,6 +62,7 @@ func init() {
 	RegisterCommand("compile", "Compile a Ruse package into an rpkg file", compile.Main)
 	RegisterCommand("compile-stdlib", "Compile the Ruse standard library packages into an rpkg file", compilestdlib.Main)
 	RegisterCommand("debug", "Print debug information about a Ruse executable binary", debug.Main)
+	RegisterCommand("disasm", "Disassemble a Ruse RPKG or executable binary", disasm.Main)
 	RegisterCommand("link", "Link one or more Ruse packages into an executable binary", link.Main)
 	RegisterCommand("rpkg", "Print debug information about a Ruse package", rpkg.Main)
 	RegisterCommand("rstd", "Print debug information about the Ruse standard library", rstd.Main)

@@ -1,0 +1,18 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "disasm",
+    srcs = ["disasm.go"],
+    importpath = "firefly-os.dev/tools/ruse/cmd/disasm",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tools/ruse/compiler",
+        "//tools/ruse/rpkg",
+        "//vendor/golang.org/x/arch/x86/x86asm",
+    ],
+)
