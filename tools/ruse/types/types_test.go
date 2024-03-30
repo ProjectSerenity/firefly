@@ -6,6 +6,8 @@
 package types
 
 import (
+	"math"
+	"math/big"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -992,5 +994,34 @@ func TestImports(t *testing.T) {
 
 	if con.Type() != UntypedString {
 		t.Fatalf("incorrect main constant type: got %v, want %v", con.Type(), UntypedString)
+	}
+}
+
+func TestNumBits(t *testing.T) {
+	tests := []struct {
+		Const constant.Value
+		Want  int
+	}{
+		{constant.MakeInt64(0), 0},
+		{constant.MakeInt64(1), 1},
+		{constant.MakeInt64(255), 8},
+		{constant.MakeUint64(math.MaxUint16), 16},
+		{constant.MakeUint64(math.MaxUint32), 32},
+		{constant.MakeUint64(math.MaxUint64), 64},
+		{constant.Make(big.NewInt(0).SetBytes([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16})), 128 - 7}, // 16-byte integer, but with the top 7 bits clear, as the most significant byte is 1.
+		{constant.MakeInt64(-128), 8},
+		{constant.MakeInt64(-129), 9},
+		{constant.MakeInt64(math.MinInt16), 16},
+		{constant.MakeInt64(math.MinInt32), 32},
+		{constant.MakeInt64(math.MinInt64), 64},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Const.String(), func(t *testing.T) {
+			got := numBits(test.Const)
+			if got != test.Want {
+				t.Fatalf("numBits(%s): got %d, want %d", test.Const, got, test.Want)
+			}
+		})
 	}
 }

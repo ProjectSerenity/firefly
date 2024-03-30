@@ -9,6 +9,8 @@ package types
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"math/bits"
 	"path"
 	"sort"
 	"strconv"
@@ -36,6 +38,28 @@ type Type interface {
 type TypeAndValue struct {
 	Type  Type
 	Value constant.Value
+}
+
+// numBits returns the minimum number of bits necessary
+// to store v with no loss of precision. If v is not an
+// integer, numBits returns 0.
+func numBits(v constant.Value) int {
+	if v == nil || v.Kind() != constant.Integer {
+		return 0
+	}
+
+	switch v := constant.Val(v).(type) {
+	case int64:
+		if v < 0 {
+			return 65 - bits.LeadingZeros64(uint64(-v)-1)
+		}
+
+		return 64 - bits.LeadingZeros64(uint64(v))
+	case *big.Int:
+		return v.BitLen()
+	default:
+		return 0
+	}
 }
 
 // AssignableTo returns whether a value of type value
