@@ -497,19 +497,18 @@ func (a *allocator) NoteParameter(v *ssafir.Value) {
 }
 
 // AddValue records the given value as being
-// available. This will only be allocated to
-// a memory location lazily, when necessary.
-//
-// This ensures that unused values are dropped.
+// available.
 func (a *allocator) AddValue(v *ssafir.Value) {
 	if a.locations[v] != nil {
 		panic(fmt.Sprintf("AddValue(%s): value %s is already recorded", v, v))
 	}
 
-	a.addAlloc(v, &Alloc{Data: v.Extra}) // This probably needs to be removed.
-
-	if v.Uses != 0 {
-		panic("unimplemented")
+	orig := v.Args[0]
+	for _, loc := range a.locations[orig] {
+		dst := a.GetLocation()
+		a.allocated[dst] = v
+		a.locations[v] = append(a.locations[v], dst)
+		a.addAlloc(v, &Alloc{Dst: dst, Src: loc, Data: v.Extra})
 	}
 }
 
