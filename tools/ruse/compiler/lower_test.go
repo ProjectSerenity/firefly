@@ -99,17 +99,11 @@ func TestLower(t *testing.T) {
 			},
 			Want: []*TestValue{
 				{
-					ID: 4,
-					Op: ssafir.OpX86MOV_R32op_Imm32,
-					Extra: &x86InstructionData{
-						Args: [4]any{
-							x86.EDI,
-							uint64(3),
-						},
-						Length: 5,
-					},
-					Uses: 1,
-					Code: `(len "bar")`,
+					ID:    4,
+					Op:    ssafir.OpX86MOV_R32op_Imm32,
+					Extra: &x86InstructionData{Args: [4]any{x86.EDI, uint64(3)}, Length: 5},
+					Uses:  1,
+					Code:  `(len "bar")`,
 				},
 				{
 					ID: 5,
@@ -131,17 +125,11 @@ func TestLower(t *testing.T) {
 					Code: `(double (len "bar"))`,
 				},
 				{
-					ID: 3,
-					Op: ssafir.OpX86MOV_R32op_Imm32,
-					Extra: &x86InstructionData{
-						Args: [4]any{
-							x86.EDI,
-							uint64(6),
-						},
-						Length: 5,
-					},
-					Uses: 1,
-					Code: `(let length (len "foobar"))`,
+					ID:    3,
+					Op:    ssafir.OpX86MOV_R32op_Imm32,
+					Extra: &x86InstructionData{Args: [4]any{x86.EDI, uint64(6)}, Length: 5},
+					Uses:  1,
+					Code:  `(let length (len "foobar"))`,
 				},
 				{
 					ID: 6,
@@ -163,17 +151,11 @@ func TestLower(t *testing.T) {
 					Code: `(double length)`,
 				},
 				{
-					ID: 7,
-					Op: ssafir.OpX86MOV_R32op_Imm32,
-					Extra: &x86InstructionData{
-						Args: [4]any{
-							x86.EDI,
-							uint64(7),
-						},
-						Length: 5,
-					},
-					Uses: 1,
-					Code: `7`,
+					ID:    7,
+					Op:    ssafir.OpX86MOV_R32op_Imm32,
+					Extra: &x86InstructionData{Args: [4]any{x86.EDI, uint64(7)}, Length: 5},
+					Uses:  1,
+					Code:  `7`,
 				},
 				{
 					ID: 8,
@@ -195,17 +177,11 @@ func TestLower(t *testing.T) {
 					Code: `(double 7)`,
 				},
 				{
-					ID: 10,
-					Op: ssafir.OpX86MOV_R32op_Imm32,
-					Extra: &x86InstructionData{
-						Args: [4]any{
-							x86.EDI,
-							uint64(17),
-						},
-						Length: 5,
-					},
-					Uses: 1,
-					Code: `val`,
+					ID:    10,
+					Op:    ssafir.OpX86MOV_R32op_Imm32,
+					Extra: &x86InstructionData{Args: [4]any{x86.EDI, uint64(17)}, Length: 5},
+					Uses:  1,
+					Code:  `val`,
 				},
 				{
 					ID: 11,
@@ -227,13 +203,11 @@ func TestLower(t *testing.T) {
 					Code: `(double val)`,
 				},
 				{
-					ID: 12,
-					Op: ssafir.OpX86RET,
-					Extra: &x86InstructionData{
-						Length: 1,
-					},
-					Uses: 1,
-					Code: `(double val)`,
+					ID:    12,
+					Op:    ssafir.OpX86RET,
+					Extra: &x86InstructionData{Length: 1},
+					Uses:  1,
+					Code:  `(double val)`,
 				},
 			},
 		},
