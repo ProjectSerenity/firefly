@@ -283,7 +283,7 @@ func defPredeclaredSpecialForms() {
 
 		// TODO: Add support for more types to special form len.
 		array, isArray := typ.(*Array)
-		if !isArray && !AssignableTo(String, typ) {
+		if !isArray && !AssignableTo(String, typ, nil) {
 			return nil, nil, c.errorf(arg.Pos(), "invalid argument: %s (%s) for len", arg.Print(), typ)
 		}
 
@@ -378,14 +378,14 @@ func defPredeclaredSpecialForms() {
 					return nil, nil, c.errorf(rest[0].Pos(), "invalid section field %s: %v", kind.Name, err)
 				}
 
-				if !AssignableTo(Uintptr, typ) {
-					return nil, nil, c.errorf(rest[0].Pos(), "invalid section field %s: invalid type %s", kind.Name, typ)
-				}
-
 				// Extract the value.
 				con, ok := obj.(*Constant)
 				if !ok {
 					return nil, nil, c.errorf(rest[0].Pos(), "invalid section field %s: value must be a positive integer constant, got %s", kind.Name, obj)
+				}
+
+				if !AssignableTo(Uintptr, typ, con.Value()) {
+					return nil, nil, c.errorf(rest[0].Pos(), "invalid section field %s: invalid type %s", kind.Name, typ)
 				}
 
 				value := constant.Val(con.Value())
@@ -624,7 +624,7 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig 
 		if i == 0 {
 			ok := false
 			for _, allow := range op.BinaryTypes {
-				if AssignableTo(allow, arg) {
+				if AssignableTo(allow, arg, constants[i]) {
 					ok = true
 					break
 				}
@@ -641,10 +641,10 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig 
 
 		if isShift && i == 1 {
 			// The shift must be a uint.
-			if !AssignableTo(Uint, arg) {
+			if !AssignableTo(Uint, arg, constants[i]) {
 				return nil, nil, c.errorf(fun.Elements[i+1].Pos(), "expected %s parameter, found %s", Uint, arg)
 			}
-		} else if !AssignableTo(sig.result, arg) {
+		} else if !AssignableTo(sig.result, arg, constants[i]) {
 			return nil, nil, c.errorf(fun.Elements[i+1].Pos(), "expected %s parameter, found %s", sig.result, arg)
 		}
 	}

@@ -64,7 +64,10 @@ func numBits(v constant.Value) int {
 
 // AssignableTo returns whether a value of type value
 // can be assigned to a value of type base.
-func AssignableTo(base, value Type) bool {
+//
+// If c is not nil, AssignableTo checks that it will
+// fit in base.
+func AssignableTo(base, value Type, c constant.Value) bool {
 	// TODO: make AssignableTo more sophisticated.
 	uBase := Underlying(base)
 	uValue := Underlying(value)
@@ -72,24 +75,21 @@ func AssignableTo(base, value Type) bool {
 		return true
 	}
 
+	bits := numBits(c)
+
 	switch uValue {
 	case UntypedBool:
 		return uBase == Bool
 	case UntypedInt:
 		switch uBase {
-		case Int,
-			Int8,
-			Int16,
-			Int32,
-			Int64,
-			Byte,
-			Uint,
-			Uint8,
-			Uint16,
-			Uint32,
-			Uint64,
-			Uintptr:
-			return true
+		case Int8, Uint8, Byte:
+			return bits <= 8
+		case Int16, Uint16:
+			return bits <= 16
+		case Int32, Uint32:
+			return bits <= 32
+		case Int64, Int, Uint64, Uint, Uintptr:
+			return bits <= 64
 		}
 	case UntypedString:
 		if uBase == String {
@@ -501,12 +501,17 @@ func (c *checker) Check(files []*ast.File) error {
 			switch keyword.Name {
 			case "base-address":
 				for _, elt := range anno.Elements[1:] {
-					_, typ, err := c.ResolveExpression(fileScopes[i], elt)
+					obj, typ, err := c.ResolveExpression(fileScopes[i], elt)
 					if err != nil {
 						return err
 					}
 
-					if !AssignableTo(Uintptr, typ) {
+					var value constant.Value
+					if con, ok := obj.(*Constant); ok {
+						value = con.Value()
+					}
+
+					if !AssignableTo(Uintptr, typ, value) {
 						return c.errorf(elt.Pos(), "cannot use %s (%s) as base address", elt.Print(), elt)
 					}
 				}
@@ -955,7 +960,7 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 				}
 
 				// TODO: Add support for more types to special form len.
-				if !AssignableTo(String, typ) {
+				if !AssignableTo(String, typ, nil) {
 					return c.errorf(arg.Pos(), "%s has invalid argument: %s (%s) for len", name, arg.Print(), typ)
 				}
 
@@ -984,7 +989,7 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 					return err
 				}
 
-				if !AssignableTo(String, typ) {
+				if !AssignableTo(String, typ, nil) {
 					return c.errorf(arg.Pos(), "%s has invalid argument: %s (%s) for string-pointer", name, arg.Print(), typ)
 				}
 
@@ -1048,7 +1053,12 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 					return c.errorf(arg.Pos(), "%s has invalid argument: %v", name, err)
 				}
 
-				if !AssignableTo(result, typ) {
+				var val constant.Value
+				if con, ok := obj.(*Constant); ok {
+					val = con.Value()
+				}
+
+				if !AssignableTo(result, typ, val) {
 					return c.errorf(arg.Pos(), "%s has invalid argument: cannot assign %s (%s) to %s", name, arg, typ, result)
 				}
 
@@ -1134,12 +1144,17 @@ func (c *checker) ResolveFuncBody(scope *Scope, fun *ast.List) (result Type, err
 
 	for i, expr := range fun.Elements[2:] {
 		isLast := i+3 == len(fun.Elements)
-		_, result, err := c.ResolveExpression(scope, expr)
+		obj, result, err := c.ResolveExpression(scope, expr)
 		if err != nil {
 			return nil, err
 		}
 
-		if isLast && sig.result != nil && !AssignableTo(sig.result, result) {
+		var value constant.Value
+		if con, ok := obj.(*Constant); ok {
+			value = con.Value()
+		}
+
+		if isLast && sig.result != nil && !AssignableTo(sig.result, result, value) {
 			return nil, c.errorf(expr.Pos(), "%s has return type %s but returns value of incompatible type %s", name, sig.result, result)
 		}
 	}
@@ -1306,12 +1321,17 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 				// Build the array.
 				values := make([]constant.Value, len(x.Elements[1:]))
 				for i, v := range x.Elements[1:] {
-					_, argType, err := c.ResolveExpression(scope, v)
+					obj, argType, err := c.ResolveExpression(scope, v)
 					if err != nil {
 						return nil, nil, err
 					}
 
-					if !AssignableTo(eltType, argType) {
+					var value constant.Value
+					if con, ok := obj.(*Constant); ok {
+						value = con.Value()
+					}
+
+					if !AssignableTo(eltType, argType, value) {
 						return nil, nil, c.errorf(v.Pos(), "cannot cast %s (%s) to %s in %s", v.Print(), argType, eltType, typeName.Name)
 					}
 
@@ -1343,7 +1363,12 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 				return nil, nil, err
 			}
 
-			if !AssignableTo(typ, argType) {
+			var val constant.Value
+			if con, ok := obj.(*Constant); ok {
+				val = con.Value()
+			}
+
+			if !AssignableTo(typ, argType, val) {
 				return nil, nil, c.errorf(x.Elements[1].Pos(), "cannot cast %s (%s) to %s", x.Elements[1].Print(), argType, typ)
 			}
 
@@ -1358,10 +1383,15 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 
 		// Start by getting the argument types.
 		argTypes := make([]Type, len(x.Elements[1:]))
+		values := make([]constant.Value, len(argTypes))
 		for i, expr := range x.Elements[1:] {
-			_, argTypes[i], err = c.ResolveExpression(scope, expr)
+			obj, argTypes[i], err = c.ResolveExpression(scope, expr)
 			if err != nil {
 				return nil, nil, err
+			}
+
+			if con, ok := obj.(*Constant); ok {
+				values[i] = con.Value()
 			}
 		}
 
@@ -1375,7 +1405,7 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 
 		for i, arg := range argTypes {
 			param := sig.params[i].Type()
-			if !AssignableTo(param, arg) {
+			if !AssignableTo(param, arg, values[i]) {
 				return nil, nil, c.errorf(x.Elements[i+1].Pos(), "cannot use %s (%s) as %s value in argument to %s", x.Elements[i+1].Print(), arg, param, sig)
 			}
 		}
@@ -1559,7 +1589,12 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 			typ = obj.Type()
 			c.use(typeName, obj)
 			c.record(typeName, typ, nil)
-			if !AssignableTo(typ, value) {
+			var val constant.Value
+			if con, ok := obj.(*Constant); ok {
+				val = con.Value()
+			}
+
+			if !AssignableTo(typ, value, val) {
 				return nil, c.errorf(let.ParenOpen, "cannot assign %s (%s) to value of type %s", value, value, typ)
 			}
 		}
@@ -1581,7 +1616,12 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 				typ = obj.Type()
 				c.use(typeName, obj)
 				c.record(typeName, typ, nil)
-				if !AssignableTo(typ, UntypedInt) {
+				var value constant.Value
+				if con, ok := obj.(*Constant); ok {
+					value = con.Value()
+				}
+
+				if !AssignableTo(typ, UntypedInt, value) {
 					return nil, c.errorf(let.ParenOpen, "cannot assign integer literal to value of type %s", typ)
 				}
 			}
@@ -1600,7 +1640,12 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 				typ = obj.Type()
 				c.use(typeName, obj)
 				c.record(typeName, typ, nil)
-				if !AssignableTo(typ, UntypedString) {
+				var value constant.Value
+				if con, ok := obj.(*Constant); ok {
+					value = con.Value()
+				}
+
+				if !AssignableTo(typ, UntypedString, value) {
 					return nil, c.errorf(let.ParenOpen, "cannot assign string literal to value of type %s", typ)
 				}
 			}
@@ -1742,7 +1787,12 @@ func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 			typ = obj.Type()
 			c.use(typeName, obj)
 			c.record(typeName, typ, nil)
-			if !AssignableTo(typ, constantType) {
+			var value constant.Value
+			if con, ok := obj.(*Constant); ok {
+				value = con.Value()
+			}
+
+			if !AssignableTo(typ, constantType, value) {
 				return c.errorf(let.ParenOpen, "cannot assign %s to constant of type %s", constantType, typ)
 			}
 		}
@@ -1761,7 +1811,12 @@ func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 				typ = obj.Type()
 				c.use(typeName, obj)
 				c.record(typeName, typ, nil)
-				if !AssignableTo(typ, UntypedInt) {
+				var value constant.Value
+				if con, ok := obj.(*Constant); ok {
+					value = con.Value()
+				}
+
+				if !AssignableTo(typ, UntypedInt, value) {
 					return c.errorf(let.ParenOpen, "cannot assign integer literal to constant of type %s", typ)
 				}
 			}
@@ -1780,7 +1835,12 @@ func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 				typ = obj.Type()
 				c.use(typeName, obj)
 				c.record(typeName, typ, nil)
-				if !AssignableTo(typ, UntypedString) {
+				var value constant.Value
+				if con, ok := obj.(*Constant); ok {
+					value = con.Value()
+				}
+
+				if !AssignableTo(typ, UntypedString, value) {
 					return c.errorf(let.ParenOpen, "cannot assign string literal to constant of type %s", typ)
 				}
 			}
@@ -1826,7 +1886,12 @@ func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 			typ = obj.Type()
 			c.use(typeName, obj)
 			c.record(typeName, typ, nil)
-			if !AssignableTo(typ, rhs.Type()) {
+			var value constant.Value
+			if con, ok := obj.(*Constant); ok {
+				value = con.Value()
+			}
+
+			if !AssignableTo(typ, rhs.Type(), value) {
 				return c.errorf(let.ParenOpen, "cannot assign %s to constant of type %s", rhs.Type(), typ)
 			}
 		}
