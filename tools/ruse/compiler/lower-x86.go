@@ -119,10 +119,14 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 		case ssafir.OpConstantString:
 			l.MoveString(v)
 		case ssafir.OpAddInt8, ssafir.OpAddInt16, ssafir.OpAddInt32, ssafir.OpAddInt64,
-			ssafir.OpSubtractInt8, ssafir.OpSubtractInt16, ssafir.OpSubtractInt32, ssafir.OpSubtractInt64:
+			ssafir.OpSubtractInt8, ssafir.OpSubtractInt16, ssafir.OpSubtractInt32, ssafir.OpSubtractInt64,
+			ssafir.OpMultiplyInt8, ssafir.OpMultiplyInt16, ssafir.OpMultiplyInt32, ssafir.OpMultiplyInt64,
+			ssafir.OpDivideInt8, ssafir.OpDivideInt16, ssafir.OpDivideInt32, ssafir.OpDivideInt64:
 			l.DoArithmetic(v)
 		case ssafir.OpAddUint8, ssafir.OpAddUint16, ssafir.OpAddUint32, ssafir.OpAddUint64,
-			ssafir.OpSubtractUint8, ssafir.OpSubtractUint16, ssafir.OpSubtractUint32, ssafir.OpSubtractUint64:
+			ssafir.OpSubtractUint8, ssafir.OpSubtractUint16, ssafir.OpSubtractUint32, ssafir.OpSubtractUint64,
+			ssafir.OpMultiplyUint8, ssafir.OpMultiplyUint16, ssafir.OpMultiplyUint32, ssafir.OpMultiplyUint64,
+			ssafir.OpDivideUint8, ssafir.OpDivideUint16, ssafir.OpDivideUint32, ssafir.OpDivideUint64:
 			l.DoArithmetic(v)
 		case ssafir.OpDrop:
 			// Nothing to do here, this is just debugging
@@ -527,6 +531,14 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 	// Copy the first parameter to the destination.
 	l.MoveNumber(v)
 
+	alloc := v.Extra.(*Alloc)
+	data := &x86InstructionData{
+		Args: [4]any{
+			alloc.Dst,
+			alloc.Data.(sys.Location),
+		},
+	}
+
 	// Perform the op.
 	var op ssafir.Op
 	switch v.Op {
@@ -546,16 +558,32 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 		op = ssafir.OpX86SUB_R32_Rmr32
 	case ssafir.OpSubtractInt64, ssafir.OpSubtractUint64:
 		op = ssafir.OpX86SUB_R64_Rmr64_REX
+	case ssafir.OpMultiplyInt8, ssafir.OpMultiplyUint8:
+		op = ssafir.OpX86MUL_Rmr8
+		data.Args[0], data.Args[1] = data.Args[1], nil
+	case ssafir.OpMultiplyInt16, ssafir.OpMultiplyUint16:
+		op = ssafir.OpX86MUL_Rmr16
+		data.Args[0], data.Args[1] = data.Args[1], nil
+	case ssafir.OpMultiplyInt32, ssafir.OpMultiplyUint32:
+		op = ssafir.OpX86MUL_Rmr32
+		data.Args[0], data.Args[1] = data.Args[1], nil
+	case ssafir.OpMultiplyInt64, ssafir.OpMultiplyUint64:
+		op = ssafir.OpX86MUL_Rmr64_REX
+		data.Args[0], data.Args[1] = data.Args[1], nil
+	case ssafir.OpDivideInt8, ssafir.OpDivideUint8:
+		op = ssafir.OpX86DIV_Rmr8
+		data.Args[0], data.Args[1] = data.Args[1], nil
+	case ssafir.OpDivideInt16, ssafir.OpDivideUint16:
+		op = ssafir.OpX86DIV_Rmr16
+		data.Args[0], data.Args[1] = data.Args[1], nil
+	case ssafir.OpDivideInt32, ssafir.OpDivideUint32:
+		op = ssafir.OpX86DIV_Rmr32
+		data.Args[0], data.Args[1] = data.Args[1], nil
+	case ssafir.OpDivideInt64, ssafir.OpDivideUint64:
+		op = ssafir.OpX86DIV_Rmr64_REX
+		data.Args[0], data.Args[1] = data.Args[1], nil
 	default:
 		panic(fmt.Errorf("%s: unexpoected op %s", l.fset.Position(v.Pos), v.Op))
-	}
-
-	alloc := v.Extra.(*Alloc)
-	data := &x86InstructionData{
-		Args: [4]any{
-			alloc.Dst,
-			alloc.Data.(sys.Location),
-		},
 	}
 
 	l.addInst(v, op, data)

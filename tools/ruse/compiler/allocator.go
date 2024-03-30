@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"firefly-os.dev/tools/ruse/constant"
+	"firefly-os.dev/tools/ruse/internal/x86"
 	"firefly-os.dev/tools/ruse/ssafir"
 	"firefly-os.dev/tools/ruse/sys"
 	"firefly-os.dev/tools/ruse/token"
@@ -142,6 +143,37 @@ func (a *allocator) run() error {
 			// We just add this for now and resolve
 			// it when we lower the code.
 			dst := a.GetLocation()
+			src := a.locations[v.Args[0]][0] // The first operand.
+			arg := a.locations[v.Args[1]][0] // The other operand.
+			a.locations[v] = []sys.Location{dst}
+			alloc := &Alloc{Dst: dst, Src: src, Data: arg}
+			a.addAlloc(v, alloc)
+		case ssafir.OpMultiplyInt8, ssafir.OpMultiplyUint8,
+			ssafir.OpMultiplyInt16, ssafir.OpMultiplyUint16,
+			ssafir.OpMultiplyInt32, ssafir.OpMultiplyUint32,
+			ssafir.OpMultiplyInt64, ssafir.OpMultiplyUint64,
+			ssafir.OpDivideInt8, ssafir.OpDivideUint8,
+			ssafir.OpDivideInt16, ssafir.OpDivideUint16,
+			ssafir.OpDivideInt32, ssafir.OpDivideUint32,
+			ssafir.OpDivideInt64, ssafir.OpDivideUint64:
+			// We just add this for now and resolve
+			// it when we lower the code.
+
+			// The destination is fixed to RDX:RAX,
+			// so we need to preserve any current
+			// occupants.
+			// TODO: make multiply/divide destination allocation architecture-agnostic.
+			clear(calleeIsScratch)
+			calleeIsScratch[x86.RDX] = true
+			calleeIsScratch[x86.RAX] = true
+			for _, v := range v.Args {
+				calleeIsScratch[a.locations[v][0]] = true
+			}
+
+			a.SaveValue(x86.RDX, calleeIsScratch)
+			a.SaveValue(x86.RAX, calleeIsScratch)
+
+			dst := x86.RAX
 			src := a.locations[v.Args[0]][0] // The first operand.
 			arg := a.locations[v.Args[1]][0] // The other operand.
 			a.locations[v] = []sys.Location{dst}
