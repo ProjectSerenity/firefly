@@ -2102,22 +2102,24 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 	// avoid overwriting or duplicating
 	// any existing types.
 
-	if info.List == nil {
+	if info != nil && info.List == nil {
 		info.List = make([]types.Type, 0, len(typs))
 	}
 
-	if info.Indices == nil {
+	if info != nil && info.Indices == nil {
 		info.Indices = make(map[types.Type]int)
 	}
 
-	for i, typ := range typs {
-		_, ok := info.Indices[typ]
-		if ok {
-			continue
-		}
+	if info != nil {
+		for i, typ := range typs {
+			_, ok := info.Indices[typ]
+			if ok {
+				continue
+			}
 
-		info.Indices[typ] = i
-		info.List = append(info.List, typ)
+			info.Indices[typ] = i
+			info.List = append(info.List, typ)
+		}
 	}
 
 	symbols, objects, err := d.Symbols()
