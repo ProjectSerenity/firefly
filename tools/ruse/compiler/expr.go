@@ -782,6 +782,22 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		}
 
 		return c.CompileBinaryOperation(args, op, sig.Result())
+	case types.SpecialFormShiftLeft:
+		args := list.Elements[1:]
+		op, ok := c.pickIntegerOp(sig.Result(), ssafir.OpShiftLeftInt8, ssafir.OpShiftLeftUint64)
+		if !ok {
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+		}
+
+		return c.CompileBinaryOperation(args, op, sig.Result())
+	case types.SpecialFormShiftRight:
+		args := list.Elements[1:]
+		op, ok := c.pickIntegerOp(sig.Result(), ssafir.OpShiftRightInt8, ssafir.OpShiftRightUint64)
+		if !ok {
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+		}
+
+		return c.CompileBinaryOperation(args, op, sig.Result())
 	}
 
 	return nil, fmt.Errorf("%s: failed to compile %s: unsupported special form %s", c.fset.Position(list.ParenOpen), list.Print(), form.ID())

@@ -202,6 +202,35 @@ func (a *allocator) run() error {
 			a.locations[v] = []sys.Location{dst}
 			alloc := &Alloc{Dst: dst, Src: src, Data: arg}
 			a.addAlloc(v, alloc)
+		case ssafir.OpShiftLeftInt8, ssafir.OpShiftLeftUint8,
+			ssafir.OpShiftLeftInt16, ssafir.OpShiftLeftUint16,
+			ssafir.OpShiftLeftInt32, ssafir.OpShiftLeftUint32,
+			ssafir.OpShiftLeftInt64, ssafir.OpShiftLeftUint64,
+			ssafir.OpShiftRightInt8, ssafir.OpShiftRightUint8,
+			ssafir.OpShiftRightInt16, ssafir.OpShiftRightUint16,
+			ssafir.OpShiftRightInt32, ssafir.OpShiftRightUint32,
+			ssafir.OpShiftRightInt64, ssafir.OpShiftRightUint64:
+			// We just add this for now and resolve
+			// it when we lower the code.
+
+			// The shift is fixed at CL, so we need
+			// to preserve any current occupants.
+			// TODO: make shift left/right destination allocation architecture-agnostic.
+			clear(calleeIsScratch)
+			calleeIsScratch[x86.RCX] = true
+			for _, v := range v.Args {
+				calleeIsScratch[a.locations[v][0]] = true
+			}
+
+			a.SaveValue(x86.RCX, calleeIsScratch)
+			a.allocated[x86.RCX] = v.Args[1] // Make sure we don't pick RCX for our destination.
+
+			dst := a.GetLocation()
+			src := a.locations[v.Args[0]][0] // The first operand.
+			arg := a.locations[v.Args[1]][0] // The other operand.
+			a.locations[v] = []sys.Location{dst}
+			alloc := &Alloc{Dst: dst, Src: src, Data: arg}
+			a.addAlloc(v, alloc)
 		case ssafir.OpConstantInt64,
 			ssafir.OpConstantUint64,
 			ssafir.OpConstantString,

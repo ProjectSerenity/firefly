@@ -143,6 +143,8 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 				{ssafir.OpBitwiseOrInt8, ssafir.OpBitwiseOrUint64},
 				{ssafir.OpBitwiseAndInt8, ssafir.OpBitwiseAndUint64},
 				{ssafir.OpBitwiseXorInt8, ssafir.OpBitwiseXorUint64},
+				{ssafir.OpShiftLeftInt8, ssafir.OpShiftLeftUint64},
+				{ssafir.OpShiftRightInt8, ssafir.OpShiftRightUint64},
 			}
 
 			ok := false
@@ -647,6 +649,40 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 			ssafir.OpX86XOR_R32_Rmr32,
 			ssafir.OpX86XOR_R64_Rmr64_REX,
 		}[i%4]
+	case ssafir.OpShiftLeftInt8, ssafir.OpShiftLeftUint8,
+		ssafir.OpShiftLeftInt16, ssafir.OpShiftLeftUint16,
+		ssafir.OpShiftLeftInt32, ssafir.OpShiftLeftUint32,
+		ssafir.OpShiftLeftInt64, ssafir.OpShiftLeftUint64:
+		i := v.Op - ssafir.OpShiftLeftInt8
+		op = []ssafir.Op{
+			ssafir.OpX86SAL_Rmr8_CL,
+			ssafir.OpX86SAL_Rmr16_CL,
+			ssafir.OpX86SAL_Rmr32_CL,
+			ssafir.OpX86SAL_Rmr64_CL_REX,
+		}[i%4]
+
+		// Move the shift (second arg) into CL.
+		v.Extra = &Alloc{Dst: x86.RCX, Src: alloc.Data.(sys.Location)}
+		l.MoveNumber(v)
+
+		data.Args[1] = x86.CL // The shift is now in place.
+	case ssafir.OpShiftRightInt8, ssafir.OpShiftRightUint8,
+		ssafir.OpShiftRightInt16, ssafir.OpShiftRightUint16,
+		ssafir.OpShiftRightInt32, ssafir.OpShiftRightUint32,
+		ssafir.OpShiftRightInt64, ssafir.OpShiftRightUint64:
+		i := v.Op - ssafir.OpShiftRightInt8
+		op = []ssafir.Op{
+			ssafir.OpX86SAR_Rmr8_CL,
+			ssafir.OpX86SAR_Rmr16_CL,
+			ssafir.OpX86SAR_Rmr32_CL,
+			ssafir.OpX86SAR_Rmr64_CL_REX,
+		}[i%4]
+
+		// Move the shift (second arg) into CL.
+		v.Extra = &Alloc{Dst: x86.RCX, Src: alloc.Data.(sys.Location)}
+		l.MoveNumber(v)
+
+		data.Args[1] = x86.CL // The shift is now in place.
 	default:
 		panic(fmt.Errorf("%s: unexpoected op %s", l.fset.Position(v.Pos), v.Op))
 	}

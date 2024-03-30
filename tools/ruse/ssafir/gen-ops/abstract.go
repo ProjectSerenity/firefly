@@ -75,6 +75,22 @@ var AbstractOps = []OpInfo{
 	{Name: "BitwiseXorUint16", Operands: 2, Commutative: true},
 	{Name: "BitwiseXorUint32", Operands: 2, Commutative: true},
 	{Name: "BitwiseXorUint64", Operands: 2, Commutative: true},
+	{Name: "ShiftLeftInt8", Operands: 2, Commutative: true},
+	{Name: "ShiftLeftInt16", Operands: 2, Commutative: true},
+	{Name: "ShiftLeftInt32", Operands: 2, Commutative: true},
+	{Name: "ShiftLeftInt64", Operands: 2, Commutative: true},
+	{Name: "ShiftLeftUint8", Operands: 2, Commutative: true},
+	{Name: "ShiftLeftUint16", Operands: 2, Commutative: true},
+	{Name: "ShiftLeftUint32", Operands: 2, Commutative: true},
+	{Name: "ShiftLeftUint64", Operands: 2, Commutative: true},
+	{Name: "ShiftRightInt8", Operands: 2, Commutative: true},
+	{Name: "ShiftRightInt16", Operands: 2, Commutative: true},
+	{Name: "ShiftRightInt32", Operands: 2, Commutative: true},
+	{Name: "ShiftRightInt64", Operands: 2, Commutative: true},
+	{Name: "ShiftRightUint8", Operands: 2, Commutative: true},
+	{Name: "ShiftRightUint16", Operands: 2, Commutative: true},
+	{Name: "ShiftRightUint32", Operands: 2, Commutative: true},
+	{Name: "ShiftRightUint64", Operands: 2, Commutative: true},
 	// Constant values.
 	{Name: "ConstantBool"},   // ExtraInt is 0 for false and 1 for true.
 	{Name: "ConstantString"}, // Extra is the string value.
