@@ -118,9 +118,11 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 			l.MoveNumber(v)
 		case ssafir.OpConstantString:
 			l.MoveString(v)
-		case ssafir.OpAddInt8, ssafir.OpAddInt16, ssafir.OpAddInt32, ssafir.OpAddInt64:
+		case ssafir.OpAddInt8, ssafir.OpAddInt16, ssafir.OpAddInt32, ssafir.OpAddInt64,
+			ssafir.OpSubtractInt8, ssafir.OpSubtractInt16, ssafir.OpSubtractInt32, ssafir.OpSubtractInt64:
 			l.DoArithmetic(v)
-		case ssafir.OpAddUint8, ssafir.OpAddUint16, ssafir.OpAddUint32, ssafir.OpAddUint64:
+		case ssafir.OpAddUint8, ssafir.OpAddUint16, ssafir.OpAddUint32, ssafir.OpAddUint64,
+			ssafir.OpSubtractUint8, ssafir.OpSubtractUint16, ssafir.OpSubtractUint32, ssafir.OpSubtractUint64:
 			l.DoArithmetic(v)
 		case ssafir.OpDrop:
 			// Nothing to do here, this is just debugging
@@ -536,6 +538,14 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 		op = ssafir.OpX86ADD_R32_Rmr32
 	case ssafir.OpAddInt64, ssafir.OpAddUint64:
 		op = ssafir.OpX86ADD_R64_Rmr64_REX
+	case ssafir.OpSubtractInt8, ssafir.OpSubtractUint8:
+		op = ssafir.OpX86SUB_R8_Rmr8
+	case ssafir.OpSubtractInt16, ssafir.OpSubtractUint16:
+		op = ssafir.OpX86SUB_R16_Rmr16
+	case ssafir.OpSubtractInt32, ssafir.OpSubtractUint32:
+		op = ssafir.OpX86SUB_R32_Rmr32
+	case ssafir.OpSubtractInt64, ssafir.OpSubtractUint64:
+		op = ssafir.OpX86SUB_R64_Rmr64_REX
 	default:
 		panic(fmt.Errorf("%s: unexpoected op %s", l.fset.Position(v.Pos), v.Op))
 	}

@@ -134,7 +134,11 @@ func (a *allocator) run() error {
 		case ssafir.OpAddInt8, ssafir.OpAddUint8,
 			ssafir.OpAddInt16, ssafir.OpAddUint16,
 			ssafir.OpAddInt32, ssafir.OpAddUint32,
-			ssafir.OpAddInt64, ssafir.OpAddUint64:
+			ssafir.OpAddInt64, ssafir.OpAddUint64,
+			ssafir.OpSubtractInt8, ssafir.OpSubtractUint8,
+			ssafir.OpSubtractInt16, ssafir.OpSubtractUint16,
+			ssafir.OpSubtractInt32, ssafir.OpSubtractUint32,
+			ssafir.OpSubtractInt64, ssafir.OpSubtractUint64:
 			// We just add this for now and resolve
 			// it when we lower the code.
 			dst := a.GetLocation()
