@@ -265,14 +265,13 @@ func TestLower(t *testing.T) {
 				"000056:	48 d3 fb             	sar rbx, cl",     // Arithmetic  (>> mul ub)
 				"000059:	4c 8b c6             	mov r8, rsi",     // Prepare arg sum
 				"00005c:	4c 0b c7             	or r8, rdi",      // Arithmetic  (| sum dif)
-				"00005f:	49 8b f0             	mov rsi, r8",     // Save result (| sum dif)
-				"000062:	49 0b f2             	or rsi, r10",     // Arithmetic  (| sum dif mul)
-				"000065:	48 0b f0             	or rsi, rax",     // Arithmetic  (| sum dif mul div)
-				"000068:	48 8b c6             	mov rax, rsi",    // Save result (| sum dif mul div)
-				"00006b:	48 0b c2             	or rax, rdx",     // Arithmetic  (| sum dif mul div and)
-				"00006e:	49 0b c3             	or rax, r11",     // Arithmetic  (| sum dif mul div and big)
-				"000071:	48 0b c3             	or rax, rbx",     // Arithmetic  (| sum dif mul div and big sml)
-				"000074:	c3                   	ret",
+				"00005f:	4d 0b c2             	or r8, r10",      // Arithmetic  (| sum dif mul)
+				"000062:	4c 0b c0             	or r8, rax",      // Arithmetic  (| sum ... mul div)
+				"000065:	4c 0b c2             	or r8, rdx",      // Arithmetic  (| sum ... div and)
+				"000068:	4d 0b c3             	or r8, r11",      // Arithmetic  (| sum ... and big)
+				"00006b:	4c 0b c3             	or r8, rbx",      // Arithmetic  (| sum ... big sml)
+				"00006e:	49 8b c0             	mov rax, r8",     // Save result (| sum ... sml)
+				"000071:	c3                   	ret",
 			},
 			Want: []*TestValue{
 				{
@@ -503,56 +502,49 @@ func TestLower(t *testing.T) {
 					Code:  "sum dif",
 				},
 				{
-					ID:    25,
-					Op:    ssafir.OpX86MOV_R64_Rmr64_REX,
-					Extra: &x86InstructionData{Args: [4]any{x86.RSI, x86.R8}, Length: 3},
+					ID:    24,
+					Op:    ssafir.OpX86OR_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.R8, x86.R10}, Length: 3},
 					Uses:  1,
 					Code:  "dif mul",
 				},
 				{
-					ID:    25,
+					ID:    24,
 					Op:    ssafir.OpX86OR_R64_Rmr64_REX,
-					Extra: &x86InstructionData{Args: [4]any{x86.RSI, x86.R10}, Length: 3},
-					Uses:  1,
-					Code:  "dif mul",
-				},
-				{
-					ID:    26,
-					Op:    ssafir.OpX86OR_R64_Rmr64_REX,
-					Extra: &x86InstructionData{Args: [4]any{x86.RSI, x86.RAX}, Length: 3},
+					Extra: &x86InstructionData{Args: [4]any{x86.R8, x86.RAX}, Length: 3},
 					Uses:  1,
 					Code:  "mul div",
 				},
 				{
-					ID:    27,
-					Op:    ssafir.OpX86MOV_R64_Rmr64_REX,
-					Extra: &x86InstructionData{Args: [4]any{x86.RAX, x86.RSI}, Length: 3},
+					ID:    24,
+					Op:    ssafir.OpX86OR_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.R8, x86.RDX}, Length: 3},
 					Uses:  1,
 					Code:  "div and",
 				},
 				{
-					ID:    27,
+					ID:    24,
 					Op:    ssafir.OpX86OR_R64_Rmr64_REX,
-					Extra: &x86InstructionData{Args: [4]any{x86.RAX, x86.RDX}, Length: 3},
-					Uses:  1,
-					Code:  "div and",
-				},
-				{
-					ID:    28,
-					Op:    ssafir.OpX86OR_R64_Rmr64_REX,
-					Extra: &x86InstructionData{Args: [4]any{x86.RAX, x86.R11}, Length: 3},
+					Extra: &x86InstructionData{Args: [4]any{x86.R8, x86.R11}, Length: 3},
 					Uses:  1,
 					Code:  "and big",
 				},
 				{
-					ID:    29,
+					ID:    24,
 					Op:    ssafir.OpX86OR_R64_Rmr64_REX,
-					Extra: &x86InstructionData{Args: [4]any{x86.RAX, x86.RBX}, Length: 3},
+					Extra: &x86InstructionData{Args: [4]any{x86.R8, x86.RBX}, Length: 3},
 					Uses:  1,
 					Code:  "big sml",
 				},
 				{
-					ID:    30,
+					ID:    25,
+					Op:    ssafir.OpX86MOV_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RAX, x86.R8}, Length: 3},
+					Uses:  1,
+					Code:  "(| sum dif mul div and big sml)",
+				},
+				{
+					ID:    25,
 					Op:    ssafir.OpX86RET,
 					Extra: &x86InstructionData{Length: 1},
 					Uses:  1,

@@ -345,6 +345,55 @@ func (b *Block) NewValueExtra(pos, end token.Pos, op Op, typ types.Type, extra a
 	return v
 }
 
+// ContinueValue creates a new value at the given position
+// and operation, adds it to the block, and returns it.
+// The new value will share its ID with prev.
+//
+// Any number of arguments can be provided.
+func (b *Block) ContinueValue(prev *Value, pos, end token.Pos, op Op, typ types.Type, args ...*Value) *Value {
+	v := b.Function.continueValue(prev, op, typ, b, pos, end)
+	v.Args = args
+	for _, arg := range args {
+		arg.Uses++
+	}
+
+	return v
+}
+
+// ContinueValueInt creates a new value at the given position
+// and operation, adds it to the block, and returns it.
+// The new value will share its ID with prev.
+//
+// An integer extra and ay number of arguments can be
+// provided.
+func (b *Block) ContinueValueInt(prev *Value, pos, end token.Pos, op Op, typ types.Type, extra int64, args ...*Value) *Value {
+	v := b.Function.continueValue(prev, op, typ, b, pos, end)
+	v.Extra = extra
+	v.ExtraInt = extra
+	v.Args = args
+	for _, arg := range args {
+		arg.Uses++
+	}
+
+	return v
+}
+
+// ContinueValueExtra creates a new value at the given position
+// and operation, adds it to the block, and returns it.
+// The new value will share its ID with prev.
+//
+// An extra and ay number of arguments can be provided.
+func (b *Block) ContinueValueExtra(prev *Value, pos, end token.Pos, op Op, typ types.Type, extra any, args ...*Value) *Value {
+	v := b.Function.continueValue(prev, op, typ, b, pos, end)
+	v.Extra = extra
+	v.Args = args
+	for _, arg := range args {
+		arg.Uses++
+	}
+
+	return v
+}
+
 // BlockKind describes the role a basic block takes
 // in the control flow graph of a function.
 type BlockKind int
@@ -556,6 +605,21 @@ func (f *Function) NewBlock(pos token.Pos, kind BlockKind) *Block {
 func (f *Function) newValue(op Op, typ types.Type, b *Block, pos, end token.Pos) *Value {
 	v := &Value{
 		ID:    f.values.Next(),
+		Op:    op,
+		Type:  typ,
+		Block: b,
+		Pos:   pos,
+		End:   end,
+	}
+
+	b.Values = append(b.Values, v)
+
+	return v
+}
+
+func (f *Function) continueValue(prev *Value, op Op, typ types.Type, b *Block, pos, end token.Pos) *Value {
+	v := &Value{
+		ID:    prev.ID,
 		Op:    op,
 		Type:  typ,
 		Block: b,

@@ -480,6 +480,18 @@ func (c *compiler) ValueExtra(pos, end token.Pos, op ssafir.Op, typ types.Type, 
 	return c.currentBlock.NewValueExtra(pos, end, op, typ, extra, args...)
 }
 
+func (c *compiler) ContinueValue(prev *ssafir.Value, pos, end token.Pos, op ssafir.Op, typ types.Type, args ...*ssafir.Value) *ssafir.Value {
+	return c.currentBlock.ContinueValue(prev, pos, end, op, typ, args...)
+}
+
+func (c *compiler) ContinueValueInt(prev *ssafir.Value, pos, end token.Pos, op ssafir.Op, typ types.Type, extra int64, args ...*ssafir.Value) *ssafir.Value {
+	return c.currentBlock.ContinueValueInt(prev, pos, end, op, typ, extra, args...)
+}
+
+func (c *compiler) ContinueValueExtra(prev *ssafir.Value, pos, end token.Pos, op ssafir.Op, typ types.Type, extra any, args ...*ssafir.Value) *ssafir.Value {
+	return c.currentBlock.ContinueValueExtra(prev, pos, end, op, typ, extra, args...)
+}
+
 func (c *compiler) Return(end token.Pos, result *ssafir.Value) {
 	if c.fun.Type.Result() != nil {
 		result.Uses++

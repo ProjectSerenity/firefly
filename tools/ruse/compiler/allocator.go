@@ -154,7 +154,14 @@ func (a *allocator) run() error {
 			ssafir.OpBitwiseXorInt64, ssafir.OpBitwiseXorUint64:
 			// We just add this for now and resolve
 			// it when we lower the code.
-			dst := a.GetLocation()
+
+			// If we're continuing a bigger op, we
+			// carry on where we left off.
+			dst := a.locations[v.Args[0]][0] // The first operand.
+			if v.ID != v.Args[0].ID {
+				dst = a.GetLocation() // Use a new destination.
+			}
+
 			src := a.locations[v.Args[0]][0] // The first operand.
 			arg := a.locations[v.Args[1]][0] // The other operand.
 			a.locations[v] = []sys.Location{dst}
@@ -225,7 +232,13 @@ func (a *allocator) run() error {
 			a.SaveValue(x86.RCX, calleeIsScratch)
 			a.allocated[x86.RCX] = v.Args[1] // Make sure we don't pick RCX for our destination.
 
-			dst := a.GetLocation()
+			// If we're continuing a bigger op, we
+			// carry on where we left off.
+			dst := a.locations[v.Args[0]][0] // The first operand.
+			if v.ID != v.Args[0].ID {
+				dst = a.GetLocation() // Use a new destination.
+			}
+
 			src := a.locations[v.Args[0]][0] // The first operand.
 			arg := a.locations[v.Args[1]][0] // The other operand.
 			a.locations[v] = []sys.Location{dst}
