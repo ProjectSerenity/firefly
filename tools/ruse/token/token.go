@@ -31,7 +31,8 @@ const (
 	// Special tokens
 	EndOfFile Token = iota
 	Error
-	Comment
+	Comment           // ;
+	ExpressionComment // #;
 
 	literal_beg
 	// Identifiers and basic type literals
@@ -49,9 +50,10 @@ const (
 )
 
 var tokens = [...]string{
-	EndOfFile: "end of file",
-	Error:     "error",
-	Comment:   "comment",
+	EndOfFile:         "end of file",
+	Error:             "error",
+	Comment:           "comment",
+	ExpressionComment: "expression comment",
 
 	Identifier: "identifier",
 	Integer:    "integer",

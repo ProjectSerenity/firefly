@@ -80,9 +80,9 @@ Literals, identifiers, and qualified identifiers are collectively referred to as
 
 ### Comments
 
-Comments serve as program documentation. _Line comments_ start with a semicolon (`;`) and stop at the end of the line.
+Comments serve as program documentation. _Line comments_ start with a semicolon (`;`) and stop at the end of the line. _Expression comments_ start with a hash and semicolon (`#;`) and stop at the end of the next expression (which must be well-formed).
 
-A comment cannot start inside a [string literal](#String_literals), or inside a comment. A comment acts like a newline.
+A comment cannot start inside a [string literal](#String_literals), or inside a comment. A line comment acts like a newline. An expression comment acts like a space.
 
 ```
 ; A line comment on its own.
@@ -92,6 +92,13 @@ A comment cannot start inside a [string literal](#String_literals), or inside a 
 (append
 	strings  ; A line comment within an expression.
 	text)
+
+#;(+ 1 2)  ; An expression comment on its own, followed by this line comment.
+
+(+
+	1
+	#;(- 7 3)  ; An expression comment within an expression.
+	2)
 
 ```
 

@@ -299,6 +299,17 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			Name: "expression comment",
+			Src:  "#;(foo\nbar)",
+			Want: []Lexeme{
+				{token.ExpressionComment, 1, "#;"},
+				{token.ParenOpen, 3, "("},
+				{token.Identifier, 4, "foo"},
+				{token.Identifier, 8, "bar"},
+				{token.ParenClose, 11, ")"},
+			},
+		},
+		{
 			Name: "illegal tokens",
 			Src:  "£ foo ]",
 			Want: []Lexeme{

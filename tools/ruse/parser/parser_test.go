@@ -235,6 +235,45 @@ func TestParseExpression(t *testing.T) {
 			},
 		},
 		{
+			Name: "expression commented identifier",
+			Src:  "#; x y",
+			Want: &ast.Identifier{
+				NamePos: 6,
+				Name:    "y",
+			},
+		},
+		{
+			Name: "expression commented integer",
+			Src:  "#; 5678 1234",
+			Want: &ast.Literal{
+				ValuePos: 9,
+				Kind:     token.Integer,
+				Value:    "1234",
+			},
+		},
+		{
+			Name: "expression commented string",
+			Src:  "#;\"bar\" \"foo\"",
+			Want: &ast.Literal{
+				ValuePos: 9,
+				Kind:     token.String,
+				Value:    "\"foo\"",
+			},
+		},
+		{
+			Name: "expression commented list expression",
+			Src:  "#;(* b c) (+ a b)",
+			Want: &ast.List{
+				ParenOpen: 11,
+				Elements: []ast.Expression{
+					&ast.Identifier{NamePos: 12, Name: "+"},
+					&ast.Identifier{NamePos: 14, Name: "a"},
+					&ast.Identifier{NamePos: 16, Name: "b"},
+				},
+				ParenClose: 17,
+			},
+		},
+		{
 			Name: "invalid token",
 			Src:  "£",
 			Err:  "invalid token '£'",

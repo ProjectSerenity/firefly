@@ -451,6 +451,13 @@ func (p *parser) parseExpression() ast.Expression {
 // or p.parseList.
 func (p *parser) parseExpr() ast.Expression {
 	switch p.lex.Token {
+	case token.ExpressionComment:
+		// We read the next full expression,
+		// then discard it and continue on
+		// to the next.
+		p.next()
+		p.parseExpr()
+		return p.parseExpr()
 	case token.Identifier:
 		x := &ast.Identifier{NamePos: p.lex.Position, Name: p.lex.Value}
 		p.next()

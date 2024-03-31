@@ -151,6 +151,17 @@ func (l *lexer) run() {
 			}
 
 			l.lexeme(token.Comment)
+		case r == '#':
+			// We need a ';' to complete the expression
+			// comment. The expression that follows is
+			// handled on its own.
+			if next := l.next(); next != ';' {
+				l.backup()
+				l.errorf("invalid token %q", string(r)+string(next))
+				continue
+			}
+
+			l.lexeme(token.ExpressionComment)
 		default:
 			l.errorf("invalid token %q", r)
 		}
