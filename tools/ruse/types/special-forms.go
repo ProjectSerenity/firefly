@@ -80,9 +80,9 @@ func (id SpecialFormID) String() string {
 	case SpecialFormSubtract:
 		return "-"
 	case SpecialFormMultiply:
-		return "*"
+		return "×"
 	case SpecialFormDivide:
-		return "/"
+		return "÷"
 	case SpecialFormBitwiseOr:
 		return "|"
 	case SpecialFormBitwiseAnd:
@@ -516,13 +516,13 @@ func defPredeclaredSpecialForms() {
 	}).signature
 
 	specialFormTypes[SpecialFormMultiply] = (&arithmeticOp{
-		Name:        "*",
+		Name:        "×",
 		BinaryTypes: numericTypes,
 		Op:          constant.OpMultiply,
 	}).signature
 
 	specialFormTypes[SpecialFormDivide] = (&arithmeticOp{
-		Name:        "/",
+		Name:        "÷",
 		BinaryTypes: numericTypes,
 		Op:          constant.OpDivide,
 	}).signature
@@ -564,6 +564,10 @@ func defPredeclaredSpecialForms() {
 		form.object = object{name: SpecialFormID(id).String()}
 		def(form)
 	}
+
+	// Define the aliases.
+	def(&SpecialForm{id: SpecialFormMultiply, object: object{name: "*"}})
+	def(&SpecialForm{id: SpecialFormDivide, object: object{name: "/"}})
 }
 
 type arithmeticOp struct {

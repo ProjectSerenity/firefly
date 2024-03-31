@@ -156,7 +156,7 @@
 	(add edx (uint32 (- page-2MiB 1))) ; Align up to the next 2 MiB page.
 	(shr edx 21)                  ; The page number of the final huge page.
 	'map-level-2-table
-	(mov (+ edi (* ecx 8)) eax)   ; Write the page directory entry.
+	(mov (+ edi (× ecx 8)) eax)   ; Write the page directory entry.
 	(add eax (uint32 page-2MiB))  ; Move on to the next 2 MiB page.
 	(inc ecx)                     ; Record another page done.
 	(cmp ecx edx)                 ; Check whether we've done all of them.
@@ -178,7 +178,7 @@
 	(add edx (uint32 (- page-4kiB 1))) ; Align up to the next 1 kiB page.
 	(shr edx 12)                  ; Divide by 4096 to get the 4 kiB page number where we finish.
 	'map-level-1-table
-	(mov (+ edi (* ecx 8)) eax)   ; Write the page table entry.
+	(mov (+ edi (× ecx 8)) eax)   ; Write the page table entry.
 	(add eax (uint32 page-4kiB))  ; Move on to the next 4 kiB page.
 	(inc ecx)                     ; Record another page done.
 	(cmp ecx edx)                 ; Check whether we've done all of them.

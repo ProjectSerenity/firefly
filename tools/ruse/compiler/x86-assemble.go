@@ -1421,7 +1421,7 @@ func (ctx *x86Context) matchMemory(inst *x86.Instruction, arg ast.Expression, op
 
 		// 1. (+ base (* index scale) displacement)
 		mul, ok := elements[2].(*ast.List)
-		if ctx.isIdent(elements[0], "+") && ok && ctx.isIdent(mul.Elements[0], "*") {
+		if ctx.isIdent(elements[0], "+") && ok && ctx.isIdent(mul.Elements[0], "*", "×") {
 			base := ctx.matchReg(inst, elements[1], x86.RegistersAddress...)
 			index := ctx.matchReg(inst, mul.Elements[1], x86.RegistersIndex...)
 			scale, ok3 := ctx.matchSpecificUint(inst, mul.Elements[2], 1, 2, 4, 8).(uint8)
@@ -1456,7 +1456,7 @@ func (ctx *x86Context) matchMemory(inst *x86.Instruction, arg ast.Expression, op
 		}
 
 		// 4. (* index scale)
-		if ctx.isIdent(elements[0], "*") {
+		if ctx.isIdent(elements[0], "*", "×") {
 			index := ctx.matchReg(inst, elements[1], x86.RegistersIndex...)
 			scale, ok3 := ctx.matchSpecificUint(inst, elements[2], 1, 2, 4, 8).(uint8)
 			if index != nil && ok3 {
@@ -1466,7 +1466,7 @@ func (ctx *x86Context) matchMemory(inst *x86.Instruction, arg ast.Expression, op
 
 		// 2. (+ (* index scale) displacement)
 		mul, ok := elements[1].(*ast.List)
-		if ctx.isIdent(elements[0], "+") && ok && ctx.isIdent(mul.Elements[0], "*") {
+		if ctx.isIdent(elements[0], "+") && ok && ctx.isIdent(mul.Elements[0], "*", "×") {
 			index := ctx.matchReg(inst, mul.Elements[1], x86.RegistersIndex...)
 			scale, ok3 := ctx.matchSpecificUint(inst, mul.Elements[2], 1, 2, 4, 8).(uint8)
 			displ, ok4 := ctx.matchSint(inst, elements[2], displacementSize).(uint64)
@@ -1477,7 +1477,7 @@ func (ctx *x86Context) matchMemory(inst *x86.Instruction, arg ast.Expression, op
 
 		// 3. (+ base (* index scale))
 		mul, ok = elements[2].(*ast.List)
-		if ctx.isIdent(elements[0], "+") && ok && ctx.isIdent(mul.Elements[0], "*") {
+		if ctx.isIdent(elements[0], "+") && ok && ctx.isIdent(mul.Elements[0], "*", "×") {
 			base := ctx.matchReg(inst, elements[1], x86.RegistersAddress...)
 			index := ctx.matchReg(inst, mul.Elements[1], x86.RegistersIndex...)
 			scale, ok := ctx.matchSpecificUint(inst, mul.Elements[2], 1, 2, 4, 8).(uint8)

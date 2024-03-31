@@ -228,8 +228,8 @@ func TestLower(t *testing.T) {
 					(let ub (int->uint b))
 					(let sum (+ a b))     ; 10
 					(let dif (- a b))     ;  4
-					(let mul (* a b))     ; 21
-					(let div (/ a b))     ;  2
+					(let mul (× a b))     ; 21
+					(let div (÷ a b))     ;  2
 					(let and (& a b))     ;  3
 					(let big (<< a ub))   ; 56
 					(let sml (>> mul ub)) ;  2
@@ -249,10 +249,10 @@ func TestLower(t *testing.T) {
 				"000026:	4c 8b c2             	mov r8, rdx",     // Save result (let ub (int->uint b))
 				"000029:	4c 8b c8             	mov r9, rax",     // Prepare arg b
 				"00002c:	48 8b c1             	mov rax, rcx",    // Prepare arg a
-				"00002f:	49 f7 e1             	mul r9",          // Arithmetic  (* a b)
+				"00002f:	49 f7 e1             	mul r9",          // Arithmetic  (× a b)
 				"000032:	4c 8b d0             	mov r10, rax",    // Save result (let mul (* a b))
 				"000035:	48 8b c1             	mov rax, rcx",    // Prepare arg a
-				"000038:	49 f7 f1             	div r9",          // Arithmetic  (/ a b)
+				"000038:	49 f7 f1             	div r9",          // Arithmetic  (÷ a b)
 				"00003b:	48 8b d1             	mov rdx, rcx",    // Prepare arg a
 				"00003e:	49 23 d1             	and rdx, r9",     // Arithmetic  (& a b)
 				"000041:	4c 8b c9             	mov r9, rcx",     // Prepare arg a
@@ -401,7 +401,7 @@ func TestLower(t *testing.T) {
 					Op:    ssafir.OpX86MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R10, x86.RAX}, Length: 3},
 					Uses:  2,
-					Code:  "(let mul (* a b))",
+					Code:  "(let mul (× a b))",
 				},
 				{
 					ID:    16,
