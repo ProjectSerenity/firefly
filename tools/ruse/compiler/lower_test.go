@@ -230,10 +230,10 @@ func TestLower(t *testing.T) {
 					(let dif (- a b))     ;  4
 					(let mul (× a b))     ; 21
 					(let div (÷ a b))     ;  2
-					(let and (& a b))     ;  3
+					(let and (and a b))   ;  3
 					(let big (<< a ub))   ; 56
 					(let sml (>> mul ub)) ;  2
-					(| sum dif mul div and big sml)) ; 63
+					(or sum dif mul div and big sml)) ; 63
 			`,
 			Disasm: []string{
 				"000000:	b8 07 00 00 00       	mov eax, 0x7",    // Prepare arg 7
@@ -254,7 +254,7 @@ func TestLower(t *testing.T) {
 				"000035:	48 8b c1             	mov rax, rcx",    // Prepare arg a
 				"000038:	49 f7 f1             	div r9",          // Arithmetic  (÷ a b)
 				"00003b:	48 8b d1             	mov rdx, rcx",    // Prepare arg a
-				"00003e:	49 23 d1             	and rdx, r9",     // Arithmetic  (& a b)
+				"00003e:	49 23 d1             	and rdx, r9",     // Arithmetic  (and a b)
 				"000041:	4c 8b c9             	mov r9, rcx",     // Prepare arg a
 				"000044:	4d 8b d9             	mov r11, r9",     // Save arg    a
 				"000047:	49 8b c8             	mov rcx, r8",     // Prepare arg ub
@@ -264,13 +264,13 @@ func TestLower(t *testing.T) {
 				"000053:	49 8b c8             	mov rcx, r8",     // Prepare arg ub
 				"000056:	48 d3 fb             	sar rbx, cl",     // Arithmetic  (>> mul ub)
 				"000059:	4c 8b c6             	mov r8, rsi",     // Prepare arg sum
-				"00005c:	4c 0b c7             	or r8, rdi",      // Arithmetic  (| sum dif)
-				"00005f:	4d 0b c2             	or r8, r10",      // Arithmetic  (| sum dif mul)
-				"000062:	4c 0b c0             	or r8, rax",      // Arithmetic  (| sum ... mul div)
-				"000065:	4c 0b c2             	or r8, rdx",      // Arithmetic  (| sum ... div and)
-				"000068:	4d 0b c3             	or r8, r11",      // Arithmetic  (| sum ... and big)
-				"00006b:	4c 0b c3             	or r8, rbx",      // Arithmetic  (| sum ... big sml)
-				"00006e:	49 8b c0             	mov rax, r8",     // Save result (| sum ... sml)
+				"00005c:	4c 0b c7             	or r8, rdi",      // Arithmetic  (or sum dif)
+				"00005f:	4d 0b c2             	or r8, r10",      // Arithmetic  (or sum dif mul)
+				"000062:	4c 0b c0             	or r8, rax",      // Arithmetic  (or sum ... mul div)
+				"000065:	4c 0b c2             	or r8, rdx",      // Arithmetic  (or sum ... div and)
+				"000068:	4d 0b c3             	or r8, r11",      // Arithmetic  (or sum ... and big)
+				"00006b:	4c 0b c3             	or r8, rbx",      // Arithmetic  (or sum ... big sml)
+				"00006e:	49 8b c0             	mov rax, r8",     // Save result (or sum ... sml)
 				"000071:	c3                   	ret",
 			},
 			Want: []*TestValue{
@@ -541,14 +541,14 @@ func TestLower(t *testing.T) {
 					Op:    ssafir.OpX86MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RAX, x86.R8}, Length: 3},
 					Uses:  1,
-					Code:  "(| sum dif mul div and big sml)",
+					Code:  "(or sum dif mul div and big sml)",
 				},
 				{
 					ID:    25,
 					Op:    ssafir.OpX86RET,
 					Extra: &x86InstructionData{Length: 1},
 					Uses:  1,
-					Code:  "(| sum dif mul div and big sml)",
+					Code:  "(or sum dif mul div and big sml)",
 				},
 			},
 		},

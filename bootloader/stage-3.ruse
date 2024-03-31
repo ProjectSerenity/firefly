@@ -134,21 +134,21 @@
 	; Set up level 4.
 	(mov edi (uint32 level-4-page-table))
 	(mov eax (uint32 level-3-page-table))
-	(or eax (uint32 (| pml4-present pml4-read/write)))
+	(or eax (uint32 (or pml4-present pml4-read/write)))
 	(mov (edi) eax)
 
 	; Set up level 3.
 	(mov edi (uint32 level-3-page-table))
 	(mov eax (uint32 level-2-page-table))
-	(or eax (uint32 (| pdpt-present pdpt-read/write)))
+	(or eax (uint32 (or pdpt-present pdpt-read/write)))
 	(mov (edi) eax)
 
 	; Set up level 2.
 	(mov edi (uint32 level-2-page-table))
 	(mov eax (uint32 level-1-page-table))
-	(or eax (uint32 (| pd-present pd-read/write)))
+	(or eax (uint32 (or pd-present pd-read/write)))
 	(mov (edi) eax)
-	(mov eax (uint32 (| kernel-start pd-present pd-read/write pd-page-size-2MiB)))
+	(mov eax (uint32 (or kernel-start pd-present pd-read/write pd-page-size-2MiB)))
 	(mov ecx 2)                   ; Offset into the table.
 	(mov edx (@ kernel-size))     ; Load the address of the kernel size.
 	(mov edx (edx))               ; Load the kernel size.
@@ -170,7 +170,7 @@
 	; once we enter long mode.
 	(mov edi (uint32 level-1-page-table))
 	(mov eax (uint32 page-table-start))
-	(or eax (uint32 (| pt-present pt-read/write)))
+	(or eax (uint32 (or pt-present pt-read/write)))
 	(mov ecx (uint32 page-table-start))
 	(shr ecx 12)                  ; Divide by 4096 to get the 4 kiB page number where we start.
 	(mov edx (@ bootloader-end))  ; Load the address of the address where the bootloader ends.

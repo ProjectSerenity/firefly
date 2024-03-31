@@ -84,11 +84,11 @@ func (id SpecialFormID) String() string {
 	case SpecialFormDivide:
 		return "÷"
 	case SpecialFormBitwiseOr:
-		return "|"
+		return "or"
 	case SpecialFormBitwiseAnd:
-		return "&"
+		return "and"
 	case SpecialFormBitwiseXor:
-		return "^"
+		return "xor"
 	case SpecialFormShiftLeft:
 		return "<<"
 	case SpecialFormShiftRight:
@@ -528,19 +528,19 @@ func defPredeclaredSpecialForms() {
 	}).signature
 
 	specialFormTypes[SpecialFormBitwiseOr] = (&arithmeticOp{
-		Name:        "|",
+		Name:        "or",
 		BinaryTypes: numericTypes,
 		Op:          constant.OpBitwiseOr,
 	}).signature
 
 	specialFormTypes[SpecialFormBitwiseAnd] = (&arithmeticOp{
-		Name:        "&",
+		Name:        "and",
 		BinaryTypes: numericTypes,
 		Op:          constant.OpBitwiseAnd,
 	}).signature
 
 	specialFormTypes[SpecialFormBitwiseXor] = (&arithmeticOp{
-		Name:        "^",
+		Name:        "xor",
 		BinaryTypes: numericTypes,
 		Op:          constant.OpBitwiseXor,
 	}).signature
