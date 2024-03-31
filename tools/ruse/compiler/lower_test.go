@@ -657,7 +657,7 @@ func TestLower(t *testing.T) {
 			got := disasm.String()
 			want := strings.Join(test.Disasm, "\n") + "\n"
 			if got != want {
-				t.Fatalf("Lower(): (-want, +got)\n%s", diff.Format(want, got))
+				t.Errorf("Lower(): (-want, +got)\n%s", diff.Format(want, got))
 			}
 
 			var testValues []*TestValue
@@ -666,7 +666,7 @@ func TestLower(t *testing.T) {
 			}
 
 			if diff := cmp.Diff(test.Want, testValues, compareOptions...); diff != "" {
-				t.Fatalf("Lower(): (-want, +got)\n%s", diff)
+				t.Errorf("Lower(): (-want, +got)\n%s", diff)
 			}
 		})
 	}
