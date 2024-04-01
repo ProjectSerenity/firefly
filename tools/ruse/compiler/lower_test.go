@@ -560,6 +560,419 @@ func TestLower(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "booleans",
+			Code: `
+				(package test)
+
+				'(abi (abi
+					(params rax)
+					(result rax)))
+				(asm-func (copy-n (n int) int)
+					(ret))
+
+				(func (test bool)
+					(let a (copy-n 7))
+					(let b (copy-n 3))
+					(let gtr (> a b))     ; true
+					(let geq (>= a b))    ; true
+					(let lss (< a b))     ; false
+					(let leq (<= a b))    ; false
+					(let eql (= a b))     ; false
+					(let neq (!= a b))    ; true
+					(let all (and gtr geq lss leq eql neq)) ; false
+					(let any (or gtr geq lss leq eql neq))  ; true
+					(or all any (= a a))) ; true
+			`,
+			Disasm: []string{
+				"000000:	b8 07 00 00 00       	mov eax, 0x7",    // Prepare arg 7
+				"000005:	e8 3f 33 22 11       	call 0x11223349", // Call func   (copy-n 7)
+				"00000a:	48 8b c8             	mov rcx, rax",    // Save result (let a (copy-n 7))
+				"00000d:	b8 03 00 00 00       	mov eax, 0x3",    // Prepare arg 3
+				"000012:	e8 3f 33 22 11       	call 0x11223356", // Call func   (copy-n 3)
+				"000017:	48 3b c8             	cmp rcx, rax",    // Compare     (> a b)
+				"00001a:	0f 9f c2             	setnle dl",       // Perform     (> a b)
+				"00001d:	48 3b c8             	cmp rcx, rax",    // Compare     (>= a b)
+				"000020:	40 0f 9d c6          	setnl sil",       // Perform     (>= a b)
+				"000024:	48 3b c8             	cmp rcx, rax",    // Compare     (< a b)
+				"000027:	40 0f 9c c7          	setl dil",        // Perform     (< a b)
+				"00002b:	48 3b c8             	cmp rcx, rax",    // Compare     (<= a b)
+				"00002e:	41 0f 9e c0          	setle r8b",       // Perform     (<= a b)
+				"000032:	48 3b c8             	cmp rcx, rax",    // Compare     (= a b)
+				"000035:	41 0f 94 c1          	setz r9b",        // Perform     (= a b)
+				"000039:	48 3b c8             	cmp rcx, rax",    // Compare     (!= a b)
+				"00003c:	41 0f 95 c2          	setnz r10b",      // Perform     (!= a b)
+				"000040:	40 22 d6             	and dl, sil",     // Perform     (and gtr geq)
+				"000043:	0f 95 c0             	setnz al",        // Save result (and gtr geq)
+				"000046:	40 22 c7             	and al, dil",     // Perform     (and gtr geq lss)
+				"000049:	0f 95 c0             	setnz al",        // Save result (and gtr geq lss)
+				"00004c:	41 22 c0             	and al, r8b",     // Perform     (and gtr ... lss leq)
+				"00004f:	0f 95 c0             	setnz al",        // Save result (and gtr ... lss leq)
+				"000052:	41 22 c1             	and al, r9b",     // Perform     (and gtr ... leq eql)
+				"000055:	0f 95 c0             	setnz al",        // Save result (and gtr ... leq eql)
+				"000058:	41 22 c2             	and al, r10b",    // Perform     (and gtr ... eql neq)
+				"00005b:	0f 95 c0             	setnz al",        // Save result (and gtr ... eql neq)
+				"00005e:	40 0a d6             	or dl, sil",      // Perform     (or gtr geq)
+				"000061:	41 0f 95 c3          	setnz r11b",      // Save result (or gtr geq)
+				"000065:	44 0a df             	or r11b, dil",    // Perform     (or gtr geq lss)
+				"000068:	41 0f 95 c3          	setnz r11b",      // Save result (or gtr geq lss)
+				"00006c:	45 0a d8             	or r11b, r8b",    // Perform     (or gtr ... lss leq)
+				"00006f:	41 0f 95 c3          	setnz r11b",      // Save result (or gtr ... lss leq)
+				"000073:	45 0a d9             	or r11b, r9b",    // Perform     (or gtr ... leq eql)
+				"000076:	41 0f 95 c3          	setnz r11b",      // Save result (or gtr ... leq eql)
+				"00007a:	45 0a da             	or r11b, r10b",   // Perform     (or gtr ... eql neq)
+				"00007d:	41 0f 95 c3          	setnz r11b",      // Save result (or gtr ... eql neq)
+				"000081:	48 3b c9             	cmp rcx, rcx",    // Compare     (= a a)
+				"000084:	0f 94 c2             	setz dl",         // Perform     (= a a)
+				"000087:	41 0a c3             	or al, r11b",     // Perform     (or all any)
+				"00008a:	0f 95 c1             	setnz cl",        // Save result (or all any)
+				"00008d:	0a ca                	or cl, dl",       // Perform     (or all any (= a a))
+				"00008f:	0f 95 c1             	setnz cl",        // Save result (or all any (= a a))
+				"000092:	48 8b c1             	mov rax, rcx",    // Return      (or all any)
+				"000095:	c3                   	ret",
+			},
+			Want: []*TestValue{
+				{
+					ID:    2,
+					Op:    ssafir.OpX86MOV_R32op_Imm32,
+					Extra: &x86InstructionData{Args: [4]any{x86.EAX, uint64(7)}, Length: 5},
+					Uses:  1,
+					Code:  `7`,
+				},
+				{
+					ID: 3,
+					Op: ssafir.OpX86CALL_Rel32,
+					Extra: &x86InstructionData{
+						Args: [4]any{
+							&ssafir.Link{
+								Pos:     157,
+								Name:    "tests/test.copy-n",
+								Type:    ssafir.LinkRelativeAddress,
+								Size:    32,
+								Offset:  6,
+								Address: 0x0a,
+							},
+						},
+						Length: 5,
+					},
+					Uses: 1,
+					Code: `(copy-n 7)`,
+				},
+				{
+					ID:    4,
+					Op:    ssafir.OpX86MOV_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
+					Uses:  8,
+					Code:  `(let a (copy-n 7))`,
+				},
+				{
+					ID:    5,
+					Op:    ssafir.OpX86MOV_R32op_Imm32,
+					Extra: &x86InstructionData{Args: [4]any{x86.EAX, uint64(3)}, Length: 5},
+					Uses:  1,
+					Code:  `3`,
+				},
+				{
+					ID: 6,
+					Op: ssafir.OpX86CALL_Rel32,
+					Extra: &x86InstructionData{
+						Args: [4]any{
+							&ssafir.Link{
+								Pos:     181,
+								Name:    "tests/test.copy-n",
+								Type:    ssafir.LinkRelativeAddress,
+								Size:    32,
+								Offset:  19,
+								Address: 0x17,
+							},
+						},
+						Length: 5,
+					},
+					Uses: 1,
+					Code: `(copy-n 3)`,
+				},
+				{
+					ID:    8,
+					Op:    ssafir.OpX86CMP_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
+					Uses:  1,
+					Code:  "a b",
+				},
+				{
+					ID:    8,
+					Op:    ssafir.OpX86SETG_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.DL}, Length: 3},
+					Uses:  1,
+					Code:  "a b",
+				},
+				{
+					ID:    10,
+					Op:    ssafir.OpX86CMP_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
+					Uses:  1,
+					Code:  "a b",
+				},
+				{
+					ID:    10,
+					Op:    ssafir.OpX86SETGE_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.SIL}, Length: 4},
+					Uses:  1,
+					Code:  "a b",
+				},
+				{
+					ID:    12,
+					Op:    ssafir.OpX86CMP_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
+					Uses:  1,
+					Code:  "a b",
+				},
+				{
+					ID:    12,
+					Op:    ssafir.OpX86SETL_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.DIL}, Length: 4},
+					Uses:  1,
+					Code:  "a b",
+				},
+				{
+					ID:    14,
+					Op:    ssafir.OpX86CMP_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
+					Uses:  1,
+					Code:  "a b",
+				},
+				{
+					ID:    14,
+					Op:    ssafir.OpX86SETLE_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.R8L}, Length: 4},
+					Uses:  1,
+					Code:  "a b",
+				},
+				{
+					ID:    16,
+					Op:    ssafir.OpX86CMP_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
+					Uses:  1,
+					Code:  "a b",
+				},
+				{
+					ID:    16,
+					Op:    ssafir.OpX86SETE_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.R9L}, Length: 4},
+					Uses:  1,
+					Code:  "a b",
+				},
+				{
+					ID:    18,
+					Op:    ssafir.OpX86CMP_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
+					Uses:  1,
+					Code:  "a b",
+				},
+				{
+					ID:    18,
+					Op:    ssafir.OpX86SETNE_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.R10L}, Length: 4},
+					Uses:  1,
+					Code:  "a b",
+				},
+				{
+					ID:    20,
+					Op:    ssafir.OpX86AND_R8_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.DL, x86.SIL}, Length: 3},
+					Uses:  1,
+					Code:  "gtr geq",
+				},
+				{
+					ID:    20,
+					Op:    ssafir.OpX86SETNZ_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.AL}, Length: 3},
+					Uses:  1,
+					Code:  "gtr geq",
+				},
+				{
+					ID:    20,
+					Op:    ssafir.OpX86AND_R8_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.AL, x86.DIL}, Length: 3},
+					Uses:  1,
+					Code:  "geq lss",
+				},
+				{
+					ID:    20,
+					Op:    ssafir.OpX86SETNZ_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.AL}, Length: 3},
+					Uses:  1,
+					Code:  "geq lss",
+				},
+				{
+					ID:    20,
+					Op:    ssafir.OpX86AND_R8_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.AL, x86.R8L}, Length: 3},
+					Uses:  1,
+					Code:  "lss leq",
+				},
+				{
+					ID:    20,
+					Op:    ssafir.OpX86SETNZ_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.AL}, Length: 3},
+					Uses:  1,
+					Code:  "lss leq",
+				},
+				{
+					ID:    20,
+					Op:    ssafir.OpX86AND_R8_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.AL, x86.R9L}, Length: 3},
+					Uses:  1,
+					Code:  "leq eql",
+				},
+				{
+					ID:    20,
+					Op:    ssafir.OpX86SETNZ_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.AL}, Length: 3},
+					Uses:  1,
+					Code:  "leq eql",
+				},
+				{
+					ID:    20,
+					Op:    ssafir.OpX86AND_R8_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.AL, x86.R10L}, Length: 3},
+					Uses:  1,
+					Code:  "eql neq",
+				},
+				{
+					ID:    20,
+					Op:    ssafir.OpX86SETNZ_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.AL}, Length: 3},
+					Uses:  1,
+					Code:  "eql neq",
+				},
+				{
+					ID:    22,
+					Op:    ssafir.OpX86OR_R8_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.DL, x86.SIL}, Length: 3},
+					Uses:  1,
+					Code:  "gtr geq",
+				},
+				{
+					ID:    22,
+					Op:    ssafir.OpX86SETNZ_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.R11L}, Length: 4},
+					Uses:  1,
+					Code:  "gtr geq",
+				},
+				{
+					ID:    22,
+					Op:    ssafir.OpX86OR_R8_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.R11L, x86.DIL}, Length: 3},
+					Uses:  1,
+					Code:  "geq lss",
+				},
+				{
+					ID:    22,
+					Op:    ssafir.OpX86SETNZ_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.R11L}, Length: 4},
+					Uses:  1,
+					Code:  "geq lss",
+				},
+				{
+					ID:    22,
+					Op:    ssafir.OpX86OR_R8_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.R11L, x86.R8L}, Length: 3},
+					Uses:  1,
+					Code:  "lss leq",
+				},
+				{
+					ID:    22,
+					Op:    ssafir.OpX86SETNZ_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.R11L}, Length: 4},
+					Uses:  1,
+					Code:  "lss leq",
+				},
+				{
+					ID:    22,
+					Op:    ssafir.OpX86OR_R8_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.R11L, x86.R9L}, Length: 3},
+					Uses:  1,
+					Code:  "leq eql",
+				},
+				{
+					ID:    22,
+					Op:    ssafir.OpX86SETNZ_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.R11L}, Length: 4},
+					Uses:  1,
+					Code:  "leq eql",
+				},
+				{
+					ID:    22,
+					Op:    ssafir.OpX86OR_R8_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.R11L, x86.R10L}, Length: 3},
+					Uses:  1,
+					Code:  "eql neq",
+				},
+				{
+					ID:    22,
+					Op:    ssafir.OpX86SETNZ_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.R11L}, Length: 4},
+					Uses:  1,
+					Code:  "eql neq",
+				},
+				{
+					ID:    24,
+					Op:    ssafir.OpX86CMP_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RCX}, Length: 3},
+					Uses:  1,
+					Code:  "a a",
+				},
+				{
+					ID:    24,
+					Op:    ssafir.OpX86SETE_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.DL}, Length: 3},
+					Uses:  1,
+					Code:  "a a",
+				},
+				{
+					ID:    25,
+					Op:    ssafir.OpX86OR_R8_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.AL, x86.R11L}, Length: 3},
+					Uses:  1,
+					Code:  "all any",
+				},
+				{
+					ID:    25,
+					Op:    ssafir.OpX86SETNZ_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.CL}, Length: 3},
+					Uses:  1,
+					Code:  "all any",
+				},
+				{
+					ID:    25,
+					Op:    ssafir.OpX86OR_R8_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.CL, x86.DL}, Length: 2},
+					Uses:  1,
+					Code:  "any (= a a)",
+				},
+				{
+					ID:    25,
+					Op:    ssafir.OpX86SETNZ_Rmr8,
+					Extra: &x86InstructionData{Args: [4]any{x86.CL}, Length: 3},
+					Uses:  1,
+					Code:  "any (= a a)",
+				},
+				{
+					ID:    26,
+					Op:    ssafir.OpX86MOV_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RAX, x86.RCX}, Length: 3},
+					Uses:  1,
+					Code:  "(or all any (= a a))",
+				},
+				{
+					ID:    26,
+					Op:    ssafir.OpX86RET,
+					Extra: &x86InstructionData{Length: 1},
+					Uses:  1,
+					Code:  "(or all any (= a a))",
+				},
+			},
+		},
 	}
 
 	compareOptions := []cmp.Option{
