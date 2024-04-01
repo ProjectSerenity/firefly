@@ -8,7 +8,8 @@ var opInfo = [...]OpInfo{
 	OpInvalid: {Name: "Invalid"},{{ range .OpInfo }}
 	{{ .Opcode }}: {
 		Name: "{{ .Name }}",{{ if .Abstract }}
-		Abstract: true,{{ end }}{{ if .Virtual }}
+		Abstract: true,{{ end }}{{ if .Size }}
+		Size:    {{ .Size }},{{ end }}{{ if .Virtual }}
 		Virtual: true,{{ end }}
 		Operands: {{ .Operands }},{{ if .Commutative }}
 		Commutative: true,{{ end }}

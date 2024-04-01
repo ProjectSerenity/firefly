@@ -32,6 +32,7 @@ type OpInfo struct {
 	Name        string
 	Abstract    bool
 	Virtual     bool // Not executed on the machine.
+	Size        int  // Optional size in bits.
 	Operands    int  // Number of arguments (or -1 if variadic).
 	Commutative bool // The first two arguments can be reordered without effect.
 }
@@ -105,6 +106,7 @@ func main() {
 				Name:        op.Name,
 				Abstract:    opset.Name == "abstract",
 				Virtual:     op.Virtual,
+				Size:        op.Size,
 				Operands:    op.Operands,
 				Commutative: op.Commutative,
 			})

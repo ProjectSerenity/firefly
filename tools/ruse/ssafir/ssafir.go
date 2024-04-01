@@ -84,6 +84,7 @@ type OpInfo struct {
 	Name        string
 	Abstract    bool // Not machine-specific.
 	Virtual     bool // Not executed on the machine.
+	Size        int  // Optional size in bits.
 	Operands    int  // Number of arguments (or -1 if variadic).
 	Commutative bool // The first two arguments can be reordered without effect.
 }
