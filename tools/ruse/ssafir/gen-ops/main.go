@@ -30,6 +30,7 @@ import (
 type OpInfo struct {
 	Opcode      string
 	Name        string
+	Group       string // Optional group opcode.
 	Abstract    bool
 	Virtual     bool // Not executed on the machine.
 	Size        int  // Optional size in bits.
@@ -100,10 +101,16 @@ func main() {
 				name = opset.Name
 			}
 
+			var groupName string
+			if op.Group != "" {
+				groupName = "Op" + name + op.Group
+			}
+
 			data.Opcodes = append(data.Opcodes, "Op"+name+op.Name)
 			data.OpInfo = append(data.OpInfo, OpInfo{
 				Opcode:      "Op" + name + op.Name,
 				Name:        op.Name,
+				Group:       groupName,
 				Abstract:    opset.Name == "abstract",
 				Virtual:     op.Virtual,
 				Size:        op.Size,

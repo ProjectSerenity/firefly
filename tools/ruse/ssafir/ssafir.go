@@ -82,6 +82,7 @@ func (op Op) String() string {
 // OpInfo gives rich information about an operation.
 type OpInfo struct {
 	Name        string
+	Group       Op   // Optional group opcode.
 	Abstract    bool // Not machine-specific.
 	Virtual     bool // Not executed on the machine.
 	Size        int  // Optional size in bits.

@@ -7,7 +7,8 @@ package {{ .Package }}
 var opInfo = [...]OpInfo{
 	OpInvalid: {Name: "Invalid"},{{ range .OpInfo }}
 	{{ .Opcode }}: {
-		Name: "{{ .Name }}",{{ if .Abstract }}
+		Name: "{{ .Name }}",{{ if .Group }}
+		Group:    {{ .Group }},{{ end }}{{ if .Abstract }}
 		Abstract: true,{{ end }}{{ if .Size }}
 		Size:    {{ .Size }},{{ end }}{{ if .Virtual }}
 		Virtual: true,{{ end }}
