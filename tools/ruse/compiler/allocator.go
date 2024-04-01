@@ -132,154 +132,6 @@ func (a *allocator) run() error {
 			}
 		case ssafir.OpParameter:
 			a.NoteParameter(v)
-
-		// Straightforward arithmetic operations.
-		case ssafir.OpAddInt8, ssafir.OpAddUint8,
-			ssafir.OpAddInt16, ssafir.OpAddUint16,
-			ssafir.OpAddInt32, ssafir.OpAddUint32,
-			ssafir.OpAddInt64, ssafir.OpAddUint64,
-			ssafir.OpSubtractInt8, ssafir.OpSubtractUint8,
-			ssafir.OpSubtractInt16, ssafir.OpSubtractUint16,
-			ssafir.OpSubtractInt32, ssafir.OpSubtractUint32,
-			ssafir.OpSubtractInt64, ssafir.OpSubtractUint64,
-			ssafir.OpBitwiseOrInt8, ssafir.OpBitwiseOrUint8,
-			ssafir.OpBitwiseOrInt16, ssafir.OpBitwiseOrUint16,
-			ssafir.OpBitwiseOrInt32, ssafir.OpBitwiseOrUint32,
-			ssafir.OpBitwiseOrInt64, ssafir.OpBitwiseOrUint64,
-			ssafir.OpBitwiseAndInt8, ssafir.OpBitwiseAndUint8,
-			ssafir.OpBitwiseAndInt16, ssafir.OpBitwiseAndUint16,
-			ssafir.OpBitwiseAndInt32, ssafir.OpBitwiseAndUint32,
-			ssafir.OpBitwiseAndInt64, ssafir.OpBitwiseAndUint64,
-			ssafir.OpBitwiseXorInt8, ssafir.OpBitwiseXorUint8,
-			ssafir.OpBitwiseXorInt16, ssafir.OpBitwiseXorUint16,
-			ssafir.OpBitwiseXorInt32, ssafir.OpBitwiseXorUint32,
-			ssafir.OpBitwiseXorInt64, ssafir.OpBitwiseXorUint64,
-			ssafir.OpEqualInt8, ssafir.OpEqualUint8,
-			ssafir.OpEqualInt16, ssafir.OpEqualUint16,
-			ssafir.OpEqualInt32, ssafir.OpEqualUint32,
-			ssafir.OpEqualInt64, ssafir.OpEqualUint64,
-			ssafir.OpNotEqualInt8, ssafir.OpNotEqualUint8,
-			ssafir.OpNotEqualInt16, ssafir.OpNotEqualUint16,
-			ssafir.OpNotEqualInt32, ssafir.OpNotEqualUint32,
-			ssafir.OpNotEqualInt64, ssafir.OpNotEqualUint64,
-			ssafir.OpLessThanInt8, ssafir.OpLessThanUint8,
-			ssafir.OpLessThanInt16, ssafir.OpLessThanUint16,
-			ssafir.OpLessThanInt32, ssafir.OpLessThanUint32,
-			ssafir.OpLessThanInt64, ssafir.OpLessThanUint64,
-			ssafir.OpLessThanOrEqualInt8, ssafir.OpLessThanOrEqualUint8,
-			ssafir.OpLessThanOrEqualInt16, ssafir.OpLessThanOrEqualUint16,
-			ssafir.OpLessThanOrEqualInt32, ssafir.OpLessThanOrEqualUint32,
-			ssafir.OpLessThanOrEqualInt64, ssafir.OpLessThanOrEqualUint64,
-			ssafir.OpGreaterThanInt8, ssafir.OpGreaterThanUint8,
-			ssafir.OpGreaterThanInt16, ssafir.OpGreaterThanUint16,
-			ssafir.OpGreaterThanInt32, ssafir.OpGreaterThanUint32,
-			ssafir.OpGreaterThanInt64, ssafir.OpGreaterThanUint64,
-			ssafir.OpGreaterThanOrEqualInt8, ssafir.OpGreaterThanOrEqualUint8,
-			ssafir.OpGreaterThanOrEqualInt16, ssafir.OpGreaterThanOrEqualUint16,
-			ssafir.OpGreaterThanOrEqualInt32, ssafir.OpGreaterThanOrEqualUint32,
-			ssafir.OpGreaterThanOrEqualInt64, ssafir.OpGreaterThanOrEqualUint64:
-			// We just add this for now and resolve
-			// it when we lower the code.
-
-			// If we're continuing a bigger op, we
-			// carry on where we left off.
-			dst := a.locations[v.Args[0]][0] // The first operand.
-			if v.ID != v.Args[0].ID {
-				dst = a.GetLocation() // Use a new destination.
-			}
-
-			src := a.locations[v.Args[0]][0] // The first operand.
-			arg := a.locations[v.Args[1]][0] // The other operand.
-			a.locations[v] = []sys.Location{dst}
-			a.allocated[dst] = v
-			alloc := &Alloc{Dst: dst, Src: src, Data: arg}
-			a.addAlloc(v, alloc)
-
-		// Arithmetic operations with only one operand.
-		case ssafir.OpNegateInt8,
-			ssafir.OpNegateInt16,
-			ssafir.OpNegateInt32,
-			ssafir.OpNegateInt64:
-			// We just add this for now and resolve
-			// it when we lower the code.
-			dst := a.GetLocation()
-			src := a.locations[v.Args[0]][0] // The first operand.
-			a.locations[v] = []sys.Location{dst}
-			a.allocated[dst] = v
-			alloc := &Alloc{Dst: dst, Src: src, Data: src}
-			a.addAlloc(v, alloc)
-
-		// Arithmetic operations with a fixed first operand register.
-		case ssafir.OpMultiplyInt8, ssafir.OpMultiplyUint8,
-			ssafir.OpMultiplyInt16, ssafir.OpMultiplyUint16,
-			ssafir.OpMultiplyInt32, ssafir.OpMultiplyUint32,
-			ssafir.OpMultiplyInt64, ssafir.OpMultiplyUint64,
-			ssafir.OpDivideInt8, ssafir.OpDivideUint8,
-			ssafir.OpDivideInt16, ssafir.OpDivideUint16,
-			ssafir.OpDivideInt32, ssafir.OpDivideUint32,
-			ssafir.OpDivideInt64, ssafir.OpDivideUint64:
-			// We just add this for now and resolve
-			// it when we lower the code.
-
-			// The destination is fixed to RDX:RAX,
-			// so we need to preserve any current
-			// occupants.
-			// TODO: make multiply/divide destination allocation architecture-agnostic.
-			clear(calleeIsScratch)
-			calleeIsScratch[x86.RDX] = true
-			calleeIsScratch[x86.RAX] = true
-			for _, v := range v.Args {
-				calleeIsScratch[a.locations[v][0]] = true
-			}
-
-			a.SaveValue(x86.RDX, calleeIsScratch)
-			a.SaveValue(x86.RAX, calleeIsScratch)
-
-			dst := x86.RAX
-			src := a.locations[v.Args[0]][0] // The first operand.
-			arg := a.locations[v.Args[1]][0] // The other operand.
-			a.locations[v] = []sys.Location{dst}
-			a.allocated[dst] = v
-			alloc := &Alloc{Dst: dst, Src: src, Data: arg}
-			a.addAlloc(v, alloc)
-
-		// Arithmetic operations with a fixed second operand register.
-		case ssafir.OpShiftLeftInt8, ssafir.OpShiftLeftUint8,
-			ssafir.OpShiftLeftInt16, ssafir.OpShiftLeftUint16,
-			ssafir.OpShiftLeftInt32, ssafir.OpShiftLeftUint32,
-			ssafir.OpShiftLeftInt64, ssafir.OpShiftLeftUint64,
-			ssafir.OpShiftRightInt8, ssafir.OpShiftRightUint8,
-			ssafir.OpShiftRightInt16, ssafir.OpShiftRightUint16,
-			ssafir.OpShiftRightInt32, ssafir.OpShiftRightUint32,
-			ssafir.OpShiftRightInt64, ssafir.OpShiftRightUint64:
-			// We just add this for now and resolve
-			// it when we lower the code.
-
-			// The shift is fixed at CL, so we need
-			// to preserve any current occupants.
-			// TODO: make shift left/right destination allocation architecture-agnostic.
-			clear(calleeIsScratch)
-			calleeIsScratch[x86.RCX] = true
-			for _, v := range v.Args {
-				calleeIsScratch[a.locations[v][0]] = true
-			}
-
-			a.SaveValue(x86.RCX, calleeIsScratch)
-			a.allocated[x86.RCX] = v.Args[1] // Make sure we don't pick RCX for our destination.
-
-			// If we're continuing a bigger op, we
-			// carry on where we left off.
-			dst := a.locations[v.Args[0]][0] // The first operand.
-			if v.ID != v.Args[0].ID {
-				dst = a.GetLocation() // Use a new destination.
-			}
-
-			src := a.locations[v.Args[0]][0] // The first operand.
-			arg := a.locations[v.Args[1]][0] // The other operand.
-			a.locations[v] = []sys.Location{dst}
-			a.allocated[dst] = v
-			alloc := &Alloc{Dst: dst, Src: src, Data: arg}
-			a.addAlloc(v, alloc)
 		case ssafir.OpConstantInt64,
 			ssafir.OpConstantUint64,
 			ssafir.OpConstantString,
@@ -336,7 +188,110 @@ func (a *allocator) run() error {
 				a.NoteResult(fun, sig, v)
 			}
 		default:
-			return fmt.Errorf("failed to allocate value %s: unexpected op %s", v, v.Op)
+			// Search by group next.
+			switch v.Op.Info().Group {
+			// Straightforward arithmetic operations.
+			case ssafir.OpAdd,
+				ssafir.OpSubtract,
+				ssafir.OpBitwiseOr,
+				ssafir.OpBitwiseAnd,
+				ssafir.OpBitwiseXor,
+				ssafir.OpEqual,
+				ssafir.OpNotEqual,
+				ssafir.OpLessThan,
+				ssafir.OpLessThanOrEqual,
+				ssafir.OpGreaterThan,
+				ssafir.OpGreaterThanOrEqual:
+				// We just add this for now and resolve
+				// it when we lower the code.
+
+				// If we're continuing a bigger op, we
+				// carry on where we left off.
+				dst := a.locations[v.Args[0]][0] // The first operand.
+				if v.ID != v.Args[0].ID {
+					dst = a.GetLocation() // Use a new destination.
+				}
+
+				src := a.locations[v.Args[0]][0] // The first operand.
+				arg := a.locations[v.Args[1]][0] // The other operand.
+				a.locations[v] = []sys.Location{dst}
+				a.allocated[dst] = v
+				alloc := &Alloc{Dst: dst, Src: src, Data: arg}
+				a.addAlloc(v, alloc)
+
+			// Arithmetic operations with only one operand.
+			case ssafir.OpNegate:
+				// We just add this for now and resolve
+				// it when we lower the code.
+				dst := a.GetLocation()
+				src := a.locations[v.Args[0]][0] // The first operand.
+				a.locations[v] = []sys.Location{dst}
+				a.allocated[dst] = v
+				alloc := &Alloc{Dst: dst, Src: src, Data: src}
+				a.addAlloc(v, alloc)
+
+			// Arithmetic operations with a fixed first operand register.
+			case ssafir.OpMultiply,
+				ssafir.OpDivide:
+				// We just add this for now and resolve
+				// it when we lower the code.
+
+				// The destination is fixed to RDX:RAX,
+				// so we need to preserve any current
+				// occupants.
+				// TODO: make multiply/divide destination allocation architecture-agnostic.
+				clear(calleeIsScratch)
+				calleeIsScratch[x86.RDX] = true
+				calleeIsScratch[x86.RAX] = true
+				for _, v := range v.Args {
+					calleeIsScratch[a.locations[v][0]] = true
+				}
+
+				a.SaveValue(x86.RDX, calleeIsScratch)
+				a.SaveValue(x86.RAX, calleeIsScratch)
+
+				dst := x86.RAX
+				src := a.locations[v.Args[0]][0] // The first operand.
+				arg := a.locations[v.Args[1]][0] // The other operand.
+				a.locations[v] = []sys.Location{dst}
+				a.allocated[dst] = v
+				alloc := &Alloc{Dst: dst, Src: src, Data: arg}
+				a.addAlloc(v, alloc)
+
+			// Arithmetic operations with a fixed second operand register.
+			case ssafir.OpShiftLeft,
+				ssafir.OpShiftRight:
+				// We just add this for now and resolve
+				// it when we lower the code.
+
+				// The shift is fixed at CL, so we need
+				// to preserve any current occupants.
+				// TODO: make shift left/right destination allocation architecture-agnostic.
+				clear(calleeIsScratch)
+				calleeIsScratch[x86.RCX] = true
+				for _, v := range v.Args {
+					calleeIsScratch[a.locations[v][0]] = true
+				}
+
+				a.SaveValue(x86.RCX, calleeIsScratch)
+				a.allocated[x86.RCX] = v.Args[1] // Make sure we don't pick RCX for our destination.
+
+				// If we're continuing a bigger op, we
+				// carry on where we left off.
+				dst := a.locations[v.Args[0]][0] // The first operand.
+				if v.ID != v.Args[0].ID {
+					dst = a.GetLocation() // Use a new destination.
+				}
+
+				src := a.locations[v.Args[0]][0] // The first operand.
+				arg := a.locations[v.Args[1]][0] // The other operand.
+				a.locations[v] = []sys.Location{dst}
+				a.allocated[dst] = v
+				alloc := &Alloc{Dst: dst, Src: src, Data: arg}
+				a.addAlloc(v, alloc)
+			default:
+				return fmt.Errorf("failed to allocate value %s: unexpected op %s", v, v.Op)
+			}
 		}
 
 		// Drop any unused values.

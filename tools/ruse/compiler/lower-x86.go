@@ -134,35 +134,25 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 		default:
 			// Finally, handle arithmetic operations, as there
 			// are a lot of them.
-			arithmeticOpRanges := [][2]ssafir.Op{
-				{ssafir.OpAddInt8, ssafir.OpAddUint64},
-				{ssafir.OpSubtractInt8, ssafir.OpSubtractUint64},
-				{ssafir.OpMultiplyInt8, ssafir.OpMultiplyUint64},
-				{ssafir.OpDivideInt8, ssafir.OpDivideUint64},
-				{ssafir.OpNegateInt8, ssafir.OpNegateInt64},
-				{ssafir.OpBitwiseOrInt8, ssafir.OpBitwiseOrUint64},
-				{ssafir.OpBitwiseAndInt8, ssafir.OpBitwiseAndUint64},
-				{ssafir.OpBitwiseXorInt8, ssafir.OpBitwiseXorUint64},
-				{ssafir.OpShiftLeftInt8, ssafir.OpShiftLeftUint64},
-				{ssafir.OpShiftRightInt8, ssafir.OpShiftRightUint64},
-				{ssafir.OpEqualInt8, ssafir.OpEqualUint64},
-				{ssafir.OpNotEqualInt8, ssafir.OpNotEqualUint64},
-				{ssafir.OpLessThanInt8, ssafir.OpLessThanUint64},
-				{ssafir.OpLessThanOrEqualInt8, ssafir.OpLessThanOrEqualUint64},
-				{ssafir.OpGreaterThanInt8, ssafir.OpGreaterThanUint64},
-				{ssafir.OpGreaterThanOrEqualInt8, ssafir.OpGreaterThanOrEqualUint64},
-			}
-
-			ok := false
-			for _, rng := range arithmeticOpRanges {
-				if rng[0] <= v.Op && v.Op <= rng[1] {
-					ok = true
-					l.DoArithmetic(v)
-					break
-				}
-			}
-
-			if !ok {
+			switch v.Op.Info().Group {
+			case ssafir.OpAdd,
+				ssafir.OpSubtract,
+				ssafir.OpMultiply,
+				ssafir.OpDivide,
+				ssafir.OpNegate,
+				ssafir.OpBitwiseOr,
+				ssafir.OpBitwiseAnd,
+				ssafir.OpBitwiseXor,
+				ssafir.OpShiftLeft,
+				ssafir.OpShiftRight,
+				ssafir.OpEqual,
+				ssafir.OpNotEqual,
+				ssafir.OpLessThan,
+				ssafir.OpLessThanOrEqual,
+				ssafir.OpGreaterThan,
+				ssafir.OpGreaterThanOrEqual:
+				l.DoArithmetic(v)
+			default:
 				return fmt.Errorf("failed to lower value %s: unexpected op %s", v, v.Op)
 			}
 		}
@@ -552,31 +542,13 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 
 	// For most instructions, we need to copy the
 	// first parameter to the destination.
-	switch v.Op {
-	case ssafir.OpEqualInt8, ssafir.OpEqualUint8,
-		ssafir.OpEqualInt16, ssafir.OpEqualUint16,
-		ssafir.OpEqualInt32, ssafir.OpEqualUint32,
-		ssafir.OpEqualInt64, ssafir.OpEqualUint64,
-		ssafir.OpNotEqualInt8, ssafir.OpNotEqualUint8,
-		ssafir.OpNotEqualInt16, ssafir.OpNotEqualUint16,
-		ssafir.OpNotEqualInt32, ssafir.OpNotEqualUint32,
-		ssafir.OpNotEqualInt64, ssafir.OpNotEqualUint64,
-		ssafir.OpLessThanInt8, ssafir.OpLessThanUint8,
-		ssafir.OpLessThanInt16, ssafir.OpLessThanUint16,
-		ssafir.OpLessThanInt32, ssafir.OpLessThanUint32,
-		ssafir.OpLessThanInt64, ssafir.OpLessThanUint64,
-		ssafir.OpLessThanOrEqualInt8, ssafir.OpLessThanOrEqualUint8,
-		ssafir.OpLessThanOrEqualInt16, ssafir.OpLessThanOrEqualUint16,
-		ssafir.OpLessThanOrEqualInt32, ssafir.OpLessThanOrEqualUint32,
-		ssafir.OpLessThanOrEqualInt64, ssafir.OpLessThanOrEqualUint64,
-		ssafir.OpGreaterThanInt8, ssafir.OpGreaterThanUint8,
-		ssafir.OpGreaterThanInt16, ssafir.OpGreaterThanUint16,
-		ssafir.OpGreaterThanInt32, ssafir.OpGreaterThanUint32,
-		ssafir.OpGreaterThanInt64, ssafir.OpGreaterThanUint64,
-		ssafir.OpGreaterThanOrEqualInt8, ssafir.OpGreaterThanOrEqualUint8,
-		ssafir.OpGreaterThanOrEqualInt16, ssafir.OpGreaterThanOrEqualUint16,
-		ssafir.OpGreaterThanOrEqualInt32, ssafir.OpGreaterThanOrEqualUint32,
-		ssafir.OpGreaterThanOrEqualInt64, ssafir.OpGreaterThanOrEqualUint64:
+	switch v.Op.Info().Group {
+	case ssafir.OpEqual,
+		ssafir.OpNotEqual,
+		ssafir.OpLessThan,
+		ssafir.OpLessThanOrEqual,
+		ssafir.OpGreaterThan,
+		ssafir.OpGreaterThanOrEqual:
 	default:
 		l.MoveNumber(v)
 	}
@@ -589,146 +561,128 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 		},
 	}
 
-	// Perform the op.
-	var op ssafir.Op
-	switch v.Op {
-	case ssafir.OpAddInt8, ssafir.OpAddUint8,
-		ssafir.OpAddInt16, ssafir.OpAddUint16,
-		ssafir.OpAddInt32, ssafir.OpAddUint32,
-		ssafir.OpAddInt64, ssafir.OpAddUint64:
-		i := v.Op - ssafir.OpAddInt8
-		op = []ssafir.Op{
+	// Prepare our metadata.
+	info := v.Op.Info()
+	var size int
+	switch info.Size {
+	case 8:
+		size = 0
+	case 16:
+		size = 1
+	case 32:
+		size = 2
+	case 64:
+		size = 3
+	default:
+		panic(fmt.Sprintf("internal error: unexpected size %d for op %s", info.Size, v.Op))
+	}
+
+	// Determine the first (and usually
+	// only) instruction, based on the
+	// size calculated above.
+	//
+	// Comparisons are the same for the
+	// first step.
+	comparisons := [4]ssafir.Op{
+		ssafir.OpX86CMP_R8_Rmr8,
+		ssafir.OpX86CMP_R16_Rmr16,
+		ssafir.OpX86CMP_R32_Rmr32,
+		ssafir.OpX86CMP_R64_Rmr64_REX,
+	}
+
+	op := map[ssafir.Op][4]ssafir.Op{
+		ssafir.OpAdd: {
 			ssafir.OpX86ADD_R8_Rmr8,
 			ssafir.OpX86ADD_R16_Rmr16,
 			ssafir.OpX86ADD_R32_Rmr32,
 			ssafir.OpX86ADD_R64_Rmr64_REX,
-		}[i%4]
-	case ssafir.OpSubtractInt8, ssafir.OpSubtractUint8,
-		ssafir.OpSubtractInt16, ssafir.OpSubtractUint16,
-		ssafir.OpSubtractInt32, ssafir.OpSubtractUint32,
-		ssafir.OpSubtractInt64, ssafir.OpSubtractUint64:
-		i := v.Op - ssafir.OpSubtractInt8
-		op = []ssafir.Op{
+		},
+		ssafir.OpSubtract: {
 			ssafir.OpX86SUB_R8_Rmr8,
 			ssafir.OpX86SUB_R16_Rmr16,
 			ssafir.OpX86SUB_R32_Rmr32,
 			ssafir.OpX86SUB_R64_Rmr64_REX,
-		}[i%4]
-	case ssafir.OpMultiplyInt8, ssafir.OpMultiplyUint8,
-		ssafir.OpMultiplyInt16, ssafir.OpMultiplyUint16,
-		ssafir.OpMultiplyInt32, ssafir.OpMultiplyUint32,
-		ssafir.OpMultiplyInt64, ssafir.OpMultiplyUint64:
-		i := v.Op - ssafir.OpMultiplyInt8
-		op = []ssafir.Op{
+		},
+		ssafir.OpMultiply: {
 			ssafir.OpX86MUL_Rmr8,
 			ssafir.OpX86MUL_Rmr16,
 			ssafir.OpX86MUL_Rmr32,
 			ssafir.OpX86MUL_Rmr64_REX,
-		}[i%4]
-		data.Args[0], data.Args[1] = data.Args[1], nil // The destination is implied.
-	case ssafir.OpDivideInt8, ssafir.OpDivideUint8,
-		ssafir.OpDivideInt16, ssafir.OpDivideUint16,
-		ssafir.OpDivideInt32, ssafir.OpDivideUint32,
-		ssafir.OpDivideInt64, ssafir.OpDivideUint64:
-		i := v.Op - ssafir.OpDivideInt8
-		op = []ssafir.Op{
+		},
+		ssafir.OpDivide: {
 			ssafir.OpX86DIV_Rmr8,
 			ssafir.OpX86DIV_Rmr16,
 			ssafir.OpX86DIV_Rmr32,
 			ssafir.OpX86DIV_Rmr64_REX,
-		}[i%4]
-		data.Args[0], data.Args[1] = data.Args[1], nil // The destination is implied.
-	case ssafir.OpNegateInt8,
-		ssafir.OpNegateInt16,
-		ssafir.OpNegateInt32,
-		ssafir.OpNegateInt64:
-		i := v.Op - ssafir.OpNegateInt8
-		op = []ssafir.Op{
+		},
+		ssafir.OpNegate: {
 			ssafir.OpX86NEG_Rmr8,
 			ssafir.OpX86NEG_Rmr16,
 			ssafir.OpX86NEG_Rmr32,
 			ssafir.OpX86NEG_Rmr64_REX,
-		}[i%4]
-		data.Args[1] = nil // There is no second argument.
-	case ssafir.OpBitwiseOrInt8, ssafir.OpBitwiseOrUint8,
-		ssafir.OpBitwiseOrInt16, ssafir.OpBitwiseOrUint16,
-		ssafir.OpBitwiseOrInt32, ssafir.OpBitwiseOrUint32,
-		ssafir.OpBitwiseOrInt64, ssafir.OpBitwiseOrUint64:
-		i := v.Op - ssafir.OpBitwiseOrInt8
-		op = []ssafir.Op{
+		},
+		ssafir.OpBitwiseOr: {
 			ssafir.OpX86OR_R8_Rmr8,
 			ssafir.OpX86OR_R16_Rmr16,
 			ssafir.OpX86OR_R32_Rmr32,
 			ssafir.OpX86OR_R64_Rmr64_REX,
-		}[i%4]
-	case ssafir.OpBitwiseAndInt8, ssafir.OpBitwiseAndUint8,
-		ssafir.OpBitwiseAndInt16, ssafir.OpBitwiseAndUint16,
-		ssafir.OpBitwiseAndInt32, ssafir.OpBitwiseAndUint32,
-		ssafir.OpBitwiseAndInt64, ssafir.OpBitwiseAndUint64:
-		i := v.Op - ssafir.OpBitwiseAndInt8
-		op = []ssafir.Op{
+		},
+		ssafir.OpBitwiseAnd: {
 			ssafir.OpX86AND_R8_Rmr8,
 			ssafir.OpX86AND_R16_Rmr16,
 			ssafir.OpX86AND_R32_Rmr32,
 			ssafir.OpX86AND_R64_Rmr64_REX,
-		}[i%4]
-	case ssafir.OpBitwiseXorInt8, ssafir.OpBitwiseXorUint8,
-		ssafir.OpBitwiseXorInt16, ssafir.OpBitwiseXorUint16,
-		ssafir.OpBitwiseXorInt32, ssafir.OpBitwiseXorUint32,
-		ssafir.OpBitwiseXorInt64, ssafir.OpBitwiseXorUint64:
-		i := v.Op - ssafir.OpBitwiseXorInt8
-		op = []ssafir.Op{
+		},
+		ssafir.OpBitwiseXor: {
 			ssafir.OpX86XOR_R8_Rmr8,
 			ssafir.OpX86XOR_R16_Rmr16,
 			ssafir.OpX86XOR_R32_Rmr32,
 			ssafir.OpX86XOR_R64_Rmr64_REX,
-		}[i%4]
-	case ssafir.OpShiftLeftInt8, ssafir.OpShiftLeftUint8,
-		ssafir.OpShiftLeftInt16, ssafir.OpShiftLeftUint16,
-		ssafir.OpShiftLeftInt32, ssafir.OpShiftLeftUint32,
-		ssafir.OpShiftLeftInt64, ssafir.OpShiftLeftUint64:
-		i := v.Op - ssafir.OpShiftLeftInt8
-		op = []ssafir.Op{
+		},
+		ssafir.OpShiftLeft: {
 			ssafir.OpX86SAL_Rmr8_CL,
 			ssafir.OpX86SAL_Rmr16_CL,
 			ssafir.OpX86SAL_Rmr32_CL,
 			ssafir.OpX86SAL_Rmr64_CL_REX,
-		}[i%4]
-
-		// Move the shift (second arg) into CL.
-		v.Extra = &Alloc{Dst: x86.RCX, Src: alloc.Data.(sys.Location)}
-		l.MoveNumber(v)
-
-		data.Args[1] = x86.CL // The shift is now in place.
-	case ssafir.OpShiftRightInt8, ssafir.OpShiftRightUint8,
-		ssafir.OpShiftRightInt16, ssafir.OpShiftRightUint16,
-		ssafir.OpShiftRightInt32, ssafir.OpShiftRightUint32,
-		ssafir.OpShiftRightInt64, ssafir.OpShiftRightUint64:
-		i := v.Op - ssafir.OpShiftRightInt8
-		op = []ssafir.Op{
+		},
+		ssafir.OpShiftRight: {
 			ssafir.OpX86SAR_Rmr8_CL,
 			ssafir.OpX86SAR_Rmr16_CL,
 			ssafir.OpX86SAR_Rmr32_CL,
 			ssafir.OpX86SAR_Rmr64_CL_REX,
-		}[i%4]
+		},
+		ssafir.OpEqual:              comparisons,
+		ssafir.OpNotEqual:           comparisons,
+		ssafir.OpLessThan:           comparisons,
+		ssafir.OpLessThanOrEqual:    comparisons,
+		ssafir.OpGreaterThan:        comparisons,
+		ssafir.OpGreaterThanOrEqual: comparisons,
+	}[info.Group][size]
 
+	if op == 0 {
+		panic(fmt.Errorf("%s: unexpoected op %s", l.fset.Position(v.Pos), v.Op))
+	}
+
+	// Do any unusual tweaks.
+	switch info.Group {
+	case ssafir.OpMultiply,
+		ssafir.OpDivide:
+		data.Args[0], data.Args[1] = data.Args[1], nil // The destination is implied.
+	case ssafir.OpNegate:
+		data.Args[1] = nil // There is no second argument.
+	case ssafir.OpShiftLeft,
+		ssafir.OpShiftRight:
 		// Move the shift (second arg) into CL.
 		v.Extra = &Alloc{Dst: x86.RCX, Src: alloc.Data.(sys.Location)}
 		l.MoveNumber(v)
 
 		data.Args[1] = x86.CL // The shift is now in place.
-	case ssafir.OpEqualInt8, ssafir.OpEqualUint8,
-		ssafir.OpEqualInt16, ssafir.OpEqualUint16,
-		ssafir.OpEqualInt32, ssafir.OpEqualUint32,
-		ssafir.OpEqualInt64, ssafir.OpEqualUint64:
-		i := v.Op - ssafir.OpEqualInt8
-		op = []ssafir.Op{
-			ssafir.OpX86CMP_R8_Rmr8,
-			ssafir.OpX86CMP_R16_Rmr16,
-			ssafir.OpX86CMP_R32_Rmr32,
-			ssafir.OpX86CMP_R64_Rmr64_REX,
-		}[i%4]
-
+	case ssafir.OpEqual,
+		ssafir.OpNotEqual,
+		ssafir.OpLessThan,
+		ssafir.OpLessThanOrEqual,
+		ssafir.OpGreaterThan,
+		ssafir.OpGreaterThanOrEqual:
 		// First, we do the comparison.
 		l.addInst(v, op, &x86InstructionData{
 			Args: [4]any{
@@ -738,125 +692,23 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 		})
 
 		// Then we store the result.
-		op = ssafir.OpX86SETE_Rmr8
 		data.Args[1] = nil // There is no second arg.
-	case ssafir.OpNotEqualInt8, ssafir.OpNotEqualUint8,
-		ssafir.OpNotEqualInt16, ssafir.OpNotEqualUint16,
-		ssafir.OpNotEqualInt32, ssafir.OpNotEqualUint32,
-		ssafir.OpNotEqualInt64, ssafir.OpNotEqualUint64:
-		i := v.Op - ssafir.OpNotEqualInt8
-		op = []ssafir.Op{
-			ssafir.OpX86CMP_R8_Rmr8,
-			ssafir.OpX86CMP_R16_Rmr16,
-			ssafir.OpX86CMP_R32_Rmr32,
-			ssafir.OpX86CMP_R64_Rmr64_REX,
-		}[i%4]
-
-		// First, we do the comparison.
-		l.addInst(v, op, &x86InstructionData{
-			Args: [4]any{
-				alloc.Src,
-				alloc.Data.(sys.Location),
-			},
-		})
-
-		// Then we store the result.
-		op = ssafir.OpX86SETNE_Rmr8
-		data.Args[1] = nil // There is no second arg.
-	case ssafir.OpLessThanInt8, ssafir.OpLessThanUint8,
-		ssafir.OpLessThanInt16, ssafir.OpLessThanUint16,
-		ssafir.OpLessThanInt32, ssafir.OpLessThanUint32,
-		ssafir.OpLessThanInt64, ssafir.OpLessThanUint64:
-		i := v.Op - ssafir.OpLessThanInt8
-		op = []ssafir.Op{
-			ssafir.OpX86CMP_R8_Rmr8,
-			ssafir.OpX86CMP_R16_Rmr16,
-			ssafir.OpX86CMP_R32_Rmr32,
-			ssafir.OpX86CMP_R64_Rmr64_REX,
-		}[i%4]
-
-		// First, we do the comparison.
-		l.addInst(v, op, &x86InstructionData{
-			Args: [4]any{
-				alloc.Src,
-				alloc.Data.(sys.Location),
-			},
-		})
-
-		// Then we store the result.
-		op = ssafir.OpX86SETL_Rmr8
-		data.Args[1] = nil // There is no second arg.
-	case ssafir.OpLessThanOrEqualInt8, ssafir.OpLessThanOrEqualUint8,
-		ssafir.OpLessThanOrEqualInt16, ssafir.OpLessThanOrEqualUint16,
-		ssafir.OpLessThanOrEqualInt32, ssafir.OpLessThanOrEqualUint32,
-		ssafir.OpLessThanOrEqualInt64, ssafir.OpLessThanOrEqualUint64:
-		i := v.Op - ssafir.OpLessThanOrEqualInt8
-		op = []ssafir.Op{
-			ssafir.OpX86CMP_R8_Rmr8,
-			ssafir.OpX86CMP_R16_Rmr16,
-			ssafir.OpX86CMP_R32_Rmr32,
-			ssafir.OpX86CMP_R64_Rmr64_REX,
-		}[i%4]
-
-		// First, we do the comparison.
-		l.addInst(v, op, &x86InstructionData{
-			Args: [4]any{
-				alloc.Src,
-				alloc.Data.(sys.Location),
-			},
-		})
-
-		// Then we store the result.
-		op = ssafir.OpX86SETLE_Rmr8
-		data.Args[1] = nil // There is no second arg.
-	case ssafir.OpGreaterThanInt8, ssafir.OpGreaterThanUint8,
-		ssafir.OpGreaterThanInt16, ssafir.OpGreaterThanUint16,
-		ssafir.OpGreaterThanInt32, ssafir.OpGreaterThanUint32,
-		ssafir.OpGreaterThanInt64, ssafir.OpGreaterThanUint64:
-		i := v.Op - ssafir.OpGreaterThanInt8
-		op = []ssafir.Op{
-			ssafir.OpX86CMP_R8_Rmr8,
-			ssafir.OpX86CMP_R16_Rmr16,
-			ssafir.OpX86CMP_R32_Rmr32,
-			ssafir.OpX86CMP_R64_Rmr64_REX,
-		}[i%4]
-
-		// First, we do the comparison.
-		l.addInst(v, op, &x86InstructionData{
-			Args: [4]any{
-				alloc.Src,
-				alloc.Data.(sys.Location),
-			},
-		})
-
-		// Then we store the result.
-		op = ssafir.OpX86SETG_Rmr8
-		data.Args[1] = nil // There is no second arg.
-	case ssafir.OpGreaterThanOrEqualInt8, ssafir.OpGreaterThanOrEqualUint8,
-		ssafir.OpGreaterThanOrEqualInt16, ssafir.OpGreaterThanOrEqualUint16,
-		ssafir.OpGreaterThanOrEqualInt32, ssafir.OpGreaterThanOrEqualUint32,
-		ssafir.OpGreaterThanOrEqualInt64, ssafir.OpGreaterThanOrEqualUint64:
-		i := v.Op - ssafir.OpGreaterThanOrEqualInt8
-		op = []ssafir.Op{
-			ssafir.OpX86CMP_R8_Rmr8,
-			ssafir.OpX86CMP_R16_Rmr16,
-			ssafir.OpX86CMP_R32_Rmr32,
-			ssafir.OpX86CMP_R64_Rmr64_REX,
-		}[i%4]
-
-		// First, we do the comparison.
-		l.addInst(v, op, &x86InstructionData{
-			Args: [4]any{
-				alloc.Src,
-				alloc.Data.(sys.Location),
-			},
-		})
-
-		// Then we store the result.
-		op = ssafir.OpX86SETGE_Rmr8
-		data.Args[1] = nil // There is no second arg.
-	default:
-		panic(fmt.Errorf("%s: unexpoected op %s", l.fset.Position(v.Pos), v.Op))
+		switch info.Group {
+		case ssafir.OpEqual:
+			op = ssafir.OpX86SETE_Rmr8
+		case ssafir.OpNotEqual:
+			op = ssafir.OpX86SETNE_Rmr8
+		case ssafir.OpLessThan:
+			op = ssafir.OpX86SETL_Rmr8
+		case ssafir.OpLessThanOrEqual:
+			op = ssafir.OpX86SETLE_Rmr8
+		case ssafir.OpGreaterThan:
+			op = ssafir.OpX86SETG_Rmr8
+		case ssafir.OpGreaterThanOrEqual:
+			op = ssafir.OpX86SETGE_Rmr8
+		default:
+			panic(fmt.Sprintf("internal error: op %s (group %s) not covered in comparisons", v.Op, info.Group))
+		}
 	}
 
 	l.addInst(v, op, data)

@@ -637,9 +637,12 @@ func (c *compiler) CompileBuiltinFunction(list *ast.List, fun *types.Function, s
 }
 
 func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, sig *types.Signature) (*ssafir.Value, error) {
+	// Prepare common data.
+	args := list.Elements[1:]
+	var op ssafir.Op
+	var ok bool
+
 	switch form.ID() {
-	case types.SpecialFormAsmFunc:
-	case types.SpecialFormFunc:
 	case types.SpecialFormLen:
 		// Handle calls with a constant value.
 		// Constant expressions we've already resolved.
@@ -706,18 +709,11 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			return c.CompileExpression(args[0])
 		}
 
-		var op ssafir.Op
 		if underlying := types.Underlying(sig.Result()); underlying == types.String {
 			op = ssafir.OpAddString
 		} else {
-			var ok bool
-			op, ok = c.pickIntegerOp(underlying, ssafir.OpAddInt8, ssafir.OpAddUint64)
-			if !ok {
-				return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
-			}
+			op, ok = c.pickIntegerOp(underlying, ssafir.OpAdd)
 		}
-
-		return c.CompileBinaryOperation(args, op, sig.Result())
 	case types.SpecialFormSubtract:
 		args := list.Elements[1:]
 		if len(args) == 1 {
@@ -726,7 +722,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 				return nil, err
 			}
 
-			op, ok := c.pickSignedIntegerOp(sig.Result(), ssafir.OpNegateInt8, ssafir.OpNegateInt64)
+			op, ok = c.pickSignedIntegerOp(sig.Result(), ssafir.OpNegate)
 			if !ok {
 				return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
 			}
@@ -736,163 +732,89 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			return v, nil
 		}
 
-		op, ok := c.pickIntegerOp(sig.Result(), ssafir.OpSubtractInt8, ssafir.OpSubtractUint64)
-		if !ok {
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
-		}
-
-		return c.CompileBinaryOperation(args, op, sig.Result())
+		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpSubtract)
 	case types.SpecialFormMultiply:
-		args := list.Elements[1:]
-		op, ok := c.pickIntegerOp(sig.Result(), ssafir.OpMultiplyInt8, ssafir.OpMultiplyUint64)
-		if !ok {
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
-		}
-
-		return c.CompileBinaryOperation(args, op, sig.Result())
+		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpMultiply)
 	case types.SpecialFormDivide:
-		args := list.Elements[1:]
-		op, ok := c.pickIntegerOp(sig.Result(), ssafir.OpDivideInt8, ssafir.OpDivideUint64)
-		if !ok {
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
-		}
-
-		return c.CompileBinaryOperation(args, op, sig.Result())
+		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpDivide)
 	case types.SpecialFormBitwiseOr:
-		args := list.Elements[1:]
-		op, ok := c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseOrInt8, ssafir.OpBitwiseOrUint64)
-		if !ok {
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
-		}
-
-		return c.CompileBinaryOperation(args, op, sig.Result())
+		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseOr)
 	case types.SpecialFormBitwiseAnd:
-		args := list.Elements[1:]
-		op, ok := c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseAndInt8, ssafir.OpBitwiseAndUint64)
-		if !ok {
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
-		}
-
-		return c.CompileBinaryOperation(args, op, sig.Result())
+		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseAnd)
 	case types.SpecialFormBitwiseXor:
-		args := list.Elements[1:]
-		op, ok := c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseXorInt8, ssafir.OpBitwiseXorUint64)
-		if !ok {
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
-		}
-
-		return c.CompileBinaryOperation(args, op, sig.Result())
+		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseXor)
 	case types.SpecialFormShiftLeft:
-		args := list.Elements[1:]
-		op, ok := c.pickIntegerOp(sig.Result(), ssafir.OpShiftLeftInt8, ssafir.OpShiftLeftUint64)
-		if !ok {
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
-		}
-
-		return c.CompileBinaryOperation(args, op, sig.Result())
+		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpShiftLeft)
 	case types.SpecialFormShiftRight:
-		args := list.Elements[1:]
-		op, ok := c.pickIntegerOp(sig.Result(), ssafir.OpShiftRightInt8, ssafir.OpShiftRightUint64)
-		if !ok {
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
-		}
-
-		return c.CompileBinaryOperation(args, op, sig.Result())
+		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpShiftRight)
 	case types.SpecialFormEqual:
-		args := list.Elements[1:]
-		op, ok := c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpEqualInt8, ssafir.OpEqualUint64)
-		if !ok {
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
-		}
-
-		return c.CompileBinaryOperation(args, op, sig.Result())
+		op, ok = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpEqual)
 	case types.SpecialFormNotEqual:
-		args := list.Elements[1:]
-		op, ok := c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpNotEqualInt8, ssafir.OpNotEqualUint64)
-		if !ok {
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
-		}
-
-		return c.CompileBinaryOperation(args, op, sig.Result())
+		op, ok = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpNotEqual)
 	case types.SpecialFormLessThan:
-		args := list.Elements[1:]
-		op, ok := c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpLessThanInt8, ssafir.OpLessThanUint64)
-		if !ok {
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
-		}
-
-		return c.CompileBinaryOperation(args, op, sig.Result())
+		op, ok = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpLessThan)
 	case types.SpecialFormLessThanOrEqual:
-		args := list.Elements[1:]
-		op, ok := c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpLessThanOrEqualInt8, ssafir.OpLessThanOrEqualUint64)
-		if !ok {
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
-		}
-
-		return c.CompileBinaryOperation(args, op, sig.Result())
+		op, ok = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpLessThanOrEqual)
 	case types.SpecialFormGreaterThan:
-		args := list.Elements[1:]
-		op, ok := c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpGreaterThanInt8, ssafir.OpGreaterThanUint64)
-		if !ok {
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
-		}
-
-		return c.CompileBinaryOperation(args, op, sig.Result())
+		op, ok = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpGreaterThan)
 	case types.SpecialFormGreaterThanOrEqual:
-		args := list.Elements[1:]
-		op, ok := c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpGreaterThanOrEqualInt8, ssafir.OpGreaterThanOrEqualUint64)
-		if !ok {
-			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
-		}
-
-		return c.CompileBinaryOperation(args, op, sig.Result())
+		op, ok = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpGreaterThanOrEqual)
+	default:
+		return nil, fmt.Errorf("%s: failed to compile %s: unsupported special form %s", c.fset.Position(list.ParenOpen), list.Print(), form.ID())
 	}
 
-	return nil, fmt.Errorf("%s: failed to compile %s: unsupported special form %s", c.fset.Position(list.ParenOpen), list.Print(), form.ID())
+	if !ok {
+		return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+	}
+
+	return c.CompileBinaryOperation(args, op, sig.Result())
 }
 
 // pickIntegerOp is a helper function for the common
 // case where we want to pick a sized operation based
-// on the size of an integer type. The arguments opInt8
-// and opUint64 are the signed 8-bit and unsigned 64-bit
-// operation values, respectively.
-//
-// pickIntegerOp checks that the two operation values
-// relate to one another as expected and returns the
-// relevant operation.
+// on the size of an integer type. The base operation
+// is used to derive the correct operation.
 //
 // If typ does not have an underlying type that is a
 // sized integer type, then pickIntegerOp returns
 // 0, false.
-func (c *compiler) pickIntegerOp(typ types.Type, opInt8, opUint64 ssafir.Op) (op ssafir.Op, ok bool) {
-	if opUint64-opInt8 != 7 {
-		panic("invalid operation range: " + opInt8.String() + " to " + opUint64.String())
-	}
-
-	switch types.Underlying(typ) {
+func (c *compiler) pickIntegerOp(typ types.Type, base ssafir.Op) (op ssafir.Op, ok bool) {
+	underlying := types.Underlying(typ)
+	var size int
+	switch underlying {
 	case types.Int8:
-		op = opInt8 + 0
+		size = 8
+		op = base + 1
 	case types.Int16:
-		op = opInt8 + 1
+		size = 16
+		op = base + 2
 	case types.Int32:
-		op = opInt8 + 2
+		size = 32
+		op = base + 3
 	case types.Int64:
-		op = opInt8 + 3
+		size = 64
+		op = base + 4
 	case types.Uint8:
-		op = opInt8 + 4
+		size = 8
+		op = base + 5
 	case types.Uint16:
-		op = opInt8 + 5
+		size = 16
+		op = base + 6
 	case types.Uint32:
-		op = opInt8 + 6
+		size = 32
+		op = base + 7
 	case types.Uint64:
-		op = opInt8 + 7
+		size = 64
+		op = base + 8
 	case types.Int:
 		// This depends on the architecture.
 		switch c.arch.RegisterSize * 8 {
 		case 32:
-			op = opInt8 + 2
+			size = 32
+			op = base + 3
 		case 64:
-			op = opInt8 + 3
+			size = 64
+			op = base + 4
 		default:
 			panic(fmt.Sprintf("%s: unexpected register size %d", c.arch, c.arch.RegisterSize))
 		}
@@ -900,9 +822,11 @@ func (c *compiler) pickIntegerOp(typ types.Type, opInt8, opUint64 ssafir.Op) (op
 		// This depends on the architecture.
 		switch c.arch.RegisterSize * 8 {
 		case 32:
-			op = opInt8 + 6
+			size = 32
+			op = base + 7
 		case 64:
-			op = opInt8 + 7
+			size = 64
+			op = base + 8
 		default:
 			panic(fmt.Sprintf("%s: unexpected register size %d", c.arch, c.arch.RegisterSize))
 		}
@@ -910,14 +834,22 @@ func (c *compiler) pickIntegerOp(typ types.Type, opInt8, opUint64 ssafir.Op) (op
 		// This depends on the architecture.
 		switch c.arch.PointerSize * 8 {
 		case 32:
-			op = opInt8 + 6
+			size = 32
+			op = base + 7
 		case 64:
-			op = opInt8 + 7
+			size = 64
+			op = base + 8
 		default:
 			panic(fmt.Sprintf("%s: unexpected pointer size %d", c.arch, c.arch.PointerSize))
 		}
 	default:
 		return 0, false
+	}
+
+	// Check we got a valid result.
+	info := op.Info()
+	if info.Group != base || info.Size != size {
+		panic(fmt.Sprintf("internal error: picking operation for %s from base %s gave %s (group %s, size %d), expected group %s and size %s", underlying, base, op, info.Group, info.Size, base, size))
 	}
 
 	return op, true
@@ -929,32 +861,42 @@ func (c *compiler) pickIntegerOp(typ types.Type, opInt8, opUint64 ssafir.Op) (op
 //
 // pickSignedIntegerOp is the same as pickIntegerOp, but it
 // only accepts signed integer types.
-func (c *compiler) pickSignedIntegerOp(typ types.Type, opInt8, opInt64 ssafir.Op) (op ssafir.Op, ok bool) {
-	if opInt64-opInt8 != 3 {
-		panic("invalid operation range: " + opInt8.String() + " to " + opInt64.String())
-	}
-
-	switch types.Underlying(typ) {
+func (c *compiler) pickSignedIntegerOp(typ types.Type, base ssafir.Op) (op ssafir.Op, ok bool) {
+	underlying := types.Underlying(typ)
+	var size int
+	switch underlying {
 	case types.Int8:
-		op = opInt8 + 0
+		size = 8
+		op = base + 1
 	case types.Int16:
-		op = opInt8 + 1
+		size = 16
+		op = base + 2
 	case types.Int32:
-		op = opInt8 + 2
+		size = 32
+		op = base + 3
 	case types.Int64:
-		op = opInt8 + 3
+		size = 64
+		op = base + 4
 	case types.Int:
 		// This depends on the architecture.
 		switch c.arch.RegisterSize * 8 {
 		case 32:
-			op = opInt8 + 2
+			size = 32
+			op = base + 3
 		case 64:
-			op = opInt8 + 3
+			size = 64
+			op = base + 4
 		default:
 			panic(fmt.Sprintf("%s: unexpected register size %d", c.arch, c.arch.RegisterSize))
 		}
 	default:
 		return 0, false
+	}
+
+	// Check we got a valid result.
+	info := op.Info()
+	if info.Group != base || info.Size != size {
+		panic(fmt.Sprintf("internal error: picking operation for %s from base %s gave %s (group %s, size %d), expected group %s and size %s", underlying, base, op, info.Group, info.Size, base, size))
 	}
 
 	return op, true
@@ -966,27 +908,31 @@ func (c *compiler) pickSignedIntegerOp(typ types.Type, opInt8, opInt64 ssafir.Op
 //
 // pickUnsignedIntegerOp is the same as pickIntegerOp, but it
 // only accepts unsigned integer types.
-func (c *compiler) pickUnsignedIntegerOp(typ types.Type, opUint8, opUint64 ssafir.Op) (op ssafir.Op, ok bool) {
-	if opUint64-opUint8 != 3 {
-		panic("invalid operation range: " + opUint8.String() + " to " + opUint64.String())
-	}
-
-	switch types.Underlying(typ) {
+func (c *compiler) pickUnsignedIntegerOp(typ types.Type, base ssafir.Op) (op ssafir.Op, ok bool) {
+	underlying := types.Underlying(typ)
+	var size int
+	switch underlying {
 	case types.Uint8:
-		op = opUint8 + 0
+		size = 8
+		op = base + 1
 	case types.Uint16:
-		op = opUint8 + 1
+		size = 16
+		op = base + 2
 	case types.Uint32:
-		op = opUint8 + 2
+		size = 32
+		op = base + 3
 	case types.Uint64:
-		op = opUint8 + 3
+		size = 64
+		op = base + 4
 	case types.Uint:
 		// This depends on the architecture.
 		switch c.arch.RegisterSize * 8 {
 		case 32:
-			op = opUint8 + 2
+			size = 32
+			op = base + 3
 		case 64:
-			op = opUint8 + 3
+			size = 64
+			op = base + 4
 		default:
 			panic(fmt.Sprintf("%s: unexpected register size %d", c.arch, c.arch.RegisterSize))
 		}
@@ -994,14 +940,22 @@ func (c *compiler) pickUnsignedIntegerOp(typ types.Type, opUint8, opUint64 ssafi
 		// This depends on the architecture.
 		switch c.arch.PointerSize * 8 {
 		case 32:
-			op = opUint8 + 2
+			size = 32
+			op = base + 3
 		case 64:
-			op = opUint8 + 3
+			size = 64
+			op = base + 4
 		default:
 			panic(fmt.Sprintf("%s: unexpected pointer size %d", c.arch, c.arch.PointerSize))
 		}
 	default:
 		return 0, false
+	}
+
+	// Check we got a valid result.
+	info := op.Info()
+	if info.Group != base || info.Size != size {
+		panic(fmt.Sprintf("internal error: picking operation for %s from base %s gave %s (group %s, size %d), expected group %s and size %s", underlying, base, op, info.Group, info.Size, base, size))
 	}
 
 	return op, true
