@@ -640,21 +640,19 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 	// Prepare common data.
 	args := list.Elements[1:]
 	var op ssafir.Op
-	var ok bool
-
 	switch form.ID() {
 	case types.SpecialFormLen:
 		// Handle calls with a constant value.
 		// Constant expressions we've already resolved.
 		if typeAndValue, ok := c.info.Types[list]; ok && typeAndValue.Value != nil {
-			op := ssafir.OpConstantInt64 // TODO: Pick the constant size based on the architecture.
+			op = ssafir.OpConstantInt64 // TODO: Pick the constant size based on the architecture.
 			v := c.ValueExtra(list.ParenOpen, list.ParenClose+1, op, types.Int, typeAndValue.Value)
 			return v, nil
 		}
 
 		// Unresolved constant expressions.
 		if typeAndValue, ok := c.info.Types[list.Elements[1]]; ok && typeAndValue.Value != nil && typeAndValue.Value.Kind() == constant.String {
-			op := ssafir.OpConstantInt64 // TODO: Pick the constant size based on the architecture.
+			op = ssafir.OpConstantInt64 // TODO: Pick the constant size based on the architecture.
 			str := constant.StringVal(typeAndValue.Value)
 			v := c.ValueInt(list.ParenOpen, list.ParenClose+1, op, types.Int, int64(len(str)))
 			return v, nil
@@ -703,7 +701,6 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 
 		return v, nil
 	case types.SpecialFormAdd:
-		args := list.Elements[1:]
 		// Unary positive is essentially a no-op.
 		if len(args) == 1 {
 			return c.CompileExpression(args[0])
@@ -712,18 +709,17 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		if underlying := types.Underlying(sig.Result()); underlying == types.String {
 			op = ssafir.OpAddString
 		} else {
-			op, ok = c.pickIntegerOp(underlying, ssafir.OpAdd)
+			op = c.pickIntegerOp(underlying, ssafir.OpAdd)
 		}
 	case types.SpecialFormSubtract:
-		args := list.Elements[1:]
 		if len(args) == 1 {
 			value, err := c.CompileExpression(args[0])
 			if err != nil {
 				return nil, err
 			}
 
-			op, ok = c.pickSignedIntegerOp(sig.Result(), ssafir.OpNegate)
-			if !ok {
+			op = c.pickSignedIntegerOp(sig.Result(), ssafir.OpNegate)
+			if op == 0 {
 				return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
 			}
 
@@ -732,38 +728,38 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			return v, nil
 		}
 
-		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpSubtract)
+		op = c.pickIntegerOp(sig.Result(), ssafir.OpSubtract)
 	case types.SpecialFormMultiply:
-		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpMultiply)
+		op = c.pickIntegerOp(sig.Result(), ssafir.OpMultiply)
 	case types.SpecialFormDivide:
-		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpDivide)
+		op = c.pickIntegerOp(sig.Result(), ssafir.OpDivide)
 	case types.SpecialFormOr:
-		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseOr)
+		op = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseOr)
 	case types.SpecialFormAnd:
-		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseAnd)
+		op = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseAnd)
 	case types.SpecialFormXor:
-		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseXor)
+		op = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseXor)
 	case types.SpecialFormShiftLeft:
-		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpShiftLeft)
+		op = c.pickIntegerOp(sig.Result(), ssafir.OpShiftLeft)
 	case types.SpecialFormShiftRight:
-		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpShiftRight)
+		op = c.pickIntegerOp(sig.Result(), ssafir.OpShiftRight)
 	case types.SpecialFormEqual:
-		op, ok = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpEqual)
+		op = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpEqual)
 	case types.SpecialFormNotEqual:
-		op, ok = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpNotEqual)
+		op = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpNotEqual)
 	case types.SpecialFormLessThan:
-		op, ok = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpLessThan)
+		op = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpLessThan)
 	case types.SpecialFormLessThanOrEqual:
-		op, ok = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpLessThanOrEqual)
+		op = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpLessThanOrEqual)
 	case types.SpecialFormGreaterThan:
-		op, ok = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpGreaterThan)
+		op = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpGreaterThan)
 	case types.SpecialFormGreaterThanOrEqual:
-		op, ok = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpGreaterThanOrEqual)
+		op = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpGreaterThanOrEqual)
 	default:
 		return nil, fmt.Errorf("%s: failed to compile %s: unsupported special form %s", c.fset.Position(list.ParenOpen), list.Print(), form.ID())
 	}
 
-	if !ok {
+	if op == 0 {
 		return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
 	}
 
@@ -777,8 +773,8 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 //
 // If typ does not have an underlying type that is a
 // sized integer type, then pickIntegerOp returns
-// 0, false.
-func (c *compiler) pickIntegerOp(typ types.Type, base ssafir.Op) (op ssafir.Op, ok bool) {
+// 0.
+func (c *compiler) pickIntegerOp(typ types.Type, base ssafir.Op) (op ssafir.Op) {
 	underlying := types.Underlying(typ)
 	var size int
 	switch underlying {
@@ -843,7 +839,7 @@ func (c *compiler) pickIntegerOp(typ types.Type, base ssafir.Op) (op ssafir.Op, 
 			panic(fmt.Sprintf("%s: unexpected pointer size %d", c.arch, c.arch.PointerSize))
 		}
 	default:
-		return 0, false
+		return 0
 	}
 
 	// Check we got a valid result.
@@ -852,7 +848,7 @@ func (c *compiler) pickIntegerOp(typ types.Type, base ssafir.Op) (op ssafir.Op, 
 		panic(fmt.Sprintf("internal error: picking operation for %s from base %s gave %s (group %s, size %d), expected group %s and size %s", underlying, base, op, info.Group, info.Size, base, size))
 	}
 
-	return op, true
+	return op
 }
 
 // pickSignedIntegerOp is a helper function for the common
@@ -861,7 +857,7 @@ func (c *compiler) pickIntegerOp(typ types.Type, base ssafir.Op) (op ssafir.Op, 
 //
 // pickSignedIntegerOp is the same as pickIntegerOp, but it
 // only accepts signed integer types.
-func (c *compiler) pickSignedIntegerOp(typ types.Type, base ssafir.Op) (op ssafir.Op, ok bool) {
+func (c *compiler) pickSignedIntegerOp(typ types.Type, base ssafir.Op) (op ssafir.Op) {
 	underlying := types.Underlying(typ)
 	var size int
 	switch underlying {
@@ -890,7 +886,7 @@ func (c *compiler) pickSignedIntegerOp(typ types.Type, base ssafir.Op) (op ssafi
 			panic(fmt.Sprintf("%s: unexpected register size %d", c.arch, c.arch.RegisterSize))
 		}
 	default:
-		return 0, false
+		return 0
 	}
 
 	// Check we got a valid result.
@@ -899,7 +895,7 @@ func (c *compiler) pickSignedIntegerOp(typ types.Type, base ssafir.Op) (op ssafi
 		panic(fmt.Sprintf("internal error: picking operation for %s from base %s gave %s (group %s, size %d), expected group %s and size %s", underlying, base, op, info.Group, info.Size, base, size))
 	}
 
-	return op, true
+	return op
 }
 
 // pickUnsignedIntegerOp is a helper function for the common
@@ -908,7 +904,7 @@ func (c *compiler) pickSignedIntegerOp(typ types.Type, base ssafir.Op) (op ssafi
 //
 // pickUnsignedIntegerOp is the same as pickIntegerOp, but it
 // only accepts unsigned integer types.
-func (c *compiler) pickUnsignedIntegerOp(typ types.Type, base ssafir.Op) (op ssafir.Op, ok bool) {
+func (c *compiler) pickUnsignedIntegerOp(typ types.Type, base ssafir.Op) (op ssafir.Op) {
 	underlying := types.Underlying(typ)
 	var size int
 	switch underlying {
@@ -949,7 +945,7 @@ func (c *compiler) pickUnsignedIntegerOp(typ types.Type, base ssafir.Op) (op ssa
 			panic(fmt.Sprintf("%s: unexpected pointer size %d", c.arch, c.arch.PointerSize))
 		}
 	default:
-		return 0, false
+		return 0
 	}
 
 	// Check we got a valid result.
@@ -958,5 +954,5 @@ func (c *compiler) pickUnsignedIntegerOp(typ types.Type, base ssafir.Op) (op ssa
 		panic(fmt.Sprintf("internal error: picking operation for %s from base %s gave %s (group %s, size %d), expected group %s and size %s", underlying, base, op, info.Group, info.Size, base, size))
 	}
 
-	return op, true
+	return op
 }
