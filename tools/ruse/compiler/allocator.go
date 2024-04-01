@@ -132,6 +132,8 @@ func (a *allocator) run() error {
 			}
 		case ssafir.OpParameter:
 			a.NoteParameter(v)
+
+		// Straightforward arithmetic operations.
 		case ssafir.OpAddInt8, ssafir.OpAddUint8,
 			ssafir.OpAddInt16, ssafir.OpAddUint16,
 			ssafir.OpAddInt32, ssafir.OpAddUint32,
@@ -167,6 +169,8 @@ func (a *allocator) run() error {
 			a.locations[v] = []sys.Location{dst}
 			alloc := &Alloc{Dst: dst, Src: src, Data: arg}
 			a.addAlloc(v, alloc)
+
+		// Arithmetic operations with only one operand.
 		case ssafir.OpNegateInt8,
 			ssafir.OpNegateInt16,
 			ssafir.OpNegateInt32,
@@ -178,6 +182,8 @@ func (a *allocator) run() error {
 			a.locations[v] = []sys.Location{dst}
 			alloc := &Alloc{Dst: dst, Src: src, Data: src}
 			a.addAlloc(v, alloc)
+
+		// Arithmetic operations with a fixed first operand register.
 		case ssafir.OpMultiplyInt8, ssafir.OpMultiplyUint8,
 			ssafir.OpMultiplyInt16, ssafir.OpMultiplyUint16,
 			ssafir.OpMultiplyInt32, ssafir.OpMultiplyUint32,
@@ -209,6 +215,8 @@ func (a *allocator) run() error {
 			a.locations[v] = []sys.Location{dst}
 			alloc := &Alloc{Dst: dst, Src: src, Data: arg}
 			a.addAlloc(v, alloc)
+
+		// Arithmetic operations with a fixed second operand register.
 		case ssafir.OpShiftLeftInt8, ssafir.OpShiftLeftUint8,
 			ssafir.OpShiftLeftInt16, ssafir.OpShiftLeftUint16,
 			ssafir.OpShiftLeftInt32, ssafir.OpShiftLeftUint32,
