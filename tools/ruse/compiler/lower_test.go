@@ -230,10 +230,10 @@ func TestLower(t *testing.T) {
 					(let dif (- a b))     ;  4
 					(let mul (× a b))     ; 21
 					(let div (÷ a b))     ;  2
-					(let and (and a b))   ;  3
+					(let bnd (and a b))   ;  3
 					(let big (<< a ub))   ; 56
 					(let sml (>> mul ub)) ;  2
-					(or sum dif mul div and big sml)) ; 63
+					(or sum dif mul div bnd big sml)) ; 63
 			`,
 			Disasm: []string{
 				"000000:	b8 07 00 00 00       	mov eax, 0x7",    // Prepare arg 7
@@ -268,8 +268,8 @@ func TestLower(t *testing.T) {
 				"00005f:	4c 0b c7             	or r8, rdi",      // Arithmetic  (or sum dif)
 				"000062:	4d 0b c2             	or r8, r10",      // Arithmetic  (or sum dif mul)
 				"000065:	4c 0b c0             	or r8, rax",      // Arithmetic  (or sum ... mul div)
-				"000068:	4c 0b c2             	or r8, rdx",      // Arithmetic  (or sum ... div and)
-				"00006b:	4d 0b c3             	or r8, r11",      // Arithmetic  (or sum ... and big)
+				"000068:	4c 0b c2             	or r8, rdx",      // Arithmetic  (or sum ... div bnd)
+				"00006b:	4d 0b c3             	or r8, r11",      // Arithmetic  (or sum ... bnd big)
 				"00006e:	4c 0b c3             	or r8, rbx",      // Arithmetic  (or sum ... big sml)
 				"000071:	49 8b c0             	mov rax, r8",     // Save result (or sum ... sml)
 				"000074:	c3                   	ret",
@@ -528,14 +528,14 @@ func TestLower(t *testing.T) {
 					Op:    ssafir.OpX86OR_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R8, x86.RDX}, Length: 3},
 					Uses:  1,
-					Code:  "div and",
+					Code:  "div bnd",
 				},
 				{
 					ID:    24,
 					Op:    ssafir.OpX86OR_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R8, x86.R11}, Length: 3},
 					Uses:  1,
-					Code:  "and big",
+					Code:  "bnd big",
 				},
 				{
 					ID:    24,
@@ -549,14 +549,14 @@ func TestLower(t *testing.T) {
 					Op:    ssafir.OpX86MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RAX, x86.R8}, Length: 3},
 					Uses:  1,
-					Code:  "(or sum dif mul div and big sml)",
+					Code:  "(or sum dif mul div bnd big sml)",
 				},
 				{
 					ID:    25,
 					Op:    ssafir.OpX86RET,
 					Extra: &x86InstructionData{Length: 1},
 					Uses:  1,
-					Code:  "(or sum dif mul div and big sml)",
+					Code:  "(or sum dif mul div bnd big sml)",
 				},
 			},
 		},

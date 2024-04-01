@@ -614,7 +614,7 @@ func TestCompileTestValues(t *testing.T) {
 
 				(let func 1)
 			`,
-			Error: "cannot declare constant \"func\": func is a keyword",
+			Error: "func redeclared: cannot shadow special form func",
 		},
 		{
 			Name: "keyword variable",
@@ -625,7 +625,7 @@ func TestCompileTestValues(t *testing.T) {
 					(let func (len "foobar"))
 					func)
 			`,
-			Error: "cannot declare variable \"func\": func is a keyword",
+			Error: "func redeclared: cannot shadow special form func",
 		},
 	}
 
@@ -658,6 +658,19 @@ func TestCompileTestValues(t *testing.T) {
 
 			testPath := "tests/test"
 			pkg, err := types.Check(testPath, fset, files, arch, info)
+			if test.Error != "" {
+				if err == nil {
+					t.Fatalf("got no error, expected %s", test.Error)
+				}
+
+				e := err.Error()
+				if !strings.Contains(e, test.Error) {
+					t.Fatalf("error mismatch:\nGot:  %s\nWant: %s", e, test.Error)
+				}
+
+				return
+			}
+
 			if err != nil {
 				t.Fatalf("failed to type-check package: %v", err)
 			}

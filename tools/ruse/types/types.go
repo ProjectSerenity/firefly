@@ -369,6 +369,15 @@ func (c *checker) Check(files []*ast.File) error {
 			return c.errorf(file.Package.ParenOpen, "found package name %q, expected %q or %q", file.Name.Name, "main", path.Base(c.pkg.Path))
 		}
 
+		if other := Universe.Lookup(c.pkg.Name); other != nil {
+			// Check that we wouldn't be shadowing
+			// a special form, as that's likely to
+			// go wrong.
+			if sf, ok := other.(*SpecialForm); ok {
+				return c.errorf(file.Package.ParenOpen, "%s redeclared: cannot shadow %s", c.pkg.Name, sf)
+			}
+		}
+
 		// Create the file scope.
 		scope := NewScope(c.pkg.scope, file.Pos(), file.End(), fmt.Sprintf("file %d", i))
 		fileScopes[i] = scope
@@ -693,6 +702,15 @@ func (c *checker) checkFuncSignature(parent *Scope, fun *ast.List) error {
 			return c.errorf(param.Pos(), "%s redeclared: previous declaration at %s", name.Name, c.fset.Position(other.Pos()))
 		}
 
+		if other := Universe.Lookup(name.Name); other != nil {
+			// Check that we wouldn't be shadowing
+			// a special form, as that's likely to
+			// go wrong.
+			if sf, ok := other.(*SpecialForm); ok {
+				return c.errorf(param.Pos(), "%s redeclared: cannot shadow %s", name.Name, sf)
+			}
+		}
+
 		paramTypes[i] = obj
 		c.define(name, obj)
 		c.record(param, typ, nil)
@@ -721,6 +739,15 @@ func (c *checker) checkFuncSignature(parent *Scope, fun *ast.List) error {
 	c.record(name, signature, nil)
 	if other := parent.Insert(function); other != nil {
 		return c.errorf(fun.ParenOpen, "%s redeclared: previous declaration at %s", name.Name, c.fset.Position(other.Pos()))
+	}
+
+	if other := Universe.Lookup(name.Name); other != nil {
+		// Check that we wouldn't be shadowing
+		// a special form, as that's likely to
+		// go wrong.
+		if sf, ok := other.(*SpecialForm); ok {
+			return c.errorf(fun.ParenOpen, "%s redeclared: cannot shadow %s", name.Name, sf)
+		}
 	}
 
 	return nil
@@ -1681,6 +1708,15 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 		return nil, c.errorf(let.ParenOpen, "%s redeclared: previous declaration at %s", name.Name, c.fset.Position(other.Pos()))
 	}
 
+	if other := Universe.Lookup(name.Name); other != nil {
+		// Check that we wouldn't be shadowing
+		// a special form, as that's likely to
+		// go wrong.
+		if sf, ok := other.(*SpecialForm); ok {
+			return nil, c.errorf(let.ParenOpen, "%s redeclared: cannot shadow %s", name.Name, sf)
+		}
+	}
+
 	return typ, nil
 }
 
@@ -1921,6 +1957,15 @@ func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 	c.record(let.Elements[2], typ, value)
 	if other := parent.Insert(obj); other != nil {
 		return c.errorf(let.ParenOpen, "%s redeclared: previous declaration at %s", name.Name, c.fset.Position(other.Pos()))
+	}
+
+	if other := Universe.Lookup(name.Name); other != nil {
+		// Check that we wouldn't be shadowing
+		// a special form, as that's likely to
+		// go wrong.
+		if sf, ok := other.(*SpecialForm); ok {
+			return c.errorf(let.ParenOpen, "%s redeclared: cannot shadow %s", name.Name, sf)
+		}
 	}
 
 	return nil
