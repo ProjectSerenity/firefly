@@ -734,9 +734,17 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 	case types.SpecialFormDivide:
 		op = c.pickIntegerOp(sig.Result(), ssafir.OpDivide)
 	case types.SpecialFormOr:
-		op = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseOr)
+		if underlying := types.Underlying(sig.Result()); underlying == types.Bool || underlying == types.UntypedBool {
+			op = ssafir.OpLogicalOr
+		} else {
+			op = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseOr)
+		}
 	case types.SpecialFormAnd:
-		op = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseAnd)
+		if underlying := types.Underlying(sig.Result()); underlying == types.Bool || underlying == types.UntypedBool {
+			op = ssafir.OpLogicalAnd
+		} else {
+			op = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseAnd)
+		}
 	case types.SpecialFormXor:
 		op = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseXor)
 	case types.SpecialFormShiftLeft:

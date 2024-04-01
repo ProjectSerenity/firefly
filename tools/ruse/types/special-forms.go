@@ -556,15 +556,41 @@ func defPredeclaredSpecialForms() {
 	}).signature
 
 	specialFormTypes[SpecialFormOr] = (&arithmeticOp{
-		Name:        "or",
-		BinaryTypes: numericTypes,
-		Op:          constant.OpOr,
+		Name: "or",
+		BinaryTypes: []Type{
+			Bool,
+			Int,
+			Int8,
+			Int16,
+			Int32,
+			Int64,
+			Uint,
+			Uint8,
+			Uint16,
+			Uint32,
+			Uint64,
+			Uintptr,
+		},
+		Op: constant.OpOr,
 	}).signature
 
 	specialFormTypes[SpecialFormAnd] = (&arithmeticOp{
-		Name:        "and",
-		BinaryTypes: numericTypes,
-		Op:          constant.OpAnd,
+		Name: "and",
+		BinaryTypes: []Type{
+			Bool,
+			Int,
+			Int8,
+			Int16,
+			Int32,
+			Int64,
+			Uint,
+			Uint8,
+			Uint16,
+			Uint32,
+			Uint64,
+			Uintptr,
+		},
+		Op: constant.OpAnd,
 	}).signature
 
 	specialFormTypes[SpecialFormXor] = (&arithmeticOp{
@@ -734,6 +760,13 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig 
 	// result type.
 	if op.ResultType != nil {
 		sig.result = op.ResultType
+	}
+
+	// Forms that can be logical, like
+	// (and) and (or) don't have a
+	// constant form.
+	if (op.Name == "and" || op.Name == "or") && Underlying(sig.result) == Bool {
+		allConst = false
 	}
 
 	// If all values are constant, we

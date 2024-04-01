@@ -83,6 +83,8 @@ var AbstractOps = []OpInfo{
 	{Group: "BitwiseXor", Name: "BitwiseXorUint16", Operands: 2, Size: 16, Commutative: true},
 	{Group: "BitwiseXor", Name: "BitwiseXorUint32", Operands: 2, Size: 32, Commutative: true},
 	{Group: "BitwiseXor", Name: "BitwiseXorUint64", Operands: 2, Size: 64, Commutative: true},
+	{Group: "LogicalOr", Name: "LogicalOr", Operands: 2, Commutative: true},
+	{Group: "LogicalAnd", Name: "LogicalAnd", Operands: 2, Commutative: true},
 	{Name: "ShiftLeft", Operands: 2, Commutative: true},
 	{Group: "ShiftLeft", Name: "ShiftLeftInt8", Operands: 2, Size: 8, Commutative: true},
 	{Group: "ShiftLeft", Name: "ShiftLeftInt16", Operands: 2, Size: 16, Commutative: true},

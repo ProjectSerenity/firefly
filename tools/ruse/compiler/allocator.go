@@ -196,6 +196,8 @@ func (a *allocator) run() error {
 				ssafir.OpBitwiseOr,
 				ssafir.OpBitwiseAnd,
 				ssafir.OpBitwiseXor,
+				ssafir.OpLogicalOr,
+				ssafir.OpLogicalAnd,
 				ssafir.OpEqual,
 				ssafir.OpNotEqual,
 				ssafir.OpLessThan,

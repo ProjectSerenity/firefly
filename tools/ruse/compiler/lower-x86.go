@@ -174,6 +174,42 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 			lastResult = fun.Entry.Values[i]
 		case ssafir.OpFunctionCall:
 			l.Call(v)
+		case ssafir.OpLogicalOr,
+			ssafir.OpLogicalAnd:
+			// The logical operations are similar to arithmetic,
+			// but they are different enough that it's easier to
+			// do them separately.
+			//
+			// First, we do the operation to merge the
+			// arguments, then we check the result.
+			// TODO: have the logical (or) operation short-circuit.
+			var op ssafir.Op
+			switch v.Op {
+			case ssafir.OpLogicalOr:
+				op = ssafir.OpX86OR_R8_Rmr8
+			case ssafir.OpLogicalAnd:
+				op = ssafir.OpX86AND_R8_Rmr8
+			}
+
+			alloc := v.Extra.(*Alloc)
+			data := &x86InstructionData{
+				Args: [4]any{
+					x86RegisterTo8(alloc.Src),
+					x86RegisterTo8(alloc.Data.(sys.Location)),
+				},
+			}
+
+			l.addInst(v, op, data)
+
+			// Then, we store the result.
+			op = ssafir.OpX86SETNZ_Rmr8
+			data = &x86InstructionData{
+				Args: [4]any{
+					x86RegisterTo8(alloc.Dst),
+				},
+			}
+
+			l.addInst(v, op, data)
 		default:
 			// Finally, handle arithmetic operations, as there
 			// are a lot of them.
