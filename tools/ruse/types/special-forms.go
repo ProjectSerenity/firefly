@@ -574,6 +574,7 @@ type arithmeticOp struct {
 	Name        string
 	UnaryTypes  []Type
 	BinaryTypes []Type
+	ResultType  Type
 	MaxOperands int
 	Op          constant.Op
 }
@@ -651,6 +652,12 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig 
 		} else if !AssignableTo(sig.result, arg, constants[i]) {
 			return nil, nil, c.errorf(fun.Elements[i+1].Pos(), "expected %s parameter, found %s", sig.result, arg)
 		}
+	}
+
+	// Some operations have a fixed
+	// result type.
+	if op.ResultType != nil {
+		sig.result = op.ResultType
 	}
 
 	// If all values are constant, we
