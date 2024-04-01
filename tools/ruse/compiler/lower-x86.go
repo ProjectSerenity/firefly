@@ -19,6 +19,49 @@ import (
 	"firefly-os.dev/tools/ruse/types"
 )
 
+// x86RegisterTo8 returns the 8-bit version
+// of the given register if one exists, or
+// it returns the input.
+func x86RegisterTo8(loc sys.Location) sys.Location {
+	reg, ok := loc.(*x86.Register)
+	if !ok {
+		return loc
+	}
+
+	switch reg {
+	case x86.RAX, x86.EAX, x86.AX:
+		return x86.AL
+	case x86.RCX, x86.ECX, x86.CX:
+		return x86.CL
+	case x86.RDX, x86.EDX, x86.DX:
+		return x86.DL
+	case x86.RBX, x86.EBX, x86.BX:
+		return x86.BL
+	case x86.RSI, x86.ESI, x86.SI:
+		return x86.SIL
+	case x86.RDI, x86.EDI, x86.DI:
+		return x86.DIL
+	case x86.R8, x86.R8D, x86.R8W:
+		return x86.R8L
+	case x86.R9, x86.R9D, x86.R9W:
+		return x86.R9L
+	case x86.R10, x86.R10D, x86.R10W:
+		return x86.R10L
+	case x86.R11, x86.R11D, x86.R11W:
+		return x86.R11L
+	case x86.R12, x86.R12D, x86.R12W:
+		return x86.R12L
+	case x86.R13, x86.R13D, x86.R13W:
+		return x86.R13L
+	case x86.R14, x86.R14D, x86.R14W:
+		return x86.R14L
+	case x86.R15, x86.R15D, x86.R15W:
+		return x86.R15L
+	}
+
+	return loc
+}
+
 func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafir.Function) (err error) {
 	block := &ssafir.Block{
 		ID:           fun.Entry.ID,
@@ -702,6 +745,7 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 		})
 
 		// Then we store the result.
+		data.Args[0] = x86RegisterTo8(alloc.Dst)
 		data.Args[1] = nil // There is no second arg.
 		switch info.Group {
 		case ssafir.OpEqual:
