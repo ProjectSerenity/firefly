@@ -50,9 +50,9 @@ const (
 	SpecialFormSubtract
 	SpecialFormMultiply
 	SpecialFormDivide
-	SpecialFormBitwiseOr
-	SpecialFormBitwiseAnd
-	SpecialFormBitwiseXor
+	SpecialFormOr
+	SpecialFormAnd
+	SpecialFormXor
 	SpecialFormShiftLeft
 	SpecialFormShiftRight
 
@@ -91,11 +91,11 @@ func (id SpecialFormID) String() string {
 		return "×"
 	case SpecialFormDivide:
 		return "÷"
-	case SpecialFormBitwiseOr:
+	case SpecialFormOr:
 		return "or"
-	case SpecialFormBitwiseAnd:
+	case SpecialFormAnd:
 		return "and"
-	case SpecialFormBitwiseXor:
+	case SpecialFormXor:
 		return "xor"
 	case SpecialFormShiftLeft:
 		return "<<"
@@ -133,9 +133,9 @@ var specialForms = [...]*SpecialForm{
 	SpecialFormSubtract:   {},
 	SpecialFormMultiply:   {},
 	SpecialFormDivide:     {},
-	SpecialFormBitwiseOr:  {},
-	SpecialFormBitwiseAnd: {},
-	SpecialFormBitwiseXor: {},
+	SpecialFormOr:         {},
+	SpecialFormAnd:        {},
+	SpecialFormXor:        {},
 	SpecialFormShiftLeft:  {},
 	SpecialFormShiftRight: {},
 
@@ -555,22 +555,22 @@ func defPredeclaredSpecialForms() {
 		Op:          constant.OpDivide,
 	}).signature
 
-	specialFormTypes[SpecialFormBitwiseOr] = (&arithmeticOp{
+	specialFormTypes[SpecialFormOr] = (&arithmeticOp{
 		Name:        "or",
 		BinaryTypes: numericTypes,
-		Op:          constant.OpBitwiseOr,
+		Op:          constant.OpOr,
 	}).signature
 
-	specialFormTypes[SpecialFormBitwiseAnd] = (&arithmeticOp{
+	specialFormTypes[SpecialFormAnd] = (&arithmeticOp{
 		Name:        "and",
 		BinaryTypes: numericTypes,
-		Op:          constant.OpBitwiseAnd,
+		Op:          constant.OpAnd,
 	}).signature
 
-	specialFormTypes[SpecialFormBitwiseXor] = (&arithmeticOp{
+	specialFormTypes[SpecialFormXor] = (&arithmeticOp{
 		Name:        "xor",
 		BinaryTypes: numericTypes,
-		Op:          constant.OpBitwiseXor,
+		Op:          constant.OpXor,
 	}).signature
 
 	specialFormTypes[SpecialFormShiftLeft] = (&arithmeticOp{

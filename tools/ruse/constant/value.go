@@ -297,9 +297,9 @@ const (
 	OpSubtract
 	OpMultiply
 	OpDivide
-	OpBitwiseOr
-	OpBitwiseAnd
-	OpBitwiseXor
+	OpOr
+	OpAnd
+	OpXor
 	OpShiftLeft
 	OpShiftRight
 	OpEqual
@@ -325,11 +325,11 @@ func Operation(op Op, v ...Value) Value {
 		tok = gotoken.MUL
 	case OpDivide:
 		tok = gotoken.QUO_ASSIGN // Force integer division.
-	case OpBitwiseOr:
+	case OpOr:
 		tok = gotoken.OR
-	case OpBitwiseAnd:
+	case OpAnd:
 		tok = gotoken.AND
-	case OpBitwiseXor:
+	case OpXor:
 		tok = gotoken.XOR
 	case OpShiftLeft:
 		isShift = true

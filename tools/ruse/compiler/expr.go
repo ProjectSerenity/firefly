@@ -737,11 +737,11 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpMultiply)
 	case types.SpecialFormDivide:
 		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpDivide)
-	case types.SpecialFormBitwiseOr:
+	case types.SpecialFormOr:
 		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseOr)
-	case types.SpecialFormBitwiseAnd:
+	case types.SpecialFormAnd:
 		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseAnd)
-	case types.SpecialFormBitwiseXor:
+	case types.SpecialFormXor:
 		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseXor)
 	case types.SpecialFormShiftLeft:
 		op, ok = c.pickIntegerOp(sig.Result(), ssafir.OpShiftLeft)
