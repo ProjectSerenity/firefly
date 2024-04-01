@@ -665,8 +665,18 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 
 	// Do any unusual tweaks.
 	switch info.Group {
-	case ssafir.OpMultiply,
-		ssafir.OpDivide:
+	case ssafir.OpMultiply:
+		data.Args[0], data.Args[1] = data.Args[1], nil // The destination is implied.
+	case ssafir.OpDivide:
+		// Clear out RDX, as it forms the
+		// top 64 bits of the divident.
+		l.addInst(v, ssafir.OpX86XOR_R64_Rmr64_REX, &x86InstructionData{
+			Args: [4]any{
+				x86.RDX,
+				x86.RDX,
+			},
+		})
+
 		data.Args[0], data.Args[1] = data.Args[1], nil // The destination is implied.
 	case ssafir.OpNegate:
 		data.Args[1] = nil // There is no second argument.
