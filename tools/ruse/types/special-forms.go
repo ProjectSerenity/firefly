@@ -55,6 +55,14 @@ const (
 	SpecialFormBitwiseXor
 	SpecialFormShiftLeft
 	SpecialFormShiftRight
+
+	// Comparison forms (which we handle as arithmetics).
+	SpecialFormEqual
+	SpecialFormNotEqual
+	SpecialFormLessThan
+	SpecialFormLessThanOrEqual
+	SpecialFormGreaterThan
+	SpecialFormGreaterThanOrEqual
 )
 
 func (id SpecialFormID) String() string {
@@ -93,6 +101,18 @@ func (id SpecialFormID) String() string {
 		return "<<"
 	case SpecialFormShiftRight:
 		return ">>"
+	case SpecialFormEqual:
+		return "="
+	case SpecialFormNotEqual:
+		return "!="
+	case SpecialFormLessThan:
+		return "<"
+	case SpecialFormLessThanOrEqual:
+		return "<="
+	case SpecialFormGreaterThan:
+		return ">"
+	case SpecialFormGreaterThanOrEqual:
+		return ">="
 	}
 
 	return fmt.Sprintf("specialFormId(%d)", id)
@@ -118,6 +138,14 @@ var specialForms = [...]*SpecialForm{
 	SpecialFormBitwiseXor: {},
 	SpecialFormShiftLeft:  {},
 	SpecialFormShiftRight: {},
+
+	// Comparison forms.
+	SpecialFormEqual:              {},
+	SpecialFormNotEqual:           {},
+	SpecialFormLessThan:           {},
+	SpecialFormLessThanOrEqual:    {},
+	SpecialFormGreaterThan:        {},
+	SpecialFormGreaterThanOrEqual: {},
 }
 
 var specialFormTypes [len(specialForms)]func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error)
@@ -557,6 +585,54 @@ func defPredeclaredSpecialForms() {
 		BinaryTypes: numericTypes,
 		MaxOperands: 2,
 		Op:          constant.OpShiftRight,
+	}).signature
+
+	specialFormTypes[SpecialFormEqual] = (&arithmeticOp{
+		Name:        "=",
+		BinaryTypes: numericTypes,
+		ResultType:  UntypedBool,
+		MaxOperands: 2,
+		Op:          constant.OpEqual,
+	}).signature
+
+	specialFormTypes[SpecialFormNotEqual] = (&arithmeticOp{
+		Name:        "!=",
+		BinaryTypes: numericTypes,
+		ResultType:  UntypedBool,
+		MaxOperands: 2,
+		Op:          constant.OpNotEqual,
+	}).signature
+
+	specialFormTypes[SpecialFormLessThan] = (&arithmeticOp{
+		Name:        "<",
+		BinaryTypes: numericTypes,
+		ResultType:  UntypedBool,
+		MaxOperands: 2,
+		Op:          constant.OpLessThan,
+	}).signature
+
+	specialFormTypes[SpecialFormLessThanOrEqual] = (&arithmeticOp{
+		Name:        "<=",
+		BinaryTypes: numericTypes,
+		ResultType:  UntypedBool,
+		MaxOperands: 2,
+		Op:          constant.OpLessThanOrEqual,
+	}).signature
+
+	specialFormTypes[SpecialFormGreaterThan] = (&arithmeticOp{
+		Name:        ">",
+		BinaryTypes: numericTypes,
+		ResultType:  UntypedBool,
+		MaxOperands: 2,
+		Op:          constant.OpGreaterThan,
+	}).signature
+
+	specialFormTypes[SpecialFormGreaterThanOrEqual] = (&arithmeticOp{
+		Name:        ">=",
+		BinaryTypes: numericTypes,
+		ResultType:  UntypedBool,
+		MaxOperands: 2,
+		Op:          constant.OpGreaterThanOrEqual,
 	}).signature
 
 	for id, form := range specialForms {

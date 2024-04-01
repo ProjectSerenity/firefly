@@ -798,6 +798,54 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		}
 
 		return c.CompileBinaryOperation(args, op, sig.Result())
+	case types.SpecialFormEqual:
+		args := list.Elements[1:]
+		op, ok := c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpEqualInt8, ssafir.OpEqualUint64)
+		if !ok {
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+		}
+
+		return c.CompileBinaryOperation(args, op, sig.Result())
+	case types.SpecialFormNotEqual:
+		args := list.Elements[1:]
+		op, ok := c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpNotEqualInt8, ssafir.OpNotEqualUint64)
+		if !ok {
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+		}
+
+		return c.CompileBinaryOperation(args, op, sig.Result())
+	case types.SpecialFormLessThan:
+		args := list.Elements[1:]
+		op, ok := c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpLessThanInt8, ssafir.OpLessThanUint64)
+		if !ok {
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+		}
+
+		return c.CompileBinaryOperation(args, op, sig.Result())
+	case types.SpecialFormLessThanOrEqual:
+		args := list.Elements[1:]
+		op, ok := c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpLessThanOrEqualInt8, ssafir.OpLessThanOrEqualUint64)
+		if !ok {
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+		}
+
+		return c.CompileBinaryOperation(args, op, sig.Result())
+	case types.SpecialFormGreaterThan:
+		args := list.Elements[1:]
+		op, ok := c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpGreaterThanInt8, ssafir.OpGreaterThanUint64)
+		if !ok {
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+		}
+
+		return c.CompileBinaryOperation(args, op, sig.Result())
+	case types.SpecialFormGreaterThanOrEqual:
+		args := list.Elements[1:]
+		op, ok := c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpGreaterThanOrEqualInt8, ssafir.OpGreaterThanOrEqualUint64)
+		if !ok {
+			return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
+		}
+
+		return c.CompileBinaryOperation(args, op, sig.Result())
 	}
 
 	return nil, fmt.Errorf("%s: failed to compile %s: unsupported special form %s", c.fset.Position(list.ParenOpen), list.Print(), form.ID())

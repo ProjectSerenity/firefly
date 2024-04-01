@@ -302,12 +302,19 @@ const (
 	OpBitwiseXor
 	OpShiftLeft
 	OpShiftRight
+	OpEqual
+	OpNotEqual
+	OpLessThan
+	OpLessThanOrEqual
+	OpGreaterThan
+	OpGreaterThanOrEqual
 )
 
 // Operation performs the given operation on at least
 // one parameter.
 func Operation(op Op, v ...Value) Value {
 	isShift := false
+	isCompare := false
 	var tok gotoken.Token
 	switch op {
 	case OpAdd:
@@ -330,6 +337,24 @@ func Operation(op Op, v ...Value) Value {
 	case OpShiftRight:
 		isShift = true
 		tok = gotoken.SHR
+	case OpEqual:
+		isCompare = true
+		tok = gotoken.EQL
+	case OpNotEqual:
+		isCompare = true
+		tok = gotoken.NEQ
+	case OpLessThan:
+		isCompare = true
+		tok = gotoken.LSS
+	case OpLessThanOrEqual:
+		isCompare = true
+		tok = gotoken.LEQ
+	case OpGreaterThan:
+		isCompare = true
+		tok = gotoken.GTR
+	case OpGreaterThanOrEqual:
+		isCompare = true
+		tok = gotoken.GEQ
 	default:
 		panic(fmt.Sprintf("unrecognised operation Op(%d)", op))
 	}
@@ -359,6 +384,13 @@ func Operation(op Op, v ...Value) Value {
 			// Arg 2 must be a uint.
 			shift, _ := constant.Uint64Val(gv1.v)
 			value = constant.Shift(gv0.v, tok, uint(shift))
+
+			return goVal{v: value}
+		}
+
+		// As do comparisons.
+		if isCompare {
+			value = constant.MakeBool(constant.Compare(gv0.v, tok, gv1.v))
 
 			return goVal{v: value}
 		}

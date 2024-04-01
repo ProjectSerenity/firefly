@@ -153,7 +153,31 @@ func (a *allocator) run() error {
 			ssafir.OpBitwiseXorInt8, ssafir.OpBitwiseXorUint8,
 			ssafir.OpBitwiseXorInt16, ssafir.OpBitwiseXorUint16,
 			ssafir.OpBitwiseXorInt32, ssafir.OpBitwiseXorUint32,
-			ssafir.OpBitwiseXorInt64, ssafir.OpBitwiseXorUint64:
+			ssafir.OpBitwiseXorInt64, ssafir.OpBitwiseXorUint64,
+			ssafir.OpEqualInt8, ssafir.OpEqualUint8,
+			ssafir.OpEqualInt16, ssafir.OpEqualUint16,
+			ssafir.OpEqualInt32, ssafir.OpEqualUint32,
+			ssafir.OpEqualInt64, ssafir.OpEqualUint64,
+			ssafir.OpNotEqualInt8, ssafir.OpNotEqualUint8,
+			ssafir.OpNotEqualInt16, ssafir.OpNotEqualUint16,
+			ssafir.OpNotEqualInt32, ssafir.OpNotEqualUint32,
+			ssafir.OpNotEqualInt64, ssafir.OpNotEqualUint64,
+			ssafir.OpLessThanInt8, ssafir.OpLessThanUint8,
+			ssafir.OpLessThanInt16, ssafir.OpLessThanUint16,
+			ssafir.OpLessThanInt32, ssafir.OpLessThanUint32,
+			ssafir.OpLessThanInt64, ssafir.OpLessThanUint64,
+			ssafir.OpLessThanOrEqualInt8, ssafir.OpLessThanOrEqualUint8,
+			ssafir.OpLessThanOrEqualInt16, ssafir.OpLessThanOrEqualUint16,
+			ssafir.OpLessThanOrEqualInt32, ssafir.OpLessThanOrEqualUint32,
+			ssafir.OpLessThanOrEqualInt64, ssafir.OpLessThanOrEqualUint64,
+			ssafir.OpGreaterThanInt8, ssafir.OpGreaterThanUint8,
+			ssafir.OpGreaterThanInt16, ssafir.OpGreaterThanUint16,
+			ssafir.OpGreaterThanInt32, ssafir.OpGreaterThanUint32,
+			ssafir.OpGreaterThanInt64, ssafir.OpGreaterThanUint64,
+			ssafir.OpGreaterThanOrEqualInt8, ssafir.OpGreaterThanOrEqualUint8,
+			ssafir.OpGreaterThanOrEqualInt16, ssafir.OpGreaterThanOrEqualUint16,
+			ssafir.OpGreaterThanOrEqualInt32, ssafir.OpGreaterThanOrEqualUint32,
+			ssafir.OpGreaterThanOrEqualInt64, ssafir.OpGreaterThanOrEqualUint64:
 			// We just add this for now and resolve
 			// it when we lower the code.
 
