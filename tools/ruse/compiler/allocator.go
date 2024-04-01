@@ -167,6 +167,7 @@ func (a *allocator) run() error {
 			src := a.locations[v.Args[0]][0] // The first operand.
 			arg := a.locations[v.Args[1]][0] // The other operand.
 			a.locations[v] = []sys.Location{dst}
+			a.allocated[dst] = v
 			alloc := &Alloc{Dst: dst, Src: src, Data: arg}
 			a.addAlloc(v, alloc)
 
@@ -180,6 +181,7 @@ func (a *allocator) run() error {
 			dst := a.GetLocation()
 			src := a.locations[v.Args[0]][0] // The first operand.
 			a.locations[v] = []sys.Location{dst}
+			a.allocated[dst] = v
 			alloc := &Alloc{Dst: dst, Src: src, Data: src}
 			a.addAlloc(v, alloc)
 
@@ -213,6 +215,7 @@ func (a *allocator) run() error {
 			src := a.locations[v.Args[0]][0] // The first operand.
 			arg := a.locations[v.Args[1]][0] // The other operand.
 			a.locations[v] = []sys.Location{dst}
+			a.allocated[dst] = v
 			alloc := &Alloc{Dst: dst, Src: src, Data: arg}
 			a.addAlloc(v, alloc)
 
@@ -250,6 +253,7 @@ func (a *allocator) run() error {
 			src := a.locations[v.Args[0]][0] // The first operand.
 			arg := a.locations[v.Args[1]][0] // The other operand.
 			a.locations[v] = []sys.Location{dst}
+			a.allocated[dst] = v
 			alloc := &Alloc{Dst: dst, Src: src, Data: arg}
 			a.addAlloc(v, alloc)
 		case ssafir.OpConstantInt64,
