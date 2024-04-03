@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 3,
-  "moduleFileHash": "a0cc022032335a11050dc23fd974062322cfd780981576d0f617cc472fb3ae50",
+  "moduleFileHash": "0274a931a13558b239effab7966bbe26108f4b4231a07dfd35dff1da3bfaefd7",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -39,7 +39,7 @@
             {
               "tagName": "download",
               "attributeValues": {
-                "version": "1.22.1"
+                "version": "1.22.2"
               },
               "devDependency": false,
               "location": {
