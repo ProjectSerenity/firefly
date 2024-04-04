@@ -390,8 +390,8 @@ var tests = []struct {
 				(nop)
 				(nop))
 
-			'(abi (abi
-				(params rsi rcx)))
+			'(abi
+				(params rsi rcx))
 			(asm-func (string-copy (str string) (length uint64) uint64)
 				(repnz movsb))
 

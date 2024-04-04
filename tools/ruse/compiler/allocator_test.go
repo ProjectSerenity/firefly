@@ -103,17 +103,17 @@ func TestAllocator(t *testing.T) {
 			Code: `
 				(package test)
 
-				'(abi (abi
+				'(abi
 					(params rdi)
-					(result rax)))
+					(result rax))
 				(asm-func (double (in int) int)
 					(mov rax rdi)
 					(add rax rax)
 					(ret))
 
-				'(abi (abi
+				'(abi
 					(params rdi rsi)
-					(result rax)))
+					(result rax))
 				(asm-func (half-string-length (s string) int)
 					(mov rax rsi)
 					(shr rax 1)

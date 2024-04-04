@@ -902,6 +902,13 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 		switch kind.Name {
 		case "abi":
 			elt := anno.X.Elements[1]
+			if _, ok := elt.(*ast.List); ok {
+				// To avoid stuttering like '(abi (abi,
+				// we evaluate the list part of the
+				// annotation itself.
+				elt = anno.X
+			}
+
 			_, typ, err := c.ResolveExpression(scope, elt)
 			if err != nil {
 				return err
@@ -1134,6 +1141,13 @@ func (c *checker) ResolveFuncBody(scope *Scope, fun *ast.List) (result Type, err
 		switch kind.Name {
 		case "abi":
 			elt := anno.X.Elements[1]
+			if _, ok := elt.(*ast.List); ok {
+				// To avoid stuttering like '(abi (abi,
+				// we evaluate the list part of the
+				// annotation itself.
+				elt = anno.X
+			}
+
 			_, typ, err := c.ResolveExpression(scope, elt)
 			if err != nil {
 				return nil, err

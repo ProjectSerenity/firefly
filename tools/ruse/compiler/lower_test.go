@@ -70,9 +70,9 @@ func TestLower(t *testing.T) {
 			Code: `
 				(package test)
 
-				'(abi (abi
+				'(abi
 					(params rdi)
-					(result rax)))
+					(result rax))
 				(asm-func (double (in int) int)
 					(mov rax rdi)
 					(add rax rax)
@@ -111,7 +111,7 @@ func TestLower(t *testing.T) {
 					Extra: &x86InstructionData{
 						Args: [4]any{
 							&ssafir.Link{
-								Pos:     221,
+								Pos:     215,
 								Name:    "tests/test.double",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
@@ -137,7 +137,7 @@ func TestLower(t *testing.T) {
 					Extra: &x86InstructionData{
 						Args: [4]any{
 							&ssafir.Link{
-								Pos:     247,
+								Pos:     241,
 								Name:    "tests/test.double",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
@@ -163,7 +163,7 @@ func TestLower(t *testing.T) {
 					Extra: &x86InstructionData{
 						Args: [4]any{
 							&ssafir.Link{
-								Pos:     268,
+								Pos:     262,
 								Name:    "tests/test.double",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
@@ -189,7 +189,7 @@ func TestLower(t *testing.T) {
 					Extra: &x86InstructionData{
 						Args: [4]any{
 							&ssafir.Link{
-								Pos:     308,
+								Pos:     302,
 								Name:    "tests/test.double",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
@@ -216,9 +216,9 @@ func TestLower(t *testing.T) {
 			Code: `
 				(package test)
 
-				'(abi (abi
+				'(abi
 					(params rax)
-					(result rax)))
+					(result rax))
 				(asm-func (copy-n (n int) int)
 					(ret))
 
@@ -288,7 +288,7 @@ func TestLower(t *testing.T) {
 					Extra: &x86InstructionData{
 						Args: [4]any{
 							&ssafir.Link{
-								Pos:     156,
+								Pos:     150,
 								Name:    "tests/test.copy-n",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
@@ -321,7 +321,7 @@ func TestLower(t *testing.T) {
 					Extra: &x86InstructionData{
 						Args: [4]any{
 							&ssafir.Link{
-								Pos:     180,
+								Pos:     174,
 								Name:    "tests/test.copy-n",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
@@ -565,9 +565,9 @@ func TestLower(t *testing.T) {
 			Code: `
 				(package test)
 
-				'(abi (abi
+				'(abi
 					(params rax)
-					(result rax)))
+					(result rax))
 				(asm-func (copy-n (n int) int)
 					(ret))
 
@@ -645,7 +645,7 @@ func TestLower(t *testing.T) {
 					Extra: &x86InstructionData{
 						Args: [4]any{
 							&ssafir.Link{
-								Pos:     157,
+								Pos:     151,
 								Name:    "tests/test.copy-n",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
@@ -678,7 +678,7 @@ func TestLower(t *testing.T) {
 					Extra: &x86InstructionData{
 						Args: [4]any{
 							&ssafir.Link{
-								Pos:     181,
+								Pos:     175,
 								Name:    "tests/test.copy-n",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,

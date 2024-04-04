@@ -20,7 +20,7 @@ func (c *checker) listElement1(list *ast.List, name, element string) (ast.Expres
 	case 2:
 		return list.Elements[1], nil
 	default:
-		return nil, c.errorf(list.Elements[2].Pos(), "invalid %s: %s after %s", name, list.Elements[2], element)
+		return nil, c.errorf(list.Elements[2].Pos(), "invalid %s: %s after %s %s", name, list.Elements[2], element, list.Print())
 	}
 }
 
@@ -88,25 +88,23 @@ func (c *checker) checkAnnotationNoneRecurse(name string, list *ast.List) error 
 
 // Allow an ABI reference/declaration.
 func (c *checker) checkAnnotationABI(list, anno *ast.List) error {
-	abi, err := c.listElement1(anno, "ABI annotation", "ABI")
-	if err != nil {
-		return err
-	}
-
-	switch x := abi.(type) {
+	switch x := anno.Elements[1].(type) {
 	case *ast.Identifier: // A named ABI, which we check more later.
 	case *ast.Qualified: // An imported named ABI, which we check more later.
 	case *ast.List:
-		kind, _, err := c.interpretDefinition(x, "abi spec")
+		// We interpret the list within the quoted
+		// list, rather than the second element of
+		// the list.
+		kind, _, err := c.interpretDefinition(anno, "abi spec")
 		if err != nil {
-			return c.errorf(x.ParenOpen, "invalid ABI annotation: invalid ABI declaration: %v", err)
+			return c.errorf(anno.ParenOpen, "invalid ABI annotation: invalid ABI declaration: %v", err)
 		}
 
 		if kind.Name != "abi" {
-			return c.errorf(x.ParenOpen, "invalid ABI annotation: invalid ABI declaration: got identifier %s, want %s", kind.Name, "abi")
+			return c.errorf(anno.ParenOpen, "invalid ABI annotation: invalid ABI declaration: got identifier %s, want %s", kind.Name, "abi")
 		}
 	default:
-		return c.errorf(abi.Pos(), "invalid ABI annotation: got ABI declaration %s, want spec or value", x.Print())
+		return c.errorf(x.Pos(), "invalid ABI annotation: got ABI declaration %s, want spec or value", x.Print())
 	}
 
 	return nil

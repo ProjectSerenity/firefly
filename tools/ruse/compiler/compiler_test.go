@@ -584,9 +584,9 @@ func TestCompileTestValues(t *testing.T) {
 			Code: `
 				(package test)
 
-				'(abi (abi
+				'(abi
 					(params rdi)
-					(result rax)))
+					(result rax))
 				(asm-func (double (in int) int)
 					(mov rax rdi)
 					(add rax rax)

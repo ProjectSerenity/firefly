@@ -248,9 +248,9 @@
 ; real-mode-print-char prints a single character
 ; in the al 8-bit register. Note that this will
 ; only work in 16-bit real mode.
-'(abi (abi
+'(abi
 	(params al)
-	(scratch ax)))
+	(scratch ax))
 '(arch x86-64)
 '(mode 16)
 '(section boot-stage-1)
@@ -265,9 +265,9 @@
 
 ; real-mode-print prints a string. Note that this
 ; will only work in 16-bit real mode.
-'(abi (abi
+'(abi
 	(params si cx)
-	(scratch ax)))
+	(scratch ax))
 '(arch x86-64)
 '(mode 16)
 '(section boot-stage-1)

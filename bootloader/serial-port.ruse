@@ -6,9 +6,9 @@
 (package main)
 
 ; Print a string to the serial port.
-'(abi (abi
+'(abi
 	(params rsi rcx)
-	(scratch rax)))
+	(scratch rax))
 '(arch x86-64)
 (asm-func (serial-print (s string))
 	(cld)             ; Clear the direction flag so we print forward.
@@ -30,9 +30,9 @@
 
 ; Print a string to the serial port
 ; (32-bit version).
-'(abi (abi
+'(abi
 	(params esi ecx)
-	(scratch eax)))
+	(scratch eax))
 '(arch x86-64)
 '(mode 32)
 (asm-func (serial-print-32 (s string))
@@ -55,9 +55,9 @@
 
 ; Print a single character to the serial
 ; port (32-bit version).
-'(abi (abi
+'(abi
 	(params al)
-	(scratch eax)))
+	(scratch eax))
 '(arch x86-64)
 '(mode 32)
 (asm-func (serial-print-32-char (c byte))
