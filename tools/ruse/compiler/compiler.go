@@ -265,6 +265,14 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 				case "section":
 					switch ref := anno.X.Elements[1].(type) {
 					case *ast.Identifier:
+						if ref.Name == "_" {
+							// We allow the blank identifier to indicate
+							// that a symbol should not be included in
+							// the symbol table.
+							sectionSymbol = "_"
+							continue
+						}
+
 						obj := info.Uses[ref]
 						if obj == nil {
 							return nil, fmt.Errorf("%s: invalid section reference %q", fset.Position(ref.Pos()), ref.Print())
@@ -360,6 +368,14 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 				case "section":
 					switch ref := anno.X.Elements[1].(type) {
 					case *ast.Identifier:
+						if ref.Name == "_" {
+							// We allow the blank identifier to indicate
+							// that a symbol should not be included in
+							// the symbol table.
+							sectionSymbol = "_"
+							continue
+						}
+
 						obj := info.Uses[ref]
 						if obj == nil {
 							return nil, fmt.Errorf("%s: invalid section reference %q", fset.Position(ref.Pos()), ref.Print())

@@ -915,6 +915,13 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 			function.SetABI(abi.abi)
 		case "section":
 			elt := anno.X.Elements[1]
+			if ident, ok := elt.(*ast.Identifier); ok && ident.Name == "_" {
+				// We allow the blank identifier to indicate
+				// that a symbol should not be included in
+				// the symbol table.
+				continue
+			}
+
 			_, typ, err := c.ResolveExpression(scope, elt)
 			if err != nil {
 				return err
@@ -1140,6 +1147,13 @@ func (c *checker) ResolveFuncBody(scope *Scope, fun *ast.List) (result Type, err
 			function.SetABI(abi.abi)
 		case "section":
 			elt := anno.X.Elements[1]
+			if ident, ok := elt.(*ast.Identifier); ok && ident.Name == "_" {
+				// We allow the blank identifier to indicate
+				// that a symbol should not be included in
+				// the symbol table.
+				continue
+			}
+
 			_, typ, err := c.ResolveExpression(scope, elt)
 			if err != nil {
 				return nil, err
@@ -1196,6 +1210,13 @@ func (c *checker) ResolveLetBody(scope *Scope, let *ast.List) (err error) {
 		switch kind.Name {
 		case "section":
 			elt := anno.X.Elements[1]
+			if ident, ok := elt.(*ast.Identifier); ok && ident.Name == "_" {
+				// We allow the blank identifier to indicate
+				// that a symbol should not be included in
+				// the symbol table.
+				continue
+			}
+
 			_, typ, err := c.ResolveExpression(scope, elt)
 			if err != nil {
 				return err

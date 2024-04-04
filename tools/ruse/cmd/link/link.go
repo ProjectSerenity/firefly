@@ -336,6 +336,10 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	symbols := make(map[string]*binary.Symbol)
 	for i, p := range packages {
 		for _, fun := range p.Functions {
+			if fun.Section == "_" {
+				continue
+			}
+
 			index, data, err := pickSection(defaultCodeSectionSymbol, fun.Section)
 			if err != nil {
 				return fmt.Errorf("failed to store %s: %v", fun, err)
@@ -376,6 +380,10 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		for _, con := range p.Constants {
+			if con.Section() == "_" {
+				continue
+			}
+
 			index, data, err := pickSection(defaultStringsSectionSymbol, con.Section())
 			if err != nil {
 				return fmt.Errorf("failed to store %s: %v", con, err)
