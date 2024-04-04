@@ -15,6 +15,7 @@ ruse_library(
 
 ruse_binary(
     name = "hello-world",
+    aslr = False,
     format = "elf",
     package = ":hello-world_lib",
 )

@@ -219,7 +219,7 @@ ruse_binary = rule(
     implementation = _ruse_binary_impl,
     attrs = {
         "aslr": attr.bool(
-            default = False,
+            default = True,
             doc = "Whether to enable Address Space Layout Randomisation (ASLR).",
         ),
         "format": attr.string(

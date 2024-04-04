@@ -22,6 +22,7 @@ ruse_library(
 
 ruse_binary(
     name = "bootloader",
+    aslr = False,  # We must use fixed addresses in the bootloader.
     format = "elf",
     package = ":bootloader_lib",
     visibility = ["//visibility:public"],
