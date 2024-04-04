@@ -275,7 +275,10 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				return 0, nil, fmt.Errorf("internal error: no section was found at symbol %q", symbol)
 			}
 
-			index = symbolToSectionIndex[fallback]
+			index, ok = symbolToSectionIndex[fallback]
+		}
+		if !ok {
+			return 0, nil, fmt.Errorf("internal error: no section was found at symbol %q", symbol)
 		}
 
 		return index, sectionsData[index], nil
@@ -335,7 +338,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		for _, fun := range p.Functions {
 			index, data, err := pickSection(defaultCodeSectionSymbol, fun.Section)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to store %s: %v", fun, err)
 			}
 
 			// If necessary, add padding to
@@ -375,7 +378,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		for _, con := range p.Constants {
 			index, data, err := pickSection(defaultStringsSectionSymbol, con.Section())
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to store %s: %v", con, err)
 			}
 
 			val := con.Value()
