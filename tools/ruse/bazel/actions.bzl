@@ -78,11 +78,12 @@ def ruse_compile_stdlib(ctx, arch, out, deps = []):
         mnemonic = "RuseCompileStdlib",
     )
 
-def ruse_link(ctx, format, package, stdlib, provenance, symbol_table, out, deps = []):
+def ruse_link(ctx, aslr, format, package, stdlib, provenance, symbol_table, out, deps = []):
     """Links a single executable binary from a Ruse package.
 
     Args:
         ctx: Analysis context.
+        aslr: Whether to build a relocatable binary.
         format: The executable binary format.
         package: The compiled package to link.
         stdlib: An optional path to the standard library's rpkg file.
@@ -96,6 +97,7 @@ def ruse_link(ctx, format, package, stdlib, provenance, symbol_table, out, deps 
 
     args = ctx.actions.args()
     args.add("link")
+    args.add("-aslr=" + str(aslr).lower())
     args.add("-binary", format)
     if stdlib:
         args.add("-stdlib", stdlib[RusePackageInfo].info.rpkg.path)

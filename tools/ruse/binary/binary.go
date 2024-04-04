@@ -20,6 +20,7 @@ type Binary struct {
 	Sections []*Section
 	Symbols  []*Symbol
 
+	ASLR        bool
 	SymbolTable bool
 }
 

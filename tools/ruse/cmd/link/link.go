@@ -26,6 +26,7 @@ import (
 	"firefly-os.dev/tools/ruse/compiler"
 	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/rpkg"
+	"firefly-os.dev/tools/ruse/ssafir"
 	"firefly-os.dev/tools/ruse/types"
 )
 
@@ -40,13 +41,14 @@ var zeros [512]uint8
 func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("link", flag.ExitOnError)
 
-	var help, symbolTable, provenance bool
+	var help, symbolTable, provenance, aslr bool
 	var out, stdlib string
 	var rpkgs []string
 	var encode binaryEncoder
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
 	flags.BoolVar(&symbolTable, "symbol-table", true, "Include a symbol table in the compiled binary.")
 	flags.BoolVar(&provenance, "provenance", true, "Include the set of input rpkg files in the compiled binary.")
+	flags.BoolVar(&aslr, "aslr", false, "Build a relocatable binary compatible with Address Space Layout Randomisation (ASLR).")
 	flags.Func("binary", "The binary encoding (elf).", func(s string) error {
 		if encode != nil {
 			return fmt.Errorf("-binary can only be specified once")
@@ -309,6 +311,21 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		symbolToSectionIndex = mapping
 	}
 
+	// ASLR is incompatible with sections and packages
+	// at fixed addresses.
+	if aslr {
+		for _, section := range sections {
+			if section.FixedAddr() {
+				sect := section.Section()
+				return fmt.Errorf("cannot include section %q with fixed address %#x when compiling with ASLR", sect.Name, sect.Address)
+			}
+		}
+
+		if p.BaseAddr != "" {
+			return fmt.Errorf("cannot link package %q with fixed base address %s when compiling with ASLR", p.Path, p.BaseAddr)
+		}
+	}
+
 	// Build the symbol table.
 	var main *binary.Symbol
 	var table []*binary.Symbol
@@ -516,11 +533,15 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		Entry:       main,
 		Sections:    make([]*binary.Section, 0, 3),
 		Symbols:     table,
+		ASLR:        aslr,
 		SymbolTable: symbolTable,
 	}
 
-	baseAddr := uintptr(0x20_0000) // 2 MiB in.
-	lastAddr := uintptr(0)
+	var baseAddr, lastAddr uintptr
+	if !aslr {
+		baseAddr = 0x20_0000 // 2 MiB in.
+	}
+
 	if p.BaseAddr != "" {
 		addr, err := strconv.ParseUint(p.BaseAddr, 0, 64)
 		if err != nil {
@@ -575,6 +596,11 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		for _, link := range fun.Links {
+			if aslr && link.Type == ssafir.LinkFullAddress {
+				// TODO: support these linkages by turning them into a relocation, rather than failing.
+				return fmt.Errorf("cannot link %s's full address into %s when compiling with ASLR", link.Name, absFunName)
+			}
+
 			sym := symbols[link.Name]
 			if sym == nil {
 				return fmt.Errorf("internal error: failed to find symbol for %s", link.Name)

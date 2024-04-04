@@ -198,6 +198,7 @@ def _ruse_binary_impl(ctx):
 
     ruse_link(
         ctx,
+        aslr = ctx.attr.aslr,
         format = ctx.attr.format,
         package = ctx.attr.package[RusePackageInfo].info.rpkg,
         stdlib = ctx.attr._stdlib,
@@ -217,6 +218,10 @@ def _ruse_binary_impl(ctx):
 ruse_binary = rule(
     implementation = _ruse_binary_impl,
     attrs = {
+        "aslr": attr.bool(
+            default = False,
+            doc = "Whether to enable Address Space Layout Randomisation (ASLR).",
+        ),
         "format": attr.string(
             mandatory = True,
             values = [

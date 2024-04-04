@@ -16,6 +16,7 @@ go_library(
         "//tools/ruse/compiler",
         "//tools/ruse/constant",
         "//tools/ruse/rpkg",
+        "//tools/ruse/ssafir",
         "//tools/ruse/types",
         "//vendor/golang.org/x/crypto/cryptobyte",
     ],

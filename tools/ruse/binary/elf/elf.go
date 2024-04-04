@@ -135,6 +135,7 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 
 		// Value constants.
 		ET_EXEC      = 0x02
+		ET_DYN       = 0x03
 		PT_LOAD      = 0x01
 		SHT_PROGBITS = 0x01
 		SHT_SYMTAB   = 0x02
@@ -359,19 +360,23 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 	b.WriteByte(0x1e)                    // Firefly.
 	b.WriteByte(0)                       // ABI version.
 	b.Write(make([]byte, 7))             // Padding.
-	write(uint16(ET_EXEC))               // Executable file.
-	write(arch2machine(bin.Arch))        // Architecture.
-	write(uint32(1))                     // ELF version 1.
-	write(entry)                         // Entry point address.
-	write(progHeadOff)                   // Program header table offset.
-	write(sectHeadOff)                   // Section header table offset.
-	write(uint32(0))                     // Flags (which we don't use).
-	write(uint16(elfHeaderSize))         // File header size.
-	write(uint16(progHeaderSize))        // Program header size.
-	write(uint16(len(sections)))         // Number of program headers.
-	write(uint16(sectHeaderSize))        // Section header size.
-	write(uint16(2 + len(sections)))     // Number of section headers.
-	write(uint16(1))                     // Section header table index for section names (always second).
+	if bin.ASLR {
+		write(uint16(ET_DYN)) // Relocatable binary.
+	} else {
+		write(uint16(ET_EXEC)) // Executable file.
+	}
+	write(arch2machine(bin.Arch))    // Architecture.
+	write(uint32(1))                 // ELF version 1.
+	write(entry)                     // Entry point address.
+	write(progHeadOff)               // Program header table offset.
+	write(sectHeadOff)               // Section header table offset.
+	write(uint32(0))                 // Flags (which we don't use).
+	write(uint16(elfHeaderSize))     // File header size.
+	write(uint16(progHeaderSize))    // Program header size.
+	write(uint16(len(sections)))     // Number of program headers.
+	write(uint16(sectHeaderSize))    // Section header size.
+	write(uint16(2 + len(sections))) // Number of section headers.
+	write(uint16(1))                 // Section header table index for section names (always second).
 
 	// Add the program headers.
 	for i, section := range sections {
