@@ -2064,9 +2064,12 @@ func Decode(info *types.Info, b []byte) (arch *sys.Arch, pkg *compiler.Package, 
 	pkg = &compiler.Package{
 		Name:     d.pkg.Name,
 		Path:     d.pkg.Path,
-		BaseAddr: fmt.Sprintf("%#x", d.header.BaseAddress),
 		Sections: d.sectionSymbols,
 		Types:    d.pkg,
+	}
+
+	if d.header.BaseAddress != 0 {
+		pkg.BaseAddr = fmt.Sprintf("%#x", d.header.BaseAddress)
 	}
 
 	// Pull all the data from the package.

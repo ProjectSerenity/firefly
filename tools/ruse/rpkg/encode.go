@@ -88,11 +88,7 @@ func (e *encoder) AddHeader(arch *sys.Arch, pkg *compiler.Package) error {
 	}
 
 	var baseAddr uint64
-	if pkg.BaseAddr == "" {
-		if pkg.Name == "main" {
-			baseAddr = 0x20_0000 // 2 MiB in by default.
-		}
-	} else {
+	if pkg.BaseAddr != "" {
 		var err error
 		baseAddr, err = strconv.ParseUint(pkg.BaseAddr, 0, 64)
 		if err != nil {
