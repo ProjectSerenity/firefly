@@ -195,7 +195,7 @@ func (a *allocator) run() error {
 			// ABI.
 			locs := a.arch.Parameters(calleeABI, args)
 			for i, v := range v.Args {
-				a.PrepareParameter(fun, sig, locs[i], v)
+				a.PrepareParameter(fun, sig, locs[i], v, calleeIsScratch)
 			}
 
 			// Perform the function call itself.
@@ -669,8 +669,7 @@ func (a *allocator) PrepareResult(v *ssafir.Value) {
 // PrepareParameter ensures that the given
 // function parameter is in the appropriate
 // memory location(s).
-func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, locs []sys.Location, v *ssafir.Value) {
-	avoid := make(map[sys.Location]bool)
+func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, locs []sys.Location, v *ssafir.Value, avoid map[sys.Location]bool) {
 	for _, loc := range locs {
 		avoid[loc] = true
 	}
