@@ -1468,6 +1468,14 @@ func TestEncodeMemory(t *testing.T) {
 			Memory: &x86.Memory{Index: x86.RDI, Scale: 1},
 			Want:   &x86.Code{ModRM: 0x04, SIB: 0x3d, Displacement: [8]byte{0x00, 0x00, 0x00, 0x00}, DisplacementLen: 4},
 		},
+
+		// 64-bit RIP-relative addressing,
+		// as described in section 2.2.1.6.
+		{
+			Mode:   x86.Mode64,
+			Memory: &x86.Memory{Base: x86.RIP, Displacement: 0x11223344},
+			Want:   &x86.Code{ModRM: 0x05, Displacement: [8]byte{0x44, 0x33, 0x22, 0x11}, DisplacementLen: 4},
+		},
 	}
 
 	for _, test := range tests {

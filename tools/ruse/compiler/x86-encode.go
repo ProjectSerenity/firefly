@@ -475,7 +475,7 @@ func (data *x86InstructionData) addDisplacement(code *x86.Code, op ssafir.Op, ba
 		return 0, 0, fmt.Errorf("invalid displacement %#x for mode %d", displ, mode.Int)
 	}
 
-	if base == nil {
+	if base == nil || (base == x86.RIP && mode.Int == 64) {
 		mod = modDerefenceRegister
 	}
 
