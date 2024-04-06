@@ -177,6 +177,8 @@ var AbstractOps = []OpInfo{
 	{Name: "Parameter", Virtual: true}, // ExtraInt is the parameter index into Function.Type.Params.
 	{Name: "MakeResult", Operands: -1},
 	{Name: "FunctionCall", Operands: -1},
+	{Name: "SaveRegister", Operands: 1},    // Extra is a register to save.
+	{Name: "RestoreRegister", Operands: 1}, // Extra is a register to restore.
 	// Strings.
 	{Name: "StringPtr", Operands: 1},
 	{Name: "StringLen", Operands: 1},

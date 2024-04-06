@@ -172,6 +172,10 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 		case ssafir.OpMakeResult:
 			l.MoveNumber(v)
 			lastResult = fun.Entry.Values[i]
+		case ssafir.OpSaveRegister:
+			l.addInst(v, ssafir.OpX86PUSH_R64op, &x86InstructionData{Args: [4]any{v.Extra}})
+		case ssafir.OpRestoreRegister:
+			l.addInst(v, ssafir.OpX86POP_R64op, &x86InstructionData{Args: [4]any{v.Extra}})
 		case ssafir.OpFunctionCall:
 			l.Call(v)
 		case ssafir.OpLogicalOr,
