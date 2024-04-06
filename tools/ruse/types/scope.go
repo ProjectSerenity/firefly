@@ -8,7 +8,7 @@ package types
 import (
 	"fmt"
 	"io"
-	"sort"
+	"slices"
 	"strings"
 
 	"firefly-os.dev/tools/ruse/token"
@@ -126,7 +126,7 @@ func (s *Scope) Names() []string {
 		i++
 	}
 
-	sort.Strings(names)
+	slices.Sort(names)
 
 	return names
 }

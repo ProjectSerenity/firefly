@@ -9,9 +9,10 @@ package format
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"io"
-	"sort"
+	"slices"
 
 	"firefly-os.dev/tools/plan/ast"
 	"firefly-os.dev/tools/plan/types"
@@ -112,9 +113,9 @@ func SortFields(file *ast.File, arch types.Arch) error {
 	}
 
 	sortList := func(typ string, list *ast.List) {
-		sort.SliceStable(list.Elements[1:], func(i, j int) bool {
-			namei := list.Elements[i+1].(*ast.List).Elements[0].(*ast.Identifier).Name
-			namej := list.Elements[j+1].(*ast.List).Elements[0].(*ast.Identifier).Name
+		slices.SortStableFunc(list.Elements[1:], func(a, b ast.Expr) int {
+			namei := a.(*ast.List).Elements[0].(*ast.Identifier).Name
+			namej := b.(*ast.List).Elements[0].(*ast.Identifier).Name
 			priorityi := order[namei]
 			priorityj := order[namej]
 			if priorityi == 0 {
@@ -124,7 +125,7 @@ func SortFields(file *ast.File, arch types.Arch) error {
 				panic("unrecognised " + typ + " field: " + namej)
 			}
 
-			return priorityi < priorityj
+			return cmp.Compare(priorityi, priorityj)
 		})
 	}
 

@@ -7,6 +7,7 @@ package compiler
 
 import (
 	"bytes"
+	"cmp"
 	"compress/gzip"
 	"encoding/csv"
 	"encoding/hex"
@@ -15,7 +16,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -210,7 +211,7 @@ func TestX86GeneratedAssemblyTests(t *testing.T) {
 						want = append(want, prettyMachineCode(option))
 					}
 
-					sort.Strings(want)
+					slices.Sort(want)
 
 					fset := token.NewFileSet()
 					text := fmt.Sprintf(`
@@ -536,7 +537,7 @@ func sortPrefixes(s string) string {
 		return hex.EncodeToString(prefixOpcodes) + rest
 	}
 
-	sort.Slice(prefixes, func(i, j int) bool { return prefixes[i] < prefixes[j] })
+	slices.Sort(prefixes)
 
 	return hex.EncodeToString(prefixOpcodes) + hex.EncodeToString(prefixes) + rest
 }

@@ -17,6 +17,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"debug/elf"
 	"encoding/binary"
 	"flag"
@@ -123,15 +124,7 @@ func main() {
 
 		// Otherwise, order by address.
 
-		if a.Addr < b.Addr {
-			return -1
-		}
-
-		if a.Addr < b.Addr {
-			return +1
-		}
-
-		return 0
+		return cmp.Compare(a.Addr, b.Addr)
 	})
 
 	if sections[0].Name != bootStage1 {

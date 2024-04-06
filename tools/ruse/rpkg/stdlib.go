@@ -6,10 +6,10 @@
 package rpkg
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"slices"
-	"sort"
 
 	"golang.org/x/crypto/cryptobyte"
 
@@ -96,7 +96,7 @@ func EncodeStdlib(w io.Writer, arch *sys.Arch, rpkgs [][]byte) error {
 	}
 
 	// Sort the packages.
-	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
+	slices.SortFunc(files, func(a, b File) int { return cmp.Compare(a.Path, b.Path) })
 
 	// Build up the header.
 	offset := rstdHeaderSize + uint64(sumNames)

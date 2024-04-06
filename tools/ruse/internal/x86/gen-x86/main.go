@@ -14,6 +14,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"embed"
 	"encoding/json"
 	"flag"
@@ -22,7 +23,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -455,7 +456,7 @@ func main() {
 		}
 	}
 
-	sort.Slice(instructions, func(i, j int) bool { return instructions[i].UID < instructions[j].UID })
+	slices.SortFunc(instructions, func(a, b *x86.Instruction) int { return cmp.Compare(a.UID, b.UID) })
 
 	autodetectVariableOperandSizes(instructions)
 
@@ -470,7 +471,7 @@ func main() {
 			mnemonics[i] = strings.TrimSpace(mnemonics[i])
 		}
 
-		sort.Strings(mnemonics)
+		slices.Sort(mnemonics)
 
 		for _, mnemonic := range mnemonics {
 			fmt.Println()

@@ -8,6 +8,7 @@ package disasm
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"debug/elf"
 	"flag"
@@ -208,17 +209,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	// Process the symbol table.
-	slices.SortFunc(syms, func(a, b elf.Symbol) int {
-		if a.Value < b.Value {
-			return -1
-		}
-
-		if a.Value > b.Value {
-			return +1
-		}
-
-		return 0
-	})
+	slices.SortFunc(syms, func(a, b elf.Symbol) int { return cmp.Compare(a.Value, b.Value) })
 
 	symname := func(pc uint64) (string, uint64) {
 		// Iterate through the symbols backwards,

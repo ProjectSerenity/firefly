@@ -8,6 +8,7 @@ package link
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	gobinary "encoding/binary"
 	"flag"
@@ -16,7 +17,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 
 	"golang.org/x/crypto/cryptobyte"
@@ -104,14 +105,14 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	// Put the main function first.
-	sort.Slice(p.Functions, func(i, j int) bool {
+	slices.SortFunc(p.Functions, func(a, b *ssafir.Function) int {
 		switch {
-		case p.Functions[i].Name == "main":
-			return true
-		case p.Functions[j].Name == "main":
-			return false
+		case a.Name == "main":
+			return -1
+		case b.Name == "main":
+			return +1
 		default:
-			return p.Functions[i].Name < p.Functions[j].Name
+			return cmp.Compare(a.Name, b.Name)
 		}
 	})
 

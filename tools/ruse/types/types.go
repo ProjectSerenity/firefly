@@ -12,7 +12,7 @@ import (
 	"math/big"
 	"math/bits"
 	"path"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -466,7 +466,7 @@ func (c *checker) Check(files []*ast.File) error {
 		}
 	}
 
-	sort.Strings(c.pkg.Imports)
+	slices.Sort(c.pkg.Imports)
 
 	// We do a second pass, where we
 	// type-check function bodies, now

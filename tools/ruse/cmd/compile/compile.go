@@ -7,6 +7,7 @@
 package compile
 
 import (
+	"cmp"
 	"context"
 	"flag"
 	"fmt"
@@ -14,7 +15,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -22,6 +23,7 @@ import (
 	"firefly-os.dev/tools/ruse/compiler"
 	"firefly-os.dev/tools/ruse/parser"
 	"firefly-os.dev/tools/ruse/rpkg"
+	"firefly-os.dev/tools/ruse/ssafir"
 	"firefly-os.dev/tools/ruse/sys"
 	"firefly-os.dev/tools/ruse/token"
 	"firefly-os.dev/tools/ruse/types"
@@ -242,14 +244,14 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	// Put the main function first.
-	sort.Slice(p.Functions, func(i, j int) bool {
+	slices.SortFunc(p.Functions, func(a, b *ssafir.Function) int {
 		switch {
-		case p.Functions[i].Name == "main":
-			return true
-		case p.Functions[j].Name == "main":
-			return false
+		case a.Name == "main":
+			return -1
+		case b.Name == "main":
+			return +1
 		default:
-			return p.Functions[i].Name < p.Functions[j].Name
+			return cmp.Compare(a.Name, b.Name)
 		}
 	})
 

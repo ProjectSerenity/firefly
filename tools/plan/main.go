@@ -15,7 +15,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 )
 
 func init() {
@@ -51,7 +51,7 @@ func RegisterCommand(name, description string, fun func(ctx context.Context, w i
 }
 
 func main() {
-	sort.Strings(commandsNames)
+	slices.Sort(commandsNames)
 
 	var help bool
 	flag.BoolVar(&help, "h", false, "Show this message and exit.")

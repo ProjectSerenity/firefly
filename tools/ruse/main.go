@@ -14,7 +14,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 
 	"firefly-os.dev/tools/ruse/cmd/compile"
 	"firefly-os.dev/tools/ruse/cmd/compile-stdlib"
@@ -70,7 +70,7 @@ func init() {
 }
 
 func main() {
-	sort.Strings(commandsNames)
+	slices.Sort(commandsNames)
 
 	var help bool
 	flag.BoolVar(&help, "h", false, "Show this message and exit.")

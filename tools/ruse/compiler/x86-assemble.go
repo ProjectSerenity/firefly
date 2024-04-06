@@ -8,10 +8,11 @@
 package compiler
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"math"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -476,7 +477,7 @@ func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assemb
 				}
 			}
 
-			sort.Ints(want)
+			slices.Sort(want)
 
 			var wantArities string
 			switch len(want) {
@@ -507,18 +508,18 @@ func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assemb
 		// we sort them by encoded length and pick
 		// the shortest.
 		if len(options) > 1 {
-			sort.Slice(options, func(i, j int) bool {
+			slices.SortFunc(options, func(a, b x86InstructionCandidate) int {
 				// First, prioritise shorter machine
 				// code sequences.
-				if options[i].Data.Length != options[j].Data.Length {
-					return options[i].Data.Length < options[j].Data.Length
+				if a.Data.Length != b.Data.Length {
+					return cmp.Compare(a.Data.Length, b.Data.Length)
 				}
 
 				// Next, prefer options with smaller
 				// data operations.
-				if options[i].Inst.DataSize != 0 && options[j].Inst.DataSize != 0 &&
-					options[i].Inst.DataSize != options[j].Inst.DataSize {
-					return options[i].Inst.DataSize < options[j].Inst.DataSize
+				if a.Inst.DataSize != 0 && b.Inst.DataSize != 0 &&
+					a.Inst.DataSize != b.Inst.DataSize {
+					return cmp.Compare(a.Inst.DataSize, b.Inst.DataSize)
 				}
 
 				// If an EVEX encoding is not necessary
@@ -528,16 +529,20 @@ func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assemb
 				// also match. Prefer VEX over EVEX, as
 				// it's more intuitive and doesn't have
 				// any other effect.
-				enc1 := options[i].Inst.Encoding
-				enc2 := options[j].Inst.Encoding
+				enc1 := a.Inst.Encoding
+				enc2 := b.Inst.Encoding
 				if enc1.VEX != enc2.VEX || enc1.EVEX != enc2.EVEX {
-					return enc1.VEX
+					if enc1.VEX {
+						return -1
+					}
+
+					return +1
 				}
 
 				// Finally, resort to a comparison of
 				// the opcode constant. It means little,
 				// but it's consistent.
-				return options[i].Op < options[j].Op
+				return cmp.Compare(a.Op, b.Op)
 			})
 		}
 

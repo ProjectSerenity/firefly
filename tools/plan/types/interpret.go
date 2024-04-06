@@ -9,8 +9,9 @@
 package types
 
 import (
+	"cmp"
 	"fmt"
-	"sort"
+	"slices"
 	"strconv"
 
 	"firefly-os.dev/tools/plan/ast"
@@ -377,16 +378,16 @@ func (i *interpreter) interpretFile(file *ast.File) *positionalError {
 			return
 		}
 
-		sort.Slice(groups, func(i, j int) bool {
+		slices.SortFunc(groups, func(a, b Name) int {
 			// First, try the easy path where the
 			// first part of both names differ.
-			if groups[i][0] != groups[j][0] {
-				return groups[i][0] < groups[j][0]
+			if a[0] != b[0] {
+				return cmp.Compare(a[0], b[0])
 			}
 
 			// Otherwise, we take the more involved
 			// route.
-			return groups[i].Spaced() < groups[j].Spaced()
+			return cmp.Compare(a.Spaced(), b.Spaced())
 		})
 	}
 

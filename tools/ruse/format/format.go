@@ -9,9 +9,10 @@ package format
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"io"
-	"sort"
+	"slices"
 
 	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/token"
@@ -59,8 +60,8 @@ func SortAnnotations(file *ast.File) {
 
 		// We must use a stable sort so we don't
 		// reorder any parameter annotations.
-		sort.SliceStable(list.Annotations, func(i, j int) bool {
-			return list.Annotations[i].X.Elements[0].(*ast.Identifier).Name < list.Annotations[j].X.Elements[0].(*ast.Identifier).Name
+		slices.SortStableFunc(list.Annotations, func(a, b *ast.QuotedList) int {
+			return cmp.Compare(a.X.Elements[0].(*ast.Identifier).Name, b.X.Elements[0].(*ast.Identifier).Name)
 		})
 
 		return true

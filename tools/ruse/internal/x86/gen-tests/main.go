@@ -29,6 +29,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	"compress/gzip"
 	"encoding/csv"
 	"encoding/hex"
@@ -41,7 +42,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -305,18 +306,16 @@ func genTests(workers int) error {
 	}
 
 	// Sort the entries.
-	sort.Slice(entries, func(i, j int) bool {
-		ei := entries[i]
-		ej := entries[j]
-		if ei.Inst.Mnemonic != ej.Inst.Mnemonic {
-			return ei.Inst.Mnemonic < ej.Inst.Mnemonic
+	slices.SortFunc(entries, func(a, b *TestEntry) int {
+		if a.Inst.Mnemonic != b.Inst.Mnemonic {
+			return cmp.Compare(a.Inst.Mnemonic, b.Inst.Mnemonic)
 		}
 
-		if ei.Mode.Int != ej.Mode.Int {
-			return ei.Mode.Int < ej.Mode.Int
+		if a.Mode.Int != b.Mode.Int {
+			return cmp.Compare(a.Mode.Int, b.Mode.Int)
 		}
 
-		return ei.Code < ej.Code
+		return cmp.Compare(a.Code, b.Code)
 	})
 
 	// Check that there are no cases where
@@ -362,7 +361,7 @@ func genTests(workers int) error {
 			codes = append(codes, code)
 		}
 
-		sort.Strings(codes)
+		slices.Sort(codes)
 
 		for _, code := range codes {
 			numDuplicates++

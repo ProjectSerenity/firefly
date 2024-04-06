@@ -10,7 +10,7 @@ package ssafir
 import (
 	"fmt"
 	"math"
-	"sort"
+	"slices"
 	"strings"
 
 	"firefly-os.dev/tools/ruse/ast"
@@ -196,7 +196,7 @@ func (v *Value) print(maxID ID) string {
 	}
 
 	if len(names) > 0 {
-		sort.Strings(names)
+		slices.Sort(names)
 		fmt.Fprintf(&buf, " (%s)", strings.Join(names, ", "))
 	}
 
