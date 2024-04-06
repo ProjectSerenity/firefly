@@ -236,45 +236,54 @@ func TestLower(t *testing.T) {
 					(or sum dif mul div bnd big sml)) ; 63
 			`,
 			Disasm: []string{
-				"000000:	b8 07 00 00 00       	mov eax, 0x7",    // Prepare arg 7
-				"000005:	e8 3f 33 22 11       	call 0x11223349", // Call func   (copy-n 7)
-				"00000a:	48 8b c8             	mov rcx, rax",    // Save result (let a (copy-n 7))
-				"00000d:	b8 03 00 00 00       	mov eax, 0x3",    // Prepare arg 3
-				"000012:	e8 3f 33 22 11       	call 0x11223356", // Call func   (copy-n 3)
-				"000017:	48 8b d0             	mov rdx, rax",    // Save result (let b (copy-n 3))
-				"00001a:	48 8b f1             	mov rsi, rcx",    // Prepare arg a
-				"00001d:	48 03 f0             	add rsi, rax",    // Arithmetic  (+ a b)
-				"000020:	48 8b f9             	mov rdi, rcx",    // Prepare arg a
-				"000023:	48 2b f8             	sub rdi, rax",    // Arithmetic  (- a b)
-				"000026:	4c 8b c2             	mov r8, rdx",     // Save result (let ub (int->uint b))
-				"000029:	4c 8b c8             	mov r9, rax",     // Prepare arg b
-				"00002c:	48 8b c1             	mov rax, rcx",    // Prepare arg a
-				"00002f:	49 f7 e1             	mul r9",          // Arithmetic  (× a b)
-				"000032:	4c 8b d0             	mov r10, rax",    // Save result (let mul (* a b))
-				"000035:	48 8b c1             	mov rax, rcx",    // Prepare arg a
-				"000038:	48 33 d2             	xor rdx, rdx",    // Clear RDX
-				"00003b:	49 f7 f1             	div r9",          // Arithmetic  (÷ a b)
-				"00003e:	48 8b d1             	mov rdx, rcx",    // Prepare arg a
-				"000041:	49 23 d1             	and rdx, r9",     // Arithmetic  (and a b)
-				"000044:	4c 8b c9             	mov r9, rcx",     // Prepare arg a
-				"000047:	4d 8b d9             	mov r11, r9",     // Save arg    a
-				"00004a:	49 8b c8             	mov rcx, r8",     // Prepare arg ub
-				"00004d:	49 d3 e3             	shl r11, cl",     // Arithmetic  (<< a ub)
-				"000050:	4c 8b c9             	mov r9, rcx",     // Save arg    b
-				"000053:	49 8b da             	mov rbx, r10",    // Prepare arg mul
-				"000056:	49 8b c8             	mov rcx, r8",     // Prepare arg ub
-				"000059:	48 d3 fb             	sar rbx, cl",     // Arithmetic  (>> mul ub)
-				"00005c:	4c 8b c6             	mov r8, rsi",     // Prepare arg sum
-				"00005f:	4c 0b c7             	or r8, rdi",      // Arithmetic  (or sum dif)
-				"000062:	4d 0b c2             	or r8, r10",      // Arithmetic  (or sum dif mul)
-				"000065:	4c 0b c0             	or r8, rax",      // Arithmetic  (or sum ... mul div)
-				"000068:	4c 0b c2             	or r8, rdx",      // Arithmetic  (or sum ... div bnd)
-				"00006b:	4d 0b c3             	or r8, r11",      // Arithmetic  (or sum ... bnd big)
-				"00006e:	4c 0b c3             	or r8, rbx",      // Arithmetic  (or sum ... big sml)
-				"000071:	49 8b c0             	mov rax, r8",     // Save result (or sum ... sml)
-				"000074:	c3                   	ret",
+				"000000:	53                   	push rbx",        // Save rbx
+				"000001:	b8 07 00 00 00       	mov eax, 0x7",    // Prepare arg 7
+				"000006:	e8 3f 33 22 11       	call 0x1122334a", // Call func   (copy-n 7)
+				"00000b:	48 8b c8             	mov rcx, rax",    // Save result (let a (copy-n 7))
+				"00000e:	b8 03 00 00 00       	mov eax, 0x3",    // Prepare arg 3
+				"000013:	e8 3f 33 22 11       	call 0x11223357", // Call func   (copy-n 3)
+				"000018:	48 8b d0             	mov rdx, rax",    // Save result (let b (copy-n 3))
+				"00001b:	48 8b f1             	mov rsi, rcx",    // Prepare arg a
+				"00001e:	48 03 f0             	add rsi, rax",    // Arithmetic  (+ a b)
+				"000021:	48 8b f9             	mov rdi, rcx",    // Prepare arg a
+				"000024:	48 2b f8             	sub rdi, rax",    // Arithmetic  (- a b)
+				"000027:	4c 8b c2             	mov r8, rdx",     // Save result (let ub (int->uint b))
+				"00002a:	4c 8b c8             	mov r9, rax",     // Prepare arg b
+				"00002d:	48 8b c1             	mov rax, rcx",    // Prepare arg a
+				"000030:	49 f7 e1             	mul r9",          // Arithmetic  (× a b)
+				"000033:	4c 8b d0             	mov r10, rax",    // Save result (let mul (* a b))
+				"000036:	48 8b c1             	mov rax, rcx",    // Prepare arg a
+				"000039:	48 33 d2             	xor rdx, rdx",    // Clear RDX
+				"00003c:	49 f7 f1             	div r9",          // Arithmetic  (÷ a b)
+				"00003f:	48 8b d1             	mov rdx, rcx",    // Prepare arg a
+				"000042:	49 23 d1             	and rdx, r9",     // Arithmetic  (and a b)
+				"000045:	4c 8b c9             	mov r9, rcx",     // Prepare arg a
+				"000048:	4d 8b d9             	mov r11, r9",     // Save arg    a
+				"00004b:	49 8b c8             	mov rcx, r8",     // Prepare arg ub
+				"00004e:	49 d3 e3             	shl r11, cl",     // Arithmetic  (<< a ub)
+				"000051:	4c 8b c9             	mov r9, rcx",     // Save arg    b
+				"000054:	49 8b da             	mov rbx, r10",    // Prepare arg mul
+				"000057:	49 8b c8             	mov rcx, r8",     // Prepare arg ub
+				"00005a:	48 d3 fb             	sar rbx, cl",     // Arithmetic  (>> mul ub)
+				"00005d:	4c 8b c6             	mov r8, rsi",     // Prepare arg sum
+				"000060:	4c 0b c7             	or r8, rdi",      // Arithmetic  (or sum dif)
+				"000063:	4d 0b c2             	or r8, r10",      // Arithmetic  (or sum dif mul)
+				"000066:	4c 0b c0             	or r8, rax",      // Arithmetic  (or sum ... mul div)
+				"000069:	4c 0b c2             	or r8, rdx",      // Arithmetic  (or sum ... div bnd)
+				"00006c:	4d 0b c3             	or r8, r11",      // Arithmetic  (or sum ... bnd big)
+				"00006f:	4c 0b c3             	or r8, rbx",      // Arithmetic  (or sum ... big sml)
+				"000072:	49 8b c0             	mov rax, r8",     // Save result (or sum ... sml)
+				"000075:	5b                   	pop rbx",         // Restore rbx
+				"000076:	c3                   	ret",
 			},
 			Want: []*TestValue{
+				{
+					ID:    0,
+					Op:    ssafir.OpX86PUSH_R64op,
+					Extra: &x86InstructionData{Args: [4]any{x86.RBX}, Length: 1},
+					Uses:  0,
+					Code:  `func (test int)`,
+				},
 				{
 					ID:    2,
 					Op:    ssafir.OpX86MOV_R32op_Imm32,
@@ -292,8 +301,8 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.copy-n",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  6,
-								Address: 0x0a,
+								Offset:  7,
+								Address: 0x0b,
 							},
 						},
 						Length: 5,
@@ -325,8 +334,8 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.copy-n",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  19,
-								Address: 0x17,
+								Offset:  20,
+								Address: 0x18,
 							},
 						},
 						Length: 5,
@@ -550,6 +559,13 @@ func TestLower(t *testing.T) {
 					Extra: &x86InstructionData{Args: [4]any{x86.RAX, x86.R8}, Length: 3},
 					Uses:  1,
 					Code:  "(or sum dif mul div bnd big sml)",
+				},
+				{
+					ID:    0,
+					Op:    ssafir.OpX86POP_R64op,
+					Extra: &x86InstructionData{Args: [4]any{x86.RBX}, Length: 1},
+					Uses:  0,
+					Code:  `func (test int)`,
 				},
 				{
 					ID:    25,

@@ -320,6 +320,55 @@ func (a *allocator) run() error {
 		}
 	}
 
+	// Identify whether we need to save any
+	// registers, based on our ABI.
+	used := make([]sys.Location, 0, len(a.abi.UnusedRegisters))
+	for _, loc := range a.abi.UnusedRegisters {
+		if _, ok := a.allocated[loc]; ok {
+			used = append(used, loc)
+		}
+	}
+
+	// Prepend any saves and then append any
+	// restores in reverse order.
+	if len(used) > 0 {
+		pos := a.function.Code.Elements[0].Pos() // The 'func' keyword.
+		end := a.function.Code.Elements[1].End() // The end of the signature.
+		values := make([]*ssafir.Value, 0, len(a.allocs)+len(used)*2)
+
+		// Add the saves in forwards order.
+		for i := 0; i < len(used); i++ {
+			loc := used[i]
+			values = append(values, &ssafir.Value{
+				ID:    0, // This is special.
+				Op:    ssafir.OpSaveRegister,
+				Block: a.function.Entry,
+				Pos:   pos,
+				End:   end,
+				Extra: loc,
+			})
+		}
+
+		// Add the existing values.
+		values = append(values, a.allocs...)
+
+		// Add the restores in reverse order.
+		for i := len(used); i > 0; i-- {
+			loc := used[i-1]
+			values = append(values, &ssafir.Value{
+				ID:    0, // This is special.
+				Op:    ssafir.OpRestoreRegister,
+				Block: a.function.Entry,
+				Pos:   pos,
+				End:   end,
+				Extra: loc,
+			})
+		}
+
+		// Overwrite the current values.
+		a.allocs = values
+	}
+
 	a.block.Values = a.allocs
 	a.function.Entry = a.block
 	a.function.Blocks = []*ssafir.Block{a.block}
