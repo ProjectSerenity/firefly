@@ -17,7 +17,7 @@
 	; in another file) just as if it was in the same
 	; file, as it is a package-local constant.
 
-	(mov rsi (string-pointer default-message))
+	(lea rsi (string-pointer default-message))
 	(mov rdx (len default-message))
 	(call (@ print))
 

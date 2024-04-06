@@ -28,7 +28,7 @@
 (asm-func (print-hello-world)
 	(mov eax 1)                            ; sys_write
 	(mov rdi 1)                            ; unsigned int fd stdout
-	(mov rsi (string-pointer hello-world)) ; const char *buf
+	(lea rsi (string-pointer hello-world)) ; const char *buf
 	(mov rdx (len hello-world))            ; size_t count
 	(syscall)                              ; write(1, "Hello, World!\n", 14)
 
