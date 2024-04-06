@@ -177,6 +177,10 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 			continue
 		}
 
+		if _, ok := data.Args[i].(*ssafir.Link); ok {
+			continue
+		}
+
 		addr := data.Args[i].(*x86.Memory)
 
 		var bits int
@@ -345,6 +349,14 @@ func x86EncodeInstruction(code *x86.Code, mode x86.Mode, op ssafir.Op, data *x86
 				code.ModRM.SetRM(reg)
 			case *x86.Memory:
 				err = data.encodeMemory(code, op, mode, arg)
+				if err != nil {
+					return fmt.Errorf("invalid argument %d: %v", i, err)
+				}
+			case *ssafir.Link, *tempLink:
+				err = data.encodeMemory(code, op, mode, &x86.Memory{
+					Base:         x86.RIP,
+					Displacement: 0x11223344, // Placeholder.
+				})
 				if err != nil {
 					return fmt.Errorf("invalid argument %d: %v", i, err)
 				}

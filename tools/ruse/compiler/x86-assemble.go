@@ -979,6 +979,12 @@ func (ctx *x86Context) matchSpecialForm(inst *x86.Instruction, list *ast.List, o
 		// a relative address with plenty
 		// of space in case the functions
 		// end up far apart.
+		//
+		// For the LEA instruction, if in
+		// 64-bit mode, we can store it
+		// using RIP-relative addressing,
+		// storing the relative address
+		// in the displacement.
 		var size uint8
 		var linkType ssafir.LinkType
 		switch operand.Encoding {
@@ -998,6 +1004,13 @@ func (ctx *x86Context) matchSpecialForm(inst *x86.Instruction, list *ast.List, o
 			if operand.Bits != int(size) {
 				return nil
 			}
+		case x86.EncodingModRMrm:
+			if operand.Type != x86.TypeMemory || ctx.Mode.Int != 64 || inst.Mnemonic != "LEA" {
+				return nil
+			}
+
+			size = 32
+			linkType = ssafir.LinkRelativeAddress
 		default:
 			return nil
 		}
@@ -1363,6 +1376,10 @@ func (ctx *x86Context) matchMemory(inst *x86.Instruction, arg ast.Expression, op
 	// specified in an annotation.
 	if ctx.rejectedBySizeHint(list, operand.Bits) {
 		return nil
+	}
+
+	if ctx.isIdent(list.Elements[0], "string-pointer", "@") {
+		return ctx.matchSpecialForm(inst, list, operand)
 	}
 
 	displacementSize := int(ctx.Mode.Int)
