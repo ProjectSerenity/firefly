@@ -459,10 +459,10 @@ func (l *x86Lowerer) MoveNumber(v *ssafir.Value) {
 		},
 	}
 
-	switch imm := alloc.Data.(type) {
+	switch extra := alloc.Data.(type) {
 	case int64:
-		data.Args[1] = uint64(imm)
-		if math.MinInt32 <= imm && imm <= math.MaxInt32 {
+		data.Args[1] = uint64(extra)
+		if math.MinInt32 <= extra && extra <= math.MaxInt32 {
 			// We can use a 32-bit move.
 			op = ssafir.OpX86MOV_R32op_Imm32
 			if reg, ok := data.Args[0].(*x86.Register); ok {
@@ -476,11 +476,11 @@ func (l *x86Lowerer) MoveNumber(v *ssafir.Value) {
 			}
 		}
 	case uint64:
-		data.Args[1] = imm
-		if math.MaxUint32 < imm {
+		data.Args[1] = extra
+		if math.MaxUint32 < extra {
 			op = ssafir.OpX86MOV_R64op_Imm64_REX
 		}
-		if imm <= math.MaxUint32 {
+		if extra <= math.MaxUint32 {
 			// We can use a 32-bit move.
 			op = ssafir.OpX86MOV_R32op_Imm32
 			if reg, ok := data.Args[0].(*x86.Register); ok {
@@ -494,9 +494,9 @@ func (l *x86Lowerer) MoveNumber(v *ssafir.Value) {
 			}
 		}
 	case constant.Value:
-		val, ok := constant.Int64Val(imm)
+		val, ok := constant.Int64Val(extra)
 		if !ok {
-			panic(fmt.Errorf("%s: value %v (op %s) has constant value %s which overflows int64", l.fset.Position(v.Pos), v, v.Op, imm))
+			panic(fmt.Errorf("%s: value %v (op %s) has constant value %s which overflows int64", l.fset.Position(v.Pos), v, v.Op, extra))
 		}
 
 		data.Args[1] = uint64(val)
@@ -576,19 +576,25 @@ func (l *x86Lowerer) MoveString(v *ssafir.Value) {
 		},
 	}
 
-	switch imm := alloc.Data.(type) {
+	switch extra := alloc.Data.(type) {
 	case string:
 		// Unnamed string literal.
 		link := &ssafir.Link{
 			Pos:  v.Pos,
-			Name: "." + imm,
+			Name: "." + extra,
 			Type: ssafir.LinkRelativeAddress,
 			Size: 32,
 		}
 		data.Args[1] = link
-	case constant.Value:
-		val := constant.StringVal(imm)
-		data.Args[1] = uint64(len(val))
+	case *types.Constant:
+		// Named string constant.
+		link := &ssafir.Link{
+			Pos:  v.Pos,
+			Name: extra.Package().Path + "." + extra.Name(),
+			Type: ssafir.LinkRelativeAddress,
+			Size: 32,
+		}
+		data.Args[1] = link
 	default:
 		panic(fmt.Errorf("%s: value %v (op %s) has unexpected constant data %#v (%T)", l.fset.Position(v.Pos), v, v.Op, alloc.Data, alloc.Data))
 	}

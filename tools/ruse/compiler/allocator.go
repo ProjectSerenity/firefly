@@ -695,10 +695,11 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 				continue
 			}
 
-			if val, ok := v.Extra.(constant.Value); ok && val.Kind() == constant.String {
+			if con, ok := v.Extra.(*types.Constant); ok && con.Value().Kind() == constant.String {
+				val := con.Value()
 				switch i {
 				case 0:
-					a.addAlloc(v, &Alloc{Dst: loc, Data: val})
+					a.addAlloc(v, &Alloc{Dst: loc, Data: con})
 				case 1:
 					s := constant.StringVal(val)
 					a.addOpAlloc(v, ssafir.OpConstantUntypedInt, &Alloc{Dst: loc, Data: int64(len(s))})
