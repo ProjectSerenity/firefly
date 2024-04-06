@@ -75,7 +75,40 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 
 			v = c.ValueInt(expr.Pos(), expr.End(), op, typ.Type, extra)
 		case types.String, types.UntypedString:
-			v = c.ValueExtra(expr.Pos(), expr.End(), op, typ.Type, constant.StringVal(typ.Value))
+			switch x := expr.(type) {
+			case *ast.Literal:
+				// Use the literal value.
+				v = c.ValueExtra(expr.Pos(), expr.End(), op, typ.Type, constant.StringVal(typ.Value))
+			case *ast.Identifier:
+				if obj, ok := c.info.Definitions[x].(*types.Variable); ok {
+					if v := c.vars[obj]; v != nil {
+						return v, nil
+					}
+				}
+
+				switch obj := c.info.Uses[x].(type) {
+				case *types.Constant:
+					v = c.ValueExtra(expr.Pos(), expr.End(), op, typ.Type, obj)
+				default:
+					return nil, fmt.Errorf("%s: unexpected expression %s with object %s and type %s", c.fset.Position(expr.Pos()), expr.Print(), obj, typ)
+				}
+			case *ast.Qualified:
+				ident := x.Y
+				if obj, ok := c.info.Definitions[ident].(*types.Variable); ok {
+					if v := c.vars[obj]; v != nil {
+						return v, nil
+					}
+				}
+
+				switch obj := c.info.Uses[ident].(type) {
+				case *types.Constant:
+					v = c.ValueExtra(expr.Pos(), expr.End(), op, typ.Type, obj)
+				default:
+					return nil, fmt.Errorf("%s: unexpected expression %s with object %s and type %s", c.fset.Position(expr.Pos()), expr.Print(), obj, typ)
+				}
+			default:
+				return nil, fmt.Errorf("%s: unexpected expression %s with kind %s and type %s", c.fset.Position(expr.Pos()), expr.Print(), expr, typ)
+			}
 		case types.Int, types.Int8, types.Int16, types.Int32, types.Int64:
 			num, ok := constant.Int64Val(typ.Value)
 			if !ok {
