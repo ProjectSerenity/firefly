@@ -115,6 +115,8 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 		progHeaderSize = 0x38   // Program header size in bytes.
 		sectHeaderSize = 0x40   // Section header size in bytes.
 		symtabSize     = 24     // Symbol table entry size in bytes.
+		symtabAlign    = 8      // Symbol table alignment.
+		symstrtabAlign = 1      // Symbol names alignment.
 
 		// Section names table.
 		shstrtabName  = "section names"
@@ -134,11 +136,11 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 		STV_DEFAULT  = 0x00
 	)
 
-	nextPage := func(offset uint64) uint64 {
+	alignUp := func(offset, alignment uint64) uint64 {
 		// Round the offset up to the start
 		// of the next 4kB page.
-		remainder := offset % pageSize
-		topUp := pageSize - remainder
+		remainder := offset % alignment
+		topUp := alignment - remainder
 		return offset + topUp
 	}
 
@@ -192,7 +194,7 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 			}
 		}
 
-		nextAddr := uintptr(nextPage(lastAddr))
+		nextAddr := uintptr(alignUp(lastAddr, pageSize))
 		symtab = &binary.Section{
 			Name:        symtabName,
 			Address:     nextAddr,
@@ -200,7 +202,7 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 			Data:        symtabData.Bytes(),
 		}
 
-		nextAddr = uintptr(nextPage(uint64(nextAddr) + uint64(symtabData.Len())))
+		nextAddr = uintptr(alignUp(uint64(nextAddr)+uint64(symtabData.Len()), symtabAlign))
 		symstrtab = &binary.Section{
 			Name:        symstrtabName,
 			Address:     nextAddr,
@@ -244,6 +246,17 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 			return 1 // One more than the index of the last local symbol (which is the empty symbol; all others are global).
 		default:
 			return 0
+		}
+	}
+
+	sectionAlignment := func(section *binary.Section) uint64 {
+		switch section {
+		case symtab:
+			return symtabAlign
+		case symstrtab:
+			return symstrtabAlign
+		default:
+			return 4096
 		}
 	}
 
@@ -299,7 +312,7 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 	sectDataOff := sectHeadEnd                              // Offset of the section names table.
 	sectDataLen := uint64(shstrtab.Len())                   // Length of the section names table.
 	sectDataEnd := sectDataOff + sectDataLen                // Offset where the section names table ends.
-	progDataOff := nextPage(sectDataEnd)                    // Offset of the program data.
+	progDataOff := alignUp(sectDataEnd, pageSize)           // Offset of the program data.
 
 	// SectionOffsets is used to simplify the
 	// calculation of section offsets.
@@ -326,7 +339,7 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 		offsets[i].FileStart = offset
 		offsets[i].FileSize = uint64(len(sections[i].Data))
 		offsets[i].FileEnd = offsets[i].FileStart + offsets[i].FileSize
-		offsets[i].FilePadded = nextPage(offsets[i].FileEnd)
+		offsets[i].FilePadded = alignUp(offsets[i].FileEnd, sectionAlignment(sections[i]))
 
 		// No data when it's zeroed.
 		if sections[i].IsZeroed {
@@ -395,7 +408,7 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 		write(sectionOffsets.MemStart)              // Section physical address in memory.
 		write(sectionOffsets.FileSize)              // Size in the binary file.
 		write(sectionOffsets.MemSize)               // Size in memory.
-		write(uint64(pageSize))                     // Alignment in memory.
+		write(sectionAlignment(section))            // Alignment in memory.
 	}
 
 	// Add the section headers.
@@ -420,7 +433,7 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 		write(sectionOffsets.FileSize)              // Size in the binary file.
 		write(sectionLink(section))                 // sh_link
 		write(sectionInfo(section))                 // sh_info
-		write(uint64(pageSize))                     // Alignment in memory.
+		write(sectionAlignment(section))            // Alignment in memory.
 		write(sectionEntrySize(section))            // sh_entsize
 	}
 
