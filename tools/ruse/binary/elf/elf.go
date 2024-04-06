@@ -81,18 +81,6 @@ func progPermissions(perm binary.Permissions) uint32 {
 	return out
 }
 
-func sectPermissions(perm binary.Permissions) uint64 {
-	var out uint64
-	if perm.Write() {
-		out |= 0x01
-	}
-	if perm.Execute() {
-		out |= 0x04
-	}
-
-	return out
-}
-
 func symbolData(sym *binary.Symbol) (typ uint8, value, size uint64) {
 	switch sym.Kind {
 	case binary.SymbolFunction:
@@ -234,10 +222,17 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 		}
 	}
 
+	// Map sections to section index to
+	// make sectionLink easier.
+	sectionIndex := make(map[*binary.Section]uint32)
+	for i, section := range sections {
+		sectionIndex[section] = uint32(i) + 2 // Add 2 for the null section and the section names section.
+	}
+
 	sectionLink := func(section *binary.Section) uint32 {
 		switch section {
 		case symtab:
-			return uint32(len(sections)) - 1 + 2 // The final entry (add 2 for the null section and section names).
+			return sectionIndex[symstrtab]
 		default:
 			return 0
 		}
@@ -259,6 +254,18 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 		default:
 			return 0
 		}
+	}
+
+	sectPermissions := func(perm binary.Permissions) uint64 {
+		var out uint64 = SHF_ALLOC
+		if perm.Write() {
+			out |= 0x01
+		}
+		if perm.Execute() {
+			out |= 0x04
+		}
+
+		return out
 	}
 
 	// Build the section names table.
@@ -405,16 +412,16 @@ func encode64(b *bytes.Buffer, bin *binary.Binary) error {
 	write(uint64(0))                      // sh_entsize
 	for i, section := range sections {
 		sectionOffsets := offsets[i]
-		write(sectionNames[section.Name])                       // Section name offset in section names table.
-		write(sectionType(section))                             // Section type (loadable by default, or symbol/string table).
-		write(SHF_ALLOC | sectPermissions(section.Permissions)) // Section flags.
-		write(sectionOffsets.MemStart)                          // Section virtual address in memory.
-		write(sectionOffsets.FileStart)                         // File offset where segment begins.
-		write(sectionOffsets.FileSize)                          // Size in the binary file.
-		write(sectionLink(section))                             // sh_link
-		write(sectionInfo(section))                             // sh_info
-		write(uint64(pageSize))                                 // Alignment in memory.
-		write(sectionEntrySize(section))                        // sh_entsize
+		write(sectionNames[section.Name])           // Section name offset in section names table.
+		write(sectionType(section))                 // Section type (loadable by default, or symbol/string table).
+		write(sectPermissions(section.Permissions)) // Section flags.
+		write(sectionOffsets.MemStart)              // Section virtual address in memory.
+		write(sectionOffsets.FileStart)             // File offset where segment begins.
+		write(sectionOffsets.FileSize)              // Size in the binary file.
+		write(sectionLink(section))                 // sh_link
+		write(sectionInfo(section))                 // sh_info
+		write(uint64(pageSize))                     // Alignment in memory.
+		write(sectionEntrySize(section))            // sh_entsize
 	}
 
 	// Add the section names table.
