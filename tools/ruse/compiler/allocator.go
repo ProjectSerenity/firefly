@@ -203,7 +203,7 @@ func (a *allocator) run() error {
 
 			// Note any results.
 			if v.Uses != 0 && sig.Result() != nil {
-				a.NoteResult(fun, sig, v)
+				a.NoteResult(fun, sig, calleeABI, v)
 			}
 		default:
 			// Search by group next.
@@ -751,8 +751,8 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 // given result already exists in a location
 // determined by the function's calling
 // convention.
-func (a *allocator) NoteResult(fun *types.Function, sig *types.Signature, v *ssafir.Value) {
-	locs := a.arch.Result(a.abi, a.sizes.SizeOf(v.Type))
+func (a *allocator) NoteResult(fun *types.Function, sig *types.Signature, abi *sys.ABI, v *ssafir.Value) {
+	locs := a.arch.Result(abi, a.sizes.SizeOf(v.Type))
 	for _, loc := range locs {
 		a.allocated[loc] = v
 		a.addOpAlloc(v, ssafir.OpMakeResult, &Alloc{Dst: loc, Src: loc})
