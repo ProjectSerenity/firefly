@@ -56,6 +56,24 @@ type Alloc struct {
 	Data any          // The source data for constants (or nil).
 }
 
+func (a *Alloc) String() string {
+	if a.Dst == nil {
+		// This should only happen in a drop.
+		return a.Src.String()
+	}
+
+	if a.Src != nil {
+		return fmt.Sprintf("move %s to %s", a.Src, a.Dst)
+	}
+
+	switch a.Data.(type) {
+	case string:
+		return fmt.Sprintf("move %q to %s", a.Data, a.Dst)
+	default:
+		return fmt.Sprintf("move %v to %s", a.Data, a.Dst)
+	}
+}
+
 // Allocate passes through the set of values in the
 // function, allocating each used value to a memory
 // location and tracking these through the life of

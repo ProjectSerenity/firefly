@@ -29,6 +29,7 @@ go_library(
     deps = [
         "//tools/ruse/ast",
         "//tools/ruse/binary",
+        "//tools/ruse/constant",
         "//tools/ruse/sys",
         "//tools/ruse/token",
         "//tools/ruse/types",

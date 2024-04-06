@@ -11,10 +11,12 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strconv"
 	"strings"
 
 	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/binary"
+	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/sys"
 	"firefly-os.dev/tools/ruse/token"
 	"firefly-os.dev/tools/ruse/types"
@@ -176,7 +178,20 @@ func (v *Value) print(maxID ID) string {
 	}
 
 	if v.Extra != nil {
-		fmt.Fprintf(&buf, " (extra %v)", v.Extra)
+		// Quote string constants, as they may
+		// otherwise get messy.
+		switch extra := v.Extra.(type) {
+		case string:
+			fmt.Fprintf(&buf, " (extra %q)", extra)
+		case constant.Value:
+			if extra.Kind() == constant.String {
+				fmt.Fprintf(&buf, " (extra %q)", extra)
+			} else {
+				fmt.Fprintf(&buf, " (extra %v)", extra)
+			}
+		default:
+			fmt.Fprintf(&buf, " (extra %v)", v.Extra)
+		}
 	}
 
 	buf.WriteString(")")
@@ -466,6 +481,15 @@ type Link struct {
 	Size    uint8     // The address size in bits.
 	Offset  int       // The offset into the function code where the symbol must be inserted.
 	Address uintptr   // The offset into the function code used to calculate relative addresses.
+}
+
+func (l *Link) String() string {
+	name := l.Name
+	if strings.HasPrefix(name, ".") {
+		name = strconv.Quote(name)
+	}
+
+	return fmt.Sprintf("(link %s with %s)", name, l.Type)
 }
 
 // LinkType defines how a symbol address is

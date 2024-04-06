@@ -76,10 +76,15 @@ func (d *x86InstructionData) String() string {
 			break
 		}
 
-		ss = append(ss, fmt.Sprintf("%v", arg))
+		switch arg.(type) {
+		case *x86.Register:
+			ss = append(ss, fmt.Sprintf("%v", arg))
+		default:
+			ss = append(ss, fmt.Sprintf("%v", arg))
+		}
 	}
 
-	return fmt.Sprintf("(x86-instruction-data %s)", strings.Join(ss, "  "))
+	return fmt.Sprintf("(x86-instruction-data %s)", strings.Join(ss, " "))
 }
 
 // x86InstructionCandidate includes the
