@@ -564,12 +564,12 @@ func (l *x86Lowerer) MoveString(v *ssafir.Value) {
 
 	// Constant store.
 
-	// Prefer 32-bit immediates, as they use
-	// less space in the instruction stream
-	// than 64-bit immediates. However, 16-bit
-	// and smaller moves don't clear the upper
-	// bits and thus corrupt the data.
-	op := ssafir.OpX86MOV_R64op_Imm64_REX
+	// Use a RIP-relative address with
+	// LEA, as it results in a relative
+	// address and takes up less space
+	// than using MOV with a 64-bit
+	// immediate.
+	op := ssafir.OpX86LEA_R64_M_REX
 	data := &x86InstructionData{
 		Args: [4]any{
 			l.location(v, alloc.Dst),
@@ -582,8 +582,8 @@ func (l *x86Lowerer) MoveString(v *ssafir.Value) {
 		link := &ssafir.Link{
 			Pos:  v.Pos,
 			Name: "." + imm,
-			Type: ssafir.LinkFullAddress,
-			Size: 64,
+			Type: ssafir.LinkRelativeAddress,
+			Size: 32,
 		}
 		data.Args[1] = link
 	case constant.Value:
