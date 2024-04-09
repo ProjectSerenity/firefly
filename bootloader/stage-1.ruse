@@ -161,7 +161,7 @@
 '(section boot-stage-1)
 (asm-func (load-bootloader-from-disk)
 	(xor ecx ecx)                          ; Set the initial offset of zero.
-	(mov esi (uint32 data-address-packet)) ; Address of the DAP.
+	(mov esi (uint32 data-access-packet))  ; Address of the DAP.
 	(mov '(bits 32)(esi) ecx)              ; Zero the first quarter of the packet.
 	(mov '(bits 32)(+ esi 4) ecx)          ; Zero the second quarter of the packet.
 	(mov '(bits 32)(+ esi 8) ecx )         ; Zero the third quarter of the packet.
