@@ -39,80 +39,80 @@
 ; Note that we put most constants in section _ so they
 ; don't clutter up the symbol table.
 
-'(section _)(let data-access-packet 0x500)            ; Used with BIOS int 0x13.
+(let data-access-packet 0x500)            ; Used with BIOS int 0x13.
 
-'(section _)(let kernel-copy-buffer 0x700)            ; Used with BIOS int 0x13.
+(let kernel-copy-buffer 0x700)            ; Used with BIOS int 0x13.
 
-'(section _)(let page-table-start 0x1000)
-'(section _)(let level-1-page-table 0x1000)
-'(section _)(let level-2-page-table 0x2000)
-'(section _)(let level-3-page-table 0x3000)
-'(section _)(let level-4-page-table 0x4000)
-'(section _)(let page-table-end 0x5000)
+(let page-table-start 0x1000)
+(let level-1-page-table 0x1000)
+(let level-2-page-table 0x2000)
+(let level-3-page-table 0x3000)
+(let level-4-page-table 0x4000)
+(let page-table-end 0x5000)
 
-'(section _)(let physical-memory-map 0x5000)          ; Used with BIOS int 0x15 and EAX 0xe820.
+(let physical-memory-map 0x5000)          ; Used with BIOS int 0x15 and EAX 0xe820.
 
-'(section _)(let stage-1-start 0x7c00)                ; The load address chosen by the BIOS.
+(let stage-1-start 0x7c00)                ; The load address chosen by the BIOS.
 
-'(section _)(let stage-1-end (+ stage-1-start 512))
+(let stage-1-end (+ stage-1-start 512))
 
 '(section boot-stage-1)
-(let bootloader-end (uint32 stage-1-end))             ; We populate this in the bootimage tool. Default to a length of 0.
+(let bootloader-end (uint32 stage-1-end)) ; We populate this in the bootimage tool. Default to a length of 0.
 
 (let kernel-start 0x40_0000)              ; 2 MiB.
 
 (let kernel-size (uint32 0))              ; We populate this in the bootimage tool. Default to a length of 0.
 
-'(section _)(let VGA-memory 0xb_8000)
+(let VGA-memory 0xb_8000)
 
 ; Level-4 page table code. See Intel x86-64
 ; manual, Volume 3A, section 4.5.
 
-'(section _)(let page-4kiB 0x1000)
-'(section _)(let page-2MiB 0x20_0000)
-'(section _)(let page-1GiB 0x4000_0000)
+(let page-4kiB 0x1000)
+(let page-2MiB 0x20_0000)
+(let page-1GiB 0x4000_0000)
 
 ; Page table level 4 header flags, mainly
 ; from table 4-15.
-'(section _)(let pml4-present (<< 1 0))
-'(section _)(let pml4-read/write (<< 1 1))
-'(section _)(let pml4-user (<< 1 2))
-'(section _)(let pml4-write-through (<< 1 3))
-'(section _)(let pml4-no-cache (<< 1 4))
-'(section _)(let pml4-accessed (<< 1 5))
-'(section _)(let pml4-no-execute (<< 1 63))
+(let pml4-present (<< 1 0))
+(let pml4-read/write (<< 1 1))
+(let pml4-user (<< 1 2))
+(let pml4-write-through (<< 1 3))
+(let pml4-no-cache (<< 1 4))
+(let pml4-accessed (<< 1 5))
+(let pml4-no-execute (<< 1 63))
 
 ; Page table level 3 header flags, mainly
 ; from table 4-17.
-'(section _)(let pdpt-present (<< 1 0))
-'(section _)(let pdpt-read/write (<< 1 1))
-'(section _)(let pdpt-user (<< 1 2))
-'(section _)(let pdpt-write-through (<< 1 3))
-'(section _)(let pdpt-no-cache (<< 1 4))
-'(section _)(let pdpt-accessed (<< 1 5))
-'(section _)(let pdpt-page-size-1GiB (<< 1 7))
-'(section _)(let pdpt-no-execute (<< 1 63))
+(let pdpt-present (<< 1 0))
+(let pdpt-read/write (<< 1 1))
+(let pdpt-user (<< 1 2))
+(let pdpt-write-through (<< 1 3))
+(let pdpt-no-cache (<< 1 4))
+(let pdpt-accessed (<< 1 5))
+(let pdpt-page-size-1GiB (<< 1 7))
+(let pdpt-no-execute (<< 1 63))
 
 ; Page table level 2 header flags, mainly
 ; from table 4-19.
-'(section _)(let pd-present (<< 1 0))
-'(section _)(let pd-read/write (<< 1 1))
-'(section _)(let pd-user (<< 1 2))
-'(section _)(let pd-write-through (<< 1 3))
-'(section _)(let pd-no-cache (<< 1 4))
-'(section _)(let pd-accessed (<< 1 5))
-'(section _)(let pd-page-size-2MiB (<< 1 7))
-'(section _)(let pd-no-execute (<< 1 63))
+(let pd-present (<< 1 0))
+(let pd-read/write (<< 1 1))
+(let pd-user (<< 1 2))
+(let pd-write-through (<< 1 3))
+(let pd-no-cache (<< 1 4))
+(let pd-accessed (<< 1 5))
+(let pd-page-size-2MiB (<< 1 7))
+(let pd-no-execute (<< 1 63))
 
 ; Page table level 1 header flags, mainly
 ; from table 4-20.
-'(section _)(let pt-present (<< 1 0))
-'(section _)(let pt-read/write (<< 1 1))
-'(section _)(let pt-user (<< 1 2))
-'(section _)(let pt-write-through (<< 1 3))
-'(section _)(let pt-no-cache (<< 1 4))
-'(section _)(let pt-accessed (<< 1 5))
-'(section _)(let pt-dirty (<< 1 6))
-'(section _)(let pt-page-size-4kiB (<< 1 7))
-'(section _)(let pt-global (<< 1 8))
-'(section _)(let pt-no-execute (<< 1 63))
+(let pt-present (<< 1 0))
+(let pt-read/write (<< 1 1))
+(let pt-user (<< 1 2))
+(let pt-write-through (<< 1 3))
+(let pt-no-cache (<< 1 4))
+(let pt-accessed (<< 1 5))
+(let pt-dirty (<< 1 6))
+(let pt-page-size-4kiB (<< 1 7))
+(let pt-global (<< 1 8))
+(let pt-no-execute (<< 1 63))
