@@ -42,7 +42,7 @@ var zeros [512]uint8
 func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("link", flag.ExitOnError)
 
-	var help, symbolTable, provenance, aslr bool
+	var help, symbolTable, provenance, aslr, debugOptimisations bool
 	var out, stdlib string
 	var rpkgs []string
 	var encode binaryEncoder
@@ -50,6 +50,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags.BoolVar(&symbolTable, "symbol-table", true, "Include a symbol table in the compiled binary.")
 	flags.BoolVar(&provenance, "provenance", true, "Include the set of input rpkg files in the compiled binary.")
 	flags.BoolVar(&aslr, "aslr", false, "Build a relocatable binary compatible with Address Space Layout Randomisation (ASLR).")
+	flags.BoolVar(&debugOptimisations, "debug-optimisations", false, "Print log messages about optimisation decisions.")
 	flags.Func("binary", "The binary encoding (elf).", func(s string) error {
 		if encode != nil {
 			return fmt.Errorf("-binary can only be specified once")
@@ -217,6 +218,13 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		if !seenPackages[pkg] {
 			return fmt.Errorf("no rpkg provided for package %q", pkg)
 		}
+	}
+
+	// Use the tree shaker to drop any unused
+	// symbols.
+	err = shakeTree(debugOptimisations, packages, p)
+	if err != nil {
+		return err
 	}
 
 	const (
