@@ -143,11 +143,6 @@ func shakeTree(debug bool, pkgs []*compiler.Package, main *compiler.Package) err
 				}
 
 				deps[symbol] = struct{}{}
-
-				// Add any transitive dependencies.
-				for dep := range symDeps[symbol] {
-					deps[dep] = struct{}{}
-				}
 			}
 
 			symDeps[Symbol{Package: pkg.Path, Name: fun.Name}] = deps
