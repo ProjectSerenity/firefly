@@ -13,6 +13,7 @@ go_library(
     deps = [
         "//tools/ruse/ast",
         "//tools/ruse/compiler",
+        "//tools/ruse/internal/cmd/perfdata",
         "//tools/ruse/parser",
         "//tools/ruse/rpkg",
         "//tools/ruse/ssafir",

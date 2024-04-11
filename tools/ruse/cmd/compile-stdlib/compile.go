@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"firefly-os.dev/tools/ruse/internal/cmd/perfdata"
 	"firefly-os.dev/tools/ruse/rpkg"
 	"firefly-os.dev/tools/ruse/sys"
 )
@@ -26,10 +27,11 @@ var program = filepath.Base(os.Args[0])
 func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("compile-stdlib", flag.ExitOnError)
 
-	var help bool
+	var help, debugPerformance bool
 	var out string
 	var arch *sys.Arch
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
+	flags.BoolVar(&debugPerformance, "debug-performance", false, "Print log messages about the individual and cumulative duration of each step.")
 	flags.Func("arch", "The target architecture (x86-64).", func(s string) error {
 		if arch != nil {
 			return fmt.Errorf("-arch can only be specified once")
@@ -57,6 +59,13 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		flags.Usage()
 	}
 
+	perf := perfdata.New()
+	perfStep := func(format string, v ...any) {
+		if debugPerformance {
+			perf.Record(fmt.Sprintf(format, v...))
+		}
+	}
+
 	rpkgs := flags.Args()
 	if arch == nil || out == "" || len(rpkgs) == 0 {
 		flags.Usage()
@@ -71,6 +80,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 
 		pkgs = append(pkgs, data)
+
+		perfStep("Read rpkg file %q", name)
 	}
 
 	f, err := os.Create(out)
@@ -82,6 +93,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to compile %s: %v", out, err)
 	}
+
+	perfStep("Encode stdlib")
 
 	return nil
 }

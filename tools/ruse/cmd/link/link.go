@@ -26,6 +26,7 @@ import (
 	"firefly-os.dev/tools/ruse/binary/elf"
 	"firefly-os.dev/tools/ruse/compiler"
 	"firefly-os.dev/tools/ruse/constant"
+	"firefly-os.dev/tools/ruse/internal/cmd/perfdata"
 	"firefly-os.dev/tools/ruse/rpkg"
 	"firefly-os.dev/tools/ruse/ssafir"
 	"firefly-os.dev/tools/ruse/types"
@@ -42,7 +43,7 @@ var zeros [512]uint8
 func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("link", flag.ExitOnError)
 
-	var help, symbolTable, provenance, aslr, debugOptimisations bool
+	var help, symbolTable, provenance, aslr, debugOptimisations, debugPerformance bool
 	var out, stdlib string
 	var rpkgs []string
 	var encode binaryEncoder
@@ -51,6 +52,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags.BoolVar(&provenance, "provenance", true, "Include the set of input rpkg files in the compiled binary.")
 	flags.BoolVar(&aslr, "aslr", false, "Build a relocatable binary compatible with Address Space Layout Randomisation (ASLR).")
 	flags.BoolVar(&debugOptimisations, "debug-optimisations", false, "Print log messages about optimisation decisions.")
+	flags.BoolVar(&debugPerformance, "debug-performance", false, "Print log messages about the individual and cumulative duration of each step.")
 	flags.Func("binary", "The binary encoding (elf).", func(s string) error {
 		if encode != nil {
 			return fmt.Errorf("-binary can only be specified once")
@@ -86,6 +88,13 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	if encode == nil || out == "" {
 		flags.Usage()
 		os.Exit(2)
+	}
+
+	perf := perfdata.New()
+	perfStep := func(format string, v ...any) {
+		if debugPerformance {
+			perf.Record(fmt.Sprintf(format, v...))
+		}
 	}
 
 	filenames := flags.Args()
@@ -136,6 +145,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		rpkgsData.AddBytes(checksum)
 	}
 
+	perfStep("Decode package %q", p.Path)
+
 	// Add the dependencies, checking
 	// that we have all the imports we
 	// need.
@@ -173,6 +184,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			})
 			rpkgsData.AddBytes(checksum)
 		}
+
+		perfStep("Decode package %q", p.Path)
 	}
 
 	isStdlib := make(map[string]bool)
@@ -186,6 +199,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to parse stdlib rstd %q: %v", stdlib, err)
 		}
+
+		perfStep("Decode stdlib")
 
 		pkgs := rstd.Packages()
 		for _, hdr := range pkgs {
@@ -209,6 +224,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				})
 				rpkgsData.AddBytes(checksum)
 			}
+
+			perfStep("Debug stdlib package %q", p.Path)
 		}
 	}
 
@@ -226,6 +243,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	perfStep("Remove unused symbols")
 
 	const (
 		defaultCodeSectionSymbol    = "sections.Code"
@@ -538,6 +557,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				continue
 			}
 		}
+
+		perfStep("Build symbol table for package %q", p.Path)
 	}
 
 	const page4k = 0x1000 // One 4 KiB page.
@@ -606,6 +627,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 	object := b.Bytes()
 
+	perfStep("Encode the binary")
+
 	// Perform any linkages.
 	for _, fun := range p.Functions {
 		// Get the function base.
@@ -633,9 +656,19 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		}
 	}
 
+	perfStep("Perform linkages")
+
 	err = os.WriteFile(out, object, 0755)
 	if err != nil {
 		return fmt.Errorf("failed to write %s: %v", out, err)
+	}
+
+	if debugPerformance {
+		// Print the results.
+		err := perf.Print(w)
+		if err != nil {
+			return fmt.Errorf("failed to process performance data: %v", err)
+		}
 	}
 
 	return nil

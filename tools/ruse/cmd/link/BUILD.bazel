@@ -18,6 +18,7 @@ go_library(
         "//tools/ruse/binary/elf",
         "//tools/ruse/compiler",
         "//tools/ruse/constant",
+        "//tools/ruse/internal/cmd/perfdata",
         "//tools/ruse/rpkg",
         "//tools/ruse/ssafir",
         "//tools/ruse/types",

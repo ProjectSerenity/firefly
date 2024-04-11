@@ -21,6 +21,7 @@ import (
 
 	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/compiler"
+	"firefly-os.dev/tools/ruse/internal/cmd/perfdata"
 	"firefly-os.dev/tools/ruse/parser"
 	"firefly-os.dev/tools/ruse/rpkg"
 	"firefly-os.dev/tools/ruse/ssafir"
@@ -36,11 +37,12 @@ var program = filepath.Base(os.Args[0])
 func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("compile", flag.ExitOnError)
 
-	var help bool
+	var help, debugPerformance bool
 	var out, pkgName, stdlib string
 	var rpkgs, debugFunctions []string
 	var arch *sys.Arch
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
+	flags.BoolVar(&debugPerformance, "debug-performance", false, "Print log messages about the individual and cumulative duration of each step.")
 	flags.Func("arch", "The target architecture (x86-64).", func(s string) error {
 		if arch != nil {
 			return fmt.Errorf("-arch can only be specified once")
@@ -73,6 +75,16 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		os.Exit(2)
 	}
 
+	err := flags.Parse(args)
+	if err != nil || help {
+		flags.Usage()
+	}
+
+	if arch == nil || out == "" || pkgName == "" {
+		flags.Usage()
+		os.Exit(2)
+	}
+
 	debug := func(s string) bool {
 		for _, want := range debugFunctions {
 			if want == s {
@@ -83,14 +95,11 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return false
 	}
 
-	err := flags.Parse(args)
-	if err != nil || help {
-		flags.Usage()
-	}
-
-	if arch == nil || out == "" || pkgName == "" {
-		flags.Usage()
-		os.Exit(2)
+	perf := perfdata.New()
+	perfStep := func(format string, v ...any) {
+		if debugPerformance {
+			perf.Record(fmt.Sprintf(format, v...))
+		}
 	}
 
 	// Get the set of packages available
@@ -115,6 +124,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 		rpkgFiles[pkg.Path] = name
 		availableImports[pkg.Path] = pkg.Types
+
+		perfStep("Decode package %q", pkg.Path)
 	}
 
 	isStdlib := make(map[string]bool)
@@ -128,6 +139,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to parse stdlib rstd %q: %v", stdlib, err)
 		}
+
+		perfStep("Decode stdlib")
 
 		pkgs := rstd.Packages()
 		for _, hdr := range pkgs {
@@ -143,6 +156,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 			isStdlib[hdr.PackageName] = true
 			availableImports[hdr.PackageName] = p.Types
+
+			perfStep("Decode stdlib package %q", p.Path)
 		}
 	}
 
@@ -160,6 +175,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			return err
 		}
 	}
+
+	perfStep("Parse package %q", pkgName)
 
 	// Accumulate the set of imports.
 	seenImport := make(map[string]bool)
@@ -197,11 +214,15 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return err
 	}
 
+	perfStep("Type check package %q", pkgName)
+
 	sizes := types.SizesFor(arch)
 	p, err := compiler.Compile(fset, arch, pkg, files, info, sizes)
 	if err != nil {
 		return err
 	}
+
+	perfStep("Compile package %q", pkgName)
 
 	// Allocate registers and lower the instructions
 	// for Ruse functions.
@@ -237,6 +258,8 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 			return err
 		}
 
+		perfStep("Optimise Ruse function %s", fun.Name)
+
 		if shouldDebug {
 			_, text, _ := strings.Cut(fun.Print(), "\n")
 			fmt.Fprintf(os.Stderr, "lower:\n%s\n", text)
@@ -263,6 +286,16 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	err = rpkg.Encode(f, fset, arch, p, info)
 	if err != nil {
 		return fmt.Errorf("failed to compile %s: %v", out, err)
+	}
+
+	perfStep("Encode package %q", pkgName)
+
+	if debugPerformance {
+		// Print the results.
+		err := perf.Print(w)
+		if err != nil {
+			return fmt.Errorf("failed to process performance data: %v", err)
+		}
 	}
 
 	return nil
