@@ -1,0 +1,20 @@
+# Copyright 2024 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "perfdata",
+    srcs = ["perfdata.go"],
+    importpath = "firefly-os.dev/tools/ruse/internal/cmd/perfdata",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "perfdata_test",
+    size = "small",
+    srcs = ["perfdata_test.go"],
+    embed = [":perfdata"],
+)
