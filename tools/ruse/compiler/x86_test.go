@@ -1136,11 +1136,11 @@ func TestAssembleX86(t *testing.T) {
 			}
 
 			fun := p.Functions[0]
-			if len(fun.Entry.Values) != 1 {
+			if len(fun.Entry.Values) != 1 && len(fun.Entry.Values) != 2 { // A 32/64-bit function starts with ENDBR.
 				t.Fatalf("got %d values, want 1: %#v", len(fun.Entry.Values), fun.Entry.Values)
 			}
 
-			v := fun.Entry.Values[0]
+			v := fun.Entry.Values[len(fun.Entry.Values)-1] // Take the last instruction.
 			if v.Op != test.Op {
 				t.Fatalf("Compile:\n  Got op  %s\n  Want op %s", v.Op, test.Op)
 			}
@@ -1249,6 +1249,7 @@ func TestEncodeX86(t *testing.T) {
 					(syscall))
 			`,
 			Want: []byte{
+				0xf3, 0x0f, 0x1e, 0xfa, // ENDBR64
 				0xb1, 0x01, // MOV cl, 1
 				0x48, 0x90, // XCHG rax, rax
 				0x0f, 0x05, // SYSCALL
@@ -1268,6 +1269,7 @@ func TestEncodeX86(t *testing.T) {
 					(jmp 'bar))
 			`,
 			Want: []byte{
+				0xf3, 0x0f, 0x1e, 0xfa, // ENDBR64
 				0xb1, 0x01, // MOV cl, 1
 				0x48, 0x90, // XCHG rax, rax
 				0x74, 0xfc, // JE -4
@@ -1288,6 +1290,7 @@ func TestEncodeX86(t *testing.T) {
 					'foo)
 			`,
 			Want: []byte{
+				0xf3, 0x0f, 0x1e, 0xfa, // ENDBR64
 				0x74, 0x06, // JE +6
 				0xeb, 0x02, // JMP +2
 				0xb1, 0x01, // MOV cl, 1
@@ -1304,6 +1307,7 @@ func TestEncodeX86(t *testing.T) {
 					(mov ecx (len hello-world)))
 			`,
 			Want: []byte{
+				0xf3, 0x0f, 0x1e, 0xfa, // ENDBR64
 				0xb9, 0x0d, 0x00, 0x00, 0x00, // MOV ecx, 13.
 			},
 		},
@@ -1319,6 +1323,7 @@ func TestEncodeX86(t *testing.T) {
 					(nop))
 			`,
 			Want: []byte{
+				0xf3, 0x0f, 0x1e, 0xfa, // ENDBR64
 				0x90,                                                       // NOP.
 				0x48, 0xb9, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, // MOV rcx, 0x1122334455667788.
 				0x90, // NOP.
@@ -1328,8 +1333,8 @@ func TestEncodeX86(t *testing.T) {
 					Name:    "test.hello-world",
 					Type:    ssafir.LinkFullAddress,
 					Size:    64,
-					Offset:  3,
-					Address: 11,
+					Offset:  7,
+					Address: 15,
 				},
 			},
 		},
@@ -1346,6 +1351,7 @@ func TestEncodeX86(t *testing.T) {
 					(nop))
 			`,
 			Want: []byte{
+				0xf3, 0x0f, 0x1e, 0xfb, // ENDBR32
 				0x90,                         // NOP.
 				0xb9, 0x44, 0x33, 0x22, 0x11, // MOV rcx, 0x11223344.
 				0x90, // NOP.
@@ -1355,8 +1361,8 @@ func TestEncodeX86(t *testing.T) {
 					Name:    "test.hello-world",
 					Type:    ssafir.LinkFullAddress,
 					Size:    32,
-					Offset:  2,
-					Address: 6,
+					Offset:  6,
+					Address: 10,
 				},
 			},
 		},
@@ -1372,6 +1378,7 @@ func TestEncodeX86(t *testing.T) {
 					(nop))
 			`,
 			Want: []byte{
+				0xf3, 0x0f, 0x1e, 0xfa, // ENDBR64
 				0x90,                         // NOP.
 				0xe8, 0x3f, 0x33, 0x22, 0x11, // CALL +0x11223344.
 				0x90, // NOP.
@@ -1381,8 +1388,8 @@ func TestEncodeX86(t *testing.T) {
 					Name:    "test.hello-world",
 					Type:    ssafir.LinkRelativeAddress,
 					Size:    32,
-					Offset:  2,
-					Address: 6,
+					Offset:  6,
+					Address: 10,
 				},
 			},
 		},

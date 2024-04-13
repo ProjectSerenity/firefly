@@ -152,6 +152,16 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 
 	fun.Extra = ctx.Mode
 
+	// We start the function with ENDBR
+	// so that it will support CET Indirect
+	// Branch Tracking.
+	l.addInst(&ssafir.Value{
+		ID:    0, // This is special.
+		Block: l.block,
+		Pos:   fun.Code.Elements[0].Pos(), // The 'func' keyword.
+		End:   fun.Code.Elements[1].End(), // The end of the signature.
+	}, ssafir.OpX86ENDBR64, &x86InstructionData{})
+
 	var lastResult *ssafir.Value
 	for i, v := range fun.Entry.Values {
 		switch v.Op {

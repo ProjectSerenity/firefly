@@ -232,6 +232,27 @@ func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assemb
 	var prefixes []x86.Prefix
 	c.AddCallingConvention()
 	c.AddFunctionPrelude()
+
+	// We start the function with ENDBR
+	// so that it will support CET Indirect
+	// Branch Tracking.
+	if ctx.Mode.Int == 32 || ctx.Mode.Int == 64 {
+		data := &x86InstructionData{Length: 4}
+		op := ssafir.OpX86ENDBR32
+		if ctx.Mode.Int == 64 {
+			op = ssafir.OpX86ENDBR64
+		}
+
+		c.currentBlock.Values = append(c.currentBlock.Values, &ssafir.Value{
+			ID:    0, // This is special.
+			Op:    op,
+			Block: c.currentBlock,
+			Pos:   assembly.Elements[0].Pos(), // The 'asm-func' keyword.
+			End:   assembly.Elements[1].End(), // The end of the signature.
+			Extra: data,
+		})
+	}
+
 	options := make([]x86InstructionCandidate, 0, 10)
 	for _, expr := range assembly.Elements[2:] {
 		// Labels phase 2: store label location.

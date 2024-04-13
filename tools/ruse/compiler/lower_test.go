@@ -41,9 +41,11 @@ func TestLower(t *testing.T) {
 					(let _ a))
 			`,
 			Disasm: []string{
-				"000000:	c3                   	ret",
+				"000000:	f3 0f 1e fa          	endbr64",
+				"000004:	c3                   	ret",
 			},
 			Want: []*TestValue{
+				{ID: 0, Op: ssafir.OpX86ENDBR64, Extra: &x86InstructionData{Length: 4}, Uses: 0, Code: `func (test (a string) (b int))`},
 				{ID: 0, Op: ssafir.OpX86RET, Extra: &x86InstructionData{Length: 1}, Uses: 0, Code: `)`},
 			},
 		},
@@ -57,10 +59,12 @@ func TestLower(t *testing.T) {
 					c)
 			`,
 			Disasm: []string{
-				"000000:	48 8b c2             	mov rax, rdx",
-				"000003:	c3                   	ret",
+				"000000:	f3 0f 1e fa          	endbr64",
+				"000004:	48 8b c2             	mov rax, rdx",
+				"000007:	c3                   	ret",
 			},
 			Want: []*TestValue{
+				{ID: 0, Op: ssafir.OpX86ENDBR64, Extra: &x86InstructionData{Length: 4}, Uses: 0, Code: `func (test (a string) (b int) int)`},
 				{ID: 5, Op: ssafir.OpX86MOV_R64_Rmr64_REX, Extra: &x86InstructionData{Args: [4]any{x86.RAX, x86.RDX}, Length: 3}, Uses: 1, Code: `c`},
 				{ID: 5, Op: ssafir.OpX86RET, Extra: &x86InstructionData{Length: 1}, Uses: 1, Code: `c`},
 			},
@@ -87,17 +91,19 @@ func TestLower(t *testing.T) {
 					(double val))
 			`,
 			Disasm: []string{
-				"000000:	bf 03 00 00 00       	mov edi, 0x3",    // Prepare arg (len "bar")
-				"000005:	e8 3f 33 22 11       	call 0x11223349", // Call func   (double (len "bar"))
-				"00000a:	bf 06 00 00 00       	mov edi, 0x6",    // Prepare arg (let length (len "foobar")))
-				"00000f:	e8 3f 33 22 11       	call 0x11223353", // Call func   (double length)
-				"000014:	bf 07 00 00 00       	mov edi, 0x7",    // Prepare arg 7
-				"000019:	e8 3f 33 22 11       	call 0x1122335d", // Call func   (double 7)
-				"00001e:	bf 11 00 00 00       	mov edi, 0x11",   // Prepare arg (let (val int) 17)
-				"000023:	e8 3f 33 22 11       	call 0x11223367", // Call func   (double val)
-				"000028:	c3                   	ret",             // Return      (double val)
+				"000000:	f3 0f 1e fa          	endbr64",
+				"000004:	bf 03 00 00 00       	mov edi, 0x3",    // Prepare arg (len "bar")
+				"000009:	e8 3f 33 22 11       	call 0x1122334d", // Call func   (double (len "bar"))
+				"00000e:	bf 06 00 00 00       	mov edi, 0x6",    // Prepare arg (let length (len "foobar")))
+				"000013:	e8 3f 33 22 11       	call 0x11223357", // Call func   (double length)
+				"000018:	bf 07 00 00 00       	mov edi, 0x7",    // Prepare arg 7
+				"00001d:	e8 3f 33 22 11       	call 0x11223361", // Call func   (double 7)
+				"000022:	bf 11 00 00 00       	mov edi, 0x11",   // Prepare arg (let (val int) 17)
+				"000027:	e8 3f 33 22 11       	call 0x1122336b", // Call func   (double val)
+				"00002c:	c3                   	ret",             // Return      (double val)
 			},
 			Want: []*TestValue{
+				{ID: 0, Op: ssafir.OpX86ENDBR64, Extra: &x86InstructionData{Length: 4}, Uses: 0, Code: `func (test int)`},
 				{
 					ID:    4,
 					Op:    ssafir.OpX86MOV_R32op_Imm32,
@@ -115,8 +121,8 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.double",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  6,
-								Address: 0x0a,
+								Offset:  10,
+								Address: 0x0e,
 							},
 						},
 						Length: 5,
@@ -141,8 +147,8 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.double",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  16,
-								Address: 0x14,
+								Offset:  20,
+								Address: 0x18,
 							},
 						},
 						Length: 5,
@@ -167,8 +173,8 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.double",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  26,
-								Address: 0x1e,
+								Offset:  30,
+								Address: 0x22,
 							},
 						},
 						Length: 5,
@@ -193,8 +199,8 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.double",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  36,
-								Address: 0x28,
+								Offset:  40,
+								Address: 0x2c,
 							},
 						},
 						Length: 5,
@@ -236,47 +242,49 @@ func TestLower(t *testing.T) {
 					(or sum dif mul div bnd big sml)) ; 63
 			`,
 			Disasm: []string{
-				"000000:	53                   	push rbx",        // Save rbx
-				"000001:	b8 07 00 00 00       	mov eax, 0x7",    // Prepare arg 7
-				"000006:	e8 3f 33 22 11       	call 0x1122334a", // Call func   (copy-n 7)
-				"00000b:	48 8b c8             	mov rcx, rax",    // Save result (let a (copy-n 7))
-				"00000e:	b8 03 00 00 00       	mov eax, 0x3",    // Prepare arg 3
-				"000013:	e8 3f 33 22 11       	call 0x11223357", // Call func   (copy-n 3)
-				"000018:	48 8b d0             	mov rdx, rax",    // Save result (let b (copy-n 3))
-				"00001b:	48 8b f1             	mov rsi, rcx",    // Prepare arg a
-				"00001e:	48 03 f0             	add rsi, rax",    // Arithmetic  (+ a b)
-				"000021:	48 8b f9             	mov rdi, rcx",    // Prepare arg a
-				"000024:	48 2b f8             	sub rdi, rax",    // Arithmetic  (- a b)
-				"000027:	4c 8b c2             	mov r8, rdx",     // Save result (let ub (int->uint b))
-				"00002a:	4c 8b c8             	mov r9, rax",     // Prepare arg b
-				"00002d:	48 8b c1             	mov rax, rcx",    // Prepare arg a
-				"000030:	49 f7 e1             	mul r9",          // Arithmetic  (× a b)
-				"000033:	4c 8b d0             	mov r10, rax",    // Save result (let mul (* a b))
-				"000036:	48 8b c1             	mov rax, rcx",    // Prepare arg a
-				"000039:	48 33 d2             	xor rdx, rdx",    // Clear RDX
-				"00003c:	49 f7 f1             	div r9",          // Arithmetic  (÷ a b)
-				"00003f:	48 8b d1             	mov rdx, rcx",    // Prepare arg a
-				"000042:	49 23 d1             	and rdx, r9",     // Arithmetic  (and a b)
-				"000045:	4c 8b c9             	mov r9, rcx",     // Prepare arg a
-				"000048:	4d 8b d9             	mov r11, r9",     // Save arg    a
-				"00004b:	49 8b c8             	mov rcx, r8",     // Prepare arg ub
-				"00004e:	49 d3 e3             	shl r11, cl",     // Arithmetic  (<< a ub)
-				"000051:	4c 8b c9             	mov r9, rcx",     // Save arg    b
-				"000054:	49 8b da             	mov rbx, r10",    // Prepare arg mul
-				"000057:	49 8b c8             	mov rcx, r8",     // Prepare arg ub
-				"00005a:	48 d3 fb             	sar rbx, cl",     // Arithmetic  (>> mul ub)
-				"00005d:	4c 8b c6             	mov r8, rsi",     // Prepare arg sum
-				"000060:	4c 0b c7             	or r8, rdi",      // Arithmetic  (or sum dif)
-				"000063:	4d 0b c2             	or r8, r10",      // Arithmetic  (or sum dif mul)
-				"000066:	4c 0b c0             	or r8, rax",      // Arithmetic  (or sum ... mul div)
-				"000069:	4c 0b c2             	or r8, rdx",      // Arithmetic  (or sum ... div bnd)
-				"00006c:	4d 0b c3             	or r8, r11",      // Arithmetic  (or sum ... bnd big)
-				"00006f:	4c 0b c3             	or r8, rbx",      // Arithmetic  (or sum ... big sml)
-				"000072:	49 8b c0             	mov rax, r8",     // Save result (or sum ... sml)
-				"000075:	5b                   	pop rbx",         // Restore rbx
-				"000076:	c3                   	ret",
+				"000000:	f3 0f 1e fa          	endbr64",
+				"000004:	53                   	push rbx",        // Save rbx
+				"000005:	b8 07 00 00 00       	mov eax, 0x7",    // Prepare arg 7
+				"00000a:	e8 3f 33 22 11       	call 0x1122334e", // Call func   (copy-n 7)
+				"00000f:	48 8b c8             	mov rcx, rax",    // Save result (let a (copy-n 7))
+				"000012:	b8 03 00 00 00       	mov eax, 0x3",    // Prepare arg 3
+				"000017:	e8 3f 33 22 11       	call 0x1122335b", // Call func   (copy-n 3)
+				"00001c:	48 8b d0             	mov rdx, rax",    // Save result (let b (copy-n 3))
+				"00001f:	48 8b f1             	mov rsi, rcx",    // Prepare arg a
+				"000022:	48 03 f0             	add rsi, rax",    // Arithmetic  (+ a b)
+				"000025:	48 8b f9             	mov rdi, rcx",    // Prepare arg a
+				"000028:	48 2b f8             	sub rdi, rax",    // Arithmetic  (- a b)
+				"00002b:	4c 8b c2             	mov r8, rdx",     // Save result (let ub (int->uint b))
+				"00002e:	4c 8b c8             	mov r9, rax",     // Prepare arg b
+				"000031:	48 8b c1             	mov rax, rcx",    // Prepare arg a
+				"000034:	49 f7 e1             	mul r9",          // Arithmetic  (× a b)
+				"000037:	4c 8b d0             	mov r10, rax",    // Save result (let mul (* a b))
+				"00003a:	48 8b c1             	mov rax, rcx",    // Prepare arg a
+				"00003d:	48 33 d2             	xor rdx, rdx",    // Clear RDX
+				"000040:	49 f7 f1             	div r9",          // Arithmetic  (÷ a b)
+				"000043:	48 8b d1             	mov rdx, rcx",    // Prepare arg a
+				"000046:	49 23 d1             	and rdx, r9",     // Arithmetic  (and a b)
+				"000049:	4c 8b c9             	mov r9, rcx",     // Prepare arg a
+				"00004c:	4d 8b d9             	mov r11, r9",     // Save arg    a
+				"00004f:	49 8b c8             	mov rcx, r8",     // Prepare arg ub
+				"000052:	49 d3 e3             	shl r11, cl",     // Arithmetic  (<< a ub)
+				"000055:	4c 8b c9             	mov r9, rcx",     // Save arg    b
+				"000058:	49 8b da             	mov rbx, r10",    // Prepare arg mul
+				"00005b:	49 8b c8             	mov rcx, r8",     // Prepare arg ub
+				"00005e:	48 d3 fb             	sar rbx, cl",     // Arithmetic  (>> mul ub)
+				"000061:	4c 8b c6             	mov r8, rsi",     // Prepare arg sum
+				"000064:	4c 0b c7             	or r8, rdi",      // Arithmetic  (or sum dif)
+				"000067:	4d 0b c2             	or r8, r10",      // Arithmetic  (or sum dif mul)
+				"00006a:	4c 0b c0             	or r8, rax",      // Arithmetic  (or sum ... mul div)
+				"00006d:	4c 0b c2             	or r8, rdx",      // Arithmetic  (or sum ... div bnd)
+				"000070:	4d 0b c3             	or r8, r11",      // Arithmetic  (or sum ... bnd big)
+				"000073:	4c 0b c3             	or r8, rbx",      // Arithmetic  (or sum ... big sml)
+				"000076:	49 8b c0             	mov rax, r8",     // Save result (or sum ... sml)
+				"000079:	5b                   	pop rbx",         // Restore rbx
+				"00007a:	c3                   	ret",
 			},
 			Want: []*TestValue{
+				{ID: 0, Op: ssafir.OpX86ENDBR64, Extra: &x86InstructionData{Length: 4}, Uses: 0, Code: `func (test int)`},
 				{
 					ID:    0,
 					Op:    ssafir.OpX86PUSH_R64op,
@@ -301,8 +309,8 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.copy-n",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  7,
-								Address: 0x0b,
+								Offset:  11,
+								Address: 0x0f,
 							},
 						},
 						Length: 5,
@@ -334,8 +342,8 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.copy-n",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  20,
-								Address: 0x18,
+								Offset:  24,
+								Address: 0x1c,
 							},
 						},
 						Length: 5,
@@ -601,53 +609,55 @@ func TestLower(t *testing.T) {
 					(or all any (= a a))) ; true
 			`,
 			Disasm: []string{
-				"000000:	b8 07 00 00 00       	mov eax, 0x7",    // Prepare arg 7
-				"000005:	e8 3f 33 22 11       	call 0x11223349", // Call func   (copy-n 7)
-				"00000a:	48 8b c8             	mov rcx, rax",    // Save result (let a (copy-n 7))
-				"00000d:	b8 03 00 00 00       	mov eax, 0x3",    // Prepare arg 3
-				"000012:	e8 3f 33 22 11       	call 0x11223356", // Call func   (copy-n 3)
-				"000017:	48 3b c8             	cmp rcx, rax",    // Compare     (> a b)
-				"00001a:	0f 9f c2             	setnle dl",       // Perform     (> a b)
-				"00001d:	48 3b c8             	cmp rcx, rax",    // Compare     (>= a b)
-				"000020:	40 0f 9d c6          	setnl sil",       // Perform     (>= a b)
-				"000024:	48 3b c8             	cmp rcx, rax",    // Compare     (< a b)
-				"000027:	40 0f 9c c7          	setl dil",        // Perform     (< a b)
-				"00002b:	48 3b c8             	cmp rcx, rax",    // Compare     (<= a b)
-				"00002e:	41 0f 9e c0          	setle r8b",       // Perform     (<= a b)
-				"000032:	48 3b c8             	cmp rcx, rax",    // Compare     (= a b)
-				"000035:	41 0f 94 c1          	setz r9b",        // Perform     (= a b)
-				"000039:	48 3b c8             	cmp rcx, rax",    // Compare     (!= a b)
-				"00003c:	41 0f 95 c2          	setnz r10b",      // Perform     (!= a b)
-				"000040:	40 22 d6             	and dl, sil",     // Perform     (and gtr geq)
-				"000043:	0f 95 c0             	setnz al",        // Save result (and gtr geq)
-				"000046:	40 22 c7             	and al, dil",     // Perform     (and gtr geq lss)
-				"000049:	0f 95 c0             	setnz al",        // Save result (and gtr geq lss)
-				"00004c:	41 22 c0             	and al, r8b",     // Perform     (and gtr ... lss leq)
-				"00004f:	0f 95 c0             	setnz al",        // Save result (and gtr ... lss leq)
-				"000052:	41 22 c1             	and al, r9b",     // Perform     (and gtr ... leq eql)
-				"000055:	0f 95 c0             	setnz al",        // Save result (and gtr ... leq eql)
-				"000058:	41 22 c2             	and al, r10b",    // Perform     (and gtr ... eql neq)
-				"00005b:	0f 95 c0             	setnz al",        // Save result (and gtr ... eql neq)
-				"00005e:	40 0a d6             	or dl, sil",      // Perform     (or gtr geq)
-				"000061:	41 0f 95 c3          	setnz r11b",      // Save result (or gtr geq)
-				"000065:	44 0a df             	or r11b, dil",    // Perform     (or gtr geq lss)
-				"000068:	41 0f 95 c3          	setnz r11b",      // Save result (or gtr geq lss)
-				"00006c:	45 0a d8             	or r11b, r8b",    // Perform     (or gtr ... lss leq)
-				"00006f:	41 0f 95 c3          	setnz r11b",      // Save result (or gtr ... lss leq)
-				"000073:	45 0a d9             	or r11b, r9b",    // Perform     (or gtr ... leq eql)
-				"000076:	41 0f 95 c3          	setnz r11b",      // Save result (or gtr ... leq eql)
-				"00007a:	45 0a da             	or r11b, r10b",   // Perform     (or gtr ... eql neq)
-				"00007d:	41 0f 95 c3          	setnz r11b",      // Save result (or gtr ... eql neq)
-				"000081:	48 3b c9             	cmp rcx, rcx",    // Compare     (= a a)
-				"000084:	0f 94 c2             	setz dl",         // Perform     (= a a)
-				"000087:	41 0a c3             	or al, r11b",     // Perform     (or all any)
-				"00008a:	0f 95 c1             	setnz cl",        // Save result (or all any)
-				"00008d:	0a ca                	or cl, dl",       // Perform     (or all any (= a a))
-				"00008f:	0f 95 c1             	setnz cl",        // Save result (or all any (= a a))
-				"000092:	48 8b c1             	mov rax, rcx",    // Return      (or all any)
-				"000095:	c3                   	ret",
+				"000000:	f3 0f 1e fa          	endbr64",
+				"000004:	b8 07 00 00 00       	mov eax, 0x7",    // Prepare arg 7
+				"000009:	e8 3f 33 22 11       	call 0x1122334d", // Call func   (copy-n 7)
+				"00000e:	48 8b c8             	mov rcx, rax",    // Save result (let a (copy-n 7))
+				"000011:	b8 03 00 00 00       	mov eax, 0x3",    // Prepare arg 3
+				"000016:	e8 3f 33 22 11       	call 0x1122335a", // Call func   (copy-n 3)
+				"00001b:	48 3b c8             	cmp rcx, rax",    // Compare     (> a b)
+				"00001e:	0f 9f c2             	setnle dl",       // Perform     (> a b)
+				"000021:	48 3b c8             	cmp rcx, rax",    // Compare     (>= a b)
+				"000024:	40 0f 9d c6          	setnl sil",       // Perform     (>= a b)
+				"000028:	48 3b c8             	cmp rcx, rax",    // Compare     (< a b)
+				"00002b:	40 0f 9c c7          	setl dil",        // Perform     (< a b)
+				"00002f:	48 3b c8             	cmp rcx, rax",    // Compare     (<= a b)
+				"000032:	41 0f 9e c0          	setle r8b",       // Perform     (<= a b)
+				"000036:	48 3b c8             	cmp rcx, rax",    // Compare     (= a b)
+				"000039:	41 0f 94 c1          	setz r9b",        // Perform     (= a b)
+				"00003d:	48 3b c8             	cmp rcx, rax",    // Compare     (!= a b)
+				"000040:	41 0f 95 c2          	setnz r10b",      // Perform     (!= a b)
+				"000044:	40 22 d6             	and dl, sil",     // Perform     (and gtr geq)
+				"000047:	0f 95 c0             	setnz al",        // Save result (and gtr geq)
+				"00004a:	40 22 c7             	and al, dil",     // Perform     (and gtr geq lss)
+				"00004d:	0f 95 c0             	setnz al",        // Save result (and gtr geq lss)
+				"000050:	41 22 c0             	and al, r8b",     // Perform     (and gtr ... lss leq)
+				"000053:	0f 95 c0             	setnz al",        // Save result (and gtr ... lss leq)
+				"000056:	41 22 c1             	and al, r9b",     // Perform     (and gtr ... leq eql)
+				"000059:	0f 95 c0             	setnz al",        // Save result (and gtr ... leq eql)
+				"00005c:	41 22 c2             	and al, r10b",    // Perform     (and gtr ... eql neq)
+				"00005f:	0f 95 c0             	setnz al",        // Save result (and gtr ... eql neq)
+				"000062:	40 0a d6             	or dl, sil",      // Perform     (or gtr geq)
+				"000065:	41 0f 95 c3          	setnz r11b",      // Save result (or gtr geq)
+				"000069:	44 0a df             	or r11b, dil",    // Perform     (or gtr geq lss)
+				"00006c:	41 0f 95 c3          	setnz r11b",      // Save result (or gtr geq lss)
+				"000070:	45 0a d8             	or r11b, r8b",    // Perform     (or gtr ... lss leq)
+				"000073:	41 0f 95 c3          	setnz r11b",      // Save result (or gtr ... lss leq)
+				"000077:	45 0a d9             	or r11b, r9b",    // Perform     (or gtr ... leq eql)
+				"00007a:	41 0f 95 c3          	setnz r11b",      // Save result (or gtr ... leq eql)
+				"00007e:	45 0a da             	or r11b, r10b",   // Perform     (or gtr ... eql neq)
+				"000081:	41 0f 95 c3          	setnz r11b",      // Save result (or gtr ... eql neq)
+				"000085:	48 3b c9             	cmp rcx, rcx",    // Compare     (= a a)
+				"000088:	0f 94 c2             	setz dl",         // Perform     (= a a)
+				"00008b:	41 0a c3             	or al, r11b",     // Perform     (or all any)
+				"00008e:	0f 95 c1             	setnz cl",        // Save result (or all any)
+				"000091:	0a ca                	or cl, dl",       // Perform     (or all any (= a a))
+				"000093:	0f 95 c1             	setnz cl",        // Save result (or all any (= a a))
+				"000096:	48 8b c1             	mov rax, rcx",    // Return      (or all any)
+				"000099:	c3                   	ret",
 			},
 			Want: []*TestValue{
+				{ID: 0, Op: ssafir.OpX86ENDBR64, Extra: &x86InstructionData{Length: 4}, Uses: 0, Code: `func (test bool)`},
 				{
 					ID:    2,
 					Op:    ssafir.OpX86MOV_R32op_Imm32,
@@ -665,8 +675,8 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.copy-n",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  6,
-								Address: 0x0a,
+								Offset:  10,
+								Address: 0x0e,
 							},
 						},
 						Length: 5,
@@ -698,8 +708,8 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.copy-n",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  19,
-								Address: 0x17,
+								Offset:  23,
+								Address: 0x1b,
 							},
 						},
 						Length: 5,
