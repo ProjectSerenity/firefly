@@ -14,7 +14,14 @@ go = [
     module(
         name = "golang.org/x/arch",
         version = "v0.7.0",
-        digest = "sha256:55ca1b0926a1944d818713ea11438b51c9806cf3a76f37a609dd21829f0e0709",
+        digest = "sha256:14b574e32d53e033085d9a6fcd9110dfba54c48cbe8b3785768008767e13bd59",
+        patch_args = [
+            "-p1",
+        ],
+        patches = [
+            "bazel/patches/golang.org_x_arch.patch",
+        ],
+        patch_digest = "sha256:8a45c2b9cbabe8ea9b17ae9b1a14fb2902a4a74b7e71ed13a61d7d4d8b67a2b9",
     ),
     module(
         name = "golang.org/x/crypto",

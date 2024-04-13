@@ -77,6 +77,10 @@ go = [
                 name = "golang.org/x/arch/x86/x86asm",
             ),
         ],
+        patches = [
+            "bazel/patches/golang.org_x_arch.patch",
+        ],
+        patch_args = ["-p1"],
     ),
     module(
         name = "golang.org/x/crypto",

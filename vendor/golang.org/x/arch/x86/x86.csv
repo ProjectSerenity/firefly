@@ -394,6 +394,8 @@
 "DPPD xmm1, xmm2/m128, imm8u","66 0F 3A 41 /r ib","V","V","SSE4_1",""
 "DPPS xmm1, xmm2/m128, imm8u","66 0F 3A 40 /r ib","V","V","SSE4_1",""
 "EMMS","0F 77","V","V","",""
+"ENDBR32","F3 0F 1E FB","V","V","CET_IBT",""
+"ENDBR64","F3 0F 1E FA","V","V","CET_IBT",""
 "ENTER imm16u, 0","C8 iw 00","V","V","","pseudo"
 "ENTER imm16u, 1","C8 iw 01","V","V","","pseudo"
 "ENTER imm16u, imm8u","C8 iw ib","V","V","",""
