@@ -296,6 +296,7 @@ func Check(packagePath string, fset *token.FileSet, files []*ast.File, arch *sys
 		funcs:  make(map[token.Pos]*Function),
 		names:  make(map[token.Pos]string),
 		consts: make(map[ast.Expression]constant.Value),
+		uses:   make(map[Object][]*ast.Identifier),
 	}
 
 	return pkg, checker.Check(files)
@@ -313,6 +314,7 @@ type checker struct {
 	funcs  map[token.Pos]*Function
 	names  map[token.Pos]string
 	consts map[ast.Expression]constant.Value
+	uses   map[Object][]*ast.Identifier
 }
 
 func (c *checker) newType(typ Type) {
@@ -332,6 +334,7 @@ func (c *checker) define(ident *ast.Identifier, obj Object) {
 }
 
 func (c *checker) use(ident *ast.Identifier, obj Object) {
+	c.uses[obj] = append(c.uses[obj], ident)
 	if c.info.Uses != nil {
 		c.info.Uses[ident] = obj
 	}
@@ -1211,6 +1214,26 @@ func (c *checker) ResolveFuncBody(scope *Scope, fun *ast.List) (result Type, err
 
 		if isLast && sig.result != nil && !AssignableTo(sig.result, result, value) {
 			return nil, c.errorf(expr.Pos(), "%s has return type %s but returns value of incompatible type %s", name, sig.result, result)
+		}
+	}
+
+	// Check that we used every declared
+	// variable.
+	sigPos := fun.Elements[1].Pos()
+	sigEnd := fun.Elements[1].End()
+	for name, obj := range scope.decls {
+		// We ignore the blank identifier.
+		if name == "_" {
+			continue
+		}
+
+		// We allow parameters to go unused.
+		if sigPos <= obj.Pos() && obj.End() <= sigEnd {
+			continue
+		}
+
+		if len(c.uses[obj]) == 0 {
+			return nil, c.errorf(obj.Pos(), "%s declared and not used", name)
 		}
 	}
 
