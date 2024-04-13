@@ -100,7 +100,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		for len(src) > 0 {
 			inst, err := x86asm.Decode(src, mode)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to decode instruction at offset %016x: %v", pc, err)
 			}
 
 			size := inst.Len
