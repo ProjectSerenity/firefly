@@ -423,6 +423,17 @@ func newAllocator(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, pkg *P
 		isScratch[reg] = true
 	}
 
+	// We can also use unused parameter
+	// registers as scratch space.
+	lastParam := len(fun.Type.Params()) - 1
+	for i, reg := range abi.ParamRegisters {
+		if i <= lastParam {
+			continue
+		}
+
+		isScratch[reg] = true
+	}
+
 	slices.SortStableFunc(registers, func(a, b sys.Location) int {
 		// Prioritise scratch registers over
 		// callee-preserved, then fall back
