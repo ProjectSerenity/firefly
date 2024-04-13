@@ -238,9 +238,9 @@ func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assemb
 	// Branch Tracking.
 	if ctx.Mode.Int == 32 || ctx.Mode.Int == 64 {
 		data := &x86InstructionData{Length: 4}
-		op := ssafir.OpX86ENDBR32
+		op := ssafir.OpX86_ENDBR32
 		if ctx.Mode.Int == 64 {
-			op = ssafir.OpX86ENDBR64
+			op = ssafir.OpX86_ENDBR64
 		}
 
 		c.currentBlock.Values = append(c.currentBlock.Values, &ssafir.Value{

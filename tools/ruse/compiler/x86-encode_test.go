@@ -1489,7 +1489,7 @@ func TestEncodeMemory(t *testing.T) {
 
 		op := test.Op
 		if op == ssafir.OpInvalid {
-			op = ssafir.OpX86AAD
+			op = ssafir.OpX86_AAD
 		}
 
 		err := data.encodeMemory(&code, op, test.Mode, test.Memory)

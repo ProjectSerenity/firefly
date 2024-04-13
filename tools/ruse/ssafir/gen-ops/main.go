@@ -98,7 +98,7 @@ func main() {
 
 			var name string
 			if opset.Name != "abstract" {
-				name = opset.Name
+				name = opset.Name + "_"
 			}
 
 			var groupName string

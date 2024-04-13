@@ -394,13 +394,13 @@ func TestCompile(t *testing.T) {
 				b11 := f1.NewBlock(246, ssafir.BlockNormal)
 				b11.Values = append(b11.Values, &ssafir.Value{
 					ID:    0, // This is special.
-					Op:    ssafir.OpX86ENDBR64,
+					Op:    ssafir.OpX86_ENDBR64,
 					Block: b11,
 					Pos:   99,
 					End:   244,
 					Extra: &x86InstructionData{Length: 4},
 				})
-				b11.NewValueExtra(246, 255, ssafir.OpX86SYSCALL, nil, &x86InstructionData{Length: 2})
+				b11.NewValueExtra(246, 255, ssafir.OpX86_SYSCALL, nil, &x86InstructionData{Length: 2})
 				b11.End = 246
 				f1.Entry = b11
 

@@ -62,7 +62,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "ret",
 		Mode:     x86.Mode64,
 		Assembly: "(ret)",
-		Op:       ssafir.OpX86RET,
+		Op:       ssafir.OpX86_RET,
 		Data: &x86InstructionData{
 			Length: 1,
 		},
@@ -75,7 +75,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "shift right",
 		Mode:     x86.Mode64,
 		Assembly: "(shr ecx 18)",
-		Op:       ssafir.OpX86SHR_Rmr32_Imm8u,
+		Op:       ssafir.OpX86_SHR_Rmr32_Imm8u,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.ECX,
@@ -96,7 +96,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "small displaced adc register pair",
 		Mode:     x86.Mode64,
 		Assembly: "(adc '(bits 8)(+ bx si) cl)",
-		Op:       ssafir.OpX86ADC_M8_R8,
+		Op:       ssafir.OpX86_ADC_M8_R8,
 		Data: &x86InstructionData{
 			Args:   [4]any{&x86.Memory{Base: x86.BX_SI}, x86.CL},
 			Length: 3,
@@ -113,7 +113,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "small displaced adc segment offset",
 		Mode:     x86.Mode64,
 		Assembly: "(adc '(bytes 1)(+ es bp 0x7) cl)",
-		Op:       ssafir.OpX86ADC_M8_R8,
+		Op:       ssafir.OpX86_ADC_M8_R8,
 		Data: &x86InstructionData{
 			Args:   [4]any{&x86.Memory{Segment: x86.ES, Base: x86.BP, Displacement: 7}, x86.CL},
 			Length: 5,
@@ -132,7 +132,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "large add",
 		Mode:     x86.Mode64,
 		Assembly: "(add r8 (rdi))",
-		Op:       ssafir.OpX86ADD_R64_M64_REX,
+		Op:       ssafir.OpX86_ADD_R64_M64_REX,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.R8, &x86.Memory{Base: x86.RDI}},
 			Length: 3,
@@ -149,7 +149,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "large displaced add",
 		Mode:     x86.Mode64,
 		Assembly: "(add r8 (+ rdi 7))",
-		Op:       ssafir.OpX86ADD_R64_M64_REX,
+		Op:       ssafir.OpX86_ADD_R64_M64_REX,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.R8, &x86.Memory{Base: x86.RDI, Displacement: 7}},
 			Length: 4,
@@ -168,7 +168,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "move to register from ES",
 		Mode:     x86.Mode32,
 		Assembly: "(mov ah (es eax))",
-		Op:       ssafir.OpX86MOV_R8_M8,
+		Op:       ssafir.OpX86_MOV_R8_M8,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.AH, &x86.Memory{Segment: x86.ES, Base: x86.EAX}},
 			Length: 3,
@@ -185,7 +185,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "move to register from CS",
 		Mode:     x86.Mode32,
 		Assembly: "(mov ah (cs eax))",
-		Op:       ssafir.OpX86MOV_R8_M8,
+		Op:       ssafir.OpX86_MOV_R8_M8,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.AH, &x86.Memory{Segment: x86.CS, Base: x86.EAX}},
 			Length: 3,
@@ -202,7 +202,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "move to register from SS",
 		Mode:     x86.Mode32,
 		Assembly: "(mov ah (ss eax))",
-		Op:       ssafir.OpX86MOV_R8_M8,
+		Op:       ssafir.OpX86_MOV_R8_M8,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.AH, &x86.Memory{Segment: x86.SS, Base: x86.EAX}},
 			Length: 3,
@@ -219,7 +219,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "move to register from DS",
 		Mode:     x86.Mode32,
 		Assembly: "(mov ah (ds eax))",
-		Op:       ssafir.OpX86MOV_R8_M8,
+		Op:       ssafir.OpX86_MOV_R8_M8,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.AH, &x86.Memory{Segment: x86.DS, Base: x86.EAX}},
 			Length: 3,
@@ -236,7 +236,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "move to register from FS",
 		Mode:     x86.Mode32,
 		Assembly: "(mov ah (fs eax))",
-		Op:       ssafir.OpX86MOV_R8_M8,
+		Op:       ssafir.OpX86_MOV_R8_M8,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.AH, &x86.Memory{Segment: x86.FS, Base: x86.EAX}},
 			Length: 3,
@@ -253,7 +253,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "move to register from GS",
 		Mode:     x86.Mode32,
 		Assembly: "(mov ah (gs eax))",
-		Op:       ssafir.OpX86MOV_R8_M8,
+		Op:       ssafir.OpX86_MOV_R8_M8,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.AH, &x86.Memory{Segment: x86.GS, Base: x86.EAX}},
 			Length: 3,
@@ -270,7 +270,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "size override mov",
 		Mode:     x86.Mode64,
 		Assembly: "(mov eax (edx))",
-		Op:       ssafir.OpX86MOV_R32_M32,
+		Op:       ssafir.OpX86_MOV_R32_M32,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.EAX, &x86.Memory{Base: x86.EDX}},
 			Length: 3,
@@ -287,7 +287,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory base index displacement",
 		Mode:     x86.Mode64,
 		Assembly: "(mov rcx (+ rdx r9 17))",
-		Op:       ssafir.OpX86MOV_R64_M64_REX,
+		Op:       ssafir.OpX86_MOV_R64_M64_REX,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.RCX,
@@ -314,7 +314,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory base displacement 16-bit",
 		Mode:     x86.Mode16,
 		Assembly: "(mov cx (+ bx di 17))",
-		Op:       ssafir.OpX86MOV_R16_M16,
+		Op:       ssafir.OpX86_MOV_R16_M16,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.CX,
@@ -338,7 +338,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory base index scale displacement",
 		Mode:     x86.Mode64,
 		Assembly: "(mov rcx (+ r12 (* rbx 4) 17))",
-		Op:       ssafir.OpX86MOV_R64_M64_REX,
+		Op:       ssafir.OpX86_MOV_R64_M64_REX,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.RCX,
@@ -366,7 +366,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory base displacement",
 		Mode:     x86.Mode32,
 		Assembly: "(mov ecx (+ edx 256))",
-		Op:       ssafir.OpX86MOV_R32_M32,
+		Op:       ssafir.OpX86_MOV_R32_M32,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.ECX,
@@ -390,7 +390,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory base index",
 		Mode:     x86.Mode32,
 		Assembly: "(mov ecx (+ edx ebx))",
-		Op:       ssafir.OpX86MOV_R32_M32,
+		Op:       ssafir.OpX86_MOV_R32_M32,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.ECX,
@@ -413,7 +413,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory index scale",
 		Mode:     x86.Mode64,
 		Assembly: "(mov rcx (* rbx 8))",
-		Op:       ssafir.OpX86MOV_R64_M64_REX,
+		Op:       ssafir.OpX86_MOV_R64_M64_REX,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.RCX,
@@ -438,7 +438,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory index scale displacement",
 		Mode:     x86.Mode64,
 		Assembly: "(mov rcx (+ (* rbx 8) 17))",
-		Op:       ssafir.OpX86MOV_R64_M64_REX,
+		Op:       ssafir.OpX86_MOV_R64_M64_REX,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.RCX,
@@ -465,7 +465,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory base index scale",
 		Mode:     x86.Mode32,
 		Assembly: "(mov ecx (+ edx (* ebx 2)))",
-		Op:       ssafir.OpX86MOV_R32_M32,
+		Op:       ssafir.OpX86_MOV_R32_M32,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.ECX,
@@ -489,7 +489,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory base",
 		Mode:     x86.Mode32,
 		Assembly: "(mov ecx (edx))",
-		Op:       ssafir.OpX86MOV_R32_M32,
+		Op:       ssafir.OpX86_MOV_R32_M32,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.ECX,
@@ -510,7 +510,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory displacement",
 		Mode:     x86.Mode32,
 		Assembly: "(mov ecx (17))",
-		Op:       ssafir.OpX86MOV_R32_M32,
+		Op:       ssafir.OpX86_MOV_R32_M32,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.ECX,
@@ -533,7 +533,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory displacement 16-bit",
 		Mode:     x86.Mode16,
 		Assembly: "(mov cx (17))",
-		Op:       ssafir.OpX86MOV_R16_M16,
+		Op:       ssafir.OpX86_MOV_R16_M16,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.CX,
@@ -556,7 +556,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory segment offset",
 		Mode:     x86.Mode32,
 		Assembly: "(mov al (ss 17))",
-		Op:       ssafir.OpX86MOV_AL_Moffs8,
+		Op:       ssafir.OpX86_MOV_AL_Moffs8,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.AL,
@@ -579,7 +579,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory absolute offset",
 		Mode:     x86.Mode64,
 		Assembly: "(mov rax (0x1122334455667788))",
-		Op:       ssafir.OpX86MOV_RAX_Moffs64_REX,
+		Op:       ssafir.OpX86_MOV_RAX_Moffs64_REX,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.RAX,
@@ -601,7 +601,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory strings",
 		Mode:     x86.Mode32,
 		Assembly: "(movs '(bits 8)(edi) (esi))",
-		Op:       ssafir.OpX86MOVS_StrDst8_StrSrc8,
+		Op:       ssafir.OpX86_MOVS_StrDst8_StrSrc8,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.EDI,
@@ -618,7 +618,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory explicit strings",
 		Mode:     x86.Mode32,
 		Assembly: "(movs '(bits 32)(es edi) '(bytes 4)(ds esi))",
-		Op:       ssafir.OpX86MOVS_StrDst32_StrSrc32,
+		Op:       ssafir.OpX86_MOVS_StrDst32_StrSrc32,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.EDI,
@@ -635,7 +635,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory strings 32-bit",
 		Mode:     x86.Mode32,
 		Assembly: "(movsd (edi) (esi))",
-		Op:       ssafir.OpX86MOVSD,
+		Op:       ssafir.OpX86_MOVSD,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.EDI,
@@ -652,7 +652,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "memory strings 16-bit",
 		Mode:     x86.Mode16,
 		Assembly: "(movsd (edi) (esi))",
-		Op:       ssafir.OpX86MOVSD,
+		Op:       ssafir.OpX86_MOVSD,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.EDI,
@@ -670,7 +670,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "call absolute address",
 		Mode:     x86.Mode32,
 		Assembly: "(call-far (0x1122 0x33445566))",
-		Op:       ssafir.OpX86CALL_FAR_Ptr16v32,
+		Op:       ssafir.OpX86_CALL_FAR_Ptr16v32,
 		Data: &x86InstructionData{
 			Args:   [4]any{uint64(0x112233445566)},
 			Length: 7,
@@ -686,7 +686,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "specialised cmppd",
 		Mode:     x86.Mode16,
 		Assembly: "(cmpeqpd xmm0 (0xb))",
-		Op:       ssafir.OpX86CMPEQPD_XMM1_M128,
+		Op:       ssafir.OpX86_CMPEQPD_XMM1_M128,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.XMM0, &x86.Memory{Displacement: 0xb}},
 			Length: 7,
@@ -707,7 +707,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "x87 add",
 		Mode:     x86.Mode64,
 		Assembly: "(fadd st0 st)",
-		Op:       ssafir.OpX86FADD_STi_ST, // The order matters.
+		Op:       ssafir.OpX86_FADD_STi_ST, // The order matters.
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.ST0, struct{}{}},
 			Length: 2,
@@ -721,7 +721,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "old fsave",
 		Mode:     x86.Mode32,
 		Assembly: "(fsave (ecx))",
-		Op:       ssafir.OpX86FSAVE_M94l108byte,
+		Op:       ssafir.OpX86_FSAVE_M94l108byte,
 		Data: &x86InstructionData{
 			Args:   [4]any{&x86.Memory{Base: x86.ECX}},
 			Length: 3,
@@ -738,7 +738,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "sysret to 32-bit mode",
 		Mode:     x86.Mode64,
 		Assembly: "(sysret)",
-		Op:       ssafir.OpX86SYSRET,
+		Op:       ssafir.OpX86_SYSRET,
 		Data: &x86InstructionData{
 			Length: 2,
 		},
@@ -751,7 +751,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "sysret to 64-bit mode",
 		Mode:     x86.Mode64,
 		Assembly: "(rex.w sysret)",
-		Op:       ssafir.OpX86SYSRET,
+		Op:       ssafir.OpX86_SYSRET,
 		Data: &x86InstructionData{
 			Length: 3,
 			REX_W:  true,
@@ -766,7 +766,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "stosb",
 		Mode:     x86.Mode64,
 		Assembly: "(stosb)",
-		Op:       ssafir.OpX86STOSB,
+		Op:       ssafir.OpX86_STOSB,
 		Data: &x86InstructionData{
 			Length: 1,
 		},
@@ -779,7 +779,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "rep stosb",
 		Mode:     x86.Mode64,
 		Assembly: "(rep stosb)",
-		Op:       ssafir.OpX86STOSB,
+		Op:       ssafir.OpX86_STOSB,
 		Data: &x86InstructionData{
 			Prefixes:  [5]x86.Prefix{x86.PrefixRepeat},
 			PrefixLen: 1,
@@ -795,7 +795,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "VEX extended register",
 		Mode:     x86.Mode64,
 		Assembly: "(vaddpd ymm3 ymm2 ymm8)",
-		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_VEX,
+		Op:       ssafir.OpX86_VADDPD_YMM1_YMMV_YMM2_VEX,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.YMM3, x86.YMM2, x86.YMM8},
 			Length: 5,
@@ -815,7 +815,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "VEX is4",
 		Mode:     x86.Mode64,
 		Assembly: "(vblendvps xmm12 xmm13 xmm14 xmm15)",
-		Op:       ssafir.OpX86VBLENDVPS_XMM1_XMMV_XMM2_XMMIH_VEX,
+		Op:       ssafir.OpX86_VBLENDVPS_XMM1_XMMV_XMM2_XMMIH_VEX,
 		Data: &x86InstructionData{
 			Args: [4]any{
 				x86.XMM12,
@@ -842,7 +842,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "EVEX extended register",
 		Mode:     x86.Mode64,
 		Assembly: "(vaddpd ymm14 ymm3 ymm31)",
-		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX256,
+		Op:       ssafir.OpX86_VADDPD_YMM1_YMMV_YMM2_EVEX256,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 			Length: 6,
@@ -863,7 +863,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "EVEX uncompressed displacement",
 		Mode:     x86.Mode64,
 		Assembly: "(vaddpd ymm19 ymm3 (+ rax 513))",
-		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_M256_EVEX256,
+		Op:       ssafir.OpX86_VADDPD_YMM1_YMMV_M256_EVEX256,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.YMM19, x86.YMM3, &x86.Memory{Base: x86.RAX, Displacement: 513}},
 			Length: 10,
@@ -886,7 +886,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "EVEX compressed displacement",
 		Mode:     x86.Mode64,
 		Assembly: "(vaddpd ymm19 ymm3 (+ rax 512))",
-		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_M256_EVEX256,
+		Op:       ssafir.OpX86_VADDPD_YMM1_YMMV_M256_EVEX256,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.YMM19, x86.YMM3, &x86.Memory{Base: x86.RAX, Displacement: 512}},
 			Length: 7,
@@ -909,7 +909,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "EVEX implicit opmask",
 		Mode:     x86.Mode64,
 		Assembly: "(vaddpd ymm14 ymm3 ymm31)",
-		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX256,
+		Op:       ssafir.OpX86_VADDPD_YMM1_YMMV_YMM2_EVEX256,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 			Length: 6,
@@ -931,7 +931,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "EVEX explicit opmask",
 		Mode:     x86.Mode64,
 		Assembly: "'(mask k7)(vaddpd ymm14 ymm3 ymm31)",
-		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX256,
+		Op:       ssafir.OpX86_VADDPD_YMM1_YMMV_YMM2_EVEX256,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 			Length: 6,
@@ -953,7 +953,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "EVEX implicit zeroing",
 		Mode:     x86.Mode64,
 		Assembly: "'(zero false)(vaddpd ymm14 ymm3 ymm31)",
-		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX256,
+		Op:       ssafir.OpX86_VADDPD_YMM1_YMMV_YMM2_EVEX256,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 			Length: 6,
@@ -975,7 +975,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "EVEX explicit zeroing",
 		Mode:     x86.Mode64,
 		Assembly: "'(zero true)(vaddpd ymm14 ymm3 ymm31)",
-		Op:       ssafir.OpX86VADDPD_YMM1_YMMV_YMM2_EVEX256,
+		Op:       ssafir.OpX86_VADDPD_YMM1_YMMV_YMM2_EVEX256,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.YMM14, x86.YMM3, x86.YMM31},
 			Length: 6,
@@ -997,7 +997,7 @@ var x86TestCases = []*x86TestCase{
 		Name:     "force selection of a longer encoding",
 		Mode:     x86.Mode64,
 		Assembly: "'(match ADD_Rmr8_Imm8)(add al 1)",
-		Op:       ssafir.OpX86ADD_Rmr8_Imm8,
+		Op:       ssafir.OpX86_ADD_Rmr8_Imm8,
 		Data: &x86InstructionData{
 			Args:   [4]any{x86.AL, uint64(1)},
 			Length: 3,

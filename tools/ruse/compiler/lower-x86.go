@@ -160,7 +160,7 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 		Block: l.block,
 		Pos:   fun.Code.Elements[0].Pos(), // The 'func' keyword.
 		End:   fun.Code.Elements[1].End(), // The end of the signature.
-	}, ssafir.OpX86ENDBR64, &x86InstructionData{})
+	}, ssafir.OpX86_ENDBR64, &x86InstructionData{})
 
 	var lastResult *ssafir.Value
 	for i, v := range fun.Entry.Values {
@@ -183,9 +183,9 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 			l.MoveNumber(v)
 			lastResult = fun.Entry.Values[i]
 		case ssafir.OpSaveRegister:
-			l.addInst(v, ssafir.OpX86PUSH_R64op, &x86InstructionData{Args: [4]any{v.Extra}})
+			l.addInst(v, ssafir.OpX86_PUSH_R64op, &x86InstructionData{Args: [4]any{v.Extra}})
 		case ssafir.OpRestoreRegister:
-			l.addInst(v, ssafir.OpX86POP_R64op, &x86InstructionData{Args: [4]any{v.Extra}})
+			l.addInst(v, ssafir.OpX86_POP_R64op, &x86InstructionData{Args: [4]any{v.Extra}})
 		case ssafir.OpFunctionCall:
 			l.Call(v)
 		case ssafir.OpLogicalOr,
@@ -200,9 +200,9 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 			var op ssafir.Op
 			switch v.Op {
 			case ssafir.OpLogicalOr:
-				op = ssafir.OpX86OR_R8_Rmr8
+				op = ssafir.OpX86_OR_R8_Rmr8
 			case ssafir.OpLogicalAnd:
-				op = ssafir.OpX86AND_R8_Rmr8
+				op = ssafir.OpX86_AND_R8_Rmr8
 			}
 
 			alloc := v.Extra.(*Alloc)
@@ -216,7 +216,7 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 			l.addInst(v, op, data)
 
 			// Then, we store the result.
-			op = ssafir.OpX86SETNZ_Rmr8
+			op = ssafir.OpX86_SETNZ_Rmr8
 			data = &x86InstructionData{
 				Args: [4]any{
 					x86RegisterTo8(alloc.Dst),
@@ -409,7 +409,7 @@ func (l *x86Lowerer) Call(v *ssafir.Value) {
 		Size: 32, // We always use a 32-bit relative address in case the other function is far away.
 	}
 
-	op := ssafir.OpX86CALL_Rel32
+	op := ssafir.OpX86_CALL_Rel32
 	data := &x86InstructionData{
 		Args: [4]any{link},
 	}
@@ -437,7 +437,7 @@ func (l *x86Lowerer) MoveNumber(v *ssafir.Value) {
 			return
 		}
 
-		op := ssafir.OpX86MOV_R64_Rmr64_REX
+		op := ssafir.OpX86_MOV_R64_Rmr64_REX
 		data := &x86InstructionData{
 			Args: [4]any{
 				l.location(v, alloc.Dst),
@@ -449,9 +449,9 @@ func (l *x86Lowerer) MoveNumber(v *ssafir.Value) {
 		// swap if we're moving to a stack
 		// location.
 		if _, ok := data.Args[0].(*x86.Memory); ok {
-			op = ssafir.OpX86MOV_M64_R64_REX
+			op = ssafir.OpX86_MOV_M64_R64_REX
 		} else if _, ok := data.Args[1].(*x86.Memory); ok {
-			op = ssafir.OpX86MOV_R64_M64_REX
+			op = ssafir.OpX86_MOV_R64_M64_REX
 		}
 
 		l.addInst(v, op, data)
@@ -466,7 +466,7 @@ func (l *x86Lowerer) MoveNumber(v *ssafir.Value) {
 	// than 64-bit immediates. However, 16-bit
 	// and smaller moves don't clear the upper
 	// bits and thus corrupt the data.
-	op := ssafir.OpX86MOV_R64op_Imm64_REX
+	op := ssafir.OpX86_MOV_R64op_Imm64_REX
 	data := &x86InstructionData{
 		Args: [4]any{
 			l.location(v, alloc.Dst),
@@ -478,7 +478,7 @@ func (l *x86Lowerer) MoveNumber(v *ssafir.Value) {
 		data.Args[1] = uint64(extra)
 		if math.MinInt32 <= extra && extra <= math.MaxInt32 {
 			// We can use a 32-bit move.
-			op = ssafir.OpX86MOV_R32op_Imm32
+			op = ssafir.OpX86_MOV_R32op_Imm32
 			if reg, ok := data.Args[0].(*x86.Register); ok {
 				smaller, ok := reg.ToSize(32)
 				if !ok {
@@ -492,11 +492,11 @@ func (l *x86Lowerer) MoveNumber(v *ssafir.Value) {
 	case uint64:
 		data.Args[1] = extra
 		if math.MaxUint32 < extra {
-			op = ssafir.OpX86MOV_R64op_Imm64_REX
+			op = ssafir.OpX86_MOV_R64op_Imm64_REX
 		}
 		if extra <= math.MaxUint32 {
 			// We can use a 32-bit move.
-			op = ssafir.OpX86MOV_R32op_Imm32
+			op = ssafir.OpX86_MOV_R32op_Imm32
 			if reg, ok := data.Args[0].(*x86.Register); ok {
 				smaller, ok := reg.ToSize(32)
 				if !ok {
@@ -516,7 +516,7 @@ func (l *x86Lowerer) MoveNumber(v *ssafir.Value) {
 		data.Args[1] = uint64(val)
 		if math.MinInt32 <= val && val <= math.MaxInt32 {
 			// We can use a 32-bit move.
-			op = ssafir.OpX86MOV_R32op_Imm32
+			op = ssafir.OpX86_MOV_R32op_Imm32
 			if reg, ok := data.Args[0].(*x86.Register); ok {
 				smaller, ok := reg.ToSize(32)
 				if !ok {
@@ -554,7 +554,7 @@ func (l *x86Lowerer) MoveString(v *ssafir.Value) {
 			return
 		}
 
-		op := ssafir.OpX86MOV_R64_Rmr64_REX
+		op := ssafir.OpX86_MOV_R64_Rmr64_REX
 		data := &x86InstructionData{
 			Args: [4]any{
 				l.location(v, alloc.Dst),
@@ -566,9 +566,9 @@ func (l *x86Lowerer) MoveString(v *ssafir.Value) {
 		// swap if we're moving to a stack
 		// location.
 		if _, ok := data.Args[0].(*x86.Memory); ok {
-			op = ssafir.OpX86MOV_M64_R64_REX
+			op = ssafir.OpX86_MOV_M64_R64_REX
 		} else if _, ok := data.Args[1].(*x86.Memory); ok {
-			op = ssafir.OpX86MOV_R64_M64_REX
+			op = ssafir.OpX86_MOV_R64_M64_REX
 		}
 
 		l.addInst(v, op, data)
@@ -583,7 +583,7 @@ func (l *x86Lowerer) MoveString(v *ssafir.Value) {
 	// address and takes up less space
 	// than using MOV with a 64-bit
 	// immediate.
-	op := ssafir.OpX86LEA_R64_M_REX
+	op := ssafir.OpX86_LEA_R64_M_REX
 	data := &x86InstructionData{
 		Args: [4]any{
 			l.location(v, alloc.Dst),
@@ -618,7 +618,7 @@ func (l *x86Lowerer) MoveString(v *ssafir.Value) {
 
 // Return emits a return instruction.
 func (l *x86Lowerer) Return(v *ssafir.Value) {
-	op := ssafir.OpX86RET
+	op := ssafir.OpX86_RET
 	data := &x86InstructionData{}
 
 	l.addInst(v, op, data)
@@ -683,72 +683,72 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 	// Comparisons are the same for the
 	// first step.
 	comparisons := [4]ssafir.Op{
-		ssafir.OpX86CMP_R8_Rmr8,
-		ssafir.OpX86CMP_R16_Rmr16,
-		ssafir.OpX86CMP_R32_Rmr32,
-		ssafir.OpX86CMP_R64_Rmr64_REX,
+		ssafir.OpX86_CMP_R8_Rmr8,
+		ssafir.OpX86_CMP_R16_Rmr16,
+		ssafir.OpX86_CMP_R32_Rmr32,
+		ssafir.OpX86_CMP_R64_Rmr64_REX,
 	}
 
 	op := map[ssafir.Op][4]ssafir.Op{
 		ssafir.OpAdd: {
-			ssafir.OpX86ADD_R8_Rmr8,
-			ssafir.OpX86ADD_R16_Rmr16,
-			ssafir.OpX86ADD_R32_Rmr32,
-			ssafir.OpX86ADD_R64_Rmr64_REX,
+			ssafir.OpX86_ADD_R8_Rmr8,
+			ssafir.OpX86_ADD_R16_Rmr16,
+			ssafir.OpX86_ADD_R32_Rmr32,
+			ssafir.OpX86_ADD_R64_Rmr64_REX,
 		},
 		ssafir.OpSubtract: {
-			ssafir.OpX86SUB_R8_Rmr8,
-			ssafir.OpX86SUB_R16_Rmr16,
-			ssafir.OpX86SUB_R32_Rmr32,
-			ssafir.OpX86SUB_R64_Rmr64_REX,
+			ssafir.OpX86_SUB_R8_Rmr8,
+			ssafir.OpX86_SUB_R16_Rmr16,
+			ssafir.OpX86_SUB_R32_Rmr32,
+			ssafir.OpX86_SUB_R64_Rmr64_REX,
 		},
 		ssafir.OpMultiply: {
-			ssafir.OpX86MUL_Rmr8,
-			ssafir.OpX86MUL_Rmr16,
-			ssafir.OpX86MUL_Rmr32,
-			ssafir.OpX86MUL_Rmr64_REX,
+			ssafir.OpX86_MUL_Rmr8,
+			ssafir.OpX86_MUL_Rmr16,
+			ssafir.OpX86_MUL_Rmr32,
+			ssafir.OpX86_MUL_Rmr64_REX,
 		},
 		ssafir.OpDivide: {
-			ssafir.OpX86DIV_Rmr8,
-			ssafir.OpX86DIV_Rmr16,
-			ssafir.OpX86DIV_Rmr32,
-			ssafir.OpX86DIV_Rmr64_REX,
+			ssafir.OpX86_DIV_Rmr8,
+			ssafir.OpX86_DIV_Rmr16,
+			ssafir.OpX86_DIV_Rmr32,
+			ssafir.OpX86_DIV_Rmr64_REX,
 		},
 		ssafir.OpNegate: {
-			ssafir.OpX86NEG_Rmr8,
-			ssafir.OpX86NEG_Rmr16,
-			ssafir.OpX86NEG_Rmr32,
-			ssafir.OpX86NEG_Rmr64_REX,
+			ssafir.OpX86_NEG_Rmr8,
+			ssafir.OpX86_NEG_Rmr16,
+			ssafir.OpX86_NEG_Rmr32,
+			ssafir.OpX86_NEG_Rmr64_REX,
 		},
 		ssafir.OpBitwiseOr: {
-			ssafir.OpX86OR_R8_Rmr8,
-			ssafir.OpX86OR_R16_Rmr16,
-			ssafir.OpX86OR_R32_Rmr32,
-			ssafir.OpX86OR_R64_Rmr64_REX,
+			ssafir.OpX86_OR_R8_Rmr8,
+			ssafir.OpX86_OR_R16_Rmr16,
+			ssafir.OpX86_OR_R32_Rmr32,
+			ssafir.OpX86_OR_R64_Rmr64_REX,
 		},
 		ssafir.OpBitwiseAnd: {
-			ssafir.OpX86AND_R8_Rmr8,
-			ssafir.OpX86AND_R16_Rmr16,
-			ssafir.OpX86AND_R32_Rmr32,
-			ssafir.OpX86AND_R64_Rmr64_REX,
+			ssafir.OpX86_AND_R8_Rmr8,
+			ssafir.OpX86_AND_R16_Rmr16,
+			ssafir.OpX86_AND_R32_Rmr32,
+			ssafir.OpX86_AND_R64_Rmr64_REX,
 		},
 		ssafir.OpBitwiseXor: {
-			ssafir.OpX86XOR_R8_Rmr8,
-			ssafir.OpX86XOR_R16_Rmr16,
-			ssafir.OpX86XOR_R32_Rmr32,
-			ssafir.OpX86XOR_R64_Rmr64_REX,
+			ssafir.OpX86_XOR_R8_Rmr8,
+			ssafir.OpX86_XOR_R16_Rmr16,
+			ssafir.OpX86_XOR_R32_Rmr32,
+			ssafir.OpX86_XOR_R64_Rmr64_REX,
 		},
 		ssafir.OpShiftLeft: {
-			ssafir.OpX86SAL_Rmr8_CL,
-			ssafir.OpX86SAL_Rmr16_CL,
-			ssafir.OpX86SAL_Rmr32_CL,
-			ssafir.OpX86SAL_Rmr64_CL_REX,
+			ssafir.OpX86_SAL_Rmr8_CL,
+			ssafir.OpX86_SAL_Rmr16_CL,
+			ssafir.OpX86_SAL_Rmr32_CL,
+			ssafir.OpX86_SAL_Rmr64_CL_REX,
 		},
 		ssafir.OpShiftRight: {
-			ssafir.OpX86SAR_Rmr8_CL,
-			ssafir.OpX86SAR_Rmr16_CL,
-			ssafir.OpX86SAR_Rmr32_CL,
-			ssafir.OpX86SAR_Rmr64_CL_REX,
+			ssafir.OpX86_SAR_Rmr8_CL,
+			ssafir.OpX86_SAR_Rmr16_CL,
+			ssafir.OpX86_SAR_Rmr32_CL,
+			ssafir.OpX86_SAR_Rmr64_CL_REX,
 		},
 		ssafir.OpEqual:              comparisons,
 		ssafir.OpNotEqual:           comparisons,
@@ -769,7 +769,7 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 	case ssafir.OpDivide:
 		// Clear out RDX, as it forms the
 		// top 64 bits of the divident.
-		l.addInst(v, ssafir.OpX86XOR_R64_Rmr64_REX, &x86InstructionData{
+		l.addInst(v, ssafir.OpX86_XOR_R64_Rmr64_REX, &x86InstructionData{
 			Args: [4]any{
 				x86.RDX,
 				x86.RDX,
@@ -805,17 +805,17 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 		data.Args[1] = nil // There is no second arg.
 		switch info.Group {
 		case ssafir.OpEqual:
-			op = ssafir.OpX86SETE_Rmr8
+			op = ssafir.OpX86_SETE_Rmr8
 		case ssafir.OpNotEqual:
-			op = ssafir.OpX86SETNE_Rmr8
+			op = ssafir.OpX86_SETNE_Rmr8
 		case ssafir.OpLessThan:
-			op = ssafir.OpX86SETL_Rmr8
+			op = ssafir.OpX86_SETL_Rmr8
 		case ssafir.OpLessThanOrEqual:
-			op = ssafir.OpX86SETLE_Rmr8
+			op = ssafir.OpX86_SETLE_Rmr8
 		case ssafir.OpGreaterThan:
-			op = ssafir.OpX86SETG_Rmr8
+			op = ssafir.OpX86_SETG_Rmr8
 		case ssafir.OpGreaterThanOrEqual:
-			op = ssafir.OpX86SETGE_Rmr8
+			op = ssafir.OpX86_SETGE_Rmr8
 		default:
 			panic(fmt.Sprintf("internal error: op %s (group %s) not covered in comparisons", v.Op, info.Group))
 		}
