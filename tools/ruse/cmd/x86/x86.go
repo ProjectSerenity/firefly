@@ -237,11 +237,11 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 				fmt.Fprintf(&buf, "		Mode64:    %v,\n", inst.Mode64)
 			}
 			if len(inst.CPUID) > 0 {
-				fmt.Fprintf(&buf, "	CPUID: [\n")
+				fmt.Fprintf(&buf, "		CPUID: [\n")
 				for _, flag := range inst.CPUID {
-					fmt.Fprintf(&buf, "		%q,\n", flag)
+					fmt.Fprintf(&buf, "			%q,\n", flag)
 				}
-				fmt.Fprintf(&buf, "	],\n")
+				fmt.Fprintf(&buf, "		],\n")
 			}
 			if inst.OperandSize {
 				fmt.Fprintf(&buf, "		Operand:   %v,\n", inst.OperandSize)
