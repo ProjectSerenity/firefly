@@ -55,7 +55,7 @@
 	'a20-enabled
 
 	; Enter protected mode.
-	(cli)        ; Clear interrupts.
+	(cli)  ; Clear interrupts.
 	(push ds)
 	(push es)
 
@@ -64,17 +64,17 @@
 	; table header.
 	(mov cx (@ global-descriptor-table-32))
 	(mov bx (@ global-descriptor-table-32-header))
-	(mov (+ bx 2) cx) ; Copy the address of the table to the final 2 bytes of the header.
+	(mov (+ bx 2) cx)  ; Copy the address of the table to the final 2 bytes of the header.
 
 	; Load the global descriptor table.
 	(lgdt (bx))
 
 	; Enable and start protected mode.
 	(mov eax cr0)
-	(or al 1)     ; Set the protected mode bit.
+	(or al 1)  ; Set the protected mode bit.
 	(mov cr0 eax)
 
-	(jmp (@ protected-mode-setup))) ; Jump to force the processor to recognise protected mode.
+	(jmp (@ protected-mode-setup)))  ; Jump to force the processor to recognise protected mode.
 
 ; Set up the protected mode handling, which
 ; needs to start with a jump to force the
@@ -88,7 +88,7 @@
 	(mov ds bx)
 	(mov es bx)
 
-	(and al 0xfe) ; Clear the protected mode bit.
+	(and al 0xfe)  ; Clear the protected mode bit.
 	(mov cr0 eax)
 
 	; We're now in unreal mode (16-bit
@@ -97,16 +97,16 @@
 	; data and extra segments.
 	(pop es)
 	(pop ds)
-	(sti)       ; Set interrupts.
+	(sti)  ; Set interrupts.
 
 	; We're back in real mode, but the
 	; internal data segment regsiter is
 	; still loaded with the GDT segment,
 	; so we can access the full 4 GiB of
 	; memory.
-	(mov bx 0x0f01)               ; The attributes and character for a smiley.
-	(mov eax (uint32 VGA-memory)) ; Note the 32-bit offset.
-	(mov (ds eax) bx)             ; Print the smiley to the VGA display.
+	(mov bx 0x0f01)                ; The attributes and character for a smiley.
+	(mov eax (uint32 VGA-memory))  ; Note the 32-bit offset.
+	(mov (ds eax) bx)              ; Print the smiley to the VGA display.
 
 	; Check that the BIOS supports extensions
 	; using interrupt 0x13.
@@ -164,7 +164,7 @@
 	(mov esi (uint32 data-access-packet))  ; Address of the DAP.
 	(mov '(bits 32)(esi) ecx)              ; Zero the first quarter of the packet.
 	(mov '(bits 32)(+ esi 4) ecx)          ; Zero the second quarter of the packet.
-	(mov '(bits 32)(+ esi 8) ecx )         ; Zero the third quarter of the packet.
+	(mov '(bits 32)(+ esi 8) ecx)          ; Zero the third quarter of the packet.
 	(mov '(bits 32)(+ esi 12) ecx)         ; Zero the fourth quarter of the packet.
 	(mov '(bits 8)(esi) 16)                ; Set the DAP packet size.
 
@@ -182,47 +182,47 @@
 
 	'load-from-disk
 
-	(mov eax (uint32 stage-1-end)) ; Start of the rest of the bootloader.
-	(add eax ecx)           ; Skip over what we've copied already.
+	(mov eax (uint32 stage-1-end))  ; Start of the rest of the bootloader.
+	(add eax ecx)                   ; Skip over what we've copied already.
 
 	; Prepare the packet segment.
 	(mov ebx eax)
-	(shr ebx 4)             ; Divide by 16.
-	(mov (+ esi 6) bx)      ; Set the segment.
+	(shr ebx 4)         ; Divide by 16.
+	(mov (+ esi 6) bx)  ; Set the segment.
 
 	; Prepare the packet offset.
-	(shl ebx 4)             ; Multiply by 16.
-	(sub eax ebx)           ; EAX now just has the remainder.
-	(mov (+ esi 4) ax)      ; Set the offset.
+	(shl ebx 4)         ; Multiply by 16.
+	(sub eax ebx)       ; EAX now just has the remainder.
+	(mov (+ esi 4) ax)  ; Set the offset.
 
-	(mov eax (uint32 stage-1-end)) ; Start of the rest of the bootloader.
-	(add eax ecx)           ; Skip over what we've copied already.
+	(mov eax (uint32 stage-1-end))  ; Start of the rest of the bootloader.
+	(add eax ecx)                   ; Skip over what we've copied already.
 
 	; Set the number of blocks to load.
-	(mov ebx ebp)           ; Load the bootloader's end address.
-	(sub ebx eax)           ; Determine the number of bytes.
-	(jz 'load-from-disk-ok) ; Stop if we've copied everything.
-	(shr ebx 9)             ; Divide by 512 (block size).
+	(mov ebx ebp)            ; Load the bootloader's end address.
+	(sub ebx eax)            ; Determine the number of bytes.
+	(jz 'load-from-disk-ok)  ; Stop if we've copied everything.
+	(shr ebx 9)              ; Divide by 512 (block size).
 	(cmp ebx 127)
 	(jle 'copy-from-disk)
-	(mov ebx 127)           ; Cap the number of blocks at 127.
+	(mov ebx 127)  ; Cap the number of blocks at 127.
 	'copy-from-disk
-	(mov (+ esi 2) bx)      ; Set the number of blocks.
+	(mov (+ esi 2) bx)  ; Set the number of blocks.
 
 	; Increment the number of bytes copied.
-	(shl ebx 9)             ; Multiply by 512 (block size).
+	(shl ebx 9)  ; Multiply by 512 (block size).
 	(add ecx ebx)
 
 	; Set the block number to copy from.
-	(mov ebx (uint32 stage-1-start)) ; The start of stage 1.
-	(sub eax ebx)           ; Set EAX to the disk offset in bytes.
-	(shr eax 9)             ; Divide by 512 (block size).
-	(mov (+ esi 8) eax)     ; Set the logical block address.
+	(mov ebx (uint32 stage-1-start))  ; The start of stage 1.
+	(sub eax ebx)                     ; Set EAX to the disk offset in bytes.
+	(shr eax 9)                       ; Divide by 512 (block size).
+	(mov (+ esi 8) eax)               ; Set the logical block address.
 
 	; Do the read.
-	(mov ah 0x42)           ; Read.
+	(mov ah 0x42)  ; Read.
 	(int 0x13)
-	(jnc 'load-from-disk)   ; Continue to the next block.
+	(jnc 'load-from-disk)  ; Continue to the next block.
 
 	; The read failed.
 	; Print an error.
@@ -255,11 +255,11 @@
 '(mode 16)
 '(section boot-stage-1)
 (asm-func (real-mode-print-char (char uint8))
-	(push dx)   ; Save dx.
-	(xor dx dx) ; Set dx to 0 (serial port COM1).
-	(mov ah 1)  ; Transmit.
-	(int 0x14)  ; Serial port services.
-	(pop dx)    ; Restore dx.
+	(push dx)    ; Save dx.
+	(xor dx dx)  ; Set dx to 0 (serial port COM1).
+	(mov ah 1)   ; Transmit.
+	(int 0x14)   ; Serial port services.
+	(pop dx)     ; Restore dx.
 
 	(ret))
 
@@ -272,7 +272,7 @@
 '(mode 16)
 '(section boot-stage-1)
 (asm-func (real-mode-print (s string))
-	(cld) ; Ensure we scan through the string forwards.
+	(cld)  ; Ensure we scan through the string forwards.
 
 	'real-mode-print-loop
 
@@ -349,25 +349,25 @@
 	(array/array/8/byte
 		; The null descriptor.
 		(array/byte
-			0x00 0x00      ; Limit bits 0-15.
-			0x00 0x00 0x00 ; Base bits 0-23.
-			0b0000_0000    ; Access byte.
-			0b0000_0000    ; Flags and limit bits 16-19.
-			0x00)          ; Base bits 24-31.
+			0x00 0x00       ; Limit bits 0-15.
+			0x00 0x00 0x00  ; Base bits 0-23.
+			0b0000_0000     ; Access byte.
+			0b0000_0000     ; Flags and limit bits 16-19.
+			0x00)           ; Base bits 24-31.
 		; Kernel code descriptor.
 		(array/byte
-			0xff 0xff      ; Limit bits 0-15.
-			0x00 0x00 0x00 ; Base bits 0-23.
-			0b1001_1010    ; Access byte.
-			0b1100_1111    ; Flags and limit bits 16-19.
-			0x00)          ; Base bits 24-31.
+			0xff 0xff       ; Limit bits 0-15.
+			0x00 0x00 0x00  ; Base bits 0-23.
+			0b1001_1010     ; Access byte.
+			0b1100_1111     ; Flags and limit bits 16-19.
+			0x00)           ; Base bits 24-31.
 		; Kernel data descriptor.
 		(array/byte
-			0xff 0xff      ; Limit bits 0-15.
-			0x00 0x00 0x00 ; Base bits 0-23.
-			0b1001_0010    ; Access byte.
-			0b1100_1111    ; Flags and limit bits 16-19.
-			0x00)))        ; Base bits 24-31.
+			0xff 0xff       ; Limit bits 0-15.
+			0x00 0x00 0x00  ; Base bits 0-23.
+			0b1001_0010     ; Access byte.
+			0b1100_1111     ; Flags and limit bits 16-19.
+			0x00)))         ; Base bits 24-31.
 
 ; This is our global descriptor table header,
 ; which points to the table entries above.
@@ -384,8 +384,8 @@
 '(section boot-stage-1)
 (let global-descriptor-table-32-header
 	(array/uint16
-		(- (size-of global-descriptor-table-32) 1) ; Size-1.
-		0 0))                                      ; Address.
+		(- (size-of global-descriptor-table-32) 1)  ; Size-1.
+		0 0))                                       ; Address.
 
 ; This is the magic value that the MBR checks
 ; to see whether our disk is bootable. It must

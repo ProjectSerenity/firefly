@@ -11,13 +11,13 @@
 	(scratch rax))
 '(arch x86-64)
 (asm-func (serial-print (s string))
-	(cld)             ; Clear the direction flag so we print forward.
-	(jecxz 'done)     ; Skip printing if the string is empty.
+	(cld)          ; Clear the direction flag so we print forward.
+	(jecxz 'done)  ; Skip printing if the string is empty.
 
 	'print-loop
 
 	; Read and print the next byte.
-	(lodsb)           ; Read the next byte from *ESI into AL.
+	(lodsb)  ; Read the next byte from *ESI into AL.
 	(call (@ serial-print-32-char))
 
 	; Decrement the string length and
@@ -36,13 +36,13 @@
 '(arch x86-64)
 '(mode 32)
 (asm-func (serial-print-32 (s string))
-	(cld)             ; Clear the direction flag so we print forward.
-	(jecxz 'done)     ; Skip printing if the string is empty.
+	(cld)          ; Clear the direction flag so we print forward.
+	(jecxz 'done)  ; Skip printing if the string is empty.
 
 	'print-loop
 
 	; Read and print the next byte.
-	(lodsb)           ; Read the next byte from *ESI into AL.
+	(lodsb)  ; Read the next byte from *ESI into AL.
 	(call (@ serial-print-32-char))
 
 	; Decrement the string length and
@@ -61,18 +61,18 @@
 '(arch x86-64)
 '(mode 32)
 (asm-func (serial-print-32-char (c byte))
-	(push dx)         ; Save DX.
-	(push ax)         ; Save the character.
+	(push dx)  ; Save DX.
+	(push ax)  ; Save the character.
 
 	'check-ready-to-send
-	(mov dx 0x03fd)   ; Line status register.
-	(in al dx)        ; Check if we're clear to send.
-	(test al 0x20)    ; Use bit 5 to see if the transmitter holding register is clear.
+	(mov dx 0x03fd)  ; Line status register.
+	(in al dx)       ; Check if we're clear to send.
+	(test al 0x20)   ; Use bit 5 to see if the transmitter holding register is clear.
 	(jz 'check-ready-to-send)
 
 	; We're good to go.
-	(pop ax)          ; Restore the character.
-	(mov dx 0x03f8)   ; Data register.
-	(out dx al)       ; Write the character.
-	(pop dx)          ; Restore DX.
+	(pop ax)         ; Restore the character.
+	(mov dx 0x03f8)  ; Data register.
+	(out dx al)      ; Write the character.
+	(pop dx)         ; Restore DX.
 	(ret))

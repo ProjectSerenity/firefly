@@ -82,24 +82,24 @@
 (asm-func (check-long-mode)
 	; Check whether extended processor info is
 	; available.
-	(mov eax 0x8000_0000)         ; Implicit argument to CPUID.
-	(cpuid)                       ; Get highest supported argument.
-	(cmp eax 0x8000_0001)         ; It needs to be at least 0x8000_0001.
-	(jb 'no-long-mode)            ; If it's less, the CPU is too old.
+	(mov eax 0x8000_0000)  ; Implicit argument to CPUID.
+	(cpuid)                ; Get highest supported argument.
+	(cmp eax 0x8000_0001)  ; It needs to be at least 0x8000_0001.
+	(jb 'no-long-mode)     ; If it's less, the CPU is too old.
 
 	; Use extended info to check whether long
 	; mode is available.
-	(mov eax 0x8000_0001)         ; Argument for extended processor info.
-	(cpuid)                       ; Returns feature bits in ECX and EDX.
-	(bt edx 29)                   ; Test if the LM bit is set in the D register.
-	(jnc 'no-long-mode)           ; If it's not set, there's no long mode.
+	(mov eax 0x8000_0001)  ; Argument for extended processor info.
+	(cpuid)                ; Returns feature bits in ECX and EDX.
+	(bt edx 29)            ; Test if the LM bit is set in the D register.
+	(jnc 'no-long-mode)    ; If it's not set, there's no long mode.
 
 	; Load a zero-length interrupt descriptor
 	; table so that any interrupt causes a
 	; triple fault.
-	(cli)                         ; Disable interrupts.
+	(cli)  ; Disable interrupts.
 	(mov ebx (@ null-interrupt-descriptor-table-32-header))
-	(lidt (ebx))                  ; Load the table.
+	(lidt (ebx))  ; Load the table.
 
 	(jmp (@ setup-page-tables))
 
@@ -124,12 +124,12 @@
 '(mode 32)
 (asm-func (setup-page-tables)
 	; Zero out our page tables in memory.
-	(mov edi (uint32 page-table-start)) ; Start at level 1.
-	(mov ecx (uint32 page-table-end))   ; Finish at level 4.
-	(sub ecx edi)                 ; Calculate the length.
-	(shr ecx 2)                   ; Divide by 4 (size of each stosd operation).
-	(xor eax eax)
-	(rep stosd)                   ; Write EAX (0) across the page tables.
+	(mov edi (uint32 page-table-start))  ; Start at level 1.
+	(mov ecx (uint32 page-table-end))    ; Finish at level 4.
+	(sub ecx edi)                        ; Calculate the length.
+	(shr ecx 2)                          ; Divide by 4 (size of each stosd operation).
+	(xor eax eax)                        ; Clear EAX.
+	(rep stosd)                          ; Write EAX (0) across the page tables.
 
 	; Set up level 4.
 	(mov edi (uint32 level-4-page-table))
@@ -149,12 +149,12 @@
 	(or eax (uint32 (or pd-present pd-read/write)))
 	(mov (edi) eax)
 	(mov eax (uint32 (or kernel-start pd-present pd-read/write pd-page-size-2MiB)))
-	(mov ecx 2)                   ; Offset into the table.
-	(mov edx (@ kernel-size))     ; Load the address of the kernel size.
-	(mov edx (edx))               ; Load the kernel size.
+	(mov ecx 2)                ; Offset into the table.
+	(mov edx (@ kernel-size))  ; Load the address of the kernel size.
+	(mov edx (edx))            ; Load the kernel size.
 	(add edx (uint32 kernel-start))
-	(add edx (uint32 (- page-2MiB 1))) ; Align up to the next 2 MiB page.
-	(shr edx 21)                  ; The page number of the final huge page.
+	(add edx (uint32 (- page-2MiB 1)))  ; Align up to the next 2 MiB page.
+	(shr edx 21)                        ; The page number of the final huge page.
 	'map-level-2-table
 	(mov (+ edi (× ecx 8)) eax)   ; Write the page directory entry.
 	(add eax (uint32 page-2MiB))  ; Move on to the next 2 MiB page.
@@ -172,11 +172,11 @@
 	(mov eax (uint32 page-table-start))
 	(or eax (uint32 (or pt-present pt-read/write)))
 	(mov ecx (uint32 page-table-start))
-	(shr ecx 12)                  ; Divide by 4096 to get the 4 kiB page number where we start.
-	(mov edx (@ bootloader-end))  ; Load the address of the address where the bootloader ends.
-	(mov edx (edx))               ; Load the address where the bootloader ends.
-	(add edx (uint32 (- page-4kiB 1))) ; Align up to the next 1 kiB page.
-	(shr edx 12)                  ; Divide by 4096 to get the 4 kiB page number where we finish.
+	(shr ecx 12)                        ; Divide by 4096 to get the 4 kiB page number where we start.
+	(mov edx (@ bootloader-end))        ; Load the address of the address where the bootloader ends.
+	(mov edx (edx))                     ; Load the address where the bootloader ends.
+	(add edx (uint32 (- page-4kiB 1)))  ; Align up to the next 1 kiB page.
+	(shr edx 12)                        ; Divide by 4096 to get the 4 kiB page number where we finish.
 	'map-level-1-table
 	(mov (+ edi (× ecx 8)) eax)   ; Write the page table entry.
 	(add eax (uint32 page-4kiB))  ; Move on to the next 4 kiB page.
@@ -226,7 +226,7 @@
 	; address in the header.
 	(mov ecx (@ global-descriptor-table-64))
 	(mov ebx (@ global-descriptor-table-64-header))
-	(mov (+ ebx 2) ecx)      ; Copy the address of the table to the final 2 bytes of the header.
+	(mov (+ ebx 2) ecx)  ; Copy the address of the table to the final 2 bytes of the header.
 
 	; Load the table.
 	(lgdt (ebx))
@@ -235,7 +235,7 @@
 	(push 8)
 	(mov eax (@ stage-4))
 	(push eax)
-	(ret-far))               ; Load CS with a 64-bit segment and flush the instruction cache.
+	(ret-far))  ; Load CS with a 64-bit segment and flush the instruction cache.
 
 ; This is our temporary interrupt descriptor
 ; table header, which has no entries. We set
@@ -253,8 +253,8 @@
 ; make it of uint16s.
 (let null-interrupt-descriptor-table-32-header
 	(array/uint16
-		0     ; Size-1.
-		0 0)) ; Address.
+		0      ; Size-1.
+		0 0))  ; Address.
 
 ; This is our final global descriptor table contents.
 ;
@@ -296,25 +296,25 @@
 	(array/array/8/byte
 		; The null descriptor.
 		(array/byte
-			0x00 0x00      ; Limit bits 0-15.
-			0x00 0x00 0x00 ; Base bits 0-23.
-			0b0000_0000    ; Access byte.
-			0b0000_0000    ; Flags and limit bits 16-19.
-			0x00)          ; Base bits 24-31.
+			0x00 0x00       ; Limit bits 0-15.
+			0x00 0x00 0x00  ; Base bits 0-23.
+			0b0000_0000     ; Access byte.
+			0b0000_0000     ; Flags and limit bits 16-19.
+			0x00)           ; Base bits 24-31.
 		; Kernel code descriptor.
 		(array/byte
-			0x00 0x00      ; Limit bits 0-15.
-			0x00 0x00 0x00 ; Base bits 0-23.
-			0b1001_1010    ; Access byte.
-			0b0010_0000    ; Flags and limit bits 16-19.
-			0x00)          ; Base bits 24-31.
+			0x00 0x00       ; Limit bits 0-15.
+			0x00 0x00 0x00  ; Base bits 0-23.
+			0b1001_1010     ; Access byte.
+			0b0010_0000     ; Flags and limit bits 16-19.
+			0x00)           ; Base bits 24-31.
 		; Kernel data descriptor.
 		(array/byte
-			0xff 0xff      ; Limit bits 0-15.
-			0x00 0x00 0x00 ; Base bits 0-23.
-			0b1001_0010    ; Access byte.
-			0b0000_0000    ; Flags and limit bits 16-19.
-			0x00)))        ; Base bits 24-31.
+			0xff 0xff       ; Limit bits 0-15.
+			0x00 0x00 0x00  ; Base bits 0-23.
+			0b1001_0010     ; Access byte.
+			0b0000_0000     ; Flags and limit bits 16-19.
+			0x00)))         ; Base bits 24-31.
 
 ; This is our global descriptor table header,
 ; which points to the table entries above.
@@ -330,8 +330,8 @@
 ; the table entries in assembly anyway.
 (let global-descriptor-table-64-header
 	(array/uint16
-		(- (size-of global-descriptor-table-64) 1) ; Size-1.
-		0 0))                                      ; Address.
+		(- (size-of global-descriptor-table-64) 1)  ; Size-1.
+		0 0))                                       ; Address.
 
 (let cpuid-not-supported "Boot error: CPU does not support the CPUID instruction.\r\n")
 

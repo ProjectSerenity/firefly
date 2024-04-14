@@ -65,7 +65,7 @@
 	(mov esi (uint32 data-access-packet))  ; Address of the DAP.
 	(mov '(bits 32)(esi) ecx)              ; Zero the first quarter of the packet.
 	(mov '(bits 32)(+ esi 4) ecx)          ; Zero the second quarter of the packet.
-	(mov '(bits 32)(+ esi 8) ecx )         ; Zero the third quarter of the packet.
+	(mov '(bits 32)(+ esi 8) ecx)          ; Zero the third quarter of the packet.
 	(mov '(bits 32)(+ esi 12) ecx)         ; Zero the fourth quarter of the packet.
 	(mov '(bits 8)(esi) 16)                ; Set the DAP packet size.
 
@@ -77,20 +77,20 @@
 	; use BIOS helpers to write to
 	; such high address spaces.
 	(mov ax (uint16 kernel-copy-buffer))
-	(mov (+ esi 4) ax)      ; Set the offset.
+	(mov (+ esi 4) ax)  ; Set the offset.
 
 	; Set the number of blocks to load.
 	(xor eax eax)
 	(inc eax)
-	(mov (+ esi 2) ax)      ; Set the number of blocks (1).
+	(mov (+ esi 2) ax)  ; Set the number of blocks (1).
 
 	; Set the block number to copy from.
-	(mov ebx (@ bootloader-end)) ; The start of the kernel.
-	(mov eax (ebx))         ; Read the kernel start address.
-	(mov ebx (uint32 stage-1-start)) ; The start of the bootloader.
-	(sub eax ebx)           ; Set EAX to the disk offset in bytes.
-	(shr eax 9)             ; Divide by 512 (block size).
-	(mov (+ esi 8) eax)     ; Set the logical block address.
+	(mov ebx (@ bootloader-end))      ; The start of the kernel.
+	(mov eax (ebx))                   ; Read the kernel start address.
+	(mov ebx (uint32 stage-1-start))  ; The start of the bootloader.
+	(sub eax ebx)                     ; Set EAX to the disk offset in bytes.
+	(shr eax 9)                       ; Divide by 512 (block size).
+	(mov (+ esi 8) eax)               ; Set the logical block address.
 
 	; Set the destination address we'll
 	; copy to (2MiB).
@@ -105,15 +105,15 @@
 	; we have copied the whole kernel.
 	(mov eax (@ kernel-size))
 	(mov ecx (eax))
-	(add ecx 511)           ; Align up to whole sectors just in case.
-	(shr ecx 9)             ; Divide by 512 (block size).
+	(add ecx 511)  ; Align up to whole sectors just in case.
+	(shr ecx 9)    ; Divide by 512 (block size).
 
 	'load-from-disk
 
 	; Do the read.
-	(mov ah 0x42)           ; Read.
+	(mov ah 0x42)  ; Read.
 	(int 0x13)
-	(jnc 'load-from-disk-ok) ; Continue to the next block.
+	(jnc 'load-from-disk-ok)  ; Continue to the next block.
 
 	; The read failed.
 	; Print an error.
@@ -133,7 +133,7 @@
 	; Copy block to the 2MiB address.
 	(push ecx)
 	(push esi)
-	(mov ecx (uint32 (÷ 512 4))) ; The loaded sector, divide by 4 (32-bit copy in movsd).
+	(mov ecx (uint32 (÷ 512 4)))  ; The loaded sector, divide by 4 (32-bit copy in movsd).
 	(mov esi (uint32 kernel-copy-buffer))
 	; Copy ECX dwords from ESI to EDI.
 	(rep movsd (edi) (esi))
@@ -184,52 +184,52 @@
 '(mode 16)
 (asm-func (get-physical-memory-map)
 	; Set up our initial register values.
-	(mov edi (uint32 physical-memory-map)) ; Destination we write to.
-	(xor ebx ebx)         ; EBX must be 0 to start.
-	(xor ebp ebp)         ; Keep an entry count in EBP.
-	(mov edx 0x0534d4150) ; EDX must be "SMAP".
-	(mov eax 0xe820)      ; EAX must be 0xe820.
-	(mov '(bytes 4)(+ es di 20) 1) ; Force a valid ACPI 3.X entry by setting the extended attributes to 1.
-	(mov ecx 24)          ; Ask for 24 bytes, rather than the older 20-byte scheme.
+	(mov edi (uint32 physical-memory-map))  ; Destination we write to.
+	(xor ebx ebx)                           ; EBX must be 0 to start.
+	(xor ebp ebp)                           ; Keep an entry count in EBP.
+	(mov edx 0x0534d4150)                   ; EDX must be "SMAP".
+	(mov eax 0xe820)                        ; EAX must be 0xe820.
+	(mov '(bytes 4)(+ es di 20) 1)          ; Force a valid ACPI 3.X entry by setting the extended attributes to 1.
+	(mov ecx 24)                            ; Ask for 24 bytes, rather than the older 20-byte scheme.
 
 	; Do the first read.
 	(int 0x15)
-	(jc 'failed)          ; A carry bit on the first call means the feature is unsupported.
+	(jc 'failed)  ; A carry bit on the first call means the feature is unsupported.
 
 	; Prepare for subsequent reads.
-	(mov edx 0x0534d4150) ; Some BIOSes trash this.
-	(cmp eax edx)         ; On success, EAX will have been set to "SMAP".
+	(mov edx 0x0534d4150)  ; Some BIOSes trash this.
+	(cmp eax edx)          ; On success, EAX will have been set to "SMAP".
 	(jne 'failed)
-	(test ebx ebx)        ; If EBX is zero, the list is only 1 entry long and is useless.
+	(test ebx ebx)  ; If EBX is zero, the list is only 1 entry long and is useless.
 	(je 'failed)
 	(jmp 'handle-entry)
 
 	'next-read
-	(mov eax 0xe820)      ; EAX and ECX get trashed by int 0x15.
+	(mov eax 0xe820)  ; EAX and ECX get trashed by int 0x15.
 	(mov ecx 24)
-	(mov '(bytes 4)(+ es di 20) 1) ; Force a valid ACPI 3.X entry by setting the extended attributes to 1.
+	(mov '(bytes 4)(+ es di 20) 1)  ; Force a valid ACPI 3.X entry by setting the extended attributes to 1.
 	(int 0x15)
 	(jc 'finished)
-	(mov edx 0x0534d4150) ; Some BIOSes trash this.
+	(mov edx 0x0534d4150)  ; Some BIOSes trash this.
 
 	'handle-entry
-	(jcxz 'skip-entry)    ; Skip any 0-length entries.
-	(cmp cl 20)           ; Check whether we got a 24-byte ACPI 3.X response.
+	(jcxz 'skip-entry)  ; Skip any 0-length entries.
+	(cmp cl 20)         ; Check whether we got a 24-byte ACPI 3.X response.
 	(jbe 'not-extended)
-	(test '(bytes 1)(+ es di 20) 1) ; We got an extended response; is the "ignore this entry" bit clear?
+	(test '(bytes 1)(+ es di 20) 1)  ; We got an extended response; is the "ignore this entry" bit clear?
 	(je 'skip-entry)
 
 	'not-extended
-	(mov ecx (+ es di 8)) ; Get the lower 4 bytes of the length.
-	(or ecx (+ es di 12)) ; Or with the upper 4 bytes to test for zero.
-	(jz 'skip-entry)      ; If the length is zero, skip the entry.
+	(mov ecx (+ es di 8))  ; Get the lower 4 bytes of the length.
+	(or ecx (+ es di 12))  ; Or with the upper 4 bytes to test for zero.
+	(jz 'skip-entry)       ; If the length is zero, skip the entry.
 
 	; We got an entry!
-	(inc ebp)               ; Record the entry.
-	(add di 24)             ; Move our pointer to the next slot.
+	(inc ebp)    ; Record the entry.
+	(add di 24)  ; Move our pointer to the next slot.
 
 	'skip-entry
-	(test ebx ebx)          ; If EBX is zero, the list is complete.
+	(test ebx ebx)  ; If EBX is zero, the list is complete.
 	(jne 'next-read)
 	(jmp 'finished)
 
@@ -249,8 +249,8 @@
 	; All done.
 	'finished
 	(mov eax (@ memory-physical-map-entries))
-	(mov (eax) ebp)       ; Record the number of entries.
-	(clc)                 ; Clear the carry flag.
+	(mov (eax) ebp)  ; Record the number of entries.
+	(clc)            ; Clear the carry flag.
 	(jmp (@ enter-protected-mode-again)))
 
 ; Enter protected mode for good this time.
@@ -261,13 +261,13 @@
 '(mode 16)
 (asm-func (enter-protected-mode-again)
 	; Load the global descriptor table.
-	(cli)                 ; Pause interrupts.
+	(cli)  ; Pause interrupts.
 	(mov bx (@ global-descriptor-table-32-header))
 	(lgdt (bx))
 
 	; Enable and resume protected mode.
 	(mov eax cr0)
-	(or al 1)             ; Set the protected mode bit.
+	(or al 1)  ; Set the protected mode bit.
 	(mov cr0 eax)
 
 	; Start stage 3 with a far return.
