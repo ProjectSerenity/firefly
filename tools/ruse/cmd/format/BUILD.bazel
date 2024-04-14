@@ -1,0 +1,19 @@
+# Copyright 2023 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "format",
+    srcs = ["format.go"],
+    importpath = "firefly-os.dev/tools/ruse/cmd/format",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tools/diff",
+        "//tools/ruse/format",
+        "//tools/ruse/parser",
+        "//tools/ruse/token",
+    ],
+)
