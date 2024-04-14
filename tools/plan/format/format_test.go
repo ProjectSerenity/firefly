@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"rsc.io/diff"
 
+	"firefly-os.dev/tools/diff"
 	"firefly-os.dev/tools/plan/parser"
 	"firefly-os.dev/tools/plan/types"
 )
@@ -202,7 +202,7 @@ func TestFormatFile(t *testing.T) {
 
 			got := buf.String()
 			if got != test.Want+"\n" {
-				t.Fatalf("Fprint():\n%s", diff.Format(got, test.Want+"\n"))
+				t.Fatalf("Fprint():\n%s", diff.Diff("got", []byte(got), "want", []byte(test.Want+"\n")))
 			}
 
 			// Check that interpreting the original source and
@@ -250,7 +250,7 @@ func TestFormatFile(t *testing.T) {
 
 			format2 := builder.String()
 			if format2 != format1 {
-				t.Fatalf("Fprint(formatted):\n%s", diff.Format(format2, format1))
+				t.Fatalf("Fprint(formatted):\n%s", diff.Diff("second", []byte(format2), "first", []byte(format1)))
 			}
 		})
 	}

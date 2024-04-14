@@ -12,8 +12,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"rsc.io/diff"
 
+	"firefly-os.dev/tools/diff"
 	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/parser"
 	"firefly-os.dev/tools/ruse/token"
@@ -133,8 +133,9 @@ syscall1
 			}
 
 			got := buf.String()
-			if got != test.Want+"\n" {
-				t.Fatalf("Fprint(): (+got, -want)\n%s", diff.Format(test.Want+"\n", got))
+			want := test.Want + "\n"
+			if got != want {
+				t.Fatalf("Fprint(): (+got, -want)\n%s", diff.Diff("want", []byte(want), "got", []byte(got)))
 			}
 
 			// Check that interpreting the original source and
@@ -172,7 +173,7 @@ syscall1
 
 			format2 := builder.String()
 			if format2 != format1 {
-				t.Fatalf("Fprint(formatted): (+got, -want)\n%s", diff.Format(format1, format2))
+				t.Fatalf("Fprint(formatted): (+got, -want)\n%s", diff.Diff("first", []byte(format1), "second", []byte(format2)))
 			}
 		})
 	}

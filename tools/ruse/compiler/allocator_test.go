@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"rsc.io/diff"
 
+	"firefly-os.dev/tools/diff"
 	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/internal/x86"
@@ -249,7 +249,7 @@ func TestAllocator(t *testing.T) {
 			gotText := a.Debug()
 			text := strings.Join(test.Text, "\n") + "\n"
 			if gotText != text {
-				t.Fatalf("allocator.Debug(): (+got, -want)\n%s", diff.Format(text, gotText))
+				t.Fatalf("allocator.Debug():\n%s", diff.Diff("want", []byte(text), "got", []byte(gotText)))
 			}
 		})
 	}

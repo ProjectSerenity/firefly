@@ -10,8 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"rsc.io/diff"
-
+	"firefly-os.dev/tools/diff"
 	"firefly-os.dev/tools/plan/token"
 )
 
@@ -160,7 +159,7 @@ func TestLexer(t *testing.T) {
 				w[i] = want.String()
 			}
 
-			t.Errorf("Lexing %q:\n%s", test.src, diff.Format(strings.Join(g, "\n  "), strings.Join(w, "\n  ")))
+			t.Errorf("Lexing %q:\n%s", test.src, diff.Diff("got", []byte(strings.Join(g, "\n  ")), "want", []byte(strings.Join(w, "\n  "))))
 		}
 	}
 }

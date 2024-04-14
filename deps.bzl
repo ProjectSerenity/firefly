@@ -107,15 +107,6 @@ go = [
         ],
     ),
     module(
-        name = "rsc.io/diff",
-        version = "v0.0.0-20190621135850-fe3479844c3c",
-        packages = [
-            package(
-                name = "rsc.io/diff",
-            ),
-        ],
-    ),
-    module(
         name = "rsc.io/pdf",
         version = "v0.1.1",
         packages = [

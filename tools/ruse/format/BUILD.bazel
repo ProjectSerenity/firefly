@@ -22,11 +22,11 @@ go_test(
     srcs = ["format_test.go"],
     embed = [":format"],
     deps = [
+        "//tools/diff",
         "//tools/ruse/ast",
         "//tools/ruse/parser",
         "//tools/ruse/token",
         "//vendor/github.com/google/go-cmp/cmp",
         "//vendor/github.com/google/go-cmp/cmp/cmpopts",
-        "//vendor/rsc.io/diff",
     ],
 )

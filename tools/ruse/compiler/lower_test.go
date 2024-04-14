@@ -14,8 +14,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"golang.org/x/arch/x86/x86asm"
-	"rsc.io/diff"
 
+	"firefly-os.dev/tools/diff"
 	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/internal/x86"
 	"firefly-os.dev/tools/ruse/parser"
@@ -1104,7 +1104,7 @@ func TestLower(t *testing.T) {
 			got := disasm.String()
 			want := strings.Join(test.Disasm, "\n") + "\n"
 			if got != want {
-				t.Errorf("Lower(): (-want, +got)\n%s", diff.Format(want, got))
+				t.Errorf("Lower(): (-want, +got)\n%s", diff.Diff("want", []byte(want), "got", []byte(got)))
 			}
 
 			var testValues []*TestValue

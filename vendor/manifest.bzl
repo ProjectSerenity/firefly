@@ -34,11 +34,6 @@ go = [
         digest = "sha256:6e6f2de197b43b456b4b552d73be11d9c81b5b89a364c55d9a0125ffe4471b7a",
     ),
     module(
-        name = "rsc.io/diff",
-        version = "v0.0.0-20190621135850-fe3479844c3c",
-        digest = "sha256:2d08e81c4ae9aa1a306761dd6999b07ce470057ae3deca4c90ebc2072508127e",
-    ),
-    module(
         name = "rsc.io/pdf",
         version = "v0.1.1",
         digest = "sha256:dbcfced86e0476b66361055010722ad28f952e5745a43dd3d3fcd847d9f23733",

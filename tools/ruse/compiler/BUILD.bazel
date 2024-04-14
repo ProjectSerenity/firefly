@@ -54,11 +54,11 @@ go_test(
     data = glob(["testdata/**"]),
     embed = [":compiler"],
     deps = [
+        "//tools/diff",
         "//tools/ruse/parser",
         "//vendor/github.com/google/go-cmp/cmp",
         "//vendor/github.com/google/go-cmp/cmp/cmpopts",
         "//vendor/golang.org/x/arch/x86/x86asm",
-        "//vendor/rsc.io/diff",
     ],
 )
 
