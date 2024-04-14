@@ -1,0 +1,24 @@
+# Copyright 2024 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "diff",
+    srcs = ["diff.go"],
+    importpath = "firefly-os.dev/tools/diff",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "diff_test",
+    size = "small",
+    srcs = ["diff_test.go"],
+    data = glob(["testdata/**"]),
+    embed = [":diff"],
+    deps = [
+        "//vendor/golang.org/x/tools/txtar",
+    ],
+)
