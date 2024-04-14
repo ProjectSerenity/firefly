@@ -98,6 +98,15 @@ go = [
         ],
     ),
     module(
+        name = "golang.org/x/tools",
+        version = "v0.20.0",
+        packages = [
+            package(
+                name = "golang.org/x/tools/txtar",
+            ),
+        ],
+    ),
+    module(
         name = "rsc.io/diff",
         version = "v0.0.0-20190621135850-fe3479844c3c",
         packages = [

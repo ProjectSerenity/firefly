@@ -29,6 +29,11 @@ go = [
         digest = "sha256:bd93952fff5fb622701cf3c0d14118ee3962ad828ae01dfca528bb646edae835",
     ),
     module(
+        name = "golang.org/x/tools",
+        version = "v0.20.0",
+        digest = "sha256:6e6f2de197b43b456b4b552d73be11d9c81b5b89a364c55d9a0125ffe4471b7a",
+    ),
+    module(
         name = "rsc.io/diff",
         version = "v0.0.0-20190621135850-fe3479844c3c",
         digest = "sha256:2d08e81c4ae9aa1a306761dd6999b07ce470057ae3deca4c90ebc2072508127e",
