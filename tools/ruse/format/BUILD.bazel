@@ -20,6 +20,7 @@ go_test(
     name = "format_test",
     size = "small",
     srcs = ["format_test.go"],
+    data = glob(["testdata/**"]),
     embed = [":format"],
     deps = [
         "//tools/diff",
@@ -28,5 +29,6 @@ go_test(
         "//tools/ruse/token",
         "//vendor/github.com/google/go-cmp/cmp",
         "//vendor/github.com/google/go-cmp/cmp/cmpopts",
+        "//vendor/golang.org/x/tools/txtar",
     ],
 )

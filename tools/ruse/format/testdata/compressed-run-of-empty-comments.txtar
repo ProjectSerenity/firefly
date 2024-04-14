@@ -1,0 +1,13 @@
+-- input.ruse --
+(package foo)
+
+;foo
+;
+;
+; bar
+-- want.ruse --
+(package foo)
+
+; foo
+;
+; bar

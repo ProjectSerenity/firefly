@@ -1,0 +1,66 @@
+-- input.ruse --
+(package foo)
+; Example
+; 123.
+
+(func (example (docs string) (type byte)(name string) int64  )
+(+ 1	 2      3)
+                         (int->int64 (+ (len docs) ( len name ) (* (byte->int type) 2))))
+
+;A function with the annotations already in
+;the right order.
+'(arch x86-64)
+'(param (x int) rax)
+'(param (a int32) rbx)
+'(result int rax) '(scratch rax    rcx)
+(asm-func
+(syscall1)(movq rax rcx)    (xorq rdx rdx) (syscall))
+
+
+
+; A function with annotations in the wrong order.
+; The function is short so would appear all on
+; one line if we didn't special-case that.
+'(scratch     rcx) '(result int32 rax)
+'(arch x86-64)
+'(param (x int32) rax)
+(asm-func double (addq rax rax))
+
+; A complex one-line function.
+(func (binary-function (x int64) (y string))
+	(let _ (+ x (int->int64 (len y)))))
+-- want.ruse --
+(package foo)
+
+; Example
+; 123.
+
+(func (example (docs string) (type byte) (name string) int64)
+	(+ 1 2 3)
+	(int->int64 (+ (len docs) (len name) (* (byte->int type) 2))))
+
+; A function with the annotations already in
+; the right order.
+'(arch x86-64)
+'(param (x int) rax)
+'(param (a int32) rbx)
+'(result int rax)
+'(scratch rax rcx)
+(asm-func (syscall1)
+	(movq rax rcx)
+	(xorq rdx rdx)
+	(syscall))
+
+; A function with annotations in the wrong order.
+; The function is short so would appear all on
+; one line if we didn't special-case that.
+'(arch x86-64)
+'(param (x int32) rax)
+'(result int32 rax)
+'(scratch rcx)
+(asm-func double
+	(addq rax rax))
+
+; A complex one-line function.
+(func (binary-function (x int64) (y string))
+	(let _ (+ x (int->int64 (len y)))))

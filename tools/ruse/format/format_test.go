@@ -7,11 +7,12 @@ package format
 
 import (
 	"bytes"
-	"strings"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"golang.org/x/tools/txtar"
 
 	"firefly-os.dev/tools/diff"
 	"firefly-os.dev/tools/ruse/ast"
@@ -20,107 +21,26 @@ import (
 )
 
 func TestFormatFile(t *testing.T) {
-	tests := []struct {
-		Name   string
-		Source string
-		Want   string
-	}{
-		{
-			Name:   "package group",
-			Source: "(package foo) ; foo",
-			Want:   "(package foo) ; foo",
-		},
-		{
-			Name:   "comment group",
-			Source: "(package foo)\n\n; foo",
-			Want:   "(package foo)\n\n; foo",
-		},
-		{
-			Name:   "compressed run of empty comments",
-			Source: "(package foo)\n\n;foo\n;\n;\n; bar",
-			Want:   "(package foo)\n\n; foo\n;\n; bar",
-		},
-		{
-			Name:   "preserved separate comment groups",
-			Source: "(package foo)\n\n; foo\n\n\n; bar",
-			Want:   "(package foo)\n\n; foo\n\n; bar",
-		},
-		{
-			Name: "complex example",
-			Source: `(package foo)
-; Example
-; 123.
-
-(func (example (docs string) (type byte)(name string) int64  ) (+ 1	 2      3)(int->int64 (+ (len docs) ( len name ) (* (byte->int type) 2))))
-
-;A function with the annotations already in
-;the right order.
-'(arch x86-64)
-'(param (x int) rax)
-'(param (a int32) rbx)
-'(result int rax) '(scratch rax    rcx)
-(asm-func
-syscall1
-(movq rax rcx) (xorq rdx rdx) (syscall))
-
-
-
-; A function with annotations in the wrong order.
-; The function is short so would appear all on
-; one line if we didn't special-case that.
-'(scratch     rcx) '(result int32 rax)
-'(arch x86-64)
-'(param (x int32) rax)
-(asm-func double (addq rax rax))
-
-; A complex one-line function.
-(func (binary-function (x int64) (y string))
-	(let _ (+ x (int->int64 (len y)))))`,
-			// Breaker comment.
-			Want: `(package foo)
-
-; Example
-; 123.
-
-(func (example (docs string) (type byte) (name string) int64)
-	(+ 1 2 3)
-	(int->int64 (+ (len docs) (len name) (* (byte->int type) 2))))
-
-; A function with the annotations already in
-; the right order.
-'(arch x86-64)
-'(param (x int) rax)
-'(param (a int32) rbx)
-'(result int rax)
-'(scratch rax rcx)
-(asm-func syscall1
-	(movq rax rcx)
-	(xorq rdx rdx)
-	(syscall))
-
-; A function with annotations in the wrong order.
-; The function is short so would appear all on
-; one line if we didn't special-case that.
-'(arch x86-64)
-'(param (x int32) rax)
-'(result int32 rax)
-'(scratch rcx)
-(asm-func double
-	(addq rax rax))
-
-; A complex one-line function.
-(func (binary-function (x int64) (y string))
-	(let _ (+ x (int->int64 (len y)))))`,
-		},
+	files, _ := filepath.Glob("testdata/*.txtar")
+	if len(files) == 0 {
+		t.Fatalf("no testdata")
 	}
 
-	var buf bytes.Buffer
-	var builder strings.Builder
-	for _, test := range tests {
-		t.Run(test.Name, func(t *testing.T) {
+	var buf, buf2 bytes.Buffer
+	for _, file := range files {
+		t.Run(filepath.Base(file), func(t *testing.T) {
 			buf.Reset()
 			fset := token.NewFileSet()
-			file, err := parser.ParseFile(fset, "input.ruse", test.Source, parser.ParseComments)
+			a, err := txtar.ParseFile(file)
+			if err != nil {
+				t.Fatalf("failed to open %s: %v", file, err)
+			}
+
+			if len(a.Files) != 2 {
+				t.Fatalf("invalid archive: got %d files, need %d", len(a.Files), 2)
+			}
+
+			file, err := parser.ParseFile(fset, a.Files[0].Name, a.Files[0].Data, parser.ParseComments)
 			if err != nil {
 				t.Fatalf("ParseFile(): %v", err)
 			}
@@ -132,17 +52,16 @@ syscall1
 				t.Fatalf("Fprint(): %v", err)
 			}
 
-			got := buf.String()
-			want := test.Want + "\n"
-			if got != want {
-				t.Fatalf("Fprint(): (+got, -want)\n%s", diff.Diff("want", []byte(want), "got", []byte(got)))
+			got := buf.Bytes()
+			if !bytes.Equal(got, a.Files[1].Data) {
+				t.Fatalf("Fprint():\n%s", diff.Diff(a.Files[1].Name, a.Files[1].Data, "got", got))
 			}
 
 			// Check that interpreting the original source and
 			// the formatted source gives the same result, as
 			// formatting should not result in semantic changes.
 
-			origParsed, err := parser.ParseFile(fset, "reparsed.ruse", test.Source, parser.ParseComments)
+			origParsed, err := parser.ParseFile(fset, "reparsed.ruse", a.Files[0].Data, parser.ParseComments)
 			if err != nil {
 				t.Fatalf("ParseFile(test.Source): %v", err)
 			}
@@ -165,15 +84,15 @@ syscall1
 
 			format1 := got
 
-			builder.Reset()
-			err = Fprint(&builder, fset, formattedParsed)
+			buf2.Reset()
+			err = Fprint(&buf2, fset, formattedParsed)
 			if err != nil {
 				t.Fatalf("Fprint(formatted): %v", err)
 			}
 
-			format2 := builder.String()
-			if format2 != format1 {
-				t.Fatalf("Fprint(formatted): (+got, -want)\n%s", diff.Diff("first", []byte(format1), "second", []byte(format2)))
+			format2 := buf2.Bytes()
+			if !bytes.Equal(format2, format1) {
+				t.Fatalf("Fprint(formatted):\n%s", diff.Diff("first", format1, "second", format2))
 			}
 		})
 	}
