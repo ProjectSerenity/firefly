@@ -780,7 +780,10 @@ func (p *parser) parseFile() *ast.File {
 		Name:        name,
 		Imports:     imports,
 		Expressions: exprs,
-		Comments:    p.comments,
+	}
+
+	if p.mode&ParseComments != 0 {
+		f.Comments = p.comments
 	}
 
 	return f
