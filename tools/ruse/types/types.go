@@ -359,6 +359,7 @@ func (c *checker) Check(files []*ast.File) error {
 
 	seenImport := make(map[string]bool)
 	fileScopes := make([]*Scope, len(files))
+	imports := make([]*Import, 0, len(files))
 	for i, file := range files {
 		if c.pkg.Name == "" {
 			c.pkg.Name = file.Name.Name
@@ -420,6 +421,7 @@ func (c *checker) Check(files []*ast.File) error {
 			}
 
 			ref := NewImport(scope, imp.List.ParenOpen, imp.List.ParenClose, c.pkg, name, dep)
+			imports = append(imports, ref)
 
 			// Imports only affect the file scope,
 			// not the entire package.
@@ -547,6 +549,14 @@ func (c *checker) Check(files []*ast.File) error {
 		})
 		if err != nil {
 			return err
+		}
+	}
+
+	// Check that every import is used.
+	for _, imp := range imports {
+		_, ok := c.uses[imp]
+		if !ok {
+			return c.errorf(imp.Pos(), "%q imported and not used", imp.Name())
 		}
 	}
 
