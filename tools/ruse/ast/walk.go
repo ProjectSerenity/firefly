@@ -103,9 +103,6 @@ func Walk(v Visitor, node Node) {
 		}
 
 	case *Import:
-		if n.Doc != nil {
-			Walk(v, n.Doc)
-		}
 		if n.Group != nil {
 			Walk(v, n.Group)
 		}
@@ -114,9 +111,6 @@ func Walk(v Visitor, node Node) {
 		}
 		Walk(v, n.Name)
 		Walk(v, n.Path)
-		if n.Comment != nil {
-			Walk(v, n.Comment)
-		}
 
 	default:
 		panic(fmt.Sprintf("ast.Walk: unexpected node type %T", n))
