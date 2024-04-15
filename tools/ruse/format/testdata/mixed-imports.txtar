@@ -1,0 +1,22 @@
+-- input.ruse --
+(package foo)
+
+(import "sections")
+(import
+	(bar "foo/bar")
+	("foo/baz"))
+
+
+(import other "altogether/different")
+
+(let code sections.Code)
+-- want.ruse --
+(package foo)
+
+(import
+	(other "altogether/different")
+	(bar "foo/bar")
+	("foo/baz")
+	("sections"))
+
+(let code sections.Code)

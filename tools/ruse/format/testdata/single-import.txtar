@@ -1,0 +1,12 @@
+-- input.ruse --
+(package foo)
+(import "sections")
+
+(let code sections.Code)
+-- want.ruse --
+(package foo)
+
+(import
+	("sections"))
+
+(let code sections.Code)

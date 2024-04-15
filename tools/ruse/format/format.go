@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"strconv"
 	"unicode/utf8"
 
 	"firefly-os.dev/tools/ruse/ast"
@@ -56,37 +57,12 @@ type formatter struct {
 	lineStart    int
 	comments     []*ast.CommentGroup
 	lineComments []*lineComment
-	lists        []*ast.List
 }
 
 func (f *formatter) Newline() {
 	f.buf.WriteByte('\n')
 	f.lineNum++
 	f.lineStart = f.buf.Len()
-}
-
-func (f *formatter) Next() (comment *ast.CommentGroup, list *ast.List, node ast.Node) {
-	if len(f.comments) == 0 {
-		// Must be a list.
-		list = f.PopList()
-		return nil, list, list
-	} else if len(f.lists) == 0 {
-		// Must be a comment.
-		comment = f.PopComment()
-		return comment, nil, comment
-	}
-
-	// Pick the one with the smaller
-	// offset.
-	nextComment := f.fset.Position(f.comments[0].Pos())
-	nextList := f.fset.Position(f.lists[0].Pos())
-	if nextComment.Offset < nextList.Offset {
-		comment = f.PopComment()
-		return comment, nil, comment
-	}
-
-	list = f.PopList()
-	return nil, list, list
 }
 
 func (f *formatter) PeekComment() *ast.CommentGroup {
@@ -125,23 +101,113 @@ func (f *formatter) SaveLineComment(comment *ast.CommentGroup) {
 	})
 }
 
-func (f *formatter) PeekList() *ast.List {
-	if f == nil || len(f.lists) == 0 {
-		return nil
+// line is a helper to determine the line number.
+func (f *formatter) line(p token.Pos) int {
+	pos := f.fset.Position(p)
+	if !pos.IsValid() {
+		panic(fmt.Sprintf("got invalid position at position %d", p))
 	}
 
-	list := f.lists[0]
-	return list
+	return pos.Line
 }
 
-func (f *formatter) PopList() *ast.List {
-	if f == nil || len(f.lists) == 0 {
-		return nil
+// AddCommentsBefore prints any comments before the given
+// position, using the indentation provided.
+//
+// prev is the previous node, which is used to handle any
+// trailing line comments.
+//
+// After adding comments, the final node (which is either
+// prev or a comment after prev) is returned.
+func (f *formatter) AddCommentsBefore(indentation string, prev, node ast.Node, printTrailingNewlines bool) (final ast.Node) {
+	nodePos := token.NoPos
+	if node != nil {
+		nodePos = node.Pos()
+		if list, ok := node.(*ast.List); ok && len(list.Annotations) > 0 {
+			// Find the first annotation.
+			for _, anno := range list.Annotations {
+				if nodePos > anno.Quote {
+					nodePos = anno.Quote
+				}
+			}
+		}
 	}
 
-	list := f.lists[0]
-	f.lists = f.lists[1:]
-	return list
+	prevIsComment := false
+	for {
+		comment := f.PeekComment()
+		if comment == nil {
+			break
+		}
+
+		commentLine := f.line(comment.Pos())
+		thisLine := 0
+		if node != nil {
+			thisLine = f.line(nodePos)
+		}
+
+		prevLine := 0
+		if prev != nil {
+			prevLine = f.line(prev.End())
+		}
+
+		// Handle comments on the same line as
+		// the previous element specially, but
+		// only if it's not the same line as us,
+		// or we'll interrupt this line.
+		if prev != nil && commentLine == prevLine && (node == nil || commentLine != thisLine) {
+			f.SaveLineComment(f.PopComment())
+			continue
+		}
+
+		// Stop if we reach a comment on the
+		// same line as us or later.
+		if (node != nil && commentLine >= thisLine) || (prev != nil && commentLine == prevLine) {
+			break
+		}
+
+		// Add a line break after the previous
+		// element if there's a gap between it
+		// and the comment.
+		if prev != nil {
+			switch commentLine - prevLine {
+			case 1:
+				f.Newline()
+				if indentation == "" {
+					f.Newline() // Always add a line break for top-level entries.
+				}
+			default:
+				f.Newline()
+				f.Newline()
+			}
+		}
+
+		f.buf.WriteString(indentation)
+		f.FprintCommentGroup(indentation, f.PopComment())
+
+		prev = comment
+		prevIsComment = true
+	}
+
+	// If the element is on a different
+	// line to its predecessor, we insert
+	// a single line break. Otherwise, we
+	// add a space.
+	if printTrailingNewlines && prev != nil {
+		switch f.line(nodePos) - f.line(prev.End()) {
+		case 0:
+		case 1:
+			f.Newline()
+			if !prevIsComment && indentation == "" {
+				f.Newline() // Always add a line break for top-level entries.
+			}
+		default:
+			f.Newline()
+			f.Newline() // Add a line break.
+		}
+	}
+
+	return prev
 }
 
 // Fprint writes the file to w, according to the standard
@@ -164,79 +230,104 @@ func Fprint(w io.Writer, fset *token.FileSet, file *ast.File) error {
 		fset:     fset,
 		lineNum:  1,
 		comments: make([]*ast.CommentGroup, len(file.Comments)),
-		lists:    make([]*ast.List, len(file.Expressions)),
 	}
 
 	// We don't know the order in which comments
 	// and expressions are interleaved, so we
-	// track the position of the next node and
-	// of each type and print the earlier of the
-	// two.
+	// track the position of the next comment and
+	// interleave them.
 	//
-	// We make a copy of the two slices so we
-	// can advance them to track our progress
-	// without modifying the file.
+	// We make a copy of the comments so we can
+	// advance them to track our progress without
+	// modifying the file.
 	copy(f.comments, file.Comments)
-	copy(f.lists, file.Expressions)
 
-	// First, we check for any comments before
-	// the package statement and do those,
-	// then the package statement.
-	for len(f.comments) > 0 && f.comments[0].Pos() < file.Package.ParenOpen {
-		f.FprintCommentGroup("", f.PopComment())
-		f.Newline()
-		f.Newline() // Add a line break.
-	}
+	// We build a list of lists, consisting
+	// of the package statement, up to one
+	// list for an import group, and the top-
+	// level lists in the file. Once we have
+	// built up the list of lists, we iterate
+	// through it, printing each element,
+	// along with any intervening comments.
+	elements := make([]ast.Expression, 0, 2+len(file.Expressions))
+	elements = append(elements, file.Package)
 
-	// Print the package statement and any
-	// line comment after it.
-	f.FprintExpr(0, file.Package)
-	if len(f.comments) == 0 || fset.Position(file.Name.NamePos).Line != fset.Position(f.comments[0].Pos()).Line {
-		f.buf.WriteByte('\n')
-		f.buf.WriteByte('\n')
-	} else {
-		f.buf.WriteByte(' ')
-		f.buf.WriteByte(' ')
-		f.FprintCommentGroup("", f.PopComment())
-		f.Newline() // Add a line break.
-	}
+	// We always use import groups, even
+	// if the input is one or more individual
+	// imports.
+	if len(file.Imports) > 0 {
+		// Create a list with the right layout
+		// then use our normal code to print
+		// it.
+		n := len(file.Imports) - 1
+		imports := &ast.List{
+			ParenOpen:  file.Imports[0].List.ParenOpen,
+			Elements:   make([]ast.Expression, 1+len(file.Imports)),
+			ParenClose: file.Imports[n].List.ParenClose,
+		}
 
-	first := true
-	prevEnd := file.Name.NamePos
-	for len(f.comments) != 0 || len(f.lists) != 0 {
-		comment, list, node := f.Next()
-		pos := node.Pos() // We need to do more work for lists to account for annotations, which may have been reordered.
-		if list, ok := node.(*ast.List); ok {
-			for _, anno := range list.Annotations {
-				if pos > anno.Quote {
-					pos = anno.Quote
-				}
+		// Update the positions if the input
+		// did use groups.
+		if file.Imports[0].Group != nil {
+			imports.ParenOpen = file.Imports[0].Group.ParenOpen
+		}
+		if file.Imports[n].Group != nil {
+			imports.ParenClose = file.Imports[n].Group.ParenClose
+		}
+
+		// Sort the imports by path.
+		importPath := func(imp *ast.Import) string {
+			s, _ := strconv.Unquote(imp.Path.Value) // Checked by the parser.
+			return s
+		}
+
+		slices.SortFunc(file.Imports, func(a, b *ast.Import) int { return cmp.Compare(importPath(a), importPath(b)) })
+
+		imports.Elements[0] = &ast.Identifier{NamePos: imports.ParenOpen + 1, Name: "import"}
+		for i, imp := range file.Imports {
+			// Add the list entry.
+			entry := &ast.List{
+				ParenOpen:  imp.List.ParenOpen,
+				Elements:   make([]ast.Expression, 0, 2),
+				ParenClose: imp.List.ParenClose,
 			}
-		}
 
-		if first {
-			first = false
-		} else if fset.Position(prevEnd).Line+1 < fset.Position(pos).Line {
-			// Add a line break between
-			// statements.
-			f.Newline()
-		}
-
-		if comment != nil {
-			f.FprintCommentGroup("", comment)
-		} else {
-			f.FprintExpr(0, list)
-
-			// Check whether we have any trailing line
-			// comments to print before the line break.
-			if comment := f.PeekComment(); comment != nil && fset.Position(comment.Pos()).Line == fset.Position(list.ParenClose).Line {
-				f.SaveLineComment(f.PopComment())
+			if imp.Name != nil {
+				entry.Elements = append(entry.Elements, imp.Name)
 			}
+
+			entry.Elements = append(entry.Elements, imp.Path)
+
+			imports.Elements[i+1] = entry
 		}
 
-		f.Newline()
-		prevEnd = node.End()
+		// Add the imports.
+
+		elements = append(elements, imports)
 	}
+
+	// Add the remaining elements.
+	for _, elt := range file.Expressions {
+		elements = append(elements, elt)
+	}
+
+	// Process the events.
+	var prev ast.Node
+	for _, elt := range elements {
+		// Add any leading comments.
+		f.AddCommentsBefore("", prev, elt, true)
+
+		// Print the element.
+		f.FprintExpr(0, elt)
+
+		prev = elt
+	}
+
+	// Print any trailing line comments.
+	f.AddCommentsBefore("", prev, nil, false)
+
+	// Add a trailing newline.
+	f.Newline()
 
 	// Add line comments with appropriate vertical
 	// alignment.
@@ -368,16 +459,6 @@ func (f *formatter) FprintCommentGroup(indentation string, group *ast.CommentGro
 //
 // FprintExpr does not write any spacing around the node.
 func (f *formatter) FprintExpr(indentation int, expr ast.Expression) {
-	// Helper to determine the line number.
-	line := func(p token.Pos) int {
-		pos := f.fset.Position(p)
-		if !pos.IsValid() {
-			panic(fmt.Sprintf("got invalid position at position %d", p))
-		}
-
-		return pos.Line
-	}
-
 	switch x := expr.(type) {
 	case *ast.QuotedIdentifier:
 		f.buf.WriteByte('\'')
@@ -395,7 +476,7 @@ func (f *formatter) FprintExpr(indentation int, expr ast.Expression) {
 			// unless there is exactly one and it
 			// is on the same line as the list in
 			// the source.
-			if len(x.Annotations) != 1 || line(anno.Quote) != line(x.ParenOpen) {
+			if len(x.Annotations) != 1 || f.line(anno.Quote) != f.line(x.ParenOpen) {
 				f.Newline()
 			}
 		}
@@ -410,11 +491,15 @@ func (f *formatter) FprintExpr(indentation int, expr ast.Expression) {
 		// In assembly functions, each instruction
 		// and label should be on its own line.
 
+		isPackage := false
+		isImport := false
 		isFunc := false
 		isAssembly := false
 		if indentation == 0 {
 			if ident, ok := x.Elements[0].(*ast.Identifier); ok {
-				isFunc = ident.Name == "func" || ident.Name == "asm-func"
+				isPackage = ident.Name == "package"
+				isImport = ident.Name == "import"
+				isFunc = ident.Name == "func"
 				isAssembly = ident.Name == "asm-func"
 			}
 		}
@@ -425,51 +510,10 @@ func (f *formatter) FprintExpr(indentation int, expr ast.Expression) {
 		f.FprintExpr(indentation, x.Elements[0])
 
 		for i, elt := range x.Elements[1:] {
-			var prev ast.Node = x.Elements[i] // As we index from 1 above, i is the index of the previous element.
-
 			// Handle any block comments before
 			// the element.
-			for {
-				comment := f.PeekComment()
-				if comment == nil {
-					break
-				}
-
-				commentLine := line(comment.Pos())
-				thisLine := line(elt.Pos())
-				prevLine := line(prev.End())
-
-				// Handle comments on the same line as
-				// the previous element specially, but
-				// only if it's not the same line as us,
-				// or we'll interrupt this line.
-				if commentLine == prevLine && commentLine != thisLine {
-					f.SaveLineComment(f.PopComment())
-					continue
-				}
-
-				// Stop if we reach a comment on the
-				// same line as us or later.
-				if commentLine == prevLine || commentLine >= thisLine {
-					break
-				}
-
-				// Add a line break after the previous
-				// element if there's a gap between it
-				// and the comment.
-				switch commentLine - prevLine {
-				case 1:
-					f.Newline()
-				default:
-					f.Newline()
-					f.Newline()
-				}
-
-				f.buf.WriteString(tabs[:indentation+1])
-				f.FprintCommentGroup(tabs[:indentation+1], f.PopComment())
-
-				prev = comment
-			}
+			var prev ast.Node = x.Elements[i] // As we index from 1 above, i is the index of the previous element.
+			prev = f.AddCommentsBefore(tabs[:indentation+1], prev, elt, false)
 
 			// If the element is on a different
 			// line to its predecessor, we insert
@@ -477,7 +521,7 @@ func (f *formatter) FprintExpr(indentation int, expr ast.Expression) {
 			// add a space.
 			lineBreak := false   // Whether to add a line break.
 			doubleBreak := false // Whether to add a blank line.
-			switch line(elt.Pos()) - line(prev.End()) {
+			switch f.line(elt.Pos()) - f.line(prev.End()) {
 			case 0:
 			case 1:
 				lineBreak = true
@@ -486,7 +530,14 @@ func (f *formatter) FprintExpr(indentation int, expr ast.Expression) {
 				doubleBreak = true
 			}
 
-			if isFunc {
+			switch {
+			case isPackage:
+				// The package name is always on the same line.
+				lineBreak = false
+			case isImport:
+				lineBreak = true
+				doubleBreak = false
+			case isFunc:
 				switch i {
 				case 0:
 					// No line break before the signature.
@@ -495,10 +546,8 @@ func (f *formatter) FprintExpr(indentation int, expr ast.Expression) {
 					// Always line break after the signature.
 					lineBreak = true
 				}
-			}
-
-			if isAssembly && i != 0 {
-				lineBreak = true
+			case isAssembly:
+				lineBreak = i != 0 // Always break, except before the signature.
 			}
 
 			if !lineBreak {
@@ -508,15 +557,15 @@ func (f *formatter) FprintExpr(indentation int, expr ast.Expression) {
 			} else {
 				// Check whether we have any trailing line
 				// comments to print before the line break.
-				if comment := f.PeekComment(); comment != nil && line(comment.Pos()) == line(prev.Pos()) {
+				if comment := f.PeekComment(); comment != nil && f.line(comment.Pos()) == f.line(prev.Pos()) {
 					f.SaveLineComment(f.PopComment())
 				}
 
+				f.Newline()
 				if doubleBreak {
 					f.Newline()
 				}
 
-				f.Newline()
 				f.buf.WriteString(tabs[:indentation+1])
 
 				f.FprintExpr(indentation+1, elt)

@@ -74,8 +74,10 @@ func TestFormatFile(t *testing.T) {
 			// Repeat sorting so we're consistent.
 			SortAnnotations(origParsed)
 
-			// Ignore positions and comments, as these are changed.
-			if diff := cmp.Diff(origParsed, formattedParsed, cmpopts.IgnoreTypes(token.Pos(0), new(ast.Comment))); diff != "" {
+			// Ignore positions, comments, and imports, as
+			// these are changed.
+			ignore := cmpopts.IgnoreTypes(token.Pos(0), new(ast.Comment), new(ast.Import))
+			if diff := cmp.Diff(origParsed, formattedParsed, ignore); diff != "" {
 				t.Fatalf("Fprintf(): (+got, -want)\n%s", diff)
 			}
 
