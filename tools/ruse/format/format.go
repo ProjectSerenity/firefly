@@ -26,7 +26,7 @@ func SortAnnotations(file *ast.File) {
 	ast.Inspect(file, func(n ast.Node) bool {
 		// Look for lists.
 		list, ok := n.(*ast.List)
-		if !ok {
+		if !ok || list == nil || list.Annotations == nil {
 			return true
 		}
 
@@ -524,6 +524,10 @@ func (f *formatter) FprintExpr(indentation int, expr ast.Expression) {
 		}
 
 		f.buf.WriteByte(')') // Close the list.
+	case *ast.Qualified:
+		f.buf.WriteString(x.X.Name)
+		f.buf.WriteByte('.')
+		f.buf.WriteString(x.Y.Name)
 	default:
 		panic(fmt.Sprintf("%s: unexpected expression %#v", f.fset.Position(expr.Pos()), expr))
 	}
