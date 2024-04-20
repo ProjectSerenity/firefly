@@ -152,7 +152,7 @@ var specialForms = [...]*SpecialForm{
 	SpecialFormGreaterThanOrEqual: {},
 }
 
-var specialFormTypes [len(specialForms)]func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error)
+var specialFormTypes [len(specialForms)]func(c *checker, scope *Scope, function *Function, fun *ast.List) (sig *Signature, typ Type, err error)
 
 func defPredeclaredSpecialForms() {
 	var numericTypes = []Type{
@@ -170,12 +170,12 @@ func defPredeclaredSpecialForms() {
 	}
 
 	// Syntactic forms.
-	specialFormTypes[SpecialFormAsmFunc] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+	specialFormTypes[SpecialFormAsmFunc] = func(c *checker, scope *Scope, function *Function, fun *ast.List) (sig *Signature, typ Type, err error) {
 		// TODO: implement (asm-func)
 		return nil, nil, fmt.Errorf("(asm-func) not supported")
 	}
 
-	specialFormTypes[SpecialFormAt] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+	specialFormTypes[SpecialFormAt] = func(c *checker, scope *Scope, function *Function, fun *ast.List) (sig *Signature, typ Type, err error) {
 		if len(fun.Elements[1:]) < 2 {
 			return nil, nil, c.errorf(fun.ParenOpen, "too few arguments in call to at: expected %d, found %d", 2, len(fun.Elements[1:]))
 		} else if len(fun.Elements[1:]) > 2 {
@@ -184,7 +184,7 @@ func defPredeclaredSpecialForms() {
 
 		arg0 := fun.Elements[1]
 		arg1 := fun.Elements[2]
-		obj, arrayType, err := c.ResolveExpression(scope, arg0)
+		obj, arrayType, err := c.ResolveExpression(scope, function, arg0)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -195,7 +195,7 @@ func defPredeclaredSpecialForms() {
 			return nil, nil, c.errorf(arg0.Pos(), "invalid argument: %s (%s) for at: want array", arg0.Print(), arrayType)
 		}
 
-		_, indexType, err := c.ResolveExpression(scope, arg1)
+		_, indexType, err := c.ResolveExpression(scope, function, arg1)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -231,7 +231,7 @@ func defPredeclaredSpecialForms() {
 		return sig, sig, nil
 	}
 
-	specialFormTypes[SpecialFormABI] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+	specialFormTypes[SpecialFormABI] = func(c *checker, scope *Scope, function *Function, fun *ast.List) (sig *Signature, typ Type, err error) {
 		// Build an ABI object and return
 		// only the result. We don't include
 		// a function signature, as ABIs are
@@ -297,7 +297,7 @@ func defPredeclaredSpecialForms() {
 		return nil, abi, nil
 	}
 
-	specialFormTypes[SpecialFormDo] = func(c *checker, parent *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+	specialFormTypes[SpecialFormDo] = func(c *checker, parent *Scope, function *Function, fun *ast.List) (sig *Signature, typ Type, err error) {
 		// Check that we have a body.
 		if len(fun.Elements) < 2 {
 			return nil, nil, c.errorf(fun.ParenClose, "no expressions in (do) form")
@@ -313,7 +313,7 @@ func defPredeclaredSpecialForms() {
 
 		// Check the body expressions.
 		for _, expr := range fun.Elements[1:] {
-			_, typ, err = c.ResolveExpression(scope, expr)
+			_, typ, err = c.ResolveExpression(scope, function, expr)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -345,18 +345,18 @@ func defPredeclaredSpecialForms() {
 		return nil, typ, nil
 	}
 
-	specialFormTypes[SpecialFormFunc] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+	specialFormTypes[SpecialFormFunc] = func(c *checker, scope *Scope, function *Function, fun *ast.List) (sig *Signature, typ Type, err error) {
 		// TODO: implement (func)
 		return nil, nil, fmt.Errorf("(func) not supported")
 	}
 
-	specialFormTypes[SpecialFormLen] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+	specialFormTypes[SpecialFormLen] = func(c *checker, scope *Scope, function *Function, fun *ast.List) (sig *Signature, typ Type, err error) {
 		if len(fun.Elements[1:]) != 1 {
 			return nil, nil, c.errorf(fun.ParenOpen, "too many arguments in call to len: expected %d, found %d", 1, len(fun.Elements[1:]))
 		}
 
 		arg := fun.Elements[1]
-		obj, typ, err := c.ResolveExpression(scope, arg)
+		obj, typ, err := c.ResolveExpression(scope, function, arg)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -393,7 +393,7 @@ func defPredeclaredSpecialForms() {
 		return sig, sig, nil
 	}
 
-	specialFormTypes[SpecialFormLet] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+	specialFormTypes[SpecialFormLet] = func(c *checker, scope *Scope, function *Function, fun *ast.List) (sig *Signature, typ Type, err error) {
 		typ, err = c.ResolveLet(scope, fun)
 		if err != nil {
 			return nil, nil, err
@@ -411,7 +411,7 @@ func defPredeclaredSpecialForms() {
 		return sig, sig, nil
 	}
 
-	specialFormTypes[SpecialFormSection] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+	specialFormTypes[SpecialFormSection] = func(c *checker, scope *Scope, function *Function, fun *ast.List) (sig *Signature, typ Type, err error) {
 		// Build a section object and return
 		// only the result. We don't include
 		// a function signature, as sections
@@ -453,7 +453,7 @@ func defPredeclaredSpecialForms() {
 					return nil, nil, c.errorf(kind.NamePos, "invalid section field %s: got %d values, want 1 integer", kind.Name, len(rest))
 				}
 
-				obj, typ, err := c.ResolveExpression(scope, rest[0])
+				obj, typ, err := c.ResolveExpression(scope, function, rest[0])
 				if err != nil {
 					return nil, nil, c.errorf(rest[0].Pos(), "invalid section field %s: %v", kind.Name, err)
 				}
@@ -505,7 +505,7 @@ func defPredeclaredSpecialForms() {
 		return nil, section, nil
 	}
 
-	specialFormTypes[SpecialFormSizeOf] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+	specialFormTypes[SpecialFormSizeOf] = func(c *checker, scope *Scope, function *Function, fun *ast.List) (sig *Signature, typ Type, err error) {
 		// Return the size of a specified type
 		// as an unsigned integer.
 		if len(fun.Elements[1:]) != 1 {
@@ -733,7 +733,7 @@ type arithmeticOp struct {
 	Op          constant.Op
 }
 
-func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+func (op *arithmeticOp) signature(c *checker, scope *Scope, function *Function, fun *ast.List) (sig *Signature, typ Type, err error) {
 	numOperands := len(fun.Elements[1:])
 	minOperands := 2
 	if op.UnaryTypes != nil {
@@ -755,7 +755,7 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, fun *ast.List) (sig 
 	constants := make([]constant.Value, numOperands)
 	for i, expr := range fun.Elements[1:] {
 		var obj Object
-		obj, argTypes[i], err = c.ResolveExpression(scope, expr)
+		obj, argTypes[i], err = c.ResolveExpression(scope, function, expr)
 		if err != nil {
 			return nil, nil, err
 		}
