@@ -20,10 +20,7 @@ A constant may be given a type explicitly by a [constant declaration](#Constant_
 
 An untyped constant has a _default type_ which is the type to which the constant is implicitly converted in contexts where a typed value is required, for instance, in a declaration such as `(let i 0)` where there is no explicit type. The default type of an untyped constant is `bool`, `int`, or `string` respectively, depending on whether it is a boolean, integer, or string constant.
 
-Implementation restriction: Although numeric constants have arbitrary
-precision in the language, a compiler may implement them using an
-internal representation with limited precision. That said, every
-implementation must:
+Implementation restriction: Although numeric constants have arbitrary precision in the language, a compiler may implement them using an internal representation with limited precision. That said, every implementation must:
 
 - Represent integer constants with at least 256 bits.
 - Give an error if unable to represent an integer constant precisely.
