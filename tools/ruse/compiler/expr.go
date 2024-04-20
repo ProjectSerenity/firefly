@@ -141,7 +141,7 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 			typ := c.info.Types[x.Elements[0]]
 			switch obj := obj.(type) {
 			case *types.SpecialForm:
-				sig := typ.Type.(*types.Signature)
+				sig, _ := typ.Type.(*types.Signature)
 				return c.CompileSpecialForm(x, obj, sig)
 			case *types.Function:
 				sig := obj.Type().(*types.Signature)
@@ -673,17 +673,27 @@ func (c *compiler) CompileBuiltinFunction(list *ast.List, fun *types.Function, s
 	return nil, fmt.Errorf("%s: failed to compile %s (%T): unsupported builtin function %s", c.fset.Position(list.ParenOpen), list.Print(), sig, fun.Name())
 }
 
-func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, sig *types.Signature) (*ssafir.Value, error) {
+func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, sig *types.Signature) (v *ssafir.Value, err error) {
 	// Prepare common data.
 	args := list.Elements[1:]
 	var op ssafir.Op
 	switch form.ID() {
+	case types.SpecialFormDo:
+		// We just compile each expression.
+		for _, expr := range list.Elements[1:] {
+			v, err = c.CompileExpression(expr)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return v, nil
 	case types.SpecialFormLen:
 		// Handle calls with a constant value.
 		// Constant expressions we've already resolved.
 		if typeAndValue, ok := c.info.Types[list]; ok && typeAndValue.Value != nil {
 			op = ssafir.OpConstantInt64 // TODO: Pick the constant size based on the architecture.
-			v := c.ValueExtra(list.ParenOpen, list.ParenClose+1, op, types.Int, typeAndValue.Value)
+			v = c.ValueExtra(list.ParenOpen, list.ParenClose+1, op, types.Int, typeAndValue.Value)
 			return v, nil
 		}
 
@@ -691,7 +701,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		if typeAndValue, ok := c.info.Types[list.Elements[1]]; ok && typeAndValue.Value != nil && typeAndValue.Value.Kind() == constant.String {
 			op = ssafir.OpConstantInt64 // TODO: Pick the constant size based on the architecture.
 			str := constant.StringVal(typeAndValue.Value)
-			v := c.ValueInt(list.ParenOpen, list.ParenClose+1, op, types.Int, int64(len(str)))
+			v = c.ValueInt(list.ParenOpen, list.ParenClose+1, op, types.Int, int64(len(str)))
 			return v, nil
 		}
 
@@ -701,7 +711,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			return nil, err
 		}
 
-		v := c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpStringLen, types.Int, value)
+		v = c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpStringLen, types.Int, value)
 		return v, nil
 	case types.SpecialFormLet:
 		value, err := c.CompileExpression(list.Elements[2])
@@ -729,7 +739,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			return nil, fmt.Errorf("unexpected expression type for let left-hand side: %s %s", list.Elements[1], list.Elements[1].Print())
 		}
 
-		v := c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpCopy, value.Type, value)
+		v = c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpCopy, value.Type, value)
 		c.vars[lhs] = v
 
 		return v, nil
@@ -756,7 +766,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 				return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
 			}
 
-			v := c.Value(list.ParenOpen, list.ParenClose+1, op, value.Type, value)
+			v = c.Value(list.ParenOpen, list.ParenClose+1, op, value.Type, value)
 
 			return v, nil
 		}

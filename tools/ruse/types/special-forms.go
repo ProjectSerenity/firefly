@@ -39,6 +39,7 @@ const (
 	SpecialFormAsmFunc SpecialFormID = iota
 	SpecialFormAt
 	SpecialFormABI
+	SpecialFormDo
 	SpecialFormFunc
 	SpecialFormLen
 	SpecialFormLet
@@ -73,6 +74,8 @@ func (id SpecialFormID) String() string {
 		return "at"
 	case SpecialFormABI:
 		return "abi"
+	case SpecialFormDo:
+		return "do"
 	case SpecialFormFunc:
 		return "func"
 	case SpecialFormLen:
@@ -122,6 +125,7 @@ var specialForms = [...]*SpecialForm{
 	SpecialFormAsmFunc: {},
 	SpecialFormAt:      {},
 	SpecialFormABI:     {},
+	SpecialFormDo:      {},
 	SpecialFormFunc:    {},
 	SpecialFormLen:     {},
 	SpecialFormLet:     {},
@@ -291,6 +295,54 @@ func defPredeclaredSpecialForms() {
 		}
 
 		return nil, abi, nil
+	}
+
+	specialFormTypes[SpecialFormDo] = func(c *checker, parent *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {
+		// Check that we have a body.
+		if len(fun.Elements) < 2 {
+			return nil, nil, c.errorf(fun.ParenClose, "no expressions in (do) form")
+		}
+
+		// We don't support any annotations on `do`.
+		if len(fun.Annotations) != 0 {
+			return nil, nil, c.errorf(fun.Annotations[0].Quote, "invalid do annotation: unrecognised do annotation type: %s", fun.Annotations[0].X.Elements[0].Print())
+		}
+
+		// Create our scope.
+		scope := NewScope(parent, fun.Elements[1].Pos(), fun.ParenClose, "do expression")
+
+		// Check the body expressions.
+		for _, expr := range fun.Elements[1:] {
+			_, typ, err = c.ResolveExpression(scope, expr)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+
+		// Check that we used every declared
+		// variable.
+		sigPos := fun.Elements[1].Pos()
+		sigEnd := fun.Elements[1].End()
+		for name, obj := range scope.decls {
+			// We ignore the blank identifier.
+			if name == "_" {
+				continue
+			}
+
+			// We allow parameters to go unused.
+			if sigPos <= obj.Pos() && obj.End() <= sigEnd {
+				continue
+			}
+
+			if len(c.uses[obj]) == 0 {
+				return nil, nil, c.errorf(obj.Pos(), "%s declared and not used", name)
+			}
+		}
+
+		c.record(fun, typ, nil)
+		c.record(fun.Elements[0], typ, nil)
+
+		return nil, typ, nil
 	}
 
 	specialFormTypes[SpecialFormFunc] = func(c *checker, scope *Scope, fun *ast.List) (sig *Signature, typ Type, err error) {

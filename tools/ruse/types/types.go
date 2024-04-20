@@ -1374,7 +1374,7 @@ func (c *checker) ResolveExpression(scope *Scope, expr ast.Expression) (Object, 
 					return nil, nil, err
 				}
 
-				if typ != nil && signature == nil {
+				if signature == nil {
 					c.use(name, form)
 					c.record(name, typ, nil)
 					return nil, typ, nil

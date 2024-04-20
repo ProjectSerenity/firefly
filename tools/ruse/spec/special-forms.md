@@ -19,6 +19,7 @@ Ruse has various special forms. Each behaves like a function. However, special f
 - [`abi`](#abi)
 - [`and`](#and)
 - [`asm-func`](#asm-func)
+- [`do`](#do)
 - [`func`](#func)
 - [`len`](#len)
 - [`let`](#let)
@@ -234,6 +235,23 @@ The `asm-func` form ('define assembly function') takes two or more arguments and
 
 '(abi (abi (params eax ebx) (result eax)))
 (asm-func (foo (a int) (b int) int) (mov eax ebx))  ; A function called 'foo', with parameters 'a' and 'b' of type 'int', return type 'int', and the function body '(mov eax ebx)'.
+```
+
+## `do`
+
+The `do` form ('inline block') takes one or more arguments, each of which is an expression. The arguments are evaluated as normal, returning the result of the final expression.
+
+Each `do` form makes another scope, so declarations made within a `do` are only in scope within that `do`.
+
+The `do` form allows multiple expressions to be used in a place where only one expression is allowed.
+
+```
+(func (foo (x int) int)
+	(let temp (do
+		(let sum (+ x x))      ; Note that `sum` is only in scope for the rest of the `do` form.
+		(let product (* x x))
+		(<< product sum)))
+	(+ temp x))
 ```
 
 ## `func`
