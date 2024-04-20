@@ -72,24 +72,9 @@ See [scope and blocks](./scope.md).
 
 At package level, [initialization dependencies](#Package_initialization) determine the evaluation order of individual initialization expressions in [variable declarations](#Variable_declarations). Otherwise, when evaluating the [operands](#Operands) of an expression, assignment, or [return statement](#Return_statements), all function calls are evaluated in lexical left-to-right order.
 
-## Built-in functions
+## Special forms
 
-Built-in functions are [predeclared](#Predeclared_identifiers). They are called like any other function but some of them accept a type instead of an expression as the first argument.
-
-The built-in functions do not have standard Ruse types, so they can only appear in [call expressions](#Calls); they cannot be used as function values.
-
-### Length and capacity
-
-The built-in function `len` takes arguments of various types and returns an untyped integer result. The implementation guarantees that the result always fits into an `int`.
-
-```
-Call      Argument type    Result
-
-(len s)   string type      string length in bytes
-          array/n/T        array length (== n)
-```
-
-The expression `(len s)` is [constant](#Constants) if `s` is a string constant. The expression `(len s)` is constant if the type of `s` is an array and the expression `s` does not contain [function calls](#Calls); in this case `s is not evaluated. Otherwise, invocations of `len` are not constant and `s` is evaluated.
+See the Ruse language's [special forms](./special-forms.md).
 
 ## Packages
 
