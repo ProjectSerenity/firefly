@@ -127,7 +127,7 @@ func TestLower(t *testing.T) {
 						},
 						Length: 5,
 					},
-					Uses: 0,
+					Uses: 1,
 					Code: `(double (len "bar"))`,
 				},
 				{
@@ -138,7 +138,7 @@ func TestLower(t *testing.T) {
 					Code:  `(let length (len "foobar"))`,
 				},
 				{
-					ID: 6,
+					ID: 7,
 					Op: ssafir.OpX86_CALL_Rel32,
 					Extra: &x86InstructionData{
 						Args: [4]any{
@@ -153,18 +153,18 @@ func TestLower(t *testing.T) {
 						},
 						Length: 5,
 					},
-					Uses: 0,
+					Uses: 1,
 					Code: `(double length)`,
 				},
 				{
-					ID:    7,
+					ID:    9,
 					Op:    ssafir.OpX86_MOV_R32op_Imm32,
 					Extra: &x86InstructionData{Args: [4]any{x86.EDI, uint64(7)}, Length: 5},
 					Uses:  1,
 					Code:  `7`,
 				},
 				{
-					ID: 8,
+					ID: 10,
 					Op: ssafir.OpX86_CALL_Rel32,
 					Extra: &x86InstructionData{
 						Args: [4]any{
@@ -179,18 +179,18 @@ func TestLower(t *testing.T) {
 						},
 						Length: 5,
 					},
-					Uses: 0,
+					Uses: 1,
 					Code: `(double 7)`,
 				},
 				{
-					ID:    10,
+					ID:    13,
 					Op:    ssafir.OpX86_MOV_R32op_Imm32,
 					Extra: &x86InstructionData{Args: [4]any{x86.EDI, uint64(17)}, Length: 5},
 					Uses:  1,
 					Code:  `val`,
 				},
 				{
-					ID: 11,
+					ID: 14,
 					Op: ssafir.OpX86_CALL_Rel32,
 					Extra: &x86InstructionData{
 						Args: [4]any{
@@ -209,7 +209,7 @@ func TestLower(t *testing.T) {
 					Code: `(double val)`,
 				},
 				{
-					ID:    12,
+					ID:    16,
 					Op:    ssafir.OpX86_RET,
 					Extra: &x86InstructionData{Length: 1},
 					Uses:  1,
@@ -319,21 +319,21 @@ func TestLower(t *testing.T) {
 					Code: `(copy-n 7)`,
 				},
 				{
-					ID:    4,
+					ID:    5,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
 					Uses:  6,
 					Code:  `(let a (copy-n 7))`,
 				},
 				{
-					ID:    5,
+					ID:    6,
 					Op:    ssafir.OpX86_MOV_R32op_Imm32,
 					Extra: &x86InstructionData{Args: [4]any{x86.EAX, uint64(3)}, Length: 5},
 					Uses:  1,
 					Code:  `3`,
 				},
 				{
-					ID: 6,
+					ID: 7,
 					Op: ssafir.OpX86_CALL_Rel32,
 					Extra: &x86InstructionData{
 						Args: [4]any{
@@ -352,217 +352,217 @@ func TestLower(t *testing.T) {
 					Code: `(copy-n 3)`,
 				},
 				{
-					ID:    8,
+					ID:    10,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RDX, x86.RAX}, Length: 3},
 					Uses:  1,
 					Code:  `(int->uint b)`,
 				},
 				{
-					ID:    10,
+					ID:    12,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RSI, x86.RCX}, Length: 3},
 					Uses:  1,
 					Code:  `a b`,
 				},
 				{
-					ID:    10,
+					ID:    12,
 					Op:    ssafir.OpX86_ADD_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RSI, x86.RAX}, Length: 3},
 					Uses:  1,
 					Code:  `a b`,
 				},
 				{
-					ID:    12,
+					ID:    14,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RDI, x86.RCX}, Length: 3},
 					Uses:  1,
 					Code:  `a b`,
 				},
 				{
-					ID:    12,
+					ID:    14,
 					Op:    ssafir.OpX86_SUB_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RDI, x86.RAX}, Length: 3},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    9,
+					ID:    11,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R8, x86.RDX}, Length: 3},
 					Uses:  2,
 					Code:  "(let ub (int->uint b))",
 				},
 				{
-					ID:    7,
+					ID:    9,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R9, x86.RAX}, Length: 3},
 					Uses:  6,
 					Code:  "(let b (copy-n 3))",
 				},
 				{
-					ID:    14,
+					ID:    16,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RAX, x86.RCX}, Length: 3},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    14,
+					ID:    16,
 					Op:    ssafir.OpX86_MUL_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R9}, Length: 3},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    15,
+					ID:    17,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R10, x86.RAX}, Length: 3},
 					Uses:  2,
 					Code:  "(let mul (× a b))",
 				},
 				{
-					ID:    16,
+					ID:    18,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RAX, x86.RCX}, Length: 3},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    16,
+					ID:    18,
 					Op:    ssafir.OpX86_XOR_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RDX, x86.RDX}, Length: 3},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    16,
+					ID:    18,
 					Op:    ssafir.OpX86_DIV_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R9}, Length: 3},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    18,
+					ID:    20,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RDX, x86.RCX}, Length: 3},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    18,
+					ID:    20,
 					Op:    ssafir.OpX86_AND_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RDX, x86.R9}, Length: 3},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    4,
+					ID:    5,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R9, x86.RCX}, Length: 3},
 					Uses:  6,
 					Code:  "(let a (copy-n 7))",
 				},
 				{
-					ID:    20,
+					ID:    22,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R11, x86.R9}, Length: 3},
 					Uses:  1,
 					Code:  "a ub",
 				},
 				{
-					ID:    20,
+					ID:    22,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.R8}, Length: 3},
 					Uses:  1,
 					Code:  "a ub",
 				},
 				{
-					ID:    20,
+					ID:    22,
 					Op:    ssafir.OpX86_SAL_Rmr64_CL_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R11, x86.CL}, Length: 3},
 					Uses:  1,
 					Code:  "a ub",
 				},
 				{
-					ID:    9,
+					ID:    11,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R9, x86.RCX}, Length: 3},
 					Uses:  2,
 					Code:  "(let ub (int->uint b))",
 				},
 				{
-					ID:    22,
+					ID:    24,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RBX, x86.R10}, Length: 3},
 					Uses:  1,
 					Code:  "mul ub",
 				},
 				{
-					ID:    22,
+					ID:    24,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.R8}, Length: 3},
 					Uses:  1,
 					Code:  "mul ub",
 				},
 				{
-					ID:    22,
+					ID:    24,
 					Op:    ssafir.OpX86_SAR_Rmr64_CL_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RBX, x86.CL}, Length: 3},
 					Uses:  1,
 					Code:  "mul ub",
 				},
 				{
-					ID:    24,
+					ID:    26,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R8, x86.RSI}, Length: 3},
 					Uses:  1,
 					Code:  "sum dif",
 				},
 				{
-					ID:    24,
+					ID:    26,
 					Op:    ssafir.OpX86_OR_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R8, x86.RDI}, Length: 3},
 					Uses:  1,
 					Code:  "sum dif",
 				},
 				{
-					ID:    24,
+					ID:    26,
 					Op:    ssafir.OpX86_OR_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R8, x86.R10}, Length: 3},
 					Uses:  1,
 					Code:  "dif mul",
 				},
 				{
-					ID:    24,
+					ID:    26,
 					Op:    ssafir.OpX86_OR_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R8, x86.RAX}, Length: 3},
 					Uses:  1,
 					Code:  "mul div",
 				},
 				{
-					ID:    24,
+					ID:    26,
 					Op:    ssafir.OpX86_OR_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R8, x86.RDX}, Length: 3},
 					Uses:  1,
 					Code:  "div bnd",
 				},
 				{
-					ID:    24,
+					ID:    26,
 					Op:    ssafir.OpX86_OR_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R8, x86.R11}, Length: 3},
 					Uses:  1,
 					Code:  "bnd big",
 				},
 				{
-					ID:    24,
+					ID:    26,
 					Op:    ssafir.OpX86_OR_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.R8, x86.RBX}, Length: 3},
 					Uses:  1,
 					Code:  "big sml",
 				},
 				{
-					ID:    25,
+					ID:    27,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RAX, x86.R8}, Length: 3},
 					Uses:  1,
@@ -576,7 +576,7 @@ func TestLower(t *testing.T) {
 					Code:  `func (test int)`,
 				},
 				{
-					ID:    25,
+					ID:    27,
 					Op:    ssafir.OpX86_RET,
 					Extra: &x86InstructionData{Length: 1},
 					Uses:  1,
@@ -685,21 +685,21 @@ func TestLower(t *testing.T) {
 					Code: `(copy-n 7)`,
 				},
 				{
-					ID:    4,
+					ID:    5,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
 					Uses:  8,
 					Code:  `(let a (copy-n 7))`,
 				},
 				{
-					ID:    5,
+					ID:    6,
 					Op:    ssafir.OpX86_MOV_R32op_Imm32,
 					Extra: &x86InstructionData{Args: [4]any{x86.EAX, uint64(3)}, Length: 5},
 					Uses:  1,
 					Code:  `3`,
 				},
 				{
-					ID: 6,
+					ID: 7,
 					Op: ssafir.OpX86_CALL_Rel32,
 					Extra: &x86InstructionData{
 						Args: [4]any{
@@ -718,284 +718,503 @@ func TestLower(t *testing.T) {
 					Code: `(copy-n 3)`,
 				},
 				{
-					ID:    8,
+					ID:    10,
 					Op:    ssafir.OpX86_CMP_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    8,
+					ID:    10,
 					Op:    ssafir.OpX86_SETG_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.DL}, Length: 3},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    10,
+					ID:    12,
 					Op:    ssafir.OpX86_CMP_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    10,
+					ID:    12,
 					Op:    ssafir.OpX86_SETGE_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.SIL}, Length: 4},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    12,
+					ID:    14,
 					Op:    ssafir.OpX86_CMP_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    12,
+					ID:    14,
 					Op:    ssafir.OpX86_SETL_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.DIL}, Length: 4},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    14,
+					ID:    16,
 					Op:    ssafir.OpX86_CMP_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    14,
+					ID:    16,
 					Op:    ssafir.OpX86_SETLE_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.R8L}, Length: 4},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    16,
+					ID:    18,
 					Op:    ssafir.OpX86_CMP_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    16,
+					ID:    18,
 					Op:    ssafir.OpX86_SETE_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.R9L}, Length: 4},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    18,
+					ID:    20,
 					Op:    ssafir.OpX86_CMP_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    18,
+					ID:    20,
 					Op:    ssafir.OpX86_SETNE_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.R10L}, Length: 4},
 					Uses:  1,
 					Code:  "a b",
 				},
 				{
-					ID:    20,
+					ID:    22,
 					Op:    ssafir.OpX86_AND_R8_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.DL, x86.SIL}, Length: 3},
 					Uses:  1,
 					Code:  "gtr geq",
 				},
 				{
-					ID:    20,
+					ID:    22,
 					Op:    ssafir.OpX86_SETNZ_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.AL}, Length: 3},
 					Uses:  1,
 					Code:  "gtr geq",
 				},
 				{
-					ID:    20,
+					ID:    22,
 					Op:    ssafir.OpX86_AND_R8_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.AL, x86.DIL}, Length: 3},
 					Uses:  1,
 					Code:  "geq lss",
 				},
 				{
-					ID:    20,
+					ID:    22,
 					Op:    ssafir.OpX86_SETNZ_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.AL}, Length: 3},
 					Uses:  1,
 					Code:  "geq lss",
 				},
 				{
-					ID:    20,
+					ID:    22,
 					Op:    ssafir.OpX86_AND_R8_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.AL, x86.R8L}, Length: 3},
 					Uses:  1,
 					Code:  "lss leq",
 				},
 				{
-					ID:    20,
+					ID:    22,
 					Op:    ssafir.OpX86_SETNZ_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.AL}, Length: 3},
 					Uses:  1,
 					Code:  "lss leq",
 				},
 				{
-					ID:    20,
+					ID:    22,
 					Op:    ssafir.OpX86_AND_R8_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.AL, x86.R9L}, Length: 3},
 					Uses:  1,
 					Code:  "leq eql",
 				},
 				{
-					ID:    20,
+					ID:    22,
 					Op:    ssafir.OpX86_SETNZ_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.AL}, Length: 3},
 					Uses:  1,
 					Code:  "leq eql",
 				},
 				{
-					ID:    20,
+					ID:    22,
 					Op:    ssafir.OpX86_AND_R8_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.AL, x86.R10L}, Length: 3},
 					Uses:  1,
 					Code:  "eql neq",
 				},
 				{
-					ID:    20,
+					ID:    22,
 					Op:    ssafir.OpX86_SETNZ_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.AL}, Length: 3},
 					Uses:  1,
 					Code:  "eql neq",
 				},
 				{
-					ID:    22,
+					ID:    24,
 					Op:    ssafir.OpX86_OR_R8_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.DL, x86.SIL}, Length: 3},
 					Uses:  1,
 					Code:  "gtr geq",
 				},
 				{
-					ID:    22,
+					ID:    24,
 					Op:    ssafir.OpX86_SETNZ_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.R11L}, Length: 4},
 					Uses:  1,
 					Code:  "gtr geq",
 				},
 				{
-					ID:    22,
+					ID:    24,
 					Op:    ssafir.OpX86_OR_R8_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.R11L, x86.DIL}, Length: 3},
 					Uses:  1,
 					Code:  "geq lss",
 				},
 				{
-					ID:    22,
+					ID:    24,
 					Op:    ssafir.OpX86_SETNZ_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.R11L}, Length: 4},
 					Uses:  1,
 					Code:  "geq lss",
 				},
 				{
-					ID:    22,
+					ID:    24,
 					Op:    ssafir.OpX86_OR_R8_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.R11L, x86.R8L}, Length: 3},
 					Uses:  1,
 					Code:  "lss leq",
 				},
 				{
-					ID:    22,
+					ID:    24,
 					Op:    ssafir.OpX86_SETNZ_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.R11L}, Length: 4},
 					Uses:  1,
 					Code:  "lss leq",
 				},
 				{
-					ID:    22,
+					ID:    24,
 					Op:    ssafir.OpX86_OR_R8_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.R11L, x86.R9L}, Length: 3},
 					Uses:  1,
 					Code:  "leq eql",
 				},
 				{
-					ID:    22,
+					ID:    24,
 					Op:    ssafir.OpX86_SETNZ_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.R11L}, Length: 4},
 					Uses:  1,
 					Code:  "leq eql",
 				},
 				{
-					ID:    22,
+					ID:    24,
 					Op:    ssafir.OpX86_OR_R8_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.R11L, x86.R10L}, Length: 3},
 					Uses:  1,
 					Code:  "eql neq",
 				},
 				{
-					ID:    22,
+					ID:    24,
 					Op:    ssafir.OpX86_SETNZ_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.R11L}, Length: 4},
 					Uses:  1,
 					Code:  "eql neq",
 				},
 				{
-					ID:    24,
+					ID:    26,
 					Op:    ssafir.OpX86_CMP_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RCX}, Length: 3},
 					Uses:  1,
 					Code:  "a a",
 				},
 				{
-					ID:    24,
+					ID:    26,
 					Op:    ssafir.OpX86_SETE_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.DL}, Length: 3},
 					Uses:  1,
 					Code:  "a a",
 				},
 				{
-					ID:    25,
+					ID:    27,
 					Op:    ssafir.OpX86_OR_R8_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.AL, x86.R11L}, Length: 3},
 					Uses:  1,
 					Code:  "all any",
 				},
 				{
-					ID:    25,
+					ID:    27,
 					Op:    ssafir.OpX86_SETNZ_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.CL}, Length: 3},
 					Uses:  1,
 					Code:  "all any",
 				},
 				{
-					ID:    25,
+					ID:    27,
 					Op:    ssafir.OpX86_OR_R8_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.CL, x86.DL}, Length: 2},
 					Uses:  1,
 					Code:  "any (= a a)",
 				},
 				{
-					ID:    25,
+					ID:    27,
 					Op:    ssafir.OpX86_SETNZ_Rmr8,
 					Extra: &x86InstructionData{Args: [4]any{x86.CL}, Length: 3},
 					Uses:  1,
 					Code:  "any (= a a)",
 				},
 				{
-					ID:    26,
+					ID:    28,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RAX, x86.RCX}, Length: 3},
 					Uses:  1,
 					Code:  "(or all any (= a a))",
 				},
 				{
-					ID:    26,
+					ID:    28,
 					Op:    ssafir.OpX86_RET,
 					Extra: &x86InstructionData{Length: 1},
 					Uses:  1,
 					Code:  "(or all any (= a a))",
+				},
+			},
+		},
+		{
+			Name: "multiple-returns",
+			Code: `
+				(package test)
+
+				(let System-V-x86-64 (abi
+					(params rdi rsi rdx r10 r8 r9)
+					(result rax rdx)))
+
+				; Return double n and quadruple n.
+				'(abi System-V-x86-64)
+				(asm-func (x2-and-x4 (n int) int int)
+					(mov rax rdi)
+					(mov rdx rdi)
+					(sal rax 1)
+					(sal rdx 2)
+					(ret))
+
+				; Returns the smaller argument.
+				'(abi System-V-x86-64)
+				(asm-func (pick-smaller (a int) (b int) int)
+					(cmp rdi rsi)
+					(jg 'second)
+					(mov rax rdi)
+					(ret)
+					'second
+					(mov rax rsi)
+					(ret))
+
+				; Exit with the given status code.
+				'(abi System-V-x86-64)
+				(asm-func (exit (code int))
+					(mov eax 60)  ; sys_exit
+					(syscall))    ; exit(code)
+
+				(func (test)
+					(let x2 x4 (x2-and-x4 3))                ; Multi-parameter 'let'.
+					(let less (pick-smaller (x2-and-x4 4)))  ; Multi-parameter function call, passing two results from (x2-and-x4 4) to (pick-smaller).
+					(exit (+ x2 less x4)))
+			`,
+			Disasm: []string{
+				"000000:	f3 0f 1e fa          	endbr64",
+				"000004:	53                   	push rbx",        // Preserve    rbx
+				"000005:	bf 03 00 00 00       	mov edi, 0x3",    // Prepare arg 3
+				"00000a:	e8 3f 33 22 11       	call 0x1122334e", // Call func   (x2-and-x4 3)
+				"00000f:	48 8b c8             	mov rcx, rax",    // Save result x2
+				"000012:	4c 8b da             	mov r11, rdx",    // Save result x4
+				"000015:	bf 04 00 00 00       	mov edi, 0x4",    // Prepare arg 4
+				"00001a:	e8 3f 33 22 11       	call 0x1122335e", // Call func   (x2-and-x4 4)
+				"00001f:	48 8b d8             	mov rbx, rax",    // Save result (x2-and-x4 4)
+				"000022:	48 8b fb             	mov rdi, rbx",    // Prepare arg (x2-and-x4 4)
+				"000025:	e8 3f 33 22 11       	call 0x11223369", // Call func   (pick-smaller (x2-and-x4 4))
+				"00002a:	48 8b d1             	mov rdx, rcx",    // Prepare arg x2
+				"00002d:	48 03 d0             	add rdx, rax",    // Perform     (+ x2 less)
+				"000030:	49 03 d3             	add rdx, r11",    // Perform     (+ x2 less x4)
+				"000033:	48 8b fa             	mov rdi, rdx",    // Prepare arg (+ x2 less x4)
+				"000036:	e8 3f 33 22 11       	call 0x1122337a", // Call func   (exit (pick-smaller x2 x4))
+				"00003b:	5b                   	pop rbx",         // Restore     rbx
+				"00003c:	c3                   	ret",
+			},
+			Want: []*TestValue{
+				{ID: 0, Op: ssafir.OpX86_ENDBR64, Extra: &x86InstructionData{Length: 4}, Uses: 0, Code: `func (test)`},
+				{ID: 0, Op: ssafir.OpX86_PUSH_R64op, Extra: &x86InstructionData{Args: [4]any{x86.RBX}, Length: 1}, Uses: 0, Code: `func (test)`},
+				{
+					ID:    2,
+					Op:    ssafir.OpX86_MOV_R32op_Imm32,
+					Extra: &x86InstructionData{Args: [4]any{x86.EDI, uint64(3)}, Length: 5},
+					Uses:  1,
+					Code:  `3`,
+				},
+				{
+					ID: 3,
+					Op: ssafir.OpX86_CALL_Rel32,
+					Extra: &x86InstructionData{
+						Args: [4]any{
+							&ssafir.Link{
+								Pos:     724,
+								Name:    "tests/test.x2-and-x4",
+								Type:    ssafir.LinkRelativeAddress,
+								Size:    32,
+								Offset:  11,
+								Address: 0x0f,
+							},
+						},
+						Length: 5,
+					},
+					Uses: 2,
+					Code: `(x2-and-x4 3)`,
+				},
+				{
+					ID:    6,
+					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RCX, x86.RAX}, Length: 3},
+					Uses:  1,
+					Code:  `(let x2 x4 (x2-and-x4 3))`,
+				},
+				{
+					ID:    7,
+					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.R11, x86.RDX}, Length: 3},
+					Uses:  1,
+					Code:  `(let x2 x4 (x2-and-x4 3))`,
+				},
+				{
+					ID:    8,
+					Op:    ssafir.OpX86_MOV_R32op_Imm32,
+					Extra: &x86InstructionData{Args: [4]any{x86.EDI, uint64(4)}, Length: 5},
+					Uses:  1,
+					Code:  `4`,
+				},
+				{
+					ID: 9,
+					Op: ssafir.OpX86_CALL_Rel32,
+					Extra: &x86InstructionData{
+						Args: [4]any{
+							&ssafir.Link{
+								Pos:     808,
+								Name:    "tests/test.x2-and-x4",
+								Type:    ssafir.LinkRelativeAddress,
+								Size:    32,
+								Offset:  27,
+								Address: 0x1f,
+							},
+						},
+						Length: 5,
+					},
+					Uses: 2,
+					Code: `(x2-and-x4 4)`,
+				},
+				{
+					ID:    10,
+					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RBX, x86.RAX}, Length: 3},
+					Uses:  1,
+					Code:  `(x2-and-x4 4)`,
+				},
+				{
+					ID:    10,
+					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RDI, x86.RBX}, Length: 3},
+					Uses:  1,
+					Code:  `(x2-and-x4 4)`,
+				},
+				{
+					ID: 12,
+					Op: ssafir.OpX86_CALL_Rel32,
+					Extra: &x86InstructionData{
+						Args: [4]any{
+							&ssafir.Link{
+								Pos:     794,
+								Name:    "tests/test.pick-smaller",
+								Type:    ssafir.LinkRelativeAddress,
+								Size:    32,
+								Offset:  38,
+								Address: 0x2a,
+							},
+						},
+						Length: 5,
+					},
+					Uses: 1,
+					Code: `(pick-smaller (x2-and-x4 4))`,
+				},
+				{
+					ID:    15,
+					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RDX, x86.RCX}, Length: 3},
+					Uses:  1,
+					Code:  "x2 less",
+				},
+				{
+					ID:    15,
+					Op:    ssafir.OpX86_ADD_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RDX, x86.RAX}, Length: 3},
+					Uses:  1,
+					Code:  "x2 less",
+				},
+				{
+					ID:    15,
+					Op:    ssafir.OpX86_ADD_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RDX, x86.R11}, Length: 3},
+					Uses:  1,
+					Code:  "less x4",
+				},
+				{
+					ID:    15,
+					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RDI, x86.RDX}, Length: 3},
+					Uses:  1,
+					Code:  "less x4",
+				},
+				{
+					ID: 16,
+					Op: ssafir.OpX86_CALL_Rel32,
+					Extra: &x86InstructionData{
+						Args: [4]any{
+							&ssafir.Link{
+								Pos:     921,
+								Name:    "tests/test.exit",
+								Type:    ssafir.LinkRelativeAddress,
+								Size:    32,
+								Offset:  55,
+								Address: 0x3b,
+							},
+						},
+						Length: 5,
+					},
+					Uses: 0,
+					Code: `(exit (+ x2 less x4))`,
+				},
+				{ID: 0, Op: ssafir.OpX86_POP_R64op, Extra: &x86InstructionData{Args: [4]any{x86.RBX}, Length: 1}, Uses: 0, Code: `func (test)`},
+				{
+					ID:    0,
+					Op:    ssafir.OpX86_RET,
+					Extra: &x86InstructionData{Length: 1},
+					Uses:  0,
+					Code:  ")",
 				},
 			},
 		},

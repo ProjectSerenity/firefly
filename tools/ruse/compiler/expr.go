@@ -171,6 +171,38 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 
 				v := c.ValueExtra(x.ParenOpen, x.ParenClose+1, ssafir.OpFunctionCall, sig, obj, params...)
 
+				// We make a separate value for each
+				// result, so that we can pair them
+				// up with any values they're assigned
+				// to.
+				//
+				// To ensure that we can find the set
+				// of results, we use the list of all
+				// values (plus the function call) as
+				// the arguments to the result.
+				n := len(sig.Result())
+				if n != 0 {
+					results := &FunctionResult{
+						Call:   v,
+						Result: make([]*ssafir.Value, n),
+					}
+
+					// Create the values.
+					for i, typ := range sig.Result() {
+						results.Result[i] = c.Value(x.ParenOpen, x.ParenClose+1, ssafir.OpFunctionResult, typ, v)
+					}
+
+					// Update them to include the reference
+					// to the others.
+					for _, result := range results.Result {
+						result.Extra = results
+					}
+
+					// Return the first (and often only)
+					// result.
+					v = results.Result[0]
+				}
+
 				return v, nil
 			case *types.TypeName:
 				// Cast.
@@ -720,35 +752,56 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		v = c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpStringLen, types.Int, value)
 		return v, nil
 	case types.SpecialFormLet:
-		value, err := c.CompileExpression(list.Elements[2])
+		n := len(list.Elements)
+		value, err := c.CompileExpression(list.Elements[n-1])
 		if err != nil {
 			return nil, err
 		}
 
-		// Find the identifier.
-		var ident *ast.Identifier
-		var lhs *types.Variable
-		switch elt := list.Elements[1].(type) {
-		case *ast.Identifier:
-			// No need to emit actions for storing
-			// to the nil identifier (`_`).
-			if elt.Name == "_" {
-				return nil, nil
-			}
-
-			ident = elt
-			lhs = c.info.Definitions[ident].(*types.Variable)
-		case *ast.List:
-			ident = elt.Elements[0].(*ast.Identifier)
-			lhs = c.info.Definitions[ident].(*types.Variable)
-		default:
-			return nil, fmt.Errorf("unexpected expression type for let left-hand side: %s %s", list.Elements[1], list.Elements[1].Print())
+		// If we're assigning one or more values from a
+		// function call, value will be ssafir.OpFunctionResult
+		// and we need to extract the set of result
+		// values from it so we can pair them up with
+		// the names we assign them to.
+		//
+		// Otherwise, there is just one value, which is
+		// easier. We've already checked all this in the
+		// type checker, so we don't need to worry about
+		// bounds checking.
+		var values []*ssafir.Value
+		if result, ok := value.Extra.(*FunctionResult); ok && value.Op == ssafir.OpFunctionResult {
+			values = result.Result
+		} else {
+			// Just one result.
+			values = []*ssafir.Value{value}
 		}
 
-		v = c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpCopy, value.Type, value)
-		c.vars[lhs] = v
+		// Find the identifiers.
+		for i, element := range list.Elements[1 : n-1] {
+			var ident *ast.Identifier
+			var lhs *types.Variable
+			switch elt := element.(type) {
+			case *ast.Identifier:
+				// No need to emit actions for storing
+				// to the nil identifier (`_`).
+				if elt.Name == "_" {
+					continue
+				}
 
-		return v, nil
+				ident = elt
+				lhs = c.info.Definitions[ident].(*types.Variable)
+			case *ast.List:
+				ident = elt.Elements[0].(*ast.Identifier)
+				lhs = c.info.Definitions[ident].(*types.Variable)
+			default:
+				return nil, fmt.Errorf("unexpected expression type for let left-hand side: %s %s", element, element.Print())
+			}
+
+			v = c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpCopy, values[i].Type, values[i])
+			c.vars[lhs] = v
+		}
+
+		return nil, nil
 	case types.SpecialFormAdd:
 		// Unary positive is essentially a no-op.
 		if len(args) == 1 {

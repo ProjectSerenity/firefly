@@ -1675,12 +1675,11 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 	//
 	// Takes one of the following forms:
 	//
-	// - (let name value)         ; Immutable data declaration, declaring 'name', with value 'value'.
-	// - (let (name type) value)  ; Immutable data declaration, declaring 'name' with type 'type', with value 'value'.
+	// - (let name... value)         ; Immutable data declaration, declaring 'name', with value 'value'.
+	// - (let (name type)... value)  ; Immutable data declaration, declaring 'name' with type 'type', with value 'value'.
 
-	var name, typeName *ast.Identifier
-	if err := c.checkFixedArgsList(let, "value declaration", "name", "value"); err != nil {
-		return nil, c.error(err)
+	if len(let.Elements) < 3 {
+		return nil, c.errorf(let.ParenClose, "invalid value declaration: value missing")
 	}
 
 	// Check the annotations.
@@ -1717,71 +1716,127 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 		}
 	}
 
-	// Determine whether we're binding to a name (with an
-	// inferred type) or a name with an explicit type.
-	switch n := let.Elements[1].(type) {
-	case *ast.Identifier:
-		name = n
-		// We will have to infer the type from the value.
-	case *ast.List:
-		if err := c.checkFixedArgsList(n, "value declaration", "type"); err != nil {
-			return nil, c.error(err)
+	// Determine whether we're binding each value to a name
+	// (with an inferred type) or a name with an explicit
+	// type.
+	n := len(let.Elements)
+	receivers := make([][2]*ast.Identifier, n-2) // -2 for `let` and the value.
+	for i, elt := range let.Elements[1 : n-1] {
+		var name, typeName *ast.Identifier
+		switch n := elt.(type) {
+		case *ast.Identifier:
+			name = n
+			// We will have to infer the type from the value.
+		case *ast.List:
+			if err := c.checkFixedArgsList(n, "value declaration", "type"); err != nil {
+				return nil, c.error(err)
+			}
+
+			// Check we have two identifiers.
+			var ok bool
+			name = n.Elements[0].(*ast.Identifier) // This is checked in checkFixedArgsList.
+			typeName, ok = n.Elements[1].(*ast.Identifier)
+			if !ok {
+				return nil, c.errorf(n.Elements[1].Pos(), "invalid value declaration: type must be an identifier, found %s", n.Elements[1])
+			}
+		default:
+			return nil, c.errorf(let.Elements[1].Pos(), "invalid value declaration: name must be an identifier or (identifier type) list, found %s", let.Elements[1])
 		}
 
-		// Check we have two identifiers.
-		var ok bool
-		name = n.Elements[0].(*ast.Identifier) // This is checked in checkFixedArgsList.
-		typeName, ok = n.Elements[1].(*ast.Identifier)
-		if !ok {
-			return nil, c.errorf(n.Elements[1].Pos(), "invalid value declaration: type must be an identifier, found %s", n.Elements[1])
-		}
-	default:
-		return nil, c.errorf(let.Elements[1].Pos(), "invalid value declaration: name must be an identifier or (identifier type) list, found %s", let.Elements[1])
+		receivers[i] = [2]*ast.Identifier{name, typeName}
 	}
 
-	// We now have the name and type. Time to
-	// handle the value.
-	// Constant.
-	var typ Type
-	var obj Object
-	var value constant.Value // Only for constant values.
-	switch v := let.Elements[2].(type) {
+	// We now have the names and maybe types.
+	// Time to handle the value.
+	var valueType Type
+	typs := make([]Type, len(receivers))
+	objs := make([]Object, len(receivers))
+	values := make([]constant.Value, len(receivers)) // Only for constant values.
+	switch v := let.Elements[n-1].(type) {
 	case *ast.Identifier, *ast.List:
 		_, value, err := c.ResolveExpression(scope, nil, v)
 		if err != nil {
 			return nil, err
 		}
 
-		// Handle function calls.
-		if sig, ok := value.(*Signature); ok && len(sig.result) == 1 {
-			value = sig.result[0]
-		}
+		valueType = value
 
-		// Check any declared type matches.
-		if typeName == nil {
-			typ = value
+		// Handle the typical case where we are storing
+		// just one value.
+		//
+		// We can shadow values here, as we don't treat
+		// this as a constant.
+		var values []Type
+		if len(receivers) == 1 {
+			// Handle function calls.
+			if sig, ok := value.(*Signature); ok && len(sig.result) == 1 {
+				value = sig.result[0]
+			}
+
+			values = []Type{value}
 		} else {
-			_, obj := scope.LookupParent(typeName.Name, token.NoPos)
-			if obj == nil {
-				return nil, c.errorf(typeName.NamePos, "undefined type: %s", typeName.Name)
+			// Multiple returns being stored to
+			// multiple names.
+			sig, ok := value.(*Signature)
+			if !ok {
+				return nil, c.errorf(let.Elements[2].Pos(), "cannot assign %s %s to multiple names", v, v.Print())
 			}
 
-			typ = obj.Type()
-			c.use(typeName, obj)
-			c.record(typeName, typ, nil)
-			var val constant.Value
-			if con, ok := obj.(*Constant); ok {
-				val = con.Value()
+			if len(sig.result) != len(receivers) {
+				return nil, c.errorf(let.Elements[1].Pos(), "cannot assign %d values from function call to %d names", len(sig.result), len(receivers))
 			}
 
-			if !AssignableTo(typ, value, val) {
-				return nil, c.errorf(let.ParenOpen, "cannot assign %s (%s) to value of type %s", value, value, typ)
-			}
+			values = sig.result
 		}
 
-		obj = NewVariable(scope, let.ParenClose, scope.End(), c.pkg, name.Name, typ)
-		c.names[let.ParenOpen] = "value " + name.Name
+		// Now that we've converged the approach,
+		// we just need to iterate through the
+		// results, pairing up names and types.
+		for i := range receivers {
+			// Simplify handling by unpacking the
+			// receivers set.
+			name := receivers[i][0]
+			typeName := receivers[i][1]
+			value := values[i]
+
+			// Check any declared type matches.
+			if typeName == nil {
+				typs[i] = value
+			} else {
+				_, obj := scope.LookupParent(typeName.Name, token.NoPos)
+				if obj == nil {
+					return nil, c.errorf(typeName.NamePos, "undefined type: %s", typeName.Name)
+				}
+
+				typs[i] = obj.Type()
+				c.use(typeName, obj)
+				c.record(typeName, typs[i], nil)
+				var val constant.Value
+				if con, ok := obj.(*Constant); ok {
+					val = con.Value()
+				}
+
+				if !AssignableTo(typs[i], value, val) {
+					return nil, c.errorf(let.ParenOpen, "cannot assign %s (%s) to value of type %s", value, value, typs[i])
+				}
+			}
+
+			objs[i] = NewVariable(scope, let.ParenClose, scope.End(), c.pkg, name.Name, typs[i])
+			c.names[name.NamePos] = "value " + name.Name
+		}
 	case *ast.Literal:
+		// This can only ever produce one result.
+		if len(receivers) != 1 {
+			return nil, c.errorf(let.Elements[2].Pos(), "cannot assign %s %s to multiple names", v.Kind, v)
+		}
+
+		// Simplify handling by unpacking the
+		// receivers set.
+		name := receivers[0][0]
+		typeName := receivers[0][1]
+		var typ Type
+		var value constant.Value
+
 		switch v.Kind {
 		case token.Integer:
 			// Check any declared type matches.
@@ -1835,42 +1890,55 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 			return nil, c.errorf(v.ValuePos, "invalid value declaration: unexpected value type for value %s: %s", name.Name, v)
 		}
 
-		obj = NewConstant(scope, let.ParenClose, scope.End(), c.pkg, name.Name, typ, value, alignment)
+		typs[0] = typ
+		valueType = typ
+		objs[0] = NewConstant(scope, let.ParenClose, scope.End(), c.pkg, name.Name, typ, value, alignment)
+		values[0] = value
 		c.names[let.ParenOpen] = "constant " + name.Name
 	default:
-		// TODO: handle top-level lets that assign another constant to a new name.
-		return nil, c.errorf(let.Elements[2].Pos(), "invalid value declaration: unexpected value type for value %s: %s", name.Name, let.Elements[2])
+		val := let.Elements[n-1]
+		return nil, c.errorf(val.Pos(), "invalid value declaration: unexpected value type for value %s: %s", receivers[0][0].Name, val)
 	}
 
 	sig := &Signature{
-		name: "let",
-		params: []*Variable{
-			NewParameter(nil, let.Elements[1].Pos(), let.Elements[1].End(), nil, "name", typ),
-			NewParameter(nil, let.Elements[2].Pos(), let.Elements[2].End(), nil, "value", typ),
-		},
-		result: []Type{typ},
+		name:   "let",
+		params: make([]*Variable, len(let.Elements[1:])),
+		result: typs,
 	}
 
-	c.define(name, obj)
-	c.record(let, typ, value)
-	c.record(name, typ, value)
-	c.record(let.Elements[0], sig, value)
-	c.record(let.Elements[1], typ, value)
-	c.record(let.Elements[2], typ, value)
-	if other := scope.Insert(obj); other != nil {
-		return nil, c.errorf(let.ParenOpen, "%s redeclared: previous declaration at %s", name.Name, c.fset.Position(other.Pos()))
+	for i, elt := range let.Elements[1 : n-1] {
+		sig.params[i] = NewParameter(nil, elt.Pos(), elt.End(), nil, receivers[i][0].Name, typs[i])
+	}
+	sig.params[len(sig.params)-1] = NewParameter(nil, let.Elements[n-1].Pos(), let.Elements[n-1].End(), nil, "value", valueType)
+
+	var value constant.Value
+	if len(values) == 1 {
+		value = values[0]
 	}
 
-	if other := Universe.Lookup(name.Name); other != nil {
-		// Check that we wouldn't be shadowing
-		// a special form, as that's likely to
-		// go wrong.
-		if sf, ok := other.(*SpecialForm); ok {
-			return nil, c.errorf(let.ParenOpen, "%s redeclared: cannot shadow %s", name.Name, sf)
+	c.record(let, valueType, value)
+	c.record(let.Elements[0], valueType, value)
+	c.record(let.Elements[n-1], valueType, value)
+	for i := range receivers {
+		name := receivers[i][0]
+		c.define(name, objs[i])
+		c.record(name, typs[i], values[i])
+		c.record(let.Elements[1+i], typs[i], values[i])
+		if other := scope.Insert(objs[i]); other != nil {
+			return nil, c.errorf(let.Elements[1+1].Pos(), "%s redeclared: previous declaration at %s", name.Name, c.fset.Position(other.Pos()))
+		}
+
+		if other := Universe.Lookup(name.Name); other != nil {
+			// Check that we wouldn't be shadowing
+			// a special form, as that's likely to
+			// go wrong.
+			if sf, ok := other.(*SpecialForm); ok {
+				return nil, c.errorf(let.Elements[1+i].Pos(), "%s redeclared: cannot shadow %s", name.Name, sf)
+			}
 		}
 	}
 
-	return typ, nil
+	return nil, nil
 }
 
 func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {

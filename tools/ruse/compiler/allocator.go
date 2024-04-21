@@ -190,10 +190,19 @@ func (a *allocator) run() error {
 			}
 
 			clear(calleeIsScratch)
-			for _, reg := range calleeABI.ScratchRegisters {
+			for _, reg := range calleeABI.ParamRegisters {
 				calleeIsScratch[reg] = true
 			}
 			for _, reg := range calleeABI.ScratchRegisters {
+				calleeIsScratch[reg] = true
+			}
+			for _, reg := range calleeABI.ResultRegisters {
+				calleeIsScratch[reg] = true
+			}
+			for _, reg := range calleeABI.ScratchRegisters {
+				a.SaveValue(reg, calleeIsScratch)
+			}
+			for _, reg := range calleeABI.ResultRegisters {
 				a.SaveValue(reg, calleeIsScratch)
 			}
 
@@ -207,10 +216,20 @@ func (a *allocator) run() error {
 
 			// Perform the function call itself.
 			a.allocs = append(a.allocs, v)
+		case ssafir.OpFunctionResult:
+			// Save the result.
+			fun := v.Args[0].Extra.(*types.Function)
+			sig := fun.Type().(*types.Signature)
 
-			// Note any results.
-			if v.Uses != 0 && sig.Result() != nil {
-				a.NoteResult(fun, sig, calleeABI, v)
+			// Preserve any values currently in
+			// the function's scratch registers.
+			calleeABI := fun.ABI()
+			if calleeABI == nil {
+				calleeABI = &a.arch.DefaultABI
+			}
+
+			if v.Uses != 0 {
+				a.SaveResult(fun, sig, calleeABI, v)
 			}
 		default:
 			// Search by group next.
@@ -815,25 +834,31 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 	a.locations[v] = append(a.locations[v][:0], locs...)
 }
 
-// NoteResult takes note of the fact that the
+// SaveResult takes note of the fact that the
 // given result already exists in a location
 // determined by the function's calling
 // convention.
-func (a *allocator) NoteResult(fun *types.Function, sig *types.Signature, abi *sys.ABI, v *ssafir.Value) {
-	sizes := make([]int, len(sig.Result()))
-	for i, result := range sig.Result() {
-		sizes[i] = a.sizes.SizeOf(result)
+func (a *allocator) SaveResult(fun *types.Function, sig *types.Signature, abi *sys.ABI, v *ssafir.Value) {
+	results := v.Extra.(*FunctionResult)
+	sizes := make([]int, len(results.Result))
+	for i, result := range results.Result {
+		sizes[i] = a.sizes.SizeOf(result.Type)
 	}
 
 	locs := a.arch.Result(abi, sizes)
-	a.locations[v] = a.locations[v][:0]
-	for _, locs := range locs {
-		for _, loc := range locs {
-			a.allocated[loc] = v
-			a.addOpAlloc(v, ssafir.OpMakeResult, &Alloc{Dst: loc, Src: loc})
+	for i, locs := range locs {
+		// We only process this value's
+		// locations here.
+		if results.Result[i] != v {
+			continue
 		}
 
-		a.locations[v] = append(a.locations[v], locs...)
+		for _, loc := range locs {
+			a.allocated[loc] = v
+			a.addAlloc(v, &Alloc{Dst: loc, Src: loc})
+		}
+
+		a.locations[v] = append(a.locations[v][:0], locs...)
 	}
 }
 

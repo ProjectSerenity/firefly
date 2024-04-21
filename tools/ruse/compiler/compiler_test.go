@@ -239,13 +239,19 @@ func TestCompile(t *testing.T) {
 				v614 := b61.NewValue(508, 532, ssafir.OpCopy, types.Int, v613)
 				v615 := b61.NewValue(543, 563, ssafir.OpCastInt64ToUint64, types.Uint64, v614)
 				v616 := b61.NewValueExtra(564, 565, ssafir.OpConstantUntypedInt, types.UntypedInt, constant.MakeInt64(2))
-				b61.NewValueExtra(534, 566, ssafir.OpFunctionCall, f5.Type, o5, v615, v616)
-				v618 := b61.NewValueInt(590, 601, ssafir.OpConstantInt64, types.Int, 3)
-				v619 := b61.NewValue(577, 602, ssafir.OpCastInt64ToUint64, types.Uint64, v618)
-				v620 := b61.NewValueExtra(603, 604, ssafir.OpConstantUntypedInt, types.UntypedInt, constant.MakeInt64(2))
-				b61.NewValueExtra(568, 605, ssafir.OpFunctionCall, f5.Type, o5, v619, v620)
-				v622 := b61.NewValue(568, 605, ssafir.OpMakeResult, ssafir.Result{}, v611)
-				b61.Control = v622
+				v617 := b61.NewValueExtra(534, 566, ssafir.OpFunctionCall, f5.Type, o5, v615, v616)
+				r61 := &FunctionResult{Call: v617, Result: make([]*ssafir.Value, 1)}
+				v618 := b61.NewValueExtra(534, 566, ssafir.OpFunctionResult, types.Uint64, r61, v617)
+				r61.Result[0] = v618
+				v619 := b61.NewValueInt(590, 601, ssafir.OpConstantInt64, types.Int, 3)
+				v620 := b61.NewValue(577, 602, ssafir.OpCastInt64ToUint64, types.Uint64, v619)
+				v621 := b61.NewValueExtra(603, 604, ssafir.OpConstantUntypedInt, types.UntypedInt, constant.MakeInt64(2))
+				v622 := b61.NewValueExtra(568, 605, ssafir.OpFunctionCall, f5.Type, o5, v620, v621)
+				r62 := &FunctionResult{Call: v622, Result: make([]*ssafir.Value, 1)}
+				v623 := b61.NewValueExtra(568, 605, ssafir.OpFunctionResult, types.Uint64, r62, v622)
+				r62.Result[0] = v623
+				v624 := b61.NewValue(568, 605, ssafir.OpMakeResult, ssafir.Result{}, v611)
+				b61.Control = v624
 				b61.End = 605
 				f6.Entry = b61
 
@@ -319,12 +325,14 @@ func TestCompile(t *testing.T) {
 					"	v4  := (CastInt64ToUint64 v3) uint64",
 					"	v5  := (ConstantUntypedInt (extra 2)) untyped integer",
 					"	v6  := (FunctionCall v4 v5 (extra function product ((func (uint64) (uint64) uint64)))) (func (uint64) (uint64) uint64)",
-					"	v7  := (ConstantInt64 (extra 3)) int",
-					"	v8  := (CastInt64ToUint64 v7) uint64",
-					"	v9  := (ConstantUntypedInt (extra 2)) untyped integer",
-					"	v10 := (FunctionCall v8 v9 (extra function product ((func (uint64) (uint64) uint64)))) (func (uint64) (uint64) uint64)",
-					"	v11 := (MakeResult v1) result",
-					"	(Return v11)",
+					"	v7  := (FunctionResult v6 (extra (result from v6))) uint64",
+					"	v8  := (ConstantInt64 (extra 3)) int",
+					"	v9  := (CastInt64ToUint64 v8) uint64",
+					"	v10 := (ConstantUntypedInt (extra 2)) untyped integer",
+					"	v11 := (FunctionCall v9 v10 (extra function product ((func (uint64) (uint64) uint64)))) (func (uint64) (uint64) uint64)",
+					"	v12 := (FunctionResult v11 (extra (result from v11))) uint64",
+					"	v13 := (MakeResult v1) result",
+					"	(Return v13)",
 					"",
 				},
 			},
@@ -611,9 +619,11 @@ func TestCompileTestValues(t *testing.T) {
 				{ID: 2, Op: ssafir.OpConstantInt64, Extra: int64(6), Uses: 1, Code: `(len "foobar")`},
 				{ID: 3, Op: ssafir.OpCopy, Uses: 1, Code: `(let length (len "foobar"))`},
 				{ID: 4, Op: ssafir.OpConstantInt64, Extra: int64(3), Uses: 1, Code: `(len "bar")`},
-				{ID: 5, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 0, Code: `(double (len "bar"))`},
-				{ID: 6, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 1, Code: `(double length)`},
-				{ID: 7, Op: ssafir.OpMakeResult, Uses: 1, Code: `(double length)`},
+				{ID: 5, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 1, Code: `(double (len "bar"))`},
+				{ID: 6, Op: ssafir.OpFunctionResult, Extra: new(FunctionResult), Uses: 0, Code: `(double (len "bar"))`},
+				{ID: 7, Op: ssafir.OpFunctionCall, Extra: new(types.Function), Uses: 1, Code: `(double length)`},
+				{ID: 8, Op: ssafir.OpFunctionResult, Extra: new(FunctionResult), Uses: 1, Code: `(double length)`},
+				{ID: 9, Op: ssafir.OpMakeResult, Uses: 1, Code: `(double length)`},
 			},
 		},
 		{
@@ -639,7 +649,7 @@ func TestCompileTestValues(t *testing.T) {
 	}
 
 	compareOptions := []cmp.Option{
-		cmpopts.IgnoreTypes(new(types.Function)),
+		cmpopts.IgnoreTypes(new(types.Function), new(FunctionResult)),
 	}
 
 	arch := sys.X86_64

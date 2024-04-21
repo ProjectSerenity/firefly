@@ -123,7 +123,7 @@ The statement may specify the type of the identifier. If no type is specified, t
 
 If the type of the identifier is specified, the constant's type must be assignable to the identifier type.
 
-The `let` statement is a list containing three elements. The first element is the identifier `let`. The second element is either an identifier (representing the name to which the constant is bound) or a list of two identifiers. In this second form, the first identifier is the name to which the constant is bound and the second identifier specifies its type. The third element is an expression resolving to a constant value. This constant value is evaluated and assigned to the identifier.
+The `let` statement is a list containing three or more elements. The first element is the identifier `let`. The final element is an expression resolving to one or more constant values. These constant values are evaluated and assigned to preceeding identifiers. The remaining elements are each either an identifier (representing the name to which the constant is bound) or a list of two identifiers. In this second form, the first identifier is the name to which the corresponding constant is bound and the second identifier specifies its type.
 
 The set of annotations supported on a `let` statement is:
 
@@ -145,7 +145,7 @@ A `func` statement declares a function and its signature and binds them to an id
 
 The `func` statement is a list containing three or more elements. The first element is the identifier `func`. The second element is a list specifying the function's name and type signature. The remaining elements comprise the function body. These are executed when the function executes.
 
-The function name and signature is a list consisting of an identifier (to which the function is bound), zero or more lists of two identifiers (specifying the function's parameters), and an optional identifier (specifying the function's return type).
+The function name and signature is a list consisting of an identifier (to which the function is bound), zero or more lists of two identifiers (specifying the function's parameters), and zero or more identifiers (specifying the function's return types).
 
 The set of annotations supported on a `func` statement is:
 
@@ -166,7 +166,7 @@ An `asm-func` statement declares a function implemented in architecture-specific
 
 The `asm-func` statement is a list containing three or more elements. The first element is the identifier `asm-func`. The second element is a list specifying the function's name and type signature. The remaining elements comprise the function body. These are executed when the function executes.
 
-The function name and signature is a list consisting of an identifier (to which the function is bound), zero or more lists of two identifiers (specifying the function's parameters), and an optional identifier (specifying the function's return type).
+The function name and signature is a list consisting of an identifier (to which the function is bound), zero or more lists of two identifiers (specifying the function's parameters), and zero or more identifiers (specifying the function's return types).
 
 The set of annotations supported on an `asm-func` statement is:
 

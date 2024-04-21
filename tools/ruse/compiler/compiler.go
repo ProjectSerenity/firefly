@@ -37,6 +37,18 @@ type Package struct {
 // compiled function.
 type MachineCode []byte
 
+// FunctionResult can be used to group together
+// the values that form a function call and its
+// results.
+type FunctionResult struct {
+	Call   *ssafir.Value
+	Result []*ssafir.Value
+}
+
+func (r *FunctionResult) String() string {
+	return fmt.Sprintf("(result from %s)", r.Call)
+}
+
 // EncodeTo writes the machine code implementation
 // of fun to w. If the function is not fully
 // compiled, EncodeTo will return an error.

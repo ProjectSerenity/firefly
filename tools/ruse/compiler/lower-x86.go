@@ -174,7 +174,7 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 		case ssafir.OpDrop:
 			// Nothing to do here, this is just debugging
 			// information for the register allocator.
-		case ssafir.OpCopy:
+		case ssafir.OpCopy, ssafir.OpFunctionResult:
 			l.MoveNumber(v)
 		case ssafir.OpParameter:
 			// Nothing to do here, the caller has already
@@ -653,10 +653,17 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 	}
 
 	alloc := v.Extra.(*Alloc)
+	var second sys.Location
+	if loc, ok := alloc.Data.(sys.Location); ok {
+		second = loc
+	} else {
+		second = alloc.Src
+	}
+
 	data := &x86InstructionData{
 		Args: [4]any{
 			alloc.Dst,
-			alloc.Data.(sys.Location),
+			second,
 		},
 	}
 
