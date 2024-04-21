@@ -731,23 +731,32 @@ func (a *allocator) PrepareResult(v *ssafir.Value) {
 
 	// Add move actions.
 	for i, result := range a.function.Result {
+		oldLocs := a.locations[v.Args[i]]
 		for j, loc := range result {
-			oldLoc := a.locations[v.Args[i]][j]
+			a.allocated[loc] = v
 
-			// Drop the old value.
-			if old := a.allocated[loc]; old != nil {
-				var truncated []sys.Location
-				for _, loc2 := range a.locations[old] {
-					if loc2 != loc {
-						truncated = append(truncated, loc2)
+			// Check old values.
+			if len(oldLocs) == 0 {
+				// Store the value.
+				a.addAlloc(v, &Alloc{Dst: loc, Data: v.Args[i].Extra})
+			} else {
+				// Handle any existing values.
+				oldLoc := oldLocs[j]
+
+				// Drop the old value.
+				if old := a.allocated[loc]; old != nil {
+					var truncated []sys.Location
+					for _, loc2 := range a.locations[old] {
+						if loc2 != loc {
+							truncated = append(truncated, loc2)
+						}
 					}
+
+					a.locations[old] = append(a.locations[old][:0], truncated...)
 				}
 
-				a.locations[old] = append(a.locations[old][:0], truncated...)
+				a.addAlloc(v, &Alloc{Dst: loc, Src: oldLoc})
 			}
-
-			a.allocated[loc] = v
-			a.addAlloc(v, &Alloc{Dst: loc, Src: oldLoc})
 		}
 
 		a.locations[v] = append(a.locations[v][:0], result...)

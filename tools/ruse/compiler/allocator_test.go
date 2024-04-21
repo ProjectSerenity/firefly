@@ -148,10 +148,11 @@ func TestAllocator(t *testing.T) {
 				{ID: 16, Op: ssafir.OpDrop, Extra: &Alloc{Src: x86.RDI}, Uses: 1, Code: `val`},
 				{ID: 18, Op: ssafir.OpFunctionResult, Extra: &Alloc{Dst: x86.RAX, Src: x86.RAX}, Uses: 1, Code: `(double val)`},
 				{ID: 19, Op: ssafir.OpMakeResult, Extra: &Alloc{Dst: x86.RAX, Src: x86.RAX}, Uses: 1, Code: `(double val)`},
+				{ID: 18, Op: ssafir.OpDrop, Extra: &Alloc{Src: x86.RAX}, Uses: 1, Code: `(double val)`},
 			},
 			Text: []string{
 				"allocator for test (func int)",
-				"  rax:  v19",
+				"  rax:  [free]",
 				"  rcx:  [free]",
 				"  rdx:  [free]",
 				"  rsi:  [free]",
