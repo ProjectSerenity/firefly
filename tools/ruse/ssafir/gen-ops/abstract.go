@@ -11,6 +11,19 @@
 package main
 
 var AbstractOps = []OpInfo{
+	// Memory operations.
+	{Name: "Drop", Operands: 1}, // Used for debugging only.
+	{Name: "Copy", Operands: 1}, // Output = operand 0.
+	{Name: "MakeMemoryState", Virtual: true},
+	{Name: "Parameter", Virtual: true}, // ExtraInt is the parameter index into Function.Type.Params.
+	{Name: "MakeResult", Operands: -1},
+	{Name: "FunctionCall", Operands: -1},
+	{Name: "FunctionResult", Operands: -1},
+	{Name: "SaveRegister", Operands: 1},    // Extra is a register to save.
+	{Name: "RestoreRegister", Operands: 1}, // Extra is a register to restore.
+	// Strings.
+	{Name: "StringPtr", Operands: 1},
+	{Name: "StringLen", Operands: 1},
 	// Arithmetic ops.
 	// Unary arithmetic.
 	{Name: "Negate", Operands: 1},
@@ -170,19 +183,6 @@ var AbstractOps = []OpInfo{
 	{Group: "Constant", Name: "ConstantUint32", Size: 32},
 	{Group: "Constant", Name: "ConstantUint64", Size: 64},
 	{Group: "Constant", Name: "ConstantUntypedInt"}, // Extra is the constant.Value.
-	// Memory operations.
-	{Name: "Drop", Operands: 1}, // Used for debugging only.
-	{Name: "Copy", Operands: 1}, // Output = operand 0.
-	{Name: "MakeMemoryState", Virtual: true},
-	{Name: "Parameter", Virtual: true}, // ExtraInt is the parameter index into Function.Type.Params.
-	{Name: "MakeResult", Operands: -1},
-	{Name: "FunctionCall", Operands: -1},
-	{Name: "FunctionResult", Operands: -1},
-	{Name: "SaveRegister", Operands: 1},    // Extra is a register to save.
-	{Name: "RestoreRegister", Operands: 1}, // Extra is a register to restore.
-	// Strings.
-	{Name: "StringPtr", Operands: 1},
-	{Name: "StringLen", Operands: 1},
 	// Numerical casts.
 	{Name: "Cast", Operands: 1},
 	{Group: "Cast", Name: "CastInt8ToInt16", Operands: 1, Size: 16},
