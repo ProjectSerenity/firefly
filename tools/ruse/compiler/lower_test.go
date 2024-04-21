@@ -1040,26 +1040,31 @@ func TestLower(t *testing.T) {
 			Disasm: []string{
 				"000000:	f3 0f 1e fa          	endbr64",
 				"000004:	53                   	push rbx",        // Preserve    rbx
-				"000005:	bf 03 00 00 00       	mov edi, 0x3",    // Prepare arg 3
-				"00000a:	e8 3f 33 22 11       	call 0x1122334e", // Call func   (x2-and-x4 3)
-				"00000f:	48 8b c8             	mov rcx, rax",    // Save result x2
-				"000012:	4c 8b da             	mov r11, rdx",    // Save result x4
-				"000015:	bf 04 00 00 00       	mov edi, 0x4",    // Prepare arg 4
-				"00001a:	e8 3f 33 22 11       	call 0x1122335e", // Call func   (x2-and-x4 4)
-				"00001f:	48 8b d8             	mov rbx, rax",    // Save result (x2-and-x4 4)
-				"000022:	48 8b fb             	mov rdi, rbx",    // Prepare arg (x2-and-x4 4)
-				"000025:	e8 3f 33 22 11       	call 0x11223369", // Call func   (pick-smaller (x2-and-x4 4))
-				"00002a:	48 8b d1             	mov rdx, rcx",    // Prepare arg x2
-				"00002d:	48 03 d0             	add rdx, rax",    // Perform     (+ x2 less)
-				"000030:	49 03 d3             	add rdx, r11",    // Perform     (+ x2 less x4)
-				"000033:	48 8b fa             	mov rdi, rdx",    // Prepare arg (+ x2 less x4)
-				"000036:	e8 3f 33 22 11       	call 0x1122337a", // Call func   (exit (pick-smaller x2 x4))
-				"00003b:	5b                   	pop rbx",         // Restore     rbx
-				"00003c:	c3                   	ret",
+				"000005:	55                   	push rbp",        // Preserve    rbp
+				"000006:	bf 03 00 00 00       	mov edi, 0x3",    // Prepare arg 3
+				"00000b:	e8 3f 33 22 11       	call 0x1122334f", // Call func   (x2-and-x4 3)
+				"000010:	48 8b c8             	mov rcx, rax",    // Save result x2
+				"000013:	4c 8b da             	mov r11, rdx",    // Save result x4
+				"000016:	bf 04 00 00 00       	mov edi, 0x4",    // Prepare arg 4
+				"00001b:	e8 3f 33 22 11       	call 0x1122335f", // Call func   (x2-and-x4 4)
+				"000020:	48 8b d8             	mov rbx, rax",    // Save result x2
+				"000023:	48 8b ea             	mov rbp, rdx",    // Save result x4
+				"000026:	48 8b fb             	mov rdi, rbx",    // Prepare arg x2
+				"000029:	48 8b f5             	mov rsi, rbp",    // Prepare arg x4
+				"00002c:	e8 3f 33 22 11       	call 0x11223370", // Call func   (pick-smaller (x2-and-x4 4))
+				"000031:	48 8b d1             	mov rdx, rcx",    // Prepare arg x2
+				"000034:	48 03 d0             	add rdx, rax",    // Perform     (+ x2 less)
+				"000037:	49 03 d3             	add rdx, r11",    // Perform     (+ x2 less x4)
+				"00003a:	48 8b fa             	mov rdi, rdx",    // Prepare arg (+ x2 less x4)
+				"00003d:	e8 3f 33 22 11       	call 0x11223381", // Call func   (exit (pick-smaller x2 x4))
+				"000042:	5d                   	pop rbp",         // Restore     rbp
+				"000043:	5b                   	pop rbx",         // Restore     rbx
+				"000044:	c3                   	ret",
 			},
 			Want: []*TestValue{
 				{ID: 0, Op: ssafir.OpX86_ENDBR64, Extra: &x86InstructionData{Length: 4}, Uses: 0, Code: `func (test)`},
 				{ID: 0, Op: ssafir.OpX86_PUSH_R64op, Extra: &x86InstructionData{Args: [4]any{x86.RBX}, Length: 1}, Uses: 0, Code: `func (test)`},
+				{ID: 0, Op: ssafir.OpX86_PUSH_R64op, Extra: &x86InstructionData{Args: [4]any{x86.RBP}, Length: 1}, Uses: 0, Code: `func (test)`},
 				{
 					ID:    2,
 					Op:    ssafir.OpX86_MOV_R32op_Imm32,
@@ -1077,8 +1082,8 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.x2-and-x4",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  11,
-								Address: 0x0f,
+								Offset:  12,
+								Address: 0x10,
 							},
 						},
 						Length: 5,
@@ -1117,8 +1122,8 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.x2-and-x4",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  27,
-								Address: 0x1f,
+								Offset:  28,
+								Address: 0x20,
 							},
 						},
 						Length: 5,
@@ -1134,9 +1139,23 @@ func TestLower(t *testing.T) {
 					Code:  `(x2-and-x4 4)`,
 				},
 				{
+					ID:    11,
+					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RBP, x86.RDX}, Length: 3},
+					Uses:  1,
+					Code:  `(x2-and-x4 4)`,
+				},
+				{
 					ID:    10,
 					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
 					Extra: &x86InstructionData{Args: [4]any{x86.RDI, x86.RBX}, Length: 3},
+					Uses:  1,
+					Code:  `(x2-and-x4 4)`,
+				},
+				{
+					ID:    11,
+					Op:    ssafir.OpX86_MOV_R64_Rmr64_REX,
+					Extra: &x86InstructionData{Args: [4]any{x86.RSI, x86.RBP}, Length: 3},
 					Uses:  1,
 					Code:  `(x2-and-x4 4)`,
 				},
@@ -1150,8 +1169,8 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.pick-smaller",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  38,
-								Address: 0x2a,
+								Offset:  45,
+								Address: 0x31,
 							},
 						},
 						Length: 5,
@@ -1197,8 +1216,8 @@ func TestLower(t *testing.T) {
 								Name:    "tests/test.exit",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
-								Offset:  55,
-								Address: 0x3b,
+								Offset:  62,
+								Address: 0x42,
 							},
 						},
 						Length: 5,
@@ -1206,6 +1225,7 @@ func TestLower(t *testing.T) {
 					Uses: 0,
 					Code: `(exit (+ x2 less x4))`,
 				},
+				{ID: 0, Op: ssafir.OpX86_POP_R64op, Extra: &x86InstructionData{Args: [4]any{x86.RBP}, Length: 1}, Uses: 0, Code: `func (test)`},
 				{ID: 0, Op: ssafir.OpX86_POP_R64op, Extra: &x86InstructionData{Args: [4]any{x86.RBX}, Length: 1}, Uses: 0, Code: `func (test)`},
 				{
 					ID:    0,

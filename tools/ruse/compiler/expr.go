@@ -155,18 +155,38 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 					return c.CompileBuiltinFunction(x, obj, sig)
 				}
 
-				params := make([]*ssafir.Value, len(x.Elements[1:]))
-				for i, elt := range x.Elements[1:] {
-					v, err := c.CompileExpression(elt)
+				params := make([]*ssafir.Value, len(sig.Params()))
+
+				// We need to special case the handling
+				// of a single function call that returns
+				// the same number of results as we take
+				// as arguments.
+				if len(params) > 1 && len(x.Elements[1:]) == 1 {
+					v, err := c.CompileExpression(x.Elements[1])
 					if err != nil {
 						return nil, err
 					}
 
-					if v == nil {
-						panic(fmt.Sprintf("function param %d (%s %s) compiled to a nil value", i, elt, elt.Print()))
+					// Extract the results.
+					result, ok := v.Extra.(*FunctionResult)
+					if !ok {
+						return nil, fmt.Errorf("%s: internal error: failed to extract child function's results: got %T", c.fset.Position(x.ParenOpen), v.Extra)
 					}
 
-					params[i] = v
+					params = result.Result
+				} else {
+					for i, elt := range x.Elements[1:] {
+						v, err := c.CompileExpression(elt)
+						if err != nil {
+							return nil, err
+						}
+
+						if v == nil {
+							panic(fmt.Sprintf("function param %d (%s %s) compiled to a nil value", i, elt, elt.Print()))
+						}
+
+						params[i] = v
+					}
 				}
 
 				v := c.ValueExtra(x.ParenOpen, x.ParenClose+1, ssafir.OpFunctionCall, sig, obj, params...)
