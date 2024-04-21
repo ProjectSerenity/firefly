@@ -172,7 +172,14 @@ func (a *allocator) run() error {
 			params := sig.Params()
 			args := make([]int, len(params))
 			for i, arg := range v.Args {
-				args[i] = a.sizes.SizeOf(arg.Type)
+				argType := arg.Type
+				// If we're making a function call, we
+				// need to resolve the result.
+				if sig, ok := argType.(*types.Signature); ok && len(sig.Result()) == 1 {
+					argType = sig.Result()[0]
+				}
+
+				args[i] = a.sizes.SizeOf(argType)
 			}
 
 			// Preserve any values currently in
@@ -695,7 +702,7 @@ func (a *allocator) DropValue(v *ssafir.Value) {
 }
 
 // PrepareResult ensures that the function's
-// result value (if any) is in the appropriate
+// result values (if any) are in the appropriate
 // memory location(s).
 func (a *allocator) PrepareResult(v *ssafir.Value) {
 	if a.function.Type.Result() == nil {
@@ -704,26 +711,28 @@ func (a *allocator) PrepareResult(v *ssafir.Value) {
 	}
 
 	// Add move actions.
-	for i, loc := range a.function.Result {
-		oldLoc := a.locations[v.Args[0]][i]
+	for i, result := range a.function.Result {
+		for j, loc := range result {
+			oldLoc := a.locations[v.Args[i]][j]
 
-		// Drop the old value.
-		if old := a.allocated[loc]; old != nil {
-			var truncated []sys.Location
-			for _, loc2 := range a.locations[old] {
-				if loc2 != loc {
-					truncated = append(truncated, loc2)
+			// Drop the old value.
+			if old := a.allocated[loc]; old != nil {
+				var truncated []sys.Location
+				for _, loc2 := range a.locations[old] {
+					if loc2 != loc {
+						truncated = append(truncated, loc2)
+					}
 				}
+
+				a.locations[old] = append(a.locations[old][:0], truncated...)
 			}
 
-			a.locations[old] = append(a.locations[old][:0], truncated...)
+			a.allocated[loc] = v
+			a.addAlloc(v, &Alloc{Dst: loc, Src: oldLoc})
 		}
 
-		a.allocated[loc] = v
-		a.addAlloc(v, &Alloc{Dst: loc, Src: oldLoc})
+		a.locations[v] = append(a.locations[v][:0], result...)
 	}
-
-	a.locations[v] = append(a.locations[v][:0], a.function.Result...)
 }
 
 // PrepareParameter ensures that the given
@@ -811,13 +820,21 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 // determined by the function's calling
 // convention.
 func (a *allocator) NoteResult(fun *types.Function, sig *types.Signature, abi *sys.ABI, v *ssafir.Value) {
-	locs := a.arch.Result(abi, a.sizes.SizeOf(v.Type))
-	for _, loc := range locs {
-		a.allocated[loc] = v
-		a.addOpAlloc(v, ssafir.OpMakeResult, &Alloc{Dst: loc, Src: loc})
+	sizes := make([]int, len(sig.Result()))
+	for i, result := range sig.Result() {
+		sizes[i] = a.sizes.SizeOf(result)
 	}
 
-	a.locations[v] = append(a.locations[v][:0], locs...)
+	locs := a.arch.Result(abi, sizes)
+	a.locations[v] = a.locations[v][:0]
+	for _, locs := range locs {
+		for _, loc := range locs {
+			a.allocated[loc] = v
+			a.addOpAlloc(v, ssafir.OpMakeResult, &Alloc{Dst: loc, Src: loc})
+		}
+
+		a.locations[v] = append(a.locations[v], locs...)
+	}
 }
 
 // CalculatePreservations determines which

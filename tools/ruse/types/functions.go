@@ -52,12 +52,12 @@ func (f *Function) String() string {
 type Signature struct {
 	name   string
 	params []*Variable
-	result Type
+	result []Type
 }
 
 var _ Type = (*Signature)(nil)
 
-func NewSignature(name string, params []*Variable, result Type) *Signature {
+func NewSignature(name string, params []*Variable, result []Type) *Signature {
 	return &Signature{
 		name:   name,
 		params: params,
@@ -68,4 +68,4 @@ func NewSignature(name string, params []*Variable, result Type) *Signature {
 func (s *Signature) Underlying() Type    { return s }
 func (s *Signature) String() string      { return s.name }
 func (s *Signature) Params() []*Variable { return s.params }
-func (s *Signature) Result() Type        { return s.result }
+func (s *Signature) Result() []Type      { return s.result }

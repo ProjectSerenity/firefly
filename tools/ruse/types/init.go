@@ -159,7 +159,7 @@ func defPredeclaredFuncs() {
 			name := fmt.Sprintf("%s->%s", from.Name, to.Name)
 			sigName := fmt.Sprintf("(func (%s) %s)", from.Name, to.Name)
 			arg := NewParameter(nil, token.NoPos, token.NoPos, nil, "arg", from.Type)
-			sig := NewSignature(sigName, []*Variable{arg}, to.Type)
+			sig := NewSignature(sigName, []*Variable{arg}, []Type{to.Type})
 			fun := NewFunction(Universe, token.NoPos, token.NoPos, nil, name, sig, 1)
 			def(fun)
 			builtins[name] = fun

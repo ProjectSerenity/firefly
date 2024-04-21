@@ -505,14 +505,14 @@ func (c *compiler) AddCallingConvention() {
 		params[i] = c.sizes.SizeOf(param.Type())
 	}
 
-	var result int
-	if res := c.fun.Type.Result(); res != nil {
-		result = c.sizes.SizeOf(res)
+	results := make([]int, len(c.fun.Type.Result()))
+	for i, result := range c.fun.Type.Result() {
+		results[i] = c.sizes.SizeOf(result)
 	}
 
 	abi := c.fun.Func.ABI()
 	c.fun.Params = c.arch.Parameters(abi, params)
-	c.fun.Result = c.arch.Result(abi, result)
+	c.fun.Result = c.arch.Result(abi, results)
 }
 
 func (c *compiler) AddFunctionPrelude() {

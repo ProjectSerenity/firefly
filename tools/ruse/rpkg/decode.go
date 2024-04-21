@@ -344,12 +344,13 @@ func (d *decoded) decodeTypes(s cryptobyte.String) (types map[uint64]typeSplat, 
 				Basic:  BasicKind(basic),
 			}
 		case TypeKindFunction:
-			var paramsData []byte
-			var paramsLength uint32
-			var result, name uint64
+			var paramsData, resultData []byte
+			var paramsLength, resultLength uint32
+			var name uint64
 			if !rest.ReadUint32(&paramsLength) ||
 				!rest.ReadBytes(&paramsData, int(paramsLength)) ||
-				!rest.ReadUint64(&result) ||
+				!rest.ReadUint32(&resultLength) ||
+				!rest.ReadBytes(&resultData, int(resultLength)) ||
 				!rest.ReadUint64(&name) {
 				return nil, fmt.Errorf("invalid type: failed to read %s type kind: %w", TypeKind(kind), io.ErrUnexpectedEOF)
 			}
@@ -370,9 +371,17 @@ func (d *decoded) decodeTypes(s cryptobyte.String) (types map[uint64]typeSplat, 
 				params = append(params, variable{Name: name, Type: typ})
 			}
 
-			if result >= d.header.TypesLength {
-				return nil, fmt.Errorf("invalid type: %s result %d is beyond types section", TypeKind(kind), result)
+			result := make([]uint64, 0, resultLength/8)
+			resultString := cryptobyte.String(resultData)
+			for !resultString.Empty() {
+				var typ uint64
+				if !resultString.ReadUint64(&typ) {
+					return nil, fmt.Errorf("invalid type: failed to read %s type kind result: %w", TypeKind(kind), io.ErrUnexpectedEOF)
+				}
+
+				result = append(result, typ)
 			}
+
 			if name >= d.header.StringsLength {
 				return nil, fmt.Errorf("invalid type: %s name %d is beyond strings section", TypeKind(kind), name)
 			}
@@ -1115,12 +1124,13 @@ func (d *Decoder) getTypeFrom(s *cryptobyte.String) (types.Type, error) {
 			return nil, fmt.Errorf("invalid type: got type kind %s with unrecognised basic kind %d", TypeKind(kind), basic)
 		}
 	case TypeKindFunction:
-		var paramsData []byte
-		var paramsLength uint32
-		var resultOffset, nameOffset uint64
+		var paramsData, resultData []byte
+		var paramsLength, resultLength uint32
+		var nameOffset uint64
 		if !rest.ReadUint32(&paramsLength) ||
 			!rest.ReadBytes(&paramsData, int(paramsLength)) ||
-			!rest.ReadUint64(&resultOffset) ||
+			!rest.ReadUint32(&resultLength) ||
+			!rest.ReadBytes(&resultData, int(resultLength)) ||
 			!rest.ReadUint64(&nameOffset) {
 			return nil, fmt.Errorf("invalid type: failed to read %s type kind: %w", TypeKind(kind), io.ErrUnexpectedEOF)
 		}
@@ -1154,16 +1164,27 @@ func (d *Decoder) getTypeFrom(s *cryptobyte.String) (types.Type, error) {
 			params = append(params, types.NewParameter(nil, token.NoPos, token.NoPos, nil, name, typ))
 		}
 
-		if resultOffset >= d.header.TypesLength {
-			return nil, fmt.Errorf("invalid type: %s result %d is beyond types section", TypeKind(kind), resultOffset)
-		}
-		if nameOffset >= d.header.StringsLength {
-			return nil, fmt.Errorf("invalid type: %s name %d is beyond strings section", TypeKind(kind), nameOffset)
+		result := make([]types.Type, 0, resultLength/8)
+		resultString := cryptobyte.String(resultData)
+		for !resultString.Empty() {
+			var typeOffset uint64
+			if !resultString.ReadUint64(&typeOffset) {
+				return nil, fmt.Errorf("invalid type: failed to read %s type kind result: %w", TypeKind(kind), io.ErrUnexpectedEOF)
+			}
+
+			// At this point, we assume we've
+			// already parsed and cached any
+			// result types.
+			typ, ok := d.types[typeOffset]
+			if !ok {
+				return nil, fmt.Errorf("invalid type: failed to read %s type kind result type: no type information at offset %d", TypeKind(kind), typeOffset)
+			}
+
+			result = append(result, typ)
 		}
 
-		result, ok := d.types[resultOffset]
-		if !ok {
-			return nil, fmt.Errorf("invalid type: failed to read %s type kind result: no type information at offset %d", TypeKind(kind), resultOffset)
+		if nameOffset >= d.header.StringsLength {
+			return nil, fmt.Errorf("invalid type: %s name %d is beyond strings section", TypeKind(kind), nameOffset)
 		}
 
 		name, err := d.getString(nameOffset)

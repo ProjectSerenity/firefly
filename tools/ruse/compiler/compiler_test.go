@@ -106,7 +106,7 @@ func TestCompile(t *testing.T) {
 					Name:        "nullary-function",
 					Type:        types.NewSignature("(func)", []*types.Variable{}, nil),
 					Params:      [][]sys.Location{},
-					Result:      []sys.Location{},
+					Result:      [][]sys.Location{},
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b11 := f1.NewBlock(93, ssafir.BlockReturn)
@@ -122,7 +122,7 @@ func TestCompile(t *testing.T) {
 					Name:        "unary-function",
 					Type:        types.NewSignature("(func (byte))", []*types.Variable{p21}, nil),
 					Params:      [][]sys.Location{{x86.RDI}},
-					Result:      []sys.Location{},
+					Result:      [][]sys.Location{},
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b21 := f2.NewBlock(145, ssafir.BlockReturn)
@@ -140,7 +140,7 @@ func TestCompile(t *testing.T) {
 					Name:        "binary-function",
 					Type:        types.NewSignature("(func (int32) (string))", []*types.Variable{p31, p32}, nil),
 					Params:      [][]sys.Location{{x86.RDI}, {x86.RSI, x86.RDX}},
-					Result:      []sys.Location{},
+					Result:      [][]sys.Location{},
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b31 := f3.NewBlock(203, ssafir.BlockReturn)
@@ -160,9 +160,9 @@ func TestCompile(t *testing.T) {
 				p41 := types.NewParameter(nil, 252, 260, nil, "x", types.Int8)
 				f4 := &ssafir.Function{
 					Name:        "add1",
-					Type:        types.NewSignature("(func (int8) int8)", []*types.Variable{p41}, types.Int8),
+					Type:        types.NewSignature("(func (int8) int8)", []*types.Variable{p41}, []types.Type{types.Int8}),
 					Params:      [][]sys.Location{{x86.RDI}},
-					Result:      []sys.Location{x86.RAX},
+					Result:      [][]sys.Location{{x86.RAX}},
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b41 := f4.NewBlock(268, ssafir.BlockReturn)
@@ -207,9 +207,9 @@ func TestCompile(t *testing.T) {
 				p52 := types.NewParameter(nil, 441, 456, nil, "scalar", types.Uint64)
 				f5 := &ssafir.Function{
 					Name:        "product",
-					Type:        types.NewSignature("(func (uint64) (uint64) uint64)", []*types.Variable{p51, p52}, types.Uint64),
+					Type:        types.NewSignature("(func (uint64) (uint64) uint64)", []*types.Variable{p51, p52}, []types.Type{types.Uint64}),
 					Params:      [][]sys.Location{{x86.RCX}, {x86.RDX}},
-					Result:      []sys.Location{x86.RAX},
+					Result:      [][]sys.Location{{x86.RAX}},
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				o5 := types.NewFunction(nil, 466, 481, nil, "product", f5.Type, 1)
@@ -230,7 +230,7 @@ func TestCompile(t *testing.T) {
 					Name:        "maths-examples",
 					Type:        types.NewSignature("(func)", []*types.Variable{}, nil),
 					Params:      [][]sys.Location{},
-					Result:      []sys.Location{},
+					Result:      [][]sys.Location{},
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}
 				b61 := f6.NewBlock(508, ssafir.BlockReturn)
@@ -239,11 +239,11 @@ func TestCompile(t *testing.T) {
 				v614 := b61.NewValue(508, 532, ssafir.OpCopy, types.Int, v613)
 				v615 := b61.NewValue(543, 563, ssafir.OpCastInt64ToUint64, types.Uint64, v614)
 				v616 := b61.NewValueExtra(564, 565, ssafir.OpConstantUntypedInt, types.UntypedInt, constant.MakeInt64(2))
-				b61.NewValueExtra(534, 566, ssafir.OpFunctionCall, types.Uint64, o5, v615, v616)
+				b61.NewValueExtra(534, 566, ssafir.OpFunctionCall, f5.Type, o5, v615, v616)
 				v618 := b61.NewValueInt(590, 601, ssafir.OpConstantInt64, types.Int, 3)
 				v619 := b61.NewValue(577, 602, ssafir.OpCastInt64ToUint64, types.Uint64, v618)
 				v620 := b61.NewValueExtra(603, 604, ssafir.OpConstantUntypedInt, types.UntypedInt, constant.MakeInt64(2))
-				b61.NewValueExtra(568, 605, ssafir.OpFunctionCall, types.Uint64, o5, v619, v620)
+				b61.NewValueExtra(568, 605, ssafir.OpFunctionCall, f5.Type, o5, v619, v620)
 				v622 := b61.NewValue(568, 605, ssafir.OpMakeResult, ssafir.Result{}, v611)
 				b61.Control = v622
 				b61.End = 605
@@ -318,11 +318,11 @@ func TestCompile(t *testing.T) {
 					"	v3  := (Copy v2) int",
 					"	v4  := (CastInt64ToUint64 v3) uint64",
 					"	v5  := (ConstantUntypedInt (extra 2)) untyped integer",
-					"	v6  := (FunctionCall v4 v5 (extra function product ((func (uint64) (uint64) uint64)))) uint64",
+					"	v6  := (FunctionCall v4 v5 (extra function product ((func (uint64) (uint64) uint64)))) (func (uint64) (uint64) uint64)",
 					"	v7  := (ConstantInt64 (extra 3)) int",
 					"	v8  := (CastInt64ToUint64 v7) uint64",
 					"	v9  := (ConstantUntypedInt (extra 2)) untyped integer",
-					"	v10 := (FunctionCall v8 v9 (extra function product ((func (uint64) (uint64) uint64)))) uint64",
+					"	v10 := (FunctionCall v8 v9 (extra function product ((func (uint64) (uint64) uint64)))) (func (uint64) (uint64) uint64)",
 					"	v11 := (MakeResult v1) result",
 					"	(Return v11)",
 					"",
@@ -376,7 +376,7 @@ func TestCompile(t *testing.T) {
 					Type: types.NewSignature(
 						"(func (uintptr) (uintptr) (uintptr) (uintptr) (uintptr) (uintptr) (uintptr) uintptr)",
 						[]*types.Variable{syscall, arg1, arg2, arg3, arg4, arg5, arg6},
-						types.Uintptr,
+						[]types.Type{types.Uintptr},
 					),
 					Params: [][]sys.Location{
 						{x86.RAX},
@@ -387,7 +387,7 @@ func TestCompile(t *testing.T) {
 						{x86.R8},
 						{x86.R9},
 					},
-					Result:      []sys.Location{x86.RAX},
+					Result:      [][]sys.Location{{x86.RAX}},
 					Extra:       x86.Mode64,
 					NamedValues: make(map[*types.Variable][]*ssafir.Value),
 				}

@@ -133,7 +133,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	if len(p.Functions[0].Type.Params()) != 0 ||
-		p.Functions[0].Type.Result() != nil {
+		len(p.Functions[0].Type.Result()) != 0 {
 		return fmt.Errorf("main function: must have no parameters or result, found function signature %s", p.Functions[0].Type)
 	}
 

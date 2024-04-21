@@ -573,7 +573,7 @@ type Function struct {
 	Func   *types.Function  // The function's type information.
 	Type   *types.Signature // The function signature.
 	Params [][]sys.Location // The memory locations for the function's parameters.
-	Result []sys.Location   // The mmeory locations for the function's result.
+	Result [][]sys.Location // The mmeory locations for the function's result.
 	Blocks []*Block         // The basic blocks in this function's control flow graph.
 	Entry  *Block           // The basic block that begins the control flow graph.
 

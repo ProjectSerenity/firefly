@@ -677,26 +677,28 @@ func (c *checker) checkFuncSignature(parent *Scope, fun *ast.List) error {
 	}
 
 	params := decl.Elements[1:]
-	var resultType Type
-	var resultTypeName string
-	if len(params) != 0 {
-		// Check whether we have a result type,
-		// which will be a final element that is
-		// an identifier. If not, we only have
+	var resultTypes []Type
+	var resultTypeNames []string
+	for len(params) != 0 {
+		// Check whether we have any result types,
+		// which will be final elements that are
+		// identifiers. If not, we only have
 		// parameters.
 		result, ok := params[len(params)-1].(*ast.Identifier)
-		if ok {
-			_, obj := parent.LookupParent(result.Name, token.NoPos)
-			if obj == nil {
-				return c.errorf(result.NamePos, "undefined type: %s", result.Name)
-			}
-
-			resultType = obj.Type()
-			resultTypeName = result.Name
-			c.use(result, obj)
-			c.record(result, resultType, nil)
-			params = params[:len(params)-1] // Trim the result type from the parameter list.
+		if !ok {
+			break
 		}
+
+		_, obj := parent.LookupParent(result.Name, token.NoPos)
+		if obj == nil {
+			return c.errorf(result.NamePos, "undefined type: %s", result.Name)
+		}
+
+		resultTypes = append([]Type{obj.Type()}, resultTypes...)
+		resultTypeNames = append([]string{result.Name}, resultTypeNames...)
+		c.use(result, obj)
+		c.record(result, obj.Type(), nil)
+		params = params[:len(params)-1] // Trim the result type from the parameter list.
 	}
 
 	scope := NewScope(parent, fun.Elements[2].Pos(), fun.ParenClose, "function "+name.Name)
@@ -732,14 +734,14 @@ func (c *checker) checkFuncSignature(parent *Scope, fun *ast.List) error {
 		fmt.Fprintf(&buf, " (%s)", typ)
 	}
 
-	if resultTypeName != "" {
+	for _, name := range resultTypeNames {
 		buf.WriteByte(' ')
-		buf.WriteString(resultTypeName)
+		buf.WriteString(name)
 	}
 
 	buf.WriteByte(')')
 
-	signature := NewSignature(buf.String(), paramTypes, resultType)
+	signature := NewSignature(buf.String(), paramTypes, resultTypes)
 	c.newType(signature)
 	function := NewFunction(parent, fun.ParenOpen, fun.ParenClose, c.pkg, name.Name, signature, alignment)
 	c.sigs[fun.ParenOpen] = signature
@@ -1107,6 +1109,12 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 					return c.errorf(arg.Pos(), "%s has invalid argument: %v", name, err)
 				}
 
+				// If we're making a function call, we
+				// need to resolve the result.
+				if sig, ok := typ.(*Signature); ok && len(sig.result) == 1 {
+					typ = sig.result[0]
+				}
+
 				var val constant.Value
 				if con, ok := obj.(*Constant); ok {
 					val = con.Value()
@@ -1222,7 +1230,34 @@ func (c *checker) ResolveFuncBody(scope *Scope, fun *ast.List) (result Type, err
 			value = con.Value()
 		}
 
-		if isLast && sig.result != nil && !AssignableTo(sig.result, result, value) {
+		if !isLast || len(sig.result) == 0 {
+			// No implicit return handling to worry about.
+			continue
+		}
+
+		if len(sig.result) > 1 {
+			// TODO: use the return form to allow multiple returns.
+			return nil, c.errorf(expr.Pos(), "%s has %d return types so implicit return is not allowed", name, len(sig.result))
+		}
+
+		// Handle cases where we return the
+		// result of a function call.
+		if callee, ok := result.(*Signature); ok {
+			if len(sig.result) != len(callee.result) {
+				return nil, c.errorf(expr.Pos(), "%s has return type %s but returns value of incompatible type %s", name, sig.result, callee.result)
+			}
+
+			for i := range sig.result {
+				if !AssignableTo(sig.result[i], callee.result[i], value) {
+					return nil, c.errorf(expr.Pos(), "%s has return type %s but returns value of incompatible type %s", name, sig.result, callee.result)
+				}
+			}
+
+			// All fine.
+			continue
+		}
+
+		if len(sig.result) == 1 && sig.result[0] != nil && !AssignableTo(sig.result[0], result, value) {
 			return nil, c.errorf(expr.Pos(), "%s has return type %s but returns value of incompatible type %s", name, sig.result, result)
 		}
 	}
@@ -1247,7 +1282,7 @@ func (c *checker) ResolveFuncBody(scope *Scope, fun *ast.List) (result Type, err
 		}
 	}
 
-	return sig.result, nil
+	return sig, nil
 }
 
 func (c *checker) ResolveLetBody(scope *Scope, let *ast.List) (err error) {
@@ -1384,7 +1419,7 @@ func (c *checker) ResolveExpression(scope *Scope, function *Function, expr ast.E
 
 				c.use(name, form)
 				c.record(name, signature, nil)
-				return fun, signature.result, nil
+				return fun, signature, nil
 			}
 		}
 
@@ -1419,6 +1454,12 @@ func (c *checker) ResolveExpression(scope *Scope, function *Function, expr ast.E
 					obj, argType, err := c.ResolveExpression(scope, function, v)
 					if err != nil {
 						return nil, nil, err
+					}
+
+					// If we're making a function call, we
+					// need to resolve the result.
+					if sig, ok := argType.(*Signature); ok && len(sig.result) == 1 {
+						argType = sig.result[0]
 					}
 
 					var value constant.Value
@@ -1458,6 +1499,12 @@ func (c *checker) ResolveExpression(scope *Scope, function *Function, expr ast.E
 				return nil, nil, err
 			}
 
+			// If we're making a function call, we
+			// need to resolve the result.
+			if sig, ok := argType.(*Signature); ok && len(sig.result) == 1 {
+				argType = sig.result[0]
+			}
+
 			var val constant.Value
 			if con, ok := obj.(*Constant); ok {
 				val = con.Value()
@@ -1492,6 +1539,29 @@ func (c *checker) ResolveExpression(scope *Scope, function *Function, expr ast.E
 
 		// TODO: handle variadic functions.
 
+		// Handle the special case where we
+		// call a function with the result
+		// from another function, as we allow
+		// multiple returns to satisfy the
+		// same number of parameters.
+		if len(values) == 1 {
+			prev, ok := argTypes[0].(*Signature)
+			if ok && len(sig.params) == len(prev.result) {
+				for i := range sig.params {
+					arg := prev.result[i]
+					param := sig.params[i].Type()
+					if !AssignableTo(param, arg, nil) {
+						return nil, nil, c.errorf(x.Elements[i+1].Pos(), "cannot use %s (%s) as values in argument to %s", x.Elements[1].Print(), prev, sig)
+					}
+				}
+			}
+
+			// All good.
+			c.record(x, sig, nil)
+
+			return obj, sig, nil
+		}
+
 		if len(x.Elements[1:]) > len(sig.params) {
 			return nil, nil, c.errorf(x.ParenOpen, "too many arguments in call to %s:\n\thave %s\n\twant %s", sig, typesList(argTypes), paramsList(sig.params))
 		} else if len(x.Elements[1:]) < len(sig.params) {
@@ -1499,15 +1569,25 @@ func (c *checker) ResolveExpression(scope *Scope, function *Function, expr ast.E
 		}
 
 		for i, arg := range argTypes {
+			// We allow a function call with a
+			// single return to be used as an
+			// individual argument, in addition
+			// to the case handled above where
+			// the full result from a function
+			// is used as all of the arguments.
+			if prev, ok := arg.(*Signature); ok && len(prev.result) == 1 {
+				arg = prev.result[0]
+			}
+
 			param := sig.params[i].Type()
 			if !AssignableTo(param, arg, values[i]) {
 				return nil, nil, c.errorf(x.Elements[i+1].Pos(), "cannot use %s (%s) as %s value in argument to %s", x.Elements[i+1].Print(), arg, param, sig)
 			}
 		}
 
-		c.record(x, sig.result, nil)
+		c.record(x, sig, nil)
 
-		return obj, sig.result, nil
+		return obj, sig, nil
 	case *ast.Identifier:
 		_, obj := scope.LookupParent(x.Name, token.NoPos)
 		if obj == nil && strings.HasPrefix(x.Name, "array/") {
@@ -1672,6 +1752,11 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 			return nil, err
 		}
 
+		// Handle function calls.
+		if sig, ok := value.(*Signature); ok && len(sig.result) == 1 {
+			value = sig.result[0]
+		}
+
 		// Check any declared type matches.
 		if typeName == nil {
 			typ = value
@@ -1763,7 +1848,7 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 			NewParameter(nil, let.Elements[1].Pos(), let.Elements[1].End(), nil, "name", typ),
 			NewParameter(nil, let.Elements[2].Pos(), let.Elements[2].End(), nil, "value", typ),
 		},
-		result: typ,
+		result: []Type{typ},
 	}
 
 	c.define(name, obj)
@@ -1870,6 +1955,11 @@ func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 		_, constantType, err := c.ResolveExpression(parent, nil, v)
 		if err != nil {
 			return err
+		}
+
+		// Handle function calls.
+		if sig, ok := constantType.(*Signature); ok && len(sig.result) == 1 {
+			constantType = sig.result[0]
 		}
 
 		value = c.consts[v]
@@ -2012,7 +2102,7 @@ func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 			NewParameter(nil, let.Elements[1].Pos(), let.Elements[1].End(), nil, "name", typ),
 			NewParameter(nil, let.Elements[2].Pos(), let.Elements[2].End(), nil, "value", typ),
 		},
-		result: typ,
+		result: []Type{typ},
 	}
 
 	obj := NewConstant(parent, let.ParenOpen, let.ParenClose, c.pkg, name.Name, typ, value, alignment)

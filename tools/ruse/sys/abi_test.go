@@ -31,23 +31,23 @@ func TestABIs(t *testing.T) {
 		Arch       *Arch
 		ABI        *ABI
 		Params     []int
-		Result     int
+		Result     []int
 		WantParams [][]Location
-		WantResult []Location
+		WantResult [][]Location
 	}{
 		{
 			Name:   "x86 System V",
 			Arch:   X86,
 			ABI:    nil,
 			Params: []int{1, 8, 4},
-			Result: 2,
+			Result: []int{2},
 			WantParams: [][]Location{
 				{Stack{Pointer: x86.ESP, Offset: +0}},
 				{Stack{Pointer: x86.ESP, Offset: +4}, Stack{Pointer: x86.ESP, Offset: +8}},
 				{Stack{Pointer: x86.ESP, Offset: +12}},
 			},
-			WantResult: []Location{
-				x86.EAX,
+			WantResult: [][]Location{
+				{x86.EAX},
 			},
 		},
 		{
@@ -55,7 +55,7 @@ func TestABIs(t *testing.T) {
 			Arch:   X86_64,
 			ABI:    nil,
 			Params: []int{1, 16, 8, 4, 4, 4, 4},
-			Result: 4,
+			Result: []int{4, 1},
 			WantParams: [][]Location{
 				{x86.RDI},
 				{x86.RSI, x86.RDX},
@@ -65,8 +65,9 @@ func TestABIs(t *testing.T) {
 				{Stack{Pointer: x86.RSP, Offset: +0}},
 				{Stack{Pointer: x86.RSP, Offset: +8}},
 			},
-			WantResult: []Location{
-				x86.RAX,
+			WantResult: [][]Location{
+				{x86.RAX},
+				{x86.RDX},
 			},
 		},
 		{
@@ -76,15 +77,14 @@ func TestABIs(t *testing.T) {
 				InvertedStack: true,
 			},
 			Params: []int{1, 16, 8},
-			Result: 16,
+			Result: []int{16},
 			WantParams: [][]Location{
 				{Stack{Pointer: x86.RSP, Offset: +24}},
 				{Stack{Pointer: x86.RSP, Offset: +16}, Stack{Pointer: x86.RSP, Offset: +8}},
 				{Stack{Pointer: x86.RSP, Offset: +0}},
 			},
-			WantResult: []Location{
-				Stack{Pointer: x86.RSP, Offset: +8},
-				Stack{Pointer: x86.RSP, Offset: +0},
+			WantResult: [][]Location{
+				{Stack{Pointer: x86.RSP, Offset: +8}, Stack{Pointer: x86.RSP, Offset: +0}},
 			},
 		},
 	}

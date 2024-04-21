@@ -131,7 +131,8 @@
 //		case TypeKindFunction:
 //			ParamsLength  uint32         // The length in bytes of the parameter types.
 //			Params        [...]Variable  // Successive variables for each parameter.
-//			Result        uint64         // The offset into the types section where the result type begins.
+//			ResultLength  uint32         // The length in bytes of the result types.
+//			Result        [...]uint64    // Successive offsets into the types section where each result type begins.
 //			Name          uint64         // The offset into the strings section where the signature name begins.
 //		case TypeKindABI:
 //			ABIOffset     uint32         // The offset into the ABIs section where the ABI begins.
@@ -565,7 +566,7 @@ type typeSplat struct {
 	// Function fields.
 	ParamsLength uint32     // The length in bytes of the parameter types.
 	Params       []variable // Successive variables for each parameter.
-	Result       uint64     // The offset into the types section where the result type begins.
+	Result       []uint64   // The offset into the types section where the result types begin.
 	Name         uint64     // The offset into the strings section where the signature name begins.
 
 	// ABI fields.

@@ -442,13 +442,13 @@ var tests = []struct {
 			0, 0, 0, 100, // ImportsOffset: 100.
 			0, 0, 0, 100, // ExportsOffset: 100.
 			0, 0, 0, 0, 0, 0, 0, 100, // TypesOffset: 100.
-			0, 0, 0, 0, 0, 0, 1, 56, // SymbolsOffset: 312.
-			0, 0, 0, 0, 0, 0, 2, 184, // ABIsOffset: 696.
-			0, 0, 0, 0, 0, 0, 2, 236, // SectionsOffset: 748.
-			0, 0, 0, 0, 0, 0, 3, 28, // StringsOffset: 796.
-			0, 0, 0, 0, 0, 0, 4, 108, // LinkagesOffset: 1132.
-			0, 0, 0, 0, 0, 0, 4, 144, // CodeOffset: 1168.
-			0, 0, 0, 0, 0, 0, 4, 208, // ChecksumOffset: 1236.
+			0, 0, 0, 0, 0, 0, 1, 52, // SymbolsOffset: 308.
+			0, 0, 0, 0, 0, 0, 2, 180, // ABIsOffset: 692.
+			0, 0, 0, 0, 0, 0, 2, 232, // SectionsOffset: 744.
+			0, 0, 0, 0, 0, 0, 3, 24, // StringsOffset: 792.
+			0, 0, 0, 0, 0, 0, 4, 104, // LinkagesOffset: 1128.
+			0, 0, 0, 0, 0, 0, 4, 140, // CodeOffset: 1164.
+			0, 0, 0, 0, 0, 0, 4, 204, // ChecksumOffset: 1232.
 			// Imports.
 			// Exports.
 			// Types.
@@ -457,9 +457,9 @@ var tests = []struct {
 			0, 0, 0, // Length: 0.
 			// - Function.
 			3,        // Kind: 3 (function signature).
-			0, 0, 20, // Length: 20.
+			0, 0, 16, // Length: 16.
 			0, 0, 0, 0, // ParamsLength: 0.
-			0, 0, 0, 0, 0, 0, 0, 0, // Result: 0 (nil type).
+			0, 0, 0, 0, // ResulLengtht: 0.
 			0, 0, 0, 0, 0, 0, 0, 76, // Name: 76 ("(func)").
 			// - String.
 			2,       // Kind: 2 (basic).
@@ -471,21 +471,22 @@ var tests = []struct {
 			0, 0, 0, 12, // BasicKind: 12 (uint64).
 			// - Function.
 			3,        // Kind: 3 (function signature).
-			0, 0, 52, // Length: 52.
+			0, 0, 56, // Length: 56.
 			0, 0, 0, 32, // ParamsLength: 32.
 			0, 0, 0, 0, 0, 0, 0, 104, // Param 0 Name: 104 ("str").
-			0, 0, 0, 0, 0, 0, 0, 28, // Param 0 Type: 28 (string).
+			0, 0, 0, 0, 0, 0, 0, 24, // Param 0 Type: 24 (string).
 			0, 0, 0, 0, 0, 0, 0, 112, // Param 1 Name: 112 ("length").
-			0, 0, 0, 0, 0, 0, 0, 36, // Param 1 Type: 36 (uint64).
-			0, 0, 0, 0, 0, 0, 0, 36, // Result: 36 (uint64).
+			0, 0, 0, 0, 0, 0, 0, 32, // Param 1 Type: 32 (uint64).
+			0, 0, 0, 8, // ResultLength: 8.
+			0, 0, 0, 0, 0, 0, 0, 32, // Result: 32 (uint64).
 			0, 0, 0, 0, 0, 0, 0, 124, // Name: 124 ("(func (string) (uint64) uint64)").
 			// - Function.
 			3,        // Kind: 3 (function signature).
-			0, 0, 36, // Length: 36.
+			0, 0, 32, // Length: 32.
 			0, 0, 0, 16, // ParamsLength: 16.
 			0, 0, 0, 0, 0, 0, 0, 172, // Param 0 Name: 172 ("msg").
-			0, 0, 0, 0, 0, 0, 0, 28, // Param 0 Type: 28 (string).
-			0, 0, 0, 0, 0, 0, 0, 0, // Result: 0 (nil).
+			0, 0, 0, 0, 0, 0, 0, 24, // Param 0 Type: 24 (string).
+			0, 0, 0, 0, // ResultLength: 0.
 			0, 0, 0, 0, 0, 0, 0, 180, // Name: 180 ("(func (string)").
 			// - Untyped string.
 			2,       // Kind: 2 (basic).
@@ -507,12 +508,12 @@ var tests = []struct {
 			6,        // Kind: 6 (array).
 			0, 0, 16, // Length: 16.
 			0, 0, 0, 0, 0, 0, 0, 2, // Array length: 2.
-			0, 0, 0, 0, 0, 0, 0, 164, // Element type: 164 (uint16).
+			0, 0, 0, 0, 0, 0, 0, 160, // Element type: 160 (uint16).
 			// - Array of 3 arrays of 2 uint16s.
 			6,        // Kind: 6 (array).
 			0, 0, 16, // Length: 16.
 			0, 0, 0, 0, 0, 0, 0, 3, // Array length: 3.
-			0, 0, 0, 0, 0, 0, 0, 172, // Element type: 172 (array/2/uint16).
+			0, 0, 0, 0, 0, 0, 0, 168, // Element type: 168 (array/2/uint16).
 			// Symbols.
 			// - triple-nop.
 			0, 0, 0, 6, // Kind: 6 (function).
@@ -528,7 +529,7 @@ var tests = []struct {
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
 			0, 0, 0, 0, 0, 0, 0, 88, // Name: 88 ("string-copy").
 			0, 0, 0, 0, 0, 0, 0, 0, // SectionName: 0 (default).
-			0, 0, 0, 0, 0, 0, 0, 44, // Type: 44 (func (string) (uint64) uint64).
+			0, 0, 0, 0, 0, 0, 0, 40, // Type: 40 (func (string) (uint64) uint64).
 			0, 0, 0, 0, 0, 0, 0, 16, // Value: 16 (function 1).
 			// - looper
 			0, 0, 0, 6, // Kind: 6 (function).
@@ -544,7 +545,7 @@ var tests = []struct {
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
 			0, 0, 0, 0, 0, 0, 0, 172, // Name: 172 ("msg").
 			0, 0, 0, 0, 0, 0, 0, 0, // SectionName: 0 (default).
-			0, 0, 0, 0, 0, 0, 0, 140, // Type: 140 (untyped string).
+			0, 0, 0, 0, 0, 0, 0, 136, // Type: 136 (untyped string).
 			0, 0, 0, 0, 0, 0, 0, 200, // Value: 200 ("Hello, world!").
 			// - custom-abi
 			0, 0, 0, 7, // Kind: 7 (ABI).
@@ -552,7 +553,7 @@ var tests = []struct {
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
 			0, 0, 0, 0, 0, 0, 0, 220, // Name: 220 ("custom-abi").
 			0, 0, 0, 0, 0, 0, 0, 0, // SectionName: 0 (default).
-			0, 0, 0, 0, 0, 0, 0, 148, // Type: 148 (ABI custom-abi).
+			0, 0, 0, 0, 0, 0, 0, 144, // Type: 144 (ABI custom-abi).
 			0, 0, 0, 0, 0, 0, 0, 0, // Value: 0 (ABI).
 			// - extra-section
 			0, 0, 0, 8, // Kind: 8 (section).
@@ -560,7 +561,7 @@ var tests = []struct {
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
 			0, 0, 0, 0, 0, 0, 0, 236, // Name: 236 ("extra-section").
 			0, 0, 0, 0, 0, 0, 0, 0, // SectionName: 0 (default).
-			0, 0, 0, 0, 0, 0, 0, 156, // Type: 156 (section extra-section).
+			0, 0, 0, 0, 0, 0, 0, 152, // Type: 152 (section extra-section).
 			0, 0, 0, 0, 0, 0, 0, 0, // Value: 0 (Section).
 			// - simple-array
 			0, 0, 0, 9, // Kind: 9 (array constant).
@@ -568,7 +569,7 @@ var tests = []struct {
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
 			0, 0, 0, 0, 0, 0, 1, 12, // Name: 268 ("simple-array").
 			0, 0, 0, 0, 0, 0, 0, 0, // SectionName: 0 (default).
-			0, 0, 0, 0, 0, 0, 0, 172, // Type: 172 (array/2/uint16).
+			0, 0, 0, 0, 0, 0, 0, 168, // Type: 168 (array/2/uint16).
 			0, 0, 0, 0, 0, 0, 1, 28, // Value: 284 (array data).
 			// - multi-dimensional-array
 			0, 0, 0, 9, // Kind: 9 (array constant).
@@ -576,7 +577,7 @@ var tests = []struct {
 			0, 0, 0, 0, 0, 0, 0, 4, // PackageName: 4 ("example.com/foo").
 			0, 0, 0, 0, 0, 0, 1, 36, // Name: 212 ("multi-dimensional-array").
 			0, 0, 0, 0, 0, 0, 0, 24, // SectionName: 24 (extra-section).
-			0, 0, 0, 0, 0, 0, 0, 192, // Type: 192 (array/3/array/2/uint16).
+			0, 0, 0, 0, 0, 0, 0, 188, // Type: 188 (array/3/array/2/uint16).
 			0, 0, 0, 0, 0, 0, 1, 64, // Value: 320 (array data).
 			// ABIs.
 			// - The nil ABI.
@@ -726,8 +727,8 @@ var tests = []struct {
 			0xc3, // (ret)
 			0, 0, // Padding.
 			// Checksum.
-			0xc6, 0xe1, 0x26, 0x64, 0x64, 0xd9, 0x75, 0x12, 0x68, 0x7e, 0xc4, 0x98, 0x3e, 0xf0, 0x7f, 0x2f,
-			0x6e, 0xb2, 0x0d, 0x86, 0xca, 0x74, 0x04, 0x32, 0xf4, 0xf5, 0xc0, 0xb4, 0xde, 0xb6, 0x47, 0x5a,
+			0xdf, 0xfa, 0x3e, 0x51, 0xb1, 0x4b, 0x8c, 0x55, 0x69, 0xe5, 0x6b, 0xbf, 0x51, 0x9f, 0xd5, 0xb2,
+			0x56, 0xcc, 0x55, 0x9a, 0x3d, 0x27, 0x01, 0xbd, 0x16, 0xba, 0x95, 0x8c, 0x89, 0x9b, 0xbe, 0xdb,
 		},
 		Decoded: &decoded{
 			header: header{
@@ -743,20 +744,20 @@ var tests = []struct {
 				ExportsOffset:  100,
 				ExportsLength:  0,
 				TypesOffset:    100,
-				TypesLength:    212,
-				SymbolsOffset:  312,
+				TypesLength:    208,
+				SymbolsOffset:  308,
 				SymbolsLength:  384,
-				ABIsOffset:     696,
+				ABIsOffset:     692,
 				ABIsLength:     52,
-				SectionsOffset: 748,
+				SectionsOffset: 744,
 				SectionsLength: 48,
-				StringsOffset:  796,
+				StringsOffset:  792,
 				StringsLength:  336,
-				LinkagesOffset: 1132,
+				LinkagesOffset: 1128,
 				LinkagesLength: 36,
-				CodeOffset:     1168,
+				CodeOffset:     1164,
 				CodeLength:     64,
-				ChecksumOffset: 1232,
+				ChecksumOffset: 1228,
 				ChecksumLength: 32,
 			},
 			imports: []uint32{},
@@ -768,74 +769,74 @@ var tests = []struct {
 				},
 				4: {
 					Kind:         TypeKindFunction,
-					Length:       20,
+					Length:       16,
 					ParamsLength: 0,
 					Params:       []variable{},
-					Result:       0,
+					Result:       []uint64{},
 					Name:         76,
 				},
-				28: {
+				24: {
 					Kind:   TypeKindBasic,
 					Length: 4,
 					Basic:  BasicKindString,
 				},
-				36: {
+				32: {
 					Kind:   TypeKindBasic,
 					Length: 4,
 					Basic:  BasicKindUint64,
 				},
-				44: {
+				40: {
 					Kind:         TypeKindFunction,
-					Length:       52,
+					Length:       56,
 					ParamsLength: 32,
 					Params: []variable{
-						{Name: 104, Type: 28},
-						{Name: 112, Type: 36},
+						{Name: 104, Type: 24},
+						{Name: 112, Type: 32},
 					},
-					Result: 36,
+					Result: []uint64{32},
 					Name:   124,
 				},
 				100: {
 					Kind:         TypeKindFunction,
-					Length:       36,
+					Length:       32,
 					ParamsLength: 16,
 					Params: []variable{
-						{Name: 172, Type: 28},
+						{Name: 172, Type: 24},
 					},
-					Result: 0,
+					Result: []uint64{},
 					Name:   180,
 				},
-				140: {
+				136: {
 					Kind:   TypeKindBasic,
 					Length: 4,
 					Basic:  BasicKindUntypedString,
 				},
-				148: {
+				144: {
 					Kind:   TypeKindABI,
 					Length: 4,
 					ABI:    28,
 				},
-				156: {
+				152: {
 					Kind:    TypeKindSection,
 					Length:  4,
 					Section: 24,
 				},
-				164: {
+				160: {
 					Kind:   TypeKindBasic,
 					Length: 4,
 					Basic:  BasicKindUint16,
 				},
-				172: {
+				168: {
 					Kind:        TypeKindArray,
 					Length:      16,
 					ArrayLength: 2,
-					Element:     164,
+					Element:     160,
 				},
-				192: {
+				188: {
 					Kind:        TypeKindArray,
 					Length:      16,
 					ArrayLength: 3,
-					Element:     172,
+					Element:     168,
 				},
 			},
 			symbols: map[uint64]*symbol{
@@ -852,7 +853,7 @@ var tests = []struct {
 					Alignment:   1,
 					PackageName: 4,
 					Name:        88,
-					Type:        44,
+					Type:        40,
 					Value:       16,
 				},
 				96: {
@@ -868,7 +869,7 @@ var tests = []struct {
 					Alignment:   1,
 					PackageName: 4,
 					Name:        172,
-					Type:        140,
+					Type:        136,
 					Value:       200,
 				},
 				192: {
@@ -876,7 +877,7 @@ var tests = []struct {
 					Alignment:   1,
 					PackageName: 4,
 					Name:        220,
-					Type:        148,
+					Type:        144,
 					Value:       0,
 				},
 				240: {
@@ -884,7 +885,7 @@ var tests = []struct {
 					Alignment:   1,
 					PackageName: 4,
 					Name:        236,
-					Type:        156,
+					Type:        152,
 					Value:       0,
 				},
 				288: {
@@ -892,7 +893,7 @@ var tests = []struct {
 					Alignment:   512,
 					PackageName: 4,
 					Name:        268,
-					Type:        172,
+					Type:        168,
 					Value:       284,
 				},
 				336: {
@@ -901,7 +902,7 @@ var tests = []struct {
 					PackageName: 4,
 					Name:        292,
 					SectionName: 24,
-					Type:        192,
+					Type:        188,
 					Value:       320,
 				},
 			},

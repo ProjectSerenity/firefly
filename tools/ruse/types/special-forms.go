@@ -215,7 +215,7 @@ func defPredeclaredSpecialForms() {
 				NewParameter(nil, arg0.Pos(), arg0.End(), nil, "v", arrayType),
 				NewParameter(nil, arg1.Pos(), arg1.End(), nil, "i", indexType),
 			},
-			result: array.Element(),
+			result: []Type{array.Element()},
 		}
 
 		// Make the length of a constant string also
@@ -225,7 +225,7 @@ func defPredeclaredSpecialForms() {
 			value = constant.ArrayVal(con.value)[index]
 		}
 
-		c.record(fun, sig.result, value)
+		c.record(fun, sig, value)
 		c.record(fun.Elements[0], sig, nil)
 
 		return sig, sig, nil
@@ -372,7 +372,7 @@ func defPredeclaredSpecialForms() {
 			params: []*Variable{
 				NewParameter(nil, arg.Pos(), arg.End(), nil, "v", UntypedString),
 			},
-			result: Int,
+			result: []Type{Int},
 		}
 
 		// Make the length of a constant string also
@@ -387,7 +387,7 @@ func defPredeclaredSpecialForms() {
 			}
 		}
 
-		c.record(fun, sig.result, value)
+		c.record(fun, sig, value)
 		c.record(fun.Elements[0], sig, nil)
 
 		return sig, sig, nil
@@ -405,7 +405,7 @@ func defPredeclaredSpecialForms() {
 				NewParameter(nil, token.NoPos, token.NoPos, nil, "name", typ),
 				NewParameter(nil, token.NoPos, token.NoPos, nil, "value", typ),
 			},
-			result: typ,
+			result: []Type{typ},
 		}
 
 		return sig, sig, nil
@@ -546,16 +546,16 @@ func defPredeclaredSpecialForms() {
 		size := sizes.SizeOf(typ)
 
 		sig = &Signature{
-			name: "len",
+			name: "size-of",
 			params: []*Variable{
 				NewParameter(nil, arg.Pos(), arg.End(), nil, "t", typ),
 			},
-			result: UntypedInt,
+			result: []Type{UntypedInt},
 		}
 
 		value := constant.MakeInt64(int64(size))
 
-		c.record(fun, sig.result, value)
+		c.record(fun, sig, value)
 		c.record(fun.Elements[0], sig, nil)
 
 		return sig, sig, nil
@@ -668,7 +668,7 @@ func defPredeclaredSpecialForms() {
 	specialFormTypes[SpecialFormEqual] = (&arithmeticOp{
 		Name:        "=",
 		BinaryTypes: numericTypes,
-		ResultType:  UntypedBool,
+		ResultTypes: []Type{UntypedBool},
 		MaxOperands: 2,
 		Op:          constant.OpEqual,
 	}).signature
@@ -676,7 +676,7 @@ func defPredeclaredSpecialForms() {
 	specialFormTypes[SpecialFormNotEqual] = (&arithmeticOp{
 		Name:        "!=",
 		BinaryTypes: numericTypes,
-		ResultType:  UntypedBool,
+		ResultTypes: []Type{UntypedBool},
 		MaxOperands: 2,
 		Op:          constant.OpNotEqual,
 	}).signature
@@ -684,7 +684,7 @@ func defPredeclaredSpecialForms() {
 	specialFormTypes[SpecialFormLessThan] = (&arithmeticOp{
 		Name:        "<",
 		BinaryTypes: numericTypes,
-		ResultType:  UntypedBool,
+		ResultTypes: []Type{UntypedBool},
 		MaxOperands: 2,
 		Op:          constant.OpLessThan,
 	}).signature
@@ -692,7 +692,7 @@ func defPredeclaredSpecialForms() {
 	specialFormTypes[SpecialFormLessThanOrEqual] = (&arithmeticOp{
 		Name:        "<=",
 		BinaryTypes: numericTypes,
-		ResultType:  UntypedBool,
+		ResultTypes: []Type{UntypedBool},
 		MaxOperands: 2,
 		Op:          constant.OpLessThanOrEqual,
 	}).signature
@@ -700,7 +700,7 @@ func defPredeclaredSpecialForms() {
 	specialFormTypes[SpecialFormGreaterThan] = (&arithmeticOp{
 		Name:        ">",
 		BinaryTypes: numericTypes,
-		ResultType:  UntypedBool,
+		ResultTypes: []Type{UntypedBool},
 		MaxOperands: 2,
 		Op:          constant.OpGreaterThan,
 	}).signature
@@ -708,7 +708,7 @@ func defPredeclaredSpecialForms() {
 	specialFormTypes[SpecialFormGreaterThanOrEqual] = (&arithmeticOp{
 		Name:        ">=",
 		BinaryTypes: numericTypes,
-		ResultType:  UntypedBool,
+		ResultTypes: []Type{UntypedBool},
 		MaxOperands: 2,
 		Op:          constant.OpGreaterThanOrEqual,
 	}).signature
@@ -728,7 +728,7 @@ type arithmeticOp struct {
 	Name        string
 	UnaryTypes  []Type
 	BinaryTypes []Type
-	ResultType  Type
+	ResultTypes []Type
 	MaxOperands int
 	Op          constant.Op
 }
@@ -778,6 +778,12 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, function *Function, 
 	isShift := op.Op == constant.OpShiftLeft || op.Op == constant.OpShiftRight
 
 	for i, arg := range argTypes {
+		// If we're making a function call, we
+		// need to resolve the result.
+		if sig, ok := arg.(*Signature); ok && len(sig.result) == 1 {
+			arg = sig.result[0]
+		}
+
 		// TODO: work out how to handle the case where
 		// the first argument is an untyped constant.
 		if i == 0 {
@@ -793,7 +799,7 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, function *Function, 
 				return nil, nil, c.errorf(fun.Elements[i+1].Pos(), "invalid operation: %s not defined for %s", op.Name, arg)
 			}
 
-			sig.result = arg
+			sig.result = []Type{arg}
 			sig.params[i] = NewParameter(nil, token.NoPos, token.NoPos, nil, fmt.Sprintf("arg%d", i), arg)
 			continue
 		}
@@ -803,21 +809,21 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, function *Function, 
 			if !AssignableTo(Uint, arg, constants[i]) {
 				return nil, nil, c.errorf(fun.Elements[i+1].Pos(), "expected %s parameter, found %s", Uint, arg)
 			}
-		} else if !AssignableTo(sig.result, arg, constants[i]) {
+		} else if !AssignableTo(sig.result[0], arg, constants[i]) {
 			return nil, nil, c.errorf(fun.Elements[i+1].Pos(), "expected %s parameter, found %s", sig.result, arg)
 		}
 	}
 
 	// Some operations have a fixed
 	// result type.
-	if op.ResultType != nil {
-		sig.result = op.ResultType
+	if op.ResultTypes != nil {
+		sig.result = op.ResultTypes
 	}
 
 	// Forms that can be logical, like
 	// (and) and (or) don't have a
 	// constant form.
-	if (op.Name == "and" || op.Name == "or") && Underlying(sig.result) == Bool {
+	if (op.Name == "and" || op.Name == "or") && Underlying(sig.result[0]) == Bool {
 		allConst = false
 	}
 
@@ -828,10 +834,10 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, function *Function, 
 		value = constant.Operation(op.Op, constants...)
 	}
 
-	c.record(fun, sig.result, value)
+	c.record(fun, sig, value)
 	c.record(fun.Elements[0], sig, nil)
 	for i, arg := range fun.Elements[1:] {
-		c.record(arg, sig.result, constants[i])
+		c.record(arg, sig, constants[i])
 	}
 
 	return sig, sig, nil

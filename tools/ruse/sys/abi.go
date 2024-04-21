@@ -186,20 +186,34 @@ func (arch *Arch) Parameters(abi *ABI, sizes []int) [][]Location {
 // is the set of memory locations. Large
 // results (such as strings) may require
 // multiple memory locations.
-func (arch *Arch) Result(abi *ABI, size int) []Location {
+func (arch *Arch) Result(abi *ABI, sizes []int) [][]Location {
 	// Use the default ABI if necessary.
 	if abi == nil {
 		abi = &arch.DefaultABI
+	}
+
+	// First, we sum the sizes which can be
+	// necessary for determining stack
+	// locations if they are not pushed in
+	// reverse order.
+	sizeSum := 0
+	for _, size := range sizes {
+		sizeSum += arch.roundUpLocationSize(size)
 	}
 
 	alloc := allocator{
 		Arch:      arch,
 		ABI:       abi,
 		Registers: abi.ResultRegisters,
-		TotalSize: arch.roundUpLocationSize(size),
+		TotalSize: sizeSum,
 	}
 
-	return alloc.Allocate(size)
+	out := make([][]Location, len(sizes))
+	for i, size := range sizes {
+		out[i] = alloc.Allocate(size)
+	}
+
+	return out
 }
 
 // IsABIRegister returns whether the given

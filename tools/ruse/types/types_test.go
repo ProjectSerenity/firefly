@@ -454,7 +454,7 @@ func TestCheck(t *testing.T) {
 						typ: &Signature{
 							name:   "(func (int8) int8)",
 							params: []*Variable{param1},
-							result: Int8,
+							result: []Type{Int8},
 						},
 					},
 					alignment: 1,
@@ -514,7 +514,7 @@ func TestCheck(t *testing.T) {
 						typ: &Signature{
 							name:   "(func (uint64) (uint64) uint64)",
 							params: []*Variable{param1, param2},
-							result: Uint64,
+							result: []Type{Uint64},
 						},
 					},
 					abi:       abi.abi,
@@ -536,7 +536,7 @@ func TestCheck(t *testing.T) {
 						typ: &Signature{
 							name:   "(func int)",
 							params: []*Variable{},
-							result: Int,
+							result: []Type{Int},
 						},
 					},
 					alignment: 1,
@@ -619,7 +619,7 @@ func TestCheck(t *testing.T) {
 						typ: &Signature{
 							name:   "(func (uintptr) (uintptr) (uintptr) (uintptr) (uintptr) (uintptr) (uintptr) uintptr)",
 							params: []*Variable{syscall, arg1, arg2, arg3, arg4, arg5, arg6},
-							result: Uintptr,
+							result: []Type{Uintptr},
 						},
 					},
 					abi:       abi.abi,

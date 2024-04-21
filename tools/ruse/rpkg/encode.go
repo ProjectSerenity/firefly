@@ -219,7 +219,11 @@ func (e *encoder) appendType(b *cryptobyte.Builder, t types.Type) {
 					b.AddUint64(e.AddType(param.Type()))
 				}
 			})
-			b.AddUint64(e.AddType(t.Result()))
+			b.AddUint32LengthPrefixed(func(b *cryptobyte.Builder) {
+				for _, result := range t.Result() {
+					b.AddUint64(e.AddType(result))
+				}
+			})
 			b.AddUint64(e.AddString(t.String()))
 		})
 	case types.ABI:

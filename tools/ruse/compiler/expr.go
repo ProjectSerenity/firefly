@@ -19,8 +19,14 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 	// value and if so, resolve it.
 	typ := c.info.Types[expr]
 	if typ.Value != nil {
+		argType := typ.Type
+		// Handle function calls.
+		if sig, ok := argType.(*types.Signature); ok && len(sig.Result()) == 1 {
+			argType = sig.Result()[0]
+		}
+
 		var op ssafir.Op
-		switch types.Underlying(typ.Type) {
+		switch types.Underlying(argType) {
 		case types.Bool:
 			op = ssafir.OpConstantBool
 		case types.String, types.UntypedString:
@@ -66,19 +72,19 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 		}
 
 		var v *ssafir.Value
-		switch types.Underlying(typ.Type) {
+		switch types.Underlying(argType) {
 		case types.Bool:
 			var extra int64
 			if constant.BoolVal(typ.Value) {
 				extra = 1
 			}
 
-			v = c.ValueInt(expr.Pos(), expr.End(), op, typ.Type, extra)
+			v = c.ValueInt(expr.Pos(), expr.End(), op, argType, extra)
 		case types.String, types.UntypedString:
 			switch x := expr.(type) {
 			case *ast.Literal:
 				// Use the literal value.
-				v = c.ValueExtra(expr.Pos(), expr.End(), op, typ.Type, constant.StringVal(typ.Value))
+				v = c.ValueExtra(expr.Pos(), expr.End(), op, argType, constant.StringVal(typ.Value))
 			case *ast.Identifier:
 				if obj, ok := c.info.Definitions[x].(*types.Variable); ok {
 					if v := c.vars[obj]; v != nil {
@@ -88,7 +94,7 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 
 				switch obj := c.info.Uses[x].(type) {
 				case *types.Constant:
-					v = c.ValueExtra(expr.Pos(), expr.End(), op, typ.Type, obj)
+					v = c.ValueExtra(expr.Pos(), expr.End(), op, argType, obj)
 				default:
 					return nil, fmt.Errorf("%s: unexpected expression %s with object %s and type %s", c.fset.Position(expr.Pos()), expr.Print(), obj, typ)
 				}
@@ -102,7 +108,7 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 
 				switch obj := c.info.Uses[ident].(type) {
 				case *types.Constant:
-					v = c.ValueExtra(expr.Pos(), expr.End(), op, typ.Type, obj)
+					v = c.ValueExtra(expr.Pos(), expr.End(), op, argType, obj)
 				default:
 					return nil, fmt.Errorf("%s: unexpected expression %s with object %s and type %s", c.fset.Position(expr.Pos()), expr.Print(), obj, typ)
 				}
@@ -115,18 +121,18 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 				return nil, fmt.Errorf("%s: cannot use %s (%s) as %s value", c.fset.Position(expr.Pos()), expr.Print(), expr, typ)
 			}
 
-			v = c.ValueInt(expr.Pos(), expr.End(), op, typ.Type, int64(num))
+			v = c.ValueInt(expr.Pos(), expr.End(), op, argType, int64(num))
 		case types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64:
 			num, ok := constant.Uint64Val(typ.Value)
 			if !ok {
 				return nil, fmt.Errorf("%s: cannot use %s (%s) as %s value", c.fset.Position(expr.Pos()), expr.Print(), expr, typ)
 			}
 
-			v = c.ValueInt(expr.Pos(), expr.End(), op, typ.Type, int64(num))
+			v = c.ValueInt(expr.Pos(), expr.End(), op, argType, int64(num))
 		case types.UntypedInt:
-			v = c.ValueExtra(expr.Pos(), expr.End(), op, typ.Type, typ.Value)
+			v = c.ValueExtra(expr.Pos(), expr.End(), op, argType, typ.Value)
 		default:
-			return nil, fmt.Errorf("%s: failed to compile %s %s into value: unrecognised underlying type: %v", c.fset.Position(expr.Pos()), expr, expr.Print(), types.Underlying(typ.Type))
+			return nil, fmt.Errorf("%s: failed to compile %s %s into value: unrecognised underlying type: %v", c.fset.Position(expr.Pos()), expr, expr.Print(), types.Underlying(argType))
 		}
 
 		return v, nil
@@ -163,7 +169,7 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 					params[i] = v
 				}
 
-				v := c.ValueExtra(x.ParenOpen, x.ParenClose+1, ssafir.OpFunctionCall, sig.Result(), obj, params...)
+				v := c.ValueExtra(x.ParenOpen, x.ParenClose+1, ssafir.OpFunctionCall, sig, obj, params...)
 
 				return v, nil
 			case *types.TypeName:
@@ -207,7 +213,7 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 					params[i] = v
 				}
 
-				v := c.ValueExtra(x.ParenOpen, x.ParenClose+1, ssafir.OpFunctionCall, sig.Result(), obj, params...)
+				v := c.ValueExtra(x.ParenOpen, x.ParenClose+1, ssafir.OpFunctionCall, sig, obj, params...)
 
 				return v, nil
 			default:
@@ -749,7 +755,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			return c.CompileExpression(args[0])
 		}
 
-		if underlying := types.Underlying(sig.Result()); underlying == types.String {
+		if underlying := types.Underlying(sig.Result()[0]); underlying == types.String {
 			op = ssafir.OpAddString
 		} else {
 			op = c.pickIntegerOp(underlying, ssafir.OpAdd)
@@ -761,7 +767,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 				return nil, err
 			}
 
-			op = c.pickSignedIntegerOp(sig.Result(), ssafir.OpNegate)
+			op = c.pickSignedIntegerOp(sig.Result()[0], ssafir.OpNegate)
 			if op == 0 {
 				return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
 			}
@@ -771,29 +777,29 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			return v, nil
 		}
 
-		op = c.pickIntegerOp(sig.Result(), ssafir.OpSubtract)
+		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpSubtract)
 	case types.SpecialFormMultiply:
-		op = c.pickIntegerOp(sig.Result(), ssafir.OpMultiply)
+		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpMultiply)
 	case types.SpecialFormDivide:
-		op = c.pickIntegerOp(sig.Result(), ssafir.OpDivide)
+		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpDivide)
 	case types.SpecialFormOr:
-		if underlying := types.Underlying(sig.Result()); underlying == types.Bool || underlying == types.UntypedBool {
+		if underlying := types.Underlying(sig.Result()[0]); underlying == types.Bool || underlying == types.UntypedBool {
 			op = ssafir.OpLogicalOr
 		} else {
-			op = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseOr)
+			op = c.pickIntegerOp(sig.Result()[0], ssafir.OpBitwiseOr)
 		}
 	case types.SpecialFormAnd:
-		if underlying := types.Underlying(sig.Result()); underlying == types.Bool || underlying == types.UntypedBool {
+		if underlying := types.Underlying(sig.Result()[0]); underlying == types.Bool || underlying == types.UntypedBool {
 			op = ssafir.OpLogicalAnd
 		} else {
-			op = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseAnd)
+			op = c.pickIntegerOp(sig.Result()[0], ssafir.OpBitwiseAnd)
 		}
 	case types.SpecialFormXor:
-		op = c.pickIntegerOp(sig.Result(), ssafir.OpBitwiseXor)
+		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpBitwiseXor)
 	case types.SpecialFormShiftLeft:
-		op = c.pickIntegerOp(sig.Result(), ssafir.OpShiftLeft)
+		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpShiftLeft)
 	case types.SpecialFormShiftRight:
-		op = c.pickIntegerOp(sig.Result(), ssafir.OpShiftRight)
+		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpShiftRight)
 	case types.SpecialFormEqual:
 		op = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpEqual)
 	case types.SpecialFormNotEqual:
@@ -814,7 +820,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
 	}
 
-	return c.CompileBinaryOperation(args, op, sig.Result())
+	return c.CompileBinaryOperation(args, op, sig.Result()[0])
 }
 
 // pickIntegerOp is a helper function for the common
