@@ -24,6 +24,7 @@ Ruse has various special forms. Each behaves like a function. However, special f
 - [`len`](#len)
 - [`let`](#let)
 - [`or`](#or)
+- [`return`](#return)
 - [`section`](#section)
 - [`size-of`](#size-of)
 - [`xor`](#xor)
@@ -262,6 +263,7 @@ The `func` form ('define function') takes two or more arguments and defines a ne
 (func (foo) (+ 1 2))                      ; A function called 'foo', with no parameters, no return type, and the function body '(+ 1 2)'.
 (func (foo (a int)) (+ a 2))              ; A function called 'foo', with one parameter 'a' of type 'int', no return type, and the function body '(+ a 2)'.
 (func (foo (a int) (b int) int) (+ a b))  ; A function called 'foo', with parameters 'a' and 'b' of type 'int', return type 'int', and the function body '(+ a b)'.
+(func (foo int bool) (return 1 true))     ; A function called 'foo', with no parameters, return types 'int' and 'bool' and the function body '(return 1 true)'.
 ```
 
 ## `len`
@@ -299,6 +301,17 @@ If all of `or`'s arguments are constants, its value is calculated at compile tim
 (or 3 7 10)           ; 15
 (or true (= 3 4))     ; true
 (or (= 3 3) (< 3 4))  ; true
+```
+
+## `return`
+
+The `return` form takes zero or one arguments. It can be used to return early from the innermost parent function.
+
+If the innermost parent function has a result type, then one argument with a compatible type must be provided to `return`. If the innermost parent function has no result type, then there must be no argument to `return`.
+
+```
+(func (foo int)
+	(return 3))
 ```
 
 ## `section`

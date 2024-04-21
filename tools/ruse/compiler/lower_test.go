@@ -1010,12 +1010,10 @@ func TestLower(t *testing.T) {
 
 				; Return double n and quadruple n.
 				'(abi System-V-x86-64)
-				(asm-func (x2-and-x4 (n int) int int)
-					(mov rax rdi)
-					(mov rdx rdi)
-					(sal rax 1)
-					(sal rdx 2)
-					(ret))
+				(func (x2-and-x4 (n int) int int)
+					(let x2 (<< n 1))
+					(let x4 (<< n 2))
+					(return x2 x4))
 
 				; Returns the smaller argument.
 				'(abi System-V-x86-64)
@@ -1075,7 +1073,7 @@ func TestLower(t *testing.T) {
 					Extra: &x86InstructionData{
 						Args: [4]any{
 							&ssafir.Link{
-								Pos:     724,
+								Pos:     703,
 								Name:    "tests/test.x2-and-x4",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
@@ -1115,7 +1113,7 @@ func TestLower(t *testing.T) {
 					Extra: &x86InstructionData{
 						Args: [4]any{
 							&ssafir.Link{
-								Pos:     808,
+								Pos:     787,
 								Name:    "tests/test.x2-and-x4",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
@@ -1148,7 +1146,7 @@ func TestLower(t *testing.T) {
 					Extra: &x86InstructionData{
 						Args: [4]any{
 							&ssafir.Link{
-								Pos:     794,
+								Pos:     773,
 								Name:    "tests/test.pick-smaller",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,
@@ -1195,7 +1193,7 @@ func TestLower(t *testing.T) {
 					Extra: &x86InstructionData{
 						Args: [4]any{
 							&ssafir.Link{
-								Pos:     921,
+								Pos:     900,
 								Name:    "tests/test.exit",
 								Type:    ssafir.LinkRelativeAddress,
 								Size:    32,

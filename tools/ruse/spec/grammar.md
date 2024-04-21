@@ -136,6 +136,12 @@ The set of annotations supported on a `let` statement is:
 (let (a int) 1)                        ; Assign the untyped integer constant '1' to the identifier 'a', with explicit type 'int'.
 (let (a int) (+ 3 4))                  ; Assign the untyped integer constant '7' to the identifier 'a', with explicit type 'int'.
 
+(func (check (x int) bool bool)        ; `check` takes one integer and returns wither it is negative and whether it is zero.
+	(let negative (< x 0))
+	(let zero (= x 0))
+	(return negative zero))
+(let negative zero (check 3))          ; Assign the first result from `check` to `negative` and the second result to `zero`. Both have implicit type `bool`.
+
 (let (a int) "foo")                    ; illegal: The untyped string '"foo"' is not assignable to type 'int'.
 ```
 
@@ -158,6 +164,7 @@ The set of annotations supported on a `func` statement is:
 (func (foo) (+ 1 2))                     ; A function called 'foo', with no parameters, no return type, and the function body '(+ 1 2)'.
 (func (foo (a int)) (+ a 2))             ; A function called 'foo', with one parameter 'a' of type 'int', no return type, and the function body '(+ a 2)'.
 (func (foo (a int) (b int) int) (+ a b)) ; A function called 'foo', with parameters 'a' and 'b' of type 'int', return type 'int', and the function body '(+ a b)'.
+(func (foo int bool) (return 1 true))    ; A function called 'foo', with no parameters, return types 'int' and 'bool' and the function body '(return 1 true)'.
 ```
 
 ### `asm-func` statements

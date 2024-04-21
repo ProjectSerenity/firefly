@@ -180,8 +180,25 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 			// Nothing to do here, the caller has already
 			// put the value in the relevant register.
 		case ssafir.OpMakeResult:
-			l.MoveNumber(v)
+			// If the last operation
+			// is a return statement,
+			// we don't need to do
+			// anything.
+			if v.Args[0].Op == ssafir.OpReturn {
+				lastResult = v.Args[0]
+				continue
+			}
+
 			lastResult = fun.Entry.Values[i]
+			l.MoveNumber(v)
+		case ssafir.OpReturn:
+			// These are either a move
+			// or a return.
+			if alloc, ok := v.Extra.(*Alloc); ok && alloc != nil {
+				l.MoveNumber(v)
+			} else {
+				l.Return(v)
+			}
 		case ssafir.OpSaveRegister:
 			l.addInst(v, ssafir.OpX86_PUSH_R64op, &x86InstructionData{Args: [4]any{v.Extra}})
 		case ssafir.OpRestoreRegister:
@@ -290,7 +307,9 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 		offset += int(data.Length)
 	}
 
-	l.Return(lastResult)
+	if lastResult.Op != ssafir.OpReturn {
+		l.Return(lastResult)
+	}
 
 	l.block.Values = l.insts
 	l.function.Entry = l.block

@@ -802,6 +802,26 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		}
 
 		return nil, nil
+	case types.SpecialFormReturn:
+		// We just compile each expression and
+		// return them.
+		args := make([]*ssafir.Value, len(list.Elements[1:]))
+		for i, expr := range list.Elements[1:] {
+			args[i], err = c.CompileExpression(expr)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// Get our result signature.
+		typeAndValue, ok := c.info.Types[list]
+		if !ok {
+			return nil, fmt.Errorf("%s: internal error: failed to determine type of result statement", c.fset.Position(list.ParenOpen))
+		}
+
+		v = c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpReturn, typeAndValue.Type, args...)
+
+		return v, nil
 	case types.SpecialFormAdd:
 		// Unary positive is essentially a no-op.
 		if len(args) == 1 {

@@ -43,6 +43,7 @@ const (
 	SpecialFormFunc
 	SpecialFormLen
 	SpecialFormLet
+	SpecialFormReturn
 	SpecialFormSection
 	SpecialFormSizeOf
 
@@ -82,6 +83,8 @@ func (id SpecialFormID) String() string {
 		return "len"
 	case SpecialFormLet:
 		return "let"
+	case SpecialFormReturn:
+		return "return"
 	case SpecialFormSection:
 		return "section"
 	case SpecialFormSizeOf:
@@ -129,6 +132,7 @@ var specialForms = [...]*SpecialForm{
 	SpecialFormFunc:    {},
 	SpecialFormLen:     {},
 	SpecialFormLet:     {},
+	SpecialFormReturn:  {},
 	SpecialFormSection: {},
 	SpecialFormSizeOf:  {},
 
@@ -407,6 +411,78 @@ func defPredeclaredSpecialForms() {
 			},
 			result: []Type{typ},
 		}
+
+		return sig, sig, nil
+	}
+
+	specialFormTypes[SpecialFormReturn] = func(c *checker, scope *Scope, function *Function, fun *ast.List) (sig *Signature, typ Type, err error) {
+		// Get the signature of the innermost
+		// parent function so we can identify
+		// what values to expect.
+		parentSig, ok := function.Type().(*Signature)
+		if !ok {
+			return nil, nil, c.errorf(fun.ParenOpen, "internal error: failed to identify function signature: got type %T", function.Type())
+		}
+
+		// See what parameters we've got.
+		got := make([]TypeAndValue, len(fun.Elements[1:]))
+		for i, arg := range fun.Elements[1:] {
+			obj, typ, err := c.ResolveExpression(scope, function, arg)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			var value constant.Value
+			if con, ok := obj.(*Constant); ok {
+				value = con.Value()
+			}
+
+			got[i] = TypeAndValue{
+				Type:  typ,
+				Value: value,
+			}
+		}
+
+		want := parentSig.Result()
+		if len(got) != len(want) {
+			gotNames := make([]string, len(got))
+			for i, t := range got {
+				gotNames[i] = t.Type.String()
+			}
+
+			wantNames := make([]string, len(want))
+			for i, t := range want {
+				wantNames[i] = t.String()
+			}
+
+			if len(got) < len(want) {
+				return nil, nil, c.errorf(fun.ParenOpen, "not enough return values:\n\thave (%s)\n\twant (%s)", strings.Join(gotNames, ", "), strings.Join(wantNames, ", "))
+			} else {
+				return nil, nil, c.errorf(fun.ParenOpen, "too many return values:\n\thave (%s)\n\twant (%s)", strings.Join(gotNames, ", "), strings.Join(wantNames, ", "))
+			}
+		}
+
+		// Check they match.
+		for i := range got {
+			if !AssignableTo(want[i], got[i].Type, got[i].Value) {
+				elt := fun.Elements[1+i]
+				return nil, nil, c.errorf(elt.Pos(), "cannot use %s (%s) as %s value in return statement", elt.Print(), got[i].Type, want[i])
+			}
+		}
+
+		sig = &Signature{
+			name:   "return",
+			params: make([]*Variable, len(got)),
+			result: want,
+		}
+
+		for i := range got {
+			elt := fun.Elements[1+i]
+			sig.params[i] = NewParameter(nil, token.NoPos, token.NoPos, nil, elt.Print(), got[i].Type)
+		}
+
+		c.record(fun, sig, nil)
+		c.record(fun.Elements[0], sig, nil)
 
 		return sig, sig, nil
 	}

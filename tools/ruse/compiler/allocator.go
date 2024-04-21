@@ -148,6 +148,22 @@ func (a *allocator) run() error {
 					a.DropValue(v)
 				}
 			}
+		case ssafir.OpReturn:
+			a.PrepareResult(v)
+
+			// Drop the input if it's not
+			// used again.
+			for _, v := range dropped {
+				if v != a.function.Entry.Control {
+					a.DropValue(v)
+				}
+			}
+
+			// Finally, add a return with
+			// no allocation to signal
+			// where the return instruction
+			// goes.
+			a.addAlloc(v, nil)
 		case ssafir.OpParameter:
 			a.NoteParameter(v)
 		case ssafir.OpConstantInt64,
@@ -316,6 +332,12 @@ func (a *allocator) run() error {
 				clear(calleeIsScratch)
 				calleeIsScratch[x86.RCX] = true
 				for _, v := range v.Args {
+					// Add the value if it's not been
+					// stored yet.
+					if a.locations[v] == nil {
+						a.AddValue(v)
+					}
+
 					calleeIsScratch[a.locations[v][0]] = true
 				}
 
@@ -375,20 +397,85 @@ func (a *allocator) run() error {
 			})
 		}
 
+		// Helper to spot whether a value
+		// produces a return statement.
+		var isReturn func(v *ssafir.Value) bool
+		isReturn = func(v *ssafir.Value) bool {
+			if v == nil {
+				return false
+			}
+
+			// If it's not a return or a
+			// result, it won't produce a
+			// return.
+			switch v.Op {
+			case ssafir.OpReturn:
+				// Only returns with no alloc
+				// data are an actual return.
+				if alloc, ok := v.Extra.(*Alloc); !ok || alloc == nil {
+					return true
+				}
+
+				return false
+			case ssafir.OpMakeResult:
+				// A result won't produce a
+				// return if its arg is a
+				// valid return.
+				if len(v.Args) != 0 {
+					return isReturn(v.Args[0])
+				}
+
+				return false
+			default:
+				return false
+			}
+		}
+
 		// Add the existing values.
-		values = append(values, a.allocs...)
+		var lastValue *ssafir.Value
+		for i, v := range a.allocs {
+			// Check whether we need to insert
+			// pops before a return.
+			//
+			// Ignore drops.
+			if v.Op != ssafir.OpDrop {
+				lastValue = a.allocs[i]
+			}
+
+			// Note that we only include them here
+			// if it's a direct return, or we'll
+			// get duplicates.
+			if v.Op == ssafir.OpReturn && isReturn(v) {
+				// Add the restores in reverse order.
+				for i := len(used); i > 0; i-- {
+					loc := used[i-1]
+					values = append(values, &ssafir.Value{
+						ID:    0, // This is special.
+						Op:    ssafir.OpRestoreRegister,
+						Block: a.function.Entry,
+						Pos:   pos,
+						End:   end,
+						Extra: loc,
+					})
+				}
+			}
+
+			values = append(values, v)
+		}
 
 		// Add the restores in reverse order.
-		for i := len(used); i > 0; i-- {
-			loc := used[i-1]
-			values = append(values, &ssafir.Value{
-				ID:    0, // This is special.
-				Op:    ssafir.OpRestoreRegister,
-				Block: a.function.Entry,
-				Pos:   pos,
-				End:   end,
-				Extra: loc,
-			})
+		if !isReturn(lastValue) {
+			for i := len(used); i > 0; i-- {
+				loc := used[i-1]
+				values = append(values, &ssafir.Value{
+					ID:    0, // This is special.
+					Op:    ssafir.OpRestoreRegister,
+					Block: a.function.Entry,
+					Pos:   pos,
+					End:   end,
+					Extra: loc,
+				})
+			}
 		}
 
 		// Overwrite the current values.
@@ -611,6 +698,16 @@ func (a *allocator) NoteParameter(v *ssafir.Value) {
 func (a *allocator) AddValue(v *ssafir.Value) {
 	if a.locations[v] != nil {
 		panic(fmt.Sprintf("AddValue(%s): value %s is already recorded", v, v))
+	}
+
+	// Handle constants.
+	if len(v.Args) == 0 {
+		dst := a.GetLocation()
+		a.allocated[dst] = v
+		a.locations[v] = append(a.locations[v], dst)
+		a.addAlloc(v, &Alloc{Dst: dst, Data: v.Extra})
+
+		return
 	}
 
 	orig := v.Args[0]

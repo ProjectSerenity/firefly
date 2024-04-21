@@ -1235,8 +1235,7 @@ func (c *checker) ResolveFuncBody(scope *Scope, fun *ast.List) (result Type, err
 			continue
 		}
 
-		if len(sig.result) > 1 {
-			// TODO: use the return form to allow multiple returns.
+		if ret, ok := result.(*Signature); len(sig.result) > 1 && (!ok || ret.String() != "return") {
 			return nil, c.errorf(expr.Pos(), "%s has %d return types so implicit return is not allowed", name, len(sig.result))
 		}
 

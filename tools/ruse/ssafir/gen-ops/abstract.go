@@ -21,6 +21,7 @@ var AbstractOps = []OpInfo{
 	{Name: "FunctionResult", Operands: -1},
 	{Name: "SaveRegister", Operands: 1},    // Extra is a register to save.
 	{Name: "RestoreRegister", Operands: 1}, // Extra is a register to restore.
+	{Name: "Return", Operands: -1},
 	// Strings.
 	{Name: "StringPtr", Operands: 1},
 	{Name: "StringLen", Operands: 1},
