@@ -336,23 +336,6 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 	return nil, fmt.Errorf("%s: failed to compile %s (%T): unsupported expression type %s", c.fset.Position(expr.Pos()), expr.Print(), expr, typ)
 }
 
-func (c *compiler) CompileBinaryOperation(args []ast.Expression, op ssafir.Op, typ types.Type) (v *ssafir.Value, err error) {
-	values := make([]*ssafir.Value, len(args))
-	for i, arg := range args {
-		values[i], err = c.CompileExpression(arg)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	v = c.Value(args[0].Pos(), args[1].End(), op, typ, values[0], values[1])
-	for i := 2; i < len(args); i++ {
-		v = c.ContinueValue(v, args[i-1].Pos(), args[i].End(), op, typ, v, values[i])
-	}
-
-	return v, nil
-}
-
 func (c *compiler) CompileBuiltinFunction(list *ast.List, fun *types.Function, sig *types.Signature) (*ssafir.Value, error) {
 	selectWordSizeOp := func(four, eight ssafir.Op) ssafir.Op {
 		size := c.sizes.SizeOf(types.Int)
@@ -885,8 +868,34 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpBitwiseXor)
 	case types.SpecialFormShiftLeft:
 		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpShiftLeft)
+		typeAndValue := c.info.Types[list.Elements[2]]
+		if typeAndValue.Value == nil || op == 0 {
+			break
+		}
+
+		// Special-case a constant shift.
+		value, err := c.CompileExpression(args[0])
+		if err != nil {
+			return nil, err
+		}
+
+		v = c.ValueExtra(list.ParenOpen, list.ParenClose+1, op, sig.Result()[0], typeAndValue.Value, value)
+		return v, nil
 	case types.SpecialFormShiftRight:
 		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpShiftRight)
+		typeAndValue := c.info.Types[list.Elements[2]]
+		if typeAndValue.Value == nil || op == 0 {
+			break
+		}
+
+		// Special-case a constant shift.
+		value, err := c.CompileExpression(args[0])
+		if err != nil {
+			return nil, err
+		}
+
+		v = c.ValueExtra(list.ParenOpen, list.ParenClose+1, op, sig.Result()[0], typeAndValue.Value, value)
+		return v, nil
 	case types.SpecialFormEqual:
 		op = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpEqual)
 	case types.SpecialFormNotEqual:
@@ -908,6 +917,23 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 	}
 
 	return c.CompileBinaryOperation(args, op, sig.Result()[0])
+}
+
+func (c *compiler) CompileBinaryOperation(args []ast.Expression, op ssafir.Op, typ types.Type) (v *ssafir.Value, err error) {
+	values := make([]*ssafir.Value, len(args))
+	for i, arg := range args {
+		values[i], err = c.CompileExpression(arg)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	v = c.Value(args[0].Pos(), args[1].End(), op, typ, values[0], values[1])
+	for i := 2; i < len(args); i++ {
+		v = c.ContinueValue(v, args[i-1].Pos(), args[i].End(), op, typ, v, values[i])
+	}
+
+	return v, nil
 }
 
 // pickIntegerOp is a helper function for the common

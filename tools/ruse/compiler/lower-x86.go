@@ -785,7 +785,7 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 	}[info.Group][size]
 
 	if op == 0 {
-		panic(fmt.Errorf("%s: unexpoected op %s", l.fset.Position(v.Pos), v.Op))
+		panic(fmt.Errorf("%s: unexpected op %s", l.fset.Position(v.Pos), v.Op))
 	}
 
 	// Do any unusual tweaks.
@@ -807,11 +807,56 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 		data.Args[1] = nil // There is no second argument.
 	case ssafir.OpShiftLeft,
 		ssafir.OpShiftRight:
-		// Move the shift (second arg) into CL.
-		v.Extra = &Alloc{Dst: x86.RCX, Src: alloc.Data.(sys.Location)}
-		l.MoveNumber(v)
+		// If our data is a constant, then
+		// we use one of the immediate forms,
+		// depending on the specific constant.
+		con, ok := alloc.Data.(constant.Value)
+		if !ok {
+			// Otherwise, move the shift (second arg) into CL.
+			v.Extra = &Alloc{Dst: x86.RCX, Src: alloc.Data.(sys.Location)}
+			l.MoveNumber(v)
 
-		data.Args[1] = x86.CL // The shift is now in place.
+			data.Args[1] = x86.CL // The shift is now in place.
+			break
+		}
+
+		imm8u, _ := constant.Uint64Val(con)
+
+		// Optimise for a shift of 1.
+		if imm8u == 1 {
+			data.Args[1] = nil // The value is implied.
+			op = map[ssafir.Op][4]ssafir.Op{
+				ssafir.OpShiftLeft: {
+					ssafir.OpX86_SAL_Rmr8_1,
+					ssafir.OpX86_SAL_Rmr16_1,
+					ssafir.OpX86_SAL_Rmr32_1,
+					ssafir.OpX86_SAL_Rmr64_1_REX,
+				},
+				ssafir.OpShiftRight: {
+					ssafir.OpX86_SAR_Rmr8_1,
+					ssafir.OpX86_SAR_Rmr16_1,
+					ssafir.OpX86_SAR_Rmr32_1,
+					ssafir.OpX86_SAR_Rmr64_1_REX,
+				},
+			}[info.Group][size]
+		} else {
+			data.Args[1] = imm8u // Store the shift as an immediate.
+			op = map[ssafir.Op][4]ssafir.Op{
+				ssafir.OpShiftLeft: {
+					ssafir.OpX86_SAL_Rmr8_Imm8u,
+					ssafir.OpX86_SAL_Rmr16_Imm8u,
+					ssafir.OpX86_SAL_Rmr32_Imm8u,
+					ssafir.OpX86_SAL_Rmr64_Imm8u_REX,
+				},
+				ssafir.OpShiftRight: {
+					ssafir.OpX86_SAR_Rmr8_Imm8u,
+					ssafir.OpX86_SAR_Rmr16_Imm8u,
+					ssafir.OpX86_SAR_Rmr32_Imm8u,
+					ssafir.OpX86_SAR_Rmr64_Imm8u_REX,
+				},
+			}[info.Group][size]
+		}
+
 	case ssafir.OpEqual,
 		ssafir.OpNotEqual,
 		ssafir.OpLessThan,
@@ -845,6 +890,10 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 		default:
 			panic(fmt.Sprintf("internal error: op %s (group %s) not covered in comparisons", v.Op, info.Group))
 		}
+	}
+
+	if op == 0 {
+		panic(fmt.Errorf("%s: unexpected op %s", l.fset.Position(v.Pos), v.Op))
 	}
 
 	l.addInst(v, op, data)

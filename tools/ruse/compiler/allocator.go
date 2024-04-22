@@ -319,11 +319,7 @@ func (a *allocator) run() error {
 				// We just add this for now and resolve
 				// it when we lower the code.
 
-				// The shift is fixed at CL, so we need
-				// to preserve any current occupants.
-				// TODO: make shift left/right destination allocation architecture-agnostic.
 				clear(calleeIsScratch)
-				calleeIsScratch[x86.RCX] = true
 				for _, v := range v.Args {
 					// Add the value if it's not been
 					// stored yet.
@@ -334,21 +330,29 @@ func (a *allocator) run() error {
 					calleeIsScratch[a.locations[v][0]] = true
 				}
 
-				a.SaveValue(x86.RCX, calleeIsScratch)
-				a.allocated[x86.RCX] = v.Args[1] // Make sure we don't pick RCX for our destination.
+				// We have a special case for when the
+				// shift is a constant.
+				var arg any
+				if con, ok := v.Extra.(constant.Value); ok {
+					arg = con // The other operand.
+				} else {
+					// Otherwise, the shift is fixed at CL,
+					// so we need to preserve any current
+					// occupants.
+					// TODO: make shift left/right destination allocation architecture-agnostic.
+					calleeIsScratch[x86.RCX] = true
+					a.SaveValue(x86.RCX, calleeIsScratch)
+					a.allocated[x86.RCX] = v.Args[1] // Make sure we don't pick RCX for our destination.
 
-				// If we're continuing a bigger op, we
-				// carry on where we left off.
-				dst := a.locations[v.Args[0]][0] // The first operand.
-				if v.ID != v.Args[0].ID {
-					dst = a.GetLocation() // Use a new destination.
+					arg = a.locations[v.Args[1]][0] // The other operand.
 				}
 
+				dst := a.GetLocation()
 				src := a.locations[v.Args[0]][0] // The first operand.
-				arg := a.locations[v.Args[1]][0] // The other operand.
+				alloc := &Alloc{Dst: dst, Src: src, Data: arg}
+
 				a.locations[v] = []sys.Location{dst}
 				a.allocated[dst] = v
-				alloc := &Alloc{Dst: dst, Src: src, Data: arg}
 				a.addAlloc(v, alloc)
 			default:
 				return fmt.Errorf("failed to allocate value %s: unexpected op %s", v, v.Op)
