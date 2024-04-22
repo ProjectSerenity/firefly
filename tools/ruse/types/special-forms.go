@@ -391,7 +391,7 @@ func defPredeclaredSpecialForms() {
 			}
 		}
 
-		c.record(fun, sig, value)
+		c.record(fun, sig.result[0], value)
 		c.record(fun.Elements[0], sig, nil)
 
 		return sig, sig, nil
@@ -854,12 +854,6 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, function *Function, 
 	isShift := op.Op == constant.OpShiftLeft || op.Op == constant.OpShiftRight
 
 	for i, arg := range argTypes {
-		// If we're making a function call, we
-		// need to resolve the result.
-		if sig, ok := arg.(*Signature); ok && len(sig.result) == 1 {
-			arg = sig.result[0]
-		}
-
 		// TODO: work out how to handle the case where
 		// the first argument is an untyped constant.
 		if i == 0 {
@@ -913,7 +907,7 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, function *Function, 
 	c.record(fun, sig, value)
 	c.record(fun.Elements[0], sig, nil)
 	for i, arg := range fun.Elements[1:] {
-		c.record(arg, sig, constants[i])
+		c.record(arg, sig.result[0], constants[i])
 	}
 
 	return sig, sig, nil

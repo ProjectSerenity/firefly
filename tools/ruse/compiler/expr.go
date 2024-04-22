@@ -19,14 +19,8 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 	// value and if so, resolve it.
 	typ := c.info.Types[expr]
 	if typ.Value != nil {
-		argType := typ.Type
-		// Handle function calls.
-		if sig, ok := argType.(*types.Signature); ok && len(sig.Result()) == 1 {
-			argType = sig.Result()[0]
-		}
-
 		var op ssafir.Op
-		switch types.Underlying(argType) {
+		switch types.Underlying(typ.Type) {
 		case types.Bool:
 			op = ssafir.OpConstantBool
 		case types.String, types.UntypedString:
@@ -72,19 +66,19 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 		}
 
 		var v *ssafir.Value
-		switch types.Underlying(argType) {
+		switch types.Underlying(typ.Type) {
 		case types.Bool:
 			var extra int64
 			if constant.BoolVal(typ.Value) {
 				extra = 1
 			}
 
-			v = c.ValueInt(expr.Pos(), expr.End(), op, argType, extra)
+			v = c.ValueInt(expr.Pos(), expr.End(), op, typ.Type, extra)
 		case types.String, types.UntypedString:
 			switch x := expr.(type) {
 			case *ast.Literal:
 				// Use the literal value.
-				v = c.ValueExtra(expr.Pos(), expr.End(), op, argType, constant.StringVal(typ.Value))
+				v = c.ValueExtra(expr.Pos(), expr.End(), op, typ.Type, constant.StringVal(typ.Value))
 			case *ast.Identifier:
 				if obj, ok := c.info.Definitions[x].(*types.Variable); ok {
 					if v := c.vars[obj]; v != nil {
@@ -94,7 +88,7 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 
 				switch obj := c.info.Uses[x].(type) {
 				case *types.Constant:
-					v = c.ValueExtra(expr.Pos(), expr.End(), op, argType, obj)
+					v = c.ValueExtra(expr.Pos(), expr.End(), op, typ.Type, obj)
 				default:
 					return nil, fmt.Errorf("%s: unexpected expression %s with object %s and type %s", c.fset.Position(expr.Pos()), expr.Print(), obj, typ)
 				}
@@ -108,7 +102,7 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 
 				switch obj := c.info.Uses[ident].(type) {
 				case *types.Constant:
-					v = c.ValueExtra(expr.Pos(), expr.End(), op, argType, obj)
+					v = c.ValueExtra(expr.Pos(), expr.End(), op, typ.Type, obj)
 				default:
 					return nil, fmt.Errorf("%s: unexpected expression %s with object %s and type %s", c.fset.Position(expr.Pos()), expr.Print(), obj, typ)
 				}
@@ -121,18 +115,18 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 				return nil, fmt.Errorf("%s: cannot use %s (%s) as %s value", c.fset.Position(expr.Pos()), expr.Print(), expr, typ)
 			}
 
-			v = c.ValueInt(expr.Pos(), expr.End(), op, argType, int64(num))
+			v = c.ValueInt(expr.Pos(), expr.End(), op, typ.Type, int64(num))
 		case types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64:
 			num, ok := constant.Uint64Val(typ.Value)
 			if !ok {
 				return nil, fmt.Errorf("%s: cannot use %s (%s) as %s value", c.fset.Position(expr.Pos()), expr.Print(), expr, typ)
 			}
 
-			v = c.ValueInt(expr.Pos(), expr.End(), op, argType, int64(num))
+			v = c.ValueInt(expr.Pos(), expr.End(), op, typ.Type, int64(num))
 		case types.UntypedInt:
-			v = c.ValueExtra(expr.Pos(), expr.End(), op, argType, typ.Value)
+			v = c.ValueExtra(expr.Pos(), expr.End(), op, typ.Type, typ.Value)
 		default:
-			return nil, fmt.Errorf("%s: failed to compile %s %s into value: unrecognised underlying type: %v", c.fset.Position(expr.Pos()), expr, expr.Print(), types.Underlying(argType))
+			return nil, fmt.Errorf("%s: failed to compile %s %s into value: unrecognised underlying type: %v", c.fset.Position(expr.Pos()), expr, expr.Print(), types.Underlying(typ.Type))
 		}
 
 		return v, nil

@@ -1140,14 +1140,7 @@ func (ctx *x86Context) matchSpecialForm(inst *x86.Instruction, list *ast.List, o
 		// This is where we reference a Ruse constant
 		// and insert it into the assembly.
 		typeAndValue := ctx.Comp.info.Types[list]
-		argType := typeAndValue.Type
-		// If we're making a function call, we
-		// need to resolve the result.
-		if sig, ok := argType.(*types.Signature); ok && len(sig.Result()) == 1 {
-			argType = sig.Result()[0]
-		}
-
-		size := ctx.Comp.sizes.SizeOf(argType)
+		size := ctx.Comp.sizes.SizeOf(typeAndValue.Type)
 		if size*8 != operand.Bits {
 			return nil
 		}

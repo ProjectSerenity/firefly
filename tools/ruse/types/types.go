@@ -1109,12 +1109,6 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 					return c.errorf(arg.Pos(), "%s has invalid argument: %v", name, err)
 				}
 
-				// If we're making a function call, we
-				// need to resolve the result.
-				if sig, ok := typ.(*Signature); ok && len(sig.result) == 1 {
-					typ = sig.result[0]
-				}
-
 				var val constant.Value
 				if con, ok := obj.(*Constant); ok {
 					val = con.Value()
@@ -1408,17 +1402,39 @@ func (c *checker) ResolveExpression(scope *Scope, function *Function, expr ast.E
 					return nil, nil, err
 				}
 
+				// We apply a slightly odd optimisation here.
+				// In general, the type of a function call is
+				// its signature, as it may return multiple
+				// types and we need to be able to reference
+				// them all.
+				//
+				// However, often we only return one type and
+				// having to swap from a signature with one
+				// return type to that return type is tedious.
+				//
+				// There are only a few places where we can
+				// handle multiple returns (calling a funtion
+				// with the same parameter types as the called
+				// function's return types, and using a multi-
+				// name let expression to store multiple
+				// returned values).
+				//
+				// As a result, if we only have one return
+				// type, we store that instead of the full
+				// signature.
+				if sig, ok := typ.(*Signature); ok && len(sig.result) == 1 {
+					typ = sig.result[0]
+				}
+
 				if signature == nil {
 					c.use(name, form)
-					c.record(name, typ, nil)
 					return nil, typ, nil
 				}
 
 				fun := NewFunction(nil, x.ParenOpen, x.ParenClose, nil, form.Name(), signature, 1)
 
 				c.use(name, form)
-				c.record(name, signature, nil)
-				return fun, signature, nil
+				return fun, typ, nil
 			}
 		}
 
@@ -1453,12 +1469,6 @@ func (c *checker) ResolveExpression(scope *Scope, function *Function, expr ast.E
 					obj, argType, err := c.ResolveExpression(scope, function, v)
 					if err != nil {
 						return nil, nil, err
-					}
-
-					// If we're making a function call, we
-					// need to resolve the result.
-					if sig, ok := argType.(*Signature); ok && len(sig.result) == 1 {
-						argType = sig.result[0]
 					}
 
 					var value constant.Value
@@ -1496,12 +1506,6 @@ func (c *checker) ResolveExpression(scope *Scope, function *Function, expr ast.E
 			obj, argType, err := c.ResolveExpression(scope, function, x.Elements[1])
 			if err != nil {
 				return nil, nil, err
-			}
-
-			// If we're making a function call, we
-			// need to resolve the result.
-			if sig, ok := argType.(*Signature); ok && len(sig.result) == 1 {
-				argType = sig.result[0]
 			}
 
 			var val constant.Value
@@ -1556,9 +1560,35 @@ func (c *checker) ResolveExpression(scope *Scope, function *Function, expr ast.E
 			}
 
 			// All good.
-			c.record(x, sig, nil)
 
-			return obj, sig, nil
+			// We apply a slightly odd optimisation here.
+			// In general, the type of a function call is
+			// its signature, as it may return multiple
+			// types and we need to be able to reference
+			// them all.
+			//
+			// However, often we only return one type and
+			// having to swap from a signature with one
+			// return type to that return type is tedious.
+			//
+			// There are only a few places where we can
+			// handle multiple returns (calling a funtion
+			// with the same parameter types as the called
+			// function's return types, and using a multi-
+			// name let expression to store multiple
+			// returned values).
+			//
+			// As a result, if we only have one return
+			// type, we store that instead of the full
+			// signature.
+			var resultType Type = sig
+			if len(sig.result) == 1 {
+				resultType = sig.result[0]
+			}
+
+			c.record(x, resultType, nil)
+
+			return obj, resultType, nil
 		}
 
 		if len(x.Elements[1:]) > len(sig.params) {
@@ -1568,25 +1598,40 @@ func (c *checker) ResolveExpression(scope *Scope, function *Function, expr ast.E
 		}
 
 		for i, arg := range argTypes {
-			// We allow a function call with a
-			// single return to be used as an
-			// individual argument, in addition
-			// to the case handled above where
-			// the full result from a function
-			// is used as all of the arguments.
-			if prev, ok := arg.(*Signature); ok && len(prev.result) == 1 {
-				arg = prev.result[0]
-			}
-
 			param := sig.params[i].Type()
 			if !AssignableTo(param, arg, values[i]) {
 				return nil, nil, c.errorf(x.Elements[i+1].Pos(), "cannot use %s (%s) as %s value in argument to %s", x.Elements[i+1].Print(), arg, param, sig)
 			}
 		}
 
-		c.record(x, sig, nil)
+		// We apply a slightly odd optimisation here.
+		// In general, the type of a function call is
+		// its signature, as it may return multiple
+		// types and we need to be able to reference
+		// them all.
+		//
+		// However, often we only return one type and
+		// having to swap from a signature with one
+		// return type to that return type is tedious.
+		//
+		// There are only a few places where we can
+		// handle multiple returns (calling a funtion
+		// with the same parameter types as the called
+		// function's return types, and using a multi-
+		// name let expression to store multiple
+		// returned values).
+		//
+		// As a result, if we only have one return
+		// type, we store that instead of the full
+		// signature.
+		var resultType Type = sig
+		if len(sig.result) == 1 {
+			resultType = sig.result[0]
+		}
 
-		return obj, sig, nil
+		c.record(x, resultType, nil)
+
+		return obj, resultType, nil
 	case *ast.Identifier:
 		_, obj := scope.LookupParent(x.Name, token.NoPos)
 		if obj == nil && strings.HasPrefix(x.Name, "array/") {
@@ -1767,11 +1812,6 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 		// this as a constant.
 		var values []Type
 		if len(receivers) == 1 {
-			// Handle function calls.
-			if sig, ok := value.(*Signature); ok && len(sig.result) == 1 {
-				value = sig.result[0]
-			}
-
 			values = []Type{value}
 		} else {
 			// Multiple returns being stored to
@@ -2022,11 +2062,6 @@ func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 		_, constantType, err := c.ResolveExpression(parent, nil, v)
 		if err != nil {
 			return err
-		}
-
-		// Handle function calls.
-		if sig, ok := constantType.(*Signature); ok && len(sig.result) == 1 {
-			constantType = sig.result[0]
 		}
 
 		value = c.consts[v]

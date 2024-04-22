@@ -188,14 +188,7 @@ func (a *allocator) run() error {
 			params := sig.Params()
 			args := make([]int, len(params))
 			for i, arg := range v.Args {
-				argType := arg.Type
-				// If we're making a function call, we
-				// need to resolve the result.
-				if sig, ok := argType.(*types.Signature); ok && len(sig.Result()) == 1 {
-					argType = sig.Result()[0]
-				}
-
-				args[i] = a.sizes.SizeOf(argType)
+				args[i] = a.sizes.SizeOf(arg.Type)
 			}
 
 			// Preserve any values currently in
