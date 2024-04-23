@@ -491,16 +491,17 @@ func (f *formatter) FprintExpr(indentation int, expr ast.Expression) {
 		// In assembly functions, each instruction
 		// and label should be on its own line.
 
-		isPackage := false
-		isImport := false
-		isFunc := false
-		isAssembly := false
-		if indentation == 0 {
-			if ident, ok := x.Elements[0].(*ast.Identifier); ok {
-				isPackage = ident.Name == "package"
-				isImport = ident.Name == "import"
-				isFunc = ident.Name == "func"
-				isAssembly = ident.Name == "asm-func"
+		var isAssembly, isFunc, isImport, isPackage bool
+		if ident, ok := x.Elements[0].(*ast.Identifier); ok {
+			switch ident.Name {
+			case "asm-func":
+				isAssembly = true
+			case "func":
+				isFunc = true
+			case "import":
+				isImport = true
+			case "package":
+				isPackage = true
 			}
 		}
 
@@ -531,23 +532,22 @@ func (f *formatter) FprintExpr(indentation int, expr ast.Expression) {
 			}
 
 			switch {
-			case isPackage:
-				// The package name is always on the same line.
-				lineBreak = false
-			case isImport:
-				lineBreak = true
-				doubleBreak = false
+			case isAssembly:
+				lineBreak = i != 0 // Always break, except before the signature.
 			case isFunc:
-				switch i {
-				case 0:
+				if i == 0 {
 					// No line break before the signature.
 					lineBreak = false
-				case 1:
+				} else if i == 1 {
 					// Always line break after the signature.
 					lineBreak = true
 				}
-			case isAssembly:
-				lineBreak = i != 0 // Always break, except before the signature.
+			case isImport:
+				lineBreak = true
+				doubleBreak = false
+			case isPackage:
+				// The package name is always on the same line.
+				lineBreak = false
 			}
 
 			if !lineBreak {
