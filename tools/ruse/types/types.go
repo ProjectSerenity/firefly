@@ -515,7 +515,7 @@ func (c *checker) Check(files []*ast.File) error {
 			switch keyword.Name {
 			case "base-address":
 				for _, elt := range anno.Elements[1:] {
-					obj, typ, err := c.ResolveExpression(fileScopes[i], nil, elt)
+					obj, typ, err := c.ResolveValue(fileScopes[i], nil, elt)
 					if err != nil {
 						return err
 					}
@@ -531,7 +531,7 @@ func (c *checker) Check(files []*ast.File) error {
 				}
 			case "sections":
 				for _, elt := range anno.Elements[1:] {
-					_, typ, err := c.ResolveExpression(fileScopes[i], nil, elt)
+					_, typ, err := c.ResolveValue(fileScopes[i], nil, elt)
 					if err != nil {
 						return err
 					}
@@ -924,7 +924,7 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 				elt = anno.X
 			}
 
-			_, typ, err := c.ResolveExpression(scope, function, elt)
+			_, typ, err := c.ResolveValue(scope, function, elt)
 			if err != nil {
 				return err
 			}
@@ -944,7 +944,7 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 				continue
 			}
 
-			_, typ, err := c.ResolveExpression(scope, function, elt)
+			_, typ, err := c.ResolveValue(scope, function, elt)
 			if err != nil {
 				return err
 			}
@@ -1010,7 +1010,7 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 				}
 
 				arg := fun.Elements[1]
-				obj, typ, err := c.ResolveExpression(scope, function, arg)
+				obj, typ, err := c.ResolveValue(scope, function, arg)
 				if err != nil {
 					return err
 				}
@@ -1040,7 +1040,7 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 				}
 
 				arg := fun.Elements[1]
-				obj, typ, err := c.ResolveExpression(scope, function, arg)
+				obj, typ, err := c.ResolveValue(scope, function, arg)
 				if err != nil {
 					return err
 				}
@@ -1064,7 +1064,7 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 				}
 
 				arg := fun.Elements[1]
-				obj, typ, err := c.ResolveExpression(scope, function, arg)
+				obj, typ, err := c.ResolveExpression(scope, function, arg) // A function may not return a value.
 				if err != nil {
 					return err
 				}
@@ -1104,7 +1104,7 @@ func (c *checker) ResolveAsmFuncBody(scope *Scope, fun *ast.List) error {
 				// Next, resolve the value and check
 				// it's assignable to the type.
 				arg := fun.Elements[1]
-				obj, typ, err := c.ResolveExpression(scope, function, arg)
+				obj, typ, err := c.ResolveValue(scope, function, arg)
 				if err != nil {
 					return c.errorf(arg.Pos(), "%s has invalid argument: %v", name, err)
 				}
@@ -1163,7 +1163,7 @@ func (c *checker) ResolveFuncBody(scope *Scope, fun *ast.List) (result Type, err
 				elt = anno.X
 			}
 
-			_, typ, err := c.ResolveExpression(scope, function, elt)
+			_, typ, err := c.ResolveValue(scope, function, elt)
 			if err != nil {
 				return nil, err
 			}
@@ -1183,7 +1183,7 @@ func (c *checker) ResolveFuncBody(scope *Scope, fun *ast.List) (result Type, err
 				continue
 			}
 
-			_, typ, err := c.ResolveExpression(scope, function, elt)
+			_, typ, err := c.ResolveValue(scope, function, elt)
 			if err != nil {
 				return nil, err
 			}
@@ -1214,7 +1214,12 @@ func (c *checker) ResolveFuncBody(scope *Scope, fun *ast.List) (result Type, err
 
 	for i, expr := range fun.Elements[2:] {
 		isLast := i+3 == len(fun.Elements)
-		obj, result, err := c.ResolveExpression(scope, function, expr)
+		var obj Object
+		if isLast && len(sig.result) > 0 {
+			obj, result, err = c.ResolveValue(scope, function, expr)
+		} else {
+			obj, result, err = c.ResolveExpression(scope, function, expr)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -1292,7 +1297,7 @@ func (c *checker) ResolveLetBody(scope *Scope, let *ast.List) (err error) {
 				continue
 			}
 
-			_, typ, err := c.ResolveExpression(scope, nil, elt)
+			_, typ, err := c.ResolveValue(scope, nil, elt)
 			if err != nil {
 				return err
 			}
@@ -1382,6 +1387,42 @@ func (c *checker) checkArrayType(scope *Scope, typeName *ast.Identifier, element
 	return element, array, nil
 }
 
+// ResolveValue checks the type (and language object) of the
+// given expression, in the context of its innermost parent
+// scope and function. It also checks that the result is a
+// value that can be stored and used.
+//
+// Callers who also want to accept a statement that returns
+// no value should use ResolveExpression instead.
+func (c *checker) ResolveValue(scope *Scope, function *Function, expr ast.Expression) (Object, Type, error) {
+	obj, typ, err := c.ResolveExpression(scope, function, expr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Things like (let) expressions return nil.
+	if typ == nil {
+		return nil, nil, c.errorf(expr.Pos(), "expression cannot be used as a value: %s", expr.Print())
+	}
+
+	// Some other forms return a signature with
+	// no result.
+	if sig, ok := typ.(*Signature); ok && len(sig.result) == 0 {
+		return nil, nil, c.errorf(expr.Pos(), "expression cannot be used as a value: %s expression has no value", sig.name)
+	}
+
+	return obj, typ, nil
+}
+
+// ResolveExpression checks the type (and language object)
+// of the given expression, in the context of its innermost
+// parent scope and function.
+//
+// Most callers should instead use ResolveValue, which calls
+// ResolveExpression and then checks that the result is a
+// value that can be used and consumed. ResolveExpression
+// should only be called directly when the expression can be
+// a statement like (let x foo) where no value is returned.
 func (c *checker) ResolveExpression(scope *Scope, function *Function, expr ast.Expression) (Object, Type, error) {
 	switch x := expr.(type) {
 	case *ast.List:
@@ -1439,7 +1480,7 @@ func (c *checker) ResolveExpression(scope *Scope, function *Function, expr ast.E
 		}
 
 		// Normal function call.
-		obj, typ, err := c.ResolveExpression(scope, function, x.Elements[0])
+		obj, typ, err := c.ResolveExpression(scope, function, x.Elements[0]) // A function may not return anything.
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1466,7 +1507,7 @@ func (c *checker) ResolveExpression(scope *Scope, function *Function, expr ast.E
 				// Build the array.
 				values := make([]constant.Value, len(x.Elements[1:]))
 				for i, v := range x.Elements[1:] {
-					obj, argType, err := c.ResolveExpression(scope, function, v)
+					obj, argType, err := c.ResolveValue(scope, function, v)
 					if err != nil {
 						return nil, nil, err
 					}
@@ -1503,7 +1544,7 @@ func (c *checker) ResolveExpression(scope *Scope, function *Function, expr ast.E
 				return nil, nil, c.errorf(x.Elements[1].Pos(), "cannot cast %d values to %s", len(x.Elements[1:]), typ)
 			}
 
-			obj, argType, err := c.ResolveExpression(scope, function, x.Elements[1])
+			obj, argType, err := c.ResolveValue(scope, function, x.Elements[1])
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1530,7 +1571,7 @@ func (c *checker) ResolveExpression(scope *Scope, function *Function, expr ast.E
 		argTypes := make([]Type, len(x.Elements[1:]))
 		values := make([]constant.Value, len(argTypes))
 		for i, expr := range x.Elements[1:] {
-			obj, argTypes[i], err = c.ResolveExpression(scope, function, expr)
+			obj, argTypes[i], err = c.ResolveValue(scope, function, expr)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1798,7 +1839,7 @@ func (c *checker) ResolveLet(scope *Scope, let *ast.List) (Type, error) {
 	values := make([]constant.Value, len(receivers)) // Only for constant values.
 	switch v := let.Elements[n-1].(type) {
 	case *ast.Identifier, *ast.List:
-		_, value, err := c.ResolveExpression(scope, nil, v)
+		_, value, err := c.ResolveValue(scope, nil, v)
 		if err != nil {
 			return nil, err
 		}
@@ -2059,7 +2100,7 @@ func (c *checker) CheckTopLevelLet(parent *Scope, let *ast.List) error {
 		// We can assign constants using a function
 		// call, but only if it resolves to a constant
 		// expression.
-		_, constantType, err := c.ResolveExpression(parent, nil, v)
+		_, constantType, err := c.ResolveValue(parent, nil, v)
 		if err != nil {
 			return err
 		}

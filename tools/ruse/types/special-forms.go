@@ -188,7 +188,7 @@ func defPredeclaredSpecialForms() {
 
 		arg0 := fun.Elements[1]
 		arg1 := fun.Elements[2]
-		obj, arrayType, err := c.ResolveExpression(scope, function, arg0)
+		obj, arrayType, err := c.ResolveValue(scope, function, arg0)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -199,7 +199,7 @@ func defPredeclaredSpecialForms() {
 			return nil, nil, c.errorf(arg0.Pos(), "invalid argument: %s (%s) for at: want array", arg0.Print(), arrayType)
 		}
 
-		_, indexType, err := c.ResolveExpression(scope, function, arg1)
+		_, indexType, err := c.ResolveValue(scope, function, arg1)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -317,7 +317,7 @@ func defPredeclaredSpecialForms() {
 
 		// Check the body expressions.
 		for _, expr := range fun.Elements[1:] {
-			_, typ, err = c.ResolveExpression(scope, function, expr)
+			_, typ, err = c.ResolveExpression(scope, function, expr) // We don't necessarily need a value.
 			if err != nil {
 				return nil, nil, err
 			}
@@ -360,7 +360,7 @@ func defPredeclaredSpecialForms() {
 		}
 
 		arg := fun.Elements[1]
-		obj, typ, err := c.ResolveExpression(scope, function, arg)
+		obj, typ, err := c.ResolveValue(scope, function, arg)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -427,7 +427,7 @@ func defPredeclaredSpecialForms() {
 		// See what parameters we've got.
 		got := make([]TypeAndValue, len(fun.Elements[1:]))
 		for i, arg := range fun.Elements[1:] {
-			obj, typ, err := c.ResolveExpression(scope, function, arg)
+			obj, typ, err := c.ResolveValue(scope, function, arg)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -529,7 +529,7 @@ func defPredeclaredSpecialForms() {
 					return nil, nil, c.errorf(kind.NamePos, "invalid section field %s: got %d values, want 1 integer", kind.Name, len(rest))
 				}
 
-				obj, typ, err := c.ResolveExpression(scope, function, rest[0])
+				obj, typ, err := c.ResolveValue(scope, function, rest[0])
 				if err != nil {
 					return nil, nil, c.errorf(rest[0].Pos(), "invalid section field %s: %v", kind.Name, err)
 				}
@@ -831,7 +831,7 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, function *Function, 
 	constants := make([]constant.Value, numOperands)
 	for i, expr := range fun.Elements[1:] {
 		var obj Object
-		obj, argTypes[i], err = c.ResolveExpression(scope, function, expr)
+		obj, argTypes[i], err = c.ResolveValue(scope, function, expr)
 		if err != nil {
 			return nil, nil, err
 		}
