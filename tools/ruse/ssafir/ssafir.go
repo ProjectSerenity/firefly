@@ -316,6 +316,59 @@ func (b *Block) String() string {
 	return fmt.Sprintf("b%d", b.ID)
 }
 
+// AddSuccessor marks o as a successor to b and marks
+// b as a predecessor to o.
+func (b *Block) AddSuccessor(o *Block) {
+	eb := Edge{b: o, i: len(o.Predecessors)}
+	eo := Edge{b: b, i: len(b.Successors)}
+	b.Successors = append(b.Successors, eb)
+	o.Predecessors = append(o.Predecessors, eo)
+}
+
+// ForEach calls f with each successive block, starting
+// with b.
+func (b *Block) ForEach(fset *token.FileSet, f func(*Block) error) error {
+	// Make sure we don't process any
+	// blocks more than once. This should
+	// not be necessary, but it's a good
+	// precaution.
+	done := make(map[*Block]bool)
+	var doBlock func(block *Block) error
+	doBlock = func(block *Block) error {
+		if done[block] {
+			return fmt.Errorf("%s: internal error: block %s processed more that once", fset.Position(block.Pos), block)
+		}
+
+		done[block] = true
+
+		err := f(block)
+		if err != nil {
+			return err
+		}
+
+		// Work out where to go next.
+		switch block.Kind {
+		case BlockNormal:
+			for _, next := range block.Successors {
+				err := doBlock(next.Block())
+				if err != nil {
+					return err
+				}
+			}
+		case BlockReturn:
+			// Any blocks after a return
+			// are dead code, so we stop
+			// here.
+		default:
+			return fmt.Errorf("%s: internal error: cannot process block %s: unsupported block kind %s", fset.Position(block.Pos), block, block.Kind)
+		}
+
+		return nil
+	}
+
+	return doBlock(b)
+}
+
 // NewValue creates a new value at the given position
 // and operation, adds it to the block, and returns it.
 //
