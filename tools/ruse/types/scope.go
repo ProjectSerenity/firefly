@@ -170,6 +170,12 @@ func (s *Scope) LookupParent(name string, pos token.Pos) (*Scope, Object) {
 // obj's parent scope if currently unset, then
 // returns nil.
 func (s *Scope) Insert(obj Object) Object {
+	name := obj.Name()
+	if name == "_" {
+		// We ignore the blank identifier.
+		return nil
+	}
+
 	if s.readonly {
 		if obj.Parent() == s {
 			obj.setParent(s.parent)
@@ -177,7 +183,6 @@ func (s *Scope) Insert(obj Object) Object {
 		return s.parent.Insert(obj)
 	}
 
-	name := obj.Name()
 	if other := s.Lookup(name); other != nil {
 		return other
 	}

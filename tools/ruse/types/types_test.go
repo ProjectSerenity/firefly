@@ -388,8 +388,7 @@ func TestCheck(t *testing.T) {
 				file0 := NewScope(pkg.scope, 46, 554, "file 0")
 				file0.readonly = true
 
-				fun1Scope := NewScope(file0, 93, 109, "function nullary-function")
-				fun1Scope.Insert(NewConstant(fun1Scope, 108, 109, pkg, "_", Int8, constant.MakeInt64(0), 1))
+				NewScope(file0, 93, 109, "function nullary-function")
 				pkg.scope.Insert(&Function{
 					object: object{
 						pos:  67,
@@ -407,7 +406,6 @@ func TestCheck(t *testing.T) {
 				fun2Scope := NewScope(file0, 145, 154, "function unary-function")
 				param1 := NewParameter(fun2Scope, 134, 142, pkg, "x", Byte)
 				fun2Scope.Insert(param1)
-				fun2Scope.Insert(NewVariable(fun2Scope, 153, 154, pkg, "_", Byte))
 				pkg.scope.Insert(&Function{
 					object: object{
 						pos:  112,
@@ -427,7 +425,6 @@ func TestCheck(t *testing.T) {
 				param2 := NewParameter(fun3Scope, 190, 200, pkg, "y", String)
 				fun3Scope.Insert(param1)
 				fun3Scope.Insert(param2)
-				fun3Scope.Insert(NewVariable(fun3Scope, 236, 237, pkg, "_", Int64))
 				pkg.scope.Insert(&Function{
 					object: object{
 						pos:  157,
