@@ -28,12 +28,14 @@ import (
 func TestLower(t *testing.T) {
 	tests := []struct {
 		Name   string
+		Arch   *sys.Arch
 		Code   string
 		Disasm []string
 		Want   []*TestValue
 	}{
 		{
 			Name: "no-op",
+			Arch: sys.X86_64,
 			Code: `
 				(package test)
 
@@ -51,6 +53,7 @@ func TestLower(t *testing.T) {
 		},
 		{
 			Name: "passthrough",
+			Arch: sys.X86_64,
 			Code: `
 				(package test)
 
@@ -71,6 +74,7 @@ func TestLower(t *testing.T) {
 		},
 		{
 			Name: "call",
+			Arch: sys.X86_64,
 			Code: `
 				(package test)
 
@@ -219,6 +223,7 @@ func TestLower(t *testing.T) {
 		},
 		{
 			Name: "arithmetic",
+			Arch: sys.X86_64,
 			Code: `
 				(package test)
 
@@ -586,6 +591,7 @@ func TestLower(t *testing.T) {
 		},
 		{
 			Name: "booleans",
+			Arch: sys.X86_64,
 			Code: `
 				(package test)
 
@@ -1001,6 +1007,7 @@ func TestLower(t *testing.T) {
 		},
 		{
 			Name: "multiple-returns",
+			Arch: sys.X86_64,
 			Code: `
 				(package test)
 
@@ -1242,16 +1249,15 @@ func TestLower(t *testing.T) {
 		cmpopts.IgnoreTypes(new(types.Function)),
 	}
 
-	arch := sys.X86_64
-	sizes := types.SizesFor(arch)
-	if err := arch.Validate(&arch.DefaultABI); err != nil {
-		t.Fatalf("invalid test ABI: %v", err)
-	}
-
 	var code bytes.Buffer
 	var disasm strings.Builder
 	for _, test := range tests {
-		t.Run(test.Name, func(t *testing.T) {
+		t.Run(test.Arch.Name+"/"+test.Name, func(t *testing.T) {
+			sizes := types.SizesFor(test.Arch)
+			if err := test.Arch.Validate(&test.Arch.DefaultABI); err != nil {
+				t.Fatalf("invalid test ABI: %v", err)
+			}
+
 			// Compile the code.
 			fset := token.NewFileSet()
 			file, err := parser.ParseFile(fset, "test.ruse", test.Code, 0)
@@ -1268,12 +1274,12 @@ func TestLower(t *testing.T) {
 			}
 
 			testPath := "tests/test"
-			pkg, err := types.Check(testPath, fset, files, arch, info)
+			pkg, err := types.Check(testPath, fset, files, test.Arch, info)
 			if err != nil {
 				t.Fatalf("failed to type-check package: %v", err)
 			}
 
-			p, err := Compile(fset, arch, pkg, files, info, sizes)
+			p, err := Compile(fset, test.Arch, pkg, files, info, sizes)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -1297,20 +1303,20 @@ func TestLower(t *testing.T) {
 			}
 
 			// Use the allocator.
-			err = Allocate(fset, arch, sizes, p, testFunc)
+			err = Allocate(fset, test.Arch, sizes, p, testFunc)
 			if err != nil {
 				t.Fatalf("Allocate(): unexpected error: %v", err)
 			}
 
 			// Lower the instructions.
-			err = Lower(fset, arch, sizes, testFunc)
+			err = Lower(fset, test.Arch, sizes, testFunc)
 			if err != nil {
 				t.Fatalf("Lower(): unexpected error: %v", err)
 			}
 
 			// Encode the instructions.
 			code.Reset()
-			err = EncodeTo(&code, fset, arch, testFunc)
+			err = EncodeTo(&code, fset, test.Arch, testFunc)
 			if err != nil {
 				t.Fatalf("EncodeTo(): unexpected error: %v", err)
 			}
