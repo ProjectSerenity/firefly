@@ -646,7 +646,7 @@ func (a *allocator) AddValue(v *ssafir.Value) {
 		dst := a.GetLocation()
 		a.allocated[dst] = v
 		a.locations[v] = append(a.locations[v], dst)
-		a.addAlloc(v, &Alloc{Dst: dst, Data: v.Extra})
+		a.addOpAlloc(v, ssafir.OpCopy, &Alloc{Dst: dst, Data: v.Extra})
 
 		return
 	}
@@ -656,7 +656,7 @@ func (a *allocator) AddValue(v *ssafir.Value) {
 		dst := a.GetLocation()
 		a.allocated[dst] = v
 		a.locations[v] = append(a.locations[v], dst)
-		a.addAlloc(v, &Alloc{Dst: dst, Src: loc, Data: v.Extra})
+		a.addOpAlloc(v, ssafir.OpCopy, &Alloc{Dst: dst, Src: loc, Data: v.Extra})
 	}
 }
 
@@ -665,8 +665,8 @@ func (a *allocator) AddValue(v *ssafir.Value) {
 // or the stack. The given list of scratch
 // registers will be avoided.
 func (a *allocator) SaveValue(reg sys.Location, avoid map[sys.Location]bool) {
-	value := a.allocated[reg]
-	if value == nil {
+	v := a.allocated[reg]
+	if v == nil {
 		// Nothing to save.
 		return
 	}
@@ -683,11 +683,11 @@ func (a *allocator) SaveValue(reg sys.Location, avoid map[sys.Location]bool) {
 		}
 
 		// We can save to candidate.
-		a.allocated[candidate] = value
+		a.allocated[candidate] = v
 		a.allocated[reg] = nil
-		a.addAlloc(value, &Alloc{Dst: candidate, Src: reg})
+		a.addOpAlloc(v, ssafir.OpCopy, &Alloc{Dst: candidate, Src: reg})
 
-		locs := a.locations[value]
+		locs := a.locations[v]
 		for i, loc := range locs {
 			if loc == reg {
 				locs[i] = candidate
@@ -738,7 +738,7 @@ func (a *allocator) MoveValue(new, old *ssafir.Value) {
 	}
 
 	for _, loc := range a.locations[old] {
-		a.addAlloc(new, &Alloc{Dst: loc, Src: loc})
+		a.addOpAlloc(new, ssafir.OpCopy, &Alloc{Dst: loc, Src: loc})
 		if new.Uses != 0 {
 			a.allocated[loc] = new
 		}
@@ -751,8 +751,10 @@ func (a *allocator) MoveValue(new, old *ssafir.Value) {
 // its memory location (if any) as free.
 func (a *allocator) DropValue(v *ssafir.Value) {
 	for _, loc := range a.locations[v] {
-		a.allocated[loc] = nil // We don't delete, so we know the location has been used.
 		a.addOpAlloc(v, ssafir.OpDrop, &Alloc{Src: loc})
+		if a.allocated[loc] == v {
+			a.allocated[loc] = nil // We don't delete, so we know the location has been used.
+		}
 	}
 
 	delete(a.locations, v)
@@ -839,7 +841,7 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 				case 0:
 					con := types.NewConstant(nil, v.Pos, v.End, nil, "", v.Type, constant.MakeString(s), 1)
 					a.pkg.Literals = append(a.pkg.Literals, con)
-					a.addAlloc(v, &Alloc{Dst: loc, Data: s})
+					a.addOpAlloc(v, ssafir.OpConstantString, &Alloc{Dst: loc, Data: s})
 				case 1:
 					a.addOpAlloc(v, ssafir.OpConstantUntypedInt, &Alloc{Dst: loc, Data: int64(len(s))})
 				}
@@ -851,7 +853,7 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 				val := con.Value()
 				switch i {
 				case 0:
-					a.addAlloc(v, &Alloc{Dst: loc, Data: con})
+					a.addOpAlloc(v, ssafir.OpConstantString, &Alloc{Dst: loc, Data: con})
 				case 1:
 					s := constant.StringVal(val)
 					a.addOpAlloc(v, ssafir.OpConstantUntypedInt, &Alloc{Dst: loc, Data: int64(len(s))})

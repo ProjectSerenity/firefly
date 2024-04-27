@@ -152,7 +152,7 @@ func TestAllocator(t *testing.T) {
 			},
 			Text: []string{
 				"allocator for test (func int)",
-				"  rax:  [free]",
+				"  rax:  v19",
 				"  rcx:  [free]",
 				"  rdx:  [free]",
 				"  rsi:  [free]",

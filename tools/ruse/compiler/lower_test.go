@@ -418,8 +418,9 @@ func TestLower(t *testing.T) {
 				"48 8b d1             	mov rdx, rcx",    // Prepare arg x2
 				"48 03 d0             	add rdx, rax",    // Perform     (+ x2 less)
 				"49 03 d3             	add rdx, r11",    // Perform     (+ x2 less x4)
-				"48 8b fa             	mov rdi, rdx",    // Prepare arg (+ x2 less x4)
-				"e8 3f 33 22 11       	call 0x11223381", // Call func   (exit (pick-smaller x2 x4))
+				"48 8b ca             	mov rcx, rdx",    // Save result (+ x2 less x4)
+				"48 8b f9             	mov rdi, rcx",    // Prepare arg (+ x2 less x4)
+				"e8 3f 33 22 11       	call 0x11223384", // Call func   (exit (pick-smaller x2 x4))
 				"5d                   	pop rbp",         // Restore     rbp
 				"5b                   	pop rbx",         // Restore     rbx
 				"c3                   	ret",
