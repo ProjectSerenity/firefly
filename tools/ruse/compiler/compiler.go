@@ -472,9 +472,19 @@ type compiler struct {
 	lastMemoryState *ssafir.Value
 }
 
-func (c *compiler) Block(pos token.Pos, kind ssafir.BlockKind) *ssafir.Block {
-	c.currentBlock = c.fun.NewBlock(pos, kind)
-	return c.currentBlock
+func (c *compiler) Block(current ssafir.BlockKind, pos token.Pos, next ssafir.BlockKind) *ssafir.Block {
+	if current != 0 {
+		c.currentBlock.Kind = current
+	}
+
+	out := c.fun.NewBlock(pos, next)
+	if c.currentBlock != nil {
+		c.currentBlock.AddSuccessor(out)
+	}
+
+	c.currentBlock = out
+
+	return out
 }
 
 func (c *compiler) Value(pos, end token.Pos, op ssafir.Op, typ types.Type, args ...*ssafir.Value) *ssafir.Value {
@@ -528,7 +538,7 @@ func (c *compiler) AddCallingConvention() {
 }
 
 func (c *compiler) AddFunctionPrelude() {
-	b := c.Block(c.list.Elements[2].Pos(), ssafir.BlockNormal)
+	b := c.Block(0, c.list.Elements[2].Pos(), ssafir.BlockNormal)
 	c.fun.Entry = b
 }
 

@@ -818,6 +818,9 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 
 		v = c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpReturn, typeAndValue.Type, args...)
 
+		// Make a new block for any remaining instructions.
+		c.Block(ssafir.BlockReturn, list.ParenClose+1, ssafir.BlockNormal)
+
 		return v, nil
 	case types.SpecialFormAdd:
 		// Unary positive is essentially a no-op.

@@ -63,23 +63,10 @@ func x86RegisterTo8(loc sys.Location) sys.Location {
 }
 
 func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafir.Function) (err error) {
-	block := &ssafir.Block{
-		ID:           fun.Entry.ID,
-		Kind:         fun.Entry.Kind,
-		Likely:       fun.Entry.Likely,
-		Successors:   fun.Entry.Successors,
-		Predecessors: fun.Entry.Predecessors,
-		Control:      fun.Entry.Control,
-		Function:     fun.Entry.Function,
-		Pos:          fun.Entry.Pos,
-		End:          fun.Entry.End,
-	}
-
 	l := &x86Lowerer{
 		fset:     fset,
 		arch:     arch,
 		sizes:    sizes,
-		block:    block,
 		function: fun,
 	}
 
@@ -152,18 +139,77 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 
 	fun.Extra = ctx.Mode
 
+	err = l.function.Entry.ForEach(fset, l.doBlock)
+	if err != nil {
+		return err
+	}
+
+	// Make a synthetic block to represent
+	// the function as a whole.
+	l.block = &ssafir.Block{
+		ID:       1,
+		Kind:     ssafir.BlockReturn,
+		Function: l.function,
+		Pos:      l.function.Func.Pos(),
+		End:      l.function.Func.End(),
+		Values:   l.insts,
+	}
+
+	l.function.Entry = l.block
+	l.function.Blocks = []*ssafir.Block{l.block}
+
+	// Finally, complete any link references.
+	var offset int
+	for _, value := range l.insts {
+		data, ok := value.Extra.(*x86InstructionData)
+		if !ok {
+			continue
+		}
+
+		for i, arg := range data.Args {
+			if arg == nil {
+				break
+			}
+
+			link, ok := arg.(*tempLink)
+			if !ok {
+				continue
+			}
+
+			// Replace the instruction index with
+			// the offset into the function, plus
+			// the offset into the instruction.
+			link.Link.Offset = offset + link.InnerOffset
+			link.Link.Address = uintptr(offset) + link.InnerAddress
+
+			// Store the final link.
+			data.Args[i] = link.Link
+			fun.Links = append(fun.Links, link.Link)
+		}
+
+		offset += int(data.Length)
+	}
+
+	return nil
+}
+
+// doBlock lowers the logical instructions in block to
+// x86-64 machine instructions.
+func (l *x86Lowerer) doBlock(block *ssafir.Block) error {
+	l.block = block
+
 	// We start the function with ENDBR
 	// so that it will support CET Indirect
 	// Branch Tracking.
 	l.addInst(&ssafir.Value{
 		ID:    0, // This is special.
 		Block: l.block,
-		Pos:   fun.Code.Elements[0].Pos(), // The 'func' keyword.
-		End:   fun.Code.Elements[1].End(), // The end of the signature.
+		Pos:   l.function.Code.Elements[0].Pos(), // The 'func' keyword.
+		End:   l.function.Code.Elements[1].End(), // The end of the signature.
 	}, ssafir.OpX86_ENDBR64, &x86InstructionData{})
 
 	var lastResult *ssafir.Value
-	for i, v := range fun.Entry.Values {
+	for i, v := range block.Values {
 		switch v.Op {
 		case ssafir.OpConstantInt8, ssafir.OpConstantInt16, ssafir.OpConstantInt32, ssafir.OpConstantInt64, ssafir.OpConstantUntypedInt:
 			l.MoveNumber(v)
@@ -189,15 +235,14 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 				continue
 			}
 
-			lastResult = fun.Entry.Values[i]
+			lastResult = block.Values[i]
 			l.MoveNumber(v)
 		case ssafir.OpReturn:
-			// These are either a move
-			// or a return.
+			// These may contain a move.
+			// We add the return instruction
+			// at the block leve.
 			if alloc, ok := v.Extra.(*Alloc); ok && alloc != nil {
 				l.MoveNumber(v)
-			} else {
-				l.Return(v)
 			}
 		case ssafir.OpSaveRegister:
 			l.addInst(v, ssafir.OpX86_PUSH_R64op, &x86InstructionData{Args: [4]any{v.Extra}})
@@ -275,47 +320,11 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 		}
 	}
 
-	// Finally, complete any link references.
-	var offset int
-	for _, value := range l.insts {
-		data, ok := value.Extra.(*x86InstructionData)
-		if !ok {
-			continue
-		}
-
-		for i, arg := range data.Args {
-			if arg == nil {
-				break
-			}
-
-			link, ok := arg.(*tempLink)
-			if !ok {
-				continue
-			}
-
-			// Replace the instruction index with
-			// the offset into the function, plus
-			// the offset into the instruction.
-			link.Link.Offset = offset + link.InnerOffset
-			link.Link.Address = uintptr(offset) + link.InnerAddress
-
-			// Store the final link.
-			data.Args[i] = link.Link
-			fun.Links = append(fun.Links, link.Link)
-		}
-
-		offset += int(data.Length)
+	if block.Kind == ssafir.BlockReturn {
+		l.addInst(lastResult, ssafir.OpX86_RET, new(x86InstructionData))
 	}
 
-	if lastResult.Op != ssafir.OpReturn {
-		l.Return(lastResult)
-	}
-
-	l.block.Values = l.insts
-	l.function.Entry = l.block
-	l.function.Blocks = []*ssafir.Block{l.block}
-
-	return err
+	return nil
 }
 
 // x86Lowerer maintains state while lowering SSAFIR
@@ -631,14 +640,6 @@ func (l *x86Lowerer) MoveString(v *ssafir.Value) {
 	default:
 		panic(fmt.Errorf("%s: value %v (op %s) has unexpected constant data %#v (%T)", l.fset.Position(v.Pos), v, v.Op, alloc.Data, alloc.Data))
 	}
-
-	l.addInst(v, op, data)
-}
-
-// Return emits a return instruction.
-func (l *x86Lowerer) Return(v *ssafir.Value) {
-	op := ssafir.OpX86_RET
-	data := &x86InstructionData{}
 
 	l.addInst(v, op, data)
 }

@@ -85,6 +85,78 @@ func Allocate(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, pkg *Packa
 
 // run is the main loop for register allocation.
 func (a *allocator) run() error {
+	// Process the function, block by block.
+	err := a.function.Entry.ForEach(a.fset, a.doBlock)
+	if err != nil {
+		return err
+	}
+
+	// Identify whether we need to save any
+	// registers, based on our ABI.
+	used := make([]sys.Location, 0, len(a.abi.UnusedRegisters))
+	for _, loc := range a.abi.UnusedRegisters {
+		if _, ok := a.allocated[loc]; ok {
+			used = append(used, loc)
+		}
+	}
+
+	// Prepend any saves and then append any
+	// restores in reverse order.
+	if len(used) > 0 {
+		pos := a.function.Code.Elements[0].Pos() // The 'func' keyword.
+		end := a.function.Code.Elements[1].End() // The end of the signature.
+		values := make([]*ssafir.Value, 0, len(a.function.Blocks[0].Values)+len(used))
+
+		// Add the saves in forwards order to
+		// the first block, which is the function
+		// entry point.
+		for i := 0; i < len(used); i++ {
+			loc := used[i]
+			values = append(values, &ssafir.Value{
+				ID:    0, // This is special.
+				Op:    ssafir.OpSaveRegister,
+				Block: a.function.Entry,
+				Pos:   pos,
+				End:   end,
+				Extra: loc,
+			})
+		}
+
+		a.function.Blocks[0].Values = append(values, a.function.Blocks[0].Values...)
+
+		// Add the restores in reverse order to
+		// every return block.
+		suffix := make([]*ssafir.Value, 0, len(used))
+		for i := len(used); i > 0; i-- {
+			loc := used[i-1]
+			suffix = append(suffix, &ssafir.Value{
+				ID:    0, // This is special.
+				Op:    ssafir.OpRestoreRegister,
+				Block: a.function.Entry,
+				Pos:   pos,
+				End:   end,
+				Extra: loc,
+			})
+		}
+
+		for _, block := range a.function.Blocks {
+			if block.Kind == ssafir.BlockReturn {
+				block.Values = append(block.Values, suffix...)
+			}
+		}
+	}
+
+	return nil
+}
+
+// doBlock performs register allocation for the
+// given block. The resulting values are used to
+// overwrite b.Values.
+func (a *allocator) doBlock(block *ssafir.Block) error {
+	a.block = block
+	values := block.Values
+	block.Values = nil
+
 	// First, we iterate through the values
 	// to detect those that are never used
 	// and have no side effects.
@@ -102,7 +174,7 @@ func (a *allocator) run() error {
 		}
 	}
 
-	for _, v := range a.function.Entry.Values {
+	for _, v := range values {
 		ignoreIdempotent(v)
 	}
 
@@ -121,19 +193,19 @@ func (a *allocator) run() error {
 	// consumed, then inverting it to the
 	// set of values dropped at each index.
 	lastUseIndex := make(map[*ssafir.Value]int)
-	for i, v := range a.function.Entry.Values {
+	for i, v := range values {
 		for _, arg := range v.Args {
 			lastUseIndex[arg] = i
 		}
 	}
 
-	droppedValues := make([][]*ssafir.Value, len(a.function.Entry.Values))
+	droppedValues := make([][]*ssafir.Value, len(values))
 	for v, i := range lastUseIndex {
 		droppedValues[i] = append(droppedValues[i], v)
 	}
 
 	calleeIsScratch := make(map[sys.Location]bool, len(a.registers))
-	for i, v := range a.function.Entry.Values {
+	for i, v := range values {
 		dropped := droppedValues[i]
 		switch v.Op {
 		case ssafir.OpMakeMemoryState:
@@ -365,123 +437,8 @@ func (a *allocator) run() error {
 		}
 	}
 
-	// Identify whether we need to save any
-	// registers, based on our ABI.
-	used := make([]sys.Location, 0, len(a.abi.UnusedRegisters))
-	for _, loc := range a.abi.UnusedRegisters {
-		if _, ok := a.allocated[loc]; ok {
-			used = append(used, loc)
-		}
-	}
-
-	// Prepend any saves and then append any
-	// restores in reverse order.
-	if len(used) > 0 {
-		pos := a.function.Code.Elements[0].Pos() // The 'func' keyword.
-		end := a.function.Code.Elements[1].End() // The end of the signature.
-		values := make([]*ssafir.Value, 0, len(a.allocs)+len(used)*2)
-
-		// Add the saves in forwards order.
-		for i := 0; i < len(used); i++ {
-			loc := used[i]
-			values = append(values, &ssafir.Value{
-				ID:    0, // This is special.
-				Op:    ssafir.OpSaveRegister,
-				Block: a.function.Entry,
-				Pos:   pos,
-				End:   end,
-				Extra: loc,
-			})
-		}
-
-		// Helper to spot whether a value
-		// produces a return statement.
-		var isReturn func(v *ssafir.Value) bool
-		isReturn = func(v *ssafir.Value) bool {
-			if v == nil {
-				return false
-			}
-
-			// If it's not a return or a
-			// result, it won't produce a
-			// return.
-			switch v.Op {
-			case ssafir.OpReturn:
-				// Only returns with no alloc
-				// data are an actual return.
-				if alloc, ok := v.Extra.(*Alloc); !ok || alloc == nil {
-					return true
-				}
-
-				return false
-			case ssafir.OpMakeResult:
-				// A result won't produce a
-				// return if its arg is a
-				// valid return.
-				if len(v.Args) != 0 {
-					return isReturn(v.Args[0])
-				}
-
-				return false
-			default:
-				return false
-			}
-		}
-
-		// Add the existing values.
-		var lastValue *ssafir.Value
-		for i, v := range a.allocs {
-			// Check whether we need to insert
-			// pops before a return.
-			//
-			// Ignore drops.
-			if v.Op != ssafir.OpDrop {
-				lastValue = a.allocs[i]
-			}
-
-			// Note that we only include them here
-			// if it's a direct return, or we'll
-			// get duplicates.
-			if v.Op == ssafir.OpReturn && isReturn(v) {
-				// Add the restores in reverse order.
-				for i := len(used); i > 0; i-- {
-					loc := used[i-1]
-					values = append(values, &ssafir.Value{
-						ID:    0, // This is special.
-						Op:    ssafir.OpRestoreRegister,
-						Block: a.function.Entry,
-						Pos:   pos,
-						End:   end,
-						Extra: loc,
-					})
-				}
-			}
-
-			values = append(values, v)
-		}
-
-		// Add the restores in reverse order.
-		if !isReturn(lastValue) {
-			for i := len(used); i > 0; i-- {
-				loc := used[i-1]
-				values = append(values, &ssafir.Value{
-					ID:    0, // This is special.
-					Op:    ssafir.OpRestoreRegister,
-					Block: a.function.Entry,
-					Pos:   pos,
-					End:   end,
-					Extra: loc,
-				})
-			}
-		}
-
-		// Overwrite the current values.
-		a.allocs = values
-	}
-
-	a.block.Values = a.allocs
-	a.function.Entry = a.block
-	a.function.Blocks = []*ssafir.Block{a.block}
+	block.Values = a.allocs
+	a.allocs = nil
 
 	return nil
 }
@@ -562,18 +519,6 @@ func newAllocator(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, pkg *P
 		return 0
 	})
 
-	block := &ssafir.Block{
-		ID:           fun.Entry.ID,
-		Kind:         fun.Entry.Kind,
-		Likely:       fun.Entry.Likely,
-		Successors:   fun.Entry.Successors,
-		Predecessors: fun.Entry.Predecessors,
-		Control:      fun.Entry.Control,
-		Function:     fun.Entry.Function,
-		Pos:          fun.Entry.Pos,
-		End:          fun.Entry.End,
-	}
-
 	a := &allocator{
 		fset:  fset,
 		arch:  arch,
@@ -583,7 +528,6 @@ func newAllocator(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, pkg *P
 		// it's fine to use a shallow copy.
 		registers: registers,
 		abi:       abi,
-		block:     block,
 		function:  fun,
 		allocated: make(map[sys.Location]*ssafir.Value, len(arch.ABIRegisters)),
 		locations: make(map[*ssafir.Value][]sys.Location, len(arch.ABIRegisters)),
