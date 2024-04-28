@@ -692,6 +692,7 @@ func (a *allocator) SaveValue(reg sys.Location, avoid map[sys.Location]bool) {
 		// We can save to candidate.
 		a.allocated[candidate] = v
 		a.allocated[reg] = nil
+		a.locations[v] = append(a.locations[v], candidate)
 		a.Debugf("%s: saving %s to %s", v, v, candidate)
 		a.addOpAlloc(v, ssafir.OpCopy, &Alloc{Dst: candidate, Src: reg})
 
