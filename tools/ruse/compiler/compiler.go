@@ -537,9 +537,7 @@ func (c *compiler) Return(end token.Pos, result *ssafir.Value) {
 		result.Uses++
 	}
 
-	c.currentBlock.Kind = ssafir.BlockReturn
-	c.currentBlock.End = end
-	c.currentBlock.Control = result
+	c.currentBlock.Finish(end, ssafir.BlockReturn, result)
 }
 
 func (c *compiler) AddCallingConvention() {

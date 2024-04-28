@@ -329,14 +329,13 @@ func (b *Block) AddSuccessor(o *Block) {
 // with b.
 func (b *Block) ForEach(fset *token.FileSet, f func(*Block) error) error {
 	// Make sure we don't process any
-	// blocks more than once. This should
-	// not be necessary, but it's a good
-	// precaution.
+	// blocks more than once.
 	done := make(map[*Block]bool)
 	var doBlock func(block *Block) error
 	doBlock = func(block *Block) error {
 		if done[block] {
-			return fmt.Errorf("%s: internal error: block %s processed more that once", fset.Position(block.Pos), block)
+			// We've already done this block.
+			return nil
 		}
 
 		done[block] = true
@@ -367,6 +366,14 @@ func (b *Block) ForEach(fset *token.FileSet, f func(*Block) error) error {
 	}
 
 	return doBlock(b)
+}
+
+// Finish marks the block as ending at the given position,
+// with the given kind.
+func (b *Block) Finish(end token.Pos, kind BlockKind, control *Value) {
+	b.End = end
+	b.Kind = kind
+	b.Control = control
 }
 
 // NewValue creates a new value at the given position

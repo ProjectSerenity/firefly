@@ -139,6 +139,18 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 
 	fun.Extra = ctx.Mode
 
+	// We start the function with ENDBR
+	// so that it will support CET Indirect
+	// Branch Tracking.
+	l.block = l.function.Entry
+	l.addInst(&ssafir.Value{
+		ID:    0, // This is special.
+		Block: l.block,
+		Pos:   l.function.Code.Elements[0].Pos(), // The 'func' keyword.
+		End:   l.function.Code.Elements[1].End(), // The end of the signature.
+	}, ssafir.OpX86_ENDBR64, &x86InstructionData{})
+
+	// Lower the remaining instructions.
 	err = l.function.Entry.ForEach(fset, l.doBlock)
 	if err != nil {
 		return err
@@ -198,18 +210,7 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 func (l *x86Lowerer) doBlock(block *ssafir.Block) error {
 	l.block = block
 
-	// We start the function with ENDBR
-	// so that it will support CET Indirect
-	// Branch Tracking.
-	l.addInst(&ssafir.Value{
-		ID:    0, // This is special.
-		Block: l.block,
-		Pos:   l.function.Code.Elements[0].Pos(), // The 'func' keyword.
-		End:   l.function.Code.Elements[1].End(), // The end of the signature.
-	}, ssafir.OpX86_ENDBR64, &x86InstructionData{})
-
-	var lastResult *ssafir.Value
-	for i, v := range block.Values {
+	for _, v := range block.Values {
 		switch v.Op {
 		case ssafir.OpConstantInt8, ssafir.OpConstantInt16, ssafir.OpConstantInt32, ssafir.OpConstantInt64, ssafir.OpConstantUntypedInt:
 			l.MoveNumber(v)
@@ -231,11 +232,9 @@ func (l *x86Lowerer) doBlock(block *ssafir.Block) error {
 			// we don't need to do
 			// anything.
 			if v.Args[0].Op == ssafir.OpReturn {
-				lastResult = v.Args[0]
 				continue
 			}
 
-			lastResult = block.Values[i]
 			l.MoveNumber(v)
 		case ssafir.OpReturn:
 			// These may contain a move.
@@ -313,15 +312,9 @@ func (l *x86Lowerer) doBlock(block *ssafir.Block) error {
 		}
 	}
 
-	if lastResult == nil {
-		lastResult = &ssafir.Value{
-			Pos: block.End - 1,
-			End: block.End,
-		}
-	}
-
-	if block.Kind == ssafir.BlockReturn {
-		l.addInst(lastResult, ssafir.OpX86_RET, new(x86InstructionData))
+	switch block.Kind {
+	case ssafir.BlockReturn:
+		l.addInst(block.Control, ssafir.OpX86_RET, new(x86InstructionData))
 	}
 
 	return nil

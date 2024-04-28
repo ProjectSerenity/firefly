@@ -48,7 +48,7 @@ func TestLower(t *testing.T) {
 			},
 			Want: []*TestValue{
 				{ID: 0, Op: ssafir.OpX86_ENDBR64, Extra: &x86InstructionData{Length: 4}, Uses: 0, Code: `func (test (a string) (b int))`},
-				{ID: 0, Op: ssafir.OpX86_RET, Extra: &x86InstructionData{Length: 1}, Uses: 0, Code: `)`},
+				{ID: 4, Op: ssafir.OpX86_RET, Extra: &x86InstructionData{Length: 1}, Uses: 0, Code: `(let _ a)`},
 			},
 		},
 		{
@@ -131,7 +131,6 @@ func TestLower(t *testing.T) {
 						},
 						Length: 5,
 					},
-					Uses: 1,
 					Code: `(double (len "bar"))`,
 				},
 				{
@@ -157,7 +156,6 @@ func TestLower(t *testing.T) {
 						},
 						Length: 5,
 					},
-					Uses: 1,
 					Code: `(double length)`,
 				},
 				{
@@ -183,7 +181,6 @@ func TestLower(t *testing.T) {
 						},
 						Length: 5,
 					},
-					Uses: 1,
 					Code: `(double 7)`,
 				},
 				{
@@ -209,7 +206,6 @@ func TestLower(t *testing.T) {
 						},
 						Length: 5,
 					},
-					Uses: 1,
 					Code: `(double val)`,
 				},
 				{

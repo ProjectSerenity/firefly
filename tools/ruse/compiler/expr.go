@@ -845,6 +845,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		}
 
 		ret := c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpReturn, typeAndValue.Type, args...)
+		c.currentBlock.Finish(list.ParenClose+1, ssafir.BlockReturn, ret)
 		c.Debugf("%s: using %s as return statement", v, ret)
 
 		// Make a new block for any remaining instructions.
