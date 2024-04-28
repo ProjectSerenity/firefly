@@ -21,6 +21,7 @@ Ruse has various special forms. Each behaves like a function. However, special f
 - [`asm-func`](#asm-func)
 - [`do`](#do)
 - [`func`](#func)
+- [`if`](#if)
 - [`len`](#len)
 - [`let`](#let)
 - [`or`](#or)
@@ -264,6 +265,37 @@ The `func` form ('define function') takes two or more arguments and defines a ne
 (func (foo (a int)) (+ a 2))              ; A function called 'foo', with one parameter 'a' of type 'int', no return type, and the function body '(+ a 2)'.
 (func (foo (a int) (b int) int) (+ a b))  ; A function called 'foo', with parameters 'a' and 'b' of type 'int', return type 'int', and the function body '(+ a b)'.
 (func (foo int bool) (return 1 true))     ; A function called 'foo', with no parameters, return types 'int' and 'bool' and the function body '(return 1 true)'.
+```
+
+## `if`
+
+The `if` form takes either two or three arguments and performs either an 'if' or 'if else' block, respectively.
+
+The first argument is the condition, which must evaluate to a boolean. If the argument evaluates to `true`, then the 'if' block is evaluated. Otherwise, the 'else' block (if any) is evaluated.
+
+The second argument forms the 'if' block, which is evaluated if the condition evaluates to `true`. Often, this will be a [`do`](#do) expression.
+
+The third argument (if present) forms the 'else' block, which is evaluated if the condition evaluates to `false`. Often, this will be a [`do`](#do) expression.
+
+If there is an 'else' block and the result of the `if` statement is stored or returned, then the 'if' and 'else' blocks must evaluate to the same type.
+
+If there is no 'else' block, then the result of the `if` statement is discarded and cannot be stored or returned.
+
+```
+(if (= a 1)
+	(print "a is one"))  ; This expression is evaluated if `a` equals 1. Otherwise, nothing happens, as there is no 'else' block.
+
+(if (= a 1)
+	(print "a is one")  ; This expression is evaluated if `a` equals 1.
+	(print "else"))     ; This expression is evaluated otherwise.
+
+(if foo
+	1
+	"two")  ; These blocks can have different types as the result is not stored.
+
+(let num (if one
+	1
+	2))  ; Thse blocks must have the same type as the result is stored.
 ```
 
 ## `len`

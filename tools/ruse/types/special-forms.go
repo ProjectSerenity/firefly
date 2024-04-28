@@ -41,6 +41,7 @@ const (
 	SpecialFormABI
 	SpecialFormDo
 	SpecialFormFunc
+	SpecialFormIf
 	SpecialFormLen
 	SpecialFormLet
 	SpecialFormReturn
@@ -79,6 +80,8 @@ func (id SpecialFormID) String() string {
 		return "do"
 	case SpecialFormFunc:
 		return "func"
+	case SpecialFormIf:
+		return "if"
 	case SpecialFormLen:
 		return "len"
 	case SpecialFormLet:
@@ -130,6 +133,7 @@ var specialForms = [...]*SpecialForm{
 	SpecialFormABI:     {},
 	SpecialFormDo:      {},
 	SpecialFormFunc:    {},
+	SpecialFormIf:      {},
 	SpecialFormLen:     {},
 	SpecialFormLet:     {},
 	SpecialFormReturn:  {},
@@ -352,6 +356,62 @@ func defPredeclaredSpecialForms() {
 	specialFormTypes[SpecialFormFunc] = func(c *checker, scope *Scope, function *Function, fun *ast.List) (sig *Signature, typ Type, err error) {
 		// TODO: implement (func)
 		return nil, nil, fmt.Errorf("(func) not supported")
+	}
+
+	specialFormTypes[SpecialFormIf] = func(c *checker, scope *Scope, function *Function, fun *ast.List) (sig *Signature, typ Type, err error) {
+		if len(fun.Elements[1:]) < 2 {
+			return nil, nil, c.errorf(fun.ParenOpen, "not enough arguments in if statement: expected %d, found %d", 2, len(fun.Elements[1:]))
+		} else if len(fun.Elements[1:]) > 3 {
+			return nil, nil, c.errorf(fun.ParenOpen, "too many arguments in if statement: expected %d, found %d", 3, len(fun.Elements[1:]))
+		}
+
+		cond := fun.Elements[1]
+		_, condType, err := c.ResolveValue(scope, function, cond)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if !AssignableTo(Bool, condType, nil) {
+			return nil, nil, c.errorf(cond.Pos(), "non-boolean condition in if statement: found %s", condType)
+		}
+
+		ifElt := fun.Elements[2]
+		_, ifType, err := c.ResolveExpression(scope, function, ifElt) // We don't necessarily need a value.
+		if err != nil {
+			return nil, nil, err
+		}
+
+		sig = &Signature{
+			name: "if",
+			params: []*Variable{
+				NewParameter(nil, token.NoPos, token.NoPos, nil, "condition", condType),
+			},
+			result: []Type{ifType},
+		}
+
+		if ifType == nil {
+			sig.result = nil
+		}
+
+		// Unwrap function results, in case it has
+		// multiple types.
+		if s, ok := ifType.(*Signature); ok {
+			sig.result = s.result
+		}
+
+		if len(fun.Elements[1:]) == 3 {
+			elseElt := fun.Elements[3]
+			_, elseType, err := c.ResolveExpression(scope, function, elseElt) // We don't necessarily need a value.
+			if err != nil {
+				return nil, nil, err
+			}
+
+			if elseType == nil || (!AssignableTo(ifType, elseType, nil) && !AssignableTo(elseType, ifType, nil)) {
+				sig.result = nil
+			}
+		}
+
+		return sig, sig, nil
 	}
 
 	specialFormTypes[SpecialFormLen] = func(c *checker, scope *Scope, function *Function, fun *ast.List) (sig *Signature, typ Type, err error) {

@@ -354,6 +354,13 @@ func (b *Block) ForEach(fset *token.FileSet, f func(*Block) error) error {
 					return err
 				}
 			}
+		case BlockIf:
+			for _, next := range block.Successors {
+				err := doBlock(next.Block())
+				if err != nil {
+					return err
+				}
+			}
 		case BlockReturn:
 			// Any blocks after a return
 			// are dead code, so we stop

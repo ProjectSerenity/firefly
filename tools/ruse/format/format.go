@@ -491,13 +491,15 @@ func (f *formatter) FprintExpr(indentation int, expr ast.Expression) {
 		// In assembly functions, each instruction
 		// and label should be on its own line.
 
-		var isAssembly, isFunc, isImport, isPackage bool
+		var isAssembly, isFunc, isIf, isImport, isPackage bool
 		if ident, ok := x.Elements[0].(*ast.Identifier); ok {
 			switch ident.Name {
 			case "asm-func":
 				isAssembly = true
 			case "func":
 				isFunc = true
+			case "if":
+				isIf = true
 			case "import":
 				isImport = true
 			case "package":
@@ -510,6 +512,7 @@ func (f *formatter) FprintExpr(indentation int, expr ast.Expression) {
 		// There is always a first element, which is never indented further.
 		f.FprintExpr(indentation, x.Elements[0])
 
+		allOneLine := f.line(x.ParenOpen) == f.line(x.ParenClose)
 		for i, elt := range x.Elements[1:] {
 			// Handle any block comments before
 			// the element.
@@ -541,6 +544,19 @@ func (f *formatter) FprintExpr(indentation int, expr ast.Expression) {
 				} else if i == 1 {
 					// Always line break after the signature.
 					lineBreak = true
+				}
+			case isIf:
+				// If the whole statement is on
+				// one line, we leave it as it
+				// is. If not, we put the condition
+				// on the same line as the keyword
+				// and the remaining expressions on
+				// subsequent lines.
+				if allOneLine || i == 0 {
+					lineBreak = false
+				} else {
+					lineBreak = true
+					doubleBreak = false
 				}
 			case isImport:
 				lineBreak = true

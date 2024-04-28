@@ -157,7 +157,13 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 	}, ssafir.OpX86_ENDBR64, &x86InstructionData{})
 
 	// Lower the remaining instructions.
-	err = l.function.Entry.ForEach(fset, l.doBlock)
+	//
+	// Note that we don't use block.ForEach,
+	// as we need to be able to control the
+	// flow of lowering for if blocks, which
+	// may need to have a specific order.
+	l.Debugf("%s: starting at entry point for %s", l.function.Entry, l.function.Name)
+	err = l.doBlock(make(map[*ssafir.Block]bool), l.function.Entry, nil)
 	if err != nil {
 		return err
 	}
@@ -176,14 +182,79 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 	l.function.Entry = l.block
 	l.function.Blocks = []*ssafir.Block{l.block}
 
-	// Finally, complete any link references.
-	var offset int
-	for _, value := range l.insts {
-		data, ok := value.Extra.(*x86InstructionData)
+	// Finalise any jumps within the function,
+	// such as if statements.
+	for _, jump := range l.blockJumps {
+		v := l.insts[jump.index]
+		data := v.Extra.(*x86InstructionData)
+		target, ok := l.blockOffsets[jump.target]
 		if !ok {
+			return fmt.Errorf("%s: internal error: jump to block %s with unknown offset", fset.Position(jump.pos), jump.target)
+		}
+
+		jumpLength := calculateJumpDistance(l.insts, target, jump.index)
+		l.Debugf("%s: calculated jump distance to %s as %d", l.fset.Position(v.Pos), jump.target, jumpLength)
+		data.Args[0] = uint64(jumpLength + int64(data.Length)) // Offset the subtraction done in the encoding process.
+	}
+
+	// Next, optimise jumps to smaller
+	// jump instructions if possible.
+	var code x86.Code
+	for _, jump := range l.blockJumps {
+		v := l.insts[jump.index]
+		data := v.Extra.(*x86InstructionData)
+
+		inst := x86OpToInstruction(v.Op)
+		jumpLength := int64(data.Args[0].(uint64))
+
+		// Check whether we can encode the jump in an
+		// 8-bit or 16-bit version of the same jump.
+
+		newUID8 := strings.Replace(inst.UID, "32", "8", 1)
+		inst8, ok := x86.InstructionsByUID[newUID8]
+		if ok && inst8.Supports(ctx.Mode) && math.MinInt8 <= jumpLength && jumpLength <= math.MaxInt8 {
+			v.Op = x86Opcodes[newUID8]
+			err := x86EncodeInstruction(&code, ctx.Mode, v.Op, data)
+			if err != nil {
+				return err
+			}
+
+			l.Debugf("%s: shortened jump to %s to 8 bits", l.fset.Position(v.Pos), jump.target)
+			data.Length = uint8(code.Len())
 			continue
 		}
 
+		newUID16 := strings.Replace(inst.UID, "32", "16", 1)
+		inst16, ok := x86.InstructionsByUID[newUID16]
+		if ok && inst16.Supports(ctx.Mode) && math.MinInt16 <= jumpLength && jumpLength <= math.MaxInt16 {
+			v.Op = x86Opcodes[newUID16]
+			err := x86EncodeInstruction(&code, ctx.Mode, v.Op, data)
+			if err != nil {
+				return err
+			}
+
+			l.Debugf("%s: shortened jump to %s to 16 bits", l.fset.Position(v.Pos), jump.target)
+			data.Length = uint8(code.Len())
+			continue
+		}
+	}
+
+	// Next, re-calculate jump distances,
+	// after any optimisations.
+	for _, jump := range l.blockJumps {
+		v := l.insts[jump.index]
+		data := v.Extra.(*x86InstructionData)
+		oldLength := int64(data.Args[0].(uint64))
+		target := l.blockOffsets[jump.target] // We've checked this already above.
+		jumpLength := calculateJumpDistance(l.insts, target, jump.index)
+		l.Debugf("%s: recalculated jump distance to %s from %d to %d", l.fset.Position(v.Pos), jump.target, oldLength, jumpLength)
+		data.Args[0] = uint64(jumpLength + int64(data.Length)) // Offset the subtraction done in the encoding process.
+	}
+
+	// Finally, complete any link references.
+	var offset int
+	for _, v := range l.insts {
+		data := v.Extra.(*x86InstructionData)
 		for i, arg := range data.Args {
 			if arg == nil {
 				break
@@ -213,8 +284,22 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 
 // doBlock lowers the logical instructions in block to
 // x86-64 machine instructions.
-func (l *x86Lowerer) doBlock(block *ssafir.Block) error {
+func (l *x86Lowerer) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.Block) error {
+	if done[block] {
+		l.Debugf("%s: skipping block, which has already been lowered", block)
+		return nil
+	}
+
+	if block == stopAt {
+		l.Debugf("%s: stopping early, as requested", block)
+		return nil
+	}
+
+	done[block] = true
+
 	l.block = block
+	l.blockOffsets[block] = len(l.insts)
+	l.Debugf("%s: starting block at offset %06x", block, len(l.insts))
 
 	for _, v := range block.Values {
 		switch v.Op {
@@ -319,8 +404,123 @@ func (l *x86Lowerer) doBlock(block *ssafir.Block) error {
 	}
 
 	switch block.Kind {
+	case ssafir.BlockNormal:
+		for _, next := range block.Successors {
+			l.Debugf("%s: continuing to next block %s, stopping at %s", block, next.Block(), stopAt)
+			err := l.doBlock(done, next.Block(), stopAt)
+			if err != nil {
+				return err
+			}
+		}
+	case ssafir.BlockIf:
+		// This block ends with an if statement
+		// so we need to insert one or more
+		// jumps.
+		//
+		// If we have just an if block, then we
+		// place the if block immediately after
+		// this block and skip over it if the
+		// condition evaluates to false. In this
+		// approach, the if path won't jump.
+		//
+		// If we have both if and else blocks,
+		// then we place the if block after
+		// this block and the else block after
+		// that. We jump to the else block if
+		// the condition is false. We add an
+		// unconditional jump after the if
+		// block. This means that each path
+		// will have a single jump.
+		//
+		// To summarise, we always place the
+		// if block after this block, followed
+		// by any else block. Then the next
+		// block comes. We always have an
+		// inverted jump to after the if
+		// block and if there is an else
+		// block, we have an unconditional
+		// jump after the if block to jump
+		// over the else block.
+		var elseJump ssafir.Op // Note that this is always the opposite of the condition.
+		switch block.Control.Op.Info().Group {
+		case ssafir.OpEqual:
+			elseJump = ssafir.OpX86_JNE_Rel32
+		case ssafir.OpNotEqual:
+			elseJump = ssafir.OpX86_JE_Rel32
+		case ssafir.OpLessThan:
+			elseJump = ssafir.OpX86_JNL_Rel32
+		case ssafir.OpLessThanOrEqual:
+			elseJump = ssafir.OpX86_JNLE_Rel32
+		case ssafir.OpGreaterThan:
+			elseJump = ssafir.OpX86_JNG_Rel32
+		case ssafir.OpGreaterThanOrEqual:
+			elseJump = ssafir.OpX86_JNGE_Rel32
+		default:
+			return fmt.Errorf("internal error: unexpected control operation %s", block.Control.Op)
+		}
+
+		// Work out whether we have an else
+		// block.
+		//
+		// If we do, our second successor
+		// will be the else block and thus
+		// have only one predecessor.
+		//
+		// If not, it will be the next block,
+		// which is linked to by both us and
+		// the if block.
+		haveElse := len(block.Successors[1].Block().Predecessors) == 1
+		ifBlock := block.Successors[0].Block()
+		nextBlock := block.Successors[1].Block()
+		afterIfBlock := nextBlock
+		finalBlock := block.Successors[2].Block() // The block after the if/else blocks.
+		var elseBlock *ssafir.Block
+		if haveElse {
+			elseBlock = nextBlock
+			nextBlock = finalBlock
+		}
+
+		// Add the jump over the if block.
+		jump := &blockJump{pos: block.Control.Pos, index: len(l.insts), target: afterIfBlock} // Jump over the if block to the else/next block.
+		l.blockJumps = append(l.blockJumps, jump)
+		l.addInst(block.Control, elseJump, &x86InstructionData{Args: [4]any{uint64(0)}})
+
+		// Append the if block.
+		l.Debugf("%s: continuing into if block %s, stopping at %s", block, ifBlock, finalBlock)
+		err := l.doBlock(done, ifBlock, finalBlock)
+		if err != nil {
+			return err
+		}
+
+		// If we have an else block, then
+		// we need to add an unconditional
+		// jump to the next block and then
+		// the contents of the else block.
+		if haveElse {
+			jump := &blockJump{pos: block.Control.Pos, index: len(l.insts), target: nextBlock}
+			l.blockJumps = append(l.blockJumps, jump)
+			l.addInst(block.Control, ssafir.OpX86_JMP_Rel32, &x86InstructionData{Args: [4]any{uint64(0)}})
+
+			// Append the else block.
+			l.Debugf("%s: continuing into else block %s, stopping at %s", block, elseBlock, finalBlock)
+			err = l.doBlock(done, elseBlock, finalBlock)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Finally, add the next block.
+		l.Debugf("%s: continuing to next block %s, stopping at %s", block, nextBlock, stopAt)
+		return l.doBlock(done, nextBlock, stopAt)
 	case ssafir.BlockReturn:
+		// This block ends with a return, which
+		// may be implicit. Here we add the RET
+		// instruction.
 		l.addInst(block.Control, ssafir.OpX86_RET, new(x86InstructionData))
+
+		// We stop here, as there's no point
+		// in adding more blocks after a
+		// return.
 	}
 
 	return nil

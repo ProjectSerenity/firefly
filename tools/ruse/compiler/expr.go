@@ -740,6 +740,50 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		}
 
 		return v, nil
+	case types.SpecialFormIf:
+		// Start by compiling the condition.
+		cond, err := c.CompileExpression(list.Elements[1])
+		if err != nil {
+			return nil, err
+		}
+
+		// Close out the current block.
+		c.Debugf("%s: using %s as condition", cond, cond)
+		startBlock := c.currentBlock
+		startBlock.Control = cond
+		cond.Uses++
+
+		// Compile the if block.
+		ifBlock := c.Block(ssafir.BlockIf, list.Elements[2].Pos(), ssafir.BlockNormal)
+		ifBlock.Finish(list.Elements[2].End(), ssafir.BlockNormal, nil)
+		ifValue, err := c.CompileExpression(list.Elements[2])
+		if err != nil {
+			return nil, err
+		}
+
+		c.Debugf("%s: using %s as if block", ifValue, ifValue)
+		c.currentBlock = startBlock
+
+		// Compile any else block.
+		var elseBlock *ssafir.Block
+		if len(list.Elements) > 3 {
+			elseBlock = c.Block(ssafir.BlockIf, list.Elements[3].Pos(), ssafir.BlockNormal)
+			elseBlock.Finish(list.Elements[3].End(), ssafir.BlockNormal, nil)
+			elseValue, err := c.CompileExpression(list.Elements[3])
+			if err != nil {
+				return nil, err
+			}
+
+			c.Debugf("%s: using %s as else block", elseValue, elseValue)
+		}
+
+		// Create a new block for what comes
+		// next.
+		endBlock := c.Block(0, list.ParenClose+1, ssafir.BlockNormal)
+		ifBlock.AddSuccessor(endBlock)
+		startBlock.AddSuccessor(endBlock) // So we can reference it later.
+
+		return nil, nil
 	case types.SpecialFormLen:
 		// Handle calls with a constant value.
 		// Constant expressions we've already resolved.
