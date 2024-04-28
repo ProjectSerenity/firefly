@@ -309,14 +309,23 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 				// If we're continuing a bigger op, we
 				// carry on where we left off.
 				dst := a.locations[v.Args[0]][0] // The first operand.
-				if v.ID != v.Args[0].ID {
+				skipAlloc := false
+				if v.Uses == 1 && v == block.Control {
+					skipAlloc = true
+					dst = nil
+					a.Debugf("%s: skipping allocation, as value is just used as block control", v)
+				}
+
+				if v.ID != v.Args[0].ID && !skipAlloc {
 					dst = a.GetLocation() // Use a new destination.
 				}
 
 				src := a.locations[v.Args[0]][0] // The first operand.
 				arg := a.locations[v.Args[1]][0] // The other operand.
-				a.locations[v] = []sys.Location{dst}
-				a.allocated[dst] = v
+				if !skipAlloc {
+					a.locations[v] = []sys.Location{dst}
+					a.allocated[dst] = v
+				}
 				alloc := &Alloc{Dst: dst, Src: src, Data: arg}
 				a.Debugf("%s: %s: inputs %s (%s) and %s (%s) => %s", v, v.Op, v.Args[0], src, v.Args[1], arg, dst)
 				a.addAlloc(v, alloc)

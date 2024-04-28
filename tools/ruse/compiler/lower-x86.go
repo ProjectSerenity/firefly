@@ -1090,6 +1090,13 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 			},
 		})
 
+		// If we're just used as block control,
+		// we don't need to store the value, as
+		// we use the flags directly instead.
+		if alloc.Dst == nil {
+			return
+		}
+
 		// Then we store the result.
 		data.Args[0] = x86RegisterTo8(alloc.Dst)
 		data.Args[1] = nil // There is no second arg.
