@@ -8,7 +8,10 @@ package compiler
 import (
 	"fmt"
 	"math"
+	"os"
+	"runtime"
 	"strconv"
+	"strings"
 
 	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/constant"
@@ -68,6 +71,9 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 		arch:     arch,
 		sizes:    sizes,
 		function: fun,
+		debug:    os.Getenv("RUSE_DEBUG_LOWER") == fun.Name,
+
+		blockOffsets: make(map[*ssafir.Block]int),
 	}
 
 	ctx := &x86Context{
@@ -330,6 +336,25 @@ type x86Lowerer struct {
 	block    *ssafir.Block
 	insts    []*ssafir.Value
 	function *ssafir.Function
+	debug    bool
+
+	blockJumps   []*blockJump
+	blockOffsets map[*ssafir.Block]int
+}
+
+func (l *x86Lowerer) Debugf(format string, v ...any) {
+	if !l.debug {
+		return
+	}
+
+	msg := fmt.Sprintf(format, v...)
+	_, file, line, ok := runtime.Caller(1)
+	if !ok {
+		file = "???"
+		line = 0
+	}
+
+	fmt.Fprintf(os.Stderr, "%s:%d: %s\n", file, line, msg)
 }
 
 // addInst creates a copy of the given SSAFIR

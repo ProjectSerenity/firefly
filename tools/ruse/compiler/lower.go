@@ -14,6 +14,16 @@ import (
 	"firefly-os.dev/tools/ruse/types"
 )
 
+// blockJump represents a jump to the start of a block.
+// This is used as a placeholder while compiling to
+// help track where we're jumping while we're part-way
+// through compiling.
+type blockJump struct {
+	pos    token.Pos
+	index  int
+	target *ssafir.Block
+}
+
 // Lower takes SSAFIR values with register allocations
 // provided by `Allocate` and lowers the instructions
 // to architecture-specific instructions.
