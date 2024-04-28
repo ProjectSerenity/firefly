@@ -587,7 +587,7 @@ func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assemb
 		for _, ref := range label.Refs {
 			v := fun.Entry.Values[ref]
 			data := v.Extra.(*x86InstructionData)
-			jumpLength := ctx.calculateJumpDistance(label, ref)
+			jumpLength := calculateJumpDistance(ctx.Func.Entry.Values, label.Index, ref)
 
 			// First, check we can store the jump in a 32-bit
 			// relative (signed) address.
@@ -645,7 +645,7 @@ func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assemb
 		label := ctx.Labels[name]
 		for _, ref := range label.Refs {
 			data := fun.Entry.Values[ref].Extra.(*x86InstructionData)
-			jumpLength := ctx.calculateJumpDistance(label, ref)
+			jumpLength := calculateJumpDistance(ctx.Func.Entry.Values, label.Index, ref)
 			data.Args[0] = uint64(jumpLength + int64(data.Length)) // Offset the subtraction done in the encoding process.
 		}
 	}
@@ -689,11 +689,11 @@ func assembleX86(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, assemb
 // number of machine code bytes between a
 // jump instruction and the location label
 // it jumps to.
-func (ctx *x86Context) calculateJumpDistance(label *x86Label, ref int) int64 {
+func calculateJumpDistance(values []*ssafir.Value, label, jump int) int64 {
 	// For each use, calculate the jump distance. For
 	// backwards jumps (where the label is declared
 	// before the jump), we iterate from the instruction
-	// immediately after the label (at label.Index) to
+	// immediately after the label (at label) to
 	// the index of the jump instruction, including all
 	// of the instruction lengths (including the jump).
 	//
@@ -715,16 +715,16 @@ func (ctx *x86Context) calculateJumpDistance(label *x86Label, ref int) int64 {
 	// jumps that exceed 32 bits in length, rather than
 	// wrapping silently.
 	var jumpLength int64
-	if label.Index <= ref {
+	if label <= jump {
 		// Backwards jump.
-		for i := label.Index; i <= ref; i++ {
-			data := ctx.Func.Entry.Values[i].Extra.(*x86InstructionData)
+		for i := label; i <= jump; i++ {
+			data := values[i].Extra.(*x86InstructionData)
 			jumpLength -= int64(data.Length)
 		}
 	} else {
 		// Forwards jump.
-		for i := ref + 1; i < label.Index; i++ {
-			data := ctx.Func.Entry.Values[i].Extra.(*x86InstructionData)
+		for i := jump + 1; i < label; i++ {
+			data := values[i].Extra.(*x86InstructionData)
 			jumpLength += int64(data.Length)
 		}
 	}
