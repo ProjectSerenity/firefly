@@ -50,7 +50,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
 	flags.BoolVar(&symbolTable, "symbol-table", true, "Include a symbol table in the compiled binary.")
 	flags.BoolVar(&provenance, "provenance", true, "Include the set of input rpkg files in the compiled binary.")
-	flags.BoolVar(&aslr, "aslr", false, "Build a relocatable binary compatible with Address Space Layout Randomisation (ASLR).")
+	flags.BoolVar(&aslr, "aslr", true, "Build a relocatable binary compatible with Address Space Layout Randomisation (ASLR).")
 	flags.BoolVar(&debugOptimisations, "debug-optimisations", false, "Print log messages about optimisation decisions.")
 	flags.BoolVar(&debugPerformance, "debug-performance", false, "Print log messages about the individual and cumulative duration of each step.")
 	flags.Func("binary", "The binary encoding (elf).", func(s string) error {
