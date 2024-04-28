@@ -955,8 +955,6 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		return nil, err
 	}
 
-	c.Debugf("%s: binary operation %s with %d args", v, op, len(args))
-
 	return v, nil
 }
 
@@ -970,8 +968,10 @@ func (c *compiler) CompileBinaryOperation(args []ast.Expression, op ssafir.Op, t
 	}
 
 	v = c.Value(args[0].Pos(), args[1].End(), op, typ, values[0], values[1])
+	c.Debugf("%s: binary operation %s with %d args: %s and %s", v, op, len(args), values[0], values[1])
 	for i := 2; i < len(args); i++ {
 		v = c.ContinueValue(v, args[i-1].Pos(), args[i].End(), op, typ, v, values[i])
+		c.Debugf("%s: continuing binary operation %s with %d args: %s and %s", v, op, len(args), v, values[i])
 	}
 
 	return v, nil

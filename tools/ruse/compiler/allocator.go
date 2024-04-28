@@ -185,62 +185,17 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 		ignoreIdempotent(v)
 	}
 
-	// Next, we iterate through the values
-	// so that we can detect the point at
-	// which each value is referenced for
-	// the last time. This means that we
-	// can drop values as soon as they are
-	// no longer needed. This allows us to
-	// avoid unnecessary copies by avoiding
-	// tracking values we will not use any
-	// more.
-	//
-	// We do this by keeping track of the
-	// value index whenever each value is
-	// consumed, then inverting it to the
-	// set of values dropped at each index.
-	lastUseIndex := make(map[*ssafir.Value]int)
-	for i, v := range values {
-		for _, arg := range v.Args {
-			lastUseIndex[arg] = i
-		}
-	}
-
-	droppedValues := make([][]*ssafir.Value, len(values))
-	for v, i := range lastUseIndex {
-		droppedValues[i] = append(droppedValues[i], v)
-	}
-
 	calleeIsScratch := make(map[sys.Location]bool, len(a.registers))
-	for i, v := range values {
-		dropped := droppedValues[i]
+	for _, v := range values {
 		switch v.Op {
 		case ssafir.OpMakeMemoryState:
 			// We can ignore these.
 		case ssafir.OpMakeResult:
 			a.Debugf("%s: preparing a result", v)
 			a.PrepareResult(v)
-
-			// Drop the input if it's not
-			// used again.
-			for _, drop := range dropped {
-				if drop != a.function.Entry.Control {
-					a.Debugf("%s: dropping %s at function exit, as it's not a control", v, drop)
-					a.DropValue(drop)
-				}
-			}
 		case ssafir.OpReturn:
 			a.Debugf("%s: preparing a result", v)
 			a.PrepareResult(v)
-
-			// Drop the input if it's not
-			// used again.
-			for _, drop := range dropped {
-				if drop != a.function.Entry.Control {
-					a.Debugf("%s: dropping %s at function exit, as it's not a control", v, drop)
-					a.DropValue(drop)
-				}
-			}
 
 			// Finally, add a return with
 			// no allocation to signal
@@ -262,7 +217,7 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 			// If we're dropping the input, then
 			// it's a move. If not, it's a full
 			// copy.
-			if len(dropped) == 1 && len(v.Args) == 1 && dropped[0] == v.Args[0] {
+			if len(v.Args) == 1 && v.Args[0].Uses == 1 {
 				a.Debugf("%s: moving %s to %s", v, v.Args[0], v)
 				a.MoveValue(v, v.Args[0])
 			} else {
@@ -456,9 +411,16 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 		}
 
 		// Drop any unused values.
-		for _, drop := range dropped {
-			a.Debugf("%s: dropping %s after %s", v, drop, v)
-			a.DropValue(drop)
+		for i, arg := range v.Args {
+			if arg.Uses == 0 {
+				return fmt.Errorf("internal error: %s.Args[%d] (%s) already had zero uses", v, i, arg)
+			}
+
+			arg.Uses--
+			if arg.Uses == 0 {
+				a.Debugf("%s: dropping %s after %s", v, arg, v)
+				a.DropValue(arg)
+			}
 		}
 	}
 
