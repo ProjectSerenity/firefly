@@ -966,9 +966,6 @@ func (op *arithmeticOp) signature(c *checker, scope *Scope, function *Function, 
 
 	c.record(fun, sig, value)
 	c.record(fun.Elements[0], sig, nil)
-	for i, arg := range fun.Elements[1:] {
-		c.record(arg, sig.result[0], constants[i])
-	}
 
 	return sig, sig, nil
 }
