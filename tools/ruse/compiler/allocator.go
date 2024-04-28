@@ -88,7 +88,8 @@ func Allocate(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, pkg *Packa
 // run is the main loop for register allocation.
 func (a *allocator) run() error {
 	// Process the function, block by block.
-	err := a.function.Entry.ForEach(a.fset, a.doBlock)
+	a.Debugf("%s: starting at entry point for %s", a.function.Entry, a.function.Name)
+	err := a.doBlock(make(map[*ssafir.Block]bool), a.function.Entry, nil)
 	if err != nil {
 		return err
 	}
@@ -158,7 +159,19 @@ func (a *allocator) run() error {
 // doBlock performs register allocation for the
 // given block. The resulting values are used to
 // overwrite b.Values.
-func (a *allocator) doBlock(block *ssafir.Block) error {
+func (a *allocator) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.Block) error {
+	if done[block] {
+		a.Debugf("%s: skipping block, which has already been lowered", block)
+		return nil
+	}
+
+	if block == stopAt {
+		a.Debugf("%s: stopping early, as requested", block)
+		return nil
+	}
+
+	done[block] = true
+
 	a.block = block
 	values := block.Values
 	block.Values = nil
@@ -435,6 +448,65 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 
 	block.Values = a.allocs
 	a.allocs = nil
+
+	switch block.Kind {
+	case ssafir.BlockNormal:
+		for _, next := range block.Successors {
+			a.Debugf("%s: continuing to next block %s, stopping at %s", block, next.Block(), stopAt)
+			err := a.doBlock(done, next.Block(), stopAt)
+			if err != nil {
+				return err
+			}
+		}
+	case ssafir.BlockIf:
+		// Work out whether we have an else
+		// block.
+		//
+		// If we do, our second successor
+		// will be the else block and thus
+		// have only one predecessor.
+		//
+		// If not, it will be the next block,
+		// which is linked to by both us and
+		// the if block.
+		haveElse := len(block.Successors[1].Block().Predecessors) == 1
+		ifBlock := block.Successors[0].Block()
+		nextBlock := block.Successors[1].Block()
+		finalBlock := block.Successors[2].Block() // The block after the if/else blocks.
+		var elseBlock *ssafir.Block
+		if haveElse {
+			elseBlock = nextBlock
+			nextBlock = finalBlock
+		}
+
+		// Append the if block.
+		a.Debugf("%s: continuing into if block %s, stopping at %s", block, ifBlock, finalBlock)
+		err := a.doBlock(done, ifBlock, finalBlock)
+		if err != nil {
+			return err
+		}
+
+		// If we have an else block, then
+		// we need to add an unconditional
+		// jump to the next block and then
+		// the contents of the else block.
+		if haveElse {
+			// Append the else block.
+			a.Debugf("%s: continuing into else block %s, stopping at %s", block, elseBlock, finalBlock)
+			err = a.doBlock(done, elseBlock, finalBlock)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Finally, add the next block.
+		a.Debugf("%s: continuing to next block %s, stopping at %s", block, nextBlock, stopAt)
+		return a.doBlock(done, nextBlock, stopAt)
+	case ssafir.BlockReturn:
+		// We stop here, as there's no point
+		// in adding more blocks after a
+		// return.
+	}
 
 	return nil
 }

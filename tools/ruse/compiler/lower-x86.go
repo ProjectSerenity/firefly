@@ -157,11 +157,6 @@ func lowerX86(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, fun *ssafi
 	}, ssafir.OpX86_ENDBR64, &x86InstructionData{})
 
 	// Lower the remaining instructions.
-	//
-	// Note that we don't use block.ForEach,
-	// as we need to be able to control the
-	// flow of lowering for if blocks, which
-	// may need to have a specific order.
 	l.Debugf("%s: starting at entry point for %s", l.function.Entry, l.function.Name)
 	err = l.doBlock(make(map[*ssafir.Block]bool), l.function.Entry, nil)
 	if err != nil {

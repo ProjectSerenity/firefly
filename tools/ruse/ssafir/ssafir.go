@@ -325,56 +325,6 @@ func (b *Block) AddSuccessor(o *Block) {
 	o.Predecessors = append(o.Predecessors, eo)
 }
 
-// ForEach calls f with each successive block, starting
-// with b.
-func (b *Block) ForEach(fset *token.FileSet, f func(*Block) error) error {
-	// Make sure we don't process any
-	// blocks more than once.
-	done := make(map[*Block]bool)
-	var doBlock func(block *Block) error
-	doBlock = func(block *Block) error {
-		if done[block] {
-			// We've already done this block.
-			return nil
-		}
-
-		done[block] = true
-
-		err := f(block)
-		if err != nil {
-			return err
-		}
-
-		// Work out where to go next.
-		switch block.Kind {
-		case BlockNormal:
-			for _, next := range block.Successors {
-				err := doBlock(next.Block())
-				if err != nil {
-					return err
-				}
-			}
-		case BlockIf:
-			for _, next := range block.Successors {
-				err := doBlock(next.Block())
-				if err != nil {
-					return err
-				}
-			}
-		case BlockReturn:
-			// Any blocks after a return
-			// are dead code, so we stop
-			// here.
-		default:
-			return fmt.Errorf("%s: internal error: cannot process block %s: unsupported block kind %s", fset.Position(block.Pos), block, block.Kind)
-		}
-
-		return nil
-	}
-
-	return doBlock(b)
-}
-
 // Finish marks the block as ending at the given position,
 // with the given kind.
 func (b *Block) Finish(end token.Pos, kind BlockKind, control *Value) {
