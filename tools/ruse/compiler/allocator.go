@@ -7,6 +7,8 @@ package compiler
 
 import (
 	"fmt"
+	"os"
+	"runtime"
 	"slices"
 	"strings"
 
@@ -112,6 +114,7 @@ func (a *allocator) run() error {
 		// entry point.
 		for i := 0; i < len(used); i++ {
 			loc := used[i]
+			a.Debugf("preserving callee-saved register %s", loc)
 			values = append(values, &ssafir.Value{
 				ID:    0, // This is special.
 				Op:    ssafir.OpSaveRegister,
@@ -122,6 +125,7 @@ func (a *allocator) run() error {
 			})
 		}
 
+		a.Debugf("prepending register preservation to block %s", a.function.Blocks[0])
 		a.function.Blocks[0].Values = append(values, a.function.Blocks[0].Values...)
 
 		// Add the restores in reverse order to
@@ -129,6 +133,7 @@ func (a *allocator) run() error {
 		suffix := make([]*ssafir.Value, 0, len(used))
 		for i := len(used); i > 0; i-- {
 			loc := used[i-1]
+			a.Debugf("restoring callee-saved register %s", loc)
 			suffix = append(suffix, &ssafir.Value{
 				ID:    0, // This is special.
 				Op:    ssafir.OpRestoreRegister,
@@ -141,6 +146,7 @@ func (a *allocator) run() error {
 
 		for _, block := range a.function.Blocks {
 			if block.Kind == ssafir.BlockReturn {
+				a.Debugf("appending register restoration to block %s", block)
 				block.Values = append(block.Values, suffix...)
 			}
 		}
@@ -167,6 +173,7 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 			ssafir.OpCopy:
 			if v.Uses == 0 {
 				for _, arg := range v.Args {
+					a.Debugf("decrementing %s, as %s is unused", arg, v)
 					arg.Uses--
 					ignoreIdempotent(arg)
 				}
@@ -211,23 +218,27 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 		case ssafir.OpMakeMemoryState:
 			// We can ignore these.
 		case ssafir.OpMakeResult:
+			a.Debugf("%s: preparing a result", v)
 			a.PrepareResult(v)
 
 			// Drop the input if it's not
 			// used again.
-			for _, v := range dropped {
-				if v != a.function.Entry.Control {
-					a.DropValue(v)
+			for _, drop := range dropped {
+				if drop != a.function.Entry.Control {
+					a.Debugf("%s: dropping %s at function exit, as it's not a control", v, drop)
+					a.DropValue(drop)
 				}
 			}
 		case ssafir.OpReturn:
+			a.Debugf("%s: preparing a result", v)
 			a.PrepareResult(v)
 
 			// Drop the input if it's not
 			// used again.
-			for _, v := range dropped {
-				if v != a.function.Entry.Control {
-					a.DropValue(v)
+			for _, drop := range dropped {
+				if drop != a.function.Entry.Control {
+					a.Debugf("%s: dropping %s at function exit, as it's not a control", v, drop)
+					a.DropValue(drop)
 				}
 			}
 
@@ -235,8 +246,10 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 			// no allocation to signal
 			// where the return instruction
 			// goes.
+			a.Debugf("%s: adding a signalling value with no allocation", v)
 			a.addAlloc(v, nil)
 		case ssafir.OpParameter:
+			a.Debugf("%s: noting a parameter", v)
 			a.NoteParameter(v)
 		case ssafir.OpConstantInt64,
 			ssafir.OpConstantUint64,
@@ -250,8 +263,10 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 			// it's a move. If not, it's a full
 			// copy.
 			if len(dropped) == 1 && len(v.Args) == 1 && dropped[0] == v.Args[0] {
+				a.Debugf("%s: moving %s to %s", v, v.Args[0], v)
 				a.MoveValue(v, v.Args[0])
 			} else {
+				a.Debugf("%s: copying %s to %s", v, v.Args[0], v)
 				a.AddValue(v)
 			}
 		case ssafir.OpFunctionCall:
@@ -281,9 +296,11 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 				calleeIsScratch[reg] = true
 			}
 			for _, reg := range calleeABI.ScratchRegisters {
+				a.Debugf("%s: %s: checking whether we need to save caller-saved register %s", v, fun.Name(), reg)
 				a.SaveValue(reg, calleeIsScratch)
 			}
 			for _, reg := range calleeABI.ResultRegisters {
+				a.Debugf("%s: %s: checking whether we need to save result register %s", v, fun.Name(), reg)
 				a.SaveValue(reg, calleeIsScratch)
 			}
 
@@ -292,6 +309,7 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 			// ABI.
 			locs := a.arch.Parameters(calleeABI, args)
 			for i, v := range v.Args {
+				a.Debugf("%s: %s: preparing parameter %s to %v", v, fun.Name(), v, locs[i])
 				a.PrepareParameter(fun, sig, locs[i], v, calleeIsScratch)
 			}
 
@@ -310,6 +328,7 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 			}
 
 			if v.Uses != 0 {
+				a.Debugf("%s: %s: saving result from %s", v, fun.Name(), v.Args[0])
 				a.SaveResult(fun, sig, calleeABI, v)
 			}
 		default:
@@ -344,6 +363,7 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 				a.locations[v] = []sys.Location{dst}
 				a.allocated[dst] = v
 				alloc := &Alloc{Dst: dst, Src: src, Data: arg}
+				a.Debugf("%s: %s: inputs %s (%s) and %s (%s) => %s", v, v.Op, v.Args[0], src, v.Args[1], arg, dst)
 				a.addAlloc(v, alloc)
 
 			// Arithmetic operations with only one operand.
@@ -355,6 +375,7 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 				a.locations[v] = []sys.Location{dst}
 				a.allocated[dst] = v
 				alloc := &Alloc{Dst: dst, Src: src, Data: src}
+				a.Debugf("%s: %s: inputs %s (%s) => %s", v, v.Op, v.Args[0], src, dst)
 				a.addAlloc(v, alloc)
 
 			// Arithmetic operations with a fixed first operand register.
@@ -383,6 +404,7 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 				a.locations[v] = []sys.Location{dst}
 				a.allocated[dst] = v
 				alloc := &Alloc{Dst: dst, Src: src, Data: arg}
+				a.Debugf("%s: %s: inputs %s (%s) and %s (%s) => %s", v, v.Op, v.Args[0], src, v.Args[1], arg, dst)
 				a.addAlloc(v, alloc)
 
 			// Arithmetic operations with a fixed second operand register.
@@ -392,14 +414,15 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 				// it when we lower the code.
 
 				clear(calleeIsScratch)
-				for _, v := range v.Args {
+				for _, arg := range v.Args {
 					// Add the value if it's not been
 					// stored yet.
-					if a.locations[v] == nil {
-						a.AddValue(v)
+					if a.locations[arg] == nil {
+						a.Debugf("%s: adding %s for use as input to %s", v, arg, v)
+						a.AddValue(arg)
 					}
 
-					calleeIsScratch[a.locations[v][0]] = true
+					calleeIsScratch[a.locations[arg][0]] = true
 				}
 
 				// We have a special case for when the
@@ -421,6 +444,7 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 
 				dst := a.GetLocation()
 				src := a.locations[v.Args[0]][0] // The first operand.
+				a.Debugf("%s: %s: inputs %s (%s) and %s => %s", v, v.Op, v.Args[0], src, arg, dst)
 				alloc := &Alloc{Dst: dst, Src: src, Data: arg}
 
 				a.locations[v] = []sys.Location{dst}
@@ -433,6 +457,7 @@ func (a *allocator) doBlock(block *ssafir.Block) error {
 
 		// Drop any unused values.
 		for _, drop := range dropped {
+			a.Debugf("%s: dropping %s after %s", v, drop, v)
 			a.DropValue(drop)
 		}
 	}
@@ -470,6 +495,22 @@ type allocator struct {
 	allocated map[sys.Location]*ssafir.Value
 	locations map[*ssafir.Value][]sys.Location
 	stack     []*ssafir.Value
+	debug     bool
+}
+
+func (a *allocator) Debugf(format string, v ...any) {
+	if !a.debug {
+		return
+	}
+
+	msg := fmt.Sprintf(format, v...)
+	_, file, line, ok := runtime.Caller(1)
+	if !ok {
+		file = "???"
+		line = 0
+	}
+
+	fmt.Fprintf(os.Stderr, "%s:%d: %s\n", file, line, msg)
 }
 
 // newAllocator prepares a register allocator for
@@ -531,6 +572,7 @@ func newAllocator(fset *token.FileSet, arch *sys.Arch, sizes types.Sizes, pkg *P
 		function:  fun,
 		allocated: make(map[sys.Location]*ssafir.Value, len(arch.ABIRegisters)),
 		locations: make(map[*ssafir.Value][]sys.Location, len(arch.ABIRegisters)),
+		debug:     os.Getenv("RUSE_DEBUG_ALLOC") == fun.Name,
 	}
 
 	return a
@@ -616,6 +658,7 @@ func (a *allocator) NoteParameter(v *ssafir.Value) {
 			panic(fmt.Sprintf("NoteParameter(%d, %s): location %s is already occupied by %s", v.ExtraInt, v, loc, other))
 		}
 
+		a.Debugf("%s: noting parameter %d in %s (%s) with op %s", v, v.ExtraInt, v, loc, v.Op)
 		a.addAlloc(v, &Alloc{Dst: loc, Data: v.ExtraInt})
 
 		if v.Uses != 0 {
@@ -646,6 +689,7 @@ func (a *allocator) AddValue(v *ssafir.Value) {
 		dst := a.GetLocation()
 		a.allocated[dst] = v
 		a.locations[v] = append(a.locations[v], dst)
+		a.Debugf("%s: adding %s at %s", v, v, dst)
 		a.addOpAlloc(v, ssafir.OpCopy, &Alloc{Dst: dst, Data: v.Extra})
 
 		return
@@ -656,6 +700,7 @@ func (a *allocator) AddValue(v *ssafir.Value) {
 		dst := a.GetLocation()
 		a.allocated[dst] = v
 		a.locations[v] = append(a.locations[v], dst)
+		a.Debugf("%s: adding %s at %s", v, v, dst)
 		a.addOpAlloc(v, ssafir.OpCopy, &Alloc{Dst: dst, Src: loc, Data: v.Extra})
 	}
 }
@@ -685,6 +730,7 @@ func (a *allocator) SaveValue(reg sys.Location, avoid map[sys.Location]bool) {
 		// We can save to candidate.
 		a.allocated[candidate] = v
 		a.allocated[reg] = nil
+		a.Debugf("%s: saving %s to %s", v, v, candidate)
 		a.addOpAlloc(v, ssafir.OpCopy, &Alloc{Dst: candidate, Src: reg})
 
 		locs := a.locations[v]
@@ -734,10 +780,12 @@ func (a *allocator) MoveValue(new, old *ssafir.Value) {
 	}
 
 	if new.Uses == 0 && old.Uses == 0 {
+		a.Debugf("%s: moving %s with op %s, as neither %s nor %s is used", new, new, new.Op, old, new)
 		a.allocs = append(a.allocs, new)
 	}
 
 	for _, loc := range a.locations[old] {
+		a.Debugf("%s: moving %s (%s) to %s (%s)", new, old, loc, new, loc)
 		a.addOpAlloc(new, ssafir.OpCopy, &Alloc{Dst: loc, Src: loc})
 		if new.Uses != 0 {
 			a.allocated[loc] = new
@@ -754,6 +802,8 @@ func (a *allocator) DropValue(v *ssafir.Value) {
 		a.addOpAlloc(v, ssafir.OpDrop, &Alloc{Src: loc})
 		if a.allocated[loc] == v {
 			a.allocated[loc] = nil // We don't delete, so we know the location has been used.
+		} else {
+			a.Debugf("%s: dropping %s, but %s is already occupied by %s", v, v, loc, a.allocated[loc])
 		}
 	}
 
@@ -778,6 +828,7 @@ func (a *allocator) PrepareResult(v *ssafir.Value) {
 			// Check old values.
 			if len(oldLocs) == 0 {
 				// Store the value.
+				a.Debugf("%s: storing result %s %v to %s", v, v, v.Args[1].Extra, loc)
 				a.addAlloc(v, &Alloc{Dst: loc, Data: v.Args[i].Extra})
 			} else {
 				// Handle any existing values.
@@ -795,6 +846,7 @@ func (a *allocator) PrepareResult(v *ssafir.Value) {
 					a.locations[old] = append(a.locations[old][:0], truncated...)
 				}
 
+				a.Debugf("%s: storing result %s in %s to %s", v, v, oldLoc, loc)
 				a.addAlloc(v, &Alloc{Dst: loc, Src: oldLoc})
 			}
 		}
@@ -817,6 +869,7 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 		// destination location, we need to
 		// save it before overwriting.
 		if a.allocated[loc] != nil {
+			a.Debugf("%s: saving value at %s to make space for parameter %s", v, loc, v)
 			a.SaveValue(loc, avoid)
 		}
 
@@ -841,8 +894,10 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 				case 0:
 					con := types.NewConstant(nil, v.Pos, v.End, nil, "", v.Type, constant.MakeString(s), 1)
 					a.pkg.Literals = append(a.pkg.Literals, con)
+					a.Debugf("%s: storing literal string pointer %s in %s", v, v, loc)
 					a.addOpAlloc(v, ssafir.OpConstantString, &Alloc{Dst: loc, Data: s})
 				case 1:
+					a.Debugf("%s: storing literal string length %s in %s", v, v, loc)
 					a.addOpAlloc(v, ssafir.OpConstantUntypedInt, &Alloc{Dst: loc, Data: int64(len(s))})
 				}
 
@@ -853,15 +908,18 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 				val := con.Value()
 				switch i {
 				case 0:
+					a.Debugf("%s: storing constant string pointer %s in %s", v, v, loc)
 					a.addOpAlloc(v, ssafir.OpConstantString, &Alloc{Dst: loc, Data: con})
 				case 1:
 					s := constant.StringVal(val)
+					a.Debugf("%s: storing constant string length %s in %s", v, v, loc)
 					a.addOpAlloc(v, ssafir.OpConstantUntypedInt, &Alloc{Dst: loc, Data: int64(len(s))})
 				}
 
 				continue
 			}
 
+			a.Debugf("%s: storing constant %s in %s with op %s", v, v, loc, v.Op)
 			a.addAlloc(v, &Alloc{Dst: loc, Data: v.Extra})
 
 			continue
@@ -870,12 +928,14 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 		// If we're copying a constant,
 		// we float as above.
 		if v.Op == ssafir.OpCopy && len(v.Args) == 1 && isConstant(v.Args[0]) {
+			a.Debugf("%s: storing constant %s to %s in %s", v, v.Args[0], v, loc)
 			a.addAlloc(v, &Alloc{Dst: loc, Data: v.Args[0].Extra})
 
 			continue
 		}
 
 		if i < len(a.locations[v]) {
+			a.Debugf("%s: storing value %s from %s in %s", v, v, a.locations[v][i], loc)
 			a.addOpAlloc(v, ssafir.OpCopy, &Alloc{Dst: loc, Src: a.locations[v][i]})
 		}
 	}
@@ -904,6 +964,7 @@ func (a *allocator) SaveResult(fun *types.Function, sig *types.Signature, abi *s
 
 		for _, loc := range locs {
 			a.allocated[loc] = v
+			a.Debugf("%s: saving result %d in %s with op %s", v, i+1, loc, v.Op)
 			a.addAlloc(v, &Alloc{Dst: loc, Src: loc})
 		}
 

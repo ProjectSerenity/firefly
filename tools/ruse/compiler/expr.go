@@ -129,6 +129,8 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 			return nil, fmt.Errorf("%s: failed to compile %s %s into value: unrecognised underlying type: %v", c.fset.Position(expr.Pos()), expr, expr.Print(), types.Underlying(typ.Type))
 		}
 
+		c.Debugf("%s: storing %s constant (%s)", v, v.Type, v.Op)
+
 		return v, nil
 	}
 
@@ -161,6 +163,8 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 						return nil, err
 					}
 
+					c.Debugf("%s: using results from function call as parameters to %s", v, obj.Name())
+
 					// Extract the results.
 					result, ok := v.Extra.(*FunctionResult)
 					if !ok {
@@ -179,11 +183,14 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 							panic(fmt.Sprintf("function param %d (%s %s) compiled to a nil value", i, elt, elt.Print()))
 						}
 
+						c.Debugf("%s: using %s as parameter %d to %s", v, v, i+1, obj.Name())
+
 						params[i] = v
 					}
 				}
 
 				v := c.ValueExtra(x.ParenOpen, x.ParenClose+1, ssafir.OpFunctionCall, sig, obj, params...)
+				c.Debugf("%s: function call", v)
 
 				// We make a separate value for each
 				// result, so that we can pair them
@@ -204,6 +211,7 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 					// Create the values.
 					for i, typ := range sig.Result() {
 						results.Result[i] = c.Value(x.ParenOpen, x.ParenClose+1, ssafir.OpFunctionResult, typ, v)
+						c.Debugf("%s: result %d saved as %s", v, i+1, results.Result[i])
 					}
 
 					// Update them to include the reference
@@ -214,6 +222,7 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 
 					// Return the first (and often only)
 					// result.
+					c.Debugf("%s: using %s as result", v, results.Result[0])
 					v = results.Result[0]
 				}
 
@@ -225,9 +234,10 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 					return nil, err
 				}
 
-				v = c.ValueExtra(x.ParenOpen, x.ParenClose+1, v.Op, typ.Type, v.Extra, v)
+				cast := c.ValueExtra(x.ParenOpen, x.ParenClose+1, v.Op, typ.Type, v.Extra, v)
+				c.Debugf("%s: casting %s (%s) to %s with op %s", cast, v, v.Type, typ.Type, v.Op)
 
-				return v, nil
+				return cast, nil
 			default:
 				panic(fmt.Sprintf("bad identifier %T", obj))
 			}
@@ -256,10 +266,13 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 						panic(fmt.Sprintf("function param %d (%s %s) compiled to a nil value", i, elt, elt.Print()))
 					}
 
+					c.Debugf("%s: using %s as parameter %d to %s", v, v, i+1, obj.Name())
+
 					params[i] = v
 				}
 
 				v := c.ValueExtra(x.ParenOpen, x.ParenClose+1, ssafir.OpFunctionCall, sig, obj, params...)
+				c.Debugf("%s: function call", v)
 
 				return v, nil
 			default:
@@ -701,6 +714,8 @@ func (c *compiler) CompileBuiltinFunction(list *ast.List, fun *types.Function, s
 			}
 
 			v := c.Value(list.ParenOpen, list.ParenClose+1, op, typ, value)
+			c.Debugf("%s: casting %s (%s) to %s with op %s", v, value, value.Type, typ, op)
+
 			return v, nil
 		}
 	}
@@ -720,6 +735,8 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			if err != nil {
 				return nil, err
 			}
+
+			c.Debugf("%s: compiled %s for (do)", v, v)
 		}
 
 		return v, nil
@@ -729,6 +746,8 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		if typeAndValue, ok := c.info.Types[list]; ok && typeAndValue.Value != nil {
 			op = ssafir.OpConstantInt64 // TODO: Pick the constant size based on the architecture.
 			v = c.ValueExtra(list.ParenOpen, list.ParenClose+1, op, types.Int, typeAndValue.Value)
+			c.Debugf("%s: using constant as value", v)
+
 			return v, nil
 		}
 
@@ -737,6 +756,8 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			op = ssafir.OpConstantInt64 // TODO: Pick the constant size based on the architecture.
 			str := constant.StringVal(typeAndValue.Value)
 			v = c.ValueInt(list.ParenOpen, list.ParenClose+1, op, types.Int, int64(len(str)))
+			c.Debugf("%s: using string constant as value", v)
+
 			return v, nil
 		}
 
@@ -747,6 +768,8 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		}
 
 		v = c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpStringLen, types.Int, value)
+		c.Debugf("%s: using %s as input to (len)", v, value)
+
 		return v, nil
 	case types.SpecialFormLet:
 		n := len(list.Elements)
@@ -768,9 +791,11 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		var values []*ssafir.Value
 		if result, ok := value.Extra.(*FunctionResult); ok && value.Op == ssafir.OpFunctionResult {
 			values = result.Result
+			c.Debugf("%s: using %d results from %s as values in (let)", value, len(values), value)
 		} else {
 			// Just one result.
 			values = []*ssafir.Value{value}
+			c.Debugf("%s: using %s as value in (let)", value, value)
 		}
 
 		// Find the identifiers.
@@ -795,6 +820,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			}
 
 			v = c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpCopy, values[i].Type, values[i])
+			c.Debugf("%s: storing value %d to name %q in %s", v, i+1, ident.Name, v)
 			c.vars[lhs] = v
 		}
 
@@ -808,6 +834,8 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			if err != nil {
 				return nil, err
 			}
+
+			c.Debugf("%s: using %s as return value %d", v, args[i], i+1)
 		}
 
 		// Get our result signature.
@@ -816,12 +844,13 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			return nil, fmt.Errorf("%s: internal error: failed to determine type of result statement", c.fset.Position(list.ParenOpen))
 		}
 
-		v = c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpReturn, typeAndValue.Type, args...)
+		ret := c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpReturn, typeAndValue.Type, args...)
+		c.Debugf("%s: using %s as return statement", v, ret)
 
 		// Make a new block for any remaining instructions.
 		c.Block(ssafir.BlockReturn, list.ParenClose+1, ssafir.BlockNormal)
 
-		return v, nil
+		return ret, nil
 	case types.SpecialFormAdd:
 		// Unary positive is essentially a no-op.
 		if len(args) == 1 {
@@ -883,6 +912,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		}
 
 		v = c.ValueExtra(list.ParenOpen, list.ParenClose+1, op, sig.Result()[0], typeAndValue.Value, value)
+		c.Debugf("%s: shift left using constant shift %v", v, typeAndValue.Value)
 		return v, nil
 	case types.SpecialFormShiftRight:
 		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpShiftRight)
@@ -898,6 +928,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		}
 
 		v = c.ValueExtra(list.ParenOpen, list.ParenClose+1, op, sig.Result()[0], typeAndValue.Value, value)
+		c.Debugf("%s: shift right using constant shift %v", v, typeAndValue.Value)
 		return v, nil
 	case types.SpecialFormEqual:
 		op = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpEqual)
@@ -919,7 +950,14 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
 	}
 
-	return c.CompileBinaryOperation(args, op, sig.Result()[0])
+	v, err = c.CompileBinaryOperation(args, op, sig.Result()[0])
+	if err != nil {
+		return nil, err
+	}
+
+	c.Debugf("%s: binary operation %s with %d args", v, op, len(args))
+
+	return v, nil
 }
 
 func (c *compiler) CompileBinaryOperation(args []ast.Expression, op ssafir.Op, typ types.Type) (v *ssafir.Value, err error) {

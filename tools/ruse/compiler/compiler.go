@@ -10,6 +10,8 @@ package compiler
 import (
 	"fmt"
 	"io"
+	"os"
+	"runtime"
 
 	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/constant"
@@ -101,7 +103,8 @@ func compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, expr *ast.
 		list:  expr,
 		sizes: sizes,
 
-		vars: make(map[*types.Variable]*ssafir.Value),
+		vars:  make(map[*types.Variable]*ssafir.Value),
+		debug: os.Getenv("RUSE_DEBUG_COMPILE") == fun.Name,
 	}
 
 	c.AddCallingConvention()
@@ -117,6 +120,7 @@ func compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, expr *ast.
 
 			if isLast {
 				result := c.Value(x.Pos(), x.End(), ssafir.OpMakeResult, ssafir.Result{}, c.lastMemoryState)
+				c.Debugf("%s: created empty result for %s (no result)", result, fun.Name)
 				c.Return(c.list.ParenClose, result)
 			}
 		} else {
@@ -126,6 +130,7 @@ func compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, expr *ast.
 			}
 
 			result := c.Value(x.Pos(), x.End(), ssafir.OpMakeResult, ssafir.Result{Value: v.Type}, v, c.lastMemoryState)
+			c.Debugf("%s: created result for %s", result, fun.Name)
 			c.Return(x.End(), result)
 		}
 	}
@@ -470,6 +475,22 @@ type compiler struct {
 	vars            map[*types.Variable]*ssafir.Value
 	currentBlock    *ssafir.Block
 	lastMemoryState *ssafir.Value
+	debug           bool
+}
+
+func (c *compiler) Debugf(format string, v ...any) {
+	if !c.debug {
+		return
+	}
+
+	msg := fmt.Sprintf(format, v...)
+	_, file, line, ok := runtime.Caller(1)
+	if !ok {
+		file = "???"
+		line = 0
+	}
+
+	fmt.Fprintf(os.Stderr, "%s:%d: %s\n", file, line, msg)
 }
 
 func (c *compiler) Block(current ssafir.BlockKind, pos token.Pos, next ssafir.BlockKind) *ssafir.Block {
@@ -544,6 +565,7 @@ func (c *compiler) AddFunctionPrelude() {
 
 func (c *compiler) AddFunctionInitialValues() {
 	c.lastMemoryState = c.fun.Entry.NewValue(c.list.Elements[0].Pos(), c.list.Elements[1].End(), ssafir.OpMakeMemoryState, ssafir.MemoryState{})
+	c.Debugf("%s: created initial memory state", c.lastMemoryState)
 	params := c.fun.Type.Params()
 	if len(params) == 0 {
 		return
@@ -552,6 +574,7 @@ func (c *compiler) AddFunctionInitialValues() {
 	c.args = make([]*ssafir.Value, len(params))
 	for i, param := range params {
 		v := c.fun.Entry.NewValueInt(param.Pos(), param.End(), ssafir.OpParameter, param.Type(), int64(i))
+		c.Debugf("%s: recording parameter %s", v, param)
 		c.args[i] = v
 		c.vars[param] = v
 		c.fun.NamedValues[params[i]] = []*ssafir.Value{v}
