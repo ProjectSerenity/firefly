@@ -985,8 +985,10 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 		}
 
 		if i < len(a.locations[v]) {
-			a.Debugf("%s: storing value %s from %s in %s", v, v, a.locations[v][i], loc)
-			a.addOpAlloc(v, ssafir.OpCopy, &Alloc{Dst: loc, Src: a.locations[v][i]})
+			src := a.locations[v][i]
+			a.allocated[src] = nil
+			a.Debugf("%s: storing value %s from %s in %s", v, v, src, loc)
+			a.addOpAlloc(v, ssafir.OpCopy, &Alloc{Dst: loc, Src: src})
 		}
 	}
 
