@@ -485,11 +485,34 @@ func (a *allocator) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.B
 			nextBlock = finalBlock
 		}
 
+		// First, we need to take a snapshot
+		// of the current allocator state so
+		// that we can restore it after the
+		// if (and optionally else) blocks.
+		//
+		// This is necessary so that we have
+		// a consistent view of each location
+		// after the if statement. It is safe,
+		// because no declarations within the
+		// statement is visible afterwards,
+		// so dropping everything in both
+		// blocks can do no harm.
+		snapshot, err := a.Snapshot()
+		if err != nil {
+			return a.Errorf(block.Control.Pos, "failed to shapshot allocator before if: %v", err)
+		}
+
 		// Append the if block.
 		a.Debugf("%s: continuing into if block %s, stopping at %s", block, ifBlock, finalBlock)
-		err := a.doBlock(done, ifBlock, finalBlock)
+		err = a.doBlock(done, ifBlock, finalBlock)
 		if err != nil {
 			return err
+		}
+
+		// Restore from the snapshot.
+		err = a.Revert(ifBlock, snapshot)
+		if err != nil {
+			return a.Errorf(ifBlock.Pos, "failed to revert to snapshot after if block: %v", err)
 		}
 
 		// If we have an else block, then
@@ -502,6 +525,12 @@ func (a *allocator) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.B
 			err = a.doBlock(done, elseBlock, finalBlock)
 			if err != nil {
 				return err
+			}
+
+			// Restore from the snapshot.
+			err = a.Revert(elseBlock, snapshot)
+			if err != nil {
+				return a.Errorf(elseBlock.Pos, "failed to revert to snapshot after else block: %v", err)
 			}
 		}
 
@@ -1048,4 +1077,170 @@ func (a *allocator) SaveResult(fun *types.Function, sig *types.Signature, abi *s
 func (a *allocator) CalculatePreservations() (save, load []*ssafir.Value) {
 	// TODO: implement CalculatePreservations.
 	return nil, nil
+}
+
+// allocatorSnapshot contains a point-in-time
+// representation of an allocator. In
+// particular, it contains the set of values
+// that have been allocated and the locations
+// to which they have been allocated.
+//
+// This can be used to revert the allocator
+// before or after parallel branches, to
+// ensure a consistent state. Note that we
+// do not modify the value counter.
+type allocatorSnapshot struct {
+	values []*ssafir.Value       // The list of living values in an arbitrary but deterministic order.
+	locs   [][]sys.Location      // The locations for each value in the same order as values.
+	index  map[*ssafir.Value]int // Map values to their index in the two slices above.
+}
+
+// Snapshot validates the allocator state
+// and (if valid) returns a snapshot that
+// describes that state.
+func (a *allocator) Snapshot() (*allocatorSnapshot, error) {
+	s := &allocatorSnapshot{
+		index: make(map[*ssafir.Value]int),
+	}
+
+	// The obvious approach would be to
+	// process a.locations, but that would
+	// be non-deterministic, as map
+	// iteration is randomised. As a
+	// result, we iterate through a.registers,
+	// pulling data from a.allocated. We
+	// then check a.locations afterwards
+	// for validity.
+
+	// TODO: handle the stack in allocator.Snapshot.
+
+	// Store the data.
+	for _, loc := range a.registers {
+		v := a.allocated[loc]
+		if v == nil {
+			continue
+		}
+
+		if _, ok := s.index[v]; ok {
+			continue
+		}
+
+		s.index[v] = len(s.values)
+		s.values = append(s.values, v)
+		locs := a.locations[v]
+		if len(locs) == 0 {
+			return nil, fmt.Errorf("%s is allocated to %s, but is absent from a.locations", v, loc)
+		}
+
+		s.locs = append(s.locs, slices.Clone(locs))
+	}
+
+	// Check everything else is
+	// consistent with the stored
+	// data.
+	for v, locs := range a.locations {
+		if len(locs) == 0 {
+			continue
+		}
+
+		if _, ok := s.index[v]; ok {
+			continue
+		}
+
+		return nil, fmt.Errorf("%s is allocated to %s, but is absent from a.allocated", v, locs)
+	}
+
+	return s, nil
+}
+
+// Revert restores the allocation state
+// from the given snapshot. This may update
+// a.allocated and a.locations and may
+// result in additional moves (with op
+// ssafir.OpCopy) appended to a.allocs.
+func (a *allocator) Revert(block *ssafir.Block, s *allocatorSnapshot) error {
+	// It's possible that some of the values
+	// we need to keep have swapped locations,
+	// requiring us to make moves in an
+	// unpredictable order. As a result, we
+	// do so recursively.
+
+	var move func(v *ssafir.Value, i int, dst, src sys.Location) error
+	move = func(v *ssafir.Value, i int, dst, src sys.Location) error {
+		if dst == src {
+			return nil
+		}
+
+		// Check that the state is as we expect.
+		if a.allocated[src] != v {
+			return fmt.Errorf("moving %s from %s to %s, but a.allocated[%s] = %s", v, src, dst, src, a.allocated[src])
+		}
+
+		// Check for a move dependency.
+		if current := a.allocated[dst]; current != nil {
+			index, ok := s.index[current]
+			if !ok {
+				return fmt.Errorf("%s is allocated to %s, but is absent from the snapshot", current, dst)
+			}
+
+			// Find the move we need to make.
+			ok = false
+			locs := a.locations[current]
+			for i, loc := range locs {
+				if loc == dst {
+					targets := s.locs[index]
+					if len(targets) != len(locs) {
+						return fmt.Errorf("%s has %d snapshot locations and %d current locations", current, len(targets), len(locs))
+					}
+
+					target := targets[i]
+					err := move(current, i, target, dst)
+					if err != nil {
+						return err
+					}
+
+					ok = true
+					break
+				}
+			}
+
+			if !ok {
+				return fmt.Errorf("%s is allocated to %s, but is absent from a.locations", current, dst)
+			}
+		}
+
+		// Make the move.
+		a.allocated[src] = nil
+		a.allocated[dst] = v
+		a.locations[v][i] = dst
+		a.addOpAlloc(v, ssafir.OpCopy, &Alloc{Dst: dst, Src: src})
+
+		return nil
+	}
+
+	for i, v := range s.values {
+		dsts := s.locs[i]
+		for j, dst := range dsts {
+			srcs, ok := a.locations[v]
+			if !ok {
+				return fmt.Errorf("%v must be moved to %s but is absent from a.locations", v, dst)
+			}
+
+			if len(dsts) != len(srcs) {
+				return fmt.Errorf("%s has %d snapshot locations and %d current locations", v, len(dsts), len(srcs))
+			}
+
+			err := move(v, j, dst, srcs[j])
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if block != nil {
+		block.Values = append(block.Values, a.allocs...)
+		a.allocs = nil
+	}
+
+	return nil
 }

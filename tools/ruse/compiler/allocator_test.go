@@ -255,3 +255,518 @@ func TestAllocator(t *testing.T) {
 		})
 	}
 }
+
+func TestAllocator_Snapshot(t *testing.T) {
+	v := func(id ssafir.ID) *ssafir.Value { return &ssafir.Value{ID: id} }
+	v1, v2, v3, v4, v5 := v(1), v(2), v(3), v(4), v(5)
+	rax, rcx, rdx, rbx, rsi, rdi := x86.RAX, x86.RCX, x86.RDX, x86.RBX, x86.RSI, x86.RDI
+	arch := sys.X86_64
+	fun := &ssafir.Function{
+		Name: "test",
+		Type: types.NewSignature("test", nil, nil),
+	}
+
+	tests := []struct {
+		name  string
+		start *allocator
+		error string
+		want  *allocatorSnapshot
+	}{
+		{
+			name: "simple",
+			start: &allocator{
+				arch:      arch,
+				function:  fun,
+				registers: []sys.Location{rax, rcx, rdx, rbx, rsi, rdi},
+				allocated: map[sys.Location]*ssafir.Value{
+					rax: v1,
+					rcx: v2,
+					rdx: v3,
+					rsi: v3,
+					rdi: v5,
+				},
+				locations: map[*ssafir.Value][]sys.Location{
+					v1: {rax},
+					v2: {rcx},
+					v3: {rsi, rdx},
+					v4: {},
+					v5: {rdi},
+				},
+			},
+			want: &allocatorSnapshot{
+				values: []*ssafir.Value{v1, v2, v3, v5},
+				locs: [][]sys.Location{
+					{rax},
+					{rcx},
+					{rsi, rdx},
+					{rdi},
+				},
+				index: map[*ssafir.Value]int{
+					v1: 0,
+					v2: 1,
+					v3: 2,
+					v5: 3,
+				},
+			},
+		},
+		{
+			name: "missing locations",
+			start: &allocator{
+				arch:      arch,
+				function:  fun,
+				registers: []sys.Location{rax, rcx, rdx, rbx, rsi, rdi},
+				allocated: map[sys.Location]*ssafir.Value{
+					rax: v1,
+					rcx: v2,
+					rdx: v3,
+					rsi: v3,
+					rdi: v5,
+				},
+				locations: map[*ssafir.Value][]sys.Location{
+					v1: {rax},
+					v3: {rsi, rdx},
+					v4: {},
+					v5: {rdi},
+				},
+			},
+			error: "v2 is allocated to rcx, but is absent from a.locations",
+		},
+		{
+			name: "missing allocated",
+			start: &allocator{
+				arch:      arch,
+				function:  fun,
+				registers: []sys.Location{rax, rcx, rdx, rbx, rsi, rdi},
+				allocated: map[sys.Location]*ssafir.Value{
+					rax: v1,
+					rdx: v3,
+					rsi: v3,
+					rdi: v5,
+				},
+				locations: map[*ssafir.Value][]sys.Location{
+					v1: {rax},
+					v2: {rcx},
+					v3: {rsi, rdx},
+					v4: {},
+					v5: {rdi},
+				},
+			},
+			error: "v2 is allocated to [rcx], but is absent from a.allocated",
+		},
+	}
+
+	opts := []cmp.Option{
+		cmp.AllowUnexported(allocatorSnapshot{}),
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := test.start.Snapshot()
+			if test.error != "" {
+				if err == nil {
+					t.Fatalf("a.Snapshot(): expected error %q, got %s", test.error, test.start.Debug())
+				}
+
+				e := err.Error()
+				if !strings.Contains(e, test.error) {
+					t.Fatalf("a.Snapshot(): got %q, want %q", e, test.error)
+				}
+
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("a.Snapshot(): got unexpected error: %v", err)
+			}
+
+			if diff := cmp.Diff(test.want, got, opts...); diff != "" {
+				t.Fatalf("a.Snapshot(): (-want, +got)\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestAllocator_Revert(t *testing.T) {
+	v := func(id ssafir.ID) *ssafir.Value { return &ssafir.Value{ID: id} }
+	v1, v2, v3, v4, v5 := v(1), v(2), v(3), v(4), v(5)
+	rax, rcx, rdx, rbx, rsi, rdi := x86.RAX, x86.RCX, x86.RDX, x86.RBX, x86.RSI, x86.RDI
+	arch := sys.X86_64
+	fun := &ssafir.Function{
+		Name: "test",
+		Type: types.NewSignature("test", nil, nil),
+	}
+
+	tests := []struct {
+		name     string
+		snapshot *allocatorSnapshot
+		start    *allocator
+		error    string
+		want     *allocator
+	}{
+		{
+			name: "no-op",
+			snapshot: &allocatorSnapshot{
+				values: []*ssafir.Value{v1, v2, v3, v4, v5},
+				locs: [][]sys.Location{
+					{rax},
+					{rcx},
+					{rsi, rdx},
+					{rbx},
+					{rdi},
+				},
+				index: map[*ssafir.Value]int{
+					v1: 0,
+					v2: 1,
+					v3: 2,
+					v4: 3,
+					v5: 4,
+				},
+			},
+			// No changes after the snapshot.
+			start: &allocator{
+				arch:      arch,
+				function:  fun,
+				registers: []sys.Location{rax, rcx, rdx, rbx, rsi, rdi},
+				allocated: map[sys.Location]*ssafir.Value{
+					rax: v1,
+					rcx: v2,
+					rdx: v3,
+					rbx: v4,
+					rsi: v3,
+					rdi: v5,
+				},
+				locations: map[*ssafir.Value][]sys.Location{
+					v1: {rax},
+					v2: {rcx},
+					v3: {rsi, rdx},
+					v4: {rbx},
+					v5: {rdi},
+				},
+			},
+			want: &allocator{
+				arch:      arch,
+				function:  fun,
+				registers: []sys.Location{rax, rcx, rdx, rbx, rsi, rdi},
+				allocated: map[sys.Location]*ssafir.Value{
+					rax: v1,
+					rcx: v2,
+					rdx: v3,
+					rbx: v4,
+					rsi: v3,
+					rdi: v5,
+				},
+				locations: map[*ssafir.Value][]sys.Location{
+					v1: {rax},
+					v2: {rcx},
+					v3: {rsi, rdx},
+					v4: {rbx},
+					v5: {rdi},
+				},
+			},
+		},
+		{
+			name: "shifts",
+			snapshot: &allocatorSnapshot{
+				values: []*ssafir.Value{v1, v2, v3},
+				locs: [][]sys.Location{
+					{rax},
+					{rcx},
+					{rsi, rdx},
+				},
+				index: map[*ssafir.Value]int{
+					v1: 0,
+					v2: 1,
+					v3: 2,
+				},
+			},
+			// An extra value, plus
+			// another that displaced
+			// some existing values.
+			start: &allocator{
+				arch:      arch,
+				function:  fun,
+				registers: []sys.Location{rax, rcx, rdx, rbx, rsi, rdi},
+				allocated: map[sys.Location]*ssafir.Value{
+					rax: v2,
+					rcx: v3,
+					rdx: nil, // Was v4.
+					rbx: v3,
+					rsi: v1,
+					rdi: nil, // Was v5.
+				},
+				locations: map[*ssafir.Value][]sys.Location{
+					v1: {rsi},
+					v2: {rax},
+					v3: {rbx, rcx},
+					v4: nil, // Was rdx.
+					v5: nil, // Was rdi.
+				},
+			},
+			want: &allocator{
+				arch:      arch,
+				function:  fun,
+				registers: []sys.Location{rax, rcx, rdx, rbx, rsi, rdi},
+				allocated: map[sys.Location]*ssafir.Value{
+					rax: v1,
+					rcx: v2,
+					rdx: v3,
+					rbx: nil, // Was v3.
+					rsi: v3,
+					rdi: nil, // Was v5.
+				},
+				locations: map[*ssafir.Value][]sys.Location{
+					v1: {rax},
+					v2: {rcx},
+					v3: {rsi, rdx},
+					v4: nil,
+					v5: nil,
+				},
+				allocs: []*ssafir.Value{
+					{ID: 3, Op: ssafir.OpCopy, Extra: &Alloc{Dst: rdx, Src: rcx}},
+					{ID: 2, Op: ssafir.OpCopy, Extra: &Alloc{Dst: rcx, Src: rax}},
+					{ID: 1, Op: ssafir.OpCopy, Extra: &Alloc{Dst: rax, Src: rsi}},
+					{ID: 3, Op: ssafir.OpCopy, Extra: &Alloc{Dst: rsi, Src: rbx}},
+				},
+			},
+		},
+		{
+			name: "missing value",
+			snapshot: &allocatorSnapshot{
+				values: []*ssafir.Value{v1, v2, v3},
+				locs: [][]sys.Location{
+					{rax},
+					{rcx},
+					{rsi, rdx},
+				},
+				index: map[*ssafir.Value]int{
+					v1: 0,
+					v2: 1,
+					v3: 2,
+				},
+			},
+			// v2 is gone somehow.
+			start: &allocator{
+				arch:      arch,
+				function:  fun,
+				registers: []sys.Location{rax, rcx, rdx, rbx, rsi, rdi},
+				allocated: map[sys.Location]*ssafir.Value{
+					rcx: v3,
+					rbx: v3,
+					rsi: v1,
+				},
+				locations: map[*ssafir.Value][]sys.Location{
+					v1: {rsi},
+					v3: {rbx, rcx},
+				},
+			},
+			error: "v2 must be moved to rcx but is absent from a.locations",
+		},
+		{
+			name: "extra location",
+			snapshot: &allocatorSnapshot{
+				values: []*ssafir.Value{v1, v2, v3},
+				locs: [][]sys.Location{
+					{rax},
+					{rcx},
+					{rsi, rdx},
+				},
+				index: map[*ssafir.Value]int{
+					v1: 0,
+					v2: 1,
+					v3: 2,
+				},
+			},
+			// v1 has more locations somehow.
+			start: &allocator{
+				arch:      arch,
+				function:  fun,
+				registers: []sys.Location{rax, rcx, rdx, rbx, rsi, rdi},
+				allocated: map[sys.Location]*ssafir.Value{
+					rax: v2,
+					rcx: v3,
+					rbx: v3,
+					rsi: v1,
+					rdi: v1,
+				},
+				locations: map[*ssafir.Value][]sys.Location{
+					v1: {rsi, rdi},
+					v2: {rax},
+					v3: {rbx, rcx},
+				},
+			},
+			error: "v1 has 1 snapshot locations and 2 current locations",
+		},
+		{
+			name: "inconsistent allocations",
+			snapshot: &allocatorSnapshot{
+				values: []*ssafir.Value{v1, v2, v3},
+				locs: [][]sys.Location{
+					{rax},
+					{rcx},
+					{rsi, rdx},
+				},
+				index: map[*ssafir.Value]int{
+					v1: 0,
+					v2: 1,
+					v3: 2,
+				},
+			},
+			// a.allocated and a.locations
+			// disagree on v1.
+			start: &allocator{
+				arch:      arch,
+				function:  fun,
+				registers: []sys.Location{rax, rcx, rdx, rbx, rsi, rdi},
+				allocated: map[sys.Location]*ssafir.Value{
+					rax: v1,
+					rcx: v3,
+					rbx: v3,
+					rsi: v2,
+				},
+				locations: map[*ssafir.Value][]sys.Location{
+					v1: {rsi},
+					v2: {rax},
+					v3: {rbx, rcx},
+				},
+			},
+			error: "moving v1 from rsi to rax, but a.allocated[rsi] = v2",
+		},
+		{
+			name: "unexpected value",
+			snapshot: &allocatorSnapshot{
+				values: []*ssafir.Value{v1, v2, v3},
+				locs: [][]sys.Location{
+					{rax},
+					{rcx},
+					{rsi, rdx},
+				},
+				index: map[*ssafir.Value]int{
+					v1: 0,
+					v2: 1,
+					v3: 2,
+				},
+			},
+			// An extra value hasn't been
+			// dropped.
+			start: &allocator{
+				arch:      arch,
+				function:  fun,
+				registers: []sys.Location{rax, rcx, rdx, rbx, rsi, rdi},
+				allocated: map[sys.Location]*ssafir.Value{
+					rax: v2,
+					rcx: v3,
+					rdx: v4,
+					rbx: v3,
+					rsi: v1,
+				},
+				locations: map[*ssafir.Value][]sys.Location{
+					v1: {rsi},
+					v2: {rax},
+					v3: {rbx, rcx},
+					v4: {rdx},
+				},
+			},
+			error: "v4 is allocated to rdx, but is absent from the snapshot",
+		},
+		{
+			name: "extra dependency location",
+			snapshot: &allocatorSnapshot{
+				values: []*ssafir.Value{v1, v2, v3},
+				locs: [][]sys.Location{
+					{rax},
+					{rcx},
+					{rsi, rdx},
+				},
+				index: map[*ssafir.Value]int{
+					v1: 0,
+					v2: 1,
+					v3: 2,
+				},
+			},
+			// v2 has more locations somehow.
+			start: &allocator{
+				arch:      arch,
+				function:  fun,
+				registers: []sys.Location{rax, rcx, rdx, rbx, rsi, rdi},
+				allocated: map[sys.Location]*ssafir.Value{
+					rax: v2,
+					rcx: v3,
+					rbx: v3,
+					rsi: v1,
+					rdi: v2,
+				},
+				locations: map[*ssafir.Value][]sys.Location{
+					v1: {rsi},
+					v2: {rdi, rax},
+					v3: {rbx, rcx},
+				},
+			},
+			error: "v2 has 1 snapshot locations and 2 current locations",
+		},
+		{
+			name: "missing from locations",
+			snapshot: &allocatorSnapshot{
+				values: []*ssafir.Value{v1, v2, v3},
+				locs: [][]sys.Location{
+					{rax},
+					{rcx},
+					{rsi, rdx},
+				},
+				index: map[*ssafir.Value]int{
+					v1: 0,
+					v2: 1,
+					v3: 2,
+				},
+			},
+			// v2 is in the wrong place in a.locations somehow.
+			start: &allocator{
+				arch:      arch,
+				function:  fun,
+				registers: []sys.Location{rax, rcx, rdx, rbx, rsi, rdi},
+				allocated: map[sys.Location]*ssafir.Value{
+					rax: v2,
+					rcx: v3,
+					rbx: v3,
+					rsi: v1,
+				},
+				locations: map[*ssafir.Value][]sys.Location{
+					v1: {rsi},
+					v2: {rdx},
+					v3: {rbx, rcx},
+				},
+			},
+			error: "v2 is allocated to rax, but is absent from a.locations",
+		},
+	}
+
+	opts := []cmp.Option{
+		cmp.AllowUnexported(allocator{}),
+		cmpopts.IgnoreTypes(new(sys.Arch), new(ssafir.Function)),
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := test.start.Revert(nil, test.snapshot)
+			if test.error != "" {
+				if err == nil {
+					t.Fatalf("a.Revert(snapshot): expected error %q, got %s", test.error, test.start.Debug())
+				}
+
+				e := err.Error()
+				if !strings.Contains(e, test.error) {
+					t.Fatalf("a.Revert(snapshot): got error %q, want %q", e, test.error)
+				}
+
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("a.Revert(snapshot): unexpected error: %v", err)
+			}
+
+			if diff := cmp.Diff(test.want, test.start, opts...); diff != "" {
+				t.Fatalf("a.Revert(snapshot): (-want, +got)\n%s", diff)
+			}
+		})
+	}
+}
