@@ -406,6 +406,7 @@ func (a *allocator) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.B
 				// We have a special case for when the
 				// shift is a constant.
 				var arg any
+				restoreRCX := false
 				if con, ok := v.Extra.(constant.Value); ok {
 					arg = con // The other operand.
 				} else {
@@ -416,6 +417,7 @@ func (a *allocator) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.B
 					calleeIsScratch[x86.RCX] = true
 					a.SaveValue(x86.RCX, calleeIsScratch)
 					a.allocated[x86.RCX] = v.Args[1] // Make sure we don't pick RCX for our destination.
+					restoreRCX = true
 
 					arg = a.locations[v.Args[1]][0] // The other operand.
 				}
@@ -428,6 +430,9 @@ func (a *allocator) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.B
 				a.locations[v] = []sys.Location{dst}
 				a.allocated[dst] = v
 				a.addAlloc(v, alloc)
+				if restoreRCX {
+					a.allocated[x86.RCX] = nil
+				}
 			default:
 				return fmt.Errorf("failed to allocate value %s: unexpected op %s", v, v.Op)
 			}
@@ -765,6 +770,20 @@ func (a *allocator) SaveValue(reg sys.Location, avoid map[sys.Location]bool) {
 		return
 	}
 
+	// Find which location we're moving.
+	i := -1
+	for j, loc := range a.locations[v] {
+		if loc == reg {
+			i = j
+			break
+		}
+	}
+
+	if i < 0 {
+		a.Debugf("%s: failed to find %s=%s in a.locations", v, v, reg)
+		panic("failed to find location for " + v.String())
+	}
+
 	for _, candidate := range a.registers {
 		if avoid[candidate] {
 			// We cannot use this register.
@@ -777,19 +796,11 @@ func (a *allocator) SaveValue(reg sys.Location, avoid map[sys.Location]bool) {
 		}
 
 		// We can save to candidate.
-		a.allocated[candidate] = v
 		a.allocated[reg] = nil
-		a.locations[v] = append(a.locations[v], candidate)
-		a.Debugf("%s: saving %s to %s", v, v, candidate)
+		a.allocated[candidate] = v
+		a.locations[v][i] = candidate
+		a.Debugf("%s: saving %s from %s to %s", v, v, reg, candidate)
 		a.addOpAlloc(v, ssafir.OpCopy, &Alloc{Dst: candidate, Src: reg})
-
-		locs := a.locations[v]
-		for i, loc := range locs {
-			if loc == reg {
-				locs[i] = candidate
-				break
-			}
-		}
 
 		return
 	}
@@ -837,6 +848,7 @@ func (a *allocator) MoveValue(new, old *ssafir.Value) {
 	for _, loc := range a.locations[old] {
 		a.Debugf("%s: moving %s (%s) to %s (%s)", new, old, loc, new, loc)
 		a.addOpAlloc(new, ssafir.OpCopy, &Alloc{Dst: loc, Src: loc})
+		a.allocated[loc] = nil
 		if new.Uses != 0 {
 			a.allocated[loc] = new
 		}

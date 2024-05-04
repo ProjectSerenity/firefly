@@ -244,12 +244,11 @@ func TestLower(t *testing.T) {
 			`,
 			Disasm: []string{
 				"f3 0f 1e fa          	endbr64",
-				"53                   	push rbx",        // Save rbx
 				"b8 07 00 00 00       	mov eax, 0x7",    // Prepare arg 7
-				"e8 3f 33 22 11       	call 0x1122334e", // Call func   (copy-n 7)
+				"e8 3f 33 22 11       	call 0x1122334d", // Call func   (copy-n 7)
 				"48 8b c8             	mov rcx, rax",    // Save result (let a (copy-n 7))
 				"b8 03 00 00 00       	mov eax, 0x3",    // Prepare arg 3
-				"e8 3f 33 22 11       	call 0x1122335b", // Call func   (copy-n 3)
+				"e8 3f 33 22 11       	call 0x1122335a", // Call func   (copy-n 3)
 				"48 8b d0             	mov rdx, rax",    // Save result (let b (copy-n 3))
 				"48 8b f1             	mov rsi, rcx",    // Prepare arg a
 				"48 03 f0             	add rsi, rax",    // Arithmetic  (+ a b)
@@ -269,19 +268,17 @@ func TestLower(t *testing.T) {
 				"4d 8b d9             	mov r11, r9",     // Save arg    a
 				"49 8b c8             	mov rcx, r8",     // Prepare arg ub
 				"49 d3 e3             	shl r11, cl",     // Arithmetic  (<< a ub)
-				"4c 8b c9             	mov r9, rcx",     // Save arg    b
-				"49 8b da             	mov rbx, r10",    // Prepare arg mul
+				"4d 8b ca             	mov r9, r10",     // Prepare arg mul
 				"49 8b c8             	mov rcx, r8",     // Prepare arg ub
-				"48 d3 fb             	sar rbx, cl",     // Arithmetic  (>> mul ub)
-				"4c 8b c6             	mov r8, rsi",     // Prepare arg sum
-				"4c 0b c7             	or r8, rdi",      // Arithmetic  (or sum dif)
-				"4d 0b c2             	or r8, r10",      // Arithmetic  (or sum dif mul)
-				"4c 0b c0             	or r8, rax",      // Arithmetic  (or sum ... mul div)
-				"4c 0b c2             	or r8, rdx",      // Arithmetic  (or sum ... div bnd)
-				"4d 0b c3             	or r8, r11",      // Arithmetic  (or sum ... bnd big)
-				"4c 0b c3             	or r8, rbx",      // Arithmetic  (or sum ... big sml)
-				"49 8b c0             	mov rax, r8",     // Save result (or sum ... sml)
-				"5b                   	pop rbx",         // Restore rbx
+				"49 d3 f9             	sar r9, cl",      // Arithmetic  (>> mul ub)
+				"48 8b ce             	mov rcx, rsi",    // Prepare arg sum
+				"48 0b cf             	or rcx, rdi",     // Arithmetic  (or sum dif)
+				"49 0b ca             	or rcx, r10",     // Arithmetic  (or sum dif mul)
+				"48 0b c8             	or rcx, rax",     // Arithmetic  (or sum ... mul div)
+				"48 0b ca             	or rcx, rdx",     // Arithmetic  (or sum ... div bnd)
+				"49 0b cb             	or rcx, r11",     // Arithmetic  (or sum ... bnd big)
+				"49 0b c9             	or rcx, r9",      // Arithmetic  (or sum ... big sml)
+				"48 8b c1             	mov rax, rcx",    // Save result (or sum ... sml)
 				"c3                   	ret",
 			},
 		},
