@@ -6,6 +6,7 @@
 package compiler
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -539,6 +540,11 @@ type allocator struct {
 	locations map[*ssafir.Value][]sys.Location
 	stack     []*ssafir.Value
 	debug     bool
+}
+
+func (a *allocator) Errorf(pos token.Pos, format string, v ...any) error {
+	position := a.fset.Position(pos)
+	return errors.New(fmt.Sprintf("%s: ", position) + fmt.Sprintf(format, v...))
 }
 
 func (a *allocator) Debugf(format string, v ...any) {
