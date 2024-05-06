@@ -204,6 +204,9 @@ func (a *allocator) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.B
 		switch v.Op {
 		case ssafir.OpMakeMemoryState:
 			// We can ignore these.
+		case ssafir.OpMerge:
+			// We handle these below in block
+			// handling.
 		case ssafir.OpMakeResult:
 			a.Debugf("%s: preparing a result", v)
 			a.PrepareResult(v)
@@ -499,6 +502,26 @@ func (a *allocator) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.B
 			nextBlock = finalBlock
 		}
 
+		// If we end up storing the result
+		// of the if expression, the next
+		// block will start with a used
+		// merge operation. In which case,
+		// we need to allocate a value
+		// for it and tidy up at the end
+		// of each block.
+		var merge *ssafir.Value
+		if follow := nextBlock.Values[0]; follow.Op == ssafir.OpMerge && follow.Uses > 0 && follow.Type != nil {
+			merge = follow
+			locs := make([]sys.Location, a.sizes.SizeOf(follow.Type)/a.arch.RegisterSize)
+			for i := range locs {
+				loc := a.GetLocation()
+				locs[i] = loc
+				a.allocated[loc] = merge
+			}
+
+			a.locations[merge] = locs
+		}
+
 		// First, we need to take a snapshot
 		// of the current allocator state so
 		// that we can restore it after the
@@ -523,6 +546,29 @@ func (a *allocator) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.B
 			return err
 		}
 
+		// Complete any merge.
+		if merge != nil {
+			arg := merge.Args[0] // First arg is the if block result.
+			srcs := a.locations[arg]
+			if srcs == nil && arg.Op.Info().Group == ssafir.OpConstant {
+				a.AddValue(arg)
+				srcs = a.locations[arg]
+			}
+
+			if srcs == nil {
+				return a.Errorf(arg.Pos, "cannot find locations for %s", arg)
+			}
+
+			dsts := a.locations[merge]
+			if len(srcs) != len(dsts) {
+				return a.Errorf(arg.Pos, "internal error: found %d dependency locations, want %d", len(srcs), len(dsts))
+			}
+
+			for i := range srcs {
+				a.addAlloc(merge, &Alloc{Dst: dsts[i], Src: srcs[i]})
+			}
+		}
+
 		// Restore from the snapshot.
 		err = a.Revert(ifBlock, snapshot)
 		if err != nil {
@@ -539,6 +585,29 @@ func (a *allocator) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.B
 			err = a.doBlock(done, elseBlock, finalBlock)
 			if err != nil {
 				return err
+			}
+
+			// Complete any merge.
+			if merge != nil {
+				arg := merge.Args[1] // Second arg is the else block result.
+				srcs := a.locations[arg]
+				if srcs == nil && arg.Op.Info().Group == ssafir.OpConstant {
+					a.AddValue(arg)
+					srcs = a.locations[arg]
+				}
+
+				if srcs == nil {
+					return a.Errorf(arg.Pos, "cannot find locations for %s", arg)
+				}
+
+				dsts := a.locations[merge]
+				if len(srcs) != len(dsts) {
+					return a.Errorf(arg.Pos, "internal error: found %d dependency locations, want %d", len(srcs), len(dsts))
+				}
+
+				for i := range srcs {
+					a.addAlloc(merge, &Alloc{Dst: dsts[i], Src: srcs[i]})
+				}
 			}
 
 			// Restore from the snapshot.

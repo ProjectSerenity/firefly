@@ -315,7 +315,7 @@ func (l *x86Lowerer) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.
 		case ssafir.OpDrop:
 			// Nothing to do here, this is just debugging
 			// information for the register allocator.
-		case ssafir.OpCopy, ssafir.OpFunctionResult:
+		case ssafir.OpCopy, ssafir.OpFunctionResult, ssafir.OpMerge:
 			l.MoveNumber(v)
 		case ssafir.OpParameter:
 			// Nothing to do here, the caller has already

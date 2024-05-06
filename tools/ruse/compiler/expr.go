@@ -768,10 +768,11 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 
 		// Compile any else block.
 		var elseBlock *ssafir.Block
+		var elseValue *ssafir.Value
 		if len(list.Elements) > 3 {
 			elseBlock = c.Block(ssafir.BlockIf, list.Elements[3].Pos(), ssafir.BlockNormal)
 			elseBlock.Finish(list.Elements[3].End(), ssafir.BlockNormal, nil)
-			elseValue, err := c.CompileExpression(list.Elements[3])
+			elseValue, err = c.CompileExpression(list.Elements[3])
 			if err != nil {
 				return nil, err
 			}
@@ -785,7 +786,14 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		ifBlock.AddSuccessor(endBlock)
 		startBlock.AddSuccessor(endBlock) // So we can reference it later.
 
-		return nil, nil
+		// Add a value in case we store
+		// a shared result from the if.
+		if elseValue != nil && ifValue.Type == elseValue.Type {
+			v = c.Value(list.ParenOpen, list.ParenClose+1, ssafir.OpMerge, ifValue.Type, ifValue, elseValue)
+			c.Debugf("%s: merging if block %s (%s) and else block %s (%s) with type %s", v, ifBlock, ifValue, elseBlock, elseValue, ifValue.Type)
+		}
+
+		return v, nil
 	case types.SpecialFormLen:
 		// Handle calls with a constant value.
 		// Constant expressions we've already resolved.
