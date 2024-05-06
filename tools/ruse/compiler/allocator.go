@@ -956,6 +956,11 @@ func (a *allocator) PrepareResult(v *ssafir.Value) {
 // PrepareParameter ensures that the given
 // function parameter is in the appropriate
 // memory location(s).
+//
+// Note that we just copy the parameters,
+// we don't move them in the allocator.
+// This is because function parameters are
+// always treated as mutable by the callee.
 func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, locs []sys.Location, v *ssafir.Value, avoid map[sys.Location]bool) {
 	for _, loc := range locs {
 		avoid[loc] = true
@@ -970,8 +975,6 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 			a.Debugf("%s: saving value at %s to make space for parameter %s", v, loc, v)
 			a.SaveValue(loc, avoid)
 		}
-
-		a.allocated[loc] = v
 
 		// Constants are floating.
 		isConstant := func(v *ssafir.Value) bool {
@@ -1034,13 +1037,10 @@ func (a *allocator) PrepareParameter(fun *types.Function, sig *types.Signature, 
 
 		if i < len(a.locations[v]) {
 			src := a.locations[v][i]
-			a.allocated[src] = nil
-			a.Debugf("%s: storing value %s from %s in %s", v, v, src, loc)
+			a.Debugf("%s: copying value %s from %s into %s", v, v, src, loc)
 			a.addOpAlloc(v, ssafir.OpCopy, &Alloc{Dst: loc, Src: src})
 		}
 	}
-
-	a.locations[v] = append(a.locations[v][:0], locs...)
 }
 
 // SaveResult takes note of the fact that the
