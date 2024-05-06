@@ -168,8 +168,7 @@ func TestCompile(t *testing.T) {
 				b41 := f4.NewBlock(268, ssafir.BlockReturn)
 				v411 := b41.NewValue(241, 266, ssafir.OpMakeMemoryState, ssafir.MemoryState{})
 				v412 := b41.NewValueInt(252, 260, ssafir.OpParameter, types.Int8, 0)
-				v413 := b41.NewValueExtra(273, 274, ssafir.OpConstantUntypedInt, types.UntypedInt, constant.MakeInt64(1))
-				v414 := b41.NewValue(271, 274, ssafir.OpAddInt8, types.Int8, v412, v413)
+				v414 := b41.NewValueExtra(271, 274, ssafir.OpAddInt8, types.Int8, constant.MakeInt64(1), v412)
 				v415 := b41.NewValue(268, 275, ssafir.OpMakeResult, ssafir.Result{Value: types.Int8}, v414, v411)
 				b41.Control = v415
 				b41.End = 275
@@ -297,10 +296,9 @@ func TestCompile(t *testing.T) {
 					"b1:",
 					"	v1 := (MakeMemoryState) memory state",
 					"	v2 := (Parameter (extra 0)) int8 (x)",
-					"	v3 := (ConstantUntypedInt (extra 1)) untyped integer",
-					"	v4 := (AddInt8 v2 v3) int8",
-					"	v5 := (MakeResult v4 v1) result",
-					"	(Return v5)",
+					"	v3 := (AddInt8 v2 (extra 1)) int8",
+					"	v4 := (MakeResult v3 v1) result",
+					"	(Return v4)",
 					"",
 				},
 				// product

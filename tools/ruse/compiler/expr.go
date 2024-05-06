@@ -11,6 +11,7 @@ import (
 	"firefly-os.dev/tools/ruse/ast"
 	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/ssafir"
+	"firefly-os.dev/tools/ruse/sys"
 	"firefly-os.dev/tools/ruse/types"
 )
 
@@ -727,6 +728,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 	// Prepare common data.
 	args := list.Elements[1:]
 	var op ssafir.Op
+	var canUseImmediate bool
 	switch form.ID() {
 	case types.SpecialFormDo:
 		// We just compile each expression.
@@ -905,6 +907,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		if underlying := types.Underlying(sig.Result()[0]); underlying == types.String {
 			op = ssafir.OpAddString
 		} else {
+			canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
 			op = c.pickIntegerOp(underlying, ssafir.OpAdd)
 		}
 	case types.SpecialFormSubtract:
@@ -924,68 +927,54 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 			return v, nil
 		}
 
+		canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
 		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpSubtract)
 	case types.SpecialFormMultiply:
+		canUseImmediate = false
 		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpMultiply)
 	case types.SpecialFormDivide:
+		canUseImmediate = false
 		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpDivide)
 	case types.SpecialFormOr:
 		if underlying := types.Underlying(sig.Result()[0]); underlying == types.Bool || underlying == types.UntypedBool {
 			op = ssafir.OpLogicalOr
 		} else {
+			canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
 			op = c.pickIntegerOp(sig.Result()[0], ssafir.OpBitwiseOr)
 		}
 	case types.SpecialFormAnd:
 		if underlying := types.Underlying(sig.Result()[0]); underlying == types.Bool || underlying == types.UntypedBool {
 			op = ssafir.OpLogicalAnd
 		} else {
+			canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
 			op = c.pickIntegerOp(sig.Result()[0], ssafir.OpBitwiseAnd)
 		}
 	case types.SpecialFormXor:
+		canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
 		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpBitwiseXor)
 	case types.SpecialFormShiftLeft:
+		canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
 		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpShiftLeft)
-		typeAndValue := c.info.Types[list.Elements[2]]
-		if typeAndValue.Value == nil || op == 0 {
-			break
-		}
-
-		// Special-case a constant shift.
-		value, err := c.CompileExpression(args[0])
-		if err != nil {
-			return nil, err
-		}
-
-		v = c.ValueExtra(list.ParenOpen, list.ParenClose+1, op, sig.Result()[0], typeAndValue.Value, value)
-		c.Debugf("%s: shift left using constant shift %v", v, typeAndValue.Value)
-		return v, nil
 	case types.SpecialFormShiftRight:
+		canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
 		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpShiftRight)
-		typeAndValue := c.info.Types[list.Elements[2]]
-		if typeAndValue.Value == nil || op == 0 {
-			break
-		}
-
-		// Special-case a constant shift.
-		value, err := c.CompileExpression(args[0])
-		if err != nil {
-			return nil, err
-		}
-
-		v = c.ValueExtra(list.ParenOpen, list.ParenClose+1, op, sig.Result()[0], typeAndValue.Value, value)
-		c.Debugf("%s: shift right using constant shift %v", v, typeAndValue.Value)
-		return v, nil
 	case types.SpecialFormEqual:
+		canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
 		op = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpEqual)
 	case types.SpecialFormNotEqual:
+		canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
 		op = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpNotEqual)
 	case types.SpecialFormLessThan:
+		canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
 		op = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpLessThan)
 	case types.SpecialFormLessThanOrEqual:
+		canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
 		op = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpLessThanOrEqual)
 	case types.SpecialFormGreaterThan:
+		canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
 		op = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpGreaterThan)
 	case types.SpecialFormGreaterThanOrEqual:
+		canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
 		op = c.pickIntegerOp(sig.Params()[0].Type(), ssafir.OpGreaterThanOrEqual)
 	default:
 		return nil, fmt.Errorf("%s: failed to compile %s: unsupported special form %s", c.fset.Position(list.ParenOpen), list.Print(), form.ID())
@@ -995,7 +984,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		return nil, fmt.Errorf("%s: failed to compile %s (%T): invalid %s type %s", c.fset.Position(list.ParenOpen), list.Print(), sig, form.ID(), sig.Result())
 	}
 
-	v, err = c.CompileBinaryOperation(args, op, sig.Result()[0])
+	v, err = c.CompileBinaryOperation(args, op, sig.Result()[0], canUseImmediate)
 	if err != nil {
 		return nil, err
 	}
@@ -1003,20 +992,42 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 	return v, nil
 }
 
-func (c *compiler) CompileBinaryOperation(args []ast.Expression, op ssafir.Op, typ types.Type) (v *ssafir.Value, err error) {
+func (c *compiler) CompileBinaryOperation(args []ast.Expression, op ssafir.Op, typ types.Type, canUseImmediate bool) (v *ssafir.Value, err error) {
+	// We check whether each second parameter is
+	// a constant. If so, we use the immediate
+	// form instead during lowering. We do this
+	// by storing the constant value as extra
+	// data and omitting the argument.
+
+	consts := make([]constant.Value, len(args))
 	values := make([]*ssafir.Value, len(args))
 	for i, arg := range args {
-		values[i], err = c.CompileExpression(arg)
-		if err != nil {
-			return nil, err
+		typeAndValue := c.info.Types[arg]
+		if i != 0 && typeAndValue.Value != nil && canUseImmediate {
+			consts[i] = typeAndValue.Value
+		} else {
+			values[i], err = c.CompileExpression(arg)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	v = c.Value(args[0].Pos(), args[1].End(), op, typ, values[0], values[1])
-	c.Debugf("%s: binary operation %s with %d args: %s and %s", v, op, len(args), values[0], values[1])
+	if values[1] != nil {
+		v = c.Value(args[0].Pos(), args[1].End(), op, typ, values[0], values[1])
+		c.Debugf("%s: binary operation %s with %d args: %s and %s", v, op, len(args), values[0], values[1])
+	} else {
+		v = c.ValueExtra(args[0].Pos(), args[1].End(), op, typ, consts[1], values[0])
+		c.Debugf("%s: binary operation %s with %d args: %s and %s", v, op, len(args), values[0], consts[1])
+	}
 	for i := 2; i < len(args); i++ {
-		v = c.ContinueValue(v, args[i-1].Pos(), args[i].End(), op, typ, v, values[i])
-		c.Debugf("%s: continuing binary operation %s with %d args: %s and %s", v, op, len(args), v, values[i])
+		if values[i] != nil {
+			v = c.ContinueValue(v, args[i-1].Pos(), args[i].End(), op, typ, v, values[i])
+			c.Debugf("%s: continuing binary operation %s with %d args: %s and %s", v, op, len(args), v, values[i])
+		} else {
+			v = c.ContinueValueExtra(v, args[i-1].Pos(), args[i].End(), op, typ, consts[i], v)
+			c.Debugf("%s: continuing binary operation %s with %d args: %s and %s", v, op, len(args), v, consts[i])
+		}
 	}
 
 	return v, nil
