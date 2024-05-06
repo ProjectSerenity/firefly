@@ -335,13 +335,20 @@ func (a *allocator) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.B
 				}
 
 				src := a.locations[v.Args[0]][0] // The first operand.
-				arg := a.locations[v.Args[1]][0] // The other operand.
+
+				var arg any // The other operand.
+				if con, ok := v.Extra.(constant.Value); ok {
+					arg = con
+					a.Debugf("%s: %s: inputs %s (%s) and %s => %s", v, v.Op, v.Args[0], src, arg, dst)
+				} else {
+					arg = a.locations[v.Args[1]][0]
+					a.Debugf("%s: %s: inputs %s (%s) and %s (%s) => %s", v, v.Op, v.Args[0], src, v.Args[1], arg, dst)
+				}
 				if !skipAlloc {
 					a.locations[v] = []sys.Location{dst}
 					a.allocated[dst] = v
 				}
 				alloc := &Alloc{Dst: dst, Src: src, Data: arg}
-				a.Debugf("%s: %s: inputs %s (%s) and %s (%s) => %s", v, v.Op, v.Args[0], src, v.Args[1], arg, dst)
 				a.addAlloc(v, alloc)
 
 			// Arithmetic operations with only one operand.

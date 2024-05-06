@@ -292,6 +292,14 @@ func (l *x86Lowerer) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.
 
 	done[block] = true
 
+	boolConstToUint64 := func(v constant.Value) uint64 {
+		if constant.BoolVal(v) {
+			return 1
+		}
+
+		return 0
+	}
+
 	l.block = block
 	l.blockOffsets[block] = len(l.insts)
 	l.Debugf("%s: starting block at offset %06x", block, len(l.insts))
@@ -344,20 +352,32 @@ func (l *x86Lowerer) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.
 			// First, we do the operation to merge the
 			// arguments, then we check the result.
 			// TODO: have the logical (or) operation short-circuit.
-			var op ssafir.Op
-			switch v.Op {
-			case ssafir.OpLogicalOr:
-				op = ssafir.OpX86_OR_R8_Rmr8
-			case ssafir.OpLogicalAnd:
-				op = ssafir.OpX86_AND_R8_Rmr8
-			}
-
 			alloc := v.Extra.(*Alloc)
+			con, constArg := alloc.Data.(constant.Value)
 			data := &x86InstructionData{
 				Args: [4]any{
 					x86RegisterTo8(alloc.Src),
-					x86RegisterTo8(alloc.Data.(sys.Location)),
 				},
+			}
+
+			var op ssafir.Op
+			switch v.Op {
+			case ssafir.OpLogicalOr:
+				if constArg {
+					op = ssafir.OpX86_OR_Rmr8_Imm8
+					data.Args[1] = boolConstToUint64(con)
+				} else {
+					op = ssafir.OpX86_OR_R8_Rmr8
+					data.Args[1] = x86RegisterTo8(alloc.Data.(sys.Location))
+				}
+			case ssafir.OpLogicalAnd:
+				if constArg {
+					op = ssafir.OpX86_AND_Rmr8_Imm8
+					data.Args[1] = boolConstToUint64(con)
+				} else {
+					op = ssafir.OpX86_AND_R8_Rmr8
+					data.Args[1] = x86RegisterTo8(alloc.Data.(sys.Location))
+				}
 			}
 
 			l.addInst(v, op, data)
@@ -922,73 +942,82 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 	//
 	// Comparisons are the same for the
 	// first step.
-	comparisons := [4]ssafir.Op{
-		ssafir.OpX86_CMP_R8_Rmr8,
-		ssafir.OpX86_CMP_R16_Rmr16,
-		ssafir.OpX86_CMP_R32_Rmr32,
-		ssafir.OpX86_CMP_R64_Rmr64_REX,
+	comparisons := [4][2]ssafir.Op{
+		{ssafir.OpX86_CMP_R8_Rmr8, ssafir.OpX86_CMP_Rmr8_Imm8},
+		{ssafir.OpX86_CMP_R16_Rmr16, ssafir.OpX86_CMP_Rmr16_Imm16},
+		{ssafir.OpX86_CMP_R32_Rmr32, ssafir.OpX86_CMP_Rmr32_Imm32},
+		{ssafir.OpX86_CMP_R64_Rmr64_REX, ssafir.OpX86_CMP_Rmr64_Imm32_REX},
 	}
 
-	op := map[ssafir.Op][4]ssafir.Op{
+	constArg := 0
+	con, ok := alloc.Data.(constant.Value)
+	var imm uint64
+	if ok {
+		constArg = 1
+		imm, _ = constant.Uint64Val(con)
+		data.Args[1] = imm
+	}
+
+	op := map[ssafir.Op][4][2]ssafir.Op{
 		ssafir.OpAdd: {
-			ssafir.OpX86_ADD_R8_Rmr8,
-			ssafir.OpX86_ADD_R16_Rmr16,
-			ssafir.OpX86_ADD_R32_Rmr32,
-			ssafir.OpX86_ADD_R64_Rmr64_REX,
+			{ssafir.OpX86_ADD_R8_Rmr8, ssafir.OpX86_ADD_Rmr8_Imm8},
+			{ssafir.OpX86_ADD_R16_Rmr16, ssafir.OpX86_ADD_Rmr16_Imm16},
+			{ssafir.OpX86_ADD_R32_Rmr32, ssafir.OpX86_ADD_Rmr32_Imm32},
+			{ssafir.OpX86_ADD_R64_Rmr64_REX, ssafir.OpX86_ADD_Rmr64_Imm32_REX},
 		},
 		ssafir.OpSubtract: {
-			ssafir.OpX86_SUB_R8_Rmr8,
-			ssafir.OpX86_SUB_R16_Rmr16,
-			ssafir.OpX86_SUB_R32_Rmr32,
-			ssafir.OpX86_SUB_R64_Rmr64_REX,
+			{ssafir.OpX86_SUB_R8_Rmr8, ssafir.OpX86_SUB_Rmr8_Imm8},
+			{ssafir.OpX86_SUB_R16_Rmr16, ssafir.OpX86_SUB_Rmr16_Imm16},
+			{ssafir.OpX86_SUB_R32_Rmr32, ssafir.OpX86_SUB_Rmr32_Imm32},
+			{ssafir.OpX86_SUB_R64_Rmr64_REX, ssafir.OpX86_SUB_Rmr64_Imm32_REX},
 		},
 		ssafir.OpMultiply: {
-			ssafir.OpX86_MUL_Rmr8,
-			ssafir.OpX86_MUL_Rmr16,
-			ssafir.OpX86_MUL_Rmr32,
-			ssafir.OpX86_MUL_Rmr64_REX,
+			{ssafir.OpX86_MUL_Rmr8, 0},
+			{ssafir.OpX86_MUL_Rmr16, 0},
+			{ssafir.OpX86_MUL_Rmr32, 0},
+			{ssafir.OpX86_MUL_Rmr64_REX, 0},
 		},
 		ssafir.OpDivide: {
-			ssafir.OpX86_DIV_Rmr8,
-			ssafir.OpX86_DIV_Rmr16,
-			ssafir.OpX86_DIV_Rmr32,
-			ssafir.OpX86_DIV_Rmr64_REX,
+			{ssafir.OpX86_DIV_Rmr8, 0},
+			{ssafir.OpX86_DIV_Rmr16, 0},
+			{ssafir.OpX86_DIV_Rmr32, 0},
+			{ssafir.OpX86_DIV_Rmr64_REX, 0},
 		},
 		ssafir.OpNegate: {
-			ssafir.OpX86_NEG_Rmr8,
-			ssafir.OpX86_NEG_Rmr16,
-			ssafir.OpX86_NEG_Rmr32,
-			ssafir.OpX86_NEG_Rmr64_REX,
+			{ssafir.OpX86_NEG_Rmr8, 0},
+			{ssafir.OpX86_NEG_Rmr16, 0},
+			{ssafir.OpX86_NEG_Rmr32, 0},
+			{ssafir.OpX86_NEG_Rmr64_REX, 0},
 		},
 		ssafir.OpBitwiseOr: {
-			ssafir.OpX86_OR_R8_Rmr8,
-			ssafir.OpX86_OR_R16_Rmr16,
-			ssafir.OpX86_OR_R32_Rmr32,
-			ssafir.OpX86_OR_R64_Rmr64_REX,
+			{ssafir.OpX86_OR_R8_Rmr8, ssafir.OpX86_OR_Rmr8_Imm8},
+			{ssafir.OpX86_OR_R16_Rmr16, ssafir.OpX86_OR_Rmr16_Imm16},
+			{ssafir.OpX86_OR_R32_Rmr32, ssafir.OpX86_OR_Rmr32_Imm32},
+			{ssafir.OpX86_OR_R64_Rmr64_REX, ssafir.OpX86_OR_Rmr64_Imm32_REX},
 		},
 		ssafir.OpBitwiseAnd: {
-			ssafir.OpX86_AND_R8_Rmr8,
-			ssafir.OpX86_AND_R16_Rmr16,
-			ssafir.OpX86_AND_R32_Rmr32,
-			ssafir.OpX86_AND_R64_Rmr64_REX,
+			{ssafir.OpX86_AND_R8_Rmr8, ssafir.OpX86_AND_Rmr8_Imm8},
+			{ssafir.OpX86_AND_R16_Rmr16, ssafir.OpX86_AND_Rmr16_Imm16},
+			{ssafir.OpX86_AND_R32_Rmr32, ssafir.OpX86_AND_Rmr32_Imm32},
+			{ssafir.OpX86_AND_R64_Rmr64_REX, ssafir.OpX86_AND_Rmr64_Imm32_REX},
 		},
 		ssafir.OpBitwiseXor: {
-			ssafir.OpX86_XOR_R8_Rmr8,
-			ssafir.OpX86_XOR_R16_Rmr16,
-			ssafir.OpX86_XOR_R32_Rmr32,
-			ssafir.OpX86_XOR_R64_Rmr64_REX,
+			{ssafir.OpX86_XOR_R8_Rmr8, ssafir.OpX86_XOR_Rmr8_Imm8},
+			{ssafir.OpX86_XOR_R16_Rmr16, ssafir.OpX86_XOR_Rmr16_Imm16},
+			{ssafir.OpX86_XOR_R32_Rmr32, ssafir.OpX86_XOR_Rmr32_Imm32},
+			{ssafir.OpX86_XOR_R64_Rmr64_REX, ssafir.OpX86_XOR_Rmr64_Imm32_REX},
 		},
 		ssafir.OpShiftLeft: {
-			ssafir.OpX86_SAL_Rmr8_CL,
-			ssafir.OpX86_SAL_Rmr16_CL,
-			ssafir.OpX86_SAL_Rmr32_CL,
-			ssafir.OpX86_SAL_Rmr64_CL_REX,
+			{ssafir.OpX86_SAL_Rmr8_CL, ssafir.OpX86_SAL_Rmr8_Imm8u},
+			{ssafir.OpX86_SAL_Rmr16_CL, ssafir.OpX86_SAL_Rmr16_Imm8u},
+			{ssafir.OpX86_SAL_Rmr32_CL, ssafir.OpX86_SAL_Rmr32_Imm8u},
+			{ssafir.OpX86_SAL_Rmr64_CL_REX, ssafir.OpX86_SAL_Rmr64_Imm8u_REX},
 		},
 		ssafir.OpShiftRight: {
-			ssafir.OpX86_SAR_Rmr8_CL,
-			ssafir.OpX86_SAR_Rmr16_CL,
-			ssafir.OpX86_SAR_Rmr32_CL,
-			ssafir.OpX86_SAR_Rmr64_CL_REX,
+			{ssafir.OpX86_SAR_Rmr8_CL, ssafir.OpX86_SAR_Rmr8_Imm8u},
+			{ssafir.OpX86_SAR_Rmr16_CL, ssafir.OpX86_SAR_Rmr16_Imm8u},
+			{ssafir.OpX86_SAR_Rmr32_CL, ssafir.OpX86_SAR_Rmr32_Imm8u},
+			{ssafir.OpX86_SAR_Rmr64_CL_REX, ssafir.OpX86_SAR_Rmr64_Imm8u_REX},
 		},
 		ssafir.OpEqual:              comparisons,
 		ssafir.OpNotEqual:           comparisons,
@@ -996,7 +1025,7 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 		ssafir.OpLessThanOrEqual:    comparisons,
 		ssafir.OpGreaterThan:        comparisons,
 		ssafir.OpGreaterThanOrEqual: comparisons,
-	}[info.Group][size]
+	}[info.Group][size][constArg]
 
 	if op == 0 {
 		panic(fmt.Errorf("%s: unexpected op %s", l.fset.Position(v.Pos), v.Op))
@@ -1024,8 +1053,7 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 		// If our data is a constant, then
 		// we use one of the immediate forms,
 		// depending on the specific constant.
-		con, ok := alloc.Data.(constant.Value)
-		if !ok {
+		if constArg == 0 {
 			// Otherwise, move the shift (second arg) into CL.
 			v.Extra = &Alloc{Dst: x86.RCX, Src: alloc.Data.(sys.Location)}
 			l.MoveNumber(v)
@@ -1034,10 +1062,8 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 			break
 		}
 
-		imm8u, _ := constant.Uint64Val(con)
-
 		// Optimise for a shift of 1.
-		if imm8u == 1 {
+		if imm == 1 {
 			data.Args[1] = nil // The value is implied.
 			op = map[ssafir.Op][4]ssafir.Op{
 				ssafir.OpShiftLeft: {
@@ -1053,22 +1079,6 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 					ssafir.OpX86_SAR_Rmr64_1_REX,
 				},
 			}[info.Group][size]
-		} else {
-			data.Args[1] = imm8u // Store the shift as an immediate.
-			op = map[ssafir.Op][4]ssafir.Op{
-				ssafir.OpShiftLeft: {
-					ssafir.OpX86_SAL_Rmr8_Imm8u,
-					ssafir.OpX86_SAL_Rmr16_Imm8u,
-					ssafir.OpX86_SAL_Rmr32_Imm8u,
-					ssafir.OpX86_SAL_Rmr64_Imm8u_REX,
-				},
-				ssafir.OpShiftRight: {
-					ssafir.OpX86_SAR_Rmr8_Imm8u,
-					ssafir.OpX86_SAR_Rmr16_Imm8u,
-					ssafir.OpX86_SAR_Rmr32_Imm8u,
-					ssafir.OpX86_SAR_Rmr64_Imm8u_REX,
-				},
-			}[info.Group][size]
 		}
 
 	case ssafir.OpEqual,
@@ -1078,12 +1088,25 @@ func (l *x86Lowerer) DoArithmetic(v *ssafir.Value) {
 		ssafir.OpGreaterThan,
 		ssafir.OpGreaterThanOrEqual:
 		// First, we do the comparison.
-		l.addInst(v, op, &x86InstructionData{
-			Args: [4]any{
-				alloc.Src,
-				alloc.Data.(sys.Location),
-			},
-		})
+		//
+		// If our data is a constant, then
+		// we use an immediate forms.
+		if constArg == 0 {
+			l.addInst(v, op, &x86InstructionData{
+				Args: [4]any{
+					alloc.Src,
+					alloc.Data.(sys.Location),
+				},
+			})
+		} else {
+			imm, _ := constant.Int64Val(con)
+			l.addInst(v, op, &x86InstructionData{
+				Args: [4]any{
+					alloc.Src,
+					uint64(imm),
+				},
+			})
+		}
 
 		// If we're just used as block control,
 		// we don't need to store the value, as

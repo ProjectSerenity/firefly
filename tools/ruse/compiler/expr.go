@@ -937,6 +937,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		op = c.pickIntegerOp(sig.Result()[0], ssafir.OpDivide)
 	case types.SpecialFormOr:
 		if underlying := types.Underlying(sig.Result()[0]); underlying == types.Bool || underlying == types.UntypedBool {
+			canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
 			op = ssafir.OpLogicalOr
 		} else {
 			canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
@@ -944,6 +945,7 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		}
 	case types.SpecialFormAnd:
 		if underlying := types.Underlying(sig.Result()[0]); underlying == types.Bool || underlying == types.UntypedBool {
+			canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64
 			op = ssafir.OpLogicalAnd
 		} else {
 			canUseImmediate = c.arch == sys.X86 || c.arch == sys.X86_64

@@ -355,6 +355,76 @@ func TestLower(t *testing.T) {
 			},
 		},
 		{
+			Name: "constant booleans",
+			Arch: sys.X86_64,
+			Code: `
+				(package test)
+
+				'(abi
+					(params rax)
+					(result rax))
+				(asm-func (copy-n (n int) int)
+					(ret))
+
+				(func (test bool)
+					(let a (copy-n 7))
+					(let gtr (> a 3))     ; true
+					(let geq (>= a 3))    ; true
+					(let lss (< a 3))     ; false
+					(let leq (<= a 3))    ; false
+					(let eql (= a 3))     ; false
+					(let neq (!= a 3))    ; true
+					(let all (and gtr geq lss leq eql neq)) ; false
+					(let any (or gtr geq lss leq eql neq))  ; true
+					(or all any false true)) ; true
+			`,
+			Disasm: []string{
+				"f3 0f 1e fa          	endbr64",
+				"b8 07 00 00 00       	mov eax, 0x7",    // Prepare arg 7
+				"e8 3f 33 22 11       	call 0x1122334d", // Call func   (copy-n 7)
+				"48 81 f8 03 00 00 00 	cmp rax, 0x3",    // Compare     (> a 3)
+				"0f 9f c1             	setnle cl",       // Perform     (> a 3)
+				"48 81 f8 03 00 00 00 	cmp rax, 0x3",    // Compare     (>= a 3)
+				"0f 9d c2             	setnl dl",        // Perform     (>= a 3)
+				"48 81 f8 03 00 00 00 	cmp rax, 0x3",    // Compare     (< a 3)
+				"40 0f 9c c6          	setl sil",        // Perform     (< a 3)
+				"48 81 f8 03 00 00 00 	cmp rax, 0x3",    // Compare     (<= a 3)
+				"40 0f 9e c7          	setle dil",       // Perform     (<= a 3)
+				"48 81 f8 03 00 00 00 	cmp rax, 0x3",    // Compare     (= a 3)
+				"41 0f 94 c0          	setz r8b",        // Perform     (= a 3)
+				"48 81 f8 03 00 00 00 	cmp rax, 0x3",    // Compare     (!= a 3)
+				"41 0f 95 c1          	setnz r9b",       // Perform     (!= a 3)
+				"22 ca                	and cl, dl",      // Perform     (and gtr geq)
+				"0f 95 c0             	setnz al",        // Save result (and gtr geq)
+				"40 22 c6             	and al, sil",     // Perform     (and gtr geq lss)
+				"0f 95 c0             	setnz al",        // Save result (and gtr geq lss)
+				"40 22 c7             	and al, dil",     // Perform     (and gtr ... lss leq)
+				"0f 95 c0             	setnz al",        // Save result (and gtr ... lss leq)
+				"41 22 c0             	and al, r8b",     // Perform     (and gtr ... leq eql)
+				"0f 95 c0             	setnz al",        // Save result (and gtr ... leq eql)
+				"41 22 c1             	and al, r9b",     // Perform     (and gtr ... eql neq)
+				"0f 95 c0             	setnz al",        // Save result (and gtr ... eql neq)
+				"0a ca                	or cl, dl",       // Perform     (or gtr geq)
+				"41 0f 95 c2          	setnz r10b",      // Save result (or gtr geq)
+				"44 0a d6             	or r10b, sil",    // Perform     (or gtr geq lss)
+				"41 0f 95 c2          	setnz r10b",      // Save result (or gtr geq lss)
+				"44 0a d7             	or r10b, dil",    // Perform     (or gtr ... lss leq)
+				"41 0f 95 c2          	setnz r10b",      // Save result (or gtr ... lss leq)
+				"45 0a d0             	or r10b, r8b",    // Perform     (or gtr ... leq eql)
+				"41 0f 95 c2          	setnz r10b",      // Save result (or gtr ... leq eql)
+				"45 0a d1             	or r10b, r9b",    // Perform     (or gtr ... eql neq)
+				"41 0f 95 c2          	setnz r10b",      // Save result (or gtr ... eql neq)
+				"41 0a c2             	or al, r10b",     // Perform     (or all any)
+				"0f 95 c1             	setnz cl",        // Save result (or all any)
+				"80 c9 00             	or cl, 0x0",      // Perform     (or all any false)
+				"0f 95 c1             	setnz cl",        // Save result (or all any false)
+				"80 c9 01             	or cl, 0x1",      // Perform     (or all any false true)
+				"0f 95 c1             	setnz cl",        // Save result (or all any false true)
+				"48 8b c1             	mov rax, rcx",    // Save result (or all any false true)
+				"c3                   	ret",
+			},
+		},
+		{
 			Name: "multiple-returns",
 			Arch: sys.X86_64,
 			Code: `
