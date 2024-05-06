@@ -783,6 +783,48 @@ func (a *allocator) AddValue(v *ssafir.Value) {
 
 	// Handle constants.
 	if len(v.Args) == 0 {
+		// String constants are a little more complex,
+		// as they come in two parts.
+		if s, ok := v.Extra.(string); ok {
+			// Save the pointer.
+			pointer := a.GetLocation()
+			con := types.NewConstant(nil, v.Pos, v.End, nil, "", v.Type, constant.MakeString(s), 1)
+			a.pkg.Literals = append(a.pkg.Literals, con)
+			a.Debugf("%s: storing literal string pointer %s in %s", v, v, pointer)
+			a.addOpAlloc(v, ssafir.OpConstantString, &Alloc{Dst: pointer, Data: s})
+			a.allocated[pointer] = v
+
+			// Save the length.
+			length := a.GetLocation()
+			a.Debugf("%s: storing literal string length %s in %s", v, v, length)
+			a.addOpAlloc(v, ssafir.OpConstantUntypedInt, &Alloc{Dst: length, Data: int64(len(s))})
+			a.allocated[length] = v
+
+			a.locations[v] = []sys.Location{pointer, length}
+
+			return
+		}
+
+		if con, ok := v.Extra.(*types.Constant); ok && con.Value().Kind() == constant.String {
+			// Save the pointer.
+			val := con.Value()
+			pointer := a.GetLocation()
+			a.Debugf("%s: storing constant string pointer %s in %s", v, v, pointer)
+			a.addOpAlloc(v, ssafir.OpConstantString, &Alloc{Dst: pointer, Data: con})
+			a.allocated[pointer] = v
+
+			// Save the length.
+			length := a.GetLocation()
+			s := constant.StringVal(val)
+			a.Debugf("%s: storing constant string length %s in %s", v, v, length)
+			a.addOpAlloc(v, ssafir.OpConstantUntypedInt, &Alloc{Dst: length, Data: int64(len(s))})
+			a.allocated[length] = v
+
+			a.locations[v] = []sys.Location{pointer, length}
+
+			return
+		}
+
 		dst := a.GetLocation()
 		a.allocated[dst] = v
 		a.locations[v] = append(a.locations[v], dst)
