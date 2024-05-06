@@ -22,7 +22,7 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 	if typ.Value != nil {
 		var op ssafir.Op
 		switch types.Underlying(typ.Type) {
-		case types.Bool:
+		case types.Bool, types.UntypedBool:
 			op = ssafir.OpConstantBool
 		case types.String, types.UntypedString:
 			op = ssafir.OpConstantString
@@ -68,7 +68,7 @@ func (c *compiler) CompileExpression(expr ast.Expression) (*ssafir.Value, error)
 
 		var v *ssafir.Value
 		switch types.Underlying(typ.Type) {
-		case types.Bool:
+		case types.Bool, types.UntypedBool:
 			var extra int64
 			if constant.BoolVal(typ.Value) {
 				extra = 1
