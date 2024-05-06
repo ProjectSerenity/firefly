@@ -489,6 +489,79 @@ func TestLower(t *testing.T) {
 				"c3                   	ret",
 			},
 		},
+		{
+			Name: "if",
+			Arch: sys.X86_64,
+			Code: `
+				(package test)
+
+				(let System-V-syscall-x86-64 (abi
+					(params rdi rsi rdx r10 r8 r9)
+					(result rax rdx)
+					(scratch rcx r11)))
+
+				; Print msg to fd.
+				'(abi System-V-syscall-x86-64)
+				(asm-func (print (fd int) (msg string))
+					(mov eax 1)  ; sys_write
+					(syscall)    ; write(fd, msg, len(msg))
+					(ret))
+
+				; Returns a random integer.
+				'(abi (result rax))
+				(asm-func (random int)
+					'again
+					(rdrand rax)
+					(jnc 'again)
+					(ret))
+
+				(func (test)
+					(let v (random))
+					(if (= (and v 1) 0)
+						(print 1 "Even!\n")
+						(print 1 "Odd!\n"))
+					(let v2 (random))
+					(if (= v v2) (print 1 "Equal!\n")))
+			`,
+			Disasm: []string{
+				"f3 0f 1e fa          	endbr64",
+				"53                   	push rbx",        // Preserve    rbx
+				"e8 3f 33 22 11       	call 0x11223349", // Call        random
+				"48 8b c8             	mov rcx, rax",    // Save result v
+				"48 81 e1 01 00 00 00 	and rcx, 0x1",    // Perform     (and v 1)
+				"48 81 f9 00 00 00 00 	cmp rcx, 0x0",    // Perform     (= (and v 1) 0)
+				"75 1e                	jnz 0x3b",        // Jump to     else
+				// Begin if block for (if (= (and v 1) 0)
+				"48 8b d8             	mov rbx, rax",                  // Save        v
+				"bf 01 00 00 00       	mov edi, 0x1",                  // Prepare arg 1
+				"48 8d 35 44 33 22 11 	lea rsi, ptr [rip+0x11223344]", // Prepare arg "Even!\n" ptr
+				"ba 06 00 00 00       	mov edx, 0x6",                  // Prepare arg "Even!\n" len
+				"e8 3f 33 22 11       	call 0x11223375",               // Call        print
+				"48 8b c3             	mov rax, rbx",                  // Restore     v
+				"eb 1c                	jmp 0x57",                      // Jump after  (if (= (and v 1) 0)
+				// End if block for (if (= (and v 1) 0)
+				// Begin else block for (if (= (and v 1) 0)
+				"48 8b d8             	mov rbx, rax",                  // Save        v
+				"bf 01 00 00 00       	mov edi, 0x1",                  // Prepare arg 1
+				"48 8d 35 44 33 22 11 	lea rsi, ptr [rip+0x11223344]", // Prepare arg "Odd!\n" ptr
+				"ba 05 00 00 00       	mov edx, 0x5",                  // Prepare arg "Odd!\n" len
+				"e8 3f 33 22 11       	call 0x11223393",               // Call        print
+				"48 8b c3             	mov rax, rbx",                  // Restore     v
+				// End else block for (if (= (and v 1) 0)
+				"48 8b c8             	mov rcx, rax",    // Save result v
+				"e8 3f 33 22 11       	call 0x1122339e", // Call        random
+				"48 3b c8             	cmp rcx, rax",    // Perform     (= v v2)
+				"75 16                	jnz 0x7a",        // Jump after  (if (= v v2)
+				// Begin if block for (if (= v v2)
+				"bf 01 00 00 00       	mov edi, 0x1",                  // Prepare arg 1
+				"48 8d 35 44 33 22 11 	lea rsi, ptr [rip+0x11223344]", // Prepare arg "Equal!\n" ptr
+				"ba 07 00 00 00       	mov edx, 0x7",                  // Prepare arg "Equal!\n" len
+				"e8 3f 33 22 11       	call 0x112233b9",               // Call        print
+				// End if block for (if (= v v2)
+				"5b                   	pop rbx", // Restore     rbx
+				"c3                   	ret",
+			},
+		},
 	}
 
 	compareOptions := []cmp.Option{

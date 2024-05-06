@@ -376,7 +376,8 @@ func defPredeclaredSpecialForms() {
 		}
 
 		ifElt := fun.Elements[2]
-		_, ifType, err := c.ResolveExpression(scope, function, ifElt) // We don't necessarily need a value.
+		ifScope := NewScope(scope, ifElt.Pos(), ifElt.End(), "if block")
+		_, ifType, err := c.ResolveExpression(ifScope, function, ifElt) // We don't necessarily need a value.
 		if err != nil {
 			return nil, nil, err
 		}
@@ -401,7 +402,8 @@ func defPredeclaredSpecialForms() {
 
 		if len(fun.Elements[1:]) == 3 {
 			elseElt := fun.Elements[3]
-			_, elseType, err := c.ResolveExpression(scope, function, elseElt) // We don't necessarily need a value.
+			elseScope := NewScope(scope, elseElt.Pos(), elseElt.End(), "else block")
+			_, elseType, err := c.ResolveExpression(elseScope, function, elseElt) // We don't necessarily need a value.
 			if err != nil {
 				return nil, nil, err
 			}
