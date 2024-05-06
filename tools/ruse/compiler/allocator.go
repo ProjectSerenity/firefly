@@ -228,6 +228,13 @@ func (a *allocator) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.B
 			// we'll pull the value when it's
 			// used.
 		case ssafir.OpCopy:
+			// If we don't use the value, we can
+			// just skip it. We don't drop it, as
+			// it's effectively already been dropped.
+			if v.Uses == 0 {
+				continue
+			}
+
 			// If we're dropping the input, then
 			// it's a move. If not, it's a full
 			// copy.
@@ -448,7 +455,7 @@ func (a *allocator) doBlock(done map[*ssafir.Block]bool, block, stopAt *ssafir.B
 		// Drop any unused values.
 		for i, arg := range v.Args {
 			if arg.Uses == 0 {
-				return fmt.Errorf("internal error: %s.Args[%d] (%s) already had zero uses", v, i, arg)
+				return a.Errorf(v.Pos, "internal error: %s.Args[%d] (%s) already had zero uses", v, i, arg)
 			}
 
 			arg.Uses--
