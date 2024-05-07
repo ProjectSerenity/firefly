@@ -63,6 +63,9 @@ func Walk(v Visitor, node Node) {
 	case *Comment:
 		// nothing to do
 
+	case *ExpressionComment:
+		// nothing to do
+
 	case *CommentGroup:
 		for _, c := range n.List {
 			Walk(v, c)
@@ -92,7 +95,7 @@ func Walk(v Visitor, node Node) {
 		}
 		Walk(v, n.Name)
 		walkImports(v, n.Imports)
-		walkList(v, n.Expressions)
+		walkExprList(v, n.Expressions)
 		// don't walk n.Comments - they have been
 		// visited already through the individual
 		// nodes

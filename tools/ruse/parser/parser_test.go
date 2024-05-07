@@ -21,6 +21,7 @@ func TestParseExpression(t *testing.T) {
 	tests := []struct {
 		Name string
 		Src  string
+		Mode Mode
 		Want ast.Expression
 		Err  string
 	}{
@@ -243,6 +244,18 @@ func TestParseExpression(t *testing.T) {
 			},
 		},
 		{
+			Name: "expression commented identifier",
+			Src:  "#; x",
+			Mode: ParseComments,
+			Want: &ast.ExpressionComment{
+				Hash: 1,
+				X: &ast.Identifier{
+					NamePos: 4,
+					Name:    "x",
+				},
+			},
+		},
+		{
 			Name: "expression commented integer",
 			Src:  "#; 5678 1234",
 			Want: &ast.Literal{
@@ -252,12 +265,38 @@ func TestParseExpression(t *testing.T) {
 			},
 		},
 		{
+			Name: "expression commented integer",
+			Src:  "#; 5678",
+			Mode: ParseComments,
+			Want: &ast.ExpressionComment{
+				Hash: 1,
+				X: &ast.Literal{
+					ValuePos: 4,
+					Kind:     token.Integer,
+					Value:    "5678",
+				},
+			},
+		},
+		{
 			Name: "expression commented string",
 			Src:  "#;\"bar\" \"foo\"",
 			Want: &ast.Literal{
 				ValuePos: 9,
 				Kind:     token.String,
 				Value:    "\"foo\"",
+			},
+		},
+		{
+			Name: "expression commented string",
+			Src:  "#;\"foo\"",
+			Mode: ParseComments,
+			Want: &ast.ExpressionComment{
+				Hash: 1,
+				X: &ast.Literal{
+					ValuePos: 3,
+					Kind:     token.String,
+					Value:    "\"foo\"",
+				},
 			},
 		},
 		{
@@ -271,6 +310,23 @@ func TestParseExpression(t *testing.T) {
 					&ast.Identifier{NamePos: 16, Name: "b"},
 				},
 				ParenClose: 17,
+			},
+		},
+		{
+			Name: "expression commented list expression",
+			Src:  "#;(+ a b)",
+			Mode: ParseComments,
+			Want: &ast.ExpressionComment{
+				Hash: 1,
+				X: &ast.List{
+					ParenOpen: 3,
+					Elements: []ast.Expression{
+						&ast.Identifier{NamePos: 4, Name: "+"},
+						&ast.Identifier{NamePos: 6, Name: "a"},
+						&ast.Identifier{NamePos: 8, Name: "b"},
+					},
+					ParenClose: 9,
+				},
 			},
 		},
 		{
@@ -322,7 +378,7 @@ func TestParseExpression(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			x, err := ParseExpression(test.Src)
+			x, err := ParseExpressionFrom(token.NewFileSet(), "", []byte(test.Src), test.Mode)
 			if test.Err != "" {
 				if err == nil {
 					t.Fatalf("ParseExpression(): got %#v, want error %q", x, test.Err)
@@ -520,8 +576,8 @@ func TestParseFile(t *testing.T) {
 					ParenClose: 13,
 				},
 				Name: &ast.Identifier{NamePos: 10, Name: "foo"},
-				Expressions: []*ast.List{
-					{
+				Expressions: []ast.Expression{
+					&ast.List{
 						ParenOpen: 24,
 						Elements: []ast.Expression{
 							&ast.Identifier{NamePos: 25, Name: "let"},
@@ -564,8 +620,8 @@ func TestParseFile(t *testing.T) {
 						Path: &ast.Literal{ValuePos: 34, Kind: token.String, Value: `"bar"`},
 					},
 				},
-				Expressions: []*ast.List{
-					{
+				Expressions: []ast.Expression{
+					&ast.List{
 						ParenOpen: 50,
 						Elements: []ast.Expression{
 							&ast.Identifier{NamePos: 51, Name: "let"},
@@ -574,7 +630,7 @@ func TestParseFile(t *testing.T) {
 						},
 						ParenClose: 58,
 					},
-					{
+					&ast.List{
 						ParenOpen: 69,
 						Elements: []ast.Expression{
 							&ast.Identifier{NamePos: 70, Name: "let"},

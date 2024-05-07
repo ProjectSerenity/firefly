@@ -154,6 +154,13 @@ type (
 		From, To token.Pos // position range of bad expression
 	}
 
+	// An ExpressionComment represents an entire well-formed
+	// expression, which has been commented out.
+	ExpressionComment struct {
+		Hash token.Pos
+		X    Expression
+	}
+
 	// An Identifier node represents an identifier.
 	Identifier struct {
 		NamePos token.Pos // identifier position
@@ -200,25 +207,28 @@ type (
 
 // Pos and End implementations for expression/type nodes.
 
-func (x *BadExpression) Pos() token.Pos    { return x.From }
-func (x *Identifier) Pos() token.Pos       { return x.NamePos }
-func (x *Literal) Pos() token.Pos          { return x.ValuePos }
-func (x *List) Pos() token.Pos             { return x.ParenOpen }
-func (x *QuotedIdentifier) Pos() token.Pos { return x.Quote }
-func (x *QuotedList) Pos() token.Pos       { return x.Quote }
-func (x *Qualified) Pos() token.Pos        { return x.X.Pos() }
+func (x *BadExpression) Pos() token.Pos     { return x.From }
+func (x *ExpressionComment) Pos() token.Pos { return x.Hash }
+func (x *Identifier) Pos() token.Pos        { return x.NamePos }
+func (x *Literal) Pos() token.Pos           { return x.ValuePos }
+func (x *List) Pos() token.Pos              { return x.ParenOpen }
+func (x *QuotedIdentifier) Pos() token.Pos  { return x.Quote }
+func (x *QuotedList) Pos() token.Pos        { return x.Quote }
+func (x *Qualified) Pos() token.Pos         { return x.X.Pos() }
 
-func (x *BadExpression) End() token.Pos    { return x.To }
-func (x *Identifier) End() token.Pos       { return token.Pos(int(x.NamePos) + len(x.Name)) }
-func (x *Literal) End() token.Pos          { return token.Pos(int(x.ValuePos) + len(x.Value)) }
-func (x *List) End() token.Pos             { return x.ParenClose + 1 }
-func (x *QuotedIdentifier) End() token.Pos { return x.X.End() }
-func (x *QuotedList) End() token.Pos       { return x.X.End() }
-func (x *Qualified) End() token.Pos        { return x.Y.End() }
+func (x *BadExpression) End() token.Pos     { return x.To }
+func (x *ExpressionComment) End() token.Pos { return x.X.End() }
+func (x *Identifier) End() token.Pos        { return token.Pos(int(x.NamePos) + len(x.Name)) }
+func (x *Literal) End() token.Pos           { return token.Pos(int(x.ValuePos) + len(x.Value)) }
+func (x *List) End() token.Pos              { return x.ParenClose + 1 }
+func (x *QuotedIdentifier) End() token.Pos  { return x.X.End() }
+func (x *QuotedList) End() token.Pos        { return x.X.End() }
+func (x *Qualified) End() token.Pos         { return x.Y.End() }
 
-func (x *BadExpression) Print() string { return "<bad expr>" }
-func (x *Identifier) Print() string    { return x.Name }
-func (x *Literal) Print() string       { return x.Value }
+func (x *BadExpression) Print() string     { return "<bad expr>" }
+func (x *ExpressionComment) Print() string { return "commented " + x.X.Print() }
+func (x *Identifier) Print() string        { return x.Name }
+func (x *Literal) Print() string           { return x.Value }
 func (x *List) Print() string {
 	var buf strings.Builder
 	buf.WriteByte('(')
@@ -238,23 +248,25 @@ func (x *QuotedIdentifier) Print() string { return "quoted " + x.X.Print() }
 func (x *QuotedList) Print() string       { return "quoted " + x.X.Print() }
 func (x *Qualified) Print() string        { return x.X.Print() + "." + x.Y.Print() }
 
-func (x *BadExpression) String() string    { return "bad expr" }
-func (x *Identifier) String() string       { return "identifier" }
-func (x *Literal) String() string          { return "literal" }
-func (x *List) String() string             { return "list" }
-func (x *QuotedIdentifier) String() string { return "quoted " + x.X.String() }
-func (x *QuotedList) String() string       { return "quoted " + x.X.String() }
-func (x *Qualified) String() string        { return "qualified identifier" }
+func (x *BadExpression) String() string     { return "bad expr" }
+func (x *ExpressionComment) String() string { return "expression comment" }
+func (x *Identifier) String() string        { return "identifier" }
+func (x *Literal) String() string           { return "literal" }
+func (x *List) String() string              { return "list" }
+func (x *QuotedIdentifier) String() string  { return "quoted " + x.X.String() }
+func (x *QuotedList) String() string        { return "quoted " + x.X.String() }
+func (x *Qualified) String() string         { return "qualified identifier" }
 
 // exprNode() ensures that only expression/type nodes can be
 // assigned to an Expr.
-func (*BadExpression) exprNode()    {}
-func (*Identifier) exprNode()       {}
-func (*Literal) exprNode()          {}
-func (*List) exprNode()             {}
-func (*QuotedIdentifier) exprNode() {}
-func (*QuotedList) exprNode()       {}
-func (*Qualified) exprNode()        {}
+func (*BadExpression) exprNode()     {}
+func (*ExpressionComment) exprNode() {}
+func (*Identifier) exprNode()        {}
+func (*Literal) exprNode()           {}
+func (*List) exprNode()              {}
+func (*QuotedIdentifier) exprNode()  {}
+func (*QuotedList) exprNode()        {}
+func (*Qualified) exprNode()         {}
 
 // ----------------------------------------------------------------------------
 // Convenience functions for Idents
@@ -289,7 +301,7 @@ type File struct {
 	Package     *List           // the "package" expression
 	Name        *Identifier     // package name
 	Imports     []*Import       // imports in this file
-	Expressions []*List         // top-level expressions; or nil
+	Expressions []Expression    // top-level expressions; or nil
 	Comments    []*CommentGroup // list of all comments in the source file
 }
 

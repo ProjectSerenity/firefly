@@ -452,12 +452,19 @@ func (p *parser) parseExpression() ast.Expression {
 func (p *parser) parseExpr() ast.Expression {
 	switch p.lex.Token {
 	case token.ExpressionComment:
-		// We read the next full expression,
-		// then discard it and continue on
-		// to the next.
+		if p.mode&ParseComments == 0 {
+			// We read the next full expression,
+			// then discard it and continue on
+			// to the next.
+			p.next()
+			p.parseExpr()
+			return p.parseExpr()
+		}
+
+		x := &ast.ExpressionComment{Hash: p.lex.Position}
 		p.next()
-		p.parseExpr()
-		return p.parseExpr()
+		x.X = p.parseExpr()
+		return x
 	case token.Identifier:
 		x := &ast.Identifier{NamePos: p.lex.Position, Name: p.lex.Value}
 		p.next()
@@ -600,6 +607,7 @@ func (p *parser) parseFile() *ast.File {
 	}
 
 	// Package clause.
+	var exprs []ast.Expression
 	doc := p.leadComment
 	if p.lex.Token != token.ParenOpen && p.lex.Token != token.Quote {
 		p.errorExpected(errorPos(p.lex.Position), "package name")
@@ -607,6 +615,16 @@ func (p *parser) parseFile() *ast.File {
 	}
 
 	x := p.parseExpr()
+	for {
+		_, ok := x.(*ast.ExpressionComment)
+		if ok {
+			exprs = append(exprs, x)
+			x = p.parseExpr()
+			continue
+		}
+
+		break
+	}
 	list, ok := x.(*ast.List)
 	if !ok {
 		p.errorExpected(errorPos(p.lex.Position), "package name")
@@ -636,9 +654,23 @@ func (p *parser) parseFile() *ast.File {
 
 	// Imports.
 	var imports []*ast.Import
-	var exprs []*ast.List
 	for p.lex.Token != token.EndOfFile {
 		expr := p.parseExpression()
+		for {
+			_, ok := expr.(*ast.ExpressionComment)
+			if ok {
+				exprs = append(exprs, expr)
+				if p.lex.Token == token.EndOfFile {
+					expr = nil
+					break
+				}
+
+				expr = p.parseExpression()
+				continue
+			}
+
+			break
+		}
 		if expr == nil {
 			break
 		}
@@ -756,6 +788,21 @@ func (p *parser) parseFile() *ast.File {
 	// Expressions.
 	for p.lex.Token != token.EndOfFile {
 		expr := p.parseExpression()
+		for {
+			_, ok := expr.(*ast.ExpressionComment)
+			if ok {
+				exprs = append(exprs, expr)
+				if p.lex.Token == token.EndOfFile {
+					expr = nil
+					break
+				}
+
+				expr = p.parseExpression()
+				continue
+			}
+
+			break
+		}
 		if expr == nil {
 			break
 		}

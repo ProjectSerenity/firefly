@@ -452,7 +452,16 @@ func (c *checker) CheckAnnotations(files []*ast.File) error {
 		}
 
 		// Other expressions.
-		for _, list := range file.Expressions {
+		for _, expr := range file.Expressions {
+			if _, ok := expr.(*ast.ExpressionComment); ok {
+				continue
+			}
+
+			list, ok := expr.(*ast.List)
+			if !ok {
+				return c.errorf(expr.Pos(), "invalid expression: got %s, want list", expr)
+			}
+
 			keyword, ok := list.Elements[0].(*ast.Identifier)
 			if !ok {
 				return c.errorf(list.Elements[0].Pos(), "invalid expression: got %s, want keyword", list.Elements[0])

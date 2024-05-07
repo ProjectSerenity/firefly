@@ -463,6 +463,10 @@ func (f *formatter) FprintExpr(indentation int, expr ast.Expression) {
 	case *ast.QuotedIdentifier:
 		f.buf.WriteByte('\'')
 		f.buf.WriteString(x.X.Name)
+	case *ast.ExpressionComment:
+		f.buf.WriteByte('#')
+		f.buf.WriteByte(';')
+		f.FprintExpr(indentation, x.X)
 	case *ast.Identifier:
 		f.buf.WriteString(x.Name)
 	case *ast.Literal:

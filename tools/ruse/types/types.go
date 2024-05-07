@@ -441,7 +441,16 @@ func (c *checker) Check(files []*ast.File) error {
 		// all top-level expressions, so we should
 		// not need any new types.
 		for _, expr := range file.Expressions {
-			kind, _, err := c.interpretDefinition(expr, "top-level list")
+			if _, ok := expr.(*ast.ExpressionComment); ok {
+				continue
+			}
+
+			list, ok := expr.(*ast.List)
+			if !ok {
+				return c.errorf(expr.Pos(), "invalid expression: got %s, want list", expr)
+			}
+
+			kind, _, err := c.interpretDefinition(list, "top-level list")
 			if err != nil {
 				return c.error(err)
 			}
@@ -449,19 +458,19 @@ func (c *checker) Check(files []*ast.File) error {
 			switch kind.Name {
 			case "asm-func":
 				c.use(kind, specialForms[SpecialFormAsmFunc])
-				err := c.CheckTopLevelAsmFuncDecl(scope, expr)
+				err := c.CheckTopLevelAsmFuncDecl(scope, list)
 				if err != nil {
 					return err
 				}
 			case "func":
 				c.use(kind, specialForms[SpecialFormFunc])
-				err := c.CheckTopLevelFuncDecl(scope, expr)
+				err := c.CheckTopLevelFuncDecl(scope, list)
 				if err != nil {
 					return err
 				}
 			case "let":
 				c.use(kind, specialForms[SpecialFormLet])
-				err := c.CheckTopLevelLet(scope, expr)
+				err := c.CheckTopLevelLet(scope, list)
 				if err != nil {
 					return err
 				}
@@ -480,24 +489,33 @@ func (c *checker) Check(files []*ast.File) error {
 	for i, file := range files {
 		scope := fileScopes[i]
 		for _, expr := range file.Expressions {
-			kind, _, err := c.interpretDefinition(expr, "top-level list")
+			if _, ok := expr.(*ast.ExpressionComment); ok {
+				continue
+			}
+
+			list, ok := expr.(*ast.List)
+			if !ok {
+				return c.errorf(expr.Pos(), "invalid expression: got %s, want list", expr)
+			}
+
+			kind, _, err := c.interpretDefinition(list, "top-level list")
 			if err != nil {
 				return c.error(err)
 			}
 
 			switch kind.Name {
 			case "asm-func":
-				err := c.ResolveAsmFuncBody(scope, expr)
+				err := c.ResolveAsmFuncBody(scope, list)
 				if err != nil {
 					return err
 				}
 			case "func":
-				_, err := c.ResolveFuncBody(scope, expr)
+				_, err := c.ResolveFuncBody(scope, list)
 				if err != nil {
 					return err
 				}
 			case "let":
-				err := c.ResolveLetBody(scope, expr)
+				err := c.ResolveLetBody(scope, list)
 				if err != nil {
 					return err
 				}

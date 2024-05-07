@@ -253,14 +253,23 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 	for _, file := range files {
 	consts:
 		for _, expr := range file.Expressions {
+			if _, ok := expr.(*ast.ExpressionComment); ok {
+				continue
+			}
+
+			list, ok := expr.(*ast.List)
+			if !ok {
+				return nil, fmt.Errorf("%s: invalid expression: got %s, want list", fset.Position(expr.Pos()), expr)
+			}
+
 			// Skip other definitions.
-			if expr.Elements[0].(*ast.Identifier).Name != "let" {
+			if list.Elements[0].(*ast.Identifier).Name != "let" {
 				continue
 			}
 
 			// Process any annotations.
 			var sectionSymbol string
-			for _, anno := range expr.Annotations {
+			for _, anno := range list.Annotations {
 				keyword := anno.X.Elements[0].(*ast.Identifier)
 				switch keyword.Name {
 				case "arch":
@@ -338,7 +347,7 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 
 			// Find the identifier.
 			var name *ast.Identifier
-			switch x := expr.Elements[1].(type) {
+			switch x := list.Elements[1].(type) {
 			case *ast.Identifier:
 				name = x
 			case *ast.List:
@@ -355,15 +364,24 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 	for _, file := range files {
 	funcs:
 		for _, expr := range file.Expressions {
+			if _, ok := expr.(*ast.ExpressionComment); ok {
+				continue
+			}
+
+			list, ok := expr.(*ast.List)
+			if !ok {
+				return nil, fmt.Errorf("%s: invalid expression: got %s, want list", fset.Position(expr.Pos()), expr)
+			}
+
 			// Skip constant definitions.
-			keyword := expr.Elements[0].(*ast.Identifier)
+			keyword := list.Elements[0].(*ast.Identifier)
 			if keyword.Name != "func" && keyword.Name != "asm-func" {
 				continue
 			}
 
 			// Process any annotations.
 			var sectionSymbol string
-			for _, anno := range expr.Annotations {
+			for _, anno := range list.Annotations {
 				keyword := anno.X.Elements[0].(*ast.Identifier)
 				switch keyword.Name {
 				case "arch":
@@ -443,9 +461,9 @@ func Compile(fset *token.FileSet, arch *sys.Arch, pkg *types.Package, files []*a
 			var fun *ssafir.Function
 			switch keyword.Name {
 			case "func":
-				fun, err = compile(fset, arch, pkg, expr, info, sizes)
+				fun, err = compile(fset, arch, pkg, list, info, sizes)
 			case "asm-func":
-				fun, err = assemble(fset, arch, pkg, expr, info, sizes)
+				fun, err = assemble(fset, arch, pkg, list, info, sizes)
 			default:
 				continue
 			}
