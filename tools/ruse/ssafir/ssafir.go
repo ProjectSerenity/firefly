@@ -220,6 +220,10 @@ func (v *Value) print(maxID ID) string {
 
 // String returns the value's ID with a 'v' prefix.
 func (v *Value) String() string {
+	if v == nil {
+		return "<nil>"
+	}
+
 	return fmt.Sprintf("v%d", v.ID)
 }
 
