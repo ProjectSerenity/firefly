@@ -783,7 +783,12 @@ func (c *compiler) CompileSpecialForm(list *ast.List, form *types.SpecialForm, s
 		// Create a new block for what comes
 		// next.
 		endBlock := c.Block(0, list.ParenClose+1, ssafir.BlockNormal)
-		ifBlock.AddSuccessor(endBlock)
+		if ifBlock.Kind != ssafir.BlockReturn {
+			// No point adding a jump if we
+			// return at the end of the block
+			// anyway.
+			ifBlock.AddSuccessor(endBlock)
+		}
 		startBlock.AddSuccessor(endBlock) // So we can reference it later.
 
 		// Add a value in case we store
