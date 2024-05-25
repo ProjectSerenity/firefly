@@ -130,10 +130,16 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	isStdlib := make(map[string]bool)
-	if stdlibFile != "" {
+	if stdlibFile != "" || stdlib.Embedded != nil {
 		perfStep("Decode stdlib")
 
-		pkgs, _, err := stdlib.ParseFile(arch, stdlibFile)
+		var pkgs []*compiler.Package
+		if stdlibFile != "" {
+			pkgs, _, err = stdlib.ParseFile(arch, stdlibFile)
+		} else {
+			pkgs, _, err = stdlib.Parse(arch, stdlib.Embedded)
+		}
+
 		if err != nil {
 			return err
 		}

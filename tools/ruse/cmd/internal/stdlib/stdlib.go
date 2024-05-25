@@ -16,6 +16,10 @@ import (
 	"firefly-os.dev/tools/ruse/types"
 )
 
+// Embedded is an optional embedded copy of
+// the standard library's rstd data.
+var Embedded []byte
+
 // Parse processes the given standard library
 // rstd file, returning the list of packages
 // decoded or an error encountered during the
