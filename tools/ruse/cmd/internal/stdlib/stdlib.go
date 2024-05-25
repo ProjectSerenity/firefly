@@ -20,7 +20,7 @@ import (
 // rstd file, returning the list of packages
 // decoded or an error encountered during the
 // decoding or parsing steps.
-func Parse(arch *sys.Arch, info *types.Info, data []byte) (packages []*compiler.Package, checksums [][]byte, err error) {
+func Parse(arch *sys.Arch, data []byte) (packages []*compiler.Package, checksums [][]byte, err error) {
 	rstd, err := rpkg.NewStdlibDecoder(data)
 	if err != nil {
 		return nil, nil, err
@@ -28,7 +28,7 @@ func Parse(arch *sys.Arch, info *types.Info, data []byte) (packages []*compiler.
 
 	pkgs := rstd.Packages()
 	for _, hdr := range pkgs {
-		depArch, p, checksum, err := rstd.Decode(info, hdr)
+		depArch, p, checksum, err := rstd.Decode(new(types.Info), hdr)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to parse stdlib package %q: %v", hdr.PackageName, err)
 		}
@@ -48,13 +48,13 @@ func Parse(arch *sys.Arch, info *types.Info, data []byte) (packages []*compiler.
 // library rstd file, returning the list of
 // packages decoded or an error encountered
 // during the decoding or parsing steps.
-func ParseFile(arch *sys.Arch, info *types.Info, name string) (packages []*compiler.Package, checksums [][]byte, err error) {
+func ParseFile(arch *sys.Arch, name string) (packages []*compiler.Package, checksums [][]byte, err error) {
 	data, err := os.ReadFile(name)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read rstd %q: %v", name, err)
 	}
 
-	packages, checksums, err = Parse(arch, info, data)
+	packages, checksums, err = Parse(arch, data)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse rstd %q: %v", name, err)
 	}

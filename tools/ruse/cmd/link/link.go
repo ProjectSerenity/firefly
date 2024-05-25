@@ -24,10 +24,10 @@ import (
 
 	"firefly-os.dev/tools/ruse/binary"
 	"firefly-os.dev/tools/ruse/binary/elf"
+	"firefly-os.dev/tools/ruse/cmd/internal/perfdata"
 	"firefly-os.dev/tools/ruse/cmd/internal/stdlib"
 	"firefly-os.dev/tools/ruse/compiler"
 	"firefly-os.dev/tools/ruse/constant"
-	"firefly-os.dev/tools/ruse/internal/cmd/perfdata"
 	"firefly-os.dev/tools/ruse/rpkg"
 	"firefly-os.dev/tools/ruse/ssafir"
 	"firefly-os.dev/tools/ruse/types"
@@ -191,11 +191,9 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 
 	isStdlib := make(map[string]bool)
 	if stdlibFile != "" {
-		info := new(types.Info)
-
 		perfStep("Decode stdlib")
 
-		pkgs, checksums, err := stdlib.ParseFile(arch, info, stdlibFile)
+		pkgs, checksums, err := stdlib.ParseFile(arch, stdlibFile)
 		if err != nil {
 			return err
 		}

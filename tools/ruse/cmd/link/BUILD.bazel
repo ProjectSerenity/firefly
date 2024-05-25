@@ -16,10 +16,10 @@ go_library(
     deps = [
         "//tools/ruse/binary",
         "//tools/ruse/binary/elf",
+        "//tools/ruse/cmd/internal/perfdata",
         "//tools/ruse/cmd/internal/stdlib",
         "//tools/ruse/compiler",
         "//tools/ruse/constant",
-        "//tools/ruse/internal/cmd/perfdata",
         "//tools/ruse/rpkg",
         "//tools/ruse/ssafir",
         "//tools/ruse/types",

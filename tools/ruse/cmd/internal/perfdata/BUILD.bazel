@@ -8,7 +8,7 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "perfdata",
     srcs = ["perfdata.go"],
-    importpath = "firefly-os.dev/tools/ruse/internal/cmd/perfdata",
+    importpath = "firefly-os.dev/tools/ruse/cmd/internal/perfdata",
     visibility = ["//visibility:public"],
 )
 

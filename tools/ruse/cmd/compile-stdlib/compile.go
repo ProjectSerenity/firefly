@@ -15,7 +15,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"firefly-os.dev/tools/ruse/internal/cmd/perfdata"
+	"firefly-os.dev/tools/ruse/cmd/internal/perfdata"
 	"firefly-os.dev/tools/ruse/rpkg"
 	"firefly-os.dev/tools/ruse/sys"
 )
