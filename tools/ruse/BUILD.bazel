@@ -27,11 +27,22 @@ go_library(
 )
 
 go_binary(
-    name = "ruse",
+    name = "ruse_nostdlib",
     embed = [":ruse_lib"],
+    visibility = ["//tools/ruse:__subpackages__"],
+)
+
+go_binary(
+    name = "ruse",
+    srcs = ["stdlib.go"],
+    embed = [":ruse_lib"],
+    embedsrcs = [":stdlib"],
     pure = "on",
     static = "on",
     visibility = ["//visibility:public"],
+    deps = [
+        "//tools/ruse/cmd/internal/stdlib",
+    ],
 )
 
 ruse_standard_library(

@@ -61,7 +61,7 @@ ruse_internal_library = rule(
             doc = "Source files to compile.",
         ),
         "_ruse": attr.label(
-            default = "//tools/ruse",
+            default = "//tools/ruse:ruse_nostdlib",
             executable = True,
             doc = "The Ruse tool.",
             cfg = "exec",
@@ -182,7 +182,7 @@ ruse_standard_library = rule(
             doc = "The package's full package path.",
         ),
         "_ruse": attr.label(
-            default = "//tools/ruse",
+            default = "//tools/ruse:ruse_nostdlib",
             executable = True,
             doc = "The Ruse tool.",
             cfg = "exec",
