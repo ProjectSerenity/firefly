@@ -1,0 +1,19 @@
+# Copyright 2024 The Firefly Authors.
+#
+# Use of this source code is governed by a BSD 3-clause
+# license that can be found in the LICENSE file.
+
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "stdlib",
+    srcs = ["stdlib.go"],
+    importpath = "firefly-os.dev/tools/ruse/cmd/internal/stdlib",
+    visibility = ["//tools/ruse:__subpackages__"],
+    deps = [
+        "//tools/ruse/compiler",
+        "//tools/ruse/rpkg",
+        "//tools/ruse/sys",
+        "//tools/ruse/types",
+    ],
+)

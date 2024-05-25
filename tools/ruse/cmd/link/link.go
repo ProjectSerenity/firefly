@@ -24,6 +24,7 @@ import (
 
 	"firefly-os.dev/tools/ruse/binary"
 	"firefly-os.dev/tools/ruse/binary/elf"
+	"firefly-os.dev/tools/ruse/cmd/internal/stdlib"
 	"firefly-os.dev/tools/ruse/compiler"
 	"firefly-os.dev/tools/ruse/constant"
 	"firefly-os.dev/tools/ruse/internal/cmd/perfdata"
@@ -44,7 +45,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("link", flag.ExitOnError)
 
 	var help, symbolTable, provenance, aslr, debugOptimisations, debugPerformance bool
-	var out, stdlib string
+	var out, stdlibFile string
 	var rpkgs []string
 	var encode binaryEncoder
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
@@ -71,7 +72,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		rpkgs = append(rpkgs, s)
 		return nil
 	})
-	flags.StringVar(&stdlib, "stdlib", "", "The standard library rpkg file.")
+	flags.StringVar(&stdlibFile, "stdlib", "", "The standard library rpkg file.")
 	flags.StringVar(&out, "o", "", "The name of the compiled binary.")
 
 	flags.Usage = func() {
@@ -189,43 +190,27 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	isStdlib := make(map[string]bool)
-	if stdlib != "" {
-		data, err := os.ReadFile(stdlib)
-		if err != nil {
-			return fmt.Errorf("failed to read stdlib rpkg %q: %v", stdlib, err)
-		}
-
-		rstd, err := rpkg.NewStdlibDecoder(data)
-		if err != nil {
-			return fmt.Errorf("failed to parse stdlib rstd %q: %v", stdlib, err)
-		}
+	if stdlibFile != "" {
+		info := new(types.Info)
 
 		perfStep("Decode stdlib")
 
-		pkgs := rstd.Packages()
-		for _, hdr := range pkgs {
-			info := new(types.Info)
-			depArch, p, checksum, err := rstd.Decode(info, hdr)
-			if err != nil {
-				return fmt.Errorf("failed to parse stdlib rpkg %q from %q: %v", hdr.PackageName, stdlib, err)
-			}
+		pkgs, checksums, err := stdlib.ParseFile(arch, info, stdlibFile)
+		if err != nil {
+			return err
+		}
 
-			if depArch != arch {
-				return fmt.Errorf("cannot import stdlib rpkg %q: compiled for %s: need %s", hdr.PackageName, depArch.Name, arch.Name)
-			}
+		for i, pkg := range pkgs {
+			isStdlib[pkg.Path] = true
+			seenPackages[pkg.Path] = true
 
-			isStdlib[hdr.PackageName] = true
-			seenPackages[hdr.PackageName] = true
-
-			packages = append(packages, p)
+			packages = append(packages, pkg)
 			if provenance {
 				rpkgsData.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-					b.AddBytes([]byte(p.Path))
+					b.AddBytes([]byte(pkg.Path))
 				})
-				rpkgsData.AddBytes(checksum)
+				rpkgsData.AddBytes(checksums[i])
 			}
-
-			perfStep("Debug stdlib package %q", p.Path)
 		}
 	}
 

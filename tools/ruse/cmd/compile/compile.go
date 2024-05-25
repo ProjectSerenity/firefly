@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"firefly-os.dev/tools/ruse/ast"
+	"firefly-os.dev/tools/ruse/cmd/internal/stdlib"
 	"firefly-os.dev/tools/ruse/compiler"
 	"firefly-os.dev/tools/ruse/internal/cmd/perfdata"
 	"firefly-os.dev/tools/ruse/parser"
@@ -38,7 +39,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	flags := flag.NewFlagSet("compile", flag.ExitOnError)
 
 	var help, debugPerformance bool
-	var out, pkgName, stdlib string
+	var out, pkgName, stdlibFile string
 	var rpkgs, debugFunctions []string
 	var arch *sys.Arch
 	flags.BoolVar(&help, "h", false, "Show this message and exit.")
@@ -66,7 +67,7 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 		return nil
 	})
 	flags.StringVar(&pkgName, "package", "", "The full package name.")
-	flags.StringVar(&stdlib, "stdlib", "", "The standard library rpkg file.")
+	flags.StringVar(&stdlibFile, "stdlib", "", "The standard library rpkg file.")
 	flags.StringVar(&out, "o", "", "The name of the compiled rpkg.")
 
 	flags.Usage = func() {
@@ -129,35 +130,19 @@ func Main(ctx context.Context, w io.Writer, args []string) error {
 	}
 
 	isStdlib := make(map[string]bool)
-	if stdlib != "" {
-		data, err := os.ReadFile(stdlib)
-		if err != nil {
-			return fmt.Errorf("failed to read stdlib rpkg %q: %v", stdlib, err)
-		}
-
-		rstd, err := rpkg.NewStdlibDecoder(data)
-		if err != nil {
-			return fmt.Errorf("failed to parse stdlib rstd %q: %v", stdlib, err)
-		}
+	if stdlibFile != "" {
+		info := new(types.Info)
 
 		perfStep("Decode stdlib")
 
-		pkgs := rstd.Packages()
-		for _, hdr := range pkgs {
-			info := new(types.Info)
-			depArch, p, _, err := rstd.Decode(info, hdr)
-			if err != nil {
-				return fmt.Errorf("failed to parse stdlib rpkg %q from %q: %v", hdr.PackageName, stdlib, err)
-			}
+		pkgs, _, err := stdlib.ParseFile(arch, info, stdlibFile)
+		if err != nil {
+			return err
+		}
 
-			if depArch != arch {
-				return fmt.Errorf("cannot import stdlib rpkg %q: compiled for %s: need %s", hdr.PackageName, depArch.Name, arch.Name)
-			}
-
-			isStdlib[hdr.PackageName] = true
-			availableImports[hdr.PackageName] = p.Types
-
-			perfStep("Decode stdlib package %q", p.Path)
+		for _, pkg := range pkgs {
+			isStdlib[pkg.Path] = true
+			availableImports[pkg.Path] = pkg.Types
 		}
 	}
 
