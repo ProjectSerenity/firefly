@@ -1,0 +1,105 @@
+; Copyright 2024 The Firefly Authors.
+;
+; Use of this source code is governed by a BSD 3-clause
+; license that can be found in the LICENSE file.
+
+(package main)
+
+(func (main)
+	(let v (random-uint8))
+	(print-hex-uint8 1 v)
+	(if (= (and v 1) 0)
+		(print-string 1 " is even.\n")
+		(print-string 1 " is odd.\n"))
+	(exit v))
+
+; Rreturn a random 8-bit integer.
+'(abi (result rax))
+(asm-func (random-uint8 uint8)
+	'again
+	(rdrand ax)   ; We ignore the upper 8 bits.
+	(jnc 'again)  ; Retry if we got zeroes.
+	(ret))
+
+; Print a byte to the given file descriptor,
+; encoded as two hexadecimal digits.
+'(abi
+	(params rdi rax)
+	(scratch rax rdx rcx rsi r11))
+(asm-func (print-hex-uint8 (fd int) (v uint8))
+	; We turn the input byte into a
+	; hexadecimal string, handling
+	; each 4-bit nibble separately.
+	;
+	; We do this in reverse order
+	; (appending "x0") so that we
+	; can push the result onto the
+	; stack (in reverse order) and
+	; then use the stack as our
+	; string buffer.
+	;
+	; Finally, we syscall write to
+	; print our string.
+
+	(mov dl al)    ; Copy the input byte.
+	(and eax 0xf)  ; Keep only the bottom nibble.
+	(cmp al 0xa)   ; Compare against 10.
+
+	(jl 'first-nibble-is-number)  ; Jump if 0-9.
+
+	(sub al 0xa)   ; Make relative to 'a'.
+	(add al 0x61)  ; Add 'a'.
+	(jmp 'first-nibble-done)
+
+	'first-nibble-is-number
+	(add al 0x30)  ; Add '0'.
+
+	'first-nibble-done
+	; We now have the first letter
+	; in AL.
+	(shl eax 12)   ; Move it over (12 bits because we shift 4 right later).
+	(mov al dl)    ; Copy the full value back to AL.
+	(and al 0xf0)  ; Keep only the top nibble.
+	(shr eax 4)    ; Move the top nibble into the bottom.
+	(cmp al 0xa)   ; Compare against 10.
+
+	(jl 'second-nibble-is-number)  ; Jump if 0-9.
+
+	(sub al 0xa)   ; Make relative to 'a'.
+	(add al 0x61)  ; Add 'a'.
+	(jmp 'second-nibble-done)
+
+	'second-nibble-is-number
+	(add al 0x30)  ; Add '0'.
+
+	'second-nibble-done
+	(shl rax 16)     ; Move the two digits to the left to make space for "x0".
+	(mov ax 0x7830)  ; Append "x0" at the end.
+	(push rax)       ; Store the string on the stack.
+	(mov rsi rsp)    ; We use the stack as our string buffer.
+	(mov eax 1)      ; sys_write
+	(mov edx 4)      ; size_t count.
+	(syscall)
+
+	(pop rax)  ; Restore the stack.
+	(ret))
+
+; Print a string to the given file descriptor.
+'(abi
+	(params rdi rsi rdx)
+	(scratch rax rdx rcx rsi r11))
+(asm-func (print-string (fd int) (msg string))
+	(mov eax 1)  ; sys_write
+	(syscall)    ; write(fd, msg, len(msg))
+
+	(ret))
+
+; Exit the process with the given status code.
+'(abi
+	(params rdi)
+	(scratch rax rdx rcx rsi r11))
+(asm-func (exit (code int))
+	(mov eax 60)  ; sys_exit
+	(syscall)     ; exit(code)
+
+	(ret))
