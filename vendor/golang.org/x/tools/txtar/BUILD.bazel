@@ -9,13 +9,9 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "txtar",
-    srcs = glob(
-        include = [
-            "*.go",
-            "*.s",
-        ],
-        exclude = ["*_test.go"],
-    ),
+    srcs = [
+        "archive.go",
+    ],
     importpath = "golang.org/x/tools/txtar",
     tags = [
         "manual",  # Only build when needed as a dependency.
@@ -26,7 +22,12 @@ go_library(
 go_test(
     name = "txtar_test",
     size = "small",
-    srcs = glob(["*_test.go"]),
-    data = glob(["testdata/**"]),
+    srcs = [
+        "archive_test.go",
+    ],
+    data = glob(
+        ["testdata/**"],
+        allow_empty = True,
+    ),
     embed = [":txtar"],
 )

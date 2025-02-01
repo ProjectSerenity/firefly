@@ -9,13 +9,9 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "testprotos",
-    srcs = glob(
-        include = [
-            "*.go",
-            "*.s",
-        ],
-        exclude = ["*_test.go"],
-    ),
+    srcs = [
+        "protos.go",
+    ],
     importpath = "github.com/google/go-cmp/cmp/internal/testprotos",
     tags = [
         "manual",  # Only build when needed as a dependency.
@@ -26,7 +22,11 @@ go_library(
 go_test(
     name = "testprotos_test",
     size = "small",
-    srcs = glob(["*_test.go"]),
-    data = glob(["testdata/**"]),
+    srcs = [
+    ],
+    data = glob(
+        ["testdata/**"],
+        allow_empty = True,
+    ),
     embed = [":testprotos"],
 )

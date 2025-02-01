@@ -9,13 +9,14 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "x86asm",
-    srcs = glob(
-        include = [
-            "*.go",
-            "*.s",
-        ],
-        exclude = ["*_test.go"],
-    ),
+    srcs = [
+        "decode.go",
+        "gnu.go",
+        "inst.go",
+        "intel.go",
+        "plan9x.go",
+        "tables.go",
+    ],
     importpath = "golang.org/x/arch/x86/x86asm",
     tags = [
         "manual",  # Only build when needed as a dependency.
@@ -26,7 +27,21 @@ go_library(
 go_test(
     name = "x86asm_test",
     size = "small",
-    srcs = glob(["*_test.go"]),
-    data = glob(["testdata/**"]),
+    srcs = [
+        "decode_test.go",
+        "ext_test.go",
+        "format_test.go",
+        "inst_test.go",
+        "objdump_test.go",
+        "objdumpext_test.go",
+        "plan9ext_test.go",
+        "plan9x_test.go",
+        "xed_test.go",
+        "xedext_test.go",
+    ],
+    data = glob(
+        ["testdata/**"],
+        allow_empty = True,
+    ),
     embed = [":x86asm"],
 )

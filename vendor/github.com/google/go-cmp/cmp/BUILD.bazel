@@ -9,13 +9,19 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "cmp",
-    srcs = glob(
-        include = [
-            "*.go",
-            "*.s",
-        ],
-        exclude = ["*_test.go"],
-    ),
+    srcs = [
+        "compare.go",
+        "export.go",
+        "options.go",
+        "path.go",
+        "report.go",
+        "report_compare.go",
+        "report_references.go",
+        "report_reflect.go",
+        "report_slices.go",
+        "report_text.go",
+        "report_value.go",
+    ],
     importpath = "github.com/google/go-cmp/cmp",
     tags = [
         "manual",  # Only build when needed as a dependency.
@@ -34,8 +40,16 @@ go_library(
 go_test(
     name = "cmp_test",
     size = "small",
-    srcs = glob(["*_test.go"]),
-    data = glob(["testdata/**"]),
+    srcs = [
+        "compare_test.go",
+        "example_reporter_test.go",
+        "example_test.go",
+        "options_test.go",
+    ],
+    data = glob(
+        ["testdata/**"],
+        allow_empty = True,
+    ),
     embed = [":cmp"],
     deps = [
         "//vendor/github.com/google/go-cmp/cmp/cmpopts",

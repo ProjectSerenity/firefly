@@ -9,13 +9,11 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "cryptobyte",
-    srcs = glob(
-        include = [
-            "*.go",
-            "*.s",
-        ],
-        exclude = ["*_test.go"],
-    ),
+    srcs = [
+        "asn1.go",
+        "builder.go",
+        "string.go",
+    ],
     importpath = "golang.org/x/crypto/cryptobyte",
     tags = [
         "manual",  # Only build when needed as a dependency.
@@ -29,7 +27,14 @@ go_library(
 go_test(
     name = "cryptobyte_test",
     size = "small",
-    srcs = glob(["*_test.go"]),
-    data = glob(["testdata/**"]),
+    srcs = [
+        "asn1_test.go",
+        "cryptobyte_test.go",
+        "example_test.go",
+    ],
+    data = glob(
+        ["testdata/**"],
+        allow_empty = True,
+    ),
     embed = [":cryptobyte"],
 )

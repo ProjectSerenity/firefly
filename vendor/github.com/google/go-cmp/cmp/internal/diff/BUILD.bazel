@@ -9,13 +9,11 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "diff",
-    srcs = glob(
-        include = [
-            "*.go",
-            "*.s",
-        ],
-        exclude = ["*_test.go"],
-    ),
+    srcs = [
+        "debug_disable.go",
+        "debug_enable.go",
+        "diff.go",
+    ],
     importpath = "github.com/google/go-cmp/cmp/internal/diff",
     tags = [
         "manual",  # Only build when needed as a dependency.
@@ -29,7 +27,12 @@ go_library(
 go_test(
     name = "diff_test",
     size = "small",
-    srcs = glob(["*_test.go"]),
-    data = glob(["testdata/**"]),
+    srcs = [
+        "diff_test.go",
+    ],
+    data = glob(
+        ["testdata/**"],
+        allow_empty = True,
+    ),
     embed = [":diff"],
 )

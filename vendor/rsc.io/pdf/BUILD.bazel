@@ -9,13 +9,14 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "pdf",
-    srcs = glob(
-        include = [
-            "*.go",
-            "*.s",
-        ],
-        exclude = ["*_test.go"],
-    ),
+    srcs = [
+        "lex.go",
+        "name.go",
+        "page.go",
+        "ps.go",
+        "read.go",
+        "text.go",
+    ],
     importpath = "rsc.io/pdf",
     tags = [
         "manual",  # Only build when needed as a dependency.
@@ -26,7 +27,11 @@ go_library(
 go_test(
     name = "pdf_test",
     size = "small",
-    srcs = glob(["*_test.go"]),
-    data = glob(["testdata/**"]),
+    srcs = [
+    ],
+    data = glob(
+        ["testdata/**"],
+        allow_empty = True,
+    ),
     embed = [":pdf"],
 )

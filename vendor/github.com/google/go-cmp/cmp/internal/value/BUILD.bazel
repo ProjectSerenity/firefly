@@ -9,13 +9,11 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "value",
-    srcs = glob(
-        include = [
-            "*.go",
-            "*.s",
-        ],
-        exclude = ["*_test.go"],
-    ),
+    srcs = [
+        "name.go",
+        "pointer.go",
+        "sort.go",
+    ],
     importpath = "github.com/google/go-cmp/cmp/internal/value",
     tags = [
         "manual",  # Only build when needed as a dependency.
@@ -26,8 +24,14 @@ go_library(
 go_test(
     name = "value_test",
     size = "small",
-    srcs = glob(["*_test.go"]),
-    data = glob(["testdata/**"]),
+    srcs = [
+        "name_test.go",
+        "sort_test.go",
+    ],
+    data = glob(
+        ["testdata/**"],
+        allow_empty = True,
+    ),
     embed = [":value"],
     deps = [
         "//vendor/github.com/google/go-cmp/cmp",

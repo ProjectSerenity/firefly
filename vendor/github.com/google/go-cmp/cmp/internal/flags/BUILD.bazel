@@ -9,13 +9,9 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "flags",
-    srcs = glob(
-        include = [
-            "*.go",
-            "*.s",
-        ],
-        exclude = ["*_test.go"],
-    ),
+    srcs = [
+        "flags.go",
+    ],
     importpath = "github.com/google/go-cmp/cmp/internal/flags",
     tags = [
         "manual",  # Only build when needed as a dependency.
@@ -26,7 +22,11 @@ go_library(
 go_test(
     name = "flags_test",
     size = "small",
-    srcs = glob(["*_test.go"]),
-    data = glob(["testdata/**"]),
+    srcs = [
+    ],
+    data = glob(
+        ["testdata/**"],
+        allow_empty = True,
+    ),
     embed = [":flags"],
 )
