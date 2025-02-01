@@ -11,6 +11,7 @@ go_library(
     name = "txtar",
     srcs = [
         "archive.go",
+        "fs.go",
     ],
     importpath = "golang.org/x/tools/txtar",
     tags = [
@@ -24,6 +25,7 @@ go_test(
     size = "small",
     srcs = [
         "archive_test.go",
+        "fs_test.go",
     ],
     data = glob(
         ["testdata/**"],

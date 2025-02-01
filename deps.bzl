@@ -71,7 +71,7 @@ go = [
     ),
     module(
         name = "golang.org/x/arch",
-        version = "v0.7.0",
+        version = "v0.13.0",
         packages = [
             package(
                 name = "golang.org/x/arch/x86/x86asm",
@@ -84,7 +84,7 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.15.0",
+        version = "v0.32.0",
         packages = [
             package(
                 name = "golang.org/x/crypto/cryptobyte/asn1",
@@ -99,7 +99,7 @@ go = [
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.20.0",
+        version = "v0.29.0",
         packages = [
             package(
                 name = "golang.org/x/tools/txtar",

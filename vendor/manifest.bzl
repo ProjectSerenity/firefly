@@ -13,8 +13,8 @@ go = [
     ),
     module(
         name = "golang.org/x/arch",
-        version = "v0.7.0",
-        digest = "sha256:14b574e32d53e033085d9a6fcd9110dfba54c48cbe8b3785768008767e13bd59",
+        version = "v0.13.0",
+        digest = "sha256:0e36b946f25acbd10ee1e87bcfabf924fc2287784e2b7039de21b60bf24f6c9d",
         patch_args = [
             "-p1",
         ],
@@ -25,13 +25,13 @@ go = [
     ),
     module(
         name = "golang.org/x/crypto",
-        version = "v0.15.0",
-        digest = "sha256:bd93952fff5fb622701cf3c0d14118ee3962ad828ae01dfca528bb646edae835",
+        version = "v0.32.0",
+        digest = "sha256:8ea8f15db383f77024901d2e74399c28b89b6ed317e39183a57e260cb89c7f44",
     ),
     module(
         name = "golang.org/x/tools",
-        version = "v0.20.0",
-        digest = "sha256:6e6f2de197b43b456b4b552d73be11d9c81b5b89a364c55d9a0125ffe4471b7a",
+        version = "v0.29.0",
+        digest = "sha256:354e251333e72e09a5d337a45926b5f191bbc57767524c6cae3bed0c438f8194",
     ),
     module(
         name = "rsc.io/pdf",
