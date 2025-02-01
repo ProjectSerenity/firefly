@@ -34,7 +34,6 @@ go_test(
     srcs = [
         "rpkg_test.go",
     ],
-    data = glob(["testdata/**"]),
     embed = [":rpkg"],
     deps = [
         "//tools/ruse/ast",

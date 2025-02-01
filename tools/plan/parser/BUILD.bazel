@@ -21,7 +21,6 @@ go_test(
     name = "parser_test",
     size = "small",
     srcs = ["parser_test.go"],
-    data = glob(["testdata/**"]),
     embed = [":parser"],
     deps = [
         "//tools/plan/ast",
