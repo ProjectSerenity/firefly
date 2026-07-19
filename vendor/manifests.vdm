@@ -1,0 +1,22 @@
+go-modules:
+	module "github.com/google/go-cmp" v0.6.0
+		download: sha256:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
+		packages: sha256:rL8qZIed3uiVJ5Z2U34MnWVkzPt2T+ivPU8c8vr/QdI=
+		vendored: sha256:9ETKGEVzbUIEYUeswhb0cSbG6wvZFikNOXqmcAe6K2U=
+	module "golang.org/x/arch" v0.13.0
+		download: sha256:KCkqVVV1kGg0X87TFysjCJ8MxtZEIU4Ja/yXGeoECdA=
+		packages: sha256:pXaqtrH5Msq7NO4FFzx4dv7+jIBSM53ZWTERCCfyUHM=
+		vendored: sha256:Dja5RvJay9EO4eh7z6v5JPwih3hOK3A53iG2C/JPbJ0=
+		patches:  sha256:ikXCucur6OqbF66bGhT7KQKkp0t+ce0Tph19TYtnork=
+	module "golang.org/x/crypto" v0.32.0
+		download: sha256:euUpcYgM8WcP71gNpTqQCn6rC2t6ULUPiOzfWaXVVfc=
+		packages: sha256:E13eicLNXIzGcaUNWtCAQE7fXsfWwd6qOPYo4wfIfWw=
+		vendored: sha256:IC6ENy34UL78uL9DudxR2fbmxT69EUt5xCTw0H5RxqA=
+	module "golang.org/x/tools" v0.29.0
+		download: sha256:Xx0h3TtM9rzQpQuR4dKLrdglAmCEN5Oi+P74JdhdzXE=
+		packages: sha256:KfnI/iDBAheZTJ5gKeI+gFVStjoVQEw5w8d2CQRswPU=
+		vendored: sha256:NU4lEzPnLgml0zekWSa18ZG7xXdnUkxsrjvtDEOPgZQ=
+	module "rsc.io/pdf" v0.1.1
+		download: sha256:k1MczvYDUvJBe93bYd7wrZLLUEcLZAuF824/I4e5Xr4=
+		packages: sha256:KK59GPXaMFlSAoODztJ2DsjXXNo6pnz/uAyw5JjYG70=
+		vendored: sha256:28/O2G4EdrZjYQVQEHIq0o+VLldFpD3T0/zYR9nyNzM=
