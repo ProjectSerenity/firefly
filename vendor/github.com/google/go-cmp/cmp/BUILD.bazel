@@ -31,8 +31,6 @@ go_library(
         "//vendor/github.com/google/go-cmp/cmp/internal/diff",
         "//vendor/github.com/google/go-cmp/cmp/internal/flags",
         "//vendor/github.com/google/go-cmp/cmp/internal/function",
-        "//vendor/github.com/google/go-cmp/cmp/internal/testprotos",
-        "//vendor/github.com/google/go-cmp/cmp/internal/teststructs",
         "//vendor/github.com/google/go-cmp/cmp/internal/value",
     ],
 )
@@ -53,6 +51,8 @@ go_test(
     embed = [":cmp"],
     deps = [
         "//vendor/github.com/google/go-cmp/cmp/cmpopts",
+        "//vendor/github.com/google/go-cmp/cmp/internal/testprotos",
+        "//vendor/github.com/google/go-cmp/cmp/internal/teststructs",
         "//vendor/github.com/google/go-cmp/cmp/internal/teststructs/foo1",
         "//vendor/github.com/google/go-cmp/cmp/internal/teststructs/foo2",
     ],
