@@ -1,5 +1,5 @@
 go-modules:
-	module "github.com/google/go-cmp" v0.6.0
+	module "github.com/google/go-cmp" v0.7.0
 		packages:
 			package "github.com/google/go-cmp/cmp"
 				deps:
@@ -38,13 +38,13 @@ go-modules:
 			"bazel/patches/golang.org_x_arch.patch"
 		packages:
 			package "golang.org/x/arch/x86/x86asm"
-	module "golang.org/x/crypto" v0.32.0
+	module "golang.org/x/crypto" v0.54.0
 		packages:
 			package "golang.org/x/crypto/cryptobyte"
 				deps:
 					"golang.org/x/crypto/cryptobyte/asn1"
 			package "golang.org/x/crypto/cryptobyte/asn1"
-	module "golang.org/x/tools" v0.29.0
+	module "golang.org/x/tools" v0.48.0
 		packages:
 			package "golang.org/x/tools/txtar"
 	module "rsc.io/pdf" v0.1.1
