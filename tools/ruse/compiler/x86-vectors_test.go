@@ -7,7 +7,6 @@ package compiler
 
 import (
 	"bytes"
-	"cmp"
 	"compress/gzip"
 	"encoding/csv"
 	"encoding/hex"

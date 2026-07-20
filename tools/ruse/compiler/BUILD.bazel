@@ -74,9 +74,9 @@ go_test(
         "manual",  # Only run tests if we ask explicitly.
     ],
     deps = [
+        "//tools/diff",
         "//tools/ruse/parser",
         "//vendor/github.com/google/go-cmp/cmp",
         "//vendor/github.com/google/go-cmp/cmp/cmpopts",
-        "//vendor/rsc.io/diff",
     ],
 )
